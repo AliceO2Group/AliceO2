@@ -18,6 +18,8 @@
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
+#include "Framework/Signpost.h"
+
 #include "ScopedExit.h"
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
@@ -81,6 +83,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
 {
+  StateMonitoring<DataProcessingStatus>::start();
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
@@ -184,7 +187,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   assert(mSpec.inputChannels.empty() == false);
   assert(parts.Size() > 0);
 
-  static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
   assert(!mSpec.inputs.empty());
@@ -193,10 +195,9 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
-  monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data"});
-      monitoringService.send({ DataProcessingStatus::IN_FAIRMQ, "dpl/in_handle_data"});
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
       monitoringService.flushBuffer(); });
 
   auto& device = *this;
@@ -311,10 +312,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // fine grain control what is exposed at each state.
   // FIXME: I should use a different id for this state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
-  monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data"});
-      monitoringService.send({ DataProcessingStatus::IN_FAIRMQ, "dpl/in_handle_data"});
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
       monitoringService.flushBuffer(); });
 
   auto reportError = [&device](const char* message) {
@@ -363,22 +363,18 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
                              &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
-      monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
-      monitoringService.send({ DataProcessingStatus::IN_DPL_STATEFUL_CALLBACK, "dpl/in_handle_data" });
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
       statefulProcess(processContext);
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+      processingCount++;
     }
     if (statelessProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
-      monitoringService.send({ processingCount++, "dpl/stateless_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
-      monitoringService.send({ DataProcessingStatus::IN_DPL_STATELESS_CALLBACK, "dpl/in_handle_data" });
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
       statelessProcess(processContext);
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+      processingCount++;
     }
 
     DataProcessor::doSend(device, context);
@@ -390,14 +386,14 @@ bool DataProcessingDevice::tryDispatchComputation()
 
   // Error handling means printing the error and updating the metric
   auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
-    monitoringService.send({ DataProcessingStatus::IN_DPL_ERROR_CALLBACK, "dpl/in_handle_data" });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
       monitoringService.send({ 1, "error" });
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
-    monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   };
 
   // I need a preparation step which gets the current timeslice id and
