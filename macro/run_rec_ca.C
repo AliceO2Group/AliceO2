@@ -22,7 +22,6 @@
 
 #include "ITSBase/GeometryTGeo.h"
 
-#include "ITStracking/Event.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/Vertexer.h"
@@ -40,8 +39,8 @@ void run_rec_ca_its(std::string path = "./",
                     std::string paramfilename = "o2sim_par.root")
 {
 
-  o2::ITS::CA::Tracker<false> tracker;
-  o2::ITS::CA::Event event;
+  o2::ITS::Tracker<false> tracker;
+  o2::ITS::Event event;
 
   if (path.back() != '/') {
     path += '/';
@@ -123,11 +122,11 @@ void run_rec_ca_its(std::string path = "./",
     if (isContITS) {
       int nclLeft = clusters->size();
       while (nclLeft > 0) {
-        int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
+        int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
         if (nclUsed) {
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
 
-          o2::ITS::CA::Vertexer vertexer(event);
+          o2::ITS::Vertexer vertexer(event);
           vertexer.setROFrame(roFrame);
           vertexer.initialise(initParams);
           vertexer.findTracklets();
@@ -144,8 +143,8 @@ void run_rec_ca_its(std::string path = "./",
       }
     } else { // triggered mode
       cout << "Event " << iEvent << std::endl;
-      o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
-      o2::ITS::CA::Vertexer vertexer(event);
+      o2::ITS::IOUtils::loadEventData(event, clusters, labels);
+      o2::ITS::Vertexer vertexer(event);
       vertexer.initialise(initParams);
       vertexer.findTracklets();
       vertexer.findVertices();

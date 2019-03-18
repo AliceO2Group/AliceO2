@@ -21,6 +21,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
+#include <iostream>
 #endif
 void readClusterMCtruth(std::string filename)
 {

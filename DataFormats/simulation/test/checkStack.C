@@ -6,6 +6,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "TFile.h"
+#include "TTree.h"
 #endif
 #ifdef NDEBUG
 #undef NDEBUG

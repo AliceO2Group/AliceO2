@@ -6,6 +6,15 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+#include "TGeant4.h"
+#include "TString.h"
+#include "TPythia6Decayer.h"
+#include "FairRunSim.h"
+#include "TSystem.h"
+#include "TG4RunConfiguration.h"
+#endif
 #include "commonConfig.C"
 
 // Configuration macro for Geant4 VirtualMC

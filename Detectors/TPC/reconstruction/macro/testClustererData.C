@@ -20,6 +20,7 @@
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCReconstruction/GBTFrameContainer.h"
 #endif
 

@@ -8,6 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TSystem.h"
+#endif
+
 void addInclude()
 {
   gSystem->AddIncludePath("-I$O2_ROOT/include -I$FAIRROOT_ROOT/include -I$VC_ROOT/include -I$BOOST_ROOT/include -I$MS_GSL_ROOT/include");
