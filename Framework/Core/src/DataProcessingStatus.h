@@ -16,11 +16,10 @@ namespace framework
 {
 
 enum DataProcessingStatus {
-  IN_FAIRMQ = 0,
-  IN_DPL_WRAPPER = 1,
-  IN_DPL_STATEFUL_CALLBACK = 2,
-  IN_DPL_STATELESS_CALLBACK = 3,
-  IN_DPL_ERROR_CALLBACK = 4
+  ID = 0,
+  IN_DPL_OVERHEAD = 0,
+  IN_DPL_USER_CALLBACK = 1,
+  IN_DPL_ERROR_CALLBACK = 2
 };
 
 } // namespace framework
