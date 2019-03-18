@@ -94,7 +94,6 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 ///   here because the configuration is available only at this point.
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init() {
-  LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
   // For some reason passing rateLogging does not work anymore. 
   // This makes sure we never have more than one notification per minute.
   for (auto& x : fChannels) {
@@ -125,7 +124,6 @@ void DataProcessingDevice::Init() {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
   }
-  LOG(DEBUG) << "DataProcessingDevice::InitTask::END";
 }
 
 void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
@@ -213,9 +211,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
     // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
     monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
 
-    for (size_t i = 0; i < parts.Size() ; ++i) {
-      LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
-    }
     if (parts.Size() % 2) {
       return false;
     }
@@ -235,9 +230,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
         LOG(ERROR) << "Header stack does not contain DataProcessingHeader";
         return false;
       }
-      LOG(DEBUG) << "Timeslice is " << dph->startTime;
-      LOG(DEBUG) << " DataOrigin is " << dh->dataOrigin.str;
-      LOG(DEBUG) << " DataDescription is " << dh->dataDescription.str;
     }
     return true;
   };
@@ -259,7 +251,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
         reportError("Unable to relay part.");
         return;
       }
-      LOG(DEBUG) << "Relaying part idx: " << headerIndex;
     }
   };
 
@@ -335,7 +326,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
   auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
-    LOG(DEBUG) << "Getting parts to process";
     int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
     monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
     if (completed.empty()) {
@@ -402,7 +392,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   // it.
   auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
-    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
     rootContext.clear();
     context.clear();
@@ -417,7 +406,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size()*2 == currentSetOfInputs.size());
-    LOG(DEBUG) << "FORWARDING:START:" << slot.index;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -443,10 +431,6 @@ bool DataProcessingDevice::tryDispatchComputation()
       auto &payload = currentSetOfInputs[ii*2+1];
 
       for (auto forward : forwards) {
-        LOG(DEBUG) << "Input part content";
-        LOG(DEBUG) << dh->dataOrigin.str;
-        LOG(DEBUG) << dh->dataDescription.str;
-        LOG(DEBUG) << dh->subSpecification;
         if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)
             && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
@@ -464,22 +448,16 @@ bool DataProcessingDevice::tryDispatchComputation()
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-          LOG(DEBUG) << "Forwarding data to " << forward.channel;
-          LOG(DEBUG) << "Forwarded timeslice is " << fdph->startTime;
-          LOG(DEBUG) << "Forwarded channel is " << forward.channel;
           FairMQParts forwardedParts;
           forwardedParts.AddPart(std::move(header));
           forwardedParts.AddPart(std::move(payload));
           assert(forwardedParts.Size() == 2);
           assert(o2::header::get<DataProcessingHeader*>(forwardedParts.At(0)->GetData()));
-          LOG(DEBUG) << o2::header::get<DataProcessingHeader*>(forwardedParts.At(0)->GetData())->startTime;
-          LOG(DEBUG) << forwardedParts.At(0)->GetSize();
           // FIXME: this should use a correct subchannel
           device.Send(forwardedParts, forward.channel, 0);
         }
       }
     }
-    LOG(DEBUG) << "FORWARDING:END";
   };
 
   // We use this to keep track of the latency of the first message we get for a given input record
