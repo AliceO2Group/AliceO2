@@ -34,7 +34,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
   logger->SetLogScreenLevel("INFO");
 
   TStopwatch timer;
-  o2::Base::GeometryManager::loadGeometry(); // needed provisionary, only to write full clusters
+  o2::base::GeometryManager::loadGeometry(); // needed provisionary, only to write full clusters
 
   // Setup clusterizer
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed

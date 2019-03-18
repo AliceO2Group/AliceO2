@@ -35,7 +35,7 @@ namespace ITS
 
 void ClustererDPL::init(InitContext& ic)
 {
-  o2::Base::GeometryManager::loadGeometry(); // for generating full clusters
+  o2::base::GeometryManager::loadGeometry(); // for generating full clusters
   o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 

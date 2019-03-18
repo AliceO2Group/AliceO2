@@ -23,7 +23,7 @@ namespace mch
 
 class Stepper;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   Detector(bool active = true);
@@ -55,7 +55,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   o2::mch::Stepper* mStepper{ nullptr }; //!
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 
@@ -65,13 +65,13 @@ class Detector : public o2::Base::DetImpl<Detector>
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::mch::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

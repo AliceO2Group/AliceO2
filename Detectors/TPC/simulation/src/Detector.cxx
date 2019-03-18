@@ -59,7 +59,7 @@ using std::ifstream;
 using std::ios_base;
 using namespace o2::TPC;
 
-Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("TPC", active), mGeoFileName()
+Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
     mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;
@@ -70,7 +70,7 @@ Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("TPC", active), 
 Detector::Detector() : o2::TPC::Detector(kTRUE) {}
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHitCounter(0),
     mElectronCounter(0),
     mStepCounter(0),
@@ -100,7 +100,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::SetSpecialPhysicsCuts()
 {
-  using namespace o2::Base; // to have enum values of EProc and ECut available
+  using namespace o2::base; // to have enum values of EProc and ECut available
 
   FairRun* fRun = FairRun::Instance();
   if (strcmp(fRun->GetName(), "TGeant3") == 0) {
@@ -339,7 +339,7 @@ void Detector::CreateMaterials()
   Int_t iSXFLD = 2;
   Float_t sXMGMX = 10.0;
   // init the field tracking params
-  o2::Base::Detector::initFieldTrackingParams(iSXFLD, sXMGMX);
+  o2::base::Detector::initFieldTrackingParams(iSXFLD, sXMGMX);
 
   Float_t amat[7]; // atomic numbers
   Float_t zmat[7]; // z
@@ -366,7 +366,7 @@ void Detector::CreateMaterials()
 
   density = 1.842e-3;
 
-  o2::Base::Detector::Mixture(10, "CO2", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(10, "CO2", amat, zmat, density, 2, wmat);
   //
   // Air
   //
@@ -381,7 +381,7 @@ void Detector::CreateMaterials()
   //
   density = 0.001205;
 
-  o2::Base::Detector::Mixture(11, "Air", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(11, "Air", amat, zmat, density, 2, wmat);
 
   //----------------------------------------------------------------
   // drift gases 5 mixtures, 5 materials
@@ -486,9 +486,9 @@ void Detector::CreateMaterials()
   }
 
   //
-  o2::Base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density, cnt, wmat1); // nonsensitive
-  o2::Base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive
-  o2::Base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive Kr
+  o2::base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density, cnt, wmat1); // nonsensitive
+  o2::base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive
+  o2::base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive Kr
 
   //----------------------------------------------------------------------
   //               solid materials
@@ -513,7 +513,7 @@ void Detector::CreateMaterials()
 
   density = 1.45;
 
-  o2::Base::Detector::Mixture(14, "Kevlar", amat, zmat, density, -4, wmat);
+  o2::base::Detector::Mixture(14, "Kevlar", amat, zmat, density, -4, wmat);
 
   // NOMEX
 
@@ -534,7 +534,7 @@ void Detector::CreateMaterials()
 
   density = 0.029;
 
-  o2::Base::Detector::Mixture(15, "NOMEX", amat, zmat, density, -4, wmat);
+  o2::base::Detector::Mixture(15, "NOMEX", amat, zmat, density, -4, wmat);
 
   // Makrolon C16H18O3
 
@@ -552,7 +552,7 @@ void Detector::CreateMaterials()
 
   density = 1.2;
 
-  o2::Base::Detector::Mixture(16, "Makrolon", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(16, "Makrolon", amat, zmat, density, -3, wmat);
 
   // Tedlar C2H3F
 
@@ -570,7 +570,7 @@ void Detector::CreateMaterials()
 
   density = 1.71;
 
-  o2::Base::Detector::Mixture(17, "Tedlar", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(17, "Tedlar", amat, zmat, density, -3, wmat);
 
   // Mylar C5H4O2
 
@@ -588,7 +588,7 @@ void Detector::CreateMaterials()
 
   density = 1.39;
 
-  o2::Base::Detector::Mixture(18, "Mylar", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(18, "Mylar", amat, zmat, density, -3, wmat);
   // material for "prepregs"
   // Epoxy - C14 H20 O3
   // Quartz SiO2
@@ -608,7 +608,7 @@ void Detector::CreateMaterials()
 
   density = 1.859;
 
-  o2::Base::Detector::Mixture(19, "Prepreg1", amat, zmat, density, 3, wmat);
+  o2::base::Detector::Mixture(19, "Prepreg1", amat, zmat, density, 3, wmat);
 
   // prepreg2 60% glass-fiber, 40% epoxy
 
@@ -629,7 +629,7 @@ void Detector::CreateMaterials()
 
   density = 1.82;
 
-  o2::Base::Detector::Mixture(20, "Prepreg2", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(20, "Prepreg2", amat, zmat, density, 4, wmat);
 
   // prepreg3 50% glass-fiber, 50% epoxy
 
@@ -650,7 +650,7 @@ void Detector::CreateMaterials()
 
   density = 1.725;
 
-  o2::Base::Detector::Mixture(21, "Prepreg3", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(21, "Prepreg3", amat, zmat, density, 4, wmat);
 
   // G10 60% SiO2 40% epoxy
 
@@ -671,7 +671,7 @@ void Detector::CreateMaterials()
 
   density = 1.7;
 
-  o2::Base::Detector::Mixture(22, "G10", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(22, "G10", amat, zmat, density, 4, wmat);
 
   // Al
 
@@ -680,7 +680,7 @@ void Detector::CreateMaterials()
 
   density = 2.7;
 
-  o2::Base::Detector::Material(23, "Al", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(23, "Al", amat[0], zmat[0], density, 999., 999.);
 
   // Si (for electronics
 
@@ -689,7 +689,7 @@ void Detector::CreateMaterials()
 
   density = 2.33;
 
-  o2::Base::Detector::Material(24, "Si", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(24, "Si", amat[0], zmat[0], density, 999., 999.);
 
   // Cu
 
@@ -698,7 +698,7 @@ void Detector::CreateMaterials()
 
   density = 8.96;
 
-  o2::Base::Detector::Material(25, "Cu", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(25, "Cu", amat[0], zmat[0], density, 999., 999.);
 
   // brass
 
@@ -715,7 +715,7 @@ void Detector::CreateMaterials()
   density = 8.23;
 
   //
-  o2::Base::Detector::Mixture(33, "Brass", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(33, "Brass", amat, zmat, density, 2, wmat);
 
   // Epoxy - C14 H20 O3
 
@@ -733,7 +733,7 @@ void Detector::CreateMaterials()
 
   density = 1.25;
 
-  o2::Base::Detector::Mixture(26, "Epoxy", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(26, "Epoxy", amat, zmat, density, -3, wmat);
 
   // Epoxy - C14 H20 O3 for glue
 
@@ -753,7 +753,7 @@ void Detector::CreateMaterials()
 
   density *= 1.25;
 
-  o2::Base::Detector::Mixture(35, "Epoxy1", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(35, "Epoxy1", amat, zmat, density, -3, wmat);
   //
   // epoxy film - 90% epoxy, 10% glass fiber
   //
@@ -774,7 +774,7 @@ void Detector::CreateMaterials()
 
   density = 1.345;
 
-  o2::Base::Detector::Mixture(34, "Epoxy-film", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(34, "Epoxy-film", amat, zmat, density, 4, wmat);
 
   // Plexiglas  C5H8O2
 
@@ -792,7 +792,7 @@ void Detector::CreateMaterials()
 
   density = 1.18;
 
-  o2::Base::Detector::Mixture(27, "Plexiglas", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(27, "Plexiglas", amat, zmat, density, -3, wmat);
 
   // Carbon
 
@@ -800,7 +800,7 @@ void Detector::CreateMaterials()
   zmat[0] = 6.;
   density = 2.265;
 
-  o2::Base::Detector::Material(28, "C", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(28, "C", amat[0], zmat[0], density, 999., 999.);
 
   // Fe (steel for the inner heat screen)
 
@@ -810,7 +810,7 @@ void Detector::CreateMaterials()
 
   density = 7.87;
 
-  o2::Base::Detector::Material(29, "Fe", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(29, "Fe", amat[0], zmat[0], density, 999., 999.);
   //
   // Peek - (C6H4-O-OC6H4-O-C6H4-CO)n
   amat[0] = 12.011;
@@ -827,7 +827,7 @@ void Detector::CreateMaterials()
   //
   density = 1.3;
   //
-  o2::Base::Detector::Mixture(30, "Peek", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(30, "Peek", amat, zmat, density, -3, wmat);
   //
   //  Ceramics - Al2O3
   //
@@ -842,7 +842,7 @@ void Detector::CreateMaterials()
 
   density = 3.97;
 
-  o2::Base::Detector::Mixture(31, "Alumina", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(31, "Alumina", amat, zmat, density, -2, wmat);
   //
   // Ceramics for resistors
   //
@@ -859,7 +859,7 @@ void Detector::CreateMaterials()
   //
   density *= 1.25;
 
-  o2::Base::Detector::Mixture(36, "Alumina1", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(36, "Alumina1", amat, zmat, density, -2, wmat);
   //
   // liquids
   //
@@ -877,45 +877,45 @@ void Detector::CreateMaterials()
 
   density = 1.;
 
-  o2::Base::Detector::Mixture(32, "Water", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(32, "Water", amat, zmat, density, -2, wmat);
 
   //----------------------------------------------------------
   // tracking media for gases
   //----------------------------------------------------------
 
-  o2::Base::Detector::Medium(kAir, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
-  o2::Base::Detector::Medium(kDriftGas1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kDriftGas2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kCO2, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kDriftGas3, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kAir, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
+  o2::base::Detector::Medium(kDriftGas1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kDriftGas2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kCO2, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kDriftGas3, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
   //-----------------------------------------------------------
   // tracking media for solids
   //-----------------------------------------------------------
 
-  o2::Base::Detector::Medium(kAl, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kKevlar, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kNomex, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kMakrolon, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kMylar, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kTedlar, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kAl, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kKevlar, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kNomex, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kMakrolon, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kMylar, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kTedlar, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
   //
-  o2::Base::Detector::Medium(kPrepreg1, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kPrepreg2, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kPrepreg3, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kEpoxy, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg1, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg2, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg3, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kEpoxy, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
 
-  o2::Base::Detector::Medium(kCu, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kSi, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kG10, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kPlexiglas, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kSteel, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kPeek, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kAlumina, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kWater, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kBrass, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kEpoxyfm, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kEpoxy1, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kAlumina1, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kCu, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kSi, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kG10, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kPlexiglas, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kSteel, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kPeek, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kAlumina, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kWater, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kBrass, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kEpoxyfm, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kEpoxy1, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kAlumina1, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
 }
 
 void Detector::ConstructTPCGeometry()

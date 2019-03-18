@@ -23,7 +23,7 @@
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active)
+  : o2::base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
   if (TRDCommonParam::Instance()->IsXenon()) {
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHits(o2::utils::createSimVector<HitType>()),
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
@@ -293,7 +293,7 @@ void Detector::createMaterials()
   //
   int isxfld = 2;
   float sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //////////////////////////////////////////////////////////////////////////
   //     Define Materials

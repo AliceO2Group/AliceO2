@@ -35,7 +35,7 @@ using o2::v0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector()
-  : o2::Base::DetImpl<Detector>("V0", kTRUE),
+  : o2::base::DetImpl<Detector>("V0", kTRUE),
     mHits(o2::utils::createSimVector<o2::v0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
@@ -54,7 +54,7 @@ Detector::~Detector()
 }
 
 Detector::Detector(Bool_t isActive)
-  : o2::Base::DetImpl<Detector>("V0", isActive),
+  : o2::base::DetImpl<Detector>("V0", isActive),
     mHits(o2::utils::createSimVector<o2::v0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
@@ -192,21 +192,21 @@ void Detector::createMaterials()
 
   Int_t fieldType;
   Float_t maxField;
-  o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
+  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
   LOG(DEBUG) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField;
 
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
   fieldType = 2;
   maxField = 10.;
 
-  o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
-  o2::Base::Detector::Medium(Air, "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
+  o2::base::Detector::Medium(Air, "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Mixture(++matId, "Scintillator$", aScint, zScint, dScint, nScint, wScint);
-  o2::Base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(++matId, "Scintillator$", aScint, zScint, dScint, nScint, wScint);
+  o2::base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
-  //  o2::Base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
-  //  o2::Base::Detector::Medium(Alu, "Alu$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  //  o2::base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
+  //  o2::base::Detector::Medium(Alu, "Alu$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
   LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
 }

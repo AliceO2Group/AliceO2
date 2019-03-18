@@ -587,7 +587,7 @@ bool CookedTracker::makeBackPropParam(TrackITS& track) const
   auto backProp = track.getParamOut();
   backProp = track;
   backProp.resetCovariance();
-  auto propagator = o2::Base::Propagator::Instance();
+  auto propagator = o2::base::Propagator::Instance();
 
   Int_t noc = track.getNumberOfClusters();
   for (int ic = noc; ic--;) { // cluster indices are stored in inward direction

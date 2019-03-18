@@ -23,7 +23,7 @@ class TGeoMedium;
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 // put processes and cuts in namespace to make them available from there
 /// processes available
@@ -91,7 +91,7 @@ class MaterialManager
   }
   /// Set processes per medium providing the module name and the local ID of the medium.
   /// To ignore a certain process to be set explicitly (default or Geant settings will be used in that case) use
-  /// o2::Base::MaterialManager::NOPROCESS
+  /// o2::base::MaterialManager::NOPROCESS
   void SpecialProcesses(const char* modname, int localindex,
                         const std::initializer_list<std::pair<EProc, int>>& parIDValMap)
   {
@@ -111,14 +111,14 @@ class MaterialManager
     }
   }
   /// Global settings of cuts.
-  /// To ignore a certain cut to be set, just set it to o2::Base::MaterialManager::NOPROCESS
+  /// To ignore a certain cut to be set, just set it to o2::base::MaterialManager::NOPROCESS
   void DefaultCuts(const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
   {
     Cuts(ESpecial::kFALSE, -1, parIDValMap);
   }
   /// Set cuts per medium providing the module name and the local ID of the medium.
   /// To ignore a certain cut to be set explicitly (default or Geant settings will be used in that case) use
-  /// o2::Base::MaterialManager::NOPROCESS
+  /// o2::base::MaterialManager::NOPROCESS
   void SpecialCuts(const char* modname, int localindex,
                    const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
   {
@@ -412,7 +412,7 @@ class MaterialManager
  public:
   ClassDefNV(MaterialManager, 0);
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif

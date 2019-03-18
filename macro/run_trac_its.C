@@ -58,11 +58,11 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
 
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
-  o2::Base::Propagator::initFieldFromGRP(grp);
+  o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
     LOG(FATAL) << "Failed to load ma" << FairLogger::endl;

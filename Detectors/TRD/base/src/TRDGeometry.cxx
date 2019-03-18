@@ -2607,7 +2607,7 @@ void TRDGeometry::fillMatrixCache(int mask)
         if (!gGeoManager->CheckPath(volPath.c_str())) {
           continue;
         }
-        const auto m = o2::Base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
+        const auto m = o2::base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
         TGeoHMatrix rotMatrix;
         rotMatrix.RotateX(-90);
         rotMatrix.RotateY(-90);
@@ -2714,7 +2714,7 @@ void TRDGeometry::addAlignableVolumes() const
         volPath += Form("/UT%02d_1", idet);
 
         symName = Form("TRD/sm%02d/st%d/pl%d", isector, istack, ilayer);
-        int modID = o2::Base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
+        int modID = o2::base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
 
         TGeoPNEntry* alignableEntry = gGeoManager->SetAlignableEntry(symName.c_str(), volPath.c_str(), modID);
 

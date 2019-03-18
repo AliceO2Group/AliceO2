@@ -20,7 +20,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #endif
 
-using namespace o2::Base;
+using namespace o2::base;
 
 void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
@@ -33,7 +33,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
   // Geometry
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto* gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 

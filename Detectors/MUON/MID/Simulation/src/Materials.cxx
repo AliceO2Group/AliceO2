@@ -98,9 +98,9 @@ void createMaterials()
   float maxField; // maximum magnetic field value
 
   // get the magnetic field parameters
-  Base::Detector::initFieldTrackingParams(fieldType, maxField);
+  base::Detector::initFieldTrackingParams(fieldType, maxField);
 
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
 
   /// Trigger gas : Ar - Isobutane(C4 H10) - C2 H2 F4 - SF6 (49%+7%+40%+4%)
   const int nGas = 5;
@@ -176,7 +176,7 @@ void createMaterials()
 
 TGeoMedium* assertMedium(int imed)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   auto med = mgr.getTGeoMedium(kModuleName, imed);
   if (med == nullptr) {
     throw std::runtime_error("Could not retrieve medium " + std::to_string(imed) + " for " + kModuleName);

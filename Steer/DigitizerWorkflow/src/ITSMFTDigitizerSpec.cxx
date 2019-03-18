@@ -71,7 +71,7 @@ class ITSMFTDPLDigitizerTask
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
 
     // configure digitizer

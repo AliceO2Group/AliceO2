@@ -21,7 +21,7 @@ namespace o2
 namespace mid
 {
 
-Detector::Detector(bool active) : o2::Base::DetImpl<Detector>("MID", active),
+Detector::Detector(bool active) : o2::base::DetImpl<Detector>("MID", active),
                                   mStepper()
 {
 }

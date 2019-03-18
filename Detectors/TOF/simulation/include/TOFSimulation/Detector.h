@@ -46,7 +46,7 @@ namespace o2
 namespace tof
 {
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum TOFMaterial {
@@ -141,7 +141,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<HitType>* mHits; //!
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 }
@@ -150,13 +150,13 @@ class Detector : public o2::Base::DetImpl<Detector>
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::tof::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

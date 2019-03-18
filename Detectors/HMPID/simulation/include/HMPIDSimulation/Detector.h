@@ -22,7 +22,7 @@ namespace o2
 {
 namespace hmpid
 {
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   Detector(Bool_t active = true);
@@ -79,7 +79,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<TGeoVolume*> mSensitiveVolumes; //!
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 
@@ -90,13 +90,13 @@ class Detector : public o2::Base::DetImpl<Detector>
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::hmpid::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

@@ -91,8 +91,8 @@ void O2MCApplication::initLate()
 {
   o2::utils::ShmManager::Instance().occupySegment();
   for (auto det : listActiveDetectors) {
-    if (dynamic_cast<o2::Base::Detector*>(det)) {
-      ((o2::Base::Detector*)det)->initializeLate();
+    if (dynamic_cast<o2::base::Detector*>(det)) {
+      ((o2::base::Detector*)det)->initializeLate();
     }
   }
 }
@@ -100,7 +100,7 @@ void O2MCApplication::initLate()
 void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::Data::SubEventInfo const& info) const
 {
   // parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
-  o2::Base::attachTMessage(info, *mSimDataChannel, parts);
+  o2::base::attachTMessage(info, *mSimDataChannel, parts);
 }
 
 // helper function to fetch data from FairRootManager branch and serialize it
@@ -116,7 +116,7 @@ const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQPar
   }
   auto data = mgr->InitObjectAs<const T*>(name.c_str());
   if (data) {
-    o2::Base::attachTMessage(*data, channel, parts);
+    o2::base::attachTMessage(*data, channel, parts);
   }
   return data;
 }
@@ -135,8 +135,8 @@ void O2MCApplication::SendData()
   assert(tracks->size() == mSubEventInfo.npersistenttracks);
 
   for (auto det : listActiveDetectors) {
-    if (dynamic_cast<o2::Base::Detector*>(det)) {
-      ((o2::Base::Detector*)det)->attachHits(*mSimDataChannel, simdataparts);
+    if (dynamic_cast<o2::base::Detector*>(det)) {
+      ((o2::base::Detector*)det)->attachHits(*mSimDataChannel, simdataparts);
     }
   }
   LOG(INFO) << "sending message with " << simdataparts.Size() << " parts";

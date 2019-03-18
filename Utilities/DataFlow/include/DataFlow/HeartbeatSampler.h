@@ -36,10 +36,10 @@ namespace DataFlow {
 ///
 /// TODO: the class can evolve to a general clock sampler device with
 /// configurable period, even randomly distributed
-class HeartbeatSampler : public Base::O2Device
+class HeartbeatSampler : public base::O2Device
 {
 public:
-  typedef o2::Base::O2Message O2Message;
+  typedef o2::base::O2Message O2Message;
 
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyPeriod = "period";
