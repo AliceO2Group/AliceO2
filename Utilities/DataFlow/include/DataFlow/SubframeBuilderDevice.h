@@ -51,10 +51,10 @@ namespace DataFlow {
 /// The duration should be with respect to a time constant, which in
 /// itself needs to be configurable, now the time constant is
 /// hard-coded microseconds
-class SubframeBuilderDevice : public Base::O2Device
+class SubframeBuilderDevice : public base::O2Device
 {
 public:
-  using O2Message = o2::Base::O2Message;
+  using O2Message = o2::base::O2Message;
   using SubframeId = o2::dataflow::SubframeId;
   using Merger = dataflow::PayloadMerger<SubframeId>;
 

@@ -35,7 +35,7 @@ namespace detectors
 class AlignParam;
 }
 
-namespace Base
+namespace base
 {
 /// Class for interfacing to the geometry; it also builds and manages the look-up tables for fast
 /// access to geometry and alignment information for sensitive alignable volumes:

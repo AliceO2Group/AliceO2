@@ -60,8 +60,8 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
 #endif
 
   //-------- init geometry and field --------//
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   matching.init();
 

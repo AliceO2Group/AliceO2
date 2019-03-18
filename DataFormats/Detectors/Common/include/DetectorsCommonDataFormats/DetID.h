@@ -14,7 +14,7 @@
 
 /*!
   Example of class usage:
-  using namespace o2::Base;
+  using namespace o2::base;
   DetID det[3] = {DetID(DetID::ITS), DetID(DetID::TPC), DetID(DetID::TRD)};
   DetID::mask_t mskTot;
   for (int i=0;i<3;i++) {

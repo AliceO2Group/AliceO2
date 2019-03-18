@@ -195,7 +195,7 @@ bool wantCollisionTimePrinter()
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
   // init magnetic field
-  o2::Base::Propagator::initFieldFromGRP(inputGRP);
+  o2::base::Propagator::initFieldFromGRP(inputGRP);
 
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {

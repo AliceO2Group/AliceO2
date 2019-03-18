@@ -222,7 +222,7 @@ TGeoCompositeShape* FrameStructure::createTOFRail(float y)
 
 void FrameStructure::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   // Creates the materials
   float epsil, stemax, tmaxfd, deemax, stmin;
 
@@ -233,7 +233,7 @@ void FrameStructure::createMaterials()
   stmin = -.8;
   int isxfld = 2; // field uniformity value as defined by Geant3
   float sxmgmx = 10.; // max field
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   float asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
   float zsteel[4] = { 26., 24., 28., 14. };

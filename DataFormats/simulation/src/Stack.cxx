@@ -397,7 +397,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     }
     auto iter = detList->MakeIterator();
     while (auto det = iter->Next()) {
-      auto o2det = dynamic_cast<o2::Base::Detector*>(det);
+      auto o2det = dynamic_cast<o2::base::Detector*>(det);
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {

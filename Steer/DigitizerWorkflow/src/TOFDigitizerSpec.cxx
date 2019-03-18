@@ -170,7 +170,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
 
     // init digitizer

@@ -443,7 +443,7 @@ void init(int entry = 0, int chip = 13,
   TEveBrowser* browser = gEve->GetBrowser();
 
   // Geometry
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G));
