@@ -7,6 +7,12 @@
     
 **/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "FairGenerator.h"
+#include "FairPrimaryGenerator.h"
+#include <iostream>
+#endif
+
 class MyGenerator : public FairGenerator
 {
  public:

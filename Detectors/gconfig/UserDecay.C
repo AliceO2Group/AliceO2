@@ -6,6 +6,13 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+#include "TDatabasePDG.h"
+#include "TParticlePDG.h"
+#include "TVirtualMC.h"
+#endif
+
 void UserDecayConfig() {
    cout << "Loading User Decay Config from macro"<< endl;  
    TDatabasePDG *db= TDatabasePDG::Instance();

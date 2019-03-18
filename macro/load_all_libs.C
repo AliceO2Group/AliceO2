@@ -1,3 +1,8 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+#include "TSystem.h"
+#endif
+
 void load_all_libs()
 {
    gSystem->Load("libDetectorsBase");

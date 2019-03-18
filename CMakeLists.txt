@@ -232,6 +232,10 @@ SET(IGNORE_MACROS
     ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
     ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
     ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+    # Disabled until AliTPCCommon is merged
+    ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
+    ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
+    ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
     # End of temporarily disabled macros
 )
 
@@ -252,11 +256,26 @@ if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
       SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
       SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
       SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+
+      MATH(EXPR TEST_NO "${TEST_NO} + 1")
+      add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled PROPERTY ENVIRONMENT "ROOT_INCLUDE_PATH=$ENV{ROOT_INCLUDE_PATH}:${CMAKE_INSTALL_PREFIX}/include:${CMAKE_INSTALL_PREFIX}/include/AliTPCCommon")
     ELSE()
       MESSAGE(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
     ENDIF()
   ENDFOREACH()
 endif()
+
+# Create special .rootrc for testing compiled macros
+configure_file("${CMAKE_SOURCE_DIR}/cmake/tests.rootrc.in"
+               "${CMAKE_BINARY_DIR}/.rootrc"
+               @ONLY
+               NEWLINE_STYLE UNIX)
 
 # Create tests wrapper (and make it executable)
 configure_file("${CMAKE_SOURCE_DIR}/cmake/tests-wrapper.sh.in"

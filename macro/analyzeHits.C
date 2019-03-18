@@ -9,6 +9,7 @@
 #include "FITSimulation/Detector.h" // for Fit Hit
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
+#include "PHOSBase/Hit.h"
 #endif
 
 TString gPrefix("");
