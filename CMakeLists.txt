@@ -215,23 +215,35 @@ configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
 O2_GENERATE_MAN(NAME o2)
 O2_GENERATE_MAN(NAME FairMQDevice)
 
-# A LIST OF MACROS TO EXCLUDE FROM THE TEST
-#  To be used only in exceptional cases, such as when the macro
-#  uses symbols from outside the standard O2 build/runtime
-#  environment.
-SET(IGNORE_MACROS
-    ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
-    # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
-    # correctly some Boost headers
-    ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
-    ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
-    ${CMAKE_SOURCE_DIR}/macro/putCondition.C
-    # Disabled until AliTPCCommon is merged
-    ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
-    ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
-    ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
-    # End of temporarily disabled macros
+# Macros from this list will be excluded from tests. To be used only in exceptional cases, such as
+# when the macro uses symbols from outside the standard O2 build/runtime environment
+set(EXCLUDE_MACROS_FROM_TEST
+  ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
+  # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
+  # correctly some Boost headers
+  ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
+  ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
+  ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+  # Disabled until AliTPCCommon is merged
+  ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
+  ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
+  ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
+  # End of temporarily disabled macros
+)
+
+# Macros from this list will have the test in compiled mode ran in a non-fatal way
+set(EXCLUDE_MACROS_FROM_COMPILED_TEST
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/macro/comparePedestalsAndNoise.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/macro/drawNoiseAndPedestal.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/monitor/macro/RunCompareMode3.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/monitor/macro/RunFindAdcError.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/dEdxRes.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/readClusters.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/testTracks.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/macro/readMCtruth.C
+  ${CMAKE_SOURCE_DIR}/macro/convertClusterToClusterHardware.C
+  ${CMAKE_SOURCE_DIR}/macro/run_clus_tpc.C
 )
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
@@ -241,7 +253,7 @@ if(HAVESIMULATION)
   # Case sensitive filtering of .C files
   list(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
   foreach(MACRO_FILE ${MACRO_FILES})
-    if(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
+    if(NOT ${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_TEST)
       string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
 
       # Test for "interpreted" macros
@@ -250,8 +262,15 @@ if(HAVESIMULATION)
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}")
 
       # Test for compiled macros
+      if(${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_COMPILED_TEST)
+        set(_MACRO_NON_FATAL "NON_FATAL")
+        message(WARNING "Compiled macro test for ${MACRO_FILE} will be non-fatal")
+      else()
+        set(_MACRO_NON_FATAL "")
+      endif()
       add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
                     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    ${_MACRO_NON_FATAL}
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
 
       # Set environment variables
@@ -263,6 +282,10 @@ if(HAVESIMULATION)
         set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
         set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "ROOT_INCLUDE_PATH=$ENV{ROOT_INCLUDE_PATH}:${CMAKE_INSTALL_PREFIX}/include:${CMAKE_INSTALL_PREFIX}/include/AliTPCCommon")
       endforeach()
+
+      # Cleanup
+      unset(_TEST_NAME)
+      unset(_MACRO_NON_FATAL)
 
     else()
       message(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
