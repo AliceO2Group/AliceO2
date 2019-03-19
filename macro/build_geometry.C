@@ -30,6 +30,7 @@
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <T0Simulation/Detector.h>
+#include <V0Simulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
@@ -184,8 +185,14 @@ void build_geometry(FairRunSim* run = nullptr)
   }
 
   if (isActivated("T0")) {
-    // FIT
+    // FIT-T0
     run->AddModule(new o2::t0::Detector(true));
+  }
+
+// TODO: Fix this typo ("T0"->"V0"), after fixing the o2::v0::Detector constructor - so that it does not cause o2sim crash
+  if (isActivated("T0")) {
+    // FIT-V0
+    run->AddModule(new o2::v0::Detector(true));
   }
 
   if (isActivated("HMP")) {
