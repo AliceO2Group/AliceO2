@@ -215,11 +215,6 @@ configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
 O2_GENERATE_MAN(NAME o2)
 O2_GENERATE_MAN(NAME FairMQDevice)
 
-# Run macros unit tests automatically if ALIBUILD_O2_TESTS is defined
-IF($ENV{ALIBUILD_O2_TESTS})
-  SET(CHECK_ROOTMACRO_COMPILE 1)
-ENDIF()
-
 # A LIST OF MACROS TO EXCLUDE FROM THE TEST
 #  To be used only in exceptional cases, such as when the macro
 #  uses symbols from outside the standard O2 build/runtime
@@ -240,35 +235,39 @@ SET(IGNORE_MACROS
 )
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
-if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
+if(HAVESIMULATION)
   # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive
-  FILE(GLOB_RECURSE MACRO_FILES "*.C")
+  file(GLOB_RECURSE MACRO_FILES "*.C")
   # Case sensitive filtering of .C files
-  LIST(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
-  SET(TEST_NO 0)
-  FOREACH(MACRO_FILE ${MACRO_FILES})
-    IF(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
+  list(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
+  foreach(MACRO_FILE ${MACRO_FILES})
+    if(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
       string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
-      MATH(EXPR TEST_NO "${TEST_NO} + 1")
+
+      # Test for "interpreted" macros
       add_test_wrap(NAME ${MACRO_FILE_LABEL}
                     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
 
-      MATH(EXPR TEST_NO "${TEST_NO} + 1")
+      # Test for compiled macros
       add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
                     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL}_compiled PROPERTY ENVIRONMENT "ROOT_INCLUDE_PATH=$ENV{ROOT_INCLUDE_PATH}:${CMAKE_INSTALL_PREFIX}/include:${CMAKE_INSTALL_PREFIX}/include/AliTPCCommon")
-    ELSE()
-      MESSAGE(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
-    ENDIF()
-  ENDFOREACH()
+
+      # Set environment variables
+      foreach(_TEST_NAME "${MACRO_FILE_LABEL}" "${MACRO_FILE_LABEL}_compiled")
+        set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+        if(APPLE)
+          set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+        endif()
+        set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+        set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "ROOT_INCLUDE_PATH=$ENV{ROOT_INCLUDE_PATH}:${CMAKE_INSTALL_PREFIX}/include:${CMAKE_INSTALL_PREFIX}/include/AliTPCCommon")
+      endforeach()
+
+    else()
+      message(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
+    endif()
+  endforeach()
 endif()
 
 # Create special .rootrc for testing compiled macros
