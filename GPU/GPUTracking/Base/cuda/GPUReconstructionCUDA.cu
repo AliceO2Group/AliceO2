@@ -22,8 +22,6 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
-__constant__ char& gGPUConstantMemBufferChar = (char&)gGPUConstantMemBuffer;
-__constant__ GPUConstantMem& gGPUConstantMem = (GPUConstantMem&)gGPUConstantMemBufferChar;
 
 #ifdef GPUCA_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
@@ -40,8 +38,8 @@ namespace ITS
 class TrackerTraitsNV : public TrackerTraits
 {
 };
-}
-} // namespace o2::ITS
+} // namespace ITS
+} // namespace o2
 #endif
 
 #include "GPUReconstructionIncludesDevice.h"
@@ -50,7 +48,7 @@ template <class T, int I, typename... Args>
 GPUg() void runKernelCUDA(int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(gGPUConstantMem)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -61,7 +59,7 @@ GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(gGPUConstantMem)[firstSlice + iSlice], args...);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
