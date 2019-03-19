@@ -1,3 +1,3 @@
-\page refGenerators Package 'Generators'
+\page refGenerators Module 'Generators'
 
-A description of this package is not yet available.
+A description of this module is not yet available.

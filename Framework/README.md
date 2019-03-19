@@ -1,6 +1,6 @@
-\page refFramework Package 'Framework'
+\page refFramework Module 'Framework'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refFrameworkArrowTests
 - \subpage refFrameworkCore

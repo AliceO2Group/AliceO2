@@ -1,3 +1,3 @@
-\page refTesting Package 'Testing'
+\page refTesting Module 'Testing'
 
-A description of this package is not yet available.
+A description of this module is not yet available.

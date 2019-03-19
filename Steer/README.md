@@ -1,4 +1,4 @@
-\page refSteer Package 'Steer'
+\page refSteer Module 'Steer'
 
 # ALICEO2 Steer
 
@@ -11,6 +11,6 @@ a) quick prototyping of ideas without having to require immediate changes in Fai
 b) adaptations to classes because some things are done differently than in FairRoot
    (MC truth handling, parameter handling etc)
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 \subpage refSteerDigitizerWorkflow

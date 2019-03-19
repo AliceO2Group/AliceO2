@@ -1,6 +1,6 @@
-\page refExamples Package 'Examples'
+\page refExamples Module 'Examples'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refExamplesflp2epn
 - \subpage refExamplesflp2epn-distributed

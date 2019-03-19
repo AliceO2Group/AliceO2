@@ -1,4 +1,4 @@
-\page refCCDB Package 'CCDB'
+\page refCCDB Module 'CCDB'
 
 ## CCDB API
 

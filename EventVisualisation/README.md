@@ -1,6 +1,6 @@
-\page refEventVisualisation Package 'EventVisualisation'
+\page refEventVisualisation Module 'EventVisualisation'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refEventVisualisationBase
 

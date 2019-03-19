@@ -1,6 +1,6 @@
-\page refCommon Package 'Common'
+\page refCommon Module 'Common'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refCommonConstants
 - \subpage refCommonField

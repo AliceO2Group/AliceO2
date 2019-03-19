@@ -40,7 +40,7 @@ To access the resulting documentation, open doc/html/index.html in your
 build directory. To install the documentation when calling `make install`
 turn on the variable `DOC_INSTALL`.
 
-Doxygen documentation is also available online [here](http://aliceo2group.github.io/AliceO2/)
+The instruction how to add the documentation pages (README.md) are available [here](doc/DoxygenInstructions.md).
 
 ### Build system (cmake) and directory structure
 The code organisation is described [here](doc/CodeOrganization.md).

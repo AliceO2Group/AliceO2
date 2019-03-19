@@ -1,6 +1,6 @@
-\page refDetectors Package 'Detectors'
+\page refDetectors Module 'Detectors'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refDetectorsBase
 - \subpage refDetectorsEMCAL

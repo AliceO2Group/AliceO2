@@ -1,6 +1,6 @@
-\page refDataFormats Package 'DataFormats'
+\page refDataFormats Module 'DataFormats'
 
-This package contains the following subpackages:
+This module contains the following submodules:
 
 - \subpage refDataFormatsDetectors
 - \subpage refDataFormatsHeaders
