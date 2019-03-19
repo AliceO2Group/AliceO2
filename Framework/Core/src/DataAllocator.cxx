@@ -15,8 +15,13 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/Stack.h"
+#include "FairMQResizableBuffer.h"
 
 #include <fairmq/FairMQDevice.h>
+
+#include <arrow/ipc/writer.h>
+#include <arrow/type.h>
+#include <arrow/io/memory.h>
 
 #include <TClonesArray.h>
 
@@ -146,13 +151,55 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
 
 void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
-  std::unique_ptr<TableBuilder> payload(tb);
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+
+  /// To finalise this we write the table to the buffer.
+  /// FIXME: most likely not a great idea. We should probably write to the buffer
+  ///        directly in the TableBuilder, incrementally.
+  std::shared_ptr<TableBuilder> p(tb);
+  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    auto table = payload->finalize();
+
+    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
+    auto outStatus = writer->WriteTable(*table);
+    if (outStatus.ok() == false) {
+      throw std::runtime_error("Unable to Write table");
+    }
+  };
+
   assert(context);
-  context->addTable(std::move(header), std::move(payload), channel);
-  assert(payload.get() == nullptr);
+  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
+}
+
+void DataAllocator::create(const Output& spec,
+                           std::shared_ptr<arrow::ipc::RecordBatchWriter>* writer,
+                           std::shared_ptr<arrow::Schema> schema)
+{
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
+  auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+  auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
+  auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), schema, writer);
+
+  auto finalizer = [stream](std::shared_ptr<FairMQResizableBuffer>) -> void {
+    auto s = stream->Close();
+    if (s.ok() == false) {
+      throw std::runtime_error("Error while closing stream");
+    }
+  };
+
+  assert(context);
+  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
