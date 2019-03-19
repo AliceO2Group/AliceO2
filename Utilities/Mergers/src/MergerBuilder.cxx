@@ -83,7 +83,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   if (mConfig.publicationDecision.value == PublicationDecision::EachNSeconds) {
     merger.inputs.push_back({ "timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer });
-    merger.options.push_back({ "period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000), { "timer period" } });
+    merger.options.push_back({ "period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), { "timer period" } });
   }
 
   return std::move(merger);
