@@ -19,7 +19,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 {
   return {
     DataProcessorSpec{
-      "timer",
+      "enumeration",
       Inputs{},
       {},
       AlgorithmSpec{
@@ -27,6 +27,27 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           // This is invoked autonomously by the timer.
           sleep(1);
           control.readyToQuit(true);
-        }) } }
+        }) } },
+    DataProcessorSpec{
+      "atimer",
+      Inputs{
+        InputSpec{ "atimer", "TST", "TIMER", 0, Lifetime::Timer } },
+      {},
+      AlgorithmSpec{
+        adaptStateless([](ControlService& control) {
+          // This is invoked autonomously by the timer.
+          control.readyToQuit(false);
+        }) } },
+    DataProcessorSpec{
+      "btimer",
+      Inputs{
+        InputSpec{ "btimer", "TST", "TIMER2", 0, Lifetime::Timer } },
+      {},
+      AlgorithmSpec{
+        adaptStateless([](ControlService& control) {
+          // This is invoked autonomously by the timer.
+          control.readyToQuit(false);
+        }) },
+      { ConfigParamSpec{ "period-btimer", VariantType::Int, 2000, { "period of timer" } } } }
   };
 }
