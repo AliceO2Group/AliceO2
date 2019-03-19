@@ -196,8 +196,7 @@ void CalibTOF::run(int flag, int sector)
           int channelInSector = (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
 
           mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
-          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, funcChOffset->GetParameter(2));
-          mTimeSlewingObj->setSigmaErrPeak(sector, channelInSector, funcChOffset->GetParError(2));
+          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, abs(funcChOffset->GetParameter(2)));
 
           // now fill 2D histo for time-slewing using current channel offset
 
@@ -574,4 +573,77 @@ void CalibTOF::merge(const char* name)
   *mTimeSlewingObj += *timeSlewingObj;
   *mLHCphaseObj += *LHCphaseObj;
   f->Close();
+}
+//______________________________________________
+
+void CalibTOF::flagProblematics(){
+
+  // method to flag problematic channels: Fraction, Sigma -> all negative if channel is bad (otherwise all positive)
+
+  TH1F *hsigmapeak = new TH1F("hsigmapeak",";#sigma_{peak} (ps)",1000,0,1000);
+  TH1F *hfractionpeak = new TH1F("hfractionpeak",";fraction under peak",1001,0,1.01);
+
+  int ipad;
+  float sigmaMin, sigmaMax, fractionMin;
+
+  int nActiveChannels = 0;
+  int nGoodChannels = 0;
+
+  TF1 *fFuncSigma = new TF1("fFuncSigma","TMath::Gaus(x,[1],[2])*[0]*(x<[1]) + TMath::Gaus(x,[1],[3])*[0]*(x>[1])");
+  fFuncSigma->SetParameter(0,1000);
+  fFuncSigma->SetParameter(1,200);
+  fFuncSigma->SetParameter(2,200);
+  fFuncSigma->SetParameter(3,200);
+  
+  TF1 *fFuncFraction = new TF1("fFuncFraction","TMath::Gaus(x,[1],[2])*[0]*(x<[1]) + TMath::Gaus(x,[1],[3])*[0]*(x>[1])");
+  fFuncFraction->SetParameter(0,1000);
+  fFuncFraction->SetParameter(1,0.8);
+  fFuncFraction->SetParameter(2,0.1);
+  fFuncFraction->SetParameter(3,0.1);
+  
+  for(int iz; iz < o2::tof::Geo::NSTRIPXSECTOR*2; iz++){
+    hsigmapeak->Reset();
+    hfractionpeak->Reset();
+    
+    for(int k=0;k < o2::tof::Geo::NPADX;k++){
+      ipad = 48*iz + k;
+      
+      for(int i=0;i < 18;i++){
+	// exclude channel without entries
+	if(mTimeSlewingObj->getFractionUnderPeak(i,ipad) < 0) continue;
+	
+	nActiveChannels++;
+	
+	hsigmapeak->Fill(mTimeSlewingObj->getSigmaPeak(i,ipad));
+	hfractionpeak->Fill(mTimeSlewingObj->getFractionUnderPeak(i,ipad));
+      }
+    }
+    
+    hsigmapeak->Fit(fFuncSigma,"WWq0");
+    hfractionpeak->Fit(fFuncFraction,"WWq0");
+    
+    sigmaMin = fFuncSigma->GetParameter(1) - mNsigmaSigmaProblematicCut*abs(fFuncSigma->GetParameter(2));
+    sigmaMax = fFuncSigma->GetParameter(1) + mNsigmaSigmaProblematicCut*abs(fFuncSigma->GetParameter(3));
+    fractionMin = fFuncFraction->GetParameter(1) - mNsigmaFractionProblematicCut*abs(fFuncFraction->GetParameter(2));
+
+    for(int k=0;k < o2::tof::Geo::NPADX;k++){
+      ipad = 48*iz + k;
+      
+      for(int i=0;i < 18;i++){
+	// exclude channel without entries
+	if(mTimeSlewingObj->getFractionUnderPeak(i,ipad) < 0) continue;
+
+	if(mTimeSlewingObj->getSigmaPeak(i,ipad) < sigmaMin ||
+	   mTimeSlewingObj->getSigmaPeak(i,ipad) > sigmaMax ||
+	   mTimeSlewingObj->getFractionUnderPeak(i,ipad) < fractionMin){
+          mTimeSlewingObj->setFractionUnderPeak(i, ipad, -mTimeSlewingObj->getFractionUnderPeak(i,ipad));
+          mTimeSlewingObj->setSigmaPeak(i, ipad, -mTimeSlewingObj->getSigmaPeak(i,ipad));	  
+	}
+	else
+	  nGoodChannels++;
+      }
+    }
+  }
+
+  Printf("Check for TOF problematics: nActiveChannels=%d - nGoodChannels=%d - fractionGood = %f",int(nActiveChannels),int(nGoodChannels),nGoodChannels*1./nActiveChannels);
 }

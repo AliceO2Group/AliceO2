@@ -123,6 +123,15 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   timerTot.Stop();
   Printf("Time to run the merging was:");
   timerTot.Print();
+
+  // flag problematics
+  timerTot.Start(1);
+  calib.flagProblematics();
+  timerTot.Stop();
+  Printf("Time to run for problematics:");
+  timerTot.Print();
+
+
   outFile.cd();
   calib.fillOutput();
   outTree.Write();
