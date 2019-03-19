@@ -24,6 +24,9 @@
 
 #include "EventVisualisationView/MultiView.h"
 
+#include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITSMFTReconstruction/DigitPixelReader.h"
+#include "ITSMFTReconstruction/RawPixelReader.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -43,18 +46,35 @@ class Data
  public:
   void loadData(int entry);
   void displayData(int entry, int chip);
+  static void setRawPixelReader(std::string input) {
+    auto reader = new RawPixelReader<ChipMappingITS>();
+    reader->openInput(input);
+    gPixelReader=reader;
+    gPixelReader->getNextChipData(mChipData);
+  }
+  static void setDigitPixelReader(std::string input) {
+    auto reader = new DigitPixelReader();
+    reader->openInput(input, o2::detectors::DetID("ITS"));
+    reader->init();
+    reader->readNextEntry();
+    gPixelReader=reader;
+    gPixelReader->getNextChipData(mChipData);
+  }
   static void setDigiTree(TTree* t) { gDigiTree = t; }
   static void setClusTree(TTree* t) { gClusTree = t; }
   static void setTracTree(TTree* t) { gTracTree = t; }
 
  private:
   // Data loading members
+  static PixelReader* gPixelReader;
   static TTree* gDigiTree;
   static TTree* gClusTree;
   static TTree* gTracTree;
+  static ChipPixelData mChipData;  
   std::vector<Digit> mDigits;
   std::vector<Cluster> mClusters;
   std::vector<o2::ITS::TrackITS> mTracks;
+  static void loadDigits(int entry, std::vector<Digit>* digi);
   template <typename T>
   static void load(TTree* tree, const char* name, int entry, std::vector<T>* arr);
 
@@ -67,11 +87,39 @@ class Data
   static TEveElement* getEveTracks(const std::vector<Cluster>& clus, const std::vector<o2::ITS::TrackITS>& trks);
 };
 
+PixelReader* Data::gPixelReader = nullptr;
 TTree* Data::gDigiTree = nullptr;
 TTree* Data::gClusTree = nullptr;
 TTree* Data::gTracTree = nullptr;
 TEveElementList* Data::gEvent = nullptr;
 TEveElementList* Data::gChip = nullptr;
+
+ChipPixelData Data::mChipData;  
+
+
+void Data::loadDigits(int entry, std::vector<Digit>* digits) {
+  static auto ir_old = mChipData.getInteractionRecord();
+  auto ir=mChipData.getInteractionRecord();
+  std::cout<<"orbit/crossing: "<<' '<<ir.orbit<<'/'<<ir.bc<<'\n';
+  
+  digits->clear();
+
+  do {
+     auto chipID=mChipData.getChipID();
+     auto pixels = mChipData.getData();
+     for (auto &pixel : pixels) {
+       auto col=pixel.getCol();
+       auto row=pixel.getRow();
+       digits->emplace_back(chipID,0,row,col);
+     }
+     mChipData.clear();
+     gPixelReader->getNextChipData(mChipData);
+     ir=mChipData.getInteractionRecord();
+  } while (ir_old==ir);
+  ir_old=ir;
+
+  std::cout<<"Number of ITSDigits: "<<digits->size()<<'\n';
+}
 
 template <typename T>
 void Data::load(TTree* tree, const char* name, int entry, std::vector<T>* arr)
@@ -91,7 +139,8 @@ void Data::load(TTree* tree, const char* name, int entry, std::vector<T>* arr)
 
 void Data::loadData(int entry)
 {
-  load<Digit>(gDigiTree, "ITSDigit", entry, &mDigits);
+  loadDigits(entry, &mDigits);
+  //load<Digit>(gDigiTree, "ITSDigit", entry, &mDigits);
   load<Cluster>(gClusTree, "ITSCluster", entry, &mClusters);
   load<o2::ITS::TrackITS>(gTracTree, "ITSTrack", entry, &mTracks);
 }
@@ -134,6 +183,7 @@ TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
 
   auto most = std::distance(occup.begin(), std::max_element(occup.begin(), occup.end()));
   std::cout << "Most occupied chip: " << most << " (" << occup[most] << " digits)\n";
+  std::cout << "Chip "<<chip<<" number of digits "<< occup[chip]<<'\n';
 
   return qdigi;
 }
@@ -148,12 +198,14 @@ TEveElement* Data::getEveChipClusters(int chip, const std::vector<Cluster>& clus
   TEveQuadSet* qclus = new TEveQuadSet("clusters");
   qclus->SetOwnIds(kTRUE);
   qclus->SetFrame(box);
+  int ncl=0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
   for (const auto& c : clus) {
     auto id = c.getSensorID();
     if (id != chip)
       continue;
-
+    ncl++;
+    
     int row = c.getPatternRowMin();
     int col = c.getPatternColMin();
     int len = c.getPatternColSpan();
@@ -167,6 +219,8 @@ TEveElement* Data::getEveChipClusters(int chip, const std::vector<Cluster>& clus
   TEveTrans& ct = qclus->RefMainTrans();
   ct.RotateLF(1, 3, 0.5 * TMath::Pi());
   ct.SetPos(0, 0, 0);
+
+  std::cout << "Chip "<<chip<<" number of clusters "<< ncl<<'\n';
 
   return qclus;
 }
@@ -261,6 +315,7 @@ void load(int entry = 0, int chip = 13)
 
 void init(int entry = 0, int chip = 13,
           std::string digifile = "itsdigits.root",
+	  bool rawdata = false,
           std::string clusfile = "o2clus_its.root",
           std::string tracfile = "o2trac_its.root",
           std::string inputGeom = "O2geometry.root")
@@ -315,13 +370,24 @@ void init(int entry = 0, int chip = 13,
   frame->MapWindow();
   browser->StopEmbedding("Navigator");
 
-  // Data sources
-  auto file = TFile::Open(digifile.data());
-  if (file && gFile->IsOpen())
-    Data::setDigiTree((TTree*)gFile->Get("o2sim"));
-  else
-    std::cerr << "Cannot open file: " << digifile << '\n';
+  TFile *file;
 
+  // Data sources
+  if (rawdata) {
+    std::cout<<"Running with raw digits...\n";
+    Data::setRawPixelReader(digifile.data());
+  } else {
+    std::cout<<"Running with MC digits...\n";
+    Data::setDigitPixelReader(digifile.data());
+    /*
+    file = TFile::Open(digifile.data());
+    if (file && gFile->IsOpen())
+      Data::setDigiTree((TTree*)gFile->Get("o2sim"));
+    else
+      std::cerr << "Cannot open file: " << digifile << '\n';
+    */
+  }
+  
   file = TFile::Open(clusfile.data());
   if (file && gFile->IsOpen())
     Data::setClusTree((TTree*)gFile->Get("o2sim"));
