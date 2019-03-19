@@ -191,7 +191,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       switch (input.lifetime) {
         case Lifetime::Timer: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-          processor.options.push_back(ConfigParamSpec{ "period-" + input.binding, VariantType::Int, 1000, { "period of the timer" } });
+          bool hasOption = false;
+          for (auto& option : processor.options) {
+            if (option.name == "period-" + input.binding) {
+              hasOption = true;
+            }
+          }
+          if (hasOption == false) {
+            processor.options.push_back(ConfigParamSpec{ "period-" + input.binding, VariantType::Int, 1000, { "period of the timer" } });
+          }
           timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer });
         } break;
         case Lifetime::Enumeration: {
