@@ -85,21 +85,11 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
-    auto tableBuilder = messageRef.payload.get();
-    auto table = tableBuilder->finalize();
+    // Depending on how the arrow table is constructed, we finalize
+    // the writing here.
+    messageRef.finalize(messageRef.buffer);
 
-    auto creator = [&device](size_t s) -> std::unique_ptr<FairMQMessage> { return device.NewMessage(s); };
-    auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
-    /// Writing to a stream
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
-    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
-    auto outStatus = writer->WriteTable(*table);
-    if (outStatus.ok() == false) {
-      throw std::runtime_error("Unable to Write table");
-    }
-
-    std::unique_ptr<FairMQMessage> payload = buffer->Finalise();
+    std::unique_ptr<FairMQMessage> payload = messageRef.buffer->Finalise();
     // FIXME: for the moment we simply send empty bodies.
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not

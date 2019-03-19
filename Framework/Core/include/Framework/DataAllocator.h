@@ -44,6 +44,16 @@
 class FairMQDevice;
 class FairMQMessage;
 
+namespace arrow
+{
+class Schema;
+
+namespace ipc
+{
+class RecordBatchWriter;
+} // namespace ipc
+} // namespace arrow
+
 namespace o2
 {
 namespace framework
@@ -135,6 +145,17 @@ class DataAllocator
     TableBuilder* tb = new TableBuilder(args...);
     adopt(spec, tb);
     return *tb;
+  }
+
+  /// Helper to create a arrow::ipc::RecordBatchWriter, owned by the framework
+  /// which creates record batches with the given @a schema in a FairMQMessage.
+  template <typename T>
+  typename std::enable_if_t<std::is_base_of_v<arrow::ipc::RecordBatchWriter, T> == true, std::shared_ptr<T>>
+    make(const Output& spec, std::shared_ptr<arrow::Schema> schema)
+  {
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    create(spec, &writer, schema);
+    return writer;
   }
 
   /// Helper to create an byte stream buffer using boost serialization, which will be owned by the framework
@@ -494,6 +515,11 @@ class DataAllocator
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
+
+  /// Fills the passed arrow::ipc::BatchRecordWriter in the framework and
+  /// have it serialise / send data as RecordBatches to all consumers
+  /// of @a spec once done.
+  void create(const Output& spec, std::shared_ptr<arrow::ipc::RecordBatchWriter>*, std::shared_ptr<arrow::Schema>);
 };
 
 } // namespace framework
