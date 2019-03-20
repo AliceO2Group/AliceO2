@@ -21,6 +21,7 @@
 #include "Framework/Signpost.h"
 
 #include "ScopedExit.h"
+
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
@@ -138,7 +139,8 @@ bool DataProcessingDevice::ConditionalRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [stats = mRelayer.getStats(),
+  auto sendRelayerMetrics = [relayerStats = mRelayer.getStats(),
+                             &stats = mStats,
                              &lastSent = mLastSlowMetricSentTimestamp,
                              &currentTime = mBeginIterationTimestamp,
                              &monitoring = mServiceRegistry.get<Monitoring>()]()
@@ -146,15 +148,20 @@ bool DataProcessingDevice::ConditionalRun()
     if (currentTime - lastSent < 5000) {
       return;
     }
-    monitoring.send({ (int)stats.malformedInputs, "dpl/malformed_inputs" });
-    monitoring.send({ (int)stats.droppedComputations, "dpl/dropped_computations" });
-    monitoring.send({ (int)stats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
-    monitoring.send({ (int)stats.relayedMessages, "dpl/relayd_messages" });
+    monitoring.send({ (int)relayerStats.malformedInputs, "dpl/malformed_inputs" });
+    monitoring.send({ (int)relayerStats.droppedComputations, "dpl/dropped_computations" });
+    monitoring.send({ (int)relayerStats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
+    monitoring.send({ (int)relayerStats.relayedMessages, "dpl/relayd_messages" });
+
+    monitoring.send({ (int) stats.pendingInputs, "inputs/relayed/pending" });
+    monitoring.send({ (int) stats.incomplete, "inputs/relayed/incomplete" });
+    monitoring.send({ (int) stats.inputParts, "inputs/relayed/total" });
+
     lastSent = currentTime;
   };
 
   /// This will flush metrics only once every second.
-  auto flushMetrics = [stats = mRelayer.getStats(),
+  auto flushMetrics = [&stats = mStats,
                        &lastFlushed = mLastMetricFlushedTimestamp,
                        &currentTime = mBeginIterationTimestamp,
                        &monitoring = mServiceRegistry.get<Monitoring>()]()
@@ -221,9 +228,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&monitoringService, &parts]() -> bool {
-    // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
-    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
+  auto isValidInput = [&stats = mStats, &parts]() -> bool {
+    stats.inputParts = parts.Size();
 
     if (parts.Size() % 2) {
       return false;
@@ -339,12 +345,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
-    int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
-    if (completed.empty()) {
-      monitoringService.send({ 1, "inputs/relayed/incomplete" });
-    }
+  auto getReadyActions = [&relayer, &completed, &stats = mStats]() -> std::vector<DataRelayer::RecordAction> {
+    stats.pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
+    stats.incomplete = completed.empty() ? 1 : 0;
     return completed;
   };
 
