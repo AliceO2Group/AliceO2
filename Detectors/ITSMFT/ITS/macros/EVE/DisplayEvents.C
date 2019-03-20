@@ -46,13 +46,13 @@ class Data
  public:
   void loadData(int entry);
   void displayData(int entry, int chip);
-  static void setRawPixelReader(std::string input) {
+  void setRawPixelReader(std::string input) {
     auto reader = new RawPixelReader<ChipMappingITS>();
     reader->openInput(input);
     gPixelReader=reader;
     gPixelReader->getNextChipData(mChipData);
   }
-  static void setDigitPixelReader(std::string input) {
+  void setDigitPixelReader(std::string input) {
     auto reader = new DigitPixelReader();
     reader->openInput(input, o2::detectors::DetID("ITS"));
     reader->init();
@@ -60,49 +60,41 @@ class Data
     gPixelReader=reader;
     gPixelReader->getNextChipData(mChipData);
   }
-  static void setDigiTree(TTree* t) { gDigiTree = t; }
-  static void setClusTree(TTree* t) { gClusTree = t; }
-  static void setTracTree(TTree* t) { gTracTree = t; }
+  void setDigiTree(TTree* t) { mDigiTree = t; }
+  void setClusTree(TTree* t) { mClusTree = t; }
+  void setTracTree(TTree* t) { mTracTree = t; }
 
  private:
   // Data loading members
-  static PixelReader* gPixelReader;
-  static TTree* gDigiTree;
-  static TTree* gClusTree;
-  static TTree* gTracTree;
-  static ChipPixelData mChipData;  
+  PixelReader* gPixelReader = nullptr;
+  ChipPixelData mChipData;  
   std::vector<Digit> mDigits;
   std::vector<Cluster> mClusters;
   std::vector<o2::ITS::TrackITS> mTracks;
-  static void loadDigits(int entry, std::vector<Digit>* digi);
+  void loadDigits(int entry);
+
+  TTree* mDigiTree = nullptr;
+  TTree* mClusTree = nullptr;
+  TTree* mTracTree = nullptr;
   template <typename T>
-  static void load(TTree* tree, const char* name, int entry, std::vector<T>* arr);
+  void load(TTree* tree, const char* name, int entry, std::vector<T>* arr);
 
   // TEve-related members
-  static TEveElementList* gEvent;
-  static TEveElementList* gChip;
-  static TEveElement* getEveChipDigits(int chip, const std::vector<Digit>& digi);
-  static TEveElement* getEveChipClusters(int chip, const std::vector<Cluster>& clus);
-  static TEveElement* getEveClusters(const std::vector<Cluster>& clus);
-  static TEveElement* getEveTracks(const std::vector<Cluster>& clus, const std::vector<o2::ITS::TrackITS>& trks);
-};
-
-PixelReader* Data::gPixelReader = nullptr;
-TTree* Data::gDigiTree = nullptr;
-TTree* Data::gClusTree = nullptr;
-TTree* Data::gTracTree = nullptr;
-TEveElementList* Data::gEvent = nullptr;
-TEveElementList* Data::gChip = nullptr;
-
-ChipPixelData Data::mChipData;  
+  TEveElementList* mEvent = nullptr;
+  TEveElementList* mChip = nullptr;
+  TEveElement* getEveChipDigits(int chip);
+  TEveElement* getEveChipClusters(int chip);
+  TEveElement* getEveClusters();
+  TEveElement* getEveTracks();
+} evdata;
 
 
-void Data::loadDigits(int entry, std::vector<Digit>* digits) {
+void Data::loadDigits(int entry) {
   static auto ir_old = mChipData.getInteractionRecord();
   auto ir=mChipData.getInteractionRecord();
   std::cout<<"orbit/crossing: "<<' '<<ir.orbit<<'/'<<ir.bc<<'\n';
   
-  digits->clear();
+  mDigits.clear();
 
   do {
      auto chipID=mChipData.getChipID();
@@ -110,7 +102,7 @@ void Data::loadDigits(int entry, std::vector<Digit>* digits) {
      for (auto &pixel : pixels) {
        auto col=pixel.getCol();
        auto row=pixel.getRow();
-       digits->emplace_back(chipID,0,row,col);
+       mDigits.emplace_back(chipID,0,row,col);
      }
      mChipData.clear();
      gPixelReader->getNextChipData(mChipData);
@@ -118,7 +110,7 @@ void Data::loadDigits(int entry, std::vector<Digit>* digits) {
   } while (ir_old==ir);
   ir_old=ir;
 
-  std::cout<<"Number of ITSDigits: "<<digits->size()<<'\n';
+  std::cout<<"Number of ITSDigits: "<<mDigits.size()<<'\n';
 }
 
 template <typename T>
@@ -139,10 +131,10 @@ void Data::load(TTree* tree, const char* name, int entry, std::vector<T>* arr)
 
 void Data::loadData(int entry)
 {
-  loadDigits(entry, &mDigits);
-  //load<Digit>(gDigiTree, "ITSDigit", entry, &mDigits);
-  load<Cluster>(gClusTree, "ITSCluster", entry, &mClusters);
-  load<o2::ITS::TrackITS>(gTracTree, "ITSTrack", entry, &mTracks);
+  loadDigits(entry);
+  //load<Digit>(mDigiTree, "ITSDigit", entry, &mDigits);
+  load<Cluster>(mClusTree, "ITSCluster", entry, &mClusters);
+  load<o2::ITS::TrackITS>(mTracTree, "ITSTrack", entry, &mTracks);
 }
 
 constexpr float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
@@ -151,7 +143,7 @@ constexpr float dy = SegmentationAlpide::PitchRow;
 constexpr float dx = SegmentationAlpide::PitchCol;
 constexpr float gap = 1e-4; // For a better visualization of pixels
 
-TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
+TEveElement* Data::getEveChipDigits(int chip)
 {
   static TEveFrameBox* box = new TEveFrameBox();
   box->SetAAQuadXY(0, 0, 0, sizex, sizey);
@@ -164,7 +156,7 @@ TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
   qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
   auto gman = o2::ITS::GeometryTGeo::Instance();
   std::vector<int> occup(gman->getNumberOfChips());
-  for (const auto& d : digi) {
+  for (const auto& d : mDigits) {
     auto id = d.getChipIndex();
     occup[id]++;
     if (id != chip)
@@ -188,7 +180,7 @@ TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
   return qdigi;
 }
 
-TEveElement* Data::getEveChipClusters(int chip, const std::vector<Cluster>& clus)
+TEveElement* Data::getEveChipClusters(int chip)
 {
   static TEveFrameBox* box = new TEveFrameBox();
   box->SetAAQuadXY(0, 0, 0, sizex, sizey);
@@ -200,7 +192,7 @@ TEveElement* Data::getEveChipClusters(int chip, const std::vector<Cluster>& clus
   qclus->SetFrame(box);
   int ncl=0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
-  for (const auto& c : clus) {
+  for (const auto& c : mClusters) {
     auto id = c.getSensorID();
     if (id != chip)
       continue;
@@ -225,26 +217,26 @@ TEveElement* Data::getEveChipClusters(int chip, const std::vector<Cluster>& clus
   return qclus;
 }
 
-TEveElement* Data::getEveClusters(const std::vector<Cluster>& clus)
+TEveElement* Data::getEveClusters()
 {
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
-  for (const auto& c : clus) {
+  for (const auto& c : mClusters) {
     const auto& gloC = c.getXYZGloRot(*gman);
     clusters->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
   }
   return clusters;
 }
 
-TEveElement* Data::getEveTracks(const std::vector<Cluster>& clus, const std::vector<o2::ITS::TrackITS>& trks)
+TEveElement* Data::getEveTracks()
 {
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
   prop->SetMagField(0.5);
   prop->SetMaxR(50.);
-  for (const auto& rec : trks) {
+  for (const auto& rec : mTracks) {
     std::array<float, 3> p;
     rec.getPxPyPzGlo(p);
     TEveRecTrackD t;
@@ -254,14 +246,14 @@ TEveElement* Data::getEveTracks(const std::vector<Cluster>& clus, const std::vec
     track->SetLineColor(kMagenta);
     tracks->AddElement(track);
 
-    if (clus.empty())
+    if (mClusters.empty())
       continue;
     TEvePointSet* tpoints = new TEvePointSet("tclusters");
     tpoints->SetMarkerColor(kGreen);
     int nc = rec.getNumberOfClusters();
     while (nc--) {
       Int_t idx = rec.getClusterIndex(nc);
-      const Cluster& c = clus[idx];
+      const Cluster& c = mClusters[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
     }
@@ -278,39 +270,38 @@ void Data::displayData(int entry, int chip)
   ename += std::to_string(entry);
 
   // Chip display
-  auto chipDigits = getEveChipDigits(chip, mDigits);
-  auto chipClusters = getEveChipClusters(chip, mClusters);
-  delete gChip;
+  auto chipDigits = getEveChipDigits(chip);
+  auto chipClusters = getEveChipClusters(chip);
+  delete mChip;
   std::string cname(ename + "  ALPIDE chip #");
   cname += std::to_string(chip);
-  gChip = new TEveElementList(cname.c_str());
-  gChip->AddElement(chipDigits);
-  gChip->AddElement(chipClusters);
-  gEve->AddElement(gChip);
+  mChip = new TEveElementList(cname.c_str());
+  mChip->AddElement(chipDigits);
+  mChip->AddElement(chipClusters);
+  gEve->AddElement(mChip);
 
   // Event display
-  auto clusters = getEveClusters(mClusters);
-  auto tracks = getEveTracks(mClusters, mTracks);
-  delete gEvent;
-  gEvent = new TEveElementList(ename.c_str());
-  gEvent->AddElement(clusters);
-  gEvent->AddElement(tracks);
+  auto clusters = getEveClusters();
+  auto tracks = getEveTracks();
+  delete mEvent;
+  mEvent = new TEveElementList(ename.c_str());
+  mEvent->AddElement(clusters);
+  mEvent->AddElement(tracks);
   auto multi = o2::EventVisualisation::MultiView::getInstance();
-  multi->registerEvent(gEvent);
+  multi->registerEvent(mEvent);
 
   gEve->Redraw3D(kFALSE);
 }
 
 void load(int entry = 0, int chip = 13)
 {
+  std::cout << "\n*** Event #" << entry << " ***\n";
+
   gEntry->SetIntNumber(entry);
   gChipID->SetIntNumber(chip);
 
-  Data data;
-  std::cout << "\n*** Event #" << entry << " ***\n";
-
-  data.loadData(entry);
-  data.displayData(entry, chip);
+  evdata.loadData(entry);
+  evdata.displayData(entry, chip);
 }
 
 void init(int entry = 0, int chip = 13,
@@ -360,7 +351,7 @@ void init(int entry = 0, int chip = 13,
   b = new TGTextButton(h, "PrevChip", "prevChip()");
   h->AddFrame(b);
   gChipID = new TGNumberEntry(h, 0, 5, -1, TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, gman->getNumberOfChips());
-  gChipID->Connect("ValueSet(Long_t)", 0, 0, "navigate()");
+  gChipID->Connect("ValueSet(Long_t)", 0, 0, "loadChip()");
   h->AddFrame(gChipID);
   b = new TGTextButton(h, "NextChip", "nextChip()");
   h->AddFrame(b);
@@ -375,14 +366,14 @@ void init(int entry = 0, int chip = 13,
   // Data sources
   if (rawdata) {
     std::cout<<"Running with raw digits...\n";
-    Data::setRawPixelReader(digifile.data());
+    evdata.setRawPixelReader(digifile.data());
   } else {
     std::cout<<"Running with MC digits...\n";
-    Data::setDigitPixelReader(digifile.data());
+    evdata.setDigitPixelReader(digifile.data());
     /*
     file = TFile::Open(digifile.data());
     if (file && gFile->IsOpen())
-      Data::setDigiTree((TTree*)gFile->Get("o2sim"));
+      evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
     else
       std::cerr << "Cannot open file: " << digifile << '\n';
     */
@@ -390,13 +381,13 @@ void init(int entry = 0, int chip = 13,
   
   file = TFile::Open(clusfile.data());
   if (file && gFile->IsOpen())
-    Data::setClusTree((TTree*)gFile->Get("o2sim"));
+    evdata.setClusTree((TTree*)gFile->Get("o2sim"));
   else
     std::cerr << "Cannot open file: " << clusfile << '\n';
 
   file = TFile::Open(tracfile.data());
   if (file && gFile->IsOpen())
-    Data::setTracTree((TTree*)gFile->Get("o2sim"));
+    evdata.setTracTree((TTree*)gFile->Get("o2sim"));
   else
     std::cerr << "Cannot open file: " << tracfile << '\n';
 
@@ -437,29 +428,33 @@ void prev()
   load(event, chip);
 }
 
-void loadChip(int chip)
+void loadChip()
 {
   auto event = gEntry->GetNumberEntry()->GetIntNumber();
+  auto chip = gChipID->GetNumberEntry()->GetIntNumber();
+  evdata.displayData(event, chip);
+}
+
+void loadChip(int chip)
+{
   gChipID->SetIntNumber(chip);
-  load(event, chip);
+  loadChip();
 }
 
 void nextChip()
 {
-  auto event = gEntry->GetNumberEntry()->GetIntNumber();
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   chip++;
   gChipID->SetIntNumber(chip);
-  load(event, chip);
+  loadChip();
 }
 
 void prevChip()
 {
-  auto event = gEntry->GetNumberEntry()->GetIntNumber();
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   chip--;
   gChipID->SetIntNumber(chip);
-  load(event, chip);
+  loadChip();
 }
 
 void DisplayEvents()
