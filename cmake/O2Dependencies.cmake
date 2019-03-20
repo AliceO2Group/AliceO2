@@ -303,6 +303,45 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    ITS_qcworkflow_bucket
+
+    DEPENDENCIES
+    Framework
+	digitizer_workflow_bucket
+    its_reconstruction_bucket
+    ITSReconstruction
+
+
+    INCLUDE_DIRECTORIES
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/QCWorkFlow/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/reconstruction/include
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/workflow/include
+
+)
+
+
+
+o2_define_bucket(
+    NAME
+    ITS_digitreco_workflow_bucket
+
+    DEPENDENCIES
+    Framework
+	digitizer_workflow_bucket
+    its_reconstruction_bucket
+	ITSReconstruction
+
+
+    INCLUDE_DIRECTORIES
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/QCWorkFlow/include
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/ITSDIGIRECOWorkFlow/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/reconstruction/include
+
+)
+
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES

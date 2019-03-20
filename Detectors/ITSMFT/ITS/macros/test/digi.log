@@ -1,0 +1,1568 @@
+[INFO] Loading field from GRP of o2sim_grp.root 
+Run: 1551349099
+Fill:      0
+Period: 
+LHC State: 
+Start: Thu Feb 28 11:18:20 2019
+End  : Thu Feb 28 11:18:21 2019
+Beam0: Z:A =   0:  0, Energy = 0.000
+Beam1: Z:A =   0:  0, Energy = 0.000
+sqrt[s]    = 0.000
+crossing angle (radian) = 0.000000e+00
+magnet currents (A) L3 = -30000.000, Dipole = -6000
+Detectors: Cont.RO Triggers
+      ITS:    -       -    
+[INFO] MagneticField::Print: MagneticFieldMap:
+[INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[INFO] Running with the B field constructed out of GRP 
+[INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[INFO] TPC: GEM setup from existing cache
+[INFO] TPC: GEM setup (polya) took 0.86
+[INFO] TPC is in grp? no; is skipped? no
+[INFO] ITS is in grp? yes; is skipped? no
+[INFO] MFT is in grp? no; is skipped? no
+[INFO] TOF is in grp? no; is skipped? no
+[INFO] FIT is in grp? no; is skipped? no
+[INFO] EMC is in grp? no; is skipped? no
+[INFO] HMP is in grp? no; is skipped? no
+[INFO] TRD is in grp? no; is skipped? no
+[INFO] MCH is in grp? no; is skipped? no
+[INFO] Using port range [21999, 22999]
+[WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[INFO] Initialising O2 Data Processing Layer
+[INFO] O2 Data Processing Layer initialised. We brake for nobody.
+[INFO] Redeployment of configuration asked.
+Starting SimReader on pid 20533
+Starting ITSDigitizer on pid 20534
+Starting internal-dpl-clock on pid 20535
+Starting ITSDigitWriter on pid 20536
+Starting GRPUpdater on pid 20537
+[INFO] Redeployment of configuration done.
+[20533]: [INFO] Loading field from GRP of o2sim_grp.root 
+[20535]: [INFO] Loading field from GRP of o2sim_grp.root 
+[20534]: [INFO] Loading field from GRP of o2sim_grp.root 
+[20536]: [INFO] Loading field from GRP of o2sim_grp.root 
+[20537]: [INFO] Loading field from GRP of o2sim_grp.root 
+[20533]: Run: 1551349099
+[20533]: Fill:      0
+[20533]: Period: 
+[20533]: LHC State: 
+[20533]: Start: Thu Feb 28 11:18:20 2019
+[20533]: End  : Thu Feb 28 11:18:21 2019
+[20533]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20533]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20533]: sqrt[s]    = 0.000
+[20533]: crossing angle (radian) = 0.000000e+00
+[20533]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20533]: Detectors: Cont.RO Triggers
+[20533]:       ITS:    -       -    
+[20533]: [INFO] MagneticField::Print: MagneticFieldMap:
+[20533]: [INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[20533]: [INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[20533]: [INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+[20533]: [INFO] Running with the B field constructed out of GRP 
+[20533]: [INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[20533]: [INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[20533]: [INFO] TPC is in grp? no; is skipped? no
+[20533]: [INFO] ITS is in grp? yes; is skipped? no
+[20533]: Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+[20533]: Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[20535]: Run: 1551349099
+[20535]: Fill:      0
+[20535]: Period: 
+[20535]: LHC State: 
+[20535]: Start: Thu Feb 28 11:18:20 2019
+[20535]: End  : Thu Feb 28 11:18:21 2019
+[20535]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20535]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20535]: sqrt[s]    = 0.000
+[20535]: crossing angle (radian) = 0.000000e+00
+[20535]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20535]: Detectors: Cont.RO Triggers
+[20535]:       ITS:    -       -    
+[20535]: [INFO] MagneticField::Print: MagneticFieldMap:
+[20535]: [INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[20535]: [INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[20535]: [INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+[20535]: [INFO] Running with the B field constructed out of GRP 
+[20535]: [INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[20535]: [INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[20535]: [INFO] TPC is in grp? no; is skipped? no
+[20535]: [INFO] ITS is in grp? yes; is skipped? no
+[20535]: Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+[20535]: Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[20533]: [INFO] MFT is in grp? no; is skipped? no
+[20533]: [INFO] TOF is in grp? no; is skipped? no
+[20533]: [INFO] FIT is in grp? no; is skipped? no
+[20533]: [INFO] EMC is in grp? no; is skipped? no
+[20533]: [INFO] HMP is in grp? no; is skipped? no
+[20533]: [INFO] TRD is in grp? no; is skipped? no
+[20533]: [INFO] MCH is in grp? no; is skipped? no
+[20533]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[20533]: [INFO] Spawing new device SimReader in process with pid 20533
+[20535]: [INFO] MFT is in grp? no; is skipped? no
+[20535]: [INFO] TOF is in grp? no; is skipped? no
+[20535]: [INFO] FIT is in grp? no; is skipped? no
+[20535]: [INFO] EMC is in grp? no; is skipped? no
+[20535]: [INFO] HMP is in grp? no; is skipped? no
+[20535]: [INFO] TRD is in grp? no; is skipped? no
+[20535]: [INFO] MCH is in grp? no; is skipped? no
+[20533]: [11:18:26][INFO] Configuration: 
+[20533]: catch-signals                                              = 1                                                                                                    <int>            [default] 
+[20535]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[20535]: [INFO] Spawing new device internal-dpl-clock in process with pid 20535
+[20533]: channel-config                                             = name=from_SimReader_to_ITSDigitizer,type=push,method=bind,address=tcp://*:22000,rateLogging=60  name=from_internal-dpl-clock_to_SimReader,type=pull,method=connect,address=tcp://127.0.0.1:22003,rateLogging=60   <vector<string>> [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.address             = tcp://*:22000                                                                                        <string>         [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.autoBind            = 1                                                                                                    <bool>           [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.linger              = 500                                                                                                  <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.method              = bind                                                                                                 <string>         [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.portRangeMax        = 23000                                                                                                <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.portRangeMin        = 22000                                                                                                <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.rateLogging         = 60                                                                                                   <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.rcvBufSize          = 1000                                                                                                 <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.rcvKernelSize       = 0                                                                                                    <int>            [provided]
+[20535]: [11:18:26][INFO] Configuration: 
+[20535]: catch-signals                                              = 1                                                                                                    <int>            [default] 
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.sndBufSize          = 1000                                                                                                 <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.sndKernelSize       = 0                                                                                                    <int>            [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.transport           = default                                                                                              <string>         [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.0.type                = push                                                                                                 <string>         [provided]
+[20533]: chans.from_SimReader_to_ITSDigitizer.numSockets            = 1                                                                                                    <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.address       = tcp://127.0.0.1:22003                                                                                <string>         [provided]
+[20535]: channel-config                                             = name=from_internal-dpl-clock_to_SimReader,type=push,method=bind,address=tcp://*:22003,rateLogging=60   <vector<string>> [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.address       = tcp://*:22003                                                                                        <string>         [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.linger        = 500                                                                                                  <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.method        = bind                                                                                                 <string>         [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.linger        = 500                                                                                                  <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.method        = connect                                                                                              <string>         [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.transport     = default                                                                                              <string>         [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.transport     = default                                                                                              <string>         [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.0.type          = push                                                                                                 <string>         [provided]
+[20535]: chans.from_internal-dpl-clock_to_SimReader.numSockets      = 1                                                                                                    <int>            [provided]
+[20535]: color                                                      = 0                                                                                                    <bool>           [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.0.type          = pull                                                                                                 <string>         [provided]
+[20533]: chans.from_internal-dpl-clock_to_SimReader.numSockets      = 1                                                                                                    <int>            [provided]
+[20533]: color                                                      = 0                                                                                                    <bool>           [provided]
+[20533]: control                                                    = static                                                                                               <string>         [provided]
+[20533]: end-value-enumeration                                      = -1                                                                                                   <int>            [provided]
+[20534]: Run: 1551349099
+[20534]: Fill:      0
+[20534]: Period: 
+[20534]: LHC State: 
+[20534]: Start: Thu Feb 28 11:18:20 2019
+[20534]: End  : Thu Feb 28 11:18:21 2019
+[20534]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20534]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20534]: sqrt[s]    = 0.000
+[20534]: crossing angle (radian) = 0.000000e+00
+[20534]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20534]: Detectors: Cont.RO Triggers
+[20534]:       ITS:    -       -    
+[20534]: [INFO] MagneticField::Print: MagneticFieldMap:
+[20534]: [INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[20534]: [INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[20534]: [INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+[20534]: [INFO] Running with the B field constructed out of GRP 
+[20534]: [INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[20534]: [INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[20534]: Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+[20534]: Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[20535]: control                                                    = static                                                                                               <string>         [provided]
+[20535]: id                                                         = internal-dpl-clock                                                                                   <string>         [provided]
+[20535]: infologger-mode                                            =                                                                                                      <string>         [default] 
+[20535]: infologger-severity                                        =                                                                                                      <string>         [default] 
+[20535]: initialization-timeout                                     = 120                                                                                                  <int>            [default] 
+[20535]: io-threads                                                 = 1                                                                                                    <int>            [default] 
+[20533]: id                                                         = SimReader                                                                                            <string>         [provided]
+[20533]: incontext                                                  =                                                                                                      <string>         [provided]
+[20533]: infologger-mode                                            =                                                                                                      <string>         [default] 
+[20533]: infologger-severity                                        =                                                                                                      <string>         [default] 
+[20533]: initialization-timeout                                     = 120                                                                                                  <int>            [default] 
+[20534]: [INFO] TPC is in grp? no; is skipped? no
+[20534]: [INFO] ITS is in grp? yes; is skipped? no
+[20535]: log-to-file                                                =                                                                                                      <string>         [default] 
+[20535]: monitoring-backend                                         = infologger://                                                                                        <string>         [default] 
+[20535]: network-interface                                          = default                                                                                              <string>         [default] 
+[20535]: rate                                                       = 0                                                                                                    <float>          [default] 
+[20535]: session                                                    = default                                                                                              <string>         [default] 
+[20533]: io-threads                                                 = 1                                                                                                    <int>            [default] 
+[20533]: log-to-file                                                =                                                                                                      <string>         [default] 
+[20533]: monitoring-backend                                         = infologger://                                                                                        <string>         [default] 
+[20533]: ncollisions                                                = 0                                                                                                    <int>            [provided]
+[20533]: network-interface                                          = default                                                                                              <string>         [default] 
+[20533]: outcontext                                                 = collisioncontext.root                                                                                <string>         [provided]
+[20535]: severity                                                   = debug                                                                                                <string>         [default] 
+[20535]: shm-monitor                                                = 1                                                                                                    <bool>           [default] 
+[20535]: shm-segment-size                                           = 2000000000                                                                                           <std::size_t>    [default] 
+[20535]: transport                                                  = zeromq                                                                                               <string>         [default] 
+[20535]: verbosity                                                  = medium                                                                                               <string>         [default] 
+[20535]: 
+[20535]: [11:18:26][INFO] 
+[20535]:       ______      _    _______  _________ 
+[20535]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[20535]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[20533]: rate                                                       = 0                                                                                                    <float>          [default] 
+[20533]: session                                                    = default                                                                                              <string>         [default] 
+[20533]: severity                                                   = debug                                                                                                <string>         [default] 
+[20533]: shm-monitor                                                = 1                                                                                                    <bool>           [default] 
+[20533]: shm-segment-size                                           = 2000000000                                                                                           <std::size_t>    [default] 
+[20535]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[20535]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[20535]: 
+[20533]: simFile                                                    = o2sim.root                                                                                           <string>         [provided]
+[20533]: simFileQED                                                 =                                                                                                      <string>         [provided]
+[20533]: simFileS                                                   =                                                                                                      <string>         [provided]
+[20533]: start-value-enumeration                                    = 0                                                                                                    <int>            [provided]
+[20533]: step-value-enumeration                                     = 1                                                                                                    <int>            [provided]
+[20533]: transport                                                  = zeromq                                                                                               <string>         [default] 
+[20533]: verbosity                                                  = medium                                                                                               <string>         [default] 
+[20533]: 
+[20533]: [11:18:26][INFO] 
+[20533]:       ______      _    _______  _________ 
+[20533]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[20533]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[20533]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[20533]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[20533]: 
+[20537]: Run: 1551349099
+[20537]: Fill:      0
+[20537]: Period: 
+[20537]: LHC State: 
+[20537]: Start: Thu Feb 28 11:18:20 2019
+[20537]: End  : Thu Feb 28 11:18:21 2019
+[20537]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20537]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20537]: sqrt[s]    = 0.000
+[20537]: crossing angle (radian) = 0.000000e+00
+[20537]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20537]: Detectors: Cont.RO Triggers
+[20537]:       ITS:    -       -    
+[20537]: [INFO] MagneticField::Print: MagneticFieldMap:
+[20534]: [INFO] MFT is in grp? no; is skipped? no
+[20534]: [INFO] TOF is in grp? no; is skipped? no
+[20534]: [INFO] FIT is in grp? no; is skipped? no
+[20534]: [INFO] EMC is in grp? no; is skipped? no
+[20534]: [INFO] HMP is in grp? no; is skipped? no
+[20534]: [INFO] TRD is in grp? no; is skipped? no
+[20534]: [INFO] MCH is in grp? no; is skipped? no
+[20537]: [INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[20537]: [INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[20537]: [INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+[20537]: [INFO] Running with the B field constructed out of GRP 
+[20537]: [INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[20537]: [INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[20537]: [INFO] TPC is in grp? no; is skipped? no
+[20537]: [INFO] ITS is in grp? yes; is skipped? no
+[20537]: Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+[20537]: Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[20534]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[20534]: [INFO] Spawing new device ITSDigitizer in process with pid 20534
+[20534]: [11:18:26][INFO] Configuration: 
+[20534]: ITStriggered                                              = 0                                                                                                    <bool>           [default] 
+[20537]: [INFO] MFT is in grp? no; is skipped? no
+[20537]: [INFO] TOF is in grp? no; is skipped? no
+[20537]: [INFO] FIT is in grp? no; is skipped? no
+[20537]: [INFO] EMC is in grp? no; is skipped? no
+[20537]: [INFO] HMP is in grp? no; is skipped? no
+[20537]: [INFO] TRD is in grp? no; is skipped? no
+[20537]: [INFO] MCH is in grp? no; is skipped? no
+[20534]: catch-signals                                             = 1                                                                                                    <int>            [default] 
+[20534]: channel-config                                            = name=from_ITSDigitizer_to_ITSDigitWriter,type=push,method=bind,address=tcp://*:22001,rateLogging=60  name=from_ITSDigitizer_to_GRPUpdater,type=push,method=bind,address=tcp://*:22002,rateLogging=60  name=from_SimReader_to_ITSDigitizer,type=pull,method=connect,address=tcp://127.0.0.1:22000,rateLogging=60   <vector<string>> [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.address           = tcp://*:22002                                                                                        <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.autoBind          = 1                                                                                                    <bool>           [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.linger            = 500                                                                                                  <int>            [provided]
+[20537]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[20537]: [INFO] Spawing new device GRPUpdater in process with pid 20537
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.method            = bind                                                                                                 <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.portRangeMax      = 23000                                                                                                <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.portRangeMin      = 22000                                                                                                <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.rateLogging       = 60                                                                                                   <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.rcvBufSize        = 1000                                                                                                 <int>            [provided]
+[20537]: [11:18:26][INFO] Configuration: 
+[20537]: catch-signals                                         = 1                                                                                                    <int>            [default] 
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.rcvKernelSize     = 0                                                                                                    <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.sndBufSize        = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.sndKernelSize     = 0                                                                                                    <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.transport         = default                                                                                              <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.0.type              = push                                                                                                 <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_GRPUpdater.numSockets          = 1                                                                                                    <int>            [provided]
+[20536]: Run: 1551349099
+[20536]: Fill:      0
+[20536]: Period: 
+[20536]: LHC State: 
+[20536]: Start: Thu Feb 28 11:18:20 2019
+[20536]: End  : Thu Feb 28 11:18:21 2019
+[20536]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20536]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20536]: sqrt[s]    = 0.000
+[20536]: crossing angle (radian) = 0.000000e+00
+[20536]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20536]: Detectors: Cont.RO Triggers
+[20536]:       ITS:    -       -    
+[20536]: [INFO] MagneticField::Print: MagneticFieldMap:
+[20536]: [INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[20536]: [INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[20536]: [INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/Common/maps/mfchebKGI_sym.root
+[20537]: channel-config                                        = name=from_ITSDigitizer_to_GRPUpdater,type=pull,method=connect,address=tcp://127.0.0.1:22002,rateLogging=60   <vector<string>> [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.address       = tcp://127.0.0.1:22002                                                                                <string>         [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.linger        = 500                                                                                                  <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.method        = connect                                                                                              <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.address       = tcp://*:22001                                                                                        <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.linger        = 500                                                                                                  <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.method        = bind                                                                                                 <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[20536]: [INFO] Running with the B field constructed out of GRP 
+[20536]: [INFO] Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via 
+[20536]: [INFO] auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() ) 
+[20536]: [INFO] TPC is in grp? no; is skipped? no
+[20536]: [INFO] ITS is in grp? yes; is skipped? no
+[20536]: Info in <TGeoGlobalMagField::SetField>: Global magnetic field set to <MagneticFieldMap>
+[20536]: Info in <TGeoGlobalMagField::Lock>: Global magnetic field <MagneticFieldMap> is now locked
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.transport     = default                                                                                              <string>         [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.0.type          = pull                                                                                                 <string>         [provided]
+[20537]: chans.from_ITSDigitizer_to_GRPUpdater.numSockets      = 1                                                                                                    <int>            [provided]
+[20537]: color                                                 = 0                                                                                                    <bool>           [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.transport     = default                                                                                              <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.type          = push                                                                                                 <string>         [provided]
+[20534]: chans.from_ITSDigitizer_to_ITSDigitWriter.numSockets      = 1                                                                                                    <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.address            = tcp://127.0.0.1:22000                                                                                <string>         [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.autoBind           = 1                                                                                                    <bool>           [provided]
+[20537]: control                                               = static                                                                                               <string>         [provided]
+[20537]: id                                                    = GRPUpdater                                                                                           <string>         [provided]
+[20537]: infologger-mode                                       =                                                                                                      <string>         [default] 
+[20537]: infologger-severity                                   =                                                                                                      <string>         [default] 
+[20537]: initialization-timeout                                = 120                                                                                                  <int>            [default] 
+[20537]: io-threads                                            = 1                                                                                                    <int>            [default] 
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.linger             = 500                                                                                                  <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.method             = connect                                                                                              <string>         [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.portRangeMax       = 23000                                                                                                <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.portRangeMin       = 22000                                                                                                <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.rateLogging        = 60                                                                                                   <int>            [provided]
+[20537]: log-to-file                                           =                                                                                                      <string>         [default] 
+[20537]: monitoring-backend                                    = infologger://                                                                                        <string>         [default] 
+[20537]: network-interface                                     = default                                                                                              <string>         [default] 
+[20537]: rate                                                  = 0                                                                                                    <float>          [default] 
+[20537]: session                                               = default                                                                                              <string>         [default] 
+[20537]: severity                                              = debug                                                                                                <string>         [default] 
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.rcvBufSize         = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.rcvKernelSize      = 0                                                                                                    <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.sndBufSize         = 1000                                                                                                 <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.sndKernelSize      = 0                                                                                                    <int>            [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.transport          = default                                                                                              <string>         [provided]
+[20534]: chans.from_SimReader_to_ITSDigitizer.0.type               = pull                                                                                                 <string>         [provided]
+[20537]: shm-monitor                                           = 1                                                                                                    <bool>           [default] 
+[20537]: shm-segment-size                                      = 2000000000                                                                                           <std::size_t>    [default] 
+[20537]: transport                                             = zeromq                                                                                               <string>         [default] 
+[20537]: verbosity                                             = medium                                                                                               <string>         [default] 
+[20537]: 
+[20537]: [11:18:26][INFO] 
+[20537]:       ______      _    _______  _________ 
+[20537]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[20537]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[20537]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[20534]: chans.from_SimReader_to_ITSDigitizer.numSockets           = 1                                                                                                    <int>            [provided]
+[20534]: color                                                     = 0                                                                                                    <bool>           [provided]
+[20534]: control                                                   = static                                                                                               <string>         [provided]
+[20534]: id                                                        = ITSDigitizer                                                                                         <string>         [provided]
+[20534]: infologger-mode                                           =                                                                                                      <string>         [default] 
+[20537]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[20537]: 
+[20534]: infologger-severity                                       =                                                                                                      <string>         [default] 
+[20534]: initialization-timeout                                    = 120                                                                                                  <int>            [default] 
+[20534]: io-threads                                                = 1                                                                                                    <int>            [default] 
+[20534]: log-to-file                                               =                                                                                                      <string>         [default] 
+[20534]: monitoring-backend                                        = infologger://                                                                                        <string>         [default] 
+[20534]: network-interface                                         = default                                                                                              <string>         [default] 
+[20534]: noise                                                     = 1e-07                                                                                                <float>          [provided]
+[20534]: rate                                                      = 0                                                                                                    <float>          [default] 
+[20534]: session                                                   = default                                                                                              <string>         [default] 
+[20534]: severity                                                  = debug                                                                                                <string>         [default] 
+[20534]: shm-monitor                                               = 1                                                                                                    <bool>           [default] 
+[20534]: shm-segment-size                                          = 2000000000                                                                                           <std::size_t>    [default] 
+[20534]: simFile                                                   = o2sim.root                                                                                           <string>         [provided]
+[20534]: simFileQED                                                =                                                                                                      <string>         [provided]
+[20534]: simFileS                                                  =                                                                                                      <string>         [provided]
+[20534]: transport                                                 = zeromq                                                                                               <string>         [default] 
+[20536]: [INFO] MFT is in grp? no; is skipped? no
+[20536]: [INFO] TOF is in grp? no; is skipped? no
+[20536]: [INFO] FIT is in grp? no; is skipped? no
+[20536]: [INFO] EMC is in grp? no; is skipped? no
+[20536]: [INFO] HMP is in grp? no; is skipped? no
+[20536]: [INFO] TRD is in grp? no; is skipped? no
+[20536]: [INFO] MCH is in grp? no; is skipped? no
+[20534]: verbosity                                                 = medium                                                                                               <string>         [default] 
+[20534]: 
+[20534]: [11:18:26][INFO] 
+[20534]:       ______      _    _______  _________ 
+[20534]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[20534]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[20534]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[20534]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[20534]: 
+[20536]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[20536]: [INFO] Spawing new device ITSDigitWriter in process with pid 20536
+[20536]: [11:18:26][INFO] Configuration: 
+[20536]: catch-signals                                             = 1                                                                                                    <int>            [default] 
+[20536]: channel-config                                            = name=from_ITSDigitizer_to_ITSDigitWriter,type=pull,method=connect,address=tcp://127.0.0.1:22001,rateLogging=60   <vector<string>> [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.address       = tcp://127.0.0.1:22001                                                                                <string>         [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.linger        = 500                                                                                                  <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.method        = connect                                                                                              <string>         [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.transport     = default                                                                                              <string>         [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.0.type          = pull                                                                                                 <string>         [provided]
+[20536]: chans.from_ITSDigitizer_to_ITSDigitWriter.numSockets      = 1                                                                                                    <int>            [provided]
+[20536]: color                                                     = 0                                                                                                    <bool>           [provided]
+[20536]: control                                                   = static                                                                                               <string>         [provided]
+[20536]: id                                                        = ITSDigitWriter                                                                                       <string>         [provided]
+[20536]: infologger-mode                                           =                                                                                                      <string>         [default] 
+[20536]: infologger-severity                                       =                                                                                                      <string>         [default] 
+[20536]: initialization-timeout                                    = 120                                                                                                  <int>            [default] 
+[20536]: io-threads                                                = 1                                                                                                    <int>            [default] 
+[20536]: its-digit-outfile                                         = itsdigits.root                                                                                       <string>         [provided]
+[20536]: log-to-file                                               =                                                                                                      <string>         [default] 
+[20536]: monitoring-backend                                        = infologger://                                                                                        <string>         [default] 
+[20536]: network-interface                                         = default                                                                                              <string>         [default] 
+[20536]: rate                                                      = 0                                                                                                    <float>          [default] 
+[20536]: session                                                   = default                                                                                              <string>         [default] 
+[20536]: severity                                                  = debug                                                                                                <string>         [default] 
+[20536]: shm-monitor                                               = 1                                                                                                    <bool>           [default] 
+[20536]: shm-segment-size                                          = 2000000000                                                                                           <std::size_t>    [default] 
+[20536]: transport                                                 = zeromq                                                                                               <string>         [default] 
+[20536]: treename                                                  = o2sim                                                                                                <string>         [provided]
+[20536]: verbosity                                                 = medium                                                                                               <string>         [default] 
+[20536]: 
+[20536]: [11:18:26][INFO] 
+[20536]:       ______      _    _______  _________ 
+[20536]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[20536]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[20536]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[20536]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[20536]: 
+[20533]: infoLoggerD not available, falling back to stdout logging
+[20534]: infoLoggerD not available, falling back to stdout logging
+[20535]: infoLoggerD not available, falling back to stdout logging
+[20537]: infoLoggerD not available, falling back to stdout logging
+[20533]: 2019-02-28 11:18:26	[1;49mStdOut backend initialized[0m
+[20533]: [11:18:26][STATE] Starting FairMQ state machine
+[20533]: [11:18:26][STATE] Entering IDLE state
+[20534]: 2019-02-28 11:18:26	[1;49mStdOut backend initialized[0m
+[20534]: [11:18:26][STATE] Starting FairMQ state machine
+[20534]: [11:18:26][STATE] Entering IDLE state
+[20535]: 2019-02-28 11:18:26	[1;49mStdOut backend initialized[0m
+[20535]: [11:18:26][STATE] Starting FairMQ state machine
+[20535]: [11:18:26][STATE] Entering IDLE state
+[20536]: 2019-02-28 11:18:26	[1;49mStdOut backend initialized[0m
+[20536]: [11:18:26][STATE] Starting FairMQ state machine
+[20536]: [11:18:26][STATE] Entering IDLE state
+[20536]: [METRIC] matcher_variables/5,1 null 1551349106786 hostname=svminfoLoggerD not available, falling back to stdout logging
+[20536]: ithi02,name=digitizer-workflow
+[20537]: 2019-02-28 11:18:26	[1;49mStdOut backend initialized[0m
+[20537]: [11:18:26][STATE] Starting FairMQ state machine
+[20537]: [11:18:26][STATE] Entering IDLE state
+[20535]: [11:18:26][STATE] Entering INITIALIZING_DEVICE state
+[20535]: 2019-02-28 11:18:26	[1;49mBuffering enabled (100)[0m
+[20535]: [11:18:26][INFO] This is not a real device, merely a placeholder for external inputs
+[20535]: [11:18:26][INFO] To be hidden / removed at some point.
+[20533]: [11:18:26][STATE] Entering INITIALIZING_DEVICE state
+[20534]: [11:18:26][STATE] Entering INITIALIZING_DEVICE state
+[20535]: [11:18:26][STATE] Entering DEVICE_READY state
+[20535]: [11:18:26][STATE] Entering INITIALIZING_TASK state
+[20535]: [11:18:26][STATE] Entering READY state
+[20535]: [11:18:26][STATE] Entering RUNNING state
+[20535]: [11:18:26][INFO] DEVICE: Running...
+[20533]: 2019-02-28 11:18:26	[1;49mBuffering enabled (100)[0m
+[20533]: [11:18:26][INFO] INCONTEXTSTRING 
+[20533]: [11:18:26][INFO] setting up 1 chains
+[20537]: [11:18:26][STATE] Entering INITIALIZING_DEVICE state
+[20534]: 2019-02-28 11:18:26	[1;49mBuffering enabled (100)[0m
+[20534]: [11:18:26][INFO] ITS simulated in CONTINUOUS RO mode
+[20534]: [11:18:26][INFO] Noise generation (per pixel) 1e-07
+[20534]: [11:18:26][INFO] Loading geometry FAIRGeom from O2geometry.root 
+[20535]: [METRIC] dpl/in_handle_data[11:18:26][DEBUG] <channel>: in: <#msgs> (<MB>) out: <#msgs> (<MB>)
+[20535]: ,0 0 1551349106792 hostname=svmithi02,name=digitizer-workflow
+[20537]: 2019-02-28 11:18:26	[1;49mBuffering enabled (100)[0m
+[20537]: [11:18:26][STATE] Entering DEVICE_READY state
+[20537]: [11:18:26][STATE] Entering INITIALIZING_TASK state
+[20537]: [11:18:26][STATE] Entering READY state
+[20537]: [11:18:26][STATE] Entering RUNNING state
+[20537]: [11:18:26][INFO] DEVICE: Running...
+[20537]: [METRIC] dpl/malformed_inputs,[11:18:26][DEBUG] <channel>: in: <#msgs> (<MB>) out: <#msgs> (<MB>)
+[20537]: 0 0 1551349106792 hostname=svmithi02,name=digitizer-workflow
+[20536]: [11:18:26][STATE] Entering INITIALIZING_DEVICE state
+[20536]: 2019-02-28 11:18:26	[1;49mBuffering enabled (100)[0m
+[20536]: [11:18:26][INFO] Opened itsdigits.root output file
+[20536]: [11:18:26][STATE] Entering DEVICE_READY state
+[20536]: [11:18:26][STATE] Entering INITIALIZING_TASK state
+[20536]: [11:18:26][STATE] Entering READY state
+[20536]: [11:18:26][STATE] Entering RUNNING state
+[20536]: [11:18:26][INFO] DEVICE: Running...
+[20534]: Info in <TGeoManager::CloseGeometry>: Geometry loaded from file...
+[20534]: Info in <TGeoManager::SetTopVolume>: Top volume is cave. Master volume is cave
+[20534]: Info in <TGeoNavigator::BuildCache>: --- Maximum geometry depth set to 100
+[20534]: Info in <TGeoManager::CloseGeometry>: Voxelization retrieved from file
+[20534]: Info in <TGeoManager::CountLevels>: max level = 8, max placements = 108
+[20534]: Info in <TGeoManager::CloseGeometry>: 179073 nodes/ 298 volume UID's in FAIR geometry
+[20534]: Info in <TGeoManager::CloseGeometry>: ----------------modeler ready----------------
+[20533]: [11:18:27][INFO] Automatic deduction of number of collisions ... will just take number of background entries 100
+[20533]: [11:18:27][WARN] No bunch filling provided, impose default one 
+[20533]: [11:18:27][WARN] No IR or muBC is provided, setting default IR 
+[20533]: [11:18:27][INFO] Deducing mu=0.00771915 per BC from IR=50000 with 576 BCs 
+[20533]: Summary of RunContext --
+[20533]: Number of Collisions 100
+[20533]: Collision 0 TIME 89972.7 (0 , 0)
+[20533]: Collision 1 TIME 93914.9 (0 , 1)
+[20533]: Collision 2 TIME 103546 (0 , 2)
+[20533]: Collision 3 TIME 113277 (0 , 3)
+[20533]: Collision 4 TIME 119065 (0 , 4)
+[20533]: Collision 5 TIME 122907 (0 , 5)
+[20533]: Collision 6 TIME 127499 (0 , 6)
+[20533]: Collision 7 TIME 133686 (0 , 7)
+[20533]: Collision 8 TIME 141720 (0 , 8)
+[20533]: Collision 9 TIME 142519 (0 , 9)
+[20533]: Collision 10 TIME 183488 (0 , 10)
+[20533]: Collision 11 TIME 184137 (0 , 11)
+[20533]: Collision 12 TIME 184985 (0 , 12)
+[20533]: Collision 13 TIME 187929 (0 , 13)
+[20533]: Collision 14 TIME 188478 (0 , 14)
+[20533]: Collision 15 TIME 192371 (0 , 15)
+[20533]: Collision 16 TIME 199257 (0 , 16)
+[20533]: Collision 17 TIME 203698 (0 , 17)
+[20533]: Collision 18 TIME 213329 (0 , 18)
+[20533]: Collision 19 TIME 222212 (0 , 19)
+[20533]: Collision 20 TIME 227751 (0 , 20)
+[20533]: Collision 21 TIME 266824 (0 , 21)
+[20533]: Collision 22 TIME 273311 (0 , 22)
+[20533]: Collision 23 TIME 276654 (0 , 23)
+[20533]: Collision 24 TIME 281594 (0 , 24)
+[20533]: Collision 25 TIME 287981 (0 , 25)
+[20533]: Collision 26 TIME 288281 (0 , 26)
+[20533]: Collision 27 TIME 295567 (0 , 27)
+[20533]: Collision 28 TIME 302154 (0 , 28)
+[20533]: Collision 29 TIME 311635 (0 , 29)
+[20533]: Collision 30 TIME 314680 (0 , 30)
+[20533]: Collision 31 TIME 356247 (0 , 31)
+[20533]: Collision 32 TIME 357195 (0 , 32)
+[20533]: Collision 33 TIME 360838 (0 , 33)
+[20533]: Collision 34 TIME 371268 (0 , 34)
+[20533]: Collision 35 TIME 380150 (0 , 35)
+[20533]: Collision 36 TIME 391428 (0 , 36)
+[20533]: Collision 37 TIME 399961 (0 , 37)
+[20533]: Collision 38 TIME 400959 (0 , 38)
+[20533]: Collision 39 TIME 400959 (0 , 39)
+[20533]: Collision 40 TIME 405899 (0 , 40)
+[20533]: Collision 41 TIME 409842 (0 , 41)
+[20533]: Collision 42 TIME 451610 (0 , 42)
+[20533]: Collision 43 TIME 454803 (0 , 43)
+[20533]: Collision 44 TIME 460292 (0 , 44)
+[20533]: Collision 45 TIME 464883 (0 , 45)
+[20533]: Collision 46 TIME 474115 (0 , 46)
+[20533]: Collision 47 TIME 483895 (0 , 47)
+[20533]: Collision 48 TIME 497319 (0 , 48)
+[20533]: Collision 49 TIME 539186 (0 , 49)
+[20533]: Collision 50 TIME 547919 (0 , 50)
+[20533]: Collision 51 TIME 558997 (0 , 51)
+[20533]: Collision 52 TIME 564437 (0 , 52)
+[20533]: Collision 53 TIME 573668 (0 , 53)
+[20533]: Collision 54 TIME 577910 (0 , 54)
+[20533]: Collision 55 TIME 582301 (0 , 55)
+[20533]: Collision 56 TIME 623420 (0 , 56)
+[20533]: Collision 57 TIME 623919 (0 , 57)
+[20533]: Collision 58 TIME 627911 (0 , 58)
+[20533]: Collision 59 TIME 633201 (0 , 59)
+[20533]: Collision 60 TIME 634299 (0 , 60)
+[20533]: Collision 61 TIME 643531 (0 , 61)
+[20533]: Collision 62 TIME 648371 (0 , 62)
+[20533]: Collision 63 TIME 656455 (0 , 63)
+[20533]: Collision 64 TIME 665936 (0 , 64)
+[20533]: Collision 65 TIME 671975 (0 , 65)
+[20533]: Collision 66 TIME 712096 (0 , 66)
+[20533]: Collision 67 TIME 721177 (0 , 67)
+[20533]: Collision 68 TIME 732156 (0 , 68)
+[20533]: Collision 69 TIME 732905 (0 , 69)
+[20533]: Collision 70 TIME 746527 (0 , 70)
+[20533]: Collision 71 TIME 755161 (0 , 71)
+[20533]: Collision 72 TIME 755659 (0 , 72)
+[20533]: Collision 73 TIME 755709 (0 , 73)
+[20533]: Collision 74 TIME 766388 (0 , 74)
+[20533]: Collision 75 TIME 809952 (0 , 75)
+[20533]: Collision 76 TIME 810850 (0 , 76)
+[20533]: Collision 77 TIME 811349 (0 , 77)
+[20533]: Collision 78 TIME 820332 (0 , 78)
+[20533]: Collision 79 TIME 824474 (0 , 79)
+[20533]: Collision 80 TIME 831260 (0 , 80)
+[20533]: Collision 81 TIME 834853 (0 , 81)
+[20533]: Collision 82 TIME 843786 (0 , 82)
+[20533]: Collision 83 TIME 854315 (0 , 83)
+[20533]: Collision 84 TIME 854514 (0 , 84)
+[20533]: Collision 85 TIME 890094 (0 , 85)
+[20533]: Collision 86 TIME 899775 (0 , 86)
+[20533]: Collision 87 TIME 908608 (0 , 87)
+[20533]: Collision 88 TIME 918239 (0 , 88)
+[20533]: Collision 89 TIME 928069 (0 , 89)
+[20533]: Collision 90 TIME 929517 (0 , 90)
+[20533]: Collision 91 TIME 941992 (0 , 91)
+[20533]: Collision 92 TIME 983660 (0 , 92)
+[20533]: Collision 93 TIME 987752 (0 , 93)
+[20533]: Collision 94 TIME 989748 (0 , 94)
+[20533]: Collision 95 TIME 993440 (0 , 95)
+[20533]: Collision 96 TIME 1.00262e+06 (0 , 96)
+[20533]: Collision 97 TIME 1.00816e+06 (0 , 97)
+[20533]: Collision 98 TIME 1.01275e+06 (0 , 98)
+[20533]: Collision 99 TIME 1.02608e+06 (0 , 99)
+[20533]: [11:18:27][INFO] Initializing Spec ... have 100 times 
+[20533]: [11:18:27][INFO] Serializing Context for later reuse
+[20533]: [11:18:27][STATE] Entering DEVICE_READY state
+[20533]: [11:18:27][STATE] Entering INITIALIZING_TASK state
+[20533]: [11:18:27][STATE] Entering READY state
+[20533]: [11:18:27][STATE] Entering RUNNING state
+[20533]: [11:18:27][INFO] DEVICE: Running...
+[20533]: [11:18:27][INFO] SENDING SOMETHING TO OTHERS
+[20534]: [11:18:27][INFO] Loading ITS L2G matrices from TGeo 
+[20534]: [11:18:27][INFO] Set Alpide charge threshold to 150, single hit will be accounted from 15 electrons 
+[20534]: Alpide response object of 40500 matrices to map chagre in xyz to 5x5 pixels
+[20534]: X(col) range: +0.000000e+00 : +1.462000e-03 | step: 5.000000e-05 | Nbins: 30
+[20534]: Y(row) range: +0.000000e+00 : +1.344000e-03 | step: 5.000000e-05 | Nbins: 27
+[20534]: Z(dpt) range: -2.000000e-03 : +2.500000e-03 | step: 8.999999e-05 | Nbins: 50
+[20534]: Alpide digitization params:
+[20534]: Continuous readout             : ON
+[20534]: Readout Frame Length(ns)       : 6000.000000
+[20534]: Strobe delay (ns)              : 6000.000000
+[20534]: Strobe length (ns)             : 100.000000
+[20534]: Threshold (N electrons)        : 150
+[20534]: Min N electrons to accoint     : 15
+[20534]: Number of charge sharing steps : 7
+[20534]: ELoss to N electrons factor    : 2.777778e+08
+[20534]: Noise level per pixel          : 1.000000e-07
+[20534]: Charge time-response:
+[20534]: o2::ITSMFT::AlpideSignalTrapezoid | Duration: 7500.0 MaxRiseTime: 1100.0 (RiseTime=0 at q=450.0) (ns)
+[20534]: [11:18:27][STATE] Entering DEVICE_READY state
+[20534]: [11:18:27][STATE] Entering INITIALIZING_TASK state
+[20534]: [11:18:27][STATE] Entering READY state
+[20534]: [11:18:27][STATE] Entering RUNNING state
+[20534]: [11:18:27][INFO] DEVICE: Running...
+[20534]: [11:18:27][INFO]  CALLING ITS DIGITIZATION  
+[20534]: [11:18:28][INFO] For collision 0 eventID 0 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 0 from source 0 at time 89972.7 (TOff.= 0 ROFrame= 14) cont.mode: 1 Min/Max ROFrames 0/13 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 0:13 
+[20534]: ROF: 0 | 1283 entries starting from 0/0
+[20534]: BCid: 0 Orbit: 0 T(ns): 0
+[20534]: ROF: 1 | 1267 entries starting from 0/1283
+[20534]: BCid: 240 Orbit: 0 T(ns): 6000
+[20534]: ROF: 2 | 1323 entries starting from 0/2550
+[20534]: BCid: 481 Orbit: 0 T(ns): 12000
+[20534]: ROF: 3 | 1229 entries starting from 0/3873
+[20534]: BCid: 721 Orbit: 0 T(ns): 18000
+[20534]: ROF: 4 | 1245 entries starting from 0/5102
+[20534]: BCid: 962 Orbit: 0 T(ns): 24000
+[20534]: ROF: 5 | 1248 entries starting from 0/6347
+[20534]: BCid: 1202 Orbit: 0 T(ns): 30000
+[20534]: ROF: 6 | 1259 entries starting from 0/7595
+[20534]: BCid: 1443 Orbit: 0 T(ns): 36000
+[20534]: ROF: 7 | 1258 entries starting from 0/8854
+[20534]: BCid: 1683 Orbit: 0 T(ns): 42000
+[20534]: ROF: 8 | 1247 entries starting from 0/10112
+[20534]: BCid: 1924 Orbit: 0 T(ns): 48000
+[20534]: ROF: 9 | 1249 entries starting from 0/11359
+[20534]: BCid: 2164 Orbit: 0 T(ns): 54000
+[20534]: ROF: 10 | 1258 entries starting from 0/12608
+[20534]: BCid: 2405 Orbit: 0 T(ns): 60000
+[20534]: ROF: 11 | 1259 entries starting from 0/13866
+[20534]: BCid: 2645 Orbit: 0 T(ns): 66000
+[20534]: ROF: 12 | 1236 entries starting from 0/15125
+[20534]: BCid: 2886 Orbit: 0 T(ns): 72000
+[20534]: ROF: 13 | 1246 entries starting from 0/16361
+[20534]: BCid: 3126 Orbit: 0 T(ns): 78000
+[20534]: [11:18:28][INFO] Added 17607 digits  
+[20534]: [11:18:28][INFO] For collision 1 eventID 1 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 1 from source 0 at time 93914.9 (TOff.= 0 ROFrame= 15) cont.mode: 1 Min/Max ROFrames 14/16 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 14:14 
+[20534]: ROF: 14 | 1254 entries starting from 0/17607
+[20534]: BCid: 3367 Orbit: 0 T(ns): 84000
+[20534]: MCEventID: 0 ROFs: 14-15 Entry in ROFRecords: 14
+[20534]: [11:18:28][INFO] Added 1254 digits  
+[20534]: [11:18:28][INFO] For collision 2 eventID 2 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 2 from source 0 at time 103546 (TOff.= 0 ROFrame= 17) cont.mode: 1 Min/Max ROFrames 15/16 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 15:16 
+[20534]: ROF: 15 | 1709 entries starting from 0/18861
+[20534]: BCid: 43 Orbit: 1 T(ns): 90000
+[20534]: MCEventID: 1 ROFs: 15-15 Entry in ROFRecords: 15
+[20534]: ROF: 16 | 1235 entries starting from 0/20570
+[20534]: BCid: 284 Orbit: 1 T(ns): 96000
+[20534]: [11:18:28][INFO] Added 2944 digits  
+[20534]: [11:18:28][INFO] For collision 3 eventID 3 found 77 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 3 from source 0 at time 113277 (TOff.= 0 ROFrame= 18) cont.mode: 1 Min/Max ROFrames 17/18 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 17:17 
+[20534]: ROF: 17 | 1412 entries starting from 0/21805
+[20534]: BCid: 524 Orbit: 1 T(ns): 102000
+[20534]: MCEventID: 2 ROFs: 17-17 Entry in ROFRecords: 17
+[20534]: [11:18:28][INFO] Added 1412 digits  
+[20534]: [11:18:28][INFO] For collision 4 eventID 4 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 4 from source 0 at time 119065 (TOff.= 0 ROFrame= 19) cont.mode: 1 Min/Max ROFrames 18/20 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 18:18 
+[20534]: ROF: 18 | 1484 entries starting from 0/23217
+[20534]: BCid: 765 Orbit: 1 T(ns): 108000
+[20534]: MCEventID: 3 ROFs: 18-19 Entry in ROFRecords: 18
+[20534]: [11:18:28][INFO] Added 1484 digits  
+[20534]: [11:18:28][INFO] For collision 5 eventID 5 found 74 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 5 from source 0 at time 122907 (TOff.= 0 ROFrame= 20) cont.mode: 1 Min/Max ROFrames 19/21 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 19:19 
+[20534]: ROF: 19 | 1601 entries starting from 0/24701
+[20534]: BCid: 1005 Orbit: 1 T(ns): 114000
+[20534]: MCEventID: 4 ROFs: 19-20 Entry in ROFRecords: 19
+[20534]: [11:18:28][INFO] Added 1601 digits  
+[20534]: [11:18:28][INFO] For collision 6 eventID 6 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 6 from source 0 at time 127499 (TOff.= 0 ROFrame= 21) cont.mode: 1 Min/Max ROFrames 20/21 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 20:20 
+[20534]: ROF: 20 | 1619 entries starting from 0/26302
+[20534]: BCid: 1245 Orbit: 1 T(ns): 120000
+[20534]: MCEventID: 5 ROFs: 20-20 Entry in ROFRecords: 20
+[20534]: [11:18:28][INFO] Added 1619 digits  
+[20534]: [11:18:28][INFO] For collision 7 eventID 7 found 75 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 7 from source 0 at time 133686 (TOff.= 0 ROFrame= 22) cont.mode: 1 Min/Max ROFrames 21/22 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 21:21 
+[20534]: ROF: 21 | 1460 entries starting from 0/27921
+[20534]: BCid: 1486 Orbit: 1 T(ns): 126000
+[20534]: MCEventID: 6 ROFs: 21-21 Entry in ROFRecords: 21
+[20534]: [11:18:28][INFO] Added 1460 digits  
+[20534]: [11:18:28][INFO] For collision 8 eventID 8 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 8 from source 0 at time 141720 (TOff.= 0 ROFrame= 23) cont.mode: 1 Min/Max ROFrames 22/23 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 22:22 
+[20534]: ROF: 22 | 1475 entries starting from 0/29381
+[20534]: BCid: 1726 Orbit: 1 T(ns): 132000
+[20534]: MCEventID: 7 ROFs: 22-22 Entry in ROFRecords: 22
+[20534]: [11:18:28][INFO] Added 1475 digits  
+[20534]: [11:18:28][INFO] For collision 9 eventID 9 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 9 from source 0 at time 142519 (TOff.= 0 ROFrame= 23) cont.mode: 1 Min/Max ROFrames 23/24 
+[20534]: [11:18:28][INFO] For collision 10 eventID 10 found 85 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 10 from source 0 at time 183488 (TOff.= 0 ROFrame= 30) cont.mode: 1 Min/Max ROFrames 23/29 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 23:29 
+[20534]: ROF: 23 | 1604 entries starting from 0/30856
+[20534]: BCid: 1967 Orbit: 1 T(ns): 138000
+[20534]: MCEventID: 8 ROFs: 23-23 Entry in ROFRecords: 23
+[20534]: MCEventID: 9 ROFs: 23-24 Entry in ROFRecords: 23
+[20534]: ROF: 24 | 1404 entries starting from 0/32460
+[20534]: BCid: 2207 Orbit: 1 T(ns): 144000
+[20534]: ROF: 25 | 1247 entries starting from 0/33864
+[20534]: BCid: 2448 Orbit: 1 T(ns): 150000
+[20534]: ROF: 26 | 1213 entries starting from 0/35111
+[20534]: BCid: 2688 Orbit: 1 T(ns): 156000
+[20534]: ROF: 27 | 1303 entries starting from 0/36324
+[20534]: BCid: 2929 Orbit: 1 T(ns): 162000
+[20534]: ROF: 28 | 1307 entries starting from 0/37627
+[20534]: BCid: 3169 Orbit: 1 T(ns): 168000
+[20534]: ROF: 29 | 1240 entries starting from 0/38934
+[20534]: BCid: 3410 Orbit: 1 T(ns): 174000
+[20534]: [11:18:28][INFO] Added 9318 digits  
+[20534]: [11:18:28][INFO] For collision 11 eventID 11 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 11 from source 0 at time 184137 (TOff.= 0 ROFrame= 30) cont.mode: 1 Min/Max ROFrames 30/31 
+[20534]: [11:18:28][INFO] For collision 12 eventID 12 found 86 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 12 from source 0 at time 184985 (TOff.= 0 ROFrame= 30) cont.mode: 1 Min/Max ROFrames 30/31 
+[20534]: [11:18:28][INFO] For collision 13 eventID 13 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 13 from source 0 at time 187929 (TOff.= 0 ROFrame= 31) cont.mode: 1 Min/Max ROFrames 30/32 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 30:30 
+[20534]: ROF: 30 | 1833 entries starting from 0/40174
+[20534]: BCid: 86 Orbit: 2 T(ns): 180000
+[20534]: MCEventID: 10 ROFs: 30-30 Entry in ROFRecords: 30
+[20534]: MCEventID: 11 ROFs: 30-30 Entry in ROFRecords: 30
+[20534]: MCEventID: 12 ROFs: 30-31 Entry in ROFRecords: 30
+[20534]: [11:18:28][INFO] Added 1833 digits  
+[20534]: [11:18:28][INFO] For collision 14 eventID 14 found 86 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 14 from source 0 at time 188478 (TOff.= 0 ROFrame= 31) cont.mode: 1 Min/Max ROFrames 31/32 
+[20534]: [11:18:28][INFO] For collision 15 eventID 15 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 15 from source 0 at time 192371 (TOff.= 0 ROFrame= 32) cont.mode: 1 Min/Max ROFrames 31/32 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 31:31 
+[20534]: ROF: 31 | 1993 entries starting from 0/42007
+[20534]: BCid: 327 Orbit: 2 T(ns): 186000
+[20534]: MCEventID: 13 ROFs: 31-31 Entry in ROFRecords: 31
+[20534]: MCEventID: 14 ROFs: 31-31 Entry in ROFRecords: 31
+[20534]: [11:18:28][INFO] Added 1993 digits  
+[20534]: [11:18:28][INFO] For collision 16 eventID 16 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 16 from source 0 at time 199257 (TOff.= 0 ROFrame= 33) cont.mode: 1 Min/Max ROFrames 32/33 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 32:32 
+[20534]: ROF: 32 | 1502 entries starting from 0/44000
+[20534]: BCid: 567 Orbit: 2 T(ns): 192000
+[20534]: MCEventID: 15 ROFs: 32-32 Entry in ROFRecords: 32
+[20534]: [11:18:28][INFO] Added 1502 digits  
+[20534]: [11:18:28][INFO] For collision 17 eventID 17 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 17 from source 0 at time 203698 (TOff.= 0 ROFrame= 33) cont.mode: 1 Min/Max ROFrames 33/34 
+[20534]: [11:18:28][INFO] For collision 18 eventID 18 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 18 from source 0 at time 213329 (TOff.= 0 ROFrame= 35) cont.mode: 1 Min/Max ROFrames 33/35 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 33:34 
+[20534]: ROF: 33 | 1593 entries starting from 0/45502
+[20534]: BCid: 808 Orbit: 2 T(ns): 198000
+[20534]: MCEventID: 16 ROFs: 33-33 Entry in ROFRecords: 33
+[20534]: MCEventID: 17 ROFs: 33-34 Entry in ROFRecords: 33
+[20534]: ROF: 34 | 1443 entries starting from 0/47095
+[20534]: BCid: 1048 Orbit: 2 T(ns): 204000
+[20534]: [11:18:28][INFO] Added 3036 digits  
+[20534]: [11:18:28][INFO] For collision 19 eventID 19 found 89 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 19 from source 0 at time 222212 (TOff.= 0 ROFrame= 37) cont.mode: 1 Min/Max ROFrames 35/36 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 35:36 
+[20534]: ROF: 35 | 1415 entries starting from 0/48538
+[20534]: BCid: 1289 Orbit: 2 T(ns): 210000
+[20534]: MCEventID: 18 ROFs: 35-35 Entry in ROFRecords: 35
+[20534]: ROF: 36 | 1287 entries starting from 0/49953
+[20534]: BCid: 1529 Orbit: 2 T(ns): 216000
+[20534]: [11:18:28][INFO] Added 2702 digits  
+[20534]: [11:18:28][INFO] For collision 20 eventID 20 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 20 from source 0 at time 227751 (TOff.= 0 ROFrame= 37) cont.mode: 1 Min/Max ROFrames 37/38 
+[20534]: [11:18:28][INFO] For collision 21 eventID 21 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 21 from source 0 at time 266824 (TOff.= 0 ROFrame= 44) cont.mode: 1 Min/Max ROFrames 37/43 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 37:43 
+[20534]: ROF: 37 | 1573 entries starting from 0/51240
+[20534]: BCid: 1770 Orbit: 2 T(ns): 222000
+[20534]: MCEventID: 19 ROFs: 37-37 Entry in ROFRecords: 37
+[20534]: MCEventID: 20 ROFs: 37-38 Entry in ROFRecords: 37
+[20534]: ROF: 38 | 1436 entries starting from 0/52813
+[20534]: BCid: 2010 Orbit: 2 T(ns): 228000
+[20534]: ROF: 39 | 1298 entries starting from 0/54249
+[20534]: BCid: 2250 Orbit: 2 T(ns): 234000
+[20534]: ROF: 40 | 1258 entries starting from 0/55547
+[20534]: BCid: 2491 Orbit: 2 T(ns): 240000
+[20534]: ROF: 41 | 1297 entries starting from 0/56805
+[20534]: BCid: 2731 Orbit: 2 T(ns): 246000
+[20534]: ROF: 42 | 1244 entries starting from 0/58102
+[20534]: BCid: 2972 Orbit: 2 T(ns): 252000
+[20534]: ROF: 43 | 1250 entries starting from 0/59346
+[20534]: BCid: 3212 Orbit: 2 T(ns): 258000
+[20534]: [11:18:28][INFO] Added 9356 digits  
+[20534]: [11:18:28][INFO] For collision 22 eventID 22 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 22 from source 0 at time 273311 (TOff.= 0 ROFrame= 45) cont.mode: 1 Min/Max ROFrames 44/45 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 44:44 
+[20534]: ROF: 44 | 1462 entries starting from 0/60596
+[20534]: BCid: 3453 Orbit: 2 T(ns): 264000
+[20534]: MCEventID: 21 ROFs: 44-44 Entry in ROFRecords: 44
+[20534]: [11:18:28][INFO] Added 1462 digits  
+[20534]: [11:18:28][INFO] For collision 23 eventID 23 found 97 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 23 from source 0 at time 276654 (TOff.= 0 ROFrame= 46) cont.mode: 1 Min/Max ROFrames 45/46 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 45:45 
+[20534]: ROF: 45 | 1410 entries starting from 0/62058
+[20534]: BCid: 129 Orbit: 3 T(ns): 270000
+[20534]: MCEventID: 22 ROFs: 45-45 Entry in ROFRecords: 45
+[20534]: [11:18:28][INFO] Added 1410 digits  
+[20534]: [11:18:28][INFO] For collision 24 eventID 24 found 103 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 24 from source 0 at time 281594 (TOff.= 0 ROFrame= 46) cont.mode: 1 Min/Max ROFrames 46/47 
+[20534]: [11:18:28][INFO] For collision 25 eventID 25 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 25 from source 0 at time 287981 (TOff.= 0 ROFrame= 47) cont.mode: 1 Min/Max ROFrames 46/48 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 46:46 
+[20534]: ROF: 46 | 1706 entries starting from 0/63468
+[20534]: BCid: 370 Orbit: 3 T(ns): 276000
+[20534]: MCEventID: 23 ROFs: 46-46 Entry in ROFRecords: 46
+[20534]: MCEventID: 24 ROFs: 46-47 Entry in ROFRecords: 46
+[20534]: [11:18:28][INFO] Added 1706 digits  
+[20534]: [11:18:28][INFO] For collision 26 eventID 26 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 26 from source 0 at time 288281 (TOff.= 0 ROFrame= 48) cont.mode: 1 Min/Max ROFrames 47/49 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 47:47 
+[20534]: ROF: 47 | 1601 entries starting from 0/65174
+[20534]: BCid: 610 Orbit: 3 T(ns): 282000
+[20534]: MCEventID: 25 ROFs: 47-48 Entry in ROFRecords: 47
+[20534]: [11:18:28][INFO] Added 1601 digits  
+[20534]: [11:18:28][INFO] For collision 27 eventID 27 found 93 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 27 from source 0 at time 295567 (TOff.= 0 ROFrame= 49) cont.mode: 1 Min/Max ROFrames 48/49 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 48:48 
+[20534]: ROF: 48 | 1646 entries starting from 0/66775
+[20534]: BCid: 851 Orbit: 3 T(ns): 288000
+[20534]: MCEventID: 26 ROFs: 48-48 Entry in ROFRecords: 48
+[20534]: [11:18:28][INFO] Added 1646 digits  
+[20534]: [11:18:28][INFO] For collision 28 eventID 28 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 28 from source 0 at time 302154 (TOff.= 0 ROFrame= 50) cont.mode: 1 Min/Max ROFrames 49/50 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 49:49 
+[20534]: ROF: 49 | 1424 entries starting from 0/68421
+[20534]: BCid: 1091 Orbit: 3 T(ns): 294000
+[20534]: MCEventID: 27 ROFs: 49-49 Entry in ROFRecords: 49
+[20534]: [11:18:28][INFO] Added 1424 digits  
+[20534]: [11:18:28][INFO] For collision 29 eventID 29 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 29 from source 0 at time 311635 (TOff.= 0 ROFrame= 51) cont.mode: 1 Min/Max ROFrames 50/51 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 50:50 
+[20534]: ROF: 50 | 1422 entries starting from 0/69845
+[20534]: BCid: 1332 Orbit: 3 T(ns): 300000
+[20534]: MCEventID: 28 ROFs: 50-50 Entry in ROFRecords: 50
+[20534]: [11:18:28][INFO] Added 1422 digits  
+[20534]: [11:18:28][INFO] For collision 30 eventID 30 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 30 from source 0 at time 314680 (TOff.= 0 ROFrame= 52) cont.mode: 1 Min/Max ROFrames 51/53 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 51:51 
+[20534]: ROF: 51 | 1451 entries starting from 0/71267
+[20534]: BCid: 1572 Orbit: 3 T(ns): 306000
+[20534]: MCEventID: 29 ROFs: 51-52 Entry in ROFRecords: 51
+[20534]: [11:18:28][INFO] Added 1451 digits  
+[20534]: [11:18:28][INFO] For collision 31 eventID 31 found 77 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 31 from source 0 at time 356247 (TOff.= 0 ROFrame= 59) cont.mode: 1 Min/Max ROFrames 52/58 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 52:58 
+[20534]: ROF: 52 | 1636 entries starting from 0/72718
+[20534]: BCid: 1813 Orbit: 3 T(ns): 312000
+[20534]: MCEventID: 30 ROFs: 52-52 Entry in ROFRecords: 52
+[20534]: ROF: 53 | 1303 entries starting from 0/74354
+[20534]: BCid: 2053 Orbit: 3 T(ns): 318000
+[20534]: ROF: 54 | 1277 entries starting from 0/75657
+[20534]: BCid: 2294 Orbit: 3 T(ns): 324000
+[20534]: ROF: 55 | 1295 entries starting from 0/76934
+[20534]: BCid: 2534 Orbit: 3 T(ns): 330000
+[20534]: ROF: 56 | 1278 entries starting from 0/78229
+[20534]: BCid: 2775 Orbit: 3 T(ns): 336000
+[20534]: ROF: 57 | 1321 entries starting from 0/79507
+[20534]: BCid: 3015 Orbit: 3 T(ns): 342000
+[20534]: ROF: 58 | 1258 entries starting from 0/80828
+[20534]: BCid: 3255 Orbit: 3 T(ns): 348000
+[20534]: [11:18:28][INFO] Added 9368 digits  
+[20534]: [11:18:28][INFO] For collision 32 eventID 32 found 85 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 32 from source 0 at time 357195 (TOff.= 0 ROFrame= 59) cont.mode: 1 Min/Max ROFrames 59/60 
+[20534]: [11:18:28][INFO] For collision 33 eventID 33 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 33 from source 0 at time 360838 (TOff.= 0 ROFrame= 60) cont.mode: 1 Min/Max ROFrames 59/60 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 59:59 
+[20534]: ROF: 59 | 1604 entries starting from 0/82086
+[20534]: BCid: 3496 Orbit: 3 T(ns): 354000
+[20534]: MCEventID: 31 ROFs: 59-59 Entry in ROFRecords: 59
+[20534]: MCEventID: 32 ROFs: 59-59 Entry in ROFRecords: 59
+[20534]: [11:18:28][INFO] Added 1604 digits  
+[20534]: [11:18:28][INFO] For collision 34 eventID 34 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 34 from source 0 at time 371268 (TOff.= 0 ROFrame= 61) cont.mode: 1 Min/Max ROFrames 60/61 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 60:60 
+[20534]: ROF: 60 | 1462 entries starting from 0/83690
+[20534]: BCid: 172 Orbit: 4 T(ns): 360000
+[20534]: MCEventID: 33 ROFs: 60-60 Entry in ROFRecords: 60
+[20534]: [11:18:28][INFO] Added 1462 digits  
+[20534]: [11:18:28][INFO] For collision 35 eventID 35 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 35 from source 0 at time 380150 (TOff.= 0 ROFrame= 63) cont.mode: 1 Min/Max ROFrames 61/63 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 61:62 
+[20534]: ROF: 61 | 1459 entries starting from 0/85152
+[20534]: BCid: 413 Orbit: 4 T(ns): 366000
+[20534]: MCEventID: 34 ROFs: 61-62 Entry in ROFRecords: 61
+[20534]: ROF: 62 | 1426 entries starting from 0/86611
+[20534]: BCid: 653 Orbit: 4 T(ns): 372000
+[20534]: [11:18:28][INFO] Added 2885 digits  
+[20534]: [11:18:28][INFO] For collision 36 eventID 36 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 36 from source 0 at time 391428 (TOff.= 0 ROFrame= 65) cont.mode: 1 Min/Max ROFrames 63/64 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 63:64 
+[20534]: ROF: 63 | 1467 entries starting from 0/88037
+[20534]: BCid: 894 Orbit: 4 T(ns): 378000
+[20534]: MCEventID: 35 ROFs: 63-63 Entry in ROFRecords: 63
+[20534]: ROF: 64 | 1318 entries starting from 0/89504
+[20534]: BCid: 1134 Orbit: 4 T(ns): 384000
+[20534]: [11:18:28][INFO] Added 2785 digits  
+[20534]: [11:18:28][INFO] For collision 37 eventID 37 found 95 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 37 from source 0 at time 399961 (TOff.= 0 ROFrame= 66) cont.mode: 1 Min/Max ROFrames 65/66 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 65:65 
+[20534]: ROF: 65 | 1381 entries starting from 0/90822
+[20534]: BCid: 1375 Orbit: 4 T(ns): 390000
+[20534]: MCEventID: 36 ROFs: 65-65 Entry in ROFRecords: 65
+[20534]: [11:18:28][INFO] Added 1381 digits  
+[20534]: [11:18:28][INFO] For collision 38 eventID 38 found 111 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 38 from source 0 at time 400959 (TOff.= 0 ROFrame= 66) cont.mode: 1 Min/Max ROFrames 66/67 
+[20534]: [11:18:28][INFO] For collision 39 eventID 39 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 39 from source 0 at time 400959 (TOff.= 0 ROFrame= 66) cont.mode: 1 Min/Max ROFrames 66/68 
+[20534]: [11:18:28][INFO] For collision 40 eventID 40 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 40 from source 0 at time 405899 (TOff.= 0 ROFrame= 67) cont.mode: 1 Min/Max ROFrames 66/68 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 66:66 
+[20534]: ROF: 66 | 2122 entries starting from 0/92203
+[20534]: BCid: 1615 Orbit: 4 T(ns): 396000
+[20534]: MCEventID: 37 ROFs: 66-66 Entry in ROFRecords: 66
+[20534]: MCEventID: 38 ROFs: 66-67 Entry in ROFRecords: 66
+[20534]: MCEventID: 39 ROFs: 66-67 Entry in ROFRecords: 66
+[20534]: [11:18:28][INFO] Added 2122 digits  
+[20534]: [11:18:28][INFO] For collision 41 eventID 41 found 84 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 41 from source 0 at time 409842 (TOff.= 0 ROFrame= 68) cont.mode: 1 Min/Max ROFrames 67/68 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 67:67 
+[20534]: ROF: 67 | 2038 entries starting from 0/94325
+[20534]: BCid: 1856 Orbit: 4 T(ns): 402000
+[20534]: MCEventID: 40 ROFs: 67-67 Entry in ROFRecords: 67
+[20534]: [11:18:28][INFO] Added 2038 digits  
+[20534]: [11:18:28][INFO] For collision 42 eventID 42 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 42 from source 0 at time 451610 (TOff.= 0 ROFrame= 75) cont.mode: 1 Min/Max ROFrames 68/74 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 68:74 
+[20534]: ROF: 68 | 1465 entries starting from 0/96363
+[20534]: BCid: 2096 Orbit: 4 T(ns): 408000
+[20534]: MCEventID: 41 ROFs: 68-68 Entry in ROFRecords: 68
+[20534]: ROF: 69 | 1278 entries starting from 0/97828
+[20534]: BCid: 2337 Orbit: 4 T(ns): 414000
+[20534]: ROF: 70 | 1323 entries starting from 0/99106
+[20534]: BCid: 2577 Orbit: 4 T(ns): 420000
+[20534]: ROF: 71 | 1292 entries starting from 0/100429
+[20534]: BCid: 2818 Orbit: 4 T(ns): 426000
+[20534]: ROF: 72 | 1248 entries starting from 0/101721
+[20534]: BCid: 3058 Orbit: 4 T(ns): 432000
+[20534]: ROF: 73 | 1292 entries starting from 0/102969
+[20534]: BCid: 3299 Orbit: 4 T(ns): 438000
+[20534]: ROF: 74 | 1247 entries starting from 0/104261
+[20534]: BCid: 3539 Orbit: 4 T(ns): 444000
+[20534]: [11:18:28][INFO] Added 9145 digits  
+[20534]: [11:18:28][INFO] For collision 43 eventID 43 found 118 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 43 from source 0 at time 454803 (TOff.= 0 ROFrame= 75) cont.mode: 1 Min/Max ROFrames 75/76 
+[20534]: [11:18:28][INFO] For collision 44 eventID 44 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 44 from source 0 at time 460292 (TOff.= 0 ROFrame= 76) cont.mode: 1 Min/Max ROFrames 75/77 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 75:75 
+[20534]: ROF: 75 | 1632 entries starting from 0/105508
+[20534]: BCid: 216 Orbit: 5 T(ns): 450000
+[20534]: MCEventID: 42 ROFs: 75-75 Entry in ROFRecords: 75
+[20534]: MCEventID: 43 ROFs: 75-76 Entry in ROFRecords: 75
+[20534]: [11:18:28][INFO] Added 1632 digits  
+[20534]: [11:18:28][INFO] For collision 45 eventID 45 found 77 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 45 from source 0 at time 464883 (TOff.= 0 ROFrame= 77) cont.mode: 1 Min/Max ROFrames 76/77 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 76:76 
+[20534]: ROF: 76 | 1744 entries starting from 0/107140
+[20534]: BCid: 456 Orbit: 5 T(ns): 456000
+[20534]: MCEventID: 44 ROFs: 76-76 Entry in ROFRecords: 76
+[20534]: [11:18:28][INFO] Added 1744 digits  
+[20534]: [11:18:28][INFO] For collision 46 eventID 46 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 46 from source 0 at time 474115 (TOff.= 0 ROFrame= 79) cont.mode: 1 Min/Max ROFrames 77/78 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 77:78 
+[20534]: ROF: 77 | 1475 entries starting from 0/108884
+[20534]: BCid: 696 Orbit: 5 T(ns): 462000
+[20534]: MCEventID: 45 ROFs: 77-77 Entry in ROFRecords: 77
+[20534]: ROF: 78 | 1205 entries starting from 0/110359
+[20534]: BCid: 937 Orbit: 5 T(ns): 468000
+[20534]: [11:18:28][INFO] Added 2680 digits  
+[20534]: [11:18:28][INFO] For collision 47 eventID 47 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 47 from source 0 at time 483895 (TOff.= 0 ROFrame= 80) cont.mode: 1 Min/Max ROFrames 79/80 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 79:79 
+[20534]: ROF: 79 | 1399 entries starting from 0/111564
+[20534]: BCid: 1177 Orbit: 5 T(ns): 474000
+[20534]: MCEventID: 46 ROFs: 79-79 Entry in ROFRecords: 79
+[20534]: [11:18:28][INFO] Added 1399 digits  
+[20534]: [11:18:28][INFO] For collision 48 eventID 48 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 48 from source 0 at time 497319 (TOff.= 0 ROFrame= 82) cont.mode: 1 Min/Max ROFrames 80/81 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 80:81 
+[20534]: ROF: 80 | 1450 entries starting from 0/112963
+[20534]: BCid: 1418 Orbit: 5 T(ns): 480000
+[20534]: MCEventID: 47 ROFs: 80-80 Entry in ROFRecords: 80
+[20534]: ROF: 81 | 1270 entries starting from 0/114413
+[20534]: BCid: 1658 Orbit: 5 T(ns): 486000
+[20534]: [11:18:28][INFO] Added 2720 digits  
+[20534]: [11:18:28][INFO] For collision 49 eventID 49 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 49 from source 0 at time 539186 (TOff.= 0 ROFrame= 89) cont.mode: 1 Min/Max ROFrames 82/88 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 82:88 
+[20534]: ROF: 82 | 1487 entries starting from 0/115683
+[20534]: BCid: 1899 Orbit: 5 T(ns): 492000
+[20534]: MCEventID: 48 ROFs: 82-83 Entry in ROFRecords: 82
+[20534]: ROF: 83 | 1492 entries starting from 0/117170
+[20534]: BCid: 2139 Orbit: 5 T(ns): 498000
+[20534]: ROF: 84 | 1313 entries starting from 0/118662
+[20534]: BCid: 2380 Orbit: 5 T(ns): 504000
+[20534]: ROF: 85 | 1252 entries starting from 0/119975
+[20534]: BCid: 2620 Orbit: 5 T(ns): 510000
+[20534]: ROF: 86 | 1239 entries starting from 0/121227
+[20534]: BCid: 2861 Orbit: 5 T(ns): 516000
+[20534]: ROF: 87 | 1196 entries starting from 0/122466
+[20534]: BCid: 3101 Orbit: 5 T(ns): 522000
+[20534]: ROF: 88 | 1323 entries starting from 0/123662
+[20534]: BCid: 3342 Orbit: 5 T(ns): 528000
+[20534]: [11:18:28][INFO] Added 9302 digits  
+[20534]: [11:18:28][INFO] For collision 50 eventID 50 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 50 from source 0 at time 547919 (TOff.= 0 ROFrame= 91) cont.mode: 1 Min/Max ROFrames 89/91 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 89:90 
+[20534]: ROF: 89 | 1408 entries starting from 0/124985
+[20534]: BCid: 18 Orbit: 6 T(ns): 534000
+[20534]: MCEventID: 49 ROFs: 89-90 Entry in ROFRecords: 89
+[20534]: ROF: 90 | 1424 entries starting from 0/126393
+[20534]: BCid: 259 Orbit: 6 T(ns): 540000
+[20534]: [11:18:28][INFO] Added 2832 digits  
+[20534]: [11:18:28][INFO] For collision 51 eventID 51 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 51 from source 0 at time 558997 (TOff.= 0 ROFrame= 93) cont.mode: 1 Min/Max ROFrames 91/92 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 91:92 
+[20534]: ROF: 91 | 1445 entries starting from 0/127817
+[20534]: BCid: 499 Orbit: 6 T(ns): 546000
+[20534]: MCEventID: 50 ROFs: 91-91 Entry in ROFRecords: 91
+[20534]: ROF: 92 | 1249 entries starting from 0/129262
+[20534]: BCid: 740 Orbit: 6 T(ns): 552000
+[20534]: [11:18:28][INFO] Added 2694 digits  
+[20534]: [11:18:28][INFO] For collision 52 eventID 52 found 85 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 52 from source 0 at time 564437 (TOff.= 0 ROFrame= 94) cont.mode: 1 Min/Max ROFrames 93/94 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 93:93 
+[20534]: ROF: 93 | 1465 entries starting from 0/130511
+[20534]: BCid: 980 Orbit: 6 T(ns): 558000
+[20534]: MCEventID: 51 ROFs: 93-93 Entry in ROFRecords: 93
+[20534]: [11:18:28][INFO] Added 1465 digits  
+[20534]: [11:18:28][INFO] For collision 53 eventID 53 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 53 from source 0 at time 573668 (TOff.= 0 ROFrame= 95) cont.mode: 1 Min/Max ROFrames 94/95 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 94:94 
+[20534]: ROF: 94 | 1382 entries starting from 0/131976
+[20534]: BCid: 1220 Orbit: 6 T(ns): 564000
+[20534]: MCEventID: 52 ROFs: 94-94 Entry in ROFRecords: 94
+[20534]: [11:18:28][INFO] Added 1382 digits  
+[20534]: [11:18:28][INFO] For collision 54 eventID 54 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 54 from source 0 at time 577910 (TOff.= 0 ROFrame= 96) cont.mode: 1 Min/Max ROFrames 95/96 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 95:95 
+[20534]: ROF: 95 | 1448 entries starting from 0/133358
+[20534]: BCid: 1461 Orbit: 6 T(ns): 570000
+[20534]: MCEventID: 53 ROFs: 95-95 Entry in ROFRecords: 95
+[20534]: [11:18:28][INFO] Added 1448 digits  
+[20534]: [11:18:28][INFO] For collision 55 eventID 55 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 55 from source 0 at time 582301 (TOff.= 0 ROFrame= 97) cont.mode: 1 Min/Max ROFrames 96/97 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 96:96 
+[20534]: ROF: 96 | 1472 entries starting from 0/134806
+[20534]: BCid: 1701 Orbit: 6 T(ns): 576000
+[20534]: MCEventID: 54 ROFs: 96-96 Entry in ROFRecords: 96
+[20534]: [11:18:28][INFO] Added 1472 digits  
+[20534]: [11:18:28][INFO] For collision 56 eventID 56 found 103 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 56 from source 0 at time 623420 (TOff.= 0 ROFrame= 103) cont.mode: 1 Min/Max ROFrames 97/102 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 97:102 
+[20534]: ROF: 97 | 1390 entries starting from 0/136278
+[20534]: BCid: 1942 Orbit: 6 T(ns): 582000
+[20534]: MCEventID: 55 ROFs: 97-97 Entry in ROFRecords: 97
+[20534]: ROF: 98 | 1299 entries starting from 0/137668
+[20534]: BCid: 2182 Orbit: 6 T(ns): 588000
+[20534]: ROF: 99 | 1255 entries starting from 0/138967
+[20534]: BCid: 2423 Orbit: 6 T(ns): 594000
+[20534]: ROF: 100 | 1252 entries starting from 0/140222
+[20534]: BCid: 2663 Orbit: 6 T(ns): 600000
+[20534]: ROF: 101 | 1291 entries starting from 0/141474
+[20534]: BCid: 2904 Orbit: 6 T(ns): 606000
+[20534]: ROF: 102 | 1225 entries starting from 0/142765
+[20534]: BCid: 3144 Orbit: 6 T(ns): 612000
+[20534]: [11:18:28][INFO] Added 7712 digits  
+[20534]: [11:18:28][INFO] For collision 57 eventID 57 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 57 from source 0 at time 623919 (TOff.= 0 ROFrame= 103) cont.mode: 1 Min/Max ROFrames 103/105 
+[20534]: [11:18:28][INFO] For collision 58 eventID 58 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 58 from source 0 at time 627911 (TOff.= 0 ROFrame= 104) cont.mode: 1 Min/Max ROFrames 103/105 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 103:103 
+[20534]: ROF: 103 | 1630 entries starting from 0/143990
+[20534]: BCid: 3385 Orbit: 6 T(ns): 618000
+[20534]: MCEventID: 56 ROFs: 103-104 Entry in ROFRecords: 103
+[20534]: MCEventID: 57 ROFs: 103-104 Entry in ROFRecords: 103
+[20534]: [11:18:28][INFO] Added 1630 digits  
+[20534]: [11:18:28][INFO] For collision 59 eventID 59 found 74 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 59 from source 0 at time 633201 (TOff.= 0 ROFrame= 105) cont.mode: 1 Min/Max ROFrames 104/105 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 104:104 
+[20534]: ROF: 104 | 1929 entries starting from 0/145620
+[20534]: BCid: 61 Orbit: 7 T(ns): 624000
+[20534]: MCEventID: 58 ROFs: 104-104 Entry in ROFRecords: 104
+[20534]: [11:18:28][INFO] Added 1929 digits  
+[20534]: [11:18:28][INFO] For collision 60 eventID 60 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 60 from source 0 at time 634299 (TOff.= 0 ROFrame= 105) cont.mode: 1 Min/Max ROFrames 105/106 
+[20534]: [11:18:28][INFO] For collision 61 eventID 61 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 61 from source 0 at time 643531 (TOff.= 0 ROFrame= 107) cont.mode: 1 Min/Max ROFrames 105/106 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 105:106 
+[20534]: ROF: 105 | 1654 entries starting from 0/147549
+[20534]: BCid: 302 Orbit: 7 T(ns): 630000
+[20534]: MCEventID: 59 ROFs: 105-105 Entry in ROFRecords: 105
+[20534]: MCEventID: 60 ROFs: 105-105 Entry in ROFRecords: 105
+[20534]: ROF: 106 | 1283 entries starting from 0/149203
+[20534]: BCid: 542 Orbit: 7 T(ns): 636000
+[20534]: [11:18:28][INFO] Added 2937 digits  
+[20534]: [11:18:28][INFO] For collision 62 eventID 62 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 62 from source 0 at time 648371 (TOff.= 0 ROFrame= 108) cont.mode: 1 Min/Max ROFrames 107/108 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 107:107 
+[20534]: ROF: 107 | 1448 entries starting from 0/150486
+[20534]: BCid: 783 Orbit: 7 T(ns): 642000
+[20534]: MCEventID: 61 ROFs: 107-107 Entry in ROFRecords: 107
+[20534]: [11:18:28][INFO] Added 1448 digits  
+[20534]: [11:18:28][INFO] For collision 63 eventID 63 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 63 from source 0 at time 656455 (TOff.= 0 ROFrame= 109) cont.mode: 1 Min/Max ROFrames 108/109 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 108:108 
+[20534]: ROF: 108 | 1474 entries starting from 0/151934
+[20534]: BCid: 1023 Orbit: 7 T(ns): 648000
+[20534]: MCEventID: 62 ROFs: 108-108 Entry in ROFRecords: 108
+[20534]: [11:18:28][INFO] Added 1474 digits  
+[20534]: [11:18:28][INFO] For collision 64 eventID 64 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 64 from source 0 at time 665936 (TOff.= 0 ROFrame= 110) cont.mode: 1 Min/Max ROFrames 109/110 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 109:109 
+[20534]: ROF: 109 | 1444 entries starting from 0/153408
+[20534]: BCid: 1264 Orbit: 7 T(ns): 654000
+[20534]: MCEventID: 63 ROFs: 109-109 Entry in ROFRecords: 109
+[20534]: [11:18:28][INFO] Added 1444 digits  
+[20534]: [11:18:28][INFO] For collision 65 eventID 65 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 65 from source 0 at time 671975 (TOff.= 0 ROFrame= 111) cont.mode: 1 Min/Max ROFrames 110/112 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 110:110 
+[20534]: ROF: 110 | 1416 entries starting from 0/154852
+[20534]: BCid: 1504 Orbit: 7 T(ns): 660000
+[20534]: MCEventID: 64 ROFs: 110-111 Entry in ROFRecords: 110
+[20534]: [11:18:28][INFO] Added 1416 digits  
+[20534]: [11:18:28][INFO] For collision 66 eventID 66 found 99 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 66 from source 0 at time 712096 (TOff.= 0 ROFrame= 118) cont.mode: 1 Min/Max ROFrames 111/117 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 111:117 
+[20534]: ROF: 111 | 1533 entries starting from 0/156268
+[20534]: BCid: 1745 Orbit: 7 T(ns): 666000
+[20534]: MCEventID: 65 ROFs: 111-112 Entry in ROFRecords: 111
+[20534]: ROF: 112 | 1427 entries starting from 0/157801
+[20534]: BCid: 1985 Orbit: 7 T(ns): 672000
+[20534]: ROF: 113 | 1297 entries starting from 0/159228
+[20534]: BCid: 2225 Orbit: 7 T(ns): 678000
+[20534]: ROF: 114 | 1309 entries starting from 0/160525
+[20534]: BCid: 2466 Orbit: 7 T(ns): 684000
+[20534]: ROF: 115 | 1233 entries starting from 0/161834
+[20534]: BCid: 2706 Orbit: 7 T(ns): 690000
+[20534]: ROF: 116 | 1330 entries starting from 0/163067
+[20534]: BCid: 2947 Orbit: 7 T(ns): 696000
+[20534]: ROF: 117 | 1283 entries starting from 0/164397
+[20534]: BCid: 3187 Orbit: 7 T(ns): 702000
+[20534]: [11:18:28][INFO] Added 9412 digits  
+[20534]: [11:18:28][INFO] For collision 67 eventID 67 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 67 from source 0 at time 721177 (TOff.= 0 ROFrame= 120) cont.mode: 1 Min/Max ROFrames 118/119 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 118:119 
+[20534]: ROF: 118 | 1481 entries starting from 0/165680
+[20534]: BCid: 3428 Orbit: 7 T(ns): 708000
+[20534]: MCEventID: 66 ROFs: 118-118 Entry in ROFRecords: 118
+[20534]: ROF: 119 | 1274 entries starting from 0/167161
+[20534]: BCid: 104 Orbit: 8 T(ns): 714000
+[20534]: [11:18:28][INFO] Added 2755 digits  
+[20534]: [11:18:28][INFO] For collision 68 eventID 68 found 92 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 68 from source 0 at time 732156 (TOff.= 0 ROFrame= 122) cont.mode: 1 Min/Max ROFrames 120/121 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 120:121 
+[20534]: ROF: 120 | 1339 entries starting from 0/168435
+[20534]: BCid: 345 Orbit: 8 T(ns): 720000
+[20534]: MCEventID: 67 ROFs: 120-120 Entry in ROFRecords: 120
+[20534]: ROF: 121 | 1288 entries starting from 0/169774
+[20534]: BCid: 585 Orbit: 8 T(ns): 726000
+[20534]: [11:18:28][INFO] Added 2627 digits  
+[20534]: [11:18:28][INFO] For collision 69 eventID 69 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 69 from source 0 at time 732905 (TOff.= 0 ROFrame= 122) cont.mode: 1 Min/Max ROFrames 122/123 
+[20534]: [11:18:28][INFO] For collision 70 eventID 70 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 70 from source 0 at time 746527 (TOff.= 0 ROFrame= 124) cont.mode: 1 Min/Max ROFrames 122/123 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 122:123 
+[20534]: ROF: 122 | 1684 entries starting from 0/171062
+[20534]: BCid: 826 Orbit: 8 T(ns): 732000
+[20534]: MCEventID: 68 ROFs: 122-122 Entry in ROFRecords: 122
+[20534]: MCEventID: 69 ROFs: 122-122 Entry in ROFRecords: 122
+[20534]: ROF: 123 | 1214 entries starting from 0/172746
+[20534]: BCid: 1066 Orbit: 8 T(ns): 738000
+[20534]: [11:18:28][INFO] Added 2898 digits  
+[20534]: [11:18:28][INFO] For collision 71 eventID 71 found 80 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 71 from source 0 at time 755161 (TOff.= 0 ROFrame= 125) cont.mode: 1 Min/Max ROFrames 124/125 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 124:124 
+[20534]: ROF: 124 | 1429 entries starting from 0/173960
+[20534]: BCid: 1307 Orbit: 8 T(ns): 744000
+[20534]: MCEventID: 70 ROFs: 124-124 Entry in ROFRecords: 124
+[20534]: [11:18:28][INFO] Added 1429 digits  
+[20534]: [11:18:28][INFO] For collision 72 eventID 72 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 72 from source 0 at time 755659 (TOff.= 0 ROFrame= 125) cont.mode: 1 Min/Max ROFrames 125/127 
+[20534]: [11:18:28][INFO] For collision 73 eventID 73 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 73 from source 0 at time 755709 (TOff.= 0 ROFrame= 125) cont.mode: 1 Min/Max ROFrames 125/127 
+[20534]: [11:18:28][INFO] For collision 74 eventID 74 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 74 from source 0 at time 766388 (TOff.= 0 ROFrame= 127) cont.mode: 1 Min/Max ROFrames 125/127 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 125:126 
+[20534]: ROF: 125 | 1745 entries starting from 0/175389
+[20534]: BCid: 1547 Orbit: 8 T(ns): 750000
+[20534]: MCEventID: 71 ROFs: 125-126 Entry in ROFRecords: 125
+[20534]: MCEventID: 72 ROFs: 125-126 Entry in ROFRecords: 125
+[20534]: MCEventID: 73 ROFs: 125-126 Entry in ROFRecords: 125
+[20534]: ROF: 126 | 1840 entries starting from 0/177134
+[20534]: BCid: 1788 Orbit: 8 T(ns): 756000
+[20534]: [11:18:28][INFO] Added 3585 digits  
+[20534]: [11:18:28][INFO] For collision 75 eventID 75 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 75 from source 0 at time 809952 (TOff.= 0 ROFrame= 134) cont.mode: 1 Min/Max ROFrames 127/133 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 127:133 
+[20534]: ROF: 127 | 1364 entries starting from 0/178974
+[20534]: BCid: 2028 Orbit: 8 T(ns): 762000
+[20534]: MCEventID: 74 ROFs: 127-127 Entry in ROFRecords: 127
+[20534]: ROF: 128 | 1265 entries starting from 0/180338
+[20534]: BCid: 2269 Orbit: 8 T(ns): 768000
+[20534]: ROF: 129 | 1272 entries starting from 0/181603
+[20534]: BCid: 2509 Orbit: 8 T(ns): 774000
+[20534]: ROF: 130 | 1288 entries starting from 0/182875
+[20534]: BCid: 2750 Orbit: 8 T(ns): 780000
+[20534]: ROF: 131 | 1255 entries starting from 0/184163
+[20534]: BCid: 2990 Orbit: 8 T(ns): 786000
+[20534]: ROF: 132 | 1239 entries starting from 0/185418
+[20534]: BCid: 3230 Orbit: 8 T(ns): 792000
+[20534]: ROF: 133 | 1240 entries starting from 0/186657
+[20534]: BCid: 3471 Orbit: 8 T(ns): 798000
+[20534]: [11:18:28][INFO] Added 8923 digits  
+[20534]: [11:18:28][INFO] For collision 76 eventID 76 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 76 from source 0 at time 810850 (TOff.= 0 ROFrame= 135) cont.mode: 1 Min/Max ROFrames 134/136 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 134:134 
+[20534]: ROF: 134 | 1406 entries starting from 0/187897
+[20534]: BCid: 147 Orbit: 9 T(ns): 804000
+[20534]: MCEventID: 75 ROFs: 134-135 Entry in ROFRecords: 134
+[20534]: [11:18:28][INFO] Added 1406 digits  
+[20534]: [11:18:28][INFO] For collision 77 eventID 77 found 85 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 77 from source 0 at time 811349 (TOff.= 0 ROFrame= 135) cont.mode: 1 Min/Max ROFrames 135/136 
+[20534]: [11:18:28][INFO] For collision 78 eventID 78 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 78 from source 0 at time 820332 (TOff.= 0 ROFrame= 136) cont.mode: 1 Min/Max ROFrames 135/136 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 135:135 
+[20534]: ROF: 135 | 1890 entries starting from 0/189303
+[20534]: BCid: 388 Orbit: 9 T(ns): 810000
+[20534]: MCEventID: 76 ROFs: 135-135 Entry in ROFRecords: 135
+[20534]: MCEventID: 77 ROFs: 135-135 Entry in ROFRecords: 135
+[20534]: [11:18:28][INFO] Added 1890 digits  
+[20534]: [11:18:28][INFO] For collision 79 eventID 79 found 82 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 79 from source 0 at time 824474 (TOff.= 0 ROFrame= 137) cont.mode: 1 Min/Max ROFrames 136/137 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 136:136 
+[20534]: ROF: 136 | 1468 entries starting from 0/191193
+[20534]: BCid: 628 Orbit: 9 T(ns): 816000
+[20534]: MCEventID: 78 ROFs: 136-136 Entry in ROFRecords: 136
+[20534]: [11:18:28][INFO] Added 1468 digits  
+[20534]: [11:18:28][INFO] For collision 80 eventID 80 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 80 from source 0 at time 831260 (TOff.= 0 ROFrame= 138) cont.mode: 1 Min/Max ROFrames 137/138 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 137:137 
+[20534]: ROF: 137 | 1460 entries starting from 0/192661
+[20534]: BCid: 869 Orbit: 9 T(ns): 822000
+[20534]: MCEventID: 79 ROFs: 137-137 Entry in ROFRecords: 137
+[20534]: [11:18:28][INFO] Added 1460 digits  
+[20534]: [11:18:28][INFO] For collision 81 eventID 81 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 81 from source 0 at time 834853 (TOff.= 0 ROFrame= 139) cont.mode: 1 Min/Max ROFrames 138/139 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 138:138 
+[20534]: ROF: 138 | 1403 entries starting from 0/194121
+[20534]: BCid: 1109 Orbit: 9 T(ns): 828000
+[20534]: MCEventID: 80 ROFs: 138-138 Entry in ROFRecords: 138
+[20534]: [11:18:28][INFO] Added 1403 digits  
+[20534]: [11:18:28][INFO] For collision 82 eventID 82 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 82 from source 0 at time 843786 (TOff.= 0 ROFrame= 140) cont.mode: 1 Min/Max ROFrames 139/140 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 139:139 
+[20534]: ROF: 139 | 1429 entries starting from 0/195524
+[20534]: BCid: 1350 Orbit: 9 T(ns): 834000
+[20534]: MCEventID: 81 ROFs: 139-139 Entry in ROFRecords: 139
+[20534]: [11:18:28][INFO] Added 1429 digits  
+[20534]: [11:18:28][INFO] For collision 83 eventID 83 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 83 from source 0 at time 854315 (TOff.= 0 ROFrame= 142) cont.mode: 1 Min/Max ROFrames 140/141 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 140:141 
+[20534]: ROF: 140 | 1527 entries starting from 0/196953
+[20534]: BCid: 1590 Orbit: 9 T(ns): 840000
+[20534]: MCEventID: 82 ROFs: 140-140 Entry in ROFRecords: 140
+[20534]: ROF: 141 | 1247 entries starting from 0/198480
+[20534]: BCid: 1831 Orbit: 9 T(ns): 846000
+[20534]: [11:18:28][INFO] Added 2774 digits  
+[20534]: [11:18:28][INFO] For collision 84 eventID 84 found 84 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 84 from source 0 at time 854514 (TOff.= 0 ROFrame= 142) cont.mode: 1 Min/Max ROFrames 142/143 
+[20534]: [11:18:28][INFO] For collision 85 eventID 85 found 84 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 85 from source 0 at time 890094 (TOff.= 0 ROFrame= 148) cont.mode: 1 Min/Max ROFrames 142/147 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 142:147 
+[20534]: ROF: 142 | 1576 entries starting from 0/199727
+[20534]: BCid: 2071 Orbit: 9 T(ns): 852000
+[20534]: MCEventID: 83 ROFs: 142-142 Entry in ROFRecords: 142
+[20534]: MCEventID: 84 ROFs: 142-142 Entry in ROFRecords: 142
+[20534]: ROF: 143 | 1286 entries starting from 0/201303
+[20534]: BCid: 2312 Orbit: 9 T(ns): 858000
+[20534]: ROF: 144 | 1237 entries starting from 0/202589
+[20534]: BCid: 2552 Orbit: 9 T(ns): 864000
+[20534]: ROF: 145 | 1218 entries starting from 0/203826
+[20534]: BCid: 2793 Orbit: 9 T(ns): 870000
+[20534]: ROF: 146 | 1287 entries starting from 0/205044
+[20534]: BCid: 3033 Orbit: 9 T(ns): 876000
+[20534]: ROF: 147 | 1230 entries starting from 0/206331
+[20534]: BCid: 3274 Orbit: 9 T(ns): 882000
+[20534]: [11:18:28][INFO] Added 7834 digits  
+[20534]: [11:18:28][INFO] For collision 86 eventID 86 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 86 from source 0 at time 899775 (TOff.= 0 ROFrame= 149) cont.mode: 1 Min/Max ROFrames 148/149 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 148:148 
+[20534]: ROF: 148 | 1489 entries starting from 0/207561
+[20534]: BCid: 3514 Orbit: 9 T(ns): 888000
+[20534]: MCEventID: 85 ROFs: 148-148 Entry in ROFRecords: 148
+[20534]: [11:18:28][INFO] Added 1489 digits  
+[20534]: [11:18:28][INFO] For collision 87 eventID 87 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 87 from source 0 at time 908608 (TOff.= 0 ROFrame= 151) cont.mode: 1 Min/Max ROFrames 149/151 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 149:150 
+[20534]: ROF: 149 | 1444 entries starting from 0/209050
+[20534]: BCid: 191 Orbit: 10 T(ns): 894000
+[20534]: MCEventID: 86 ROFs: 149-150 Entry in ROFRecords: 149
+[20534]: ROF: 150 | 1523 entries starting from 0/210494
+[20534]: BCid: 431 Orbit: 10 T(ns): 900000
+[20534]: [11:18:28][INFO] Added 2967 digits  
+[20534]: [11:18:28][INFO] For collision 88 eventID 88 found 81 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 88 from source 0 at time 918239 (TOff.= 0 ROFrame= 153) cont.mode: 1 Min/Max ROFrames 151/152 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 151:152 
+[20534]: ROF: 151 | 1415 entries starting from 0/212017
+[20534]: BCid: 671 Orbit: 10 T(ns): 906000
+[20534]: MCEventID: 87 ROFs: 151-151 Entry in ROFRecords: 151
+[20534]: ROF: 152 | 1292 entries starting from 0/213432
+[20534]: BCid: 912 Orbit: 10 T(ns): 912000
+[20534]: [11:18:28][INFO] Added 2707 digits  
+[20534]: [11:18:28][INFO] For collision 89 eventID 89 found 77 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 89 from source 0 at time 928069 (TOff.= 0 ROFrame= 154) cont.mode: 1 Min/Max ROFrames 153/154 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 153:153 
+[20534]: ROF: 153 | 1454 entries starting from 0/214724
+[20534]: BCid: 1152 Orbit: 10 T(ns): 918000
+[20534]: MCEventID: 88 ROFs: 153-153 Entry in ROFRecords: 153
+[20534]: [11:18:28][INFO] Added 1454 digits  
+[20534]: [11:18:28][INFO] For collision 90 eventID 90 found 78 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 90 from source 0 at time 929517 (TOff.= 0 ROFrame= 154) cont.mode: 1 Min/Max ROFrames 154/155 
+[20534]: [11:18:28][INFO] For collision 91 eventID 91 found 76 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 91 from source 0 at time 941992 (TOff.= 0 ROFrame= 156) cont.mode: 1 Min/Max ROFrames 154/156 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 154:155 
+[20534]: ROF: 154 | 1610 entries starting from 0/216178
+[20534]: BCid: 1393 Orbit: 10 T(ns): 924000
+[20534]: MCEventID: 89 ROFs: 154-154 Entry in ROFRecords: 154
+[20534]: MCEventID: 90 ROFs: 154-155 Entry in ROFRecords: 154
+[20534]: ROF: 155 | 1394 entries starting from 0/217788
+[20534]: BCid: 1633 Orbit: 10 T(ns): 930000
+[20534]: [11:18:28][INFO] Added 3004 digits  
+[20534]: [11:18:28][INFO] For collision 92 eventID 92 found 95 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 92 from source 0 at time 983660 (TOff.= 0 ROFrame= 163) cont.mode: 1 Min/Max ROFrames 156/162 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 156:162 
+[20534]: ROF: 156 | 1368 entries starting from 0/219182
+[20534]: BCid: 1874 Orbit: 10 T(ns): 936000
+[20534]: MCEventID: 91 ROFs: 156-157 Entry in ROFRecords: 156
+[20534]: ROF: 157 | 1472 entries starting from 0/220550
+[20534]: BCid: 2114 Orbit: 10 T(ns): 942000
+[20534]: ROF: 158 | 1228 entries starting from 0/222022
+[20534]: BCid: 2355 Orbit: 10 T(ns): 948000
+[20534]: ROF: 159 | 1226 entries starting from 0/223250
+[20534]: BCid: 2595 Orbit: 10 T(ns): 954000
+[20534]: ROF: 160 | 1227 entries starting from 0/224476
+[20534]: BCid: 2836 Orbit: 10 T(ns): 960000
+[20534]: ROF: 161 | 1300 entries starting from 0/225703
+[20534]: BCid: 3076 Orbit: 10 T(ns): 966000
+[20534]: ROF: 162 | 1278 entries starting from 0/227003
+[20534]: BCid: 3317 Orbit: 10 T(ns): 972000
+[20534]: [11:18:28][INFO] Added 9099 digits  
+[20534]: [11:18:28][INFO] For collision 93 eventID 93 found 79 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 93 from source 0 at time 987752 (TOff.= 0 ROFrame= 164) cont.mode: 1 Min/Max ROFrames 163/165 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 163:163 
+[20534]: ROF: 163 | 1499 entries starting from 0/228281
+[20534]: BCid: 3557 Orbit: 10 T(ns): 978000
+[20534]: MCEventID: 92 ROFs: 163-164 Entry in ROFRecords: 163
+[20534]: [11:18:28][INFO] Added 1499 digits  
+[20534]: [11:18:28][INFO] For collision 94 eventID 94 found 85 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 94 from source 0 at time 989748 (TOff.= 0 ROFrame= 164) cont.mode: 1 Min/Max ROFrames 164/165 
+[20534]: [11:18:28][INFO] For collision 95 eventID 95 found 127 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 95 from source 0 at time 993440 (TOff.= 0 ROFrame= 165) cont.mode: 1 Min/Max ROFrames 164/166 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 164:164 
+[20534]: ROF: 164 | 1807 entries starting from 0/229780
+[20534]: BCid: 234 Orbit: 11 T(ns): 984000
+[20534]: MCEventID: 93 ROFs: 164-164 Entry in ROFRecords: 164
+[20534]: MCEventID: 94 ROFs: 164-165 Entry in ROFRecords: 164
+[20534]: [11:18:28][INFO] Added 1807 digits  
+[20534]: [11:18:28][INFO] For collision 96 eventID 96 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 96 from source 0 at time 1.00262e+06 (TOff.= 0 ROFrame= 167) cont.mode: 1 Min/Max ROFrames 165/166 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 165:166 
+[20534]: ROF: 165 | 1802 entries starting from 0/231587
+[20534]: BCid: 474 Orbit: 11 T(ns): 990000
+[20534]: MCEventID: 95 ROFs: 165-165 Entry in ROFRecords: 165
+[20534]: ROF: 166 | 1293 entries starting from 0/233389
+[20534]: BCid: 715 Orbit: 11 T(ns): 996000
+[20534]: [11:18:28][INFO] Added 3095 digits  
+[20534]: [11:18:28][INFO] For collision 97 eventID 97 found 83 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 97 from source 0 at time 1.00816e+06 (TOff.= 0 ROFrame= 168) cont.mode: 1 Min/Max ROFrames 167/168 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 167:167 
+[20534]: ROF: 167 | 1431 entries starting from 0/234682
+[20534]: BCid: 955 Orbit: 11 T(ns): 1.002e+06
+[20534]: MCEventID: 96 ROFs: 167-167 Entry in ROFRecords: 167
+[20534]: [11:18:28][INFO] Added 1431 digits  
+[20534]: [11:18:28][INFO] For collision 98 eventID 98 found 107 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 98 from source 0 at time 1.01275e+06 (TOff.= 0 ROFrame= 168) cont.mode: 1 Min/Max ROFrames 168/169 
+[20534]: [11:18:28][INFO] For collision 99 eventID 99 found 87 hits  
+[20534]: [11:18:28][INFO] Digitizing ITS hits of entry 99 from source 0 at time 1.02608e+06 (TOff.= 0 ROFrame= 171) cont.mode: 1 Min/Max ROFrames 168/170 
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 168:170 
+[20534]: ROF: 168 | 1630 entries starting from 0/236113
+[20534]: BCid: 1196 Orbit: 11 T(ns): 1.008e+06
+[20534]: MCEventID: 97 ROFs: 168-168 Entry in ROFRecords: 168
+[20534]: MCEventID: 98 ROFs: 168-169 Entry in ROFRecords: 168
+[20534]: ROF: 169 | 1532 entries starting from 0/237743
+[20534]: BCid: 1436 Orbit: 11 T(ns): 1.014e+06
+[20534]: ROF: 170 | 1212 entries starting from 0/239275
+[20534]: BCid: 1676 Orbit: 11 T(ns): 1.02e+06
+[20534]: [11:18:28][INFO] Added 4374 digits  
+[20534]: [11:18:28][INFO] Filling ITS digits output for RO frames 171:172 
+[20534]: ROF: 171 | 1542 entries starting from 0/240487
+[20534]: BCid: 1917 Orbit: 11 T(ns): 1.026e+06
+[20534]: MCEventID: 99 ROFs: 171-171 Entry in ROFRecords: 171
+[20534]: ROF: 172 | 1231 entries starting from 0/242029
+[20534]: BCid: 2157 Orbit: 11 T(ns): 1.032e+06
+[20534]: [11:18:28][INFO] Added 2773 digits  
+[20534]: [11:18:28][INFO] ITS: Sending ROMode= 3 to GRPUpdater
+[20534]: [11:18:28][INFO] Digitization took 1.09s 
+[20537]: [11:18:28][INFO] Updated GRP in o2sim_grp.root for detectors RO mode 
+[20537]: Run: 1551349099
+[20537]: Fill:      0
+[20537]: Period: 
+[20537]: LHC State: 
+[20537]: Start: Thu Feb 28 11:18:20 2019
+[20537]: End  : Thu Feb 28 11:18:21 2019
+[20537]: Beam0: Z:A =   0:  0, Energy = 0.000
+[20537]: Beam1: Z:A =   0:  0, Energy = 0.000
+[20537]: sqrt[s]    = 0.000
+[20537]: crossing angle (radian) = 0.000000e+00
+[20537]: magnet currents (A) L3 = -30000.000, Dipole = -6000
+[20537]: Detectors: Cont.RO Triggers
+[20537]:       ITS:    +       -    
+[20536]: [11:18:28][INFO] RECEIVED DIGITS SIZE 243260
+[INFO] Quitting
+[INFO] QUIT_REQUESTED
+
+[20533]: [METRIC] dpl/in_handle_data,0[11:18:29][INFO] Received device shutdown request (signal 15).
+[20533]: [11:18:29][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[20533]:  2 1551349109489 hostname=svmithi02,name=digitizer-workflow
+[20534]: [METRIC] dpl/in_handle_data,0 1 [11:18:29][INFO] Received device shutdown request (signal 15).
+[20534]: 1551349109489 hostname=svmithi02,name=digitizer-workflow
+[20535]: [METRIC] dpl/in_handle_data,0 0 1551349109489[11:18:29][INFO] Received device shutdown request (signal 15).
+[20535]:  [11:18:29][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[20535]: hostname=svmithi02,name=digitizer-workflow
+[20534]: [11:18:29][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[20536]: [METRIC] dpl/in_handle_data,0 [11:18:29][INFO] Received device shutdown request (signal 15).
+[20536]: 0 1551349109489 hostname=svmithi02,name=digitizer-workflow
+[20536]: [METRIC] dpl/in_handle_data,0[11:18:29][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[20536]:  1 1551349109490 hostname=svmithi02,name=digitizer-workflow
+[20537]: [11:18:29][INFO] Received device shutdown request (signal 15).
+[20537]: [11:18:29][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[20536]: [11:18:29][STATE] Entering READY state
+[20536]: [11:18:29][STATE] Entering RESETTING_TASK state
+[20536]: [11:18:29][STATE] Entering DEVICE_READY state
+[20536]: [11:18:29][STATE] Entering RESETTING_DEVICE state
+[20536]: [11:18:29][STATE] Entering IDLE state
+[20536]: [11:18:29][STATE] Entering EXITING state
+[20536]: [11:18:29][STATE] Exiting FairMQ state machine
+[20536]: [11:18:29][INFO] Process 20536 is exiting.
+[20537]: [11:18:29][STATE] Entering READY state
+[20537]: [11:18:29][STATE] Entering RESETTING_TASK state
+[20537]: [11:18:29][STATE] Entering DEVICE_READY state
+[20537]: [11:18:29][STATE] Entering RESETTING_DEVICE state
+[20537]: [11:18:29][STATE] Entering IDLE state
+[20537]: [11:18:29][STATE] Entering EXITING state
+[20537]: [11:18:29][STATE] Exiting FairMQ state machine
+[20537]: [11:18:29][INFO] Process 20537 is exiting.
+[20535]: [11:18:29][STATE] Entering READY state
+[20535]: [11:18:29][STATE] Entering RESETTING_TASK state
+[20535]: [11:18:29][STATE] Entering DEVICE_READY state
+[20535]: [11:18:29][STATE] Entering RESETTING_DEVICE state
+[20535]: [11:18:29][STATE] Entering IDLE state
+[20535]: [11:18:29][STATE] Entering EXITING state
+[20535]: [11:18:29][STATE] Exiting FairMQ state machine
+[20535]: [11:18:29][INFO] Process 20535 is exiting.
+[20533]: [11:18:29][STATE] Entering READY state
+[20533]: [11:18:29][STATE] Entering RESETTING_TASK state
+[20533]: [11:18:29][STATE] Entering DEVICE_READY state
+[20533]: [11:18:29][STATE] Entering RESETTING_DEVICE state
+[20533]: [11:18:29][STATE] Entering IDLE state
+[20533]: [11:18:29][STATE] Entering EXITING state
+[20533]: [11:18:29][STATE] Exiting FairMQ state machine
+[20533]: [11:18:29][INFO] Process 20533 is exiting.
+[20534]: [11:18:29][STATE] Entering READY state
+[20534]: [11:18:29][STATE] Entering RESETTING_TASK state
+[20534]: [11:18:29][STATE] Entering DEVICE_READY state
+[20534]: [11:18:29][STATE] Entering RESETTING_DEVICE state
+[20534]: [11:18:29][STATE] Entering IDLE state
+[20534]: [11:18:29][STATE] Entering EXITING state
+[20534]: [11:18:29][STATE] Exiting FairMQ state machine
+[20534]: [11:18:29][INFO] Process 20534 is exiting.
+[INFO] Process 20515 is exiting.

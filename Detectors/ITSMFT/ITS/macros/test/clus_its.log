@@ -1,0 +1,248 @@
+   ------------------------------------------------------------
+  | Welcome to ROOT 6.14/04                http://root.cern.ch |
+  |                               (c) 1995-2018, The ROOT Team |
+  | Built for linuxx8664gcc                                    |
+  | From tag v6-14-04, 23 August 2018                          |
+  | Try '.help', '.demo', '.license', '.credits', '.quit'/'.q' |
+   ------------------------------------------------------------
+
+
+
+ATTENTION: ./rootlogon.C has been used !
+
+
+
+Processing /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/macro/run_clus_its.C+...
+Info in <TUnixSystem::ACLiC>: creating shared library /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/macro/run_clus_its_C.so
+Warning in <TClassTable::Add>: class FairLogger already in TClassTable
+Warning in <TClassTable::Add>: class FairMonitor already in TClassTable
+Warning in <TClassTable::Add>: class FairSystemInfo already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoBasicShape already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoAssembly already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoCone already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoCons already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoEltu already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoBuilder already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoInterface already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoIo already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoLoader already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoVector already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoMatrix already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoMedia already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoMedium already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoRotation already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTransform already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoVolume already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoNode already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoOldAsciiIo already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoPcon already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoPgon already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoRootBuilder already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoSet already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoShapes already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoSphe already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTrap already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTrd1 already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTube already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTubs already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoTorus already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoCompositeVolume already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoAsciiIo already in TClassTable
+Warning in <TClassTable::Add>: class FairGeoBrik already in TClassTable
+Warning in <TClassTable::Add>: class FairContainer already in TClassTable
+Warning in <TClassTable::Add>: class FairContFact already in TClassTable
+Warning in <TClassTable::Add>: class FairDetParIo already in TClassTable
+Warning in <TClassTable::Add>: class FairDetParAsciiFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairDetParRootFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairGenericParAsciiFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairGenericParRootFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairParIo already in TClassTable
+Warning in <TClassTable::Add>: class FairParAsciiFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairParSet already in TClassTable
+Warning in <TClassTable::Add>: class FairParGenericSet already in TClassTable
+Warning in <TClassTable::Add>: class FairParRootFile already in TClassTable
+Warning in <TClassTable::Add>: class FairParRootFileIo already in TClassTable
+Warning in <TClassTable::Add>: class FairParamObj already in TClassTable
+Warning in <TClassTable::Add>: class FairParamList already in TClassTable
+Warning in <TClassTable::Add>: class FairParVersion already in TClassTable
+Warning in <TClassTable::Add>: class FairRtdbRun already in TClassTable
+Warning in <TClassTable::Add>: class FairRuntimeDb already in TClassTable
+In file included from /data/zhaozhong/alice/sw/slc7_x86-64/ROOT/v6-14-04-24/include/TNamed.h:25:0,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/ROOT/v6-14-04-24/include/TDictionary.h:44,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/ROOT/v6-14-04-24/include/TClass.h:23,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/macro/run_clus_its_C_ACLiC_dict.cxx:13:
+/data/zhaozhong/alice/sw/slc7_x86-64/ROOT/v6-14-04-24/include/TObject.h:149:24: warning: 'virtual Int_t TObject::Write(const char*, Int_t, Int_t) const' was hidden [-Woverloaded-virtual]
+    virtual Int_t       Write(const char *name=0, Int_t option=0, Int_t bufsize=0) const;
+                        ^~~~~
+In file included from /data/zhaozhong/alice/sw/slc7_x86-64/FairRoot/c672f280ec-1/include/FairRun.h:16:0,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/FairRoot/c672f280ec-1/include/FairRunAna.h:19,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/macro/run_clus_its.C:7,
+                 from /data/zhaozhong/alice/sw/slc7_x86-64/O2/1.0.0-1/share/macro/run_clus_its_C_ACLiC_dict.cxx:40:
+/data/zhaozhong/alice/sw/slc7_x86-64/FairRoot/c672f280ec-1/include/FairRootManager.h:196:25: warning:   by 'virtual Int_t FairRootManager::Write(const char*, Int_t, Int_t)' [-Woverloaded-virtual]
+     Int_t               Write(const char* name=0, Int_t option=0, Int_t bufsize=0);
+                         ^~~~~
+[WARN] FairRun::SetOutputFile() deprecated. Use FairRootFileSink.
+[INFO] ********************************************************************* 
+[INFO] ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN 
+[INFO] ********************************************************************* 
+[INFO] o2::ITS::ClustererTask: MC digits mode: ON | Use MCtruth: ON 
+[INFO] The input consists out of the following trees and files: 
+[INFO]  - o2sim
+[INFO]     - itsdigits.root
+[INFO] FairRootFileSink initialized.
+[INFO]  - cbmout
+[INFO]     - o2clus_its.root
+[INFO] Parameter and input file are available, Assure that basic info is there for the run!
+
+************************************************************* 
+     initialisation for run id 1551261254
+************************************************************* 
+-I- FairRunTimeDB::InitContainer() FairGeoParSet
+Info in <TGeoManager::CloseGeometry>: Geometry loaded from file...
+Info in <TGeoManager::SetTopVolume>: Top volume is cave. Master volume is cave
+Info in <TGeoNavigator::BuildCache>: --- Maximum geometry depth set to 100
+Info in <TGeoManager::Voxelize>: Voxelizing...
+Info in <TGeoManager::CountLevels>: max level = 8, max placements = 108
+Info in <TGeoManager::CloseGeometry>: 179073 nodes/ 298 volume UID's in FAIR geometry
+Info in <TGeoManager::CloseGeometry>: ----------------modeler ready----------------
+Container FairGeoParSet initialized from ROOT file.
+-I- FairRunTimeDB::InitContainer() FairBaseParSet
+Container FairBaseParSet initialized from ROOT file.
+[INFO] MagFieldContFact::createContainer: Creating mag.field container MagFieldParam
+
+************************************************************* 
+     initialisation for run id 1551261254
+************************************************************* 
+-I- FairRunTimeDB::InitContainer() FairGeoParSet
+-I- FairRunTimeDB::InitContainer() FairBaseParSet
+-I- FairRunTimeDB::InitContainer() MagFieldParam
+Container MagFieldParam initialized from ROOT file.
+creating the field as unmanaged pointer
+[INFO] MagneticField::Print: MagFieldParam:
+[INFO] MagneticField::Print: Solenoid (-1*)5 kG, Dipole ON (-1) 
+[INFO] MagneticField::Print: Machine B fields for p-p  beam (7000 GeV): QGrad: 22.0002 Dipole: 37.8781
+[INFO] MagneticField::Print: Uses Sol30_Dip6_Hole  of $(O2_ROOT)/share/Common/maps/mfchebKGI_sym.root
+[INFO] o2::ITS::ClustererTask output of full clusters is requested  
+[INFO] o2::ITS::ClustererTask output of compact clusters is requested  
+[INFO] o2::ITS::ClustererTask | MCTruth: ON 
+[INFO] Loading ITS T2L matrices from TGeo 
+Warning in <TTree::Bronch>: FairEventHeader cannot be split, resetting splitlevel to 0
+Masking of overflow pixels: ON
+[INFO] CREATING BRANCH ITSCluster
+[INFO] Creating branch for ITSCluster with address 0x4342af0
+[INFO] CREATING BRANCH ITSClusterComp
+[INFO] Creating branch for ITSClusterComp with address 0x4342b10
+[INFO] CREATING BRANCH ITSClusterMCTruth
+[INFO] Creating branch for ITSClusterMCTruth with address 0x4342b48
+[INFO] FairRunAna::Run() After checking, the run will run from event 0 to 100.
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.000, 2 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.000, 3 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.000, 4 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 5 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 6 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 7 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 8 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 9 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 10 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 11 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.010, 12 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 13 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 14 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 15 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 16 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 17 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 18 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 19 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.020, 20 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 21 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 22 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 23 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 24 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 25 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 26 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 27 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 28 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 29 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 30 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 31 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 32 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 33 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 34 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 35 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 36 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 37 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 38 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 39 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 40 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 41 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 42 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 43 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 44 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 45 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 46 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 47 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 48 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 49 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 50 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 51 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 52 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 53 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 54 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 55 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 56 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 57 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 58 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 59 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 60 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 61 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.030, 62 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 63 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 64 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 65 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 66 slices
+[INFO] ITS: clusterizing new ROFrame 1 
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 67 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 68 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 69 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 70 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 71 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 72 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 73 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 74 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 75 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 76 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 77 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 78 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 79 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 80 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 81 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 82 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 83 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 84 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 85 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 86 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 87 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 88 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 89 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 90 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 91 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 92 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 93 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 94 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 95 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.040, 96 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.050, 97 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.050, 98 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.050, 99 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.050, 100 slices
+Clusterization timing (w/o disk IO): Real time 0:00:00, CP time 0.050, 101 slices
+
+
+<DartMeasurement name="MaxMemory" type="numeric/double">295.566</DartMeasurement>
+<DartMeasurement name="CpuLoad" type="numeric/double">1.01791</DartMeasurement>
+
+
+Macro finished succesfully.
+Output file is o2clus_its.root
+Real time 0.216128 s, CPU time 0.22s
+
