@@ -72,7 +72,6 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift()); // cm/timebin
 
   // find last calibrated time bin
-  
   const double lastTimeBin = detParam.getTPClength() / vDrift + 1;
 
   const Mapper& mapper = Mapper::instance();
