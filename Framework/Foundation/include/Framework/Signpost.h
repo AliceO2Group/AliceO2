@@ -18,6 +18,11 @@
 #define O2_SIGNPOST(code, arg1, arg2, arg3, arg4) kdebug_signpost(code, arg1, arg2, arg3, arg4)
 #define O2_SIGNPOST_START(code, arg1, arg2, arg3, arg4) kdebug_signpost_start(code, arg1, arg2, arg3, arg4)
 #define O2_SIGNPOST_END(code, arg1, arg2, arg3, arg4) kdebug_signpost_end(code, arg1, arg2, arg3, arg4)
+#elif __has_include(<sys/sdt.h>) // This will be true on Linux if systemtap-std-dev / systemtap-std-devel
+#include <sys/sdt.h>
+#define O2_SIGNPOST(code, arg1, arg2, arg3, arg4) STAP_PROBE4(dpl, probe##code, arg1, arg2, arg3, arg4)
+#define O2_SIGNPOST_START(code, arg1, arg2, arg3, arg4) STAP_PROBE4(dpl, start_probe##code, arg1, arg2, arg3, arg4)
+#define O2_SIGNPOST_END(code, arg1, arg2, arg3, arg4) STAP_PROBE4(dpl, stop_probe##code, arg1, arg2, arg3, arg4)
 #else // by default we do not do anything
 #define O2_SIGNPOST(code, arg1, arg2, arg3, arg4)
 #define O2_SIGNPOST_START(code, arg1, arg2, arg3, arg4)
