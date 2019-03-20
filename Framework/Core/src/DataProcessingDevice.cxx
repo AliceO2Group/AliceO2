@@ -138,12 +138,11 @@ bool DataProcessingDevice::ConditionalRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [ stats = mRelayer.getStats(),
-                              &lastSent = mLastMetricSentTimestamp,
-                              &currentTime = mBeginIterationTimestamp,
-                              &monitoring = mServiceRegistry.get<Monitoring>() ]()
-                              ->void
-  {
+  auto sendRelayerMetrics = [stats = mRelayer.getStats(),
+                             &lastSent = mLastSlowMetricSentTimestamp,
+                             &currentTime = mBeginIterationTimestamp,
+                             &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
     if (currentTime - lastSent < 5000) {
       return;
     }
@@ -154,9 +153,21 @@ bool DataProcessingDevice::ConditionalRun()
     lastSent = currentTime;
   };
 
+  /// This will flush metrics only once every second.
+  auto flushMetrics = [stats = mRelayer.getStats(),
+                       &lastFlushed = mLastMetricFlushedTimestamp,
+                       &currentTime = mBeginIterationTimestamp,
+                       &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
+    if (currentTime - lastFlushed < 1000) {
+      return;
+    }
+    monitoring.flushBuffer();
+    lastFlushed = currentTime;
+  };
+
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
-  sendRelayerMetrics();
 
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   bool active = false;
@@ -173,6 +184,9 @@ bool DataProcessingDevice::ConditionalRun()
   }
   mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   this->tryDispatchComputation();
+
+  sendRelayerMetrics();
+  flushMetrics();
   return true;
 }
 
@@ -195,8 +209,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto& device = *this;
   auto& errorCount = mErrorCount;
@@ -305,8 +319,8 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto reportError = [&device](const char* message) {
     device.error(message);
