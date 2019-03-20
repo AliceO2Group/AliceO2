@@ -199,7 +199,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "CALO" }, batch->schema());
           } else if (meta["description"] == "MUON" && readMuon) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "MUON" }, batch->schema());
-          } else if (meta["description"] == "VZEOR" && readVZ) {
+          } else if (meta["description"] == "VZERO" && readVZ) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "VZERO" }, batch->schema());
           } else {
             continue;
