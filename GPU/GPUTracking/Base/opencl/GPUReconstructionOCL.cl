@@ -40,7 +40,9 @@
     #include <opencl_integer>
     using namespace cl;
   #endif
-  #define M_PI 3.1415926535f
+  #ifndef M_PI
+    #define M_PI 3.1415926535f
+  #endif
 #else
   #define nullptr NULL
   #define NULL (0x0)

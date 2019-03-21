@@ -62,7 +62,11 @@ class GPUTPCSliceOutTrack
   GPUTPCBaseTrackParam mParam;        //* fitted track parameters at its innermost cluster
   int mNClusters;                     //* number of track clusters
   int mLocalTrackId;                  // See AliHLTPCCATrack.h
+#ifdef __OPENCL__
+  GPUTPCSliceOutCluster mClusters[1]; //* track clusters
+#else
   GPUTPCSliceOutCluster mClusters[0]; //* track clusters
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

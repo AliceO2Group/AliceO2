@@ -89,7 +89,11 @@ class GPUTPCSliceOutput
 // Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
 // This way the whole Slice Output is one consecutive Memory Segment
 #ifndef GPUCA_GPUCODE
+#ifdef __OPENCL__
+  GPUTPCSliceOutTrack mMemory[1]; // the memory where the pointers above point into
+#else
   GPUTPCSliceOutTrack mMemory[0]; // the memory where the pointers above point into
+#endif
 #endif
 #endif
 };
