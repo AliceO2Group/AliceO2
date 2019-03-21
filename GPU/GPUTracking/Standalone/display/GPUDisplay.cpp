@@ -742,7 +742,7 @@ GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (int i = 0; i < *tracker.NTracklets(); i++) {
+  for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCHitId& hit = tracker.TrackletStartHit(i);
     size_t startCountInner = mVertexBuffer[iSlice].size();
     int ir = hit.RowIndex();
@@ -766,7 +766,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (int i = 0; i < *tracker.NTracklets(); i++) {
+  for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCTracklet& tracklet = tracker.Tracklet(i);
     if (tracklet.NHits() == 0) {
       continue;
@@ -798,7 +798,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
-  for (int i = (global ? tracker.CommonMemory()->nLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->nLocalTracks); i++) {
+  for (unsigned int i = (global ? tracker.CommonMemory()->nLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->nLocalTracks); i++) {
     GPUTPCTrack& track = tracker.Tracks()[i];
     size_t startCountInner = mVertexBuffer[iSlice].size();
     for (int j = 0; j < track.NHits(); j++) {

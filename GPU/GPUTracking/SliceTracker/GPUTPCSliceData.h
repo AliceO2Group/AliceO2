@@ -143,7 +143,7 @@ class GPUTPCSliceData : public GPUProcessor
   GPUhdi() GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & Row(int rowIndex) const { return mRows[rowIndex]; }
   GPUhdi() GPUglobalref() MEM_GLOBAL(GPUTPCRow) * Rows() const { return mRows; }
 
-  GPUhdi() GPUglobalref() GPUAtomic(int) * HitWeights() const { return (mHitWeights); }
+  GPUhdi() GPUglobalref() GPUAtomic(unsigned int) * HitWeights() const { return (mHitWeights); }
 
   GPUhdi() void SetGPUTextureBase(const void* val) { mGPUTextureBase = val; }
   GPUhdi() char* GPUTextureBase() const { return ((char*)mGPUTextureBase); }
@@ -197,7 +197,7 @@ class GPUTPCSliceData : public GPUProcessor
  * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
  */
   GPUglobalref() calink* mFirstHitInBin;       // see FirstHitInBin
-  GPUglobalref() GPUAtomic(int) * mHitWeights; // the weight of the longest tracklet crossed the cluster
+  GPUglobalref() GPUAtomic(unsigned int) * mHitWeights; // the weight of the longest tracklet crossed the cluster
   GPUglobalref() const GPUTPCClusterData* mClusterData;
 };
 

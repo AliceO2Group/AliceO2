@@ -53,14 +53,14 @@ class GPUCommonMath
   GPUhdni() static bool Finite(float x);
 
   GPUhdni() static float Log(float x);
-  GPUd() static int AtomicExch(GPUglobalref() GPUAtomic(int) * addr, int val);
-  GPUd() static int AtomicAdd(GPUglobalref() GPUAtomic(int) * addr, int val);
-  GPUd() static void AtomicMax(GPUglobalref() GPUAtomic(int) * addr, int val);
-  GPUd() static void AtomicMin(GPUglobalref() GPUAtomic(int) * addr, int val);
-  GPUd() static int AtomicExchShared(GPUsharedref() GPUAtomic(int) * addr, int val);
-  GPUd() static int AtomicAddShared(GPUsharedref() GPUAtomic(int) * addr, int val);
-  GPUd() static void AtomicMaxShared(GPUsharedref() GPUAtomic(int) * addr, int val);
-  GPUd() static void AtomicMinShared(GPUsharedref() GPUAtomic(int) * addr, int val);
+  GPUd() static unsigned int AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static unsigned int AtomicAdd(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static void AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static void AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static unsigned int AtomicExchShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static unsigned int AtomicAddShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static void AtomicMaxShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val);
+  GPUd() static void AtomicMinShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val);
   GPUd() static int Mul24(int a, int b);
   GPUd() static float FMulRZ(float a, float b);
 };
@@ -165,21 +165,21 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 }
 
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__)
-GPUdi() int GPUCommonMath::AtomicExchShared(GPUsharedref() GPUAtomic(int) * addr, int val)
+GPUdi() unsigned int GPUCommonMath::AtomicExchShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
-  return ::atomic_xchg((volatile __local int*)addr, val);
+  return ::atomic_xchg((volatile __local unsigned int*)addr, val);
 }
-GPUdi() int GPUCommonMath::AtomicAddShared(GPUsharedref() GPUAtomic(int) * addr, int val) { return ::atomic_add((volatile __local int*)addr, val); }
-GPUdi() void GPUCommonMath::AtomicMaxShared(GPUsharedref() GPUAtomic(int) * addr, int val) { ::atomic_max((volatile __local int*)addr, val); }
-GPUdi() void GPUCommonMath::AtomicMinShared(GPUsharedref() GPUAtomic(int) * addr, int val) { ::atomic_min((volatile __local int*)addr, val); }
+GPUdi() unsigned int GPUCommonMath::AtomicAddShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { return ::atomic_add((volatile __local unsigned int*)addr, val); }
+GPUdi() void GPUCommonMath::AtomicMaxShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { ::atomic_max((volatile __local unsigned int*)addr, val); }
+GPUdi() void GPUCommonMath::AtomicMinShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { ::atomic_min((volatile __local unsigned int*)addr, val); }
 #else
-GPUdi() int GPUCommonMath::AtomicExchShared(GPUAtomic(int) * addr, int val)
+GPUdi() unsigned int GPUCommonMath::AtomicExchShared(GPUAtomic(unsigned int) * addr, unsigned int val)
 {
   return GPUCommonMath::AtomicExch(addr, val);
 }
-GPUdi() int GPUCommonMath::AtomicAddShared(GPUAtomic(int) * addr, int val) { return GPUCommonMath::AtomicAdd(addr, val); }
-GPUdi() void GPUCommonMath::AtomicMaxShared(GPUAtomic(int) * addr, int val) { GPUCommonMath::AtomicMax(addr, val); }
-GPUdi() void GPUCommonMath::AtomicMinShared(GPUAtomic(int) * addr, int val) { GPUCommonMath::AtomicMin(addr, val); }
+GPUdi() unsigned int GPUCommonMath::AtomicAddShared(GPUAtomic(unsigned int) * addr, unsigned int val) { return GPUCommonMath::AtomicAdd(addr, val); }
+GPUdi() void GPUCommonMath::AtomicMaxShared(GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMax(addr, val); }
+GPUdi() void GPUCommonMath::AtomicMinShared(GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMin(addr, val); }
 #endif
 
 #ifndef GPUCA_GPUCODE
@@ -187,16 +187,18 @@ GPUdi() void GPUCommonMath::AtomicMinShared(GPUAtomic(int) * addr, int val) { GP
 #pragma GCC diagnostic ignored "-Wunused-value" // GCC BUG in omp atomic capture gives false warning
 #endif
 
-GPUdi() int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(int) * addr, int val)
+GPUdi() unsigned int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
-  return atomic_exchange(addr, val);
+  return ::atomic_exchange(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+  return ::atomic_xchg(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
-  return ::atomic_xchg((volatile __global int*)addr, val);
+  return ::atomic_xchg((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
   return ::atomicExch(addr, val);
 #else
-  int old;
+  unsigned int old;
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp atomic capture
 #endif
@@ -208,16 +210,18 @@ GPUdi() int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(int) * addr, int 
 #endif // GPUCA_GPUCODE
 }
 
-GPUdi() int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(int) * addr, int val)
+GPUdi() unsigned int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
-  return atomic_fetch_add(addr, val);
+  return ::atomic_fetch_add(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+  return ::atomic_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
-  return ::atomic_add((volatile __global int*)addr, val);
+  return ::atomic_add((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
   return ::atomicAdd(addr, val);
 #else
-  int old;
+  unsigned int old;
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp atomic capture
 #endif
@@ -229,12 +233,14 @@ GPUdi() int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(int) * addr, int v
 #endif // GPUCA_GPUCODE
 }
 
-GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(int) * addr, int val)
+GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
-  atomic_fetch_max(addr, val);
+  ::atomic_fetch_max(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+  ::atomic_max(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
-  ::atomic_max((volatile __global int*)addr, val);
+  ::atomic_max((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
   ::atomicMax(addr, val);
 #else
@@ -248,12 +254,14 @@ GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(int) * addr, int 
 #endif // GPUCA_GPUCODE
 }
 
-GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(int) * addr, int val)
+GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
-  atomic_fetch_min(addr, val);
+  ::atomic_fetch_min(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+  ::atomic_min(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
-  ::atomic_min((volatile __global int*)addr, val);
+  ::atomic_min((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
   ::atomicMin(addr, val);
 #else

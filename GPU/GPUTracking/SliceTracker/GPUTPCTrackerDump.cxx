@@ -114,7 +114,7 @@ void GPUTPCTracker::DumpStartHits(std::ostream& out)
   if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
     qsort(TrackletStartHits(), *NTracklets(), sizeof(GPUTPCHitId), StarthitSortComparison);
   }
-  for (int i = 0; i < *NTracklets(); i++) {
+  for (unsigned int i = 0; i < *NTracklets(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
   }
   out << std::endl;
@@ -126,7 +126,7 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
   out << "Tracks: (Slice" << mISlice << ") (" << *NTracks() << ")" << std::endl;
   for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
     for (int l = 0; l < Row(k).NHits(); l++) {
-      for (int j = 0; j < *NTracks(); j++) {
+      for (unsigned int j = 0; j < *NTracks(); j++) {
         if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) {
           continue;
         }

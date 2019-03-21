@@ -57,7 +57,7 @@ class GPUITSFitter : public GPUProcessor
   {
     return mTracks;
   }
-  GPUd() int& NumberOfTracks()
+  GPUd() GPUAtomic(unsigned int)& NumberOfTracks()
   {
     return mMemory->mNumberOfTracks;
   }
@@ -78,7 +78,7 @@ class GPUITSFitter : public GPUProcessor
   void clearMemory();
 
   struct Memory {
-    int mNumberOfTracks = 0;
+    GPUAtomic(unsigned int) mNumberOfTracks = 0;
   };
 
  protected:

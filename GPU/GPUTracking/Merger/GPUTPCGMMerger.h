@@ -84,7 +84,7 @@ class GPUTPCGMMerger : public GPUProcessor
     return (mClusters);
   }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
-  GPUhd() GPUAtomic(int) * ClusterAttachment() const { return (mClusterAttachment); }
+  GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return (mClusterAttachment); }
   GPUhd() int MaxId() const { return (mMaxID); }
   GPUhd() unsigned int* TrackOrder() const { return (mTrackOrder); }
 
@@ -157,7 +157,7 @@ class GPUTPCGMMerger : public GPUProcessor
   int mSliceTrackInfoIndex[NSLICES * 2 + 1];
   GPUTPCGMMergedTrackHit* mClusters;
   int* mGlobalClusterIDs;
-  GPUAtomic(int) * mClusterAttachment;
+  GPUAtomic(unsigned int) * mClusterAttachment;
   unsigned int* mTrackOrder;
   char* mTmpMem;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks

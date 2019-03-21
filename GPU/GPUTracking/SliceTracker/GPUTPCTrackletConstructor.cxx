@@ -454,7 +454,7 @@ GPUd() void GPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int 
 GPUdi() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) & tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem)
 {
   const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
-  const int nTracklets = *tracker.NTracklets();
+  const unsigned int nTracklets = *tracker.NTracklets();
   GPUbarrier();
   if (get_local_id(0) == 0) {
     if (sMem.mNextTrackletFirstRun == 1) {
@@ -462,7 +462,7 @@ GPUdi() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_CONSTA
       sMem.mNextTrackletFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextTracklet < nTracklets) {
-        const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->nextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
+        const unsigned int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->nextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
         if (firstTracklet < nTracklets) {
           sMem.mNextTrackletFirst = firstTracklet;
         } else {

@@ -51,7 +51,7 @@ class GPUTPCStartHitsFinder
    protected:
     int mIRow;                     // row index
     int mNHits;                    // n hits in the row
-    GPUAtomic(int) mNRowStartHits; // start hits found in the row
+    GPUAtomic(unsigned int) mNRowStartHits; // start hits found in the row
   };
 
   typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;

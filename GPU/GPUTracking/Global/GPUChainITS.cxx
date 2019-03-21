@@ -83,7 +83,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
 
   SynchronizeGPU();
 
-  for (int i = 0; i < Fitter.NumberOfTracks(); i++) {
+  for (unsigned int i = 0; i < Fitter.NumberOfTracks(); i++) {
     auto& trkin = Fitter.tracks()[i];
 
     tracks.emplace_back(TrackITS{ { trkin.X(),

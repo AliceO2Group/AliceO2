@@ -79,7 +79,7 @@
     static_assert(sizeof(atomic<int>) == sizeof(int), "Invalid atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-    #define GPUAtomic(type) type
+    #define GPUAtomic(type) volatile type
     #ifdef CONSTEXPR
       #undef CONSTEXPR
     #endif

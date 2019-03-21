@@ -54,7 +54,7 @@ class GPUTPCTracker : public GPUProcessor
 #endif
 
   struct StructGPUParameters {
-    GPUAtomic(int) nextTracklet; // Next Tracklet to process
+    GPUAtomic(unsigned int) nextTracklet; // Next Tracklet to process
     int gpuError;                // Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
 
@@ -65,10 +65,10 @@ class GPUTPCTracker : public GPUProcessor
 
   struct commonMemoryStruct {
     commonMemoryStruct() : nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), gpuParameters() {}
-    GPUAtomic(int) nTracklets;         // number of tracklets
-    GPUAtomic(int) nTracks;            // number of reconstructed tracks
+    GPUAtomic(unsigned int) nTracklets;         // number of tracklets
+    GPUAtomic(unsigned int) nTracks;            // number of reconstructed tracks
     int nLocalTracks;                  // number of reconstructed tracks before global tracking
-    GPUAtomic(int) nTrackHits;         // number of track hits
+    GPUAtomic(unsigned int) nTrackHits;         // number of track hits
     int nLocalTrackHits;               // see above
     StructGPUParameters gpuParameters; // GPU parameters
   };
@@ -210,7 +210,7 @@ class GPUTPCTracker : public GPUProcessor
   MEM_TEMPLATE()
   GPUd() int HitWeight(const MEM_TYPE(GPUTPCRow) & row, int hitIndex) const { return mData.HitWeight(row, hitIndex); }
 
-  GPUhd() GPUglobalref() GPUAtomic(int) * NTracklets() const { return &mCommonMem->nTracklets; }
+  GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTracklets() const { return &mCommonMem->nTracklets; }
 
   GPUhd() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
@@ -220,9 +220,9 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) * Tracklets() const { return mTracklets; }
   GPUhd() GPUglobalref() calink* TrackletRowHits() const { return mTrackletRowHits; }
 
-  GPUhd() GPUglobalref() GPUAtomic(int) * NTracks() const { return &mCommonMem->nTracks; }
+  GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTracks() const { return &mCommonMem->nTracks; }
   GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCTrack) * Tracks() const { return mTracks; }
-  GPUhd() GPUglobalref() GPUAtomic(int) * NTrackHits() const { return &mCommonMem->nTrackHits; }
+  GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTrackHits() const { return &mCommonMem->nTrackHits; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackHits() const { return mTrackHits; }
 
   GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCRow) * SliceDataRows() const { return (mData.Rows()); }
@@ -241,7 +241,7 @@ class GPUTPCTracker : public GPUProcessor
     float fSortVal; // Value to sort for
   };
 
-  void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
+  void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight, unsigned int MaxTracksLeft, unsigned int MaxTracksRight);
 
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 

@@ -430,7 +430,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* Merger, int
     for (unsigned int ih = hitFst; ih < hitLst; ih++) {
       cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
       int id = tracker.Data().ClusterIdOffset() + tracker.Data().ClusterDataIndex(row, ih);
-      GPUAtomic(int)* weight = &Merger->ClusterAttachment()[id];
+      GPUAtomic(unsigned int)* weight = &Merger->ClusterAttachment()[id];
       if (*weight & GPUTPCGMMerger::attachGood) {
         continue;
       }

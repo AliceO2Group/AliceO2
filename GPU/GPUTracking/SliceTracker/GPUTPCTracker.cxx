@@ -205,14 +205,14 @@ GPUh() void GPUTPCTracker::WriteOutput()
   GPUTPCSliceOutTrack* out = mOutput->FirstTrack();
 
   trackSortData* trackOrder = new trackSortData[mCommonMem->nTracks];
-  for (int i = 0; i < mCommonMem->nTracks; i++) {
+  for (unsigned int i = 0; i < mCommonMem->nTracks; i++) {
     trackOrder[i].fTtrack = i;
     trackOrder[i].fSortVal = mTracks[trackOrder[i].fTtrack].NHits() / 1000.f + mTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + mTracks[trackOrder[i].fTtrack].Param().GetY();
   }
   std::sort(trackOrder, trackOrder + mCommonMem->nLocalTracks, SortComparison<trackSortData>);
   std::sort(trackOrder + mCommonMem->nLocalTracks, trackOrder + mCommonMem->nTracks, SortComparison<trackSortData>);
 
-  for (int iTrTmp = 0; iTrTmp < mCommonMem->nTracks; iTrTmp++) {
+  for (unsigned int iTrTmp = 0; iTrTmp < mCommonMem->nTracks; iTrTmp++) {
     const int iTr = trackOrder[iTrTmp].fTtrack;
     GPUTPCTrack& iTrack = mTracks[iTr];
 
@@ -376,7 +376,7 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour
   return (nHits >= GLOBAL_TRACKING_MIN_HITS);
 }
 
-GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight)
+GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight, unsigned int MaxTracksLeft, unsigned int MaxTracksRight)
 {
   int ul = 0, ur = 0, ll = 0, lr = 0;
 

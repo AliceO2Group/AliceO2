@@ -86,7 +86,7 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
 
       if (gap > kMaxRowGap || irow == lastRow) { // store
         if (nHits >= minHits) {
-          int itrout = CAMath::AtomicAdd(tracker.NTracks(), 1);
+          unsigned int itrout = CAMath::AtomicAdd(tracker.NTracks(), 1);
 #ifdef GPUCA_GPUCODE
           if (itrout >= GPUCA_MAX_TRACKS)
 #else
@@ -97,7 +97,7 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
             CAMath::AtomicExch(tracker.NTracks(), 0);
             return;
           }
-          int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), nHits);
+          unsigned int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), nHits);
           tracker.Tracks()[itrout].SetAlive(1);
           tracker.Tracks()[itrout].SetLocalTrackId(itrout);
           tracker.Tracks()[itrout].SetParam(tracklet.Param());
