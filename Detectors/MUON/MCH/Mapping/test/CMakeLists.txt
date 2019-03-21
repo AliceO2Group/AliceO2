@@ -9,7 +9,8 @@ o2_generate_executable(EXE_NAME
                        src/CathodeSegmentationLong.cxx
                        src/Segmentation.cxx
                        BUCKET_NAME
-                       mch_mapping_test_bucket)
+                       mch_mapping_test_bucket
+                       NO_INSTALL TRUE)
 
 target_link_libraries(test_MCHMappingTest Boost::unit_test_framework)
 add_test_wrap(NAME test_MCHMappingTest COMMAND test_MCHMappingTest)
@@ -21,7 +22,8 @@ if(benchmark_FOUND)
                          src/BenchCathodeSegmentation.cxx
                          src/BenchSegmentation.cxx
                          BUCKET_NAME
-                         mch_mapping_test_bucket)
+                         mch_mapping_test_bucket
+                         NO_INSTALL TRUE)
 endif()
 
 file(COPY
