@@ -6,6 +6,7 @@ O2_GENERATE_EXECUTABLE(
         EXE_NAME test_MCHSimulation
         SOURCES testGeometry.cxx
         BUCKET_NAME mch_simulation_test_bucket
+        NO_INSTALL TRUE
 )
 
 target_link_libraries(test_MCHSimulation Boost::unit_test_framework MCHSimulation)
