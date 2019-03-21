@@ -5,6 +5,7 @@
 #include <iostream>
 #include <array>
 #include <algorithm>
+#include <fstream>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -46,19 +47,22 @@ class Data
  public:
   void loadData(int entry);
   void displayData(int entry, int chip);
+  int getLastEvent() const { return mLastEvent; }
   void setRawPixelReader(std::string input) {
     auto reader = new RawPixelReader<ChipMappingITS>();
     reader->openInput(input);
-    gPixelReader=reader;
-    gPixelReader->getNextChipData(mChipData);
+    mPixelReader=reader;
+    mPixelReader->getNextChipData(mChipData);
+    mIR = mChipData.getInteractionRecord();
   }
   void setDigitPixelReader(std::string input) {
     auto reader = new DigitPixelReader();
     reader->openInput(input, o2::detectors::DetID("ITS"));
     reader->init();
     reader->readNextEntry();
-    gPixelReader=reader;
-    gPixelReader->getNextChipData(mChipData);
+    mPixelReader=reader;
+    mPixelReader->getNextChipData(mChipData);
+    mIR = mChipData.getInteractionRecord();
   }
   void setDigiTree(TTree* t) { mDigiTree = t; }
   void setClusTree(TTree* t) { mClusTree = t; }
@@ -66,11 +70,14 @@ class Data
 
  private:
   // Data loading members
-  PixelReader* gPixelReader = nullptr;
+  int mLastEvent = 0;
+  PixelReader* mPixelReader = nullptr;
   ChipPixelData mChipData;  
+  o2::InteractionRecord mIR;
   std::vector<Digit> mDigits;
   std::vector<Cluster> mClusters;
   std::vector<o2::ITS::TrackITS> mTracks;
+  void loadDigits();
   void loadDigits(int entry);
 
   TTree* mDigiTree = nullptr;
@@ -88,9 +95,7 @@ class Data
   TEveElement* getEveTracks();
 } evdata;
 
-
-void Data::loadDigits(int entry) {
-  static auto ir_old = mChipData.getInteractionRecord();
+void Data::loadDigits() {
   auto ir=mChipData.getInteractionRecord();
   std::cout<<"orbit/crossing: "<<' '<<ir.orbit<<'/'<<ir.bc<<'\n';
   
@@ -105,12 +110,33 @@ void Data::loadDigits(int entry) {
        mDigits.emplace_back(chipID,0,row,col);
      }
      mChipData.clear();
-     gPixelReader->getNextChipData(mChipData);
+     mPixelReader->getNextChipData(mChipData);
      ir=mChipData.getInteractionRecord();
-  } while (ir_old==ir);
-  ir_old=ir;
+  } while (mIR==ir);
+  mIR=ir;
 
   std::cout<<"Number of ITSDigits: "<<mDigits.size()<<'\n';
+}
+
+void Data::loadDigits(int entry) {
+  // Reset PixelReader
+
+  if (mPixelReader == nullptr) {
+    std::cerr << "No reader for digits !\n";
+    return;
+  }
+
+  for (; mLastEvent<entry; mLastEvent++) {
+    auto ir=mChipData.getInteractionRecord();
+    do {
+      mChipData.clear();
+      mPixelReader->getNextChipData(mChipData);
+      ir=mChipData.getInteractionRecord();
+    } while (mIR==ir);
+    mIR=ir;
+  }
+  mLastEvent++;
+  loadDigits();
 }
 
 template <typename T>
@@ -293,13 +319,19 @@ void Data::displayData(int entry, int chip)
   gEve->Redraw3D(kFALSE);
 }
 
-void load(int entry = 0, int chip = 13)
+void load(int entry, int chip)
 {
-  std::cout << "\n*** Event #" << entry << " ***\n";
-
+  int lastEvent = evdata.getLastEvent(); 
+  if (lastEvent > entry) {
+    std::cerr<<"\nERROR: Cannot stay or go back over events. Please increase the event number !\n\n";
+    gEntry->SetIntNumber(lastEvent-1);
+    return;
+  }
+  
   gEntry->SetIntNumber(entry);
   gChipID->SetIntNumber(chip);
 
+  std::cout << "\n*** Event #" << entry << " ***\n";
   evdata.loadData(entry);
   evdata.displayData(entry, chip);
 }
@@ -340,7 +372,7 @@ void init(int entry = 0, int chip = 13,
   auto b = new TGTextButton(h, "PrevEvnt", "prev()");
   h->AddFrame(b);
   gEntry = new TGNumberEntry(h, 0, 5, -1, TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, 10000);
-  gEntry->Connect("ValueSet(Long_t)", 0, 0, "navigate()");
+  gEntry->Connect("ValueSet(Long_t)", 0, 0, "load()");
   h->AddFrame(gEntry);
   b = new TGTextButton(h, "NextEvnt", "next()");
   h->AddFrame(b);
@@ -365,31 +397,35 @@ void init(int entry = 0, int chip = 13,
 
   // Data sources
   if (rawdata) {
-    std::cout<<"Running with raw digits...\n";
-    evdata.setRawPixelReader(digifile.data());
+    std::ifstream *rawfile = new std::ifstream(digifile.data(), std::ifstream::binary);
+    if (rawfile->good()) {
+      delete rawfile;
+      std::cout<<"Running with raw digits...\n";
+      evdata.setRawPixelReader(digifile.data());
+    } else
+      std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";      
   } else {
-    std::cout<<"Running with MC digits...\n";
-    evdata.setDigitPixelReader(digifile.data());
-    /*
     file = TFile::Open(digifile.data());
-    if (file && gFile->IsOpen())
-      evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
-    else
-      std::cerr << "Cannot open file: " << digifile << '\n';
-    */
+    if (file && gFile->IsOpen()) {
+      file->Close();
+      std::cout<<"Running with MC digits...\n";
+      evdata.setDigitPixelReader(digifile.data());
+      //evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
+    } else
+      std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";
   }
   
   file = TFile::Open(clusfile.data());
   if (file && gFile->IsOpen())
     evdata.setClusTree((TTree*)gFile->Get("o2sim"));
   else
-    std::cerr << "Cannot open file: " << clusfile << '\n';
+    std::cerr << "ERROR: Cannot open file: " << clusfile << "\n\n";
 
   file = TFile::Open(tracfile.data());
   if (file && gFile->IsOpen())
     evdata.setTracTree((TTree*)gFile->Get("o2sim"));
   else
-    std::cerr << "Cannot open file: " << tracfile << '\n';
+    std::cerr << "\nERROR: Cannot open file: " << tracfile << "\n\n";
 
   std::cout << "\n **** Navigation over events and chips ****\n";
   std::cout << " load(event, chip) \t jump to the specified event and chip\n";
@@ -403,10 +439,11 @@ void init(int entry = 0, int chip = 13,
   gEve->Redraw3D(kTRUE);
 }
 
-void navigate()
+void load()
 {
   auto event = gEntry->GetNumberEntry()->GetIntNumber();
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
+
   load(event, chip);
 }
 
@@ -414,7 +451,6 @@ void next()
 {
   auto event = gEntry->GetNumberEntry()->GetIntNumber();
   event++;
-  gEntry->SetIntNumber(event);
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   load(event, chip);
 }
@@ -423,7 +459,6 @@ void prev()
 {
   auto event = gEntry->GetNumberEntry()->GetIntNumber();
   event--;
-  gEntry->SetIntNumber(event);
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   load(event, chip);
 }
@@ -445,16 +480,14 @@ void nextChip()
 {
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   chip++;
-  gChipID->SetIntNumber(chip);
-  loadChip();
+  loadChip(chip);
 }
 
 void prevChip()
 {
   auto chip = gChipID->GetNumberEntry()->GetIntNumber();
   chip--;
-  gChipID->SetIntNumber(chip);
-  loadChip();
+  loadChip(chip);
 }
 
 void DisplayEvents()
