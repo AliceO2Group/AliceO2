@@ -243,8 +243,15 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  mDeviceMemorySize = GPUCA_MEMORY_SIZE;
-  mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
+  mDeviceMemorySize = 0;
+  mHostMemorySize = 0;
+  for (unsigned int i = 0; i < mChains.size(); i++) {
+    size_t memGpu, memHost;
+    mChains[i]->MemorySize(memGpu, memHost);
+    mDeviceMemorySize += memGpu;
+    mHostMemorySize += memHost;
+  }
+
   int retVal = InitDevice_Runtime();
   if (retVal) {
     GPUImportant("GPU Tracker initialization failed");

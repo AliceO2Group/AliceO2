@@ -100,6 +100,12 @@ void GPUChainTracking::RegisterGPUProcessors()
   }
 }
 
+void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
+{
+  gpuMem = GPUCA_MEMORY_SIZE;
+  pageLockedHostMem = GPUCA_HOST_MEMORY_SIZE;
+}
+
 int GPUChainTracking::Init()
 {
   if (GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay)) {

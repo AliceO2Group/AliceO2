@@ -70,6 +70,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int Init() override;
   int Finalize() override;
   int RunStandalone() override;
+  void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
   // Structures for input and output data
   struct InOutPointers {

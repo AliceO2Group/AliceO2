@@ -36,6 +36,12 @@ void GPUChainITS::RegisterGPUProcessors()
   }
 }
 
+void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
+{
+  gpuMem = 1024 * 1024 * 1024;
+  pageLockedHostMem = 1024 * 1024 * 1024;
+}
+
 int GPUChainITS::Init()
 {
   mRec->GetITSTraits(mITSTrackerTraits, mITSVertexerTraits);
