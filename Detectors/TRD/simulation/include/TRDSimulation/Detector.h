@@ -24,11 +24,55 @@ namespace o2
 {
 namespace trd
 {
-class HitType : public o2::BasicXYZEHit<float>
+class HitType : public o2::BaseHit
 {
+  Point3D<float> mPos; // cartesian position of Hit
+  float mTime;         // time of flight
+  int mCharge;         // energy loss
+  short mDetectorID;   // the detector/sensor id
+
  public:
-  using BasicXYZEHit<float>::BasicXYZEHit;
+  HitType() = default; // for ROOT IO
+  // constructor
+  HitType(float x, float y, float z, float tof, int q, int trackid, short did)
+    : mPos(x, y, z),
+      mTime(tof),
+      mCharge(q),
+      BaseHit(trackid),
+      mDetectorID(did)
+  {
+  }
+
+  // getting the cartesian coordinates
+  float GetX() const { return mPos.X(); }
+  float GetY() const { return mPos.Y(); }
+  float GetZ() const { return mPos.Z(); }
+  Point3D<float> GetPos() const { return mPos; }
+  // getting charge
+  int GetCharge() const { return mCharge; }
+  // getting the time
+  float GetTime() const { return mTime; }
+  // get detector + track information
+  short GetDetectorID() const { return mDetectorID; }
+
+  // modifiers
+  void SetTime(float time) { mTime = time; }
+  void SetCharge(int q) { mCharge = q; }
+  void SetDetectorID(short detID) { mDetectorID = detID; }
+  void SetX(float x) { mPos.SetX(x); }
+  void SetY(float y) { mPos.SetY(y); }
+  void SetZ(float z) { mPos.SetZ(z); }
+  void SetXYZ(float x, float y, float z)
+  {
+    SetX(x);
+    SetY(y);
+    SetZ(z);
+  }
+  void SetPos(Point3D<float> const& p) { mPos = p; }
+
+  ClassDefNV(HitType, 1);
 };
+
 } // namespace trd
 } // namespace o2
 
