@@ -24,6 +24,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {
@@ -68,7 +69,8 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+               std::vector<o2::ITSMFT::ROFRecord>& rofs);
   void processFrame(std::vector<TrackITS>& tracks);
   // Int_t propagateBack(std::vector<TrackITS> *event);
   // Int_t RefitInward(std::vector<TrackITS> *event);
