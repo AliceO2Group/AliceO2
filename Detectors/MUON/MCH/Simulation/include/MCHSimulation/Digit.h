@@ -44,7 +44,6 @@ class Digit : public DigitBase
   int mPadID;  /// PadIndex to which the digit corresponds to
   double mADC; /// Amplitude of signal
 
-
   ClassDefNV(Digit, 1);
 }; //class Digit
 

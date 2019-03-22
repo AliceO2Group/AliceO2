@@ -144,6 +144,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
+
   seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
@@ -193,6 +194,12 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
     mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
     ++rmcounts;
     } 
+=======
+    digits.emplace_back(padid, signal);
+    ++ndigits;
+  });
+  return ndigits;
+>>>>>>> proper MClabelling
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
