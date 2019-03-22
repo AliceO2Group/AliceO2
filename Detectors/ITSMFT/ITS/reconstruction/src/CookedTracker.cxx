@@ -478,7 +478,8 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks)
+void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+                            std::vector<o2::ITSMFT::ROFRecord>& rofs)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -509,7 +510,12 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
 
     start = end;
 
+    int first = tracks.size();
     processFrame(tracks);
+    int number = tracks.size() - first;
+    rofs[mROFrame].getROFEntry().setIndex(first);
+    rofs[mROFrame].setNROFEntries(number);
+
     unloadClusters();
     end = std::chrono::system_clock::now();
     diff = end - start;

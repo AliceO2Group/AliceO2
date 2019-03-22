@@ -90,10 +90,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects , in "
-            << rofs.size() << " RO frames";
+            << rofs.size() << " RO frames and "
+            << mc2rofs.size() << " MC events";
 
   std::vector<o2::ITS::TrackITS> tracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
@@ -118,6 +120,10 @@ void TrackerDPL::run(ProcessingContext& pc)
         tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+        int first = allTracks.size();
+        int number = tracks.size();
+        rofs[roFrame].getROFEntry().setIndex(first);
+        rofs[roFrame].setNROFEntries(number);
         std::copy(tracks.begin(), tracks.end(), std::back_inserter(allTracks));
         allTrackLabels.mergeAtBack(trackLabels);
         nclLeft -= nclUsed;
@@ -135,6 +141,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, allTracks);
   pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
+  pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
+  pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
 
   mState = 2;
   //pc.services().get<ControlService>().readyToQuit(true);
@@ -148,10 +156,13 @@ DataProcessorSpec getTrackerSpec()
       InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
       InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
       InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe } },
+      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
+      InputSpec{ "MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
     Outputs{
       OutputSpec{ "ITS", "TRACKS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe } },
+      OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<TrackerDPL>() },
     Options{
       { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
