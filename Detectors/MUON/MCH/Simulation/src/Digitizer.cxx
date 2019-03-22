@@ -97,7 +97,6 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   
   //merge Digits
   mergeDigits(digits);
-  
   fillOutputContainer(digits);
 }
 //______________________________________________________________________
@@ -194,12 +193,6 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
     mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
     ++rmcounts;
     } 
-=======
-    digits.emplace_back(padid, signal);
-    ++ndigits;
-  });
-  return ndigits;
->>>>>>> proper MClabelling
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
