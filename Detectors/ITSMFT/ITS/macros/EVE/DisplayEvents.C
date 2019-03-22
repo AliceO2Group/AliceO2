@@ -32,6 +32,7 @@
 #include "ITSMFTBase/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
@@ -65,8 +66,8 @@ class Data
     mIR = mChipData.getInteractionRecord();
   }
   void setDigiTree(TTree* t) { mDigiTree = t; }
-  void setClusTree(TTree* t) { mClusTree = t; }
-  void setTracTree(TTree* t) { mTracTree = t; }
+  void setClusTree(TTree* t);
+  void setTracTree(TTree* t);
 
  private:
   // Data loading members
@@ -75,16 +76,20 @@ class Data
   ChipPixelData mChipData;  
   o2::InteractionRecord mIR;
   std::vector<Digit> mDigits;
-  std::vector<Cluster> mClusters;
-  std::vector<o2::ITS::TrackITS> mTracks;
+  std::vector<Cluster> *mClusterBuffer = nullptr;
+  gsl::span<Cluster> mClusters;
+  std::vector<o2::ITSMFT::ROFRecord> mClustersROF;
+  std::vector<o2::ITS::TrackITS> *mTrackBuffer = nullptr;
+  gsl::span<o2::ITS::TrackITS> mTracks;
+  std::vector<o2::ITSMFT::ROFRecord> mTracksROF;
   void loadDigits();
   void loadDigits(int entry);
+  void loadClusters(int entry);
+  void loadTracks(int entry);
 
   TTree* mDigiTree = nullptr;
   TTree* mClusTree = nullptr;
   TTree* mTracTree = nullptr;
-  template <typename T>
-  void load(TTree* tree, const char* name, int entry, std::vector<T>* arr);
 
   // TEve-related members
   TEveElementList* mEvent = nullptr;
@@ -110,7 +115,7 @@ void Data::loadDigits() {
        mDigits.emplace_back(chipID,0,row,col);
      }
      mChipData.clear();
-     mPixelReader->getNextChipData(mChipData);
+     if (!mPixelReader->getNextChipData(mChipData)) return;
      ir=mChipData.getInteractionRecord();
   } while (mIR==ir);
   mIR=ir;
@@ -119,18 +124,13 @@ void Data::loadDigits() {
 }
 
 void Data::loadDigits(int entry) {
-  // Reset PixelReader
-
-  if (mPixelReader == nullptr) {
-    std::cerr << "No reader for digits !\n";
-    return;
-  }
+  if (mPixelReader == nullptr) return;
 
   for (; mLastEvent<entry; mLastEvent++) {
     auto ir=mChipData.getInteractionRecord();
     do {
       mChipData.clear();
-      mPixelReader->getNextChipData(mChipData);
+      if (!mPixelReader->getNextChipData(mChipData)) return;
       ir=mChipData.getInteractionRecord();
     } while (mIR==ir);
     mIR=ir;
@@ -139,28 +139,116 @@ void Data::loadDigits(int entry) {
   loadDigits();
 }
 
-template <typename T>
-void Data::load(TTree* tree, const char* name, int entry, std::vector<T>* arr)
-{
+void Data::setClusTree(TTree *tree) {
   if (tree == nullptr) {
-    std::cerr << "No tree for " << name << '\n';
+    std::cerr << "No tree for clusters !\n";
     return;
   }
-  if ((entry < 0) || (entry >= tree->GetEntries())) {
-    std::cerr << name << ": Out of event range ! " << entry << '\n';
-    return;
+  tree->SetBranchAddress("ITSCluster",&mClusterBuffer);
+  mClusTree = tree;
+  
+  TTree *roft = (TTree*)gFile->Get("ITSClustersROF");
+  if (roft != nullptr) {
+    std::vector<o2::ITSMFT::ROFRecord> *roFrames = &mClustersROF;
+    roft->SetBranchAddress("ITSClustersROF",&roFrames);
+    roft->GetEntry(0);
   }
-  tree->SetBranchAddress(name, &arr);
-  tree->GetEvent(entry);
-  std::cout << "Number of " << name << "s: " << arr->size() << '\n';
 }
+
+void Data::loadClusters(int entry) {
+  static int lastLoaded = -1;
+
+  if (mClusTree == nullptr) return;
+
+  auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
+  if ( !mClustersROF.empty() ) {
+    if ((event < 0) || (event >= (int)mClustersROF.size())) {
+      std::cerr << "Clusters: Out of event range ! " << event << '\n';
+      return;
+    }
+    auto rof = mClustersROF[entry];
+    event = rof.getROFEntry().getEvent();
+  }
+  if ((event < 0) || (event >= mClusTree->GetEntries())) {
+    std::cerr << "Clusters: Out of event range ! " << event << '\n';
+    return;
+  }
+  if (event != lastLoaded) {
+    mClusterBuffer->clear();
+    mClusTree->GetEntry(event);
+    lastLoaded=event;
+  }
+  
+  int first = 0, last = mClusterBuffer->size();
+  if ( !mClustersROF.empty() ) {
+    auto rof = mClustersROF[entry];
+    first = rof.getROFEntry().getIndex();
+    last = first + rof.getNROFEntries();
+  }  
+  mClusters = gsl::make_span(&(*mClusterBuffer)[first], last - first);
+  
+  std::cout<<"Number of ITSClusters: "<<mClusters.size()<<'\n';
+
+}
+
+void Data::setTracTree(TTree *tree) {
+  if (tree == nullptr) {
+    std::cerr << "No tree for tracks !\n";
+    return;
+  }
+  tree->SetBranchAddress("ITSTrack",&mTrackBuffer);
+  mTracTree = tree;
+  
+  TTree *roft = (TTree*)gFile->Get("ITSTracksROF");
+  if (roft != nullptr) {
+    std::vector<o2::ITSMFT::ROFRecord> *roFrames = &mTracksROF;
+    roft->SetBranchAddress("ITSTracksROF",&roFrames);
+    roft->GetEntry(0);
+  }
+}
+
+void Data::loadTracks(int entry) {
+  static int lastLoaded = -1;
+
+  if (mTracTree == nullptr) return;
+
+  auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
+  if ( !mTracksROF.empty() ) {
+    if ((event < 0) || (event >= (int)mTracksROF.size())) {
+      std::cerr << "Clusters: Out of event range ! " << event << '\n';
+      return;
+    }
+    auto rof = mTracksROF[entry];
+    event = rof.getROFEntry().getEvent();
+  }
+  if ((event < 0) || (event >= mTracTree->GetEntries())) {
+    std::cerr << "Tracks: Out of event range ! " << event << '\n';
+    return;
+  }
+  if (event != lastLoaded) {
+    mTrackBuffer->clear();
+    mTracTree->GetEntry(event);
+    lastLoaded=event;
+  }
+  
+  int first = 0, last = mTrackBuffer->size();
+  if ( !mTracksROF.empty() ) {
+    auto rof = mTracksROF[entry];
+    first = rof.getROFEntry().getIndex();
+    last = first + rof.getNROFEntries();
+  }
+  mTracks = gsl::make_span(&(*mTrackBuffer)[first], last - first);
+
+  std::cout<<"Number of ITSTracks: "<<mTracks.size()<<'\n';
+
+}
+
 
 void Data::loadData(int entry)
 {
   loadDigits(entry);
-  //load<Digit>(mDigiTree, "ITSDigit", entry, &mDigits);
-  load<Cluster>(mClusTree, "ITSCluster", entry, &mClusters);
-  load<o2::ITS::TrackITS>(mTracTree, "ITSTrack", entry, &mTracks);
+  loadClusters(entry);
+  loadTracks(entry);
 }
 
 constexpr float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
@@ -218,7 +306,7 @@ TEveElement* Data::getEveChipClusters(int chip)
   qclus->SetFrame(box);
   int ncl=0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
-  for (const auto& c : mClusters) {
+  for (const auto &c : mClusters) {
     auto id = c.getSensorID();
     if (id != chip)
       continue;
@@ -248,7 +336,7 @@ TEveElement* Data::getEveClusters()
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
-  for (const auto& c : mClusters) {
+  for (const auto &c : mClusters) {
     const auto& gloC = c.getXYZGloRot(*gman);
     clusters->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
   }
@@ -279,7 +367,7 @@ TEveElement* Data::getEveTracks()
     int nc = rec.getNumberOfClusters();
     while (nc--) {
       Int_t idx = rec.getClusterIndex(nc);
-      const Cluster& c = mClusters[idx];
+      const Cluster& c = (*mClusterBuffer)[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
     }
