@@ -50,6 +50,8 @@ class ClusterTopology
   unsigned long getHash() const { return mHash; }
   /// Prints the topology
   friend std::ostream& operator<<(std::ostream& os, const ClusterTopology& top);
+  /// Prints to the stdout
+  void print() const { std::cout << (*this) << "\n"; }
   /// MurMur2 hash fucntion
   static unsigned int hashFunction(const void* key, int len);
   /// Compute the complete hash as defined for mHash
