@@ -49,19 +49,21 @@ class Data
   void loadData(int entry);
   void displayData(int entry, int chip);
   int getLastEvent() const { return mLastEvent; }
-  void setRawPixelReader(std::string input) {
+  void setRawPixelReader(std::string input)
+  {
     auto reader = new RawPixelReader<ChipMappingITS>();
     reader->openInput(input);
-    mPixelReader=reader;
+    mPixelReader = reader;
     mPixelReader->getNextChipData(mChipData);
     mIR = mChipData.getInteractionRecord();
   }
-  void setDigitPixelReader(std::string input) {
+  void setDigitPixelReader(std::string input)
+  {
     auto reader = new DigitPixelReader();
     reader->openInput(input, o2::detectors::DetID("ITS"));
     reader->init();
     reader->readNextEntry();
-    mPixelReader=reader;
+    mPixelReader = reader;
     mPixelReader->getNextChipData(mChipData);
     mIR = mChipData.getInteractionRecord();
   }
@@ -73,13 +75,13 @@ class Data
   // Data loading members
   int mLastEvent = 0;
   PixelReader* mPixelReader = nullptr;
-  ChipPixelData mChipData;  
+  ChipPixelData mChipData;
   o2::InteractionRecord mIR;
   std::vector<Digit> mDigits;
-  std::vector<Cluster> *mClusterBuffer = nullptr;
+  std::vector<Cluster>* mClusterBuffer = nullptr;
   gsl::span<Cluster> mClusters;
   std::vector<o2::ITSMFT::ROFRecord> mClustersROF;
-  std::vector<o2::ITS::TrackITS> *mTrackBuffer = nullptr;
+  std::vector<o2::ITS::TrackITS>* mTrackBuffer = nullptr;
   gsl::span<o2::ITS::TrackITS> mTracks;
   std::vector<o2::ITSMFT::ROFRecord> mTracksROF;
   void loadDigits();
@@ -100,68 +102,76 @@ class Data
   TEveElement* getEveTracks();
 } evdata;
 
-void Data::loadDigits() {
-  auto ir=mChipData.getInteractionRecord();
-  std::cout<<"orbit/crossing: "<<' '<<ir.orbit<<'/'<<ir.bc<<'\n';
-  
+void Data::loadDigits()
+{
+  auto ir = mChipData.getInteractionRecord();
+  std::cout << "orbit/crossing: " << ' ' << ir.orbit << '/' << ir.bc << '\n';
+
   mDigits.clear();
 
   do {
-     auto chipID=mChipData.getChipID();
-     auto pixels = mChipData.getData();
-     for (auto &pixel : pixels) {
-       auto col=pixel.getCol();
-       auto row=pixel.getRow();
-       mDigits.emplace_back(chipID,0,row,col);
-     }
-     mChipData.clear();
-     if (!mPixelReader->getNextChipData(mChipData)) return;
-     ir=mChipData.getInteractionRecord();
-  } while (mIR==ir);
-  mIR=ir;
+    auto chipID = mChipData.getChipID();
+    auto pixels = mChipData.getData();
+    for (auto& pixel : pixels) {
+      auto col = pixel.getCol();
+      auto row = pixel.getRow();
+      mDigits.emplace_back(chipID, 0, row, col);
+    }
+    mChipData.clear();
+    if (!mPixelReader->getNextChipData(mChipData))
+      return;
+    ir = mChipData.getInteractionRecord();
+  } while (mIR == ir);
+  mIR = ir;
 
-  std::cout<<"Number of ITSDigits: "<<mDigits.size()<<'\n';
+  std::cout << "Number of ITSDigits: " << mDigits.size() << '\n';
 }
 
-void Data::loadDigits(int entry) {
-  if (mPixelReader == nullptr) return;
+void Data::loadDigits(int entry)
+{
+  if (mPixelReader == nullptr)
+    return;
 
-  for (; mLastEvent<entry; mLastEvent++) {
-    auto ir=mChipData.getInteractionRecord();
+  for (; mLastEvent < entry; mLastEvent++) {
+    auto ir = mChipData.getInteractionRecord();
     do {
       mChipData.clear();
-      if (!mPixelReader->getNextChipData(mChipData)) return;
-      ir=mChipData.getInteractionRecord();
-    } while (mIR==ir);
-    mIR=ir;
+      if (!mPixelReader->getNextChipData(mChipData))
+        return;
+      ir = mChipData.getInteractionRecord();
+    } while (mIR == ir);
+    mIR = ir;
   }
   mLastEvent++;
   loadDigits();
 }
 
-void Data::setClusTree(TTree *tree) {
+void Data::setClusTree(TTree* tree)
+{
   if (tree == nullptr) {
     std::cerr << "No tree for clusters !\n";
     return;
   }
-  tree->SetBranchAddress("ITSCluster",&mClusterBuffer);
+  tree->SetBranchAddress("ITSCluster", &mClusterBuffer);
   mClusTree = tree;
-  
-  TTree *roft = (TTree*)gFile->Get("ITSClustersROF");
+
+  TTree* roft = (TTree*)gFile->Get("ITSClustersROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord> *roFrames = &mClustersROF;
-    roft->SetBranchAddress("ITSClustersROF",&roFrames);
+    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mClustersROF;
+    roft->SetBranchAddress("ITSClustersROF", &roFrames);
     roft->GetEntry(0);
   }
 }
 
-void Data::loadClusters(int entry) {
+void Data::loadClusters(int entry)
+{
   static int lastLoaded = -1;
 
-  if (mClusTree == nullptr) return;
+  if (mClusTree == nullptr)
+    return;
 
   auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
-  if ( !mClustersROF.empty() ) {
+  if (!mClustersROF.empty()) {
     if ((event < 0) || (event >= (int)mClustersROF.size())) {
       std::cerr << "Clusters: Out of event range ! " << event << '\n';
       return;
@@ -176,44 +186,46 @@ void Data::loadClusters(int entry) {
   if (event != lastLoaded) {
     mClusterBuffer->clear();
     mClusTree->GetEntry(event);
-    lastLoaded=event;
+    lastLoaded = event;
   }
-  
+
   int first = 0, last = mClusterBuffer->size();
-  if ( !mClustersROF.empty() ) {
+  if (!mClustersROF.empty()) {
     auto rof = mClustersROF[entry];
     first = rof.getROFEntry().getIndex();
     last = first + rof.getNROFEntries();
-  }  
+  }
   mClusters = gsl::make_span(&(*mClusterBuffer)[first], last - first);
-  
-  std::cout<<"Number of ITSClusters: "<<mClusters.size()<<'\n';
 
+  std::cout << "Number of ITSClusters: " << mClusters.size() << '\n';
 }
 
-void Data::setTracTree(TTree *tree) {
+void Data::setTracTree(TTree* tree)
+{
   if (tree == nullptr) {
     std::cerr << "No tree for tracks !\n";
     return;
   }
-  tree->SetBranchAddress("ITSTrack",&mTrackBuffer);
+  tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
   mTracTree = tree;
-  
-  TTree *roft = (TTree*)gFile->Get("ITSTracksROF");
+
+  TTree* roft = (TTree*)gFile->Get("ITSTracksROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord> *roFrames = &mTracksROF;
-    roft->SetBranchAddress("ITSTracksROF",&roFrames);
+    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mTracksROF;
+    roft->SetBranchAddress("ITSTracksROF", &roFrames);
     roft->GetEntry(0);
   }
 }
 
-void Data::loadTracks(int entry) {
+void Data::loadTracks(int entry)
+{
   static int lastLoaded = -1;
 
-  if (mTracTree == nullptr) return;
+  if (mTracTree == nullptr)
+    return;
 
   auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
-  if ( !mTracksROF.empty() ) {
+  if (!mTracksROF.empty()) {
     if ((event < 0) || (event >= (int)mTracksROF.size())) {
       std::cerr << "Clusters: Out of event range ! " << event << '\n';
       return;
@@ -228,21 +240,19 @@ void Data::loadTracks(int entry) {
   if (event != lastLoaded) {
     mTrackBuffer->clear();
     mTracTree->GetEntry(event);
-    lastLoaded=event;
+    lastLoaded = event;
   }
-  
+
   int first = 0, last = mTrackBuffer->size();
-  if ( !mTracksROF.empty() ) {
+  if (!mTracksROF.empty()) {
     auto rof = mTracksROF[entry];
     first = rof.getROFEntry().getIndex();
     last = first + rof.getNROFEntries();
   }
   mTracks = gsl::make_span(&(*mTrackBuffer)[first], last - first);
 
-  std::cout<<"Number of ITSTracks: "<<mTracks.size()<<'\n';
-
+  std::cout << "Number of ITSTracks: " << mTracks.size() << '\n';
 }
-
 
 void Data::loadData(int entry)
 {
@@ -289,7 +299,7 @@ TEveElement* Data::getEveChipDigits(int chip)
 
   auto most = std::distance(occup.begin(), std::max_element(occup.begin(), occup.end()));
   std::cout << "Most occupied chip: " << most << " (" << occup[most] << " digits)\n";
-  std::cout << "Chip "<<chip<<" number of digits "<< occup[chip]<<'\n';
+  std::cout << "Chip " << chip << " number of digits " << occup[chip] << '\n';
 
   return qdigi;
 }
@@ -304,14 +314,14 @@ TEveElement* Data::getEveChipClusters(int chip)
   TEveQuadSet* qclus = new TEveQuadSet("clusters");
   qclus->SetOwnIds(kTRUE);
   qclus->SetFrame(box);
-  int ncl=0;
+  int ncl = 0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
-  for (const auto &c : mClusters) {
+  for (const auto& c : mClusters) {
     auto id = c.getSensorID();
     if (id != chip)
       continue;
     ncl++;
-    
+
     int row = c.getPatternRowMin();
     int col = c.getPatternColMin();
     int len = c.getPatternColSpan();
@@ -326,7 +336,7 @@ TEveElement* Data::getEveChipClusters(int chip)
   ct.RotateLF(1, 3, 0.5 * TMath::Pi());
   ct.SetPos(0, 0, 0);
 
-  std::cout << "Chip "<<chip<<" number of clusters "<< ncl<<'\n';
+  std::cout << "Chip " << chip << " number of clusters " << ncl << '\n';
 
   return qclus;
 }
@@ -336,7 +346,7 @@ TEveElement* Data::getEveClusters()
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
-  for (const auto &c : mClusters) {
+  for (const auto& c : mClusters) {
     const auto& gloC = c.getXYZGloRot(*gman);
     clusters->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
   }
@@ -409,13 +419,13 @@ void Data::displayData(int entry, int chip)
 
 void load(int entry, int chip)
 {
-  int lastEvent = evdata.getLastEvent(); 
+  int lastEvent = evdata.getLastEvent();
   if (lastEvent > entry) {
-    std::cerr<<"\nERROR: Cannot stay or go back over events. Please increase the event number !\n\n";
-    gEntry->SetIntNumber(lastEvent-1);
+    std::cerr << "\nERROR: Cannot stay or go back over events. Please increase the event number !\n\n";
+    gEntry->SetIntNumber(lastEvent - 1);
     return;
   }
-  
+
   gEntry->SetIntNumber(entry);
   gChipID->SetIntNumber(chip);
 
@@ -426,7 +436,7 @@ void load(int entry, int chip)
 
 void init(int entry = 0, int chip = 13,
           std::string digifile = "itsdigits.root",
-	  bool rawdata = false,
+          bool rawdata = false,
           std::string clusfile = "o2clus_its.root",
           std::string tracfile = "o2trac_its.root",
           std::string inputGeom = "O2geometry.root")
@@ -481,28 +491,28 @@ void init(int entry = 0, int chip = 13,
   frame->MapWindow();
   browser->StopEmbedding("Navigator");
 
-  TFile *file;
+  TFile* file;
 
   // Data sources
   if (rawdata) {
-    std::ifstream *rawfile = new std::ifstream(digifile.data(), std::ifstream::binary);
+    std::ifstream* rawfile = new std::ifstream(digifile.data(), std::ifstream::binary);
     if (rawfile->good()) {
       delete rawfile;
-      std::cout<<"Running with raw digits...\n";
+      std::cout << "Running with raw digits...\n";
       evdata.setRawPixelReader(digifile.data());
     } else
-      std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";      
+      std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";
   } else {
     file = TFile::Open(digifile.data());
     if (file && gFile->IsOpen()) {
       file->Close();
-      std::cout<<"Running with MC digits...\n";
+      std::cout << "Running with MC digits...\n";
       evdata.setDigitPixelReader(digifile.data());
       //evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
     } else
       std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";
   }
-  
+
   file = TFile::Open(clusfile.data());
   if (file && gFile->IsOpen())
     evdata.setClusTree((TTree*)gFile->Get("o2sim"));
