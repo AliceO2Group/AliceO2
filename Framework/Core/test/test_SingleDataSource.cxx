@@ -11,6 +11,8 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ControlService.h"
 
+#include <chrono>
+
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
@@ -24,7 +26,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
       },
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
-         sleep(1);
+         std::this_thread::sleep_for(std::chrono::seconds(1));
          auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
          ctx.services().get<ControlService>().readyToQuit(true);
         }

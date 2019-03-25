@@ -12,6 +12,8 @@
 #include <Monitoring/Monitoring.h>
 #include "FairMQLogger.h"
 
+#include <chrono>
+
 using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 
@@ -41,7 +43,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
-       sleep(1);
+       std::this_thread::sleep_for(std::chrono::seconds(1));
        // Creates a new message of size 1000 which
        // has "TPC" as data origin and "CLUSTERS" as data description.
        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);

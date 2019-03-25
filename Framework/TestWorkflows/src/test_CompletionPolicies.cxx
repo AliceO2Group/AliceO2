@@ -11,8 +11,10 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
-#include <vector>
+
 #include <cassert>
+#include <chrono>
+#include <vector>
 
 using namespace o2::framework;
 
@@ -51,7 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
           // the policies for the following dataprocessors are
           // actually respected.
           ctx.outputs().make<int>(OutputRef{ "out1" }, 1);
-          sleep(1);
+          std::this_thread::sleep_for(std::chrono::seconds(1));
         } } },
     DataProcessorSpec{
       "discard",

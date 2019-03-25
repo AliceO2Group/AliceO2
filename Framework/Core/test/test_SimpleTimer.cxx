@@ -12,6 +12,8 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 
+#include <chrono>
+
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
@@ -25,7 +27,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         adaptStateless([](ControlService& control) {
           // This is invoked autonomously by the timer.
-          sleep(1);
+          std::this_thread::sleep_for(std::chrono::seconds(1));
           control.readyToQuit(true);
         }) } },
     DataProcessorSpec{

@@ -20,6 +20,8 @@
 #include <TH1F.h>
 #include <TString.h>
 
+#include <chrono>
+
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
@@ -37,7 +39,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
       },
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
-          sleep(1);
+          std::this_thread::sleep_for(std::chrono::seconds(1));
           // Create an histogram
           auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
           auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "fao");

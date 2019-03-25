@@ -11,6 +11,8 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ControlService.h"
 
+#include <chrono>
+
 using namespace o2::framework;
 using namespace o2::header;
 
