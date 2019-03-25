@@ -95,6 +95,20 @@ void Benchmark::registerExperiments()
                         iterations->Get(), 
                         baseDir));
     }
+
+    {
+        GPUClusterFinder::Config squareCacheLines;
+        squareCacheLines.usePackedDigits = true;
+        squareCacheLines.useSquareCacheLines = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap with square cache lines", 
+                        "squareChargeMap.json",
+                        squareCacheLines,
+                        digits,
+                        iterations->Get(), 
+                        baseDir));
+    }
 }
 
 

@@ -3,11 +3,6 @@
 #include "shared/tpc.h"
 
 
-#define CHARGE(map, row, pad, time) \
-    map[TPC_PADS_PER_ROW_PADDED*TPC_MAX_TIME_PADDED*(row) \
-         +TPC_MAX_TIME_PADDED*((pad)+PADDING)+(time)+PADDING]
-
-#define DIGIT_CHARGE(map, digit) CHARGE(map, digit.row, digit.pad, digit.time)
 
 
 #define HALF_NEIGHBORS_NUM 4

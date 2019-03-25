@@ -7,6 +7,7 @@
 
 #include <shared/tpc.h>
 
+#include <cmath>
 #include <functional>
 
 
@@ -631,6 +632,20 @@ void GPUClusterFinder::addDefines(ClEnv &env)
     if (config.usePackedDigits)
     {
         env.addDefine("USE_PACKED_DIGIT");
+    }
+
+    if (config.useSquareCacheLines)
+    {
+        constexpr size_t cacheLineSize = 64;
+        constexpr size_t chargeSize = sizeof(cl_float);
+
+        constexpr size_t chargesPerCacheLine = cacheLineSize / chargeSize;
+
+        size_t cacheLineWidth = sqrt(chargesPerCacheLine);
+
+        env.addDefine("CHARGEMAP_SQUARE_CACHE_LINES");
+        env.addDefine("CACHE_LINE_WIDTH="+std::to_string(cacheLineWidth));
+        env.addDefine("CACHE_LINE_HEIGHT="+std::to_string(cacheLineWidth));
     }
 }
 
