@@ -24,6 +24,6 @@ ParameterElectronics::ParameterElectronics()
     mADCsaturation(1024.f),
     mZbinWidth(0.2f),
     mElectronCharge(1.602e-19f),
-    mDigitizationMode(DigitzationMode::FullMode)
+    mDigitizationMode(DigitzationMode::SubtractPedestal)
 {
 }
