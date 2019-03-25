@@ -1,8 +1,13 @@
+<!-- For Doxygen
 \page refUtilities Module 'Utilities'
+---- end Doxygen -->
 
 Module 'Utilities'
 ===================
 
+There is no module description yet.
+
+<!-- For Doxygen
 This module contains the following submodules:
 
 - \subpage refUtilitiesDataCompression
@@ -15,3 +20,4 @@ This module contains the following submodules:
 - \subpage refUtilitiesTools
 - \subpage refUtilitiesaliceHLTwrapper
 - \subpage refUtilitieshough
+---- end Doxygen -->
