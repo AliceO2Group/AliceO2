@@ -30,6 +30,8 @@ public:
         size_t chunks = 1;
 
         bool usePackedDigits = false;
+
+        bool useSquareCacheLines = false;
     };
     
     struct Result
