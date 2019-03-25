@@ -21,6 +21,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
 
+#include <chrono>
 #include <sstream>
 
 using namespace o2::framework;
@@ -39,7 +40,7 @@ WorkflowSpec defineDataProcessing()
              Outputs{ OutputSpec{ "TST", "A1" },
                       OutputSpec{ "TST", "A2" } },
              AlgorithmSpec{ [](ProcessingContext& ctx) {
-               sleep(1);
+               std::this_thread::sleep_for(std::chrono::seconds(1));
                auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
                auto bData = ctx.outputs().make<int>(Output{ "TST", "A2", 0 }, 1);
              } } },
