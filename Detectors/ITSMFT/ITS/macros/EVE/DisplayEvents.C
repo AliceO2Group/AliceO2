@@ -117,7 +117,6 @@ void Data::loadDigits()
       auto row = pixel.getRow();
       mDigits.emplace_back(chipID, 0, row, col);
     }
-    mChipData.clear();
     if (!mPixelReader->getNextChipData(mChipData))
       return;
     ir = mChipData.getInteractionRecord();
@@ -135,7 +134,6 @@ void Data::loadDigits(int entry)
   for (; mLastEvent < entry; mLastEvent++) {
     auto ir = mChipData.getInteractionRecord();
     do {
-      mChipData.clear();
       if (!mPixelReader->getNextChipData(mChipData))
         return;
       ir = mChipData.getInteractionRecord();
