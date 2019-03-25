@@ -290,8 +290,8 @@ def finalize(cnf):
     if cnf.xlabel is not None:
         plt.xlabel(cnf.xlabel)
 
-    # if cnf.showLegend:
-    #     plt.legend(loc='best')
+    if cnf.showLegend:
+        plt.legend(loc='best')
 
     plt.savefig(cnf.expand(cnf.out))
 
