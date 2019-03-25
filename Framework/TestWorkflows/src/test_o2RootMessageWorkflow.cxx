@@ -30,15 +30,12 @@ using DataDescription = o2::header::DataDescription;
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const&) {
   return WorkflowSpec{
-    {
-      "producer",
+    { "producer",
       {},
-      {
-        OutputSpec{"TST", "HISTOS"},
-        OutputSpec{"TST", "STRING"}
-      },
+      { OutputSpec{ "TST", "HISTOS" },
+        OutputSpec{ "TST", "STRING" } },
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
+        [](ProcessingContext& ctx) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
           // Create an histogram
           auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
@@ -51,18 +48,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
                     << "sumwx" << stats[2] << "\n"
                     << "sumwx2" << stats[3] << "\n";
           aString.SetString("foo");
-        }
-      }
-    },
-    {
-      "consumer",
+        } } },
+    { "consumer",
       {
-         InputSpec{"histos", "TST", "HISTOS"},
-         InputSpec{"string", "TST", "STRING"},
+        InputSpec{ "histos", "TST", "HISTOS" },
+        InputSpec{ "string", "TST", "STRING" },
       },
       {},
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
+        [](ProcessingContext& ctx) {
           // FIXME: for the moment we need to do the deserialization ourselves.
           //        this should probably be encoded in the serialization field
           //        of the DataHeader and done automatically by the framework
@@ -79,8 +73,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           auto s = ctx.inputs().get<TObjString*>("string");
 
           LOG(INFO) << "String is " << s->GetString().Data();
-        }
-      }
-    }
+        } } }
   };
 }

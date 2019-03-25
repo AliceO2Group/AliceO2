@@ -21,17 +21,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
     {
       "A",
       {},
-      {
-        OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}
-      },
+      { OutputSpec{ "TST", "A1", 0, Lifetime::Timeframe } },
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
-         std::this_thread::sleep_for(std::chrono::seconds(1));
-         auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
-         ctx.services().get<ControlService>().readyToQuit(true);
-        }
-      },
-      Options{{"test-option", VariantType::String, "test", {"A test option"}}},
+        [](ProcessingContext& ctx) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+          auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
+          ctx.services().get<ControlService>().readyToQuit(true);
+        } },
+      Options{ { "test-option", VariantType::String, "test", { "A test option" } } },
     }
   };
 }
