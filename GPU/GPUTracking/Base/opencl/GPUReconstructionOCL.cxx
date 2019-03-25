@@ -112,10 +112,10 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
       if (mDeviceProcessingSettings.debugLevel >= 2) {
         GPUInfo("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
       }
-      if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
+      if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strcmp(platform_version, "OpenCL 2.0 AMD-APP (1800.8)") == 0) {
         found = true;
         if (mDeviceProcessingSettings.debugLevel >= 2) {
-          GPUInfo("AMD OpenCL Platform found");
+          GPUInfo("AMD APP OpenCL Platform found");
         }
         platform = platforms[i_platform];
         break;

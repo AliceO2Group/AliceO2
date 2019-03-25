@@ -83,7 +83,7 @@ int main(int argc, char** argv)
     clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, pinfo.platform_name, nullptr);
     clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, pinfo.platform_vendor, nullptr);
     printf("Available Platform %u: (%s %s) %s %s\n", i_platform, pinfo.platform_profile, pinfo.platform_version, pinfo.platform_vendor, pinfo.platform_name);
-    if (strcmp(pinfo.platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
+    if (strcmp(pinfo.platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strcmp(pinfo.platform_version, "OpenCL 2.0 AMD-APP (1800.8)") == 0) {
       found = true;
       printf("AMD OpenCL Platform found (%u)\n", i_platform);
       platform = platforms[i_platform];
