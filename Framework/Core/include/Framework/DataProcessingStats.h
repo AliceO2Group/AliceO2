@@ -17,10 +17,20 @@ namespace o2
 namespace framework
 {
 
+/// Helper struct to hold statistics about the data processing happening.
 struct DataProcessingStats {
+  // We use this to keep track of the latency of the first message we get for a given input record
+  // and of the last one.
+  struct InputLatency {
+    int minLatency;
+    int maxLatency;
+  };
   int pendingInputs;
   int incomplete;
   int inputParts;
+  int lastElapsedTimeMs;
+  int lastTotalProcessedSize;
+  InputLatency lastLatency;
 };
 
 } // namespace framework
