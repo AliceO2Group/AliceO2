@@ -28,7 +28,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
     // can be provided per workflow
     DataProcessorSpec{
       // The name of my analysis
-      "d0-analysis",
+      "dimuon-analysis",
       Inputs{
         // Dangling inputs of type AOD will be automatically picked up
         // by DPL and an extra reader device will be instanciated to
@@ -37,9 +37,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         // D0 candidates schema. The first string is just a label
         // so that the algorithm can be in principle be reused for different
         // kind of candidates.
-        InputSpec{ "candidates", "AOD", "DZEROFLAGGED" },
+        InputSpec{ "candidates", "AOD", "DIMUONFLAGGED" },//tobe modified for Dimuons
       },
-      // No outputs for the time being.
+      // No outputs for the time being.TODO tuples!
       Outputs{},
       AlgorithmSpec{
         // This is the actual per "message" loop, where a message could
@@ -73,10 +73,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
           // * Define a column delta_phi with the difference in phi between d0 and d0bar phi
           // * Define a column delta_eta with the difference in phi between d0 and d0bar eta
           // * Do two histograms with delta_phi, delta_eta
-          auto combinations = o2::analysis::doSelfCombinationsWith(input, "d0", "cand_evtID_ML");
-          auto deltas = combinations.Filter("d0_cand_type_ML & 0x1 && d0bar_cand_type_ML & 0x1")
-                          .Define("delta_phi", delta, { "d0_phi_cand_ML", "d0bar_phi_cand_ML" })
-                          .Define("delta_eta", delta, { "d0_eta_cand_ML", "d0bar_eta_cand_ML" });
+          auto combinations = o2::analysis::doSelfCombinationsWith(input, "dimuon", "cand_evtID_ML");
+          auto deltas = combinations.Filter("dimuon_cand_type_ML & 0x1 && dimuonbar_cand_type_ML & 0x1")
+	    .Define("delta_phi", delta, { "dimuon_phi_cand_ML", "dimuon_phi_cand_ML" })//fix me!
+	    .Define("delta_eta", delta, { "dimuon_eta_cand_ML", "dimuon_eta_cand_ML" });//fix me!
           auto h2 = deltas.Histo1D("delta_phi");
           auto h3 = deltas.Histo1D("delta_eta");
 
