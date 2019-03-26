@@ -1,0 +1,10 @@
+input = [
+    { file = "in/parallelClusterFinder.json", label = "" }
+]
+
+type   = "expandedTimeline"
+out    = "out/timelineExpanded.pdf"
+ylabel = "Queue"
+xlabel = "Time [ms]"
+
+showLegend = true
