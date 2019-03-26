@@ -14,6 +14,7 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include <cassert>
+#include <bitset>
 
 using namespace o2::ITSMFT;
 
@@ -27,7 +28,9 @@ void PixelData::sanityCheck() const
 void ChipPixelData::print() const
 {
   // print chip data
-  printf("Chip %d in ROFrame %d\n", mChipID, mROFrame);
+  std::bitset<4> flg(mROFlags);
+  printf("Chip %d in Orbit %6d BC:%4d (ROFrame %d) ROFlags: 4b'%4s | %4lu hits\n", mChipID,
+         mInteractionRecord.orbit, mInteractionRecord.bc, mROFrame, flg.to_string().c_str(), mPixels.size());
   for (int i = 0; i < mPixels.size(); i++) {
     printf("#%4d C:%4d R: %3d %s\n", i, mPixels[i].getCol(), mPixels[i].getRow(), mPixels[i].isMasked() ? "*" : "");
   }

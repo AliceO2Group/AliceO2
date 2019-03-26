@@ -1,23 +1,39 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include <sstream>
+#include <memory>
+#include <string>
+
+#include <TChain.h>
+#include <TFile.h>
+#include <TTree.h>
+#include <TGeoGlobalMagField.h>
 
 #include <TStopwatch.h>
 
-#include "FairLogger.h"
-#include "FairRunAna.h"
-#include "FairFileSource.h"
-#include "FairRuntimeDb.h"
-#include "FairParRootFileIo.h"
-#include "FairSystemInfo.h"
-#include "Field/MagneticField.h"
+#include <FairEventHeader.h>
+#include <FairGeoParSet.h>
+#include <FairLogger.h>
+#include <FairMCEventHeader.h>
 
-#include "ITSReconstruction/TrivialVertexer.h"
-#include "ITSReconstruction/CookedTrackerTask.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/Propagator.h"
+#include "Field/MagneticField.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSReconstruction/CookedTracker.h"
+#include "MathUtils/Utils.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void run_trac_its(float rate = 0., std::string outputfile = "o2trac_its.root", std::string inputfile = "o2clus_its.root", std::string mcfile = "o2sim.root", std::string paramfile = "o2sim_par.root")
+using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
+void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
+                  std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
+                  std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root")
 {
-  // Initialize logger
+
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
   logger->SetLogScreenLevel("INFO");
@@ -25,65 +41,89 @@ void run_trac_its(float rate = 0., std::string outputfile = "o2trac_its.root", s
   // Setup timer
   TStopwatch timer;
 
-  // Setup FairRoot analysis manager
-  FairRunAna* fRun = new FairRunAna();
-  FairFileSource* fFileSource = new FairFileSource(inputfile.data());
-  fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(outputfile.data());
+  if (path.back() != '/') {
+    path += '/';
+  }
 
-  // Setup Runtime DB
-  FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
-  FairParRootFileIo* parInput1 = new FairParRootFileIo();
-  parInput1->open(paramfile.data());
-  rtdb->setFirstInput(parInput1);
-
-  // Setup tracker
-  Int_t n = 1;            // Number of threads
-  Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
-  o2::ITS::CookedTrackerTask* trac = new o2::ITS::CookedTrackerTask(n, mcTruth);
-  trac->setContinuousMode(rate > 0.);
-
-  o2::ITS::TrivialVertexer& vertexer = trac->getVertexer();
-  //vertexer.openInputFile(mcfile.str().c_str());
-  vertexer.openInputFile(mcfile.data());
-
-  fRun->AddTask(trac);
-
-  fRun->Init();
-
-  o2::field::MagneticField* fld = (o2::field::MagneticField*)fRun->GetField();
-  if (!fld) {
-    std::cout << "Failed to get field instance from FairRunAna" << std::endl;
+  //-------- init geometry and field --------//
+  const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
+  if (!grp) {
+    LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
+  }
+  bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
+  if (!isITS) {
+    LOG(WARNING) << "ITS is not in the readoute" << FairLogger::endl;
     return;
   }
-  trac->setBz(fld->solenoidField()); // in kG
+  bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
+  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
 
-  timer.Start();
-  fRun->Run();
+  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  auto gman = o2::ITS::GeometryTGeo::Instance();
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
-  std::cout << std::endl << std::endl;
+  o2::Base::Propagator::initFieldFromGRP(grp);
+  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!field) {
+    LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
+  }
 
-  // Extract the maximal used memory an add is as Dart measurement
-  // This line is filtered by CTest and the value send to CDash
-  FairSystemInfo sysInfo;
-  Float_t maxMemory = sysInfo.GetMaxMemory();
-  std::cout << "<DartMeasurement name=\"MaxMemory\" type=\"numeric/double\">";
-  std::cout << maxMemory;
-  std::cout << "</DartMeasurement>" << std::endl;
+  //>>>---------- attach input data --------------->>>
+  TChain itsClusters("o2sim");
+  itsClusters.AddFile((path + inputClustersITS).data());
+
+  if (!itsClusters.GetBranch("ITSCluster")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
+  }
+  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  itsClusters.SetBranchAddress("ITSCluster", &clusters);
+
+  MCLabCont* labels = nullptr;
+  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
+    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
+  } else {
+    itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
+  }
+  //<<<---------- attach input data ---------------<<<
+
+  //>>>--------- create/attach output ------------->>>
+  // create/attach output tree
+  TFile outFile((path + outputfile).data(), "recreate");
+  TTree outTree("o2sim", "Cooked ITS Tracks");
+  std::vector<o2::ITS::TrackITS>* tracksITS = new std::vector<o2::ITS::TrackITS>;
+  MCLabCont* trackLabels = new MCLabCont();
+  outTree.Branch("ITSTrack", &tracksITS);
+  outTree.Branch("ITSTrackMCTruth", &trackLabels);
+  //<<<--------- create/attach output -------------<<<
+
+  //=================== INIT ==================
+  Int_t n = 1;            // Number of threads
+  Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
+  o2::ITS::CookedTracker tracker(n);
+  tracker.setContinuousMode(isContITS);
+  tracker.setBz(field->solenoidField()); // in kG
+  tracker.setGeometry(gman);
+  tracker.setMCTruthContainers(labels, trackLabels);
+  //===========================================
+
+  //-------------------- settings -----------//
+  std::uint32_t roFrame = 0;
+  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
+
+    std::vector<std::array<Double_t, 3>> vertices;
+    vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
+
+    itsClusters.GetEntry(iEvent);
+    tracker.setVertices(vertices);
+    tracker.process(*clusters, *tracksITS);
+    outTree.Fill();
+    tracksITS->clear();
+    trackLabels->clear();
+  }
+  outFile.cd();
+  outTree.Write();
+  outFile.Close();
 
   timer.Stop();
-  Double_t rtime = timer.RealTime();
-  Double_t ctime = timer.CpuTime();
-
-  Float_t cpuUsage = ctime / rtime;
-  cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
-  cout << cpuUsage;
-  cout << "</DartMeasurement>" << endl;
-  cout << endl << endl;
-  cout << "Macro finished succesfully." << endl;
-
-  std::cout << endl << std::endl;
-  std::cout << "Output file is " << outputfile.data() << std::endl;
-  // std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  timer.Print();
 }

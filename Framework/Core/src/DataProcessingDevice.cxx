@@ -18,7 +18,10 @@
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
+#include "Framework/Signpost.h"
+
 #include "ScopedExit.h"
+
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
@@ -74,13 +77,14 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStringContext{ FairMQDeviceProxy{ this } },
     mDataFrameContext{ FairMQDeviceProxy{ this } },
     mRawBufferContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext } },
+    mContextRegistry{ &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
 {
+  StateMonitoring<DataProcessingStatus>::start();
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
@@ -91,7 +95,6 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 ///   here because the configuration is available only at this point.
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init() {
-  LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
   // For some reason passing rateLogging does not work anymore. 
   // This makes sure we never have more than one notification per minute.
   for (auto& x : fChannels) {
@@ -122,7 +125,6 @@ void DataProcessingDevice::Init() {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
   }
-  LOG(DEBUG) << "DataProcessingDevice::InitTask::END";
 }
 
 void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
@@ -137,25 +139,42 @@ bool DataProcessingDevice::ConditionalRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [ stats = mRelayer.getStats(),
-                              &lastSent = mLastMetricSentTimestamp,
-                              &currentTime = mBeginIterationTimestamp,
-                              &monitoring = mServiceRegistry.get<Monitoring>() ]()
-                              ->void
-  {
+  auto sendRelayerMetrics = [relayerStats = mRelayer.getStats(),
+                             &stats = mStats,
+                             &lastSent = mLastSlowMetricSentTimestamp,
+                             &currentTime = mBeginIterationTimestamp,
+                             &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
     if (currentTime - lastSent < 5000) {
       return;
     }
-    monitoring.send({ (int)stats.malformedInputs, "dpl/malformed_inputs" });
-    monitoring.send({ (int)stats.droppedComputations, "dpl/dropped_computations" });
-    monitoring.send({ (int)stats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
-    monitoring.send({ (int)stats.relayedMessages, "dpl/relayd_messages" });
+    monitoring.send({ (int)relayerStats.malformedInputs, "dpl/malformed_inputs" });
+    monitoring.send({ (int)relayerStats.droppedComputations, "dpl/dropped_computations" });
+    monitoring.send({ (int)relayerStats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
+    monitoring.send({ (int)relayerStats.relayedMessages, "dpl/relayd_messages" });
+
+    monitoring.send({ (int) stats.pendingInputs, "inputs/relayed/pending" });
+    monitoring.send({ (int) stats.incomplete, "inputs/relayed/incomplete" });
+    monitoring.send({ (int) stats.inputParts, "inputs/relayed/total" });
+
     lastSent = currentTime;
+  };
+
+  /// This will flush metrics only once every second.
+  auto flushMetrics = [&stats = mStats,
+                       &lastFlushed = mLastMetricFlushedTimestamp,
+                       &currentTime = mBeginIterationTimestamp,
+                       &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
+    if (currentTime - lastFlushed < 1000) {
+      return;
+    }
+    monitoring.flushBuffer();
+    lastFlushed = currentTime;
   };
 
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
-  sendRelayerMetrics();
 
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   bool active = false;
@@ -172,6 +191,9 @@ bool DataProcessingDevice::ConditionalRun()
   }
   mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   this->tryDispatchComputation();
+
+  sendRelayerMetrics();
+  flushMetrics();
   return true;
 }
 
@@ -184,7 +206,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   assert(mSpec.inputChannels.empty() == false);
   assert(parts.Size() > 0);
 
-  static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
   assert(!mSpec.inputs.empty());
@@ -193,11 +214,10 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
-  monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data"});
-      monitoringService.send({ DataProcessingStatus::IN_FAIRMQ, "dpl/in_handle_data"});
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto& device = *this;
   auto& errorCount = mErrorCount;
@@ -208,13 +228,9 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&monitoringService, &parts]() -> bool {
-    // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
-    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
+  auto isValidInput = [&stats = mStats, &parts]() -> bool {
+    stats.inputParts = parts.Size();
 
-    for (size_t i = 0; i < parts.Size() ; ++i) {
-      LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
-    }
     if (parts.Size() % 2) {
       return false;
     }
@@ -234,9 +250,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
         LOG(ERROR) << "Header stack does not contain DataProcessingHeader";
         return false;
       }
-      LOG(DEBUG) << "Timeslice is " << dph->startTime;
-      LOG(DEBUG) << " DataOrigin is " << dh->dataOrigin.str;
-      LOG(DEBUG) << " DataDescription is " << dh->dataDescription.str;
     }
     return true;
   };
@@ -258,7 +271,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
         reportError("Unable to relay part.");
         return;
       }
-      LOG(DEBUG) << "Relaying part idx: " << headerIndex;
     }
   };
 
@@ -288,34 +300,33 @@ bool DataProcessingDevice::tryDispatchComputation()
   std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
 
   auto& allocator = mAllocator;
-  auto& context = mFairMQContext;
+  auto& context = *mContextRegistry.get<MessageContext>();
   auto& device = *this;
   auto& errorCallback = mError;
   auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
   auto& processingCount = mProcessingCount;
-  auto& rdfContext = mDataFrameContext;
+  auto& rdfContext = *mContextRegistry.get<ArrowContext>();
   auto& relayer = mRelayer;
-  auto& rootContext = mRootContext;
+  auto& rootContext = *mContextRegistry.get<RootObjectContext>();
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
-  auto& stringContext = mStringContext;
+  auto& stringContext = *mContextRegistry.get<StringContext>();
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
-  auto& rawContext = mRawBufferContext;
+  auto& rawContext = *mContextRegistry.get<RawBufferContext>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
   // FIXME: I should use a different id for this state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
-  monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data"});
-      monitoringService.send({ DataProcessingStatus::IN_FAIRMQ, "dpl/in_handle_data"});
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto reportError = [&device](const char* message) {
     device.error(message);
@@ -334,13 +345,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
-    LOG(DEBUG) << "Getting parts to process";
-    int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
-    if (completed.empty()) {
-      monitoringService.send({ 1, "inputs/relayed/incomplete" });
-    }
+  auto getReadyActions = [&relayer, &completed, &stats = mStats]() -> std::vector<DataRelayer::RecordAction> {
+    stats.pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
+    stats.incomplete = completed.empty() ? 1 : 0;
     return completed;
   };
 
@@ -363,22 +370,18 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
                              &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
-      monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
-      monitoringService.send({ DataProcessingStatus::IN_DPL_STATEFUL_CALLBACK, "dpl/in_handle_data" });
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
       statefulProcess(processContext);
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+      processingCount++;
     }
     if (statelessProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
-      monitoringService.send({ processingCount++, "dpl/stateless_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
-      monitoringService.send({ DataProcessingStatus::IN_DPL_STATELESS_CALLBACK, "dpl/in_handle_data" });
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
       statelessProcess(processContext);
-      monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+      processingCount++;
     }
 
     DataProcessor::doSend(device, context);
@@ -390,14 +393,14 @@ bool DataProcessingDevice::tryDispatchComputation()
 
   // Error handling means printing the error and updating the metric
   auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
-    monitoringService.send({ DataProcessingStatus::IN_DPL_ERROR_CALLBACK, "dpl/in_handle_data" });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
       monitoringService.send({ 1, "error" });
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
-    monitoringService.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   };
 
   // I need a preparation step which gets the current timeslice id and
@@ -406,7 +409,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   // it.
   auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
-    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
     rootContext.clear();
     context.clear();
@@ -421,7 +423,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size()*2 == currentSetOfInputs.size());
-    LOG(DEBUG) << "FORWARDING:START:" << slot.index;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -447,10 +448,6 @@ bool DataProcessingDevice::tryDispatchComputation()
       auto &payload = currentSetOfInputs[ii*2+1];
 
       for (auto forward : forwards) {
-        LOG(DEBUG) << "Input part content";
-        LOG(DEBUG) << dh->dataOrigin.str;
-        LOG(DEBUG) << dh->dataDescription.str;
-        LOG(DEBUG) << dh->subSpecification;
         if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)
             && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
@@ -468,22 +465,16 @@ bool DataProcessingDevice::tryDispatchComputation()
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-          LOG(DEBUG) << "Forwarding data to " << forward.channel;
-          LOG(DEBUG) << "Forwarded timeslice is " << fdph->startTime;
-          LOG(DEBUG) << "Forwarded channel is " << forward.channel;
           FairMQParts forwardedParts;
           forwardedParts.AddPart(std::move(header));
           forwardedParts.AddPart(std::move(payload));
           assert(forwardedParts.Size() == 2);
           assert(o2::header::get<DataProcessingHeader*>(forwardedParts.At(0)->GetData()));
-          LOG(DEBUG) << o2::header::get<DataProcessingHeader*>(forwardedParts.At(0)->GetData())->startTime;
-          LOG(DEBUG) << forwardedParts.At(0)->GetSize();
           // FIXME: this should use a correct subchannel
           device.Send(forwardedParts, forward.channel, 0);
         }
       }
     }
-    LOG(DEBUG) << "FORWARDING:END";
   };
 
   // We use this to keep track of the latency of the first message we get for a given input record

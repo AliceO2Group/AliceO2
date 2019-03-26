@@ -8,6 +8,10 @@ set(SRCS
   src/TrackTPCITS.cxx
   src/Vertex.cxx
   src/MatchInfoTOF.cxx
+  src/CalibInfoTOFshort.cxx
+  src/CalibInfoTOF.cxx
+  src/CalibLHCphaseTOF.cxx
+  src/CalibTimeSlewingParamTOF.cxx
   src/TrackLTIntegral.cxx
   src/PID.cxx
  )
@@ -18,6 +22,10 @@ Set(HEADERS
   include/${MODULE_NAME}/TrackTPCITS.h
   include/${MODULE_NAME}/Vertex.h
   include/${MODULE_NAME}/MatchInfoTOF.h
+  include/${MODULE_NAME}/CalibInfoTOFshort.h
+  include/${MODULE_NAME}/CalibInfoTOF.h
+  include/${MODULE_NAME}/CalibLHCphaseTOF.h
+  include/${MODULE_NAME}/CalibTimeSlewingParamTOF.h
   include/${MODULE_NAME}/TrackLTIntegral.h
   include/${MODULE_NAME}/PID.h
 )

@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_STRINGCONTEXT_H
 #define FRAMEWORK_STRINGCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
@@ -88,22 +87,6 @@ class StringContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline StringContext*
-  ContextRegistry::get<StringContext>()
-{
-  return reinterpret_cast<StringContext*>(mContextes[2]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<StringContext>(StringContext* context)
-{
-  mContextes[2] = context;
-}
 
 } // namespace framework
 } // namespace o2

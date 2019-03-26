@@ -12,6 +12,8 @@
 #include <Monitoring/Monitoring.h>
 #include "FairMQLogger.h"
 
+#include <chrono>
+
 using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 
@@ -35,42 +37,39 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
   DataProcessorSpec timeframeReader{
     "reader",
     Inputs{},
-    {
-      OutputSpec{{"tpc"}, "TPC", "CLUSTERS"},
-      OutputSpec{{"its"}, "ITS", "CLUSTERS"}
-    },
+    { OutputSpec{ { "tpc" }, "TPC", "CLUSTERS" },
+      OutputSpec{ { "its" }, "ITS", "CLUSTERS" } },
     AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-       sleep(1);
-       // Creates a new message of size 1000 which
-       // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
-       int i = 0;
+      [](ProcessingContext& ctx) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // Creates a new message of size 1000 which
+        // has "TPC" as data origin and "CLUSTERS" as data description.
+        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{ "tpc" }, 1000);
+        int i = 0;
 
-       for (auto &cluster : tpcClusters) {
-         // The assert is here simply because at some point we were allocating the
-         // wrong number of items.
-         assert(i < 1000);
-         cluster.x = i;
-         cluster.y = i;
-         cluster.z = i;
-         cluster.q = i;
-         i++;
-       }
+        for (auto& cluster : tpcClusters) {
+          // The assert is here simply because at some point we were allocating the
+          // wrong number of items.
+          assert(i < 1000);
+          cluster.x = i;
+          cluster.y = i;
+          cluster.z = i;
+          cluster.q = i;
+          i++;
+        }
 
-       auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
-       i = 0;
-       for (auto &cluster : itsClusters) {
-         assert(i < 1000);
-         cluster.x = i;
-         cluster.y = i;
-         cluster.z = i;
-         cluster.q = i;
-         i++;
-       }
-//       LOG(INFO) << "Invoked" << std::endl;
-    }
-    }
+        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{ "its" }, 1000);
+        i = 0;
+        for (auto& cluster : itsClusters) {
+          assert(i < 1000);
+          cluster.x = i;
+          cluster.y = i;
+          cluster.z = i;
+          cluster.q = i;
+          i++;
+        }
+        //       LOG(INFO) << "Invoked" << std::endl;
+      } }
   };
 
   DataProcessorSpec tpcClusterSummary{

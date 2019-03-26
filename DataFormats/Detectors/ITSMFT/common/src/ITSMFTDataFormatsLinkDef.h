@@ -27,5 +27,6 @@
 #pragma link C++ class o2::ITSMFT::ClusterPattern + ;
 #pragma link C++ class o2::ITSMFT::ClusterTopology + ;
 #pragma link C++ class o2::ITSMFT::TopologyDictionary + ;
+#pragma link C++ class o2::ITSMFT::GroupStruct + ;
 
 #endif

@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   using Sampler = o2::steer::InteractionSampler;
 
   const int ntest = 100;
-  std::vector<o2::InteractionRecord> records; // destination for records
+  std::vector<o2::InteractionTimeRecord> records; // destination for records
   records.reserve(ntest);
 
   printf("Testing sampler with default settings\n");
@@ -58,6 +58,14 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
     BOOST_CHECK(rec.timeNS >= t); // make sure time is non-decreasing
     t = rec.timeNS;
   }
+
+  // make sure the IR corresponds to declared one
+  records.reserve((int)sampler1.getInteractionRate());
+  sampler1.generateCollisionTimes(records);
+  double dt = (records.back().timeNS - records.front().timeNS) * 1.e-9;
+  printf("\nGenerated %d collisions with time span %.3fs at IR=%e\n",
+         (int)records.size(), dt, sampler1.getInteractionRate());
+  BOOST_CHECK(std::abs(dt - 1.) < 0.1);
 
   // reconfigure w/o modifying BC filling but setting per bunch
   // mu (large -> lot of in-bunch pile-up)

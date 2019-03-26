@@ -64,7 +64,7 @@ class Mapper
     const auto row = mMapGlobalPadToPadPos[globalPad].getRow();
     const auto nCRUPerSector = mMapPadRegionInfo.size();
     int region = 0;
-    for (auto i = 1; i < nCRUPerSector; ++i) {
+    for (size_t i = 1; i < nCRUPerSector; ++i) {
       if (row < mMapPadRegionInfo[i].getGlobalRowOffset()) {
         break;
       }

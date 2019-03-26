@@ -6,6 +6,7 @@ O2_GENERATE_EXECUTABLE(
   EXE_NAME test_MCHSimulation
   SOURCES testDigitisation.cxx
   BUCKET_NAME mch_simulation_test_bucket
+  NO_INSTALL TRUE
 )
 
 

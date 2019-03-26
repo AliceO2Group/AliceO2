@@ -30,6 +30,7 @@ set(SRCS
    src/HalfSAMPAData.cxx
    src/HwClusterer.cxx
    src/RawReader.cxx
+   src/RawReaderCRU.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
    src/TPCCATracking.cxx
@@ -49,6 +50,7 @@ set(HEADERS
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwClusterer.h
    include/${MODULE_NAME}/RawReader.h
+   include/${MODULE_NAME}/RawReaderCRU.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TPCCATracking.h
@@ -65,12 +67,14 @@ O2_GENERATE_LIBRARY()
 Set(Exe_Names
   tpc-read-GBTFrames
   tpc-read-RawData
+  tpc-rawReader-cru
 )
 
 
 Set(Exe_Source
   run/readGBTFrames.cxx
   run/readRawData.cxx
+  run/rawReaderCRU.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

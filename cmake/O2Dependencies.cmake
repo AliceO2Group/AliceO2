@@ -172,6 +172,7 @@ o2_define_bucket(
   glfw_bucket
 
   DEPENDENCIES
+  O2FrameworkFoundation_bucket
   ${GLFW_LIBRARIES}
 
   INCLUDE_DIRECTORIES
@@ -181,6 +182,9 @@ o2_define_bucket(
 o2_define_bucket(
   NAME
   headless_bucket
+
+  DEPENDENCIES
+  O2FrameworkFoundation_bucket
 )
 
 o2_define_bucket(
@@ -291,10 +295,19 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    O2FrameworkFoundation_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Foundation/include
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
     arrow_bucket
+    O2FrameworkFoundation_bucket
     O2DeviceApplication_bucket
     common_utils_bucket
     ROOTDataFrame
@@ -708,7 +721,7 @@ o2_define_bucket(
     Geom
     common_utils_bucket
     CommonUtils
-    
+
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -776,12 +789,14 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     data_format_itsmft_bucket
+    configuration_bucket
     Graf
     Gpad
     DetectorsBase
     SimulationDataFormat
     ITSMFTBase
     DataFormatsITSMFT
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -789,6 +804,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(
@@ -943,107 +959,10 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
-   
+
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
     )
-
-o2_define_bucket(
-    NAME
-    QC_base_bucket
-
-    DEPENDENCIES
-    ${CMAKE_THREAD_LIBS_INIT}
-    Boost::unit_test_framework
-    RIO
-    Core
-    MathMore
-    Net
-    Hist
-    Tree
-    Gpad
-    MathCore
-    common_boost_bucket
-    fairmq_bucket
-    pthread
-    Boost::date_time
-    Boost::timer
-    ${OPTIONAL_DDS_LIBRARIES}
-
-    INCLUDE_DIRECTORIES
-    ${DDS_INCLUDE_DIR}
-    ${ROOT_INCLUDE_DIR}
-    ${FAIRROOT_INCLUDE_DIR}
-)
-
-o2_define_bucket(
-    NAME
-    QC_apps_bucket
-
-    DEPENDENCIES
-    dl
-    Core
-    Base
-    Hist
-    pthread
-    fairmq_bucket
-    common_boost_bucket
-
-    INCLUDE_DIRECTORIES
-    ${ROOT_INCLUDE_DIR}
-    ${FAIRROOT_INCLUDE_DIR}
-)
-
-o2_define_bucket(
-    NAME
-    QC_viewer_bucket
-
-    DEPENDENCIES
-    QC_apps_bucket
-    Core
-    RIO
-    Net
-    Gpad
-)
-
-o2_define_bucket(
-    NAME
-    QC_merger_bucket
-
-    DEPENDENCIES
-    QC_apps_bucket
-)
-
-o2_define_bucket(
-    NAME
-    QC_producer_bucket
-
-    DEPENDENCIES
-    QC_apps_bucket
-
-    INCLUDE_DIRECTORIES
-   )
-
-o2_define_bucket(
-    NAME
-    QC_workflow_bucket
-
-    DEPENDENCIES
-    QCProducer
-    QCMerger
-    Framework
-
-    INCLUDE_DIRECTORIES
-   )
-
-o2_define_bucket(
-    NAME
-    QC_test_bucket
-
-    DEPENDENCIES
-    dl Core Base Hist fairmq_bucket
-    common_boost_bucket
-)
 
 o2_define_bucket(
     NAME
@@ -1157,6 +1076,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -1200,6 +1120,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
     ${Vc_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
 )
@@ -1602,7 +1523,7 @@ o2_define_bucket(
     SimulationDataFormat
     CommonDataFormat
     CommonUtils
-    
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -1755,7 +1676,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-   
+
 )
 
 o2_define_bucket(
@@ -1804,6 +1725,23 @@ o2_define_bucket(
 
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    spacepoint_calib_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    MathCore
+    Matrix
+    tpc_base_bucket
+    common_utils_bucket
+    common_math_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/SpacePoints/include
 )
 
 o2_define_bucket(
@@ -1895,6 +1833,7 @@ o2_define_bucket(
     MCHSimulation
     TRDBase
     TRDSimulation
+    MIDSimulation
 )
 
 o2_define_bucket(
@@ -2046,7 +1985,7 @@ o2_define_bucket(
     mch_mapping_interface_bucket
     mch_mapping_impl3_bucket
     MCHMappingImpl3
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -2072,11 +2011,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     fairroot_base_bucket
-    aliceHLTwrapper
     MCHBase
+    Framework
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
 )
 
@@ -2318,7 +2256,6 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/MID/base/include
 )
 
 o2_define_bucket(
@@ -2331,9 +2268,11 @@ o2_define_bucket(
     RapidJSON
     MIDBase
     MIDSimulation
+    MIDClustering
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Simulation/src
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
 )
 
 o2_define_bucket(
@@ -2391,6 +2330,7 @@ o2_define_bucket(
     ${Geant3_INCLUDE_DIRS}
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(
@@ -2413,4 +2353,19 @@ o2_define_bucket(
     root_base_bucket
     mid_base_bucket
     MIDBase
+)
+
+o2_define_bucket(
+    NAME
+    mch_tracking_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    Field
+    MCHBase
+    Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
 )

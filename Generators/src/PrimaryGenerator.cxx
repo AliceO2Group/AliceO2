@@ -19,6 +19,9 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "TDatabasePDG.h"
+#include "TVirtualMC.h"
+
 using o2::dataformats::MCEventHeader;
 
 namespace o2
@@ -58,7 +61,7 @@ Bool_t PrimaryGenerator::Init()
   /** normal generation **/
 
   /** retrieve and set interaction diamond **/
-  auto diamond = InteractionDiamondParam::Instance();
+  auto& diamond = InteractionDiamondParam::Instance();
   setInteractionDiamond(diamond.position, diamond.width);
 
   /** base class init **/
@@ -98,6 +101,26 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
 
   /** success **/
   return kTRUE;
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t pz,
+                                Double_t vx, Double_t vy, Double_t vz,
+                                Int_t parent, Bool_t wanttracking,
+                                Double_t e, Double_t tof,
+                                Double_t weight, TMCProcess proc)
+{
+  /** add track **/
+
+  /** check if particle exists in PDG database **/
+  if (!TDatabasePDG::Instance()->GetParticle(pdgid)) {
+    LOG(WARN) << "Skipping particle undefined in PDG: pdg = " << pdgid;
+    return;
+  }
+
+  /** success **/
+  FairPrimaryGenerator::AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight, proc);
 }
 
 /*****************************************************************/

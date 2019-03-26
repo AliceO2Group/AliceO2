@@ -38,12 +38,9 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  float mWion;   //  Ionization potential
   bool mSDigits; // true: convert signals to summable digits, false by default
 
   std::vector<o2::trd::HitType> mHitContainer; // The container of hits in a given detector
-
-  void setWion(float w) { mWion = w; } // Set the Ionization potential
 
   bool getHitContainer(const int, const std::vector<o2::trd::HitType>&, std::vector<o2::trd::HitType>&); // True if there are hits in the detector
   // Digitization chaing methods

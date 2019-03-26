@@ -38,6 +38,16 @@ void readITSDigits(std::string path = "./",
     LOG(ERROR) << "Failed to get digits tree" << FairLogger::endl;
     return;
   }
+  TTree* rofTree = (TTree*)digiFile->Get("ROF");
+  if (!rofTree) {
+    LOG(ERROR) << "Failed to get ROF tree" << FairLogger::endl;
+    return;
+  }
+  TTree* mc2rofTree = (TTree*)digiFile->Get("MC2ROF");
+  if (!mc2rofTree) {
+    LOG(ERROR) << "Failed to get MC->ROF tree" << FairLogger::endl;
+    return;
+  }
 
   std::vector<o2::ITSMFT::Digit>* dv = nullptr;
   digiTree->SetBranchAddress("ITSDigit", &dv);
@@ -45,18 +55,14 @@ void readITSDigits(std::string path = "./",
   digiTree->SetBranchAddress("ITSDigitMCTruth", &labels);
 
   // ROF record entries in the digit tree
-  auto rofRecVec = reinterpret_cast<vector<o2::ITSMFT::ROFRecord>*>(digiFile->GetObjectChecked("ITSDigitROF", "vector<o2::ITSMFT::ROFRecord>"));
-  if (!rofRecVec) {
-    LOG(ERROR) << "Failed to get ITS digits ROF Records" << FairLogger::endl;
-    return;
-  }
+  std::vector<o2::ITSMFT::ROFRecord>* rofRecVec = nullptr;
+  rofTree->SetBranchAddress("ITSDigitROF", &rofRecVec);
+  rofTree->GetEntry(0);
 
   // MCEvID -> ROFrecord references
-  auto mc2rofVec = reinterpret_cast<vector<o2::ITSMFT::MC2ROFRecord>*>(digiFile->GetObjectChecked("ITSDigitMC2ROF", "vector<o2::ITSMFT::MC2ROFRecord>"));
-  if (!rofRecVec) {
-    LOG(WARNING) << "Did not find MCEvent to ROF records references" << FairLogger::endl;
-    return;
-  }
+  std::vector<o2::ITSMFT::MC2ROFRecord>* mc2rofVec = nullptr;
+  mc2rofTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
+  mc2rofTree->GetEntry(0);
 
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::RunContext*>(rcFile->GetObjectChecked("RunContext", "o2::steer::RunContext"));
