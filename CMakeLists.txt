@@ -42,7 +42,6 @@ include(O2Dependencies)
 include(FairMacros)
 include(WriteConfigFile)
 include(CTest)
-include(CheckCompiler)
 #include(CheckFortran)
 
 # check if we have a simulation environment
@@ -80,13 +79,24 @@ IF (NOT CMAKE_BUILD_TYPE)
   Message(STATUS "Set BuildType DEBUG")
   set(CMAKE_BUILD_TYPE Debug)
 ENDIF (NOT CMAKE_BUILD_TYPE)
-Check_Compiler()
 
+IF(ENABLE_CASSERT) #For the CI, we want to have <cassert> assertions enabled
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+ELSE()
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
+ENDIF()
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g")
 # make sure Debug build not optimized (does not seem to work without CACHE + FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Debug mode build flags" FORCE)
 set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
 
+message(STATUS "Using build type: ${CMAKE_BUILD_TYPE} - CXXFLAGS: ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")

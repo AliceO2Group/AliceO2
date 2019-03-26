@@ -120,7 +120,8 @@ void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, Devi
 #else
     setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID", 0);
 #endif
-    system(getenv("O2DPLDEBUG"));
+    int retVal = system(getenv("O2DPLDEBUG"));
+    (void)retVal;
   }
 
   deviceInfoTable(info, metrics);
