@@ -96,7 +96,7 @@ class GPUTPCTrackletConstructor
   GPUd() static void InitTracklet(MEM_LG2(GPUTPCTrackParam) & tParam);
 
   MEM_CLASS_PRE2()
-  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUTPCSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_CONSTANT(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow);
+  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUTPCSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow);
 
   MEM_CLASS_PRE23()
   GPUd() static void StoreTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUTPCSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_LG2(GPUTPCTracker) & tracker, MEM_LG3(GPUTPCTrackParam) & tParam);
@@ -104,15 +104,15 @@ class GPUTPCTrackletConstructor
   MEM_CLASS_PRE2()
   GPUd() static bool CheckCov(MEM_LG2(GPUTPCTrackParam) & tParam);
 
-  GPUd() static void DoTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) & tracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUTPCSharedMemory) & sMem, GPUTPCThreadMemory& rMem);
+  GPUd() static void DoTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUTPCSharedMemory) & sMem, GPUTPCThreadMemory& rMem);
 
 #ifdef GPUCA_GPUCODE
-  GPUd() static int FetchTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) & tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem);
+  GPUd() static int FetchTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem);
 #else
   static int GPUTPCTrackletConstructorGlobalTracking(GPUTPCTracker& tracker, GPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif // GPUCA_GPUCODE
 
-  typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
+  typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)

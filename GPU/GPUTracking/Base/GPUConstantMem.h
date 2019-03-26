@@ -46,9 +46,9 @@ namespace gpu
 {
 MEM_CLASS_PRE()
 struct GPUConstantMem {
-  MEM_LG(GPUParam)
+  MEM_CONSTANT(GPUParam)
   param;
-  MEM_LG(GPUTPCTracker)
+  MEM_GLOBAL(GPUTPCTracker)
   tpcTrackers[GPUCA_NSLICES];
   GPUTPCGMMerger tpcMerger;
   GPUTRDTracker trdTracker;

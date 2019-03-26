@@ -54,7 +54,7 @@ class GPUTPCStartHitsSorter
     int mStartOffset; // start offset for hits sorted by this block
   };
 
-  typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
+  typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)

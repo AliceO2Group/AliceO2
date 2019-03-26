@@ -21,7 +21,7 @@ MEM_CLASS_PRE()
 class GPUTPCRow;
 
 MEM_TEMPLATE()
-GPUd() void GPUTPCHitArea::Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz)
+GPUd() void GPUTPCHitArea::Init(const MEM_TYPE(GPUTPCRow) & row, GPUconstantref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz)
 {
   // initialisation
   mHitOffset = row.HitNumberOffset();
@@ -52,7 +52,7 @@ GPUd() void GPUTPCHitArea::Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() 
 }
 
 MEM_TEMPLATE()
-GPUd() int GPUTPCHitArea::GetNext(GPUconstantref() const MEM_CONSTANT(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h)
+GPUd() int GPUTPCHitArea::GetNext(GPUconstantref() const MEM_GLOBAL(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUconstantref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h)
 {
   // get next hit index
 

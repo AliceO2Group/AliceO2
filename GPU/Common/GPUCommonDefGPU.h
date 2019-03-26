@@ -70,7 +70,7 @@
   #define GPUg() __kernel
   #define GPUshared() __local
   #define GPUglobal() __global
-  //#define GPUconstant() __constant //TODO: Replace __constant by __global (possibly add const __restrict where possible later!)
+  //#define GPUconstant() __constant //TODO: possibly add const __restrict where possible later!
   #define GPUconstant() __global
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);

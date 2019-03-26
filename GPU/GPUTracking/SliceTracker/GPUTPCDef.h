@@ -71,6 +71,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_GLOBAL(type) type<Mem_Global>
   #define MEM_LOCAL(type) type<Mem_Local>
   #define MEM_CONSTANT(type) type<Mem_Global>
+  //#define MEM_CONSTANT(type) type<Mem_Constant>
   #define MEM_PLAIN(type) type<Mem_Plain>
   #define MEM_TEMPLATE() template <typename T>
   #define MEM_TYPE(type) T
@@ -80,7 +81,6 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE3(type) T3
   #define MEM_TEMPLATE4() template <typename T, typename T2, typename T3, typename T4>
   #define MEM_TYPE4(type) T4
-  //#define MEM_CONSTANT() <Mem_Constant> //Use __global for time being instead of __constant, see above
 #else
   #define MakeType(base_type) base_type
   #define MEM_CLASS_PRE()

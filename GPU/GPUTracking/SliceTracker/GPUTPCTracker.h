@@ -78,7 +78,7 @@ class GPUTPCTracker : public GPUProcessor
   MEM_CLASS_PRE2()
   void InitializeProcessor();
   MEM_CLASS_PRE2()
-  void InitializeRows(const MEM_LG2(GPUParam) * param) { mData.InitializeRows(*param); }
+  void InitializeRows(const MEM_CONSTANT(GPUParam) * param) { mData.InitializeRows(*param); }
 
   int CheckEmptySlice();
   void WriteOutputPrepare();
@@ -139,12 +139,12 @@ class GPUTPCTracker : public GPUProcessor
   void SetMaxData();
   void UpdateMaxData();
 
-  GPUhd() MakeType(const MEM_LG(GPUParam) &) Param() const { return *mCAParam; }
-  GPUhd() MakeType(const MEM_LG(GPUParam) *) pParam() const { return mCAParam; }
+  GPUhd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const { return *mCAParam; }
+  GPUhd() GPUconstantref() const MEM_CONSTANT(GPUParam) * pParam() const { return mCAParam; }
   GPUhd() int ISlice() const { return mISlice; }
 
-  GPUhd() MakeType(const MEM_LG(GPUTPCSliceData) &) Data() const { return mData; }
-  GPUhd() MakeType(MEM_LG(GPUTPCSliceData) &) Data()
+  GPUhd() GPUconstantref() const MEM_LG(GPUTPCSliceData) & Data() const { return mData; }
+  GPUhd() GPUconstantref() MEM_LG(GPUTPCSliceData) & Data()
   {
     return mData;
   }

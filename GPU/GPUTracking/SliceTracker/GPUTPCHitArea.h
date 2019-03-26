@@ -38,14 +38,14 @@ class GPUTPCHitArea
 {
  public:
   MEM_TEMPLATE()
-  GPUd() void Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz);
+  GPUd() void Init(const MEM_TYPE(GPUTPCRow) & row, GPUconstantref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz);
 
   /**
  * look up the next hit in the requested area.
  * Sets h to the coordinates and returns the index for the hit data
  */
   MEM_TEMPLATE()
-  GPUd() int GetNext(GPUconstantref() const MEM_CONSTANT(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h);
+  GPUd() int GetNext(GPUconstantref() const MEM_GLOBAL(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUconstantref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h);
 
   float Y() const { return mY; }
   float Z() const { return mZ; }

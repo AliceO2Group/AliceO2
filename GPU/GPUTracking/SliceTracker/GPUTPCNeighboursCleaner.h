@@ -53,7 +53,7 @@ class GPUTPCNeighboursCleaner
     int mNHits;  // number of hits
   };
 
-  typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
+  typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
