@@ -148,6 +148,8 @@ bool DataProcessingDevice::ConditionalRun()
     if (currentTime - lastSent < 5000) {
       return;
     }
+
+    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
     monitoring.send({ (int)relayerStats.malformedInputs, "dpl/malformed_inputs" });
     monitoring.send({ (int)relayerStats.droppedComputations, "dpl/dropped_computations" });
     monitoring.send({ (int)relayerStats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
@@ -156,8 +158,15 @@ bool DataProcessingDevice::ConditionalRun()
     monitoring.send({ (int) stats.pendingInputs, "inputs/relayed/pending" });
     monitoring.send({ (int) stats.incomplete, "inputs/relayed/incomplete" });
     monitoring.send({ (int) stats.inputParts, "inputs/relayed/total" });
+    monitoring.send({ stats.lastElapsedTimeMs, "dpl/elapsed_time_ms" });
+    monitoring.send({ stats.lastTotalProcessedSize, "dpl/processed_input_size_bytes" });
+    monitoring.send({ (stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000), "dpl/processing_rate_mb_s" });
+    monitoring.send({ stats.lastLatency.minLatency, "dpl/min_input_latency_ms" });
+    monitoring.send({ stats.lastLatency.maxLatency, "dpl/max_input_latency_ms" });
+    monitoring.send({ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "dpl/input_rate_mb_s" });
 
     lastSent = currentTime;
+    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
   };
 
   /// This will flush metrics only once every second.
@@ -169,8 +178,11 @@ bool DataProcessingDevice::ConditionalRun()
     if (currentTime - lastFlushed < 1000) {
       return;
     }
+
+    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
     monitoring.flushBuffer();
     lastFlushed = currentTime;
+    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   };
 
   auto now = std::chrono::high_resolution_clock::now();
@@ -477,15 +489,8 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
   };
 
-  // We use this to keep track of the latency of the first message we get for a given input record
-  // and of the last one.
-  struct InputLatency {
-    uint64_t minLatency;
-    uint64_t maxLatency;
-  };
-
-  auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> InputLatency {
-    InputLatency result{ static_cast<uint64_t>(-1), 0 };
+  auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> DataProcessingStats::InputLatency {
+    DataProcessingStats::InputLatency result{ static_cast<int>(-1), 0 };
 
     auto currentTime = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
     for (auto& item : record) {
@@ -493,7 +498,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       if (header == nullptr) {
         continue;
       }
-      auto partLatency = currentTime - header->creation;
+      int partLatency = currentTime - header->creation;
       result.minLatency = std::min(result.minLatency, partLatency);
       result.maxLatency = std::max(result.maxLatency, partLatency);
     }
@@ -546,29 +551,9 @@ bool DataProcessingDevice::tryDispatchComputation()
       errorHandling(e, record);
     }
     auto tEnd = std::chrono::high_resolution_clock::now();
-    double elapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    auto totalProcessedSize = calculateTotalInputRecordSize(record);
-    auto latency = calculateInputRecordLatency(record, tStart);
-
-    /// The size of all the input messages which have been processed in this iteration
-    monitoringService.send({ totalProcessedSize, "dpl/processed_input_size_bytes" });
-    /// The time to do the processing for this iteration
-    monitoringService.send({ elapsedTimeMs, "dpl/elapsed_time_ms" });
-    /// The rate at which processing was happening in this iteration
-    monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/processing_rate_mb_s" });
-    /// The smallest latency between an input message being created and its processing
-    /// starting.
-    monitoringService.send({ (int)latency.minLatency, "dpl/min_input_latency_ms" });
-    /// The largest latency between an input message being created and its processing
-    /// starting.
-    monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
-    /// The rate at which we get inputs, i.e. the longest time between one of the inputs being
-    /// created and actually reaching the consumer device.
-    if (latency.maxLatency == 0) {
-      // avoid division by zero by assuming at least one ms of latency.
-      latency.maxLatency = 1;
-    }
-    monitoringService.send({ (int)((totalProcessedSize / latency.maxLatency) / 1000), "dpl/input_rate_mb_s" });
+    mStats.lastElapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    mStats.lastLatency = calculateInputRecordLatency(record, tStart);
 
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
