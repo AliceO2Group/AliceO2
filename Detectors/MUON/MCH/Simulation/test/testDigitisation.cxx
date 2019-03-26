@@ -170,8 +170,8 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   double adcbefmerge2 = digits.at(1).getADC();
   int digitssize = digits.size();
   Timing_test(digits, digitizer);
-  BOOST_CHECK_CLOSE(digits.at(0).getADC(), adcbefmerge*3.0, adcbefmerge/10000.);
-  BOOST_CHECK_CLOSE(digits.at(1).getADC(), adcbefmerge2*3.0, adcbefmerge2/10000.);
+  BOOST_CHECK_CLOSE(digits.at(0).getADC(), adcbefmerge*10.0, adcbefmerge/10000.);
+  BOOST_CHECK_CLOSE(digits.at(1).getADC(), adcbefmerge2*10.0, adcbefmerge2/10000.);
 
   BOOST_CHECK_CLOSE((float)digitssize, (float)digits.size(), 0.1);
 }//testing 
@@ -184,9 +184,25 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
     auto adc0 = digits.at(0).getADC();
     digits.emplace_back(timestamp0, padid0, adc0);
     digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
     digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
     digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
 
+    
     digitizer.mergeDigits(digits);
     return;
   }
