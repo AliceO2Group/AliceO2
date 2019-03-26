@@ -97,14 +97,14 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config squareCacheLines;
-        squareCacheLines.usePackedDigits = true;
-        squareCacheLines.useSquareCacheLines = true;
+        GPUClusterFinder::Config tilingLayout;
+        tilingLayout.usePackedDigits = true;
+        tilingLayout.useTilingLayout = true;
         experiments.emplace_back(
                 new TimeCf(
-                        "Chargemap with square cache lines", 
-                        "squareChargeMap.json",
-                        squareCacheLines,
+                        "Chargemap with tiling layout", 
+                        "tilingLayout.json",
+                        tilingLayout,
                         digits,
                         iterations->Get(), 
                         baseDir));

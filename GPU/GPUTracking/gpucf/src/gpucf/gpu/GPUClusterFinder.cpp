@@ -634,18 +634,9 @@ void GPUClusterFinder::addDefines(ClEnv &env)
         env.addDefine("USE_PACKED_DIGIT");
     }
 
-    if (config.useSquareCacheLines)
+    if (config.useTilingLayout)
     {
-        constexpr size_t cacheLineSize = 64;
-        constexpr size_t chargeSize = sizeof(cl_float);
-
-        constexpr size_t chargesPerCacheLine = cacheLineSize / chargeSize;
-
-        size_t cacheLineWidth = sqrt(chargesPerCacheLine);
-
-        env.addDefine("CHARGEMAP_SQUARE_CACHE_LINES");
-        env.addDefine("CACHE_LINE_WIDTH="+std::to_string(cacheLineWidth));
-        env.addDefine("CACHE_LINE_HEIGHT="+std::to_string(cacheLineWidth));
+        env.addDefine("CHARGEMAP_TILING_LAYOUT");
     }
 }
 
@@ -655,13 +646,13 @@ std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
     /* bool first = (p.prev == nonstd::nullopt); */
 
     std::vector<Step> steps = {
-        {"digitsToDevice", p.digitsToDevice},
+        /* {"digitsToDevice", p.digitsToDevice}, */
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
         p.streamCompaction.asStep("compactPeaks"),
         {"computeCluster", p.computingClusters},
         {"resetChargeMap", p.zeroChargeMap},
-        {"clusterToHost", p.clustersToHost},
+        /* {"clusterToHost", p.clustersToHost}, */
     };
 
     for (Step &step : steps)

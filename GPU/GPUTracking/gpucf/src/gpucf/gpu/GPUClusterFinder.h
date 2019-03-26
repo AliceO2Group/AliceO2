@@ -31,7 +31,7 @@ public:
 
         bool usePackedDigits = false;
 
-        bool useSquareCacheLines = false;
+        bool useTilingLayout = false;
     };
     
     struct Result

@@ -1,6 +1,8 @@
 #if !defined(SHARED_TPC_H)
 #    define  SHARED_TPC_H
 
+#include "types.h"
+
 #define PADDING 2
 #define TPC_ROWS_PER_CRU 18
 #define TPC_NUM_OF_ROWS 152
@@ -12,7 +14,10 @@
 
 // Maps the position of a pad given as row and index in that row to a unique
 // index between 0 and TPC_NUM_OF_PADS.
-#define TPC_GLOBAL_PAD_IDX(row, pad) (TPC_PADS_PER_ROW_PADDED * (row) + (pad))
+inline size_t tpcGlobalPadIdx(SHARED_UCHAR row, SHARED_UCHAR pad)
+{
+    return TPC_PADS_PER_ROW_PADDED * row + pad;
+}
 
 #endif //!defined(SHARED_TPC_H)
 

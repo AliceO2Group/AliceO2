@@ -6,6 +6,7 @@
 
 #include "shared/Cluster.h"
 #include "shared/Digit.h"
+#include "shared/tpc.h"
 
 
 typedef FloatCluster Cluster;
@@ -17,38 +18,35 @@ typedef FloatCluster Cluster;
 #endif
 
 
-#if defined(CHARGEMAP_SQUARE_CACHE_LINES)
+inline size_t chargemapIdx(uchar row, uchar pad, short time)
+{
+#if defined(CHARGEMAP_TILING_LAYOUT)
 
-  #if !defined(CACHE_LINE_HEIGHT)
-    #error("Cache line height must be specified.")
-  #endif
+    const int tileW = 4;
+    const int tileH = 4;
+    const int widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
 
-  #if !defined(CACHE_LINE_WIDTH)
-    #error("Cache line width must be specified.")
-  #endif
+    const size_t globPad = tpcGlobalPadIdx(row, pad);
 
-  #define IDX_OF_CACHE_LINE(row, pad, time) \
-      ((TPC_NUM_OF_PADS / CACHE_LINE_WIDTH) * ((time) / CACHE_LINE_HEIGHT) \
-        + (TPC_GLOBAL_PAD_IDX((row), (pad)) * CACHE_LINE_WIDTH) / TPC_NUM_OF_PADS)
+    size_t tilePad  = globPad / tileW;
+    size_t tileTime = time / tileH;
 
-  #define IDX_IN_CACHE_LINE(row, pad, time) \
-      (CACHE_LINE_WIDTH * ((time) % CACHE_LINE_HEIGHT) \
-      + TPC_GLOBAL_PAD_IDX((row), (pad)) % CACHE_LINE_WIDTH)
+    size_t inTilePad = globPad % tileW;
+    size_t inTileTime = time % tileH;
 
-  #define CHARGEMAP_IDX_IMPL(row, pad, time) \
-      (IDX_OF_CACHE_LINE((row), (pad), (time)) \
-      + IDX_IN_CACHE_LINE((row), (pad), (time)))
+    return (tileTime * widthInTiles + tilePad) * (tileW * tileH)
+        + inTileTime * tileW + inTilePad;
 
-#else
+#else // Use row layout
 
-  #define CHARGEMAP_IDX_IMPL(row, pad, time) (TPC_NUM_OF_PADS * (time) \
-        + TPC_GLOBAL_PAD_IDX(row, pad))
+      return TPC_NUM_OF_PADS * time + tpcGlobalPadIdx(row, pad);
 
 #endif
+}
 
 
 #define CHARGEMAP_IDX(row, pad, time) \
-      CHARGEMAP_IDX_IMPL(row, (pad)+PADDING, (time)+PADDING)
+      chargemapIdx(row, (pad)+PADDING, (time)+PADDING)
 
 #define CHARGE(map, row, pad, time) map[CHARGEMAP_IDX(row, pad, time)]
 
