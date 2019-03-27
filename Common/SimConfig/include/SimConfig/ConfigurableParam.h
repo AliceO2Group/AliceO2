@@ -145,6 +145,12 @@ class ConfigurableParam
     }
   }
 
+  friend std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
+  {
+    param.output(out);
+    return out;
+  }
+
   // initializes the parameter database
   static void initialize();
 
@@ -172,8 +178,12 @@ class ConfigurableParam
 
   // fill property tree with the key-values from the sub-classes
   virtual void putKeyValues(boost::property_tree::ptree*) = 0;
+  virtual void output(std::ostream& out) const = 0;
+
   virtual void serializeTo(TFile*) const = 0;
   virtual void initFrom(TFile*) = 0;
+
+  // friend std::ostream& operator<<(std::ostream& out, const ConfigurableParam& me);
 
   // static map keeping, for each configuration key, its memory location and type
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)
