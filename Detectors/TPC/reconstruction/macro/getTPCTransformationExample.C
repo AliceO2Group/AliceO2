@@ -14,9 +14,12 @@
   gSystem->Load("libTPCReconstruction");
   .x getTPCTransformationExample.C
 */
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TH1F.h"
+
+#endif
 
 using namespace o2;
 using namespace TPC;
