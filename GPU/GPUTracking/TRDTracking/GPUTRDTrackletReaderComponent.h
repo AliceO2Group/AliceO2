@@ -1,17 +1,20 @@
-//-*- Mode: C++ -*-
-// $Id$
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUTRDTrackletReaderComponent.h
+/// \brief A pre-processing component for TRD tracking/trigger data on FEP-level
+
+/// \author Felix Rettig, Stefan Kirsch, Ole Schmidt
+
 #ifndef GPUTRDTRACKLETREADERCOMPONENT_H
 #define GPUTRDTRACKLETREADERCOMPONENT_H
-
-//* This file is property of and copyright by the ALICE HLT/TRD Project    *
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               */
-
-/// @file   GPUTRDTrackletReaderComponent.h
-/// @author Felix Rettig, Stefan Kirsch
-/// @date   2012-08-16
-/// @brief  A FEP-level pre-processing component for TRD tracking/trigger data
-/// @ingroup alihlt_trd_components
 
 #ifndef GPUCA_ALIROOT_LIB
 #define GPUCA_ALIROOT_LIB
@@ -119,4 +122,4 @@ class GPUTRDTrackletReaderComponent : public AliHLTProcessor
   ClassDef(GPUTRDTrackletReaderComponent, 0)
 };
 
-#endif
+#endif // GPUTRDTRACKLETREADERCOMPONENT_H
