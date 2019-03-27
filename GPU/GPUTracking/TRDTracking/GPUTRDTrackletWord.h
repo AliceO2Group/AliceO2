@@ -1,16 +1,20 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUTRDTrackletWord.h
+/// \brief TRD Tracklet word for GPU tracker - 32bit tracklet info + half chamber ID + index
+
+/// \author Ole Schmidt
+
 #ifndef GPUTRDTRACKLETWORD_H
 #define GPUTRDTRACKLETWORD_H
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/* $Id: GPUTRDTrackletWord.h 27496 2008-07-22 08:35:45Z cblume $ */
-
-//-----------------------------------
-//
-// TRD tracklet word (as from FEE)
-// only 32-bit of information + detector ID
-//
-//----------------------------------
 
 #include "GPUTPCDef.h"
 
@@ -71,4 +75,4 @@ class GPUTRDTrackletWord
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
+#endif // GPUTRDTRACKLETWORD_H

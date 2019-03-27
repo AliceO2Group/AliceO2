@@ -1,7 +1,20 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUTRDTracker.h
+/// \brief Online TRD tracker based on extrapolated TPC tracks
+
+/// \author Ole Schmidt
+
 #ifndef GPUTRDTRACKER_H
 #define GPUTRDTRACKER_H
-/* Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
 
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
@@ -192,4 +205,4 @@ class GPUTRDTracker : public GPUProcessor
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
+#endif // GPUTRDTRACKER_H
