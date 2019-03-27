@@ -93,31 +93,36 @@ int main(int argc, char** argv)
 {
   using namespace o2::framework;
   using namespace boost::program_options;
-  // The 0 here is an int, therefore having the template matching in the
-  // SFINAE expression above fit better the version which invokes user code over
-  // the default one.
 
-  std::vector<o2::framework::ConfigParamSpec> workflowOptions;
-  UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
+  int result = 1;
+  try {
+    // The 0 here is an int, therefore having the template matching in the
+    // SFINAE expression above fit better the version which invokes user code over
+    // the default one.
+    // The default policy is a catch all pub/sub setup to be consistent with the past.
+    std::vector<o2::framework::ConfigParamSpec> workflowOptions;
+    UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
+    std::vector<ChannelConfigurationPolicy> channelPolicies;
+    UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
+    auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+    channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
 
-  // The default policy is a catch all pub/sub setup to be consistent with the past.
-  std::vector<ChannelConfigurationPolicy> channelPolicies;
+    std::vector<CompletionPolicy> completionPolicies;
+    UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
+    auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
+    completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
 
-  UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
-  auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
+    std::unique_ptr<ParamRetriever> retriever{ new BoostOptionsRetriever(workflowOptions, true, argc, argv) };
+    ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+    ConfigContext configContext{ workflowOptionsRegistry };
+    o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
+  } catch (std::runtime_error const& error) {
+    LOG(ERROR) << "Runtime exception caught: " << error.what();
+  } catch (...) {
+    LOG(ERROR) << "Unknown error while setting up workflow.";
+  }
 
-  std::vector<CompletionPolicy> completionPolicies;
-  UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
-  auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
-  completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
-
-  std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-  ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
-  ConfigContext configContext{workflowOptionsRegistry};
-  o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
-
-  auto result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }
