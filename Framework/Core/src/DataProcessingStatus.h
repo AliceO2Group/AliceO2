@@ -33,6 +33,13 @@ enum struct MonitoringStatus : uint32_t {
   FLUSH = 1,
 };
 
+enum struct DriverStatus : uint32_t {
+  ID = 2,
+  BYTES_READ = 0,
+  BYTES_PROCESSED = 1,
+  BUFFER_OVERFLOWS = 2
+};
+
 } // namespace framework
 } // namespace o2
 
