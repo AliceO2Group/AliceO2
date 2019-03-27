@@ -56,15 +56,15 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
     int gap = 0;
     int nShared = 0;
     int nHits = 0;
-    const int minHits = tracker.Param().rec.MinNTrackClusters == -1 ? TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt()) : tracker.Param().rec.MinNTrackClusters;
+    const int minHits = tracker.Param().rec.MinNTrackClusters == -1 ? GPUCA_TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt()) : tracker.Param().rec.MinNTrackClusters;
 
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
       gap++;
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
       calink ih = tracker.TrackletRowHits()[irow * s.mNTracklets + itr];
 #else
       calink ih = tracklet.RowHit(irow);
-#endif // EXTERN_ROW_HITS
+#endif // GPUCA_EXTERN_ROW_HITS
       if (ih != CALINK_INVAL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);

@@ -12,7 +12,7 @@
 /// \author David Rohr
 
 #include "GPUSettings.h"
-#include "GPUTPCSettings.h"
+#include "GPUDef.h"
 #include "GPUDataTypes.h"
 #include <cstring>
 
@@ -25,7 +25,7 @@ void GPUSettingsRec::SetDefaults()
   ClusterError2CorrectionY = 1.f;
   ClusterError2CorrectionZ = 1.f;
   MinNTrackClusters = -1;
-  MaxTrackQPt = 1.f / MIN_TRACK_PT_DEFAULT;
+  MaxTrackQPt = 1.f / GPUCA_MIN_TRACK_PT_DEFAULT;
   NWays = 1;
   NWaysOuter = false;
   RejectMode = 5;

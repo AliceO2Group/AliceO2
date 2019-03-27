@@ -15,7 +15,7 @@
 #define GPUTRDTRACK_H
 
 #include "GPUTRDDef.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
 struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;

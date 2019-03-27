@@ -14,7 +14,7 @@
 #ifndef GPUTPCGMTRACKPARAM_H
 #define GPUTPCGMTRACKPARAM_H
 
-#include "GPUTPCSettings.h"
+#include "GPUTPCDef.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUCommonMath.h"
 

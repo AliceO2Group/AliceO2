@@ -57,7 +57,7 @@ class GPUITSFitter : public GPUProcessor
   {
     return mTracks;
   }
-  GPUd() GPUAtomic(unsigned int)& NumberOfTracks()
+  GPUd() GPUAtomic(unsigned int) & NumberOfTracks()
   {
     return mMemory->mNumberOfTracks;
   }

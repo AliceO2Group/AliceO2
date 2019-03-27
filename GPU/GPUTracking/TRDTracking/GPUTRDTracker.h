@@ -19,7 +19,7 @@
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 #include "GPUTRDDef.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 #include "GPUTRDTrackerDebug.h"
 #include "GPUTRDTrack.h"
 

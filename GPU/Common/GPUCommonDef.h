@@ -15,6 +15,21 @@
 #define GPUCOMMONDEF_H
 
 // clang-format off
+
+//Some GPU configuration settings, must be included first
+#include "GPUCommonDefSettings.h"
+
+#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) //No GPU code for ROOT
+  #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__)
+    #define GPUCA_GPUCODE //Compiled by GPU compiler
+  #endif
+
+  #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__)
+    #define GPUCA_GPUCODE_DEVICE //Executed on device
+  #endif
+#endif
+
+//Definitions for C++11 features not supported by CINT / OpenCL
 #if ((defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__))
   #define CON_DELETE
   #define CON_DEFAULT
@@ -25,8 +40,10 @@
   #define CONSTEXPR constexpr
 #endif
 
-#include "GPUCommonDefGPU.h"
+//API Definitions for GPU Compilation
+#include "GPUCommonDefAPI.h"
 
+//Definitions steering enabling of GPU processing components
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
   #define GPUCA_BUILD_MERGER
   #if defined(HAVE_O2HEADERS) && !defined(__HIPCC__)
@@ -45,6 +62,7 @@
 #else
   #define GPUCA_NAMESPACE o2
 #endif
+
 // clang-format on
 
 #endif

@@ -58,7 +58,7 @@ class GPUQA
 
 #else
 
-#include "GPUTPCSettings.h"
+#include "GPUTPCDef.h"
 #include <cmath>
 
 namespace GPUCA_NAMESPACE
@@ -183,10 +183,10 @@ class GPUQA
 
   static constexpr float Y_MAX = 40;
   static constexpr float Z_MAX = 100;
-  static constexpr float PT_MIN = MIN_TRACK_PT_DEFAULT;
+  static constexpr float PT_MIN = GPUCA_MIN_TRACK_PT_DEFAULT;
   static constexpr float PT_MIN2 = 0.1;
   static constexpr float PT_MIN_PRIM = 0.1;
-  static constexpr float PT_MIN_CLUST = MIN_TRACK_PT_DEFAULT;
+  static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PT_DEFAULT;
   static constexpr float PT_MAX = 20;
   static constexpr float ETA_MAX = 1.5;
   static constexpr float ETA_MAX2 = 0.9;

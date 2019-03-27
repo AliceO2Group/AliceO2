@@ -15,7 +15,6 @@
 #define GPUTPCTRACKLETSELECTOR_H
 
 #include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
 #include "GPUTPCHitId.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"

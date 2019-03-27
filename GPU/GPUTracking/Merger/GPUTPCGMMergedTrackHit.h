@@ -38,7 +38,7 @@ struct GPUTPCGMMergedTrackHit {
                   flagReject = 0x60,
                   flagNotFit = 0x80 };
 
-#ifdef GMPropagatePadRowTime
+#ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
  public:
   float pad;
   float time;

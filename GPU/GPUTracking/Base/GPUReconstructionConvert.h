@@ -15,8 +15,7 @@
 #define GPURECONSTRUCTIONCONVERT_H
 
 #include <memory>
-#include "GPUCommonDef.h"
-#include "GPUTPCSettings.h"
+#include "GPUDef.h"
 
 namespace GPUCA_NAMESPACE
 {

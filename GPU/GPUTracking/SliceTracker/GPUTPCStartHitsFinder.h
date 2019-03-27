@@ -49,8 +49,8 @@ class GPUTPCStartHitsFinder
 #endif //! GPUCA_GPUCODE
 
    protected:
-    int mIRow;                     // row index
-    int mNHits;                    // n hits in the row
+    int mIRow;                              // row index
+    int mNHits;                             // n hits in the row
     GPUAtomic(unsigned int) mNRowStartHits; // start hits found in the row
   };
 

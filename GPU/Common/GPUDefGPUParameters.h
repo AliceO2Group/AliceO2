@@ -8,12 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTPCGPUConfig.h
+/// \file GPUDefGPUParameters.h
 /// \author David Rohr
 
-#ifndef GPUTPCGPUCONFIG_H
-#define GPUTPCGPUCONFIG_H
+#ifndef GPUDEFGPUPARAMETERS_H
+#define GPUDEFGPUPARAMETERS_H
 // clang-format off
+
+#ifndef GPUDEF_H
+#error Please include GPUDef.h
+#endif
 
 //GPU Run Configuration
 #ifdef GPUCA_GPUTYPE_RADEON

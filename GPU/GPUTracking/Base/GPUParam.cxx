@@ -12,7 +12,7 @@
 /// \author David Rohr, Sergey Gorbunov
 
 #include "GPUParam.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 #include "GPUCommonMath.h"
 
 using namespace GPUCA_NAMESPACE::gpu;

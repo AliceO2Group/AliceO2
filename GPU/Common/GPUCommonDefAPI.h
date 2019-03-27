@@ -8,21 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUCommonDefGPU.h
+/// \file GPUCommonDefAPI.h
 /// \author David Rohr
 
-#ifndef GPUCOMMONDEFGPUCA_H
-#define GPUCOMMONDEFGPUCA_H
+#ifndef GPUCOMMONDEFAPI_H
+#define GPUCOMMONDEFAPI_H
 // clang-format off
 
-#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) //No GPU code for ROOT
-  #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__)
-    #define GPUCA_GPUCODE //Compiled by GPU compiler
-  #endif
-
-  #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__)
-    #define GPUCA_GPUCODE_DEVICE //Executed on device
-  #endif
+#ifndef GPUCOMMONDEF_H
+  #error Please include GPUCommonDef.h!
 #endif
 
 //Define macros for GPU keywords. i-version defines inline functions.

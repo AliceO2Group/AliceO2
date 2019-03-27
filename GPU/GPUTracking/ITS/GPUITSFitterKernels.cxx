@@ -11,9 +11,8 @@
 /// \file GPUITSFitterKernels.cxx
 /// \author David Rohr, Maximiliano Puccio
 
-#include "GPUConstantMem.h"
-#include "GPUTPCSettings.h"
 #include "GPUITSFitterKernels.h"
+#include "GPUConstantMem.h"
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/MathUtils.h"

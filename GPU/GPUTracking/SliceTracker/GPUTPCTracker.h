@@ -15,7 +15,6 @@
 #define GPUTPCTRACKER_H
 
 #include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
@@ -55,7 +54,7 @@ class GPUTPCTracker : public GPUProcessor
 
   struct StructGPUParameters {
     GPUAtomic(unsigned int) nextTracklet; // Next Tracklet to process
-    int gpuError;                // Signalizes error on GPU during GPU Reconstruction, kind of return value
+    int gpuError;                         // Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
 
   MEM_CLASS_PRE2()
@@ -65,12 +64,12 @@ class GPUTPCTracker : public GPUProcessor
 
   struct commonMemoryStruct {
     commonMemoryStruct() : nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), gpuParameters() {}
-    GPUAtomic(unsigned int) nTracklets;         // number of tracklets
-    GPUAtomic(unsigned int) nTracks;            // number of reconstructed tracks
-    int nLocalTracks;                  // number of reconstructed tracks before global tracking
-    GPUAtomic(unsigned int) nTrackHits;         // number of track hits
-    int nLocalTrackHits;               // see above
-    StructGPUParameters gpuParameters; // GPU parameters
+    GPUAtomic(unsigned int) nTracklets; // number of tracklets
+    GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
+    int nLocalTracks;                   // number of reconstructed tracks before global tracking
+    GPUAtomic(unsigned int) nTrackHits; // number of track hits
+    int nLocalTrackHits;                // see above
+    StructGPUParameters gpuParameters;  // GPU parameters
   };
 
   MEM_CLASS_PRE2()

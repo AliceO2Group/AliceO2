@@ -16,7 +16,6 @@
 
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -44,14 +43,14 @@ class GPUTPCTracklet
   GPUhd() int LastRow() const { return mLastRow; }
   GPUhd() int HitWeight() const { return mHitWeight; }
   GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }
-#ifndef EXTERN_ROW_HITS
+#ifndef GPUCA_EXTERN_ROW_HITS
   GPUhd() int RowHit(int i) const
   {
     return mRowHits[i];
   }
   GPUhd() const int* RowHits() const { return (mRowHits); }
   GPUhd() void SetRowHit(int irow, int ih) { mRowHits[irow] = ih; }
-#endif // EXTERN_ROW_HITS
+#endif // GPUCA_EXTERN_ROW_HITS
 
   GPUhd() void SetNHits(int v)
   {
@@ -69,9 +68,9 @@ class GPUTPCTracklet
   int mLastRow;  // last TPC row
   MEM_LG(GPUTPCBaseTrackParam)
   mParam; // tracklet parameters
-#ifndef EXTERN_ROW_HITS
+#ifndef GPUCA_EXTERN_ROW_HITS
   calink mRowHits[GPUCA_ROW_COUNT + 1]; // hit index for each TPC row
-#endif                                  // EXTERN_ROW_HITS
+#endif                                  // GPUCA_EXTERN_ROW_HITS
   int mHitWeight;                       // Hit Weight of Tracklet
 };
 } // namespace gpu

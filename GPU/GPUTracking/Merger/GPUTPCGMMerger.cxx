@@ -41,8 +41,6 @@
 
 #include <algorithm>
 
-#include "GPUTPCGPUConfig.h"
-
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "AliHLTTPCClusterMCData.h"
 #endif
@@ -372,7 +370,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
       continue;
     }
     if (fromOrig) {
-      if (fabsf(track->QPt()) < MERGE_LOOPER_QPT_LIMIT) {
+      if (fabsf(track->QPt()) < GPUCA_MERGER_LOOPER_QPT_LIMIT) {
         continue;
       }
       const GPUTPCGMSliceTrack* trackMin = track;
@@ -386,7 +384,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
       track = &trackTmp;
       trackTmp.Set(trackMin->OrigTrack(), trackMin->Alpha(), trackMin->Slice());
     } else {
-      if (fabsf(track->QPt()) < MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT) {
+      if (fabsf(track->QPt()) < GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT) {
         if (iBorder == 0 && track->NextNeighbour() >= 0) {
           continue;
         }
@@ -813,8 +811,8 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
     return;
   }
 
-#ifdef MERGE_CE_ROWLIMIT
-  if (cls.row < MERGE_CE_ROWLIMIT || cls.row >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) {
+#ifdef GPUCA_MERGER_CE_ROWLIMIT
+  if (cls.row < GPUCA_MERGER_CE_ROWLIMIT || cls.row >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) {
     return;
   }
 
@@ -1072,7 +1070,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
         clA[nHits++].y = t->Leg();
       }
     }
-    if (nHits < TRACKLET_SELECTOR_MIN_HITS(track.QPt())) {
+    if (nHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS(track.QPt())) {
       continue;
     }
 
@@ -1185,7 +1183,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
       cl[i].state = trackClusters[i].GetFlags() & GPUTPCGMMergedTrackHit::hwcmFlags; // Only allow edge and deconvoluted flags
       cl[i].slice = clA[i].x;
       cl[i].leg = clA[i].y;
-#ifdef GMPropagatePadRowTime
+#ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
       cl[i].pad = trackClusters[i].mPad;
       cl[i].time = trackClusters[i].fTime;
 #endif

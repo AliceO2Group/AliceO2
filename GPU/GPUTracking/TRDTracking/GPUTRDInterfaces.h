@@ -125,7 +125,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #include "GPUTPCGMPropagator.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUParam.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
 namespace GPUCA_NAMESPACE
 {

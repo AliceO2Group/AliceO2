@@ -259,7 +259,7 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
   t.ConstrainSinPhi();
 
-  bool ok1 = N >= TRACKLET_SELECTOR_MIN_HITS(t.GetQPt()) && t.CheckNumericalQuality(covYYUpd);
+  bool ok1 = N >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(t.GetQPt()) && t.CheckNumericalQuality(covYYUpd);
   if (!ok1) {
     return (false);
   }

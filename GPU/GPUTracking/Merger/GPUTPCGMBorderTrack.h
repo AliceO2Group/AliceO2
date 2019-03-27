@@ -14,7 +14,7 @@
 #ifndef GPUTPCGMBORDERTRACK_H
 #define GPUTPCGMBORDERTRACK_H
 
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 namespace GPUCA_NAMESPACE
 {

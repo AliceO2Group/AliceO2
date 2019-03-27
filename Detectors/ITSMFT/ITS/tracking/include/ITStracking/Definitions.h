@@ -83,7 +83,7 @@ typedef cudaStream_t GPUStream;
 
 #ifndef __VECTOR_TYPES_H__
 
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 #endif
 

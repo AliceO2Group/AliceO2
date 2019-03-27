@@ -25,7 +25,7 @@
 #include <array>
 #include <tuple>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <stdexcept>
 
 #ifndef _WIN32
@@ -774,7 +774,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
     size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
       const calink rowHit = tracker.TrackletRowHits()[j * *tracker.NTracklets() + i];
 #else
       const calink rowHit = tracklet.RowHit(j);

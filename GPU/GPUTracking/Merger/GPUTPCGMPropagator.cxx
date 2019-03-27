@@ -20,7 +20,7 @@
 #include <cmath>
 #endif
 
-#if defined(GMPropagatorUseFullField)
+#if defined(GPUCA_GM_USE_FULL_FIELD)
 #include "AliTracker.h"
 #include "AliMagF.h"
 #endif
@@ -34,7 +34,7 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
   float cs = CAMath::Cos(Alpha);
   float sn = CAMath::Sin(Alpha);
 
-#if defined(GMPropagatorUseFullField)
+#if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
   double r[3] = { X * cs - Y * sn, X * sn + Y * cs, Z };
   double bb[3];
@@ -86,7 +86,7 @@ GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) c
   float cs = CAMath::Cos(Alpha);
   float sn = CAMath::Sin(Alpha);
 
-#if defined(GMPropagatorUseFullField)
+#if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
   double r[3] = { X * cs - Y * sn, X * sn + Y * cs, Z };
   double bb[3];

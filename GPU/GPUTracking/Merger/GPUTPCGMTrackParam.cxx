@@ -281,7 +281,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
   }
   ConstrainSinPhi();
 
-  bool ok = N + NTolerated >= TRACKLET_SELECTOR_MIN_HITS(mP[4]) && CheckNumericalQuality(covYYUpd);
+  bool ok = N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(mP[4]) && CheckNumericalQuality(covYYUpd);
   if (!ok) {
     return (false);
   }
@@ -425,10 +425,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* Merger, int
   for (int k = 0; k <= nz; k++) {
     int nBinsY = row.Grid().Ny();
     int mybin = bin + k * nBinsY;
-    unsigned int hitFst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin);
-    unsigned int hitLst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin + ny + 1);
+    unsigned int hitFst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin);
+    unsigned int hitLst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin + ny + 1);
     for (unsigned int ih = hitFst; ih < hitLst; ih++) {
-      cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
+      cahit2 hh = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits, ih);
       int id = tracker.Data().ClusterIdOffset() + tracker.Data().ClusterDataIndex(row, ih);
       GPUAtomic(unsigned int)* weight = &Merger->ClusterAttachment()[id];
       if (*weight & GPUTPCGMMerger::attachGood) {

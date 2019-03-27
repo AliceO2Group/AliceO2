@@ -59,9 +59,9 @@ class GPUTPCSliceOutTrack
   GPUhd() const GPUTPCSliceOutTrack* GetNextTrack() const { return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters)); }
 
  private:
-  GPUTPCBaseTrackParam mParam;        //* fitted track parameters at its innermost cluster
-  int mNClusters;                     //* number of track clusters
-  int mLocalTrackId;                  // See AliHLTPCCATrack.h
+  GPUTPCBaseTrackParam mParam; //* fitted track parameters at its innermost cluster
+  int mNClusters;              //* number of track clusters
+  int mLocalTrackId;           // See AliHLTPCCATrack.h
 #ifdef __OPENCL__
   GPUTPCSliceOutCluster mClusters[1]; //* track clusters
 #else

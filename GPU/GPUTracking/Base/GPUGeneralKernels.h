@@ -14,7 +14,7 @@
 #ifndef GPUGENERALKERNELS_H
 #define GPUGENERALKERNELS_H
 
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 #include "GPUDataTypes.h"
 
 namespace GPUCA_NAMESPACE

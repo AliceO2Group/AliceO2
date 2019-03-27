@@ -16,7 +16,11 @@ set (HDRS
 
 set (HDRS2
     GPUCommonDef.h
-    GPUCommonDefGPU.h
+    GPUCommonDefAPI.h
+    GPUCommonDefSettings.h
+    GPUDef.h
+    GPUDefGPUParameters.h
+    GPUDefConstantsAndSettings.h
     GPUCommonMath.h
     GPUCommonFairLogger.h
     GPUCommonRtypes.h

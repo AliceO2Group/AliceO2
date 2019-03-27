@@ -56,7 +56,7 @@ class GPUTPCSliceOutCluster
   float mY;             // coordinates
   float mZ;             // coordinates
 
-#ifdef GMPropagatePadRowTime
+#ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
  public:
   float mPad;
   float mTime;

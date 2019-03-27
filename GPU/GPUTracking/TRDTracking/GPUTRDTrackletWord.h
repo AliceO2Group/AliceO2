@@ -16,7 +16,7 @@
 #ifndef GPUTRDTRACKLETWORD_H
 #define GPUTRDTRACKLETWORD_H
 
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;

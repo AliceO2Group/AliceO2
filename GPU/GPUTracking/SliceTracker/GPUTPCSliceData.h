@@ -19,7 +19,6 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUProcessor.h"
-#include "GPUTPCGPUConfig.h"
 #include "GPUMemoryResource.h"
 
 namespace GPUCA_NAMESPACE
@@ -196,7 +195,7 @@ class GPUTPCSliceData : public GPUProcessor
  * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
  * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
  */
-  GPUglobalref() calink* mFirstHitInBin;       // see FirstHitInBin
+  GPUglobalref() calink* mFirstHitInBin;                // see FirstHitInBin
   GPUglobalref() GPUAtomic(unsigned int) * mHitWeights; // the weight of the longest tracklet crossed the cluster
   GPUglobalref() const GPUTPCClusterData* mClusterData;
 };

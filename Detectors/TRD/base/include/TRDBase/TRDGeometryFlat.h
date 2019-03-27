@@ -13,7 +13,7 @@
 
 #include <cstring>
 #include "FlatObject.h"
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 #include "GPUCommonTransform3D.h"
 #include "TRDBase/TRDGeometryBase.h"
 #include "TRDBase/TRDPadPlane.h"

@@ -93,9 +93,6 @@ set(SRCS_NO_H
 
 #Extra headers to install
 set(HDRS
-    SliceTracker/GPUTPCDef.h
-    SliceTracker/GPUTPCSettings.h
-    SliceTracker/GPUTPCGPUConfig.h
     SliceTracker/GPUTPCMCInfo.h
     SliceTracker/GPUTPCHit.h
     SliceTracker/GPUTPCHitId.h
@@ -116,6 +113,7 @@ set(HDRS
 )
 #Not processed by ROOT
 set(HDRS2
+    SliceTracker/GPUTPCDef.h
     SliceTracker/GPUTPCGeometry.h
     SliceTracker/GPULogging.h
     SliceTracker/ClusterNativeAccessExt.h

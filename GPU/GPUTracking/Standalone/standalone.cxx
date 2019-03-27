@@ -242,7 +242,7 @@ int SetupReconstruction()
     printf("Standalone Test Framework for CA Tracker - Using GPU\n");
   }
 
-  recSet.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
+  recSet.SetMinTrackPt(GPUCA_MIN_TRACK_PT_DEFAULT);
   recSet.NWays = configStandalone.nways;
   recSet.NWaysOuter = configStandalone.nwaysouter;
   recSet.RejectMode = configStandalone.rejectMode;

@@ -14,7 +14,7 @@
 #ifndef GPUTPCGMOFFLINESTATISTICALERRORS
 #define GPUTPCGMOFFLINESTATISTICALERRORS
 
-#if defined(GPUseStatError)
+#if defined(GPUCA_TPC_USE_STAT_ERROR)
 #include "AliTPCcalibDB.h"
 #include "AliTPCclusterMI.h"
 #include "AliTPCtracker.h"
@@ -29,7 +29,7 @@ namespace gpu
 {
 struct GPUTPCGMMergedTrackHit;
 
-#if defined(GPUseStatError)
+#if defined(GPUCA_TPC_USE_STAT_ERROR)
 struct GPUTPCGMOfflineStatisticalErrors {
   void SetCurCluster(GPUTPCGMMergedTrackHit* c) { mCurCluster = c; }
 

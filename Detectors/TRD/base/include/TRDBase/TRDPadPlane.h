@@ -14,7 +14,7 @@
 //Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
 
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //

@@ -46,7 +46,7 @@ class GPUTRDGeometry : public AliTRDgeometry
 #elif defined(HAVE_O2HEADERS)
 
 class TObjArray;
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 #include "TRDBase/TRDGeometryFlat.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "GPUCommonTransform3D.h"
@@ -105,7 +105,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
 
 #else
 
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
 namespace GPUCA_NAMESPACE
 {

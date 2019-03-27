@@ -15,7 +15,6 @@
 #define GPUTPCNEIGHBOURSFINDER_H
 
 #include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
 #include "GPUTPCRow.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"

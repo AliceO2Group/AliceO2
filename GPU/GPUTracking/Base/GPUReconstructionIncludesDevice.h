@@ -14,8 +14,14 @@
 #ifndef GPURECONSTRUCTIONINCLUDESDEVICE_H
 #define GPURECONSTRUCTIONINCLUDESDEVICE_H
 
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+}
+} // namespace GPUCA_NAMESPACE
 using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUTPCTrackParam.cxx"

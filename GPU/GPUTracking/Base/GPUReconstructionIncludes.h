@@ -27,8 +27,7 @@
 #include <sched.h>
 #endif
 
-#include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
+#include "GPUDef.h"
 #include "GPULogging.h"
 
 #include <iostream>

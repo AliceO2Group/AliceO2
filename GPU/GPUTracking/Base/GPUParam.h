@@ -16,8 +16,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
-#include "GPUTPCSettings.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 #include "GPUSettings.h"
 
 namespace GPUCA_NAMESPACE

@@ -160,7 +160,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     GPUTPCTracklet* tmpTracklets = new GPUTPCTracklet[nTracklets];
     memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(GPUTPCHitId));
     memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(GPUTPCTracklet));
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
     calink* tmpHits = new calink[nTracklets * GPUCA_ROW_COUNT];
     memcpy(tmpHits, TrackletRowHits(), nTracklets * GPUCA_ROW_COUNT * sizeof(calink));
 #endif
@@ -169,7 +169,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
       for (int j = 0; j < nTracklets; j++) {
         if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex()) {
           memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(GPUTPCTracklet));
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
           if (tmpTracklets[i].NHits()) {
             for (int k = tmpTracklets[i].FirstRow(); k <= tmpTracklets[i].LastRow(); k++) {
               const int pos = k * nTracklets + j;
@@ -187,7 +187,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     }
     delete[] tmpIds;
     delete[] tmpTracklets;
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
     delete[] tmpHits;
 #endif
   }
@@ -201,7 +201,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
       out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
 // if (Tracklets()[j].RowHit(i) != CALINK_INVAL)
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
         out << i << "-" << mTrackletRowHits[i * mCommonMem->nTracklets + j] << ", ";
 #else
         out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
@@ -210,7 +210,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     } else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() >= Tracklets()[j].FirstRow()) {
       int nHits = 0;
       for (int i = Tracklets()[j].FirstRow(); i <= Tracklets()[j].LastRow(); i++) {
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
         calink ih = mTrackletRowHits[i * mCommonMem->nTracklets + j];
 #else
         calink ih = Tracklets()[j].RowHit(i);
@@ -219,7 +219,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
           nHits++;
         }
 
-#ifdef EXTERN_ROW_HITS
+#ifdef GPUCA_EXTERN_ROW_HITS
         out << i << "-" << mTrackletRowHits[i * mCommonMem->nTracklets + j] << ", ";
 #else
         out << i << "-" << Tracklets()[j].RowHit(i) << ", ";

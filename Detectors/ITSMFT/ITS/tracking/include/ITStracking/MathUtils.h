@@ -20,7 +20,7 @@
 
 #include "ITStracking/Constants.h"
 #include "GPUCommonMath.h"
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {

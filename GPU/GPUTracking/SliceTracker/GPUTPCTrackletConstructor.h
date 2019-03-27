@@ -15,7 +15,6 @@
 #define GPUTPCTRACKLETCONSTRUCTOR_H
 
 #include "GPUTPCDef.h"
-#include "GPUTPCGPUConfig.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"

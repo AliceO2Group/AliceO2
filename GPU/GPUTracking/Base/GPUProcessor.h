@@ -15,7 +15,7 @@
 #define GPUPROCESSOR_H
 
 #include "GPUCommonDef.h"
-#include "GPUTPCDef.h"
+#include "GPUDef.h"
 
 #ifndef GPUCA_GPUCODE
 #include <cstddef>

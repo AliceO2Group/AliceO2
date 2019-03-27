@@ -886,7 +886,7 @@ void GPUQA::RunQA(bool matchOnly)
           int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
           float totalWeight = 0.;
           for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) {
+            if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
               totalWeight += mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight;
             }
           }
@@ -896,7 +896,7 @@ void GPUQA::RunQA(bool matchOnly)
             float weight = 1.f / (totalWeight * (mClusterParam[hitId].attached + mClusterParam[hitId].fakeAttached));
             for (int j = 0; j < 3; j++) {
               int label = mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID;
-              if (label >= 0 && mMCParam[label].pt > MIN_TRACK_PT_DEFAULT) {
+              if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
                 float pt = mMCParam[label].pt;
                 if (pt < PT_MIN_CLUST) {
                   pt = PT_MIN_CLUST;
@@ -984,7 +984,7 @@ void GPUQA::RunQA(bool matchOnly)
         if (mTrackMCLabels[label] == MC_LABEL_INVALID) {
           float totalWeight = 0.;
           for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) {
+            if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
               totalWeight += mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight;
             }
           }
@@ -992,7 +992,7 @@ void GPUQA::RunQA(bool matchOnly)
           if (totalWeight > 0) {
             for (int j = 0; j < 3; j++) {
               label = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID;
-              if (label >= 0 && mMCParam[label].pt > MIN_TRACK_PT_DEFAULT) {
+              if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
                 float pt = mMCParam[label].pt;
                 if (pt < PT_MIN_CLUST) {
                   pt = PT_MIN_CLUST;
@@ -1042,14 +1042,14 @@ void GPUQA::RunQA(bool matchOnly)
       } else {
         float totalWeight = 0.;
         for (int j = 0; j < 3; j++) {
-          if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) {
+          if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
             totalWeight += mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight;
           }
         }
         if (totalWeight > 0) {
           for (int j = 0; j < 3; j++) {
             int label = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID;
-            if (label >= 0 && mMCParam[label].pt > MIN_TRACK_PT_DEFAULT) {
+            if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
               float pt = mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt;
               if (pt < PT_MIN_CLUST) {
                 pt = PT_MIN_CLUST;

@@ -13,7 +13,6 @@
 
 #include "GPUParam.h"
 #include "GPUTPCClusterData.h"
-#include "GPUTPCGPUConfig.h"
 #include "GPUTPCHit.h"
 #include "GPUTPCSliceData.h"
 #include "GPUReconstruction.h"
