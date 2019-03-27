@@ -23,6 +23,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::string timeHelp("Time pipelining happening in the second layer");
   workflowOptions.push_back(
     ConfigParamSpec{ "3-layer-pipelining", VariantType::Int, 1, { timeHelp } });
+
+  std::string inputHelp("Type of input to be used: readout / stfb");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "input-type", VariantType::String, "readout", { inputHelp } });
 }
 
 #include "Framework/runDataProcessing.h"
@@ -77,6 +81,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   size_t jobs = config.options().get<int>("2-layer-jobs");
   size_t stages = config.options().get<int>("3-layer-pipelining");
+  std::string inputType = config.options().get<std::string>("input-type");
+  if (inputType != "readout" && inputType != "stfb") {
+    throw std::runtime_error("Unknown input type " + inputType + ". Available options are `readout' and `stfb'.");
+  }
 
   /// The proxy is the component which is responsible to connect to readout and
   /// extract the data from it. Depending on the configuration, it will
@@ -89,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "readout-proxy",
     Outputs{ { "ITS", "RAWDATA" } },
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    readoutAdapter({ "ITS", "RAWDATA" }));
+    inputType == "readout" ? readoutAdapter({ "ITS", "RAWDATA" }) : dplModelAdaptor({ "ITS", "RAWDATA" }));
 
   // This is an example of how we can parallelize by subSpec.
   // templatedProcessor will be instanciated N times and the lambda function
