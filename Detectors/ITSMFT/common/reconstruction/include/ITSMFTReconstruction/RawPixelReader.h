@@ -1132,7 +1132,7 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
       // make sure the lane data starts with chip header or empty chip
       uint8_t h;
-      if (!cableData.current(h) || !mCoder.isChipHeaderOrEmpty(h)) {
+      if (cableData.current(h) && !mCoder.isChipHeaderOrEmpty(h)) {
         LOG(ERROR) << "FEE#" << decData.ruInfo->idHW << " cable " << icab << " data does not start with ChipHeader or ChipEmpty";
         currRU.errorCounts[RUDecodingStat::ErrCableDataHeadWrong]++;
       }
