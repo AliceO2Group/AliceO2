@@ -31,6 +31,7 @@ struct DataProcessingStats {
   int lastElapsedTimeMs;
   int lastTotalProcessedSize;
   InputLatency lastLatency;
+  std::vector<int> relayerState;
 };
 
 } // namespace framework

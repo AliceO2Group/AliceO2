@@ -180,6 +180,13 @@ bool DataProcessingDevice::ConditionalRun()
     }
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
+    // Send all the relevant metrics for the relayer to update the GUI
+    // FIXME: do a delta with the previous version if too many metrics are still
+    // sent...
+    for (size_t si = 0; si < stats.relayerState.size(); ++si) {
+      auto state = stats.relayerState[si];
+      monitoring.send({ state, "data_relayer/" + std::to_string(si) });
+    }
     monitoring.flushBuffer();
     lastFlushed = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
@@ -535,26 +542,27 @@ bool DataProcessingDevice::tryDispatchComputation()
       }
     }
     auto tStart = std::chrono::high_resolution_clock::now();
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 2 : 0;
+      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+      mStats.relayerState[cacheId] = state;
+    }
     try {
-      for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.slot.index * record.size() + ai;
-        auto state = record.isValid(ai) ? 2 : 0;
-        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
-      }
       dispatchProcessing(action.slot, record);
-      for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.slot.index * record.size() + ai;
-        auto state = record.isValid(ai) ? 3 : 0;
-        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
-      }
     } catch(std::exception &e) {
       errorHandling(e, record);
+    }
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 3 : 0;
+      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+      mStats.relayerState[cacheId] = state;
     }
     auto tEnd = std::chrono::high_resolution_clock::now();
     mStats.lastElapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
     mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
     mStats.lastLatency = calculateInputRecordLatency(record, tStart);
-
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
