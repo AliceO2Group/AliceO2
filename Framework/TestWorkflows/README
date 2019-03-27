@@ -24,6 +24,10 @@ Relevant options:
   layer
 * --3-layer-pipelining <m> : numer of time pipelined workers in the second processing
   layer.
+* --input-type <type>: where <type> can be `readout' or `stfb'. The former will assume messages
+  do not have a O2 Data Model structure and it will enumerate each message with a custom DataHeader /
+  DataProcessingHeader. The latter will assume that the messages already come in proper (header, payload)
+  pairs and that the header already has at least a DataHeader and a DataProcessingHeader in it.
 
 Readout proxy channel configuration can be done by passing the option as it
 follows:
