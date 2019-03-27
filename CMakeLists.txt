@@ -230,6 +230,9 @@ set(EXCLUDE_MACROS_FROM_TEST
   ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
   ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
   # End of temporarily disabled macros
+  # Disabled from @mconcas: will be removed soon in any case
+  ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
+  # /end disabled
 )
 
 # Macros from this list will have the test in compiled mode ran in a non-fatal way
