@@ -1246,6 +1246,8 @@ class RawPixelReader : public PixelReader
 
   const RUDecodeData& getRUDecodeData() const { return mRUDecode; }
 
+  PayLoadCont& getRawBuffer() {return mRawBuffer;}
+  
  private:
   std::ifstream mIOFile;
   Coder mCoder;
