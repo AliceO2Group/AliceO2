@@ -107,7 +107,7 @@ const char* asString(TDataMember const& dm, char* pointer)
 // ----------------------------------------------------------------------
 
 std::vector<paramDataMember>* _ParamHelper::getDataMembersImpl(std::string mainkey, TClass* cl, void* obj,
-                                                                std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
+                                                               std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
   std::vector<paramDataMember>* members = new std::vector<paramDataMember>;
 
@@ -124,13 +124,12 @@ std::vector<paramDataMember>* _ParamHelper::getDataMembersImpl(std::string maink
       prov = ConfigurableParam::toString(iter->second);
     }
 
-    paramDataMember member = {name, value, prov};
+    paramDataMember member = { name, value, prov };
     members->push_back(member);
   };
 
   loopOverMembers(cl, obj, toDataMember);
   return members;
-
 }
 
 // ----------------------------------------------------------------------

@@ -28,8 +28,7 @@ namespace conf
 
 // Utility structure for passing around ConfigurableParam data member info
 // (where value is the string representation)
-struct paramDataMember
-{
+struct paramDataMember {
   std::string name;
   const char* value;
   std::string provenance;
@@ -147,7 +146,6 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     static_assert(std::is_same<decltype(P::sInstance), P>::value,
                   "static instance must of same type as class");
 
-
     // obtain the TClass for P and delegate further
     auto cl = TClass::GetClass(typeid(P));
     if (!cl) {
@@ -194,8 +192,6 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   {
     file->WriteObjectAny((void*)this, TClass::GetClass(typeid(P)), getName().c_str());
   }
-
-
 };
 
 } // namespace conf
