@@ -8,10 +8,6 @@ tgtDir=$2
 measurementsDir='measurements'
 buildDir='build'
 
-plotFiles=$(find $measurementsDir -name '*.toml')
-
-plotCmd='run/plot.py'
-
 
 ssh $remoteTgt <<-ENDSSH
     cd $tgtDir

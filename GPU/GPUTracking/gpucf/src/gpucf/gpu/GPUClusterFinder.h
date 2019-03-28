@@ -34,6 +34,8 @@ public:
         bool useTilingLayout = false;
 
         bool useChargemapMacro = false;
+
+        bool usePadMajorLayout = false;
     };
     
     struct Result

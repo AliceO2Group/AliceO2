@@ -651,6 +651,11 @@ void GPUClusterFinder::addDefines(ClEnv &env)
                 << "when useChargeMap is active.";
         }
     }
+
+    if (config.usePadMajorLayout)
+    {
+        env.addDefine("CHARGEMAP_PAD_MAJOR_LAYOUT");
+    }
 }
 
 
