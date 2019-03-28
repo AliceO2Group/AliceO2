@@ -45,8 +45,13 @@ inline size_t chargemapIdx(uchar row, uchar pad, short time)
 }
 
 
-#define CHARGEMAP_IDX(row, pad, time) \
-      chargemapIdx(row, (pad)+PADDING, (time)+PADDING)
+#if defined(CHARGEMAP_IDX_MACRO)
+  #define CHARGEMAP_IDX(row, pad, time) \
+      (TPC_NUM_OF_PADS * (time + PADDING) + TPC_PADS_PER_ROW_PADDED * row + pad + PADDING)
+#else
+  #define CHARGEMAP_IDX(row, pad, time) \
+            chargemapIdx(row, (pad)+PADDING, (time)+PADDING)
+#endif
 
 #define CHARGE(map, row, pad, time) map[CHARGEMAP_IDX(row, pad, time)]
 

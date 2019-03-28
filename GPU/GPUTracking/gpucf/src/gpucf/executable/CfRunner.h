@@ -23,6 +23,10 @@ private:
     OptStringFlag clusterResultFile;
     OptStringFlag peakFile;
 
+    std::unique_ptr<args::Group> cfconfig;
+    OptFlag reference;
+    OptFlag chargemapIdxMacro;
+
 };
 
 }

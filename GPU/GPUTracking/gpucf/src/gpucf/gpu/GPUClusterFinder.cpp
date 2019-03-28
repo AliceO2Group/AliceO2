@@ -638,6 +638,19 @@ void GPUClusterFinder::addDefines(ClEnv &env)
     {
         env.addDefine("CHARGEMAP_TILING_LAYOUT");
     }
+
+    if (config.useChargemapMacro)
+    {
+        env.addDefine("CHARGEMAP_IDX_MACRO");
+
+        if (config.useTilingLayout)
+        {
+            log::Error() 
+                << "useTilingLayout and useChargemapMacro were both selected."
+                << "But chargemap always uses row layout "
+                << "when useChargeMap is active.";
+        }
+    }
 }
 
 

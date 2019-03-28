@@ -16,14 +16,47 @@ CfRunner::CfRunner()
 void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 {
     envFlags  = std::make_unique<ClEnv::Flags>(required, optional); 
-    digitFile = OptStringFlag(
-            new StringFlag(required, "FILE", "File of digits.", {'d', "digits"}));
 
-    clusterResultFile = OptStringFlag(
-            new StringFlag(required, "FILE", "Write results clusters here.", {'o', "out"}));
+    digitFile = INIT_FLAG(
+            StringFlag, 
+            required, 
+            "FILE", 
+            "File of digits", 
+            {'d', "digits"});
 
-    peakFile = OptStringFlag(
-            new StringFlag(optional, "FILE", "Write cluster peaks here.", {'p', "peaks"}));
+    clusterResultFile = INIT_FLAG(
+            StringFlag,
+            required,
+            "FILE",
+            "Computed clusters are written here.",
+            {'o', "out"});
+
+    peakFile = INIT_FLAG(
+            StringFlag,
+            optional,
+            "FILE",
+            "Cluster peaks are writtern here.",
+            {'p', "peaks"});
+
+
+    cfconfig = std::make_unique<args::Group>(
+            required, 
+            "Cluster finder config (provide exactly one!)",
+            args::Group::Validators::Xor);
+
+    reference = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use standard config",
+            {"std"});
+
+    chargemapIdxMacro = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use macro for chargemap Idx",
+            {"idxMacro"});
 }
 
 int CfRunner::mainImpl()
@@ -35,9 +68,20 @@ int CfRunner::mainImpl()
 
     std::vector<Digit> digits = digitSet.deserialize<Digit>();
 
-    GPUClusterFinder cf;
     GPUClusterFinder::Config config;
-    config.chunks = 4;
+
+    if (*reference)
+    {
+        config.usePackedDigits = true;
+    }
+
+    if (*chargemapIdxMacro)
+    {
+        config.usePackedDigits   = true;
+        config.useChargemapMacro = true;
+    }
+
+    GPUClusterFinder cf;
     cf.setup(config, env, digits);
     auto cfRes = cf.run();
 

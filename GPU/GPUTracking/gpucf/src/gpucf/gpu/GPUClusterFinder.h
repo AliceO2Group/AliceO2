@@ -32,6 +32,8 @@ public:
         bool usePackedDigits = false;
 
         bool useTilingLayout = false;
+
+        bool useChargemapMacro = false;
     };
     
     struct Result
