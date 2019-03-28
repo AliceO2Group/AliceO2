@@ -18,10 +18,10 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
     envFlags  = std::make_unique<ClEnv::Flags>(required, optional); 
 
     digitFile = INIT_FLAG(
-            StringFlag, 
-            required, 
-            "FILE", 
-            "File of digits", 
+            StringFlag,
+            required,
+            "FILE",
+            "File of digits",
             {'d', "digits"});
 
     clusterResultFile = INIT_FLAG(
@@ -40,7 +40,7 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 
     cfconfig = std::make_unique<args::Group>(
-            required, 
+            required,
             "Cluster finder config (provide exactly one!)",
             args::Group::Validators::Xor);
 
@@ -57,6 +57,20 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "",
             "Use macro for chargemap Idx",
             {"idxMacro"});
+
+    tilingLayout = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use tiling layout in charge map",
+            {"tiling"});
+
+    padMajor = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use pad major in charge map",
+            {"padMajor"});
 }
 
 int CfRunner::mainImpl()
@@ -73,12 +87,25 @@ int CfRunner::mainImpl()
     if (*reference)
     {
         config.usePackedDigits = true;
-    }
-
-    if (*chargemapIdxMacro)
+    } 
+    else if (*chargemapIdxMacro) 
     {
         config.usePackedDigits   = true;
         config.useChargemapMacro = true;
+    } 
+    else if (*tilingLayout)
+    {
+        config.usePackedDigits = true;
+        config.useTilingLayout = true;
+    }
+    else if (*padMajor)
+    {
+        config.usePackedDigits   = true;
+        config.usePadMajorLayout = true;
+    }
+    else
+    {
+        log::Fail() << "Unknown configuration provided.";
     }
 
     GPUClusterFinder cf;
