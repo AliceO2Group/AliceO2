@@ -91,7 +91,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
       mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
-  
+
   //merge Digits
   mergeDigits(mDigits, mTrackLabels);
   fillOutputContainer(digits, mTrackLabels);
@@ -140,8 +140,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -156,26 +155,26 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     }
     auto signal = resp.response(q);
     digits.emplace_back(time, padid, signal);
-     ++ndigits;
+    ++ndigits;
   });
   return ndigits;
 }
 //______________________________________________________________________
 void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vector<o2::MCCompLabel> inputLabels)
 {
-  
+
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
 
   std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) {
-      return inputDigits[a].getPadID() < inputDigits[b].getPadID() ;
-    });
+    return inputDigits[a].getPadID() < inputDigits[b].getPadID();
+  });
 
   auto sortedDigits = [&inputDigits, &indices](int i) {
     return inputDigits[indices[i]];
   };
-  
-  auto sortedLabels = [&inputLabels, &indices](int i){
+
+  auto sortedLabels = [&inputLabels, &indices](int i) {
     return inputLabels[indices[i]];
   };
 
@@ -185,7 +184,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vec
   mTrackLabels.clear();
   mTrackLabels.reserve(inputLabels.size());
 
- int i = 0;
+  int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
     while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
@@ -252,5 +251,4 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   }
 
   mMCTruthOutputContainer.clear();
-
 }

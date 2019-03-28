@@ -24,7 +24,7 @@ std::vector<Digit> createDigits(int N)
   float dummyadc{ 42.0 };
   std::srand(std::time(nullptr)); // use current time as seed for random generator
   float dummytime{ 0.0 };
-  
+
   for (auto i = 0; i < N; i++) {
     int randomPadID = std::rand() * N;
     digits.emplace_back(dummytime, randomPadID, dummyadc);
@@ -37,7 +37,7 @@ std::vector<o2::MCCompLabel> createLabels(int N)
 {
   std::vector<o2::MCCompLabel> labels;
   int dummyEventID{ 1000 };
-  std::srand(std::time(nullptr)); // use current time as seed for random generator                                                                                                                                     
+  std::srand(std::time(nullptr)); // use current time as seed for random generator
   float dummysrcID{ 10 };
 
   for (auto i = 0; i < N; i++) {
@@ -54,7 +54,7 @@ static void benchDigitMerging(benchmark::State& state)
 {
   auto digits = createDigits(100);
   auto labels = createLabels(100);
-  
+
   auto mergingFunction = mergingFunctions()[state.range(0)];
 
   for (auto _ : state) {

@@ -5,7 +5,6 @@
 #include "MCHSimulation/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
-
 std::vector<o2::mch::Digit> mergeDigitsMW(const std::vector<o2::mch::Digit>& inputDigits, const std::vector<o2::MCCompLabel>& labels);
 
 std::vector<o2::mch::Digit> mergeDigitsLA1(const std::vector<o2::mch::Digit>& inputDigits, const std::vector<o2::MCCompLabel>& labels);

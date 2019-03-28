@@ -31,14 +31,14 @@ std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits, const s
     return inputDigits[indices[i]];
   };
 
-  auto sortedLabels = [&inputLabels, &indices](int i){
+  auto sortedLabels = [&inputLabels, &indices](int i) {
     return inputLabels[indices[i]];
   };
-  
+
   std::vector<Digit> digits;
 
   std::vector<o2::MCCompLabel> labels;
-  
+
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
@@ -60,17 +60,16 @@ std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits, const s
 {
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  
-  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) { 
-      return inputDigits[a].getPadID() < inputDigits[b].getPadID() ;
+
+  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) {
+    return inputDigits[a].getPadID() < inputDigits[b].getPadID();
   });
 
-  
   auto sortedDigits = [&inputDigits, &indices](int i) {
     return inputDigits[indices[i]];
   };
 
-  auto sortedLabels = [&inputLabels, &indices](int i){
+  auto sortedLabels = [&inputLabels, &indices](int i) {
     return inputLabels[indices[i]];
   };
 
@@ -79,7 +78,7 @@ std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits, const s
 
   std::vector<o2::MCCompLabel> labels;
   labels.reserve(inputLabels.size());
-  
+
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
@@ -108,7 +107,7 @@ std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits, const st
   std::set<int> forRemoval;
   std::vector<Digit> digits{ inputDigits };
   std::vector<o2::MCCompLabel> labels{ inputLabels };
-  
+
   for (auto& digit : digits) {
     int padid = digit.getPadID();
     count = padidmap.count(padid);

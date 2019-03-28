@@ -40,11 +40,11 @@ class Digitizer
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> trackLabels);
-  
+
   void fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels);
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
-  
+
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
@@ -67,14 +67,13 @@ class Digitizer
   std::vector<Digit> mDigits;
   //map to find back multiple digits per pad
   std::multimap<int, int> mMultiple;
-  
+
   //MCLabel container (transient)
   std::vector<o2::MCCompLabel> mTrackLabels;
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
   int processHit(const Hit& hit, int detID, double event_time);
-
 };
 
 } // namespace mch
