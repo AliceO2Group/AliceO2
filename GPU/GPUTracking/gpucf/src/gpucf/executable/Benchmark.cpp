@@ -19,18 +19,28 @@ Benchmark::Benchmark()
 void Benchmark::setupFlags(args::Group &required, args::Group &optional)
 {
     envFlags  = std::make_unique<ClEnv::Flags>(required, optional); 
-    digitFile = OptStringFlag(
-            new StringFlag(required, "FILE", "File of digits.", {'d', "digits"}));
 
-    benchmarkDir = OptStringFlag(
-            new StringFlag(required, "DIR", "Write results here.", {'o', "out"}));
+    digitFile = INIT_FLAG(
+            StringFlag,
+            required,
+            "FILE",
+            "File fo digits.",
+            {'d', "digits"});
 
-    iterations = OptIntFlag(
-            new IntFlag(optional, 
-                        "N", 
-                        "How often each algorithm in run (default=10)", 
-                        {'o', "out"},
-                        10));
+    benchmarkDir = INIT_FLAG(
+            StringFlag,
+            required,
+            "DIR",
+            "Timing measurements are written here.",
+            {'o', "out"});
+
+    iterations = INIT_FLAG(
+            IntFlag,
+            optional,
+            "N",
+            "How often each algorithm is run (default=10)",
+            {'o', "out"},
+            10);
 }
 
 int Benchmark::mainImpl()
