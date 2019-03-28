@@ -14,7 +14,6 @@
 #define BOOST_TEST_MODULE Test MCH Digitization
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
 //#include <boost/timer/timer.hpp>
 #include <memory>
 #include <vector>

@@ -4,7 +4,7 @@ set(BUCKET_NAME mch_simulation_test_bucket)
 # trying to get only one test exe for this module
 O2_GENERATE_EXECUTABLE(
   EXE_NAME test_MCHSimulation
-  SOURCES testDigitisation.cxx
+  SOURCES testDigitMerging.cxx DigitMerging.cxx testGeometry.cxx
   BUCKET_NAME mch_simulation_test_bucket
   NO_INSTALL TRUE
 )
@@ -18,7 +18,7 @@ O2_GENERATE_EXECUTABLE(
 
 #O2_GENERATE_EXECUTABLE(
 #  EXE_NAME test_MCHSimulation
-#  SOURCES testResponse.cxx
+#  SOURCES testResponse.cxx testDigitisation.cxx
 #  BUCKET_NAME mch_simulation_test_bucket
 #)
 
@@ -26,4 +26,13 @@ target_link_libraries(test_MCHSimulation Boost::unit_test_framework MCHSimulatio
 
 add_test_wrap(NAME test_MCHSimulation COMMAND test_MCHSimulation)
 
+if (benchmark_FOUND)
+  O2_GENERATE_EXECUTABLE(
+    EXE_NAME o2-mch-bench-digit-merging
+    SOURCES benchDigitMerging.cxx DigitMerging.cxx #testDigitisation.cxx
+    BUCKET_NAME ${BUCKET_NAME}
+    NO_INSTALL TRUE
+    )
+
+endif()
 

@@ -96,8 +96,8 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   }   //loop over hits
   
   //merge Digits
-  mergeDigits(digits);
-  fillOutputContainer(digits);
+  mergeDigits(digits, mTrackLabels);
+  fillOutputContainer(digits, mTrackLabels);
 }
 //______________________________________________________________________
 int Digitizer::processHit(const Hit& hit, int detID, double event_time)
@@ -164,7 +164,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(std::vector<Digit>& digits){
+void Digitizer::mergeDigits(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels){
 
   std::set<int> forRemoval;
   
@@ -190,12 +190,12 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
   for(auto& index : forRemoval)
     {
     digits.erase(digits.begin() + index - rmcounts);
-    mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
+    trackLabels.erase(trackLabels.begin() + index - rmcounts);
     ++rmcounts;
     } 
 }
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
 {
   // filling the digit container
   if (mDigits.empty())
@@ -208,8 +208,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   }
   mDigits.erase(itBeg, iter);
   mMCTruthOutputContainer.clear();
-  for (int index = 0; index < mTrackLabels.size(); ++index) {
-    mMCTruthOutputContainer.addElement(index, mTrackLabels.at(index));
+  for (int index = 0; index < trackLabels.size(); ++index) {
+    mMCTruthOutputContainer.addElement(index, trackLabels.at(index));
   }
 }
 //______________________________________________________________________
