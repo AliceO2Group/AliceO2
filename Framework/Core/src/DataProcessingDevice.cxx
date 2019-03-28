@@ -171,6 +171,7 @@ bool DataProcessingDevice::ConditionalRun()
 
   /// This will flush metrics only once every second.
   auto flushMetrics = [&stats = mStats,
+                       &relayer = mRelayer,
                        &lastFlushed = mLastMetricFlushedTimestamp,
                        &currentTime = mBeginIterationTimestamp,
                        &monitoring = mServiceRegistry.get<Monitoring>()]()
@@ -187,6 +188,7 @@ bool DataProcessingDevice::ConditionalRun()
       auto state = stats.relayerState[si];
       monitoring.send({ state, "data_relayer/" + std::to_string(si) });
     }
+    relayer.sendContextState();
     monitoring.flushBuffer();
     lastFlushed = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
