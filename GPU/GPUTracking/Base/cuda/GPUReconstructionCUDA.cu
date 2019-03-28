@@ -21,7 +21,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
+#define GPUCA_CONSMEM_PTR
+#define GPUCA_CONSMEM_CALL
+#define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+#else
+#define GPUCA_CONSMEM_PTR const uint4* gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL (const uint4*) mDeviceConstantMem,
+#define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
+#endif
 
 #ifdef GPUCA_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
@@ -45,21 +54,21 @@ class TrackerTraitsNV : public TrackerTraits
 #include "GPUReconstructionIncludesDevice.h"
 
 template <class T, int I, typename... Args>
-GPUg() void runKernelCUDA(int iSlice, Args... args)
+GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
-GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
+GPUg() void runKernelCUDAMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount, Args... args)
 {
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[firstSlice + iSlice], args...);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -74,9 +83,9 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnl
     }
   }
   if (y.num <= 1) {
-    runKernelCUDA<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
+    runKernelCUDA<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
   } else {
-    runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, y.num, args...);
+    runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->CudaStreams[x.stream]));
@@ -265,11 +274,19 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(cudaDeviceReset());
     return 1;
   }
+#else
+  if (GPUFailedMsgI(cudaMalloc(&devPtrConstantMem, sizeof(GPUConstantMem)))) {
+    GPUError("CUDA Memory Allocation Error");
+    GPUFailedMsgI(cudaDeviceReset());
+    return (1);
+  }
+#endif
   mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
@@ -298,6 +315,9 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(cudaFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
+#ifdef GPUCA_CUDA_NO_CONSTANT_MEMORY
+  GPUFailedMsgI(cudaFree(mDeviceConstantMem));
+#endif
 
   for (int i = 0; i < mNStreams; i++) {
     GPUFailedMsgI(cudaStreamDestroy(mInternals->CudaStreams[i]));
@@ -357,11 +377,19 @@ void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res
 
 void GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
   } else {
     GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
   }
+#else
+  if (stream == -1) {
+    GPUFailedMsg(cudaMemcpy(((char*) mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
+  } else {
+    GPUFailedMsg(cudaMemcpyAsync(((char*) mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+  }
+#endif
   if (ev && stream != -1) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream]));
   }

@@ -35,8 +35,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_LG4(type) type<LG4>
   #define MEM_GLOBAL(type) type<Mem_Global>
   #define MEM_LOCAL(type) type<Mem_Local>
-  #define MEM_CONSTANT(type) type<Mem_Global>
-  //#define MEM_CONSTANT(type) type<Mem_Constant>
+  #define MEM_CONSTANT(type) type<Mem_Constant>
   #define MEM_PLAIN(type) type<Mem_Plain>
   #define MEM_TEMPLATE() template <typename T>
   #define MEM_TYPE(type) T
@@ -69,6 +68,11 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE3(type) type
   #define MEM_TEMPLATE4()
   #define MEM_TYPE4(type) type
+#endif
+
+#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+  #undef MEM_CONSTANT
+  #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif
 
 #endif //GPUDEFOPENCL12TEMPLATES_H

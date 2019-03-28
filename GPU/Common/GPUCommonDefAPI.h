@@ -64,8 +64,7 @@
   #define GPUg() __kernel
   #define GPUshared() __local
   #define GPUglobal() __global
-  //#define GPUconstant() __constant //TODO: possibly add const __restrict where possible later!
-  #define GPUconstant() __global
+  #define GPUconstant() __constant //TODO: possibly add const __restrict where possible later!
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
@@ -121,6 +120,11 @@
   #define GPUconstant()
   #define GPUbarrier() __syncthreads()
   #define GPUAtomic(type) type
+#endif
+
+#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+  #undef GPUconstant
+  #define GPUconstant() GPUglobal()
 #endif
 
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL

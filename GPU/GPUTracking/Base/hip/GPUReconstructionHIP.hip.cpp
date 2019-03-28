@@ -20,7 +20,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
+#define GPUCA_CONSMEM_PTR
+#define GPUCA_CONSMEM_CALL
+#define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+#else
+#define GPUCA_CONSMEM_PTR const uint4* gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL (const uint4*) mDeviceConstantMem,
+#define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
+#endif
 
 namespace o2
 {
@@ -35,21 +44,21 @@ class TrackerTraitsHIP : public TrackerTraits
 #include "GPUReconstructionIncludesDevice.h"
 
 template <class T, int I, typename... Args>
-GPUg() void runKernelHIP(int iSlice, Args... args)
+GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
-GPUg() void runKernelHIPMulti(int firstSlice, int nSliceCount, Args... args)
+GPUg() void runKernelHIPMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount, Args... args)
 {
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker((GPUConstantMem&)gGPUConstantMemBuffer)[firstSlice + iSlice], args...);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -64,9 +73,9 @@ int GPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlR
     }
   }
   if (y.num <= 1) {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIP<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], y.start, args...);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIP<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);
   } else {
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIPMulti<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], y.start, y.num, args...);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIPMulti<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
   if (z.ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->HIPStreams[x.stream]));
@@ -223,11 +232,19 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(hipDeviceReset());
     return 1;
   }
+#else
+  if (GPUFailedMsgI(hipMalloc(&devPtrConstantMem, sizeof(GPUConstantMem)))) {
+    GPUError("HIP Memory Allocation Error");
+    GPUFailedMsgI(hipDeviceReset());
+    return (1);
+  }
+#endif
   mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
@@ -256,6 +273,9 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(hipFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
+#ifdef GPUCA_CUDA_NO_CONSTANT_MEMORY
+  GPUFailedMsgI(hipFree(mDeviceConstantMem));
+#endif
 
   for (int i = 0; i < mNStreams; i++) {
     GPUFailedMsgI(hipStreamDestroy(mInternals->HIPStreams[i]));
@@ -313,6 +333,7 @@ void GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res,
 
 void GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
+#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, hipMemcpyHostToDevice));
   } else {
@@ -321,6 +342,13 @@ void GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const voi
   if (ev && stream != -1) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
   }
+#else
+  if (stream == -1) {
+    GPUFailedMsg(hipMemcpy(((char*) mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
+  } else {
+    GPUFailedMsg(hipMemcpyAsync(((char*) mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
+  }
+#endif
 }
 
 void GPUReconstructionHIPBackend::ReleaseEvent(deviceEvent* ev) {}
