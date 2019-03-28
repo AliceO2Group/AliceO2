@@ -40,6 +40,16 @@
   #define CONSTEXPR constexpr
 #endif
 
+//Set AliRoot / O2 namespace
+#if defined(GPUCA_STANDALONE) || defined(GPUCA_O2_LIB) || defined(GPUCA_GPULIBRARY)
+  #define GPUCA_ALIGPUCODE
+#endif
+#ifdef GPUCA_ALIROOT_LIB
+  #define GPUCA_NAMESPACE AliGPU
+#else
+  #define GPUCA_NAMESPACE o2
+#endif
+
 //API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
 
@@ -52,15 +62,6 @@
   #if defined(HAVE_O2HEADERS) && !defined(__HIPCC__)
     #define GPUCA_BUILD_ITS
   #endif
-#endif
-
-#if defined(GPUCA_STANDALONE) || defined(GPUCA_O2_LIB) || defined(GPUCA_GPULIBRARY)
-  #define GPUCA_ALIGPUCODE
-#endif
-#ifdef GPUCA_ALIROOT_LIB
-  #define GPUCA_NAMESPACE AliGPU
-#else
-  #define GPUCA_NAMESPACE o2
 #endif
 
 // clang-format on

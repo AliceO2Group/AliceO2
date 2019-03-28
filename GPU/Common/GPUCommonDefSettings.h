@@ -21,6 +21,8 @@
   #error Please include GPUCommonDef.h!
 #endif
 
+//#define GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS //Use C11 atomic instead of old style atomics for OpenCL C++ in clang (OpenCL 2.2 C++ will use C++11 atomics irrespectively)
+
 // clang-format on
 
 #endif //GPUCOMMONDEFSETTINGS_H

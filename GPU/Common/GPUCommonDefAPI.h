@@ -69,10 +69,19 @@
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
-    static_assert(sizeof(atomic<unsigned int>) == sizeof(unsigned int), "Invalid atomic type");
+    static_assert(sizeof(atomic<unsigned int>) == sizeof(unsigned int), "Invalid size of atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-    #define GPUAtomic(type) volatile type
+    #if defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS)
+      namespace GPUCA_NAMESPACE { namespace gpu {
+      template <class T> struct oclAtomic;
+      template <> struct oclAtomic<unsigned int> {typedef atomic_uint t;};
+      static_assert(sizeof(oclAtomic<unsigned int>::t) == sizeof(unsigned int), "Invalid size of atomic type");
+      }}
+      #define GPUAtomic(type) GPUCA_NAMESPACE::gpu::oclAtomic<type>::t
+    #else
+      #define GPUAtomic(type) volatile type
+    #endif
     #ifdef CONSTEXPR
       #undef CONSTEXPR
     #endif

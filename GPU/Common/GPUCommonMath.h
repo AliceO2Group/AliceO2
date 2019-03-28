@@ -189,10 +189,8 @@ GPUdi() void GPUCommonMath::AtomicMinShared(GPUAtomic(unsigned int) * addr, unsi
 
 GPUdi() unsigned int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   return ::atomic_exchange(addr, val);
-#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
-  return ::atomic_xchg(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_xchg((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
@@ -212,10 +210,8 @@ GPUdi() unsigned int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(unsigned
 
 GPUdi() unsigned int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   return ::atomic_fetch_add(addr, val);
-#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
-  return ::atomic_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_add((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
@@ -235,10 +231,8 @@ GPUdi() unsigned int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(unsigned 
 
 GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   ::atomic_fetch_max(addr, val);
-#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
-  ::atomic_max(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   ::atomic_max((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
@@ -256,10 +250,8 @@ GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * a
 
 GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val)
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && !defined(__clang__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
   ::atomic_fetch_min(addr, val);
-#elif defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
-  ::atomic_min(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   ::atomic_min((volatile __global unsigned int*)addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
