@@ -26,6 +26,7 @@ set(HEADERS
   include/Mergers/Merger.h
   include/Mergers/MergerConfig.h
   include/Mergers/MergeInterface.h
+  include/Mergers/MergeInterfaceOverrideExample.h
   include/Mergers/MergerInfrastructureBuilder.h
   include/Mergers/MergerBuilder.h
   include/Mergers/MergerCache.h

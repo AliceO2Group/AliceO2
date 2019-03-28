@@ -32,6 +32,7 @@ void customize(std::vector<CompletionPolicy>& policies)
 
 #include <Framework/runDataProcessing.h>
 #include <FairLogger.h>
+#include <Mergers/MergeInterfaceOverrideExample.h>
 
 #include "Mergers/MergerInfrastructureBuilder.h"
 
@@ -178,6 +179,69 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     };
     specs.push_back(printer);
   }
+
+  // custom merge
+  {
+//    WorkflowSpec specs; // enable comment to disable the workflow
+
+    size_t producersAmount = 4;
+    Inputs mergersInputs;
+    for (size_t p = 0; p < producersAmount; p++) {
+      mergersInputs.push_back({ "mo", "TST", "CUSTOM", p + 1, Lifetime::Timeframe });
+      DataProcessorSpec producer{
+        "producer-custom" + std::to_string(p),
+        Inputs{},
+        Outputs{
+          {{ "mo" }, "TST", "CUSTOM", p + 1, Lifetime::Timeframe }
+        },
+        AlgorithmSpec{
+          (AlgorithmSpec::ProcessCallback) [p, producersAmount, srand(p)](
+            ProcessingContext& processingContext) mutable {
+            usleep(100000);
+
+            static int i = 0;
+            if (i++ >= 1000) { return; }
+
+            auto* histo = new MergeInterfaceOverrideExample(1);
+            processingContext.outputs().adopt(OutputRef{ "mo", p + 1 }, histo);
+          }
+        }
+      };
+      specs.push_back(producer);
+    }
+
+    MergerInfrastructureBuilder mergersBuilder;
+    mergersBuilder.setInfrastructureName("custom");
+    mergersBuilder.setInputSpecs(mergersInputs);
+    mergersBuilder.setOutputSpec({{ "main" }, "TST", "CUSTOM", 0 });
+    MergerConfig config;
+    config.ownershipMode = { OwnershipMode::Integral };
+    config.publicationDecision = { PublicationDecision::EachNSeconds, 5 };
+    config.mergingTime = { MergingTime::BeforePublication };
+    config.timespan = { Timespan::FullHistory };
+    config.topologySize = { TopologySize::NumberOfLayers, 1 };
+    mergersBuilder.setConfig(config);
+
+    mergersBuilder.generateInfrastructure(specs);
+
+    DataProcessorSpec printer{
+      "printer-bins",
+      Inputs{
+        { "custom", "TST", "CUSTOM", 0 }
+      },
+      Outputs{},
+      AlgorithmSpec{
+        (AlgorithmSpec::InitCallback) [](InitContext&) {
+          return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
+            auto obj = processingContext.inputs().get<MergeInterfaceOverrideExample*>("custom");
+            LOG(INFO) << "SECRET:" << obj->getSecret();
+          };
+        }
+      }
+    };
+    specs.push_back(printer);
+  }
+
 
   return specs;
 }
