@@ -56,13 +56,13 @@ const std::unordered_map<std::string, InputType> InputMap{
   { "digitizer", InputType::Digitizer },
   { "digits", InputType::Digits },
   { "raw", InputType::Raw },
-  { "decoded-clusters", InputType::DecodedClusters },
+  { "clusters", InputType::Clusters },
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   { "digits", OutputType::Digits },
   { "raw", OutputType::Raw },
-  { "decoded-clusters", OutputType::DecodedClusters },
+  { "clusters", OutputType::Clusters },
   { "tracks", OutputType::Tracks },
 };
 
@@ -89,8 +89,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (inputType == InputType::Raw && isEnabled(OutputType::Digits)) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'raw'");
   }
-  if (inputType == InputType::DecodedClusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'decoded-clusters");
+  if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'clusters'");
   }
 
   WorkflowSpec specs;
@@ -111,7 +111,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
                                                    "tpc-raw-cluster-reader",
                                                    "tpcraw",
-                                                   { "databranch", "TPCClusterHw", "Branch with raw clusters" },
+                                                   { "databranch", "TPCClusterHw", "Branch with TPC raw clusters" },
                                                    { "mcbranch", "TPCClusterHwMCTruth", "MC label branch" },
                                                    OutputSpec{ "TPC", "CLUSTERHW" },
                                                    OutputSpec{ "TPC", "CLUSTERHWMCLBL" },
@@ -119,11 +119,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    laneConfiguration,
                                                  },
                                                  propagateMC));
-  } else if (inputType == InputType::DecodedClusters) {
+  } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
-                                                   "tpc-decoded-cluster-reader",
+                                                   "tpc-native-cluster-reader",
                                                    "tpcrec",
-                                                   { "clusterbranch", "TPCClusterNative", "Branch with decoded clusters" },
+                                                   { "clusterbranch", "TPCClusterNative", "Branch with TPC native clusters" },
                                                    { "clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch" },
                                                    OutputSpec{ "TPC", "CLUSTERNATIVE" },
                                                    OutputSpec{ "TPC", "CLNATIVEMCLBL" },
@@ -135,13 +135,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   // output matrix
   bool runTracker = isEnabled(OutputType::Tracks);
-  bool runDecoder = runTracker || isEnabled(OutputType::DecodedClusters);
+  bool runDecoder = runTracker || isEnabled(OutputType::Clusters);
   bool runClusterer = runDecoder || isEnabled(OutputType::Raw);
 
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runDecoder &= runClusterer || inputType == InputType::Raw;
-  runTracker &= runDecoder || inputType == InputType::DecodedClusters;
+  runTracker &= runDecoder || inputType == InputType::Clusters;
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -302,13 +302,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
-  // a writer process for decoded clusters
+  // a writer process for TPC native clusters
   //
-  // selected by output type 'decoded-clusters'
-  if (isEnabled(OutputType::DecodedClusters)) {
+  // selected by output type 'clusters'
+  if (isEnabled(OutputType::Clusters)) {
     using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
-    specs.push_back(makeWriterSpec("tpc-decoded-cluster-writer",
-                                   inputType == InputType::DecodedClusters ? "tpc-filtered-decoded-clusters.root" : "tpc-decoded-clusters.root",
+    specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
+                                   inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
                                    BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERNATIVE", 0 },
                                                                   "TPCClusterNative",
