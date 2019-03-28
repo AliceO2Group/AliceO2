@@ -1108,7 +1108,7 @@ class RawPixelReader : public PixelReader
         rdhNew->triggerBC != rdhOld->triggerBC ||
         rdhNew->heartbeatOrbit != rdhOld->heartbeatOrbit ||
         rdhNew->heartbeatBC != rdhOld->heartbeatBC ||
-        rdhNew->triggerType != rdhOld->triggerType) {
+        !(rdhNew->triggerType & rdhOld->triggerType)) {
       return false;
     }
     return true;
