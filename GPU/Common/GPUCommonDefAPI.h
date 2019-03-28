@@ -69,15 +69,18 @@
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
-
-    static_assert(sizeof(atomic<int>) == sizeof(int), "Invalid atomic type");
+    static_assert(sizeof(atomic<unsigned int>) == sizeof(unsigned int), "Invalid atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
     #define GPUAtomic(type) volatile type
     #ifdef CONSTEXPR
       #undef CONSTEXPR
     #endif
-    #define CONSTEXPR __global constexpr
+    #if defined(__OPENCLCPP__)
+      #define CONSTEXPR __global constexpr
+    #else
+      #define CONSTEXPR const
+    #endif
   #endif
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
