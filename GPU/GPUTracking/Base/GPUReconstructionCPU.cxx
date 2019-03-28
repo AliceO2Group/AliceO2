@@ -57,7 +57,7 @@ int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlR
   for (unsigned int k = 0; k < num; k++) {
     for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
       typename T::GPUTPCSharedMemory smem;
-      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Worker(*mHostConstantMem)[y.start + k], args...);
+      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
     }
   }
   return 0;

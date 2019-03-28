@@ -267,8 +267,8 @@ int GPUReconstructionDeviceBase::InitDevice()
   ClearAllocatedMemory();
 
   mProcShadow.InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_SLAVE);
-  mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &GPUProcessorWorkers::SetPointersDeviceProcessor, GPUMemoryResource::MEMORY_PERMANENT | GPUMemoryResource::MEMORY_HOST, "Workers");
-  AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
+  mProcShadow.mMemoryResProcessors = RegisterMemoryAllocation(&mProcShadow, &GPUProcessorProcessors::SetPointersDeviceProcessor, GPUMemoryResource::MEMORY_PERMANENT | GPUMemoryResource::MEMORY_HOST, "Processors");
+  AllocateRegisteredMemory(mProcShadow.mMemoryResProcessors);
 
   if (StartHelperThreads()) {
     return (1);
@@ -281,10 +281,10 @@ int GPUReconstructionDeviceBase::InitDevice()
   return (retVal);
 }
 
-void* GPUReconstructionDeviceBase::GPUProcessorWorkers::SetPointersDeviceProcessor(void* mem)
+void* GPUReconstructionDeviceBase::GPUProcessorProcessors::SetPointersDeviceProcessor(void* mem)
 {
   // Don't run constructor / destructor here, this will be just local memcopy of Processors in GPU Memory
-  computePointerWithAlignment(mem, mWorkersProc, 1);
+  computePointerWithAlignment(mem, mProcessorsProc, 1);
   return mem;
 }
 
@@ -295,7 +295,7 @@ int GPUReconstructionDeviceBase::ExitDevice()
   }
 
   int retVal = ExitDevice_Runtime();
-  mWorkersShadow = nullptr;
+  mProcessorsShadow = nullptr;
   mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
   mHostMemorySize = mDeviceMemorySize = 0;
 

@@ -15,7 +15,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUd() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, GPUglobalref() void* ptr, unsigned long size)
+GPUd() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors, GPUglobalref() void* ptr, unsigned long size)
 {
   const unsigned long stride = get_global_size(0);
   int4 i0;

@@ -27,12 +27,12 @@ GPUChainITS::~GPUChainITS()
 
 GPUChainITS::GPUChainITS(GPUReconstruction* rec) : GPUChain(rec) {}
 
-void GPUChainITS::RegisterPermanentMemoryAndProcessors() { mRec->RegisterGPUProcessor(&workers()->itsFitter, GetRecoStepsGPU() & RecoStep::ITSTracking); }
+void GPUChainITS::RegisterPermanentMemoryAndProcessors() { mRec->RegisterGPUProcessor(&processors()->itsFitter, GetRecoStepsGPU() & RecoStep::ITSTracking); }
 
 void GPUChainITS::RegisterGPUProcessors()
 {
   if (GetRecoStepsGPU() & RecoStep::ITSTracking) {
-    mRec->RegisterGPUDeviceProcessor(&workersShadow()->itsFitter, &workers()->itsFitter);
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->itsFitter, &processors()->itsFitter);
   }
 }
 
@@ -59,8 +59,8 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
   ActivateThreadContext();
   mRec->SetThreadCounts(RecoStep::ITSTracking);
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
-  GPUITSFitter& Fitter = workers()->itsFitter;
-  GPUITSFitter& FitterShadow = doGPU ? workersShadow()->itsFitter : Fitter;
+  GPUITSFitter& Fitter = processors()->itsFitter;
+  GPUITSFitter& FitterShadow = doGPU ? processorsShadow()->itsFitter : Fitter;
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
@@ -76,7 +76,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
-  WriteToConstantMemory((char*)&workers()->itsFitter - (char*)workers(), &FitterShadow, sizeof(FitterShadow), 0);
+  WriteToConstantMemory((char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
   TransferMemoryResourcesToGPU(&Fitter, 0);
   runKernel<GPUITSFitterKernel>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(&Fitter, 0);

@@ -27,8 +27,8 @@ __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4)
 #define GPUCA_CONSMEM_CALL
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
 #else
-#define GPUCA_CONSMEM_PTR const uint4* gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*) mDeviceConstantMem,
+#define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL (const uint4*)mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
 
@@ -57,7 +57,7 @@ template <class T, int I, typename... Args>
 GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -68,7 +68,7 @@ GPUg() void runKernelCUDAMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -385,9 +385,9 @@ void GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const vo
   }
 #else
   if (stream == -1) {
-    GPUFailedMsg(cudaMemcpy(((char*) mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
+    GPUFailedMsg(cudaMemcpy(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
   } else {
-    GPUFailedMsg(cudaMemcpyAsync(((char*) mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+    GPUFailedMsg(cudaMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
   }
 #endif
   if (ev && stream != -1) {
@@ -452,9 +452,9 @@ int GPUReconstructionCUDABackend::PrepareTextures()
 #ifdef GPUCA_USE_TEXTURES
   cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
   size_t offset;
-  GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_SLICE_DATA_MEMORY));
+  GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_SLICE_DATA_MEMORY));
   cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
-  GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
+  GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
 #endif
   return (0);
 }

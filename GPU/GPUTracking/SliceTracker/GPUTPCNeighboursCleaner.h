@@ -53,15 +53,15 @@ class GPUTPCNeighboursCleaner
     int mNHits;  // number of hits
   };
 
-  typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) workerType;
+  typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
-  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
+  GPUhdi() static processorType* Processor(MEM_TYPE(GPUConstantMem) & processors)
   {
-    return workers.tpcTrackers;
+    return processors.tpcTrackers;
   }
   template <int iKernel = 0>
-  GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
+  GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

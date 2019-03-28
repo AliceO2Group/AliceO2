@@ -51,10 +51,10 @@ GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagato
 }
 
 template <>
-GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers)
+GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
 {
-  GPUITSFitter& Fitter = workers.itsFitter;
-  GPUTPCGMMerger& Merger = workers.tpcMerger;
+  GPUITSFitter& Fitter = processors.itsFitter;
+  GPUTPCGMMerger& Merger = processors.tpcMerger;
 
   GPUTPCGMPropagator prop;
   prop.SetPolynomialField(Merger.pField());

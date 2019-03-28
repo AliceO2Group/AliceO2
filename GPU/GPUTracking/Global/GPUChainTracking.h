@@ -137,11 +137,11 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void ConvertNativeToClusterData();
 
   // Getters for external usage of tracker classes
-  GPUTRDTracker* GetTRDTracker() { return &workers()->trdTracker; }
-  GPUTPCTracker* GetTPCSliceTrackers() { return workers()->tpcTrackers; }
-  const GPUTPCTracker* GetTPCSliceTrackers() const { return workers()->tpcTrackers; }
-  const GPUTPCGMMerger& GetTPCMerger() const { return workers()->tpcMerger; }
-  GPUTPCGMMerger& GetTPCMerger() { return workers()->tpcMerger; }
+  GPUTRDTracker* GetTRDTracker() { return &processors()->trdTracker; }
+  GPUTPCTracker* GetTPCSliceTrackers() { return processors()->tpcTrackers; }
+  const GPUTPCTracker* GetTPCSliceTrackers() const { return processors()->tpcTrackers; }
+  const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
+  GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
   GPUDisplay* GetEventDisplay() { return mEventDisplay.get(); }
   const GPUQA* GetQA() const { return mQA.get(); }
   GPUQA* GetQA() { return mQA.get(); }

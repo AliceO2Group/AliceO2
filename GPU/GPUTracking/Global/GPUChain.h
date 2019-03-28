@@ -62,11 +62,11 @@ class GPUChain
   int GetThread();
 
   // Make functions from GPUReconstruction*** available
-  GPUConstantMem* workers() { return mRec->workers(); }
-  GPUConstantMem* workersShadow() { return mRec->mWorkersShadow; }
-  GPUConstantMem* workersDevice() { return mRec->mDeviceConstantMem; }
+  GPUConstantMem* processors() { return mRec->processors(); }
+  GPUConstantMem* processorsShadow() { return mRec->mProcessorsShadow; }
+  GPUConstantMem* processorsDevice() { return mRec->mDeviceConstantMem; }
   GPUParam& param() { return mRec->param(); }
-  const GPUConstantMem* workers() const { return mRec->workers(); }
+  const GPUConstantMem* processors() const { return mRec->processors(); }
   GPUSettingsDeviceProcessing& DeviceProcessingSettings() { return mRec->mDeviceProcessingSettings; }
   void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }

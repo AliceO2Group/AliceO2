@@ -26,13 +26,13 @@ class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
  public:
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCMerging; }
 #if defined(GPUCA_BUILD_MERGER) || !defined(GPUCA_GPUCODE)
-  typedef GPUTPCGMMerger workerType;
-  GPUhdi() static workerType* Worker(GPUConstantMem& workers)
+  typedef GPUTPCGMMerger processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
-    return &workers.tpcMerger;
+    return &processors.tpcMerger;
   }
   template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& merger);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& merger);
 #endif
 };
 } // namespace gpu

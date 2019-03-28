@@ -203,8 +203,8 @@ class GPUReconstruction
   virtual RecoStepField AvailableRecoSteps() { return RecoStep::AllRecoSteps; }
 
   // Pointers to tracker classes
-  GPUConstantMem* workers() { return mHostConstantMem.get(); }
-  const GPUConstantMem* workers() const { return mHostConstantMem.get(); }
+  GPUConstantMem* processors() { return mHostConstantMem.get(); }
+  const GPUConstantMem* processors() const { return mHostConstantMem.get(); }
   GPUParam& param() { return mHostConstantMem->param; }
   std::unique_ptr<GPUConstantMem> mHostConstantMem;
 

@@ -26,8 +26,8 @@ __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4)
 #define GPUCA_CONSMEM_CALL
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
 #else
-#define GPUCA_CONSMEM_PTR const uint4* gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*) mDeviceConstantMem,
+#define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL (const uint4*)mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
 
@@ -47,7 +47,7 @@ template <class T, int I, typename... Args>
 GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -58,7 +58,7 @@ GPUg() void runKernelHIPMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount,
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args>
@@ -344,9 +344,9 @@ void GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const voi
   }
 #else
   if (stream == -1) {
-    GPUFailedMsg(hipMemcpy(((char*) mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
+    GPUFailedMsg(hipMemcpy(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
   } else {
-    GPUFailedMsg(hipMemcpyAsync(((char*) mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
   }
 #endif
 }

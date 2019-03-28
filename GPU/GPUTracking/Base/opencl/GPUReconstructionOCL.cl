@@ -61,7 +61,7 @@
 #define OCL_DEVICE_KERNELS_PRE GPUglobal() char *gpu_mem, GPUconstant() MEM_CONSTANT(GPUConstantMem) * pConstant
 #define OCL_CALL_KERNEL(T, I, num)                            \
   GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem; \
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[num]);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(*pConstant)[num]);
 
 #define OCL_CALL_KERNEL_MULTI(T, I)                                                                                                                                                \
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
@@ -69,11 +69,11 @@
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;                                                                                                                    \
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;                                                            \
   GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem;                                                                                                                      \
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(*pConstant)[firstSlice + iSlice]);
+  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Processor(*pConstant)[firstSlice + iSlice]);
 
 #define OCL_CALL_KERNEL_ARGS(T, I, ...)            \
   GPUshared() typename T::GPUTPCSharedMemory smem; \
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[0], __VA_ARGS__);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(*pConstant)[0], __VA_ARGS__);
 
 // if (gpu_mem != pTracker.GPUParametersConst()->gpumem) return; //TODO!
 

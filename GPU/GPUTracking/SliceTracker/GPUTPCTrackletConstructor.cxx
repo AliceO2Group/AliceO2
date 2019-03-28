@@ -377,7 +377,7 @@ GPUd() void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLOBAL(GP
 }
 
 template <>
-GPUd() void GPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem, workerType& tracker)
+GPUd() void GPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem, processorType& tracker)
 {
   if (get_local_id(0) == 0) {
     sMem.mNTracklets = *tracker.NTracklets();
@@ -399,7 +399,7 @@ GPUd() void GPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int 
 }
 
 template <>
-GPUd() void GPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem, workerType& tracker0)
+GPUd() void GPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem, processorType& tracker0)
 {
 #ifdef GPUCA_GPUCODE
   GPUconstantref() MEM_GLOBAL(GPUTPCTracker)* pTracker = &tracker0;

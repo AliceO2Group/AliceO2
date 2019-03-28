@@ -167,10 +167,10 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int RunStandalone() override;
 
  protected:
-  struct GPUProcessorWorkers : public GPUProcessor {
-    GPUConstantMem* mWorkersProc = nullptr;
+  struct GPUProcessorProcessors : public GPUProcessor {
+    GPUConstantMem* mProcessorsProc = nullptr;
     void* SetPointersDeviceProcessor(void* mem);
-    short mMemoryResWorkers = -1;
+    short mMemoryResProcessors = -1;
   };
 
   GPUReconstructionCPU(const GPUSettingsProcessing& cfg) : GPUReconstructionKernels(cfg) {}
@@ -202,8 +202,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual int DoStuckProtection(int stream, void* event) { return 0; }
 
   // Pointers to tracker classes
-  GPUProcessorWorkers mProcShadow; // Host copy of tracker objects that will be used on the GPU
-  GPUConstantMem*& mWorkersShadow = mProcShadow.mWorkersProc;
+  GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
+  GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
   unsigned int mBlockCount = 0;            // Default GPU block count
   unsigned int mThreadCount = 0;           // Default GPU thread count

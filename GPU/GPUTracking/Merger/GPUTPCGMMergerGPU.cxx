@@ -19,7 +19,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUd() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& merger)
+GPUd() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& merger)
 {
 #if defined(GPUCA_HAVE_OPENMP) && !defined(GPUCA_GPUCODE)
 #pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)

@@ -43,7 +43,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int ExitDevice() override;
   virtual int ExitDevice_Runtime() = 0;
 
-  virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &workers()->tpcTrackers[iSlice]; }
+  virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &processors()->tpcTrackers[iSlice]; }
 
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
   void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
