@@ -33,26 +33,18 @@ namespace experimental::mergers
 class MergeInterface
 {
  public:
-  virtual ~MergeInterface();
+  virtual ~MergeInterface() = default;
 
   /// \brief Custom unpacking function.
-  virtual std::vector<TObject*> unpack()
-  {
-    return {};
-  };
+  virtual std::vector<TObject*> unpack() = 0;
 
   /// \brief Custom merge function.
-  virtual Long64_t merge(TCollection* list)
-  {
-    return 0;
-  };
+  virtual Long64_t merge(TCollection* list) = 0;
 
-  /// \brief Timestamp getter function.
-  virtual double time() // getTime?
-  {
-    return 0;
-  };
-  ClassDef(MergeInterface, 1);
+  /// \brief Timestamp getter function. It needs to return a timestamp when moving window functionality should be used.
+  virtual double getTimestamp() = 0;
+
+  ClassDef(MergeInterface, 0);
 };
 
 } // namespace experimental::mergers

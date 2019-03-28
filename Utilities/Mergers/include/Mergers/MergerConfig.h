@@ -29,10 +29,9 @@ enum class OwnershipMode { // todo better name
 };
 
 enum class MergingMode {
-  Binwise,             // Bins of histograms are added, TTree branches are attached, objects inside TCollections are merged correspondingly.
-  Timewise,            // NOT SUPPORTED YET. Arriving objects are merged into one T*****, ordered in time.
-  Concatenate,         // Arriving objects are merged into one TObjArray, no particular order.
-  UseInterfaceFunction // A custom merging function is used to merge a TCollection of objects into *this. Inherit MergeInterface and implement merge().
+  Binwise,     // Bins of histograms are added, TTree branches are attached, objects inside TCollections are merged correspondingly.
+  Timewise,    // NOT SUPPORTED YET. Arriving objects are merged into one T*****, ordered in time.
+  Concatenate, // Arriving objects are merged into one TObjArray, no particular order.
 };
 
 enum class MergingTime {
@@ -60,9 +59,8 @@ enum class TopologySize {
 };
 
 enum class UnpackingMethod {
-  NoUnpackingNeeded,   // Merger treats object as it is.
-  TCollection,         // NOT SUPPORTED YET. Merger treats each object as TCollection and merges each member accordingly. todo
-  UseInterfaceFunction // Uses custom function to unpack object into vector of TObject*s. Inherit MergeInterface and implement unpack().
+  NoUnpackingNeeded, // Merger treats object as it is.
+  TCollection,       // NOT SUPPORTED YET. Merger treats each object as TCollection and merges each member accordingly. todo
 };
 
 template <typename V, typename P = double>

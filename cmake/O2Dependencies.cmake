@@ -974,6 +974,7 @@ o2_define_bucket(
   Framework
   Core
   Hist
+  arrow_bucket
 
   INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/Framework/Core/include

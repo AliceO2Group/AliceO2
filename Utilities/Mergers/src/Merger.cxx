@@ -84,8 +84,7 @@ std::function<void()> Merger::prepareTimerCallback(InitContext& ictx) const
   return [&timesliceIndex = ictx.services().get<TimesliceIndex>(),
           timeLast = std::make_shared<steady_clock::time_point>(steady_clock::now()),
           periodMs = this->mConfig.publicationDecision.param * 1000,
-          timesliceID = uint64_t(0) ]() mutable
-  {
+          timesliceID = uint64_t(0)]() mutable {
     auto timeNow = steady_clock::now();
 
     if (duration_cast<milliseconds>(timeNow - *timeLast).count() > periodMs) {
@@ -122,8 +121,7 @@ void Merger::cleanCacheAfterPublishing()
 void Merger::mergeCache()
 {
   switch (mConfig.mergingMode.value) {
-    case MergingMode::Binwise:
-    case MergingMode::UseInterfaceFunction: {
+    case MergingMode::Binwise: {
 
       size_t i = 0;
       if (!mMergedObjects) {
@@ -164,9 +162,9 @@ void Merger::mergeCache()
         Long64_t errorCode = 0;
 
         //todo: investigate -NOCHECK flag for histogram merging
-
-        if (mConfig.mergingMode.value == MergingMode::UseInterfaceFunction) {
-          errorCode = reinterpret_cast<MergeInterface*>(mergedObject)->merge(&unpackedCollectionsOfObjects[k]);
+        auto objectMergeInterface = dynamic_cast<MergeInterface*>(mergedObject);
+        if (objectMergeInterface) {
+          errorCode = objectMergeInterface->merge(&unpackedCollectionsOfObjects[k]);
         } else if (strncmp(className, "TH1", 3) == 0) {
           errorCode = reinterpret_cast<TH1*>(mergedObject)->Merge(&unpackedCollectionsOfObjects[k]);
         } else if (strncmp(className, "TH2", 3) == 0) {
@@ -238,15 +236,15 @@ void Merger::publish(framework::DataAllocator& allocator)
 
 std::vector<TObject*> Merger::unpackObjects(TObject* obj)
 {
-  switch (mConfig.unpackingMethod.value) {
-    case UnpackingMethod::NoUnpackingNeeded:
-      return std::vector<TObject*>{ obj };
-    case UnpackingMethod::TCollection:
-      return {}; // todo
-    case UnpackingMethod::UseInterfaceFunction:
-      return reinterpret_cast<MergeInterface*>(obj)->unpack();
-    default:
-      return {};
+  if (auto objMergeInterface = dynamic_cast<MergeInterface*>(obj)) {
+    return objMergeInterface->unpack();
+  } else if (mConfig.unpackingMethod.value == UnpackingMethod::NoUnpackingNeeded) {
+    return std::vector<TObject*>{ obj };
+  } else if (mConfig.unpackingMethod.value == UnpackingMethod::TCollection) {
+    // todo: this could be also checked by casting
+    return {};
+  } else {
+    return {};
   }
 }
 
