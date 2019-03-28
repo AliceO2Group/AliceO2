@@ -34,17 +34,17 @@ std::vector<Digit> createNonOverlappingDigits()
     { 0, 0, 1 }
   };
 }
-/*
+
 std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
 {
   return std::vector<o2::MCCompLabel>{
-    { 0, 0 },
-    { 1, 0 },
-    { 2, 10 },
-    { 3, 11 },
+    { 0, 0, 10 },
+    { 0, 0, 10 },
+    { 10, 0, 10 },
+    { 11, 0, 10 },
   };
 }
-*/
+
 std::vector<Digit> createOverlappingDigits()
 {
   return std::vector<Digit>{
@@ -58,23 +58,22 @@ std::vector<Digit> createOverlappingDigits()
     { 0, 1, 4 }
   };
 }
-/*
+
 std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
 {
   return std::vector<o2::MCCompLabel>{
-    { 0, 0 },
-    { 1, 0 },
-    { 2, 10 },
-    { 3, 11 },
-    { 4, 10 },
-    { 5, 2 },
-    { 6, 4 },
-    { 7, 5 },
-    { 8, 6 }
-
+    { 0, 0, 10 },
+    { 0, 0, 10 },
+    { 10, 0, 10 },
+    { 11, 0, 10 },
+    { 10, 0, 10 },
+    { 2, 0, 10 },
+    { 4, 0, 10 },
+    { 5, 0, 10 },
+    { 6, 0, 10 }
   };
 }
-*/
+
 std::vector<Digit> expected()
 {
   return std::vector<Digit>{
@@ -84,27 +83,27 @@ std::vector<Digit> expected()
     { 0, 3, 13 }
   };
 }
-/*
+
 std::vector<o2::MCCompLabel> labelexpected()
 {
   return std::vector<o2::MCCompLabel>{
-    { 0, 0 },
-    { 1, 0 },
-    { 2, 10 },
-    { 3, 11 }
+    { 0, 0, 10 },
+    { 0, 0, 10 },
+    { 10, 0, 10 },
+    { 11, 0, 10 }
   };
 }
-*/
+
 BOOST_DATA_TEST_CASE(DigitMergingIdentity, boost::unit_test::data::make(mergingFunctions()), mergingFunction)
 {
-  auto m = mergingFunction(createNonOverlappingDigits());
+  auto m = mergingFunction(createNonOverlappingDigits(), createLabelsNonOverlappingDigits());
   auto e = m;
   BOOST_CHECK(std::is_permutation(m.begin(), m.end(), e.begin()));
 }
 
 BOOST_DATA_TEST_CASE(DigitMerging, boost::unit_test::data::make(mergingFunctions()), mergingFunction)
 {
-  auto m = mergingFunction(createOverlappingDigits());
+  auto m = mergingFunction(createOverlappingDigits(), createLabelsOverlappingDigits());
   BOOST_CHECK(std::is_permutation(m.begin(), m.end(), expected().begin()));
 }
 

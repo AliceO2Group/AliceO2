@@ -33,16 +33,32 @@ std::vector<Digit> createDigits(int N)
   return digits;
 }
 
+std::vector<o2::MCCompLabel> createLabels(int N)
+{
+  std::vector<o2::MCCompLabel> labels;
+  int dummyEventID{ 1000 };
+  std::srand(std::time(nullptr)); // use current time as seed for random generator                                                                                                                                     
+  float dummysrcID{ 10 };
+
+  for (auto i = 0; i < N; i++) {
+    int randomTrackID = std::rand() * N;
+    labels.emplace_back(randomTrackID, dummyEventID, dummysrcID);
+  }
+
+  return labels;
+}
+
 // benchDigitMerging create fake digits and merges them
 // using one of the merging functions.
 static void benchDigitMerging(benchmark::State& state)
 {
   auto digits = createDigits(100);
-
+  auto labels = createLabels(100);
+  
   auto mergingFunction = mergingFunctions()[state.range(0)];
 
   for (auto _ : state) {
-    mergingFunction(digits);
+    mergingFunction(digits, labels);
   }
 }
 

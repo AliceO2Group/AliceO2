@@ -18,7 +18,7 @@ void dumpDigits(const std::vector<Digit>& digits)
   std::cout << "\n";
 }
 
-std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits)
+std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
@@ -31,8 +31,14 @@ std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits)
     return inputDigits[indices[i]];
   };
 
+  auto sortedLabels = [&inputLabels, &indices](int i){
+    return inputLabels[indices[i]];
+  };
+  
   std::vector<Digit> digits;
 
+  std::vector<o2::MCCompLabel> labels;
+  
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
@@ -44,27 +50,36 @@ std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits)
       adc += sortedDigits(k).getADC();
     }
     digits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
+    labels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
     i = j;
   }
   return digits;
 }
 
-std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits)
+std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
-
-  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) {
-    return inputDigits[a].getPadID() < inputDigits[b].getPadID();
+  
+  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) { 
+      return inputDigits[a].getPadID() < inputDigits[b].getPadID() ;
   });
 
+  
   auto sortedDigits = [&inputDigits, &indices](int i) {
     return inputDigits[indices[i]];
+  };
+
+  auto sortedLabels = [&inputLabels, &indices](int i){
+    return inputLabels[indices[i]];
   };
 
   std::vector<Digit> digits;
   digits.reserve(inputDigits.size());
 
+  std::vector<o2::MCCompLabel> labels;
+  labels.reserve(inputLabels.size());
+  
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
@@ -76,13 +91,15 @@ std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits)
       adc += sortedDigits(k).getADC();
     }
     digits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
+    labels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
     i = j;
   }
   digits.resize(digits.size());
+  labels.resize(labels.size());
   return digits;
 }
 
-std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits)
+std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   int iter = 0;
   int count = 0;
@@ -90,7 +107,8 @@ std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits)
   std::map<int, int> padidmap;
   std::set<int> forRemoval;
   std::vector<Digit> digits{ inputDigits };
-
+  std::vector<o2::MCCompLabel> labels{ inputLabels };
+  
   for (auto& digit : digits) {
     int padid = digit.getPadID();
     count = padidmap.count(padid);
@@ -110,6 +128,7 @@ std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits)
   int rmcounts = 0;
   for (auto& rmindex : forRemoval) {
     digits.erase(digits.begin() + rmindex - rmcounts);
+    labels.erase(labels.begin() + rmindex - rmcounts);
     ++rmcounts;
   }
   return digits;
