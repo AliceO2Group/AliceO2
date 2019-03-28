@@ -83,11 +83,8 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    //index for this hit
     int detID = hit.GetDetectorID();
     int ndigits = processHit(hit, detID, mEventTime);
-    //TODO need one label per Digit
-    // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
     for (int i = 0; i < ndigits; ++i) {
       int digitIndex = mDigits.size() - ndigits + i;
@@ -96,7 +93,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   }   //loop over hits
   
   //merge Digits
-  mergeDigits(digits, mTrackLabels);
+  mergeDigits(mDigits, mTrackLabels);
   fillOutputContainer(digits, mTrackLabels);
 }
 //______________________________________________________________________
@@ -164,35 +161,46 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels){
-
-  std::set<int> forRemoval;
+void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vector<o2::MCCompLabel> inputLabels){
   
-  typedef std::multimap<int, int>::iterator mMapit;
-  int iter = 0;
-  for(auto& digit : digits)
-    {
-      int padid = digit.getPadID();
-      mMultiple.emplace(padid, iter);
-      if(mMultiple.count(padid) > 1)
-	{
-	  std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(padid);
-	  if(multiple.first != multiple.second)
-	    {
-	      digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
-	      forRemoval.emplace(iter);
-	    }
-	}
-      ++iter;
+  std::vector<int> indices(inputDigits.size());
+  std::iota(begin(indices), end(indices), 0);
+
+  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) {
+      return inputDigits[a].getPadID() < inputDigits[b].getPadID() ;
+    });
+
+  auto sortedDigits = [&inputDigits, &indices](int i) {
+    return inputDigits[indices[i]];
+  };
+  
+  auto sortedLabels = [&inputLabels, &indices](int i){
+    return inputLabels[indices[i]];
+  };
+
+  mDigits.clear();
+  mDigits.reserve(inputDigits.size());
+
+  mTrackLabels.clear();
+  mTrackLabels.reserve(inputLabels.size());
+
+ int i = 0;
+  while (i < indices.size()) {
+    int j = i + 1;
+    while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
+      j++;
     }
- 
-  int rmcounts = 0;
-  for(auto& index : forRemoval)
-    {
-    digits.erase(digits.begin() + index - rmcounts);
-    trackLabels.erase(trackLabels.begin() + index - rmcounts);
-    ++rmcounts;
-    } 
+    float adc{ 0 };
+    for (int k = i; k < j; k++) {
+      adc += sortedDigits(k).getADC();
+    }
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
+    mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
+    i = j;
+  }
+  mDigits.resize(mDigits.size());
+  mTrackLabels.resize(mTrackLabels.size());
+  return;
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
