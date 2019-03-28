@@ -161,7 +161,8 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vector<o2::MCCompLabel> inputLabels){
+void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vector<o2::MCCompLabel> inputLabels)
+{
   
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
