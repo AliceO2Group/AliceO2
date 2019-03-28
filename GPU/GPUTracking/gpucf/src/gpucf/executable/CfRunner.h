@@ -26,10 +26,11 @@ private:
     std::unique_ptr<args::Group> cfconfig;
     OptFlag reference;
     OptFlag chargemapIdxMacro;
-
+    OptFlag tilingLayout;
+    OptFlag padMajor;
 };
 
-}
+} // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
 
