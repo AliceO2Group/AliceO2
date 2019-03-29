@@ -71,6 +71,13 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "",
             "Use pad major in charge map",
             {"padMajor"});
+
+    halfs = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Store charges in charge map as halfs.",
+            {"halfs"});
 }
 
 int CfRunner::mainImpl()
@@ -95,6 +102,10 @@ int CfRunner::mainImpl()
     else if (*padMajor)
     {
         config.layout = ChargemapLayout::PadMajor;
+    }
+    else if (*halfs)
+    {
+        config.halfPrecisionCharges = true;
     }
     else if (!*reference)
     {
