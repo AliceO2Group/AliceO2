@@ -7,50 +7,55 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamSpec.h"
+#include "PropertyTreeHelpers.h"
+
 #include <options/FairMQProgOptions.h>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <string>
 #include <vector>
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
+namespace bpt = boost::property_tree;
 
 namespace o2
 {
 namespace framework
 {
 
-FairOptionsRetriever::FairOptionsRetriever(const FairMQProgOptions *opts)
-: mOpts{opts}
+FairOptionsRetriever::FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts)
+  : mOpts{ opts },
+    mStore{}
 {
+  PropertyTreeHelpers::populate(schema, mStore, mOpts->GetVarMap());
 }
 
 int FairOptionsRetriever::getInt(const char *key) const {
-  return mOpts->GetValue<int>(key);
+  return mStore.get<int>(key);
 }
 
 float FairOptionsRetriever::getFloat(const char *key) const {
-  return mOpts->GetValue<float>(key);
+  return mStore.get<float>(key);
 }
 
 double FairOptionsRetriever::getDouble(const char *key) const {
-  return mOpts->GetValue<double>(key);
+  return mStore.get<double>(key);
 }
 
 bool FairOptionsRetriever::getBool(const char *key) const {
-  return mOpts->GetValue<bool>(key);
+  return mStore.get<bool>(key);
 }
 
 std::string FairOptionsRetriever::getString(const char *key) const {
-  return mOpts->GetValue<std::string>(key);
+  return mStore.get<std::string>(key);
 }
 
-std::vector<std::string> FairOptionsRetriever::getVString(const char *key) const {
-  assert(false && "Not implemented");
-  return {};
+boost::property_tree::ptree FairOptionsRetriever::getPTree(const char* key) const
+{
+  return mStore.get_child(key);
 }
 
 } // namespace framework

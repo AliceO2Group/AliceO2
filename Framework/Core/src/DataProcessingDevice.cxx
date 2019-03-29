@@ -104,7 +104,7 @@ void DataProcessingDevice::Init() {
       }
     }
   }
-  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
+  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
 
   mExpirationHandlers.clear();

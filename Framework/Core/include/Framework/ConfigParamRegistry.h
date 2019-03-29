@@ -11,6 +11,8 @@
 #define FRAMEWORK_CONFIGPARAMREGISTRY_H
 
 #include "Framework/ParamRetriever.h"
+
+#include <boost/property_tree/ptree.hpp>
 #include <memory>
 #include <string>
 #include <cassert>
@@ -35,11 +37,25 @@ public:
   : mRetriever{std::move(retriever)} {
   }
 
-  template <class T>
-  T get(const char *key) const {
-    throw std::runtime_error("parameter type not implemented");
-  };
-private:
+  template <typename T>
+  typename std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value == false, T>
+    get(const char*) const
+  {
+    static_assert(std::is_constructible<T, boost::property_tree::ptree>::value == false,
+                  "No constructor from ptree provided");
+  }
+
+  /// Generic getter to extract an object of type T.
+  /// Notice that in order for this to work you need to have
+  /// a constructor which takes a ptree.
+  template <typename T>
+  std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value, T>
+    get(const char* key) const
+  {
+    return T{ mRetriever->getPTree(key) };
+  }
+
+ private:
   std::unique_ptr<ParamRetriever> mRetriever;
 };
 
@@ -66,6 +82,13 @@ template <> inline std::string ConfigParamRegistry::get<std::string>(const char 
 template <> inline bool ConfigParamRegistry::get<bool>(const char *key) const {
   assert(mRetriever.get());
   return mRetriever->getBool(key);
+}
+
+template <>
+inline boost::property_tree::ptree ConfigParamRegistry::get<boost::property_tree::ptree>(const char* key) const
+{
+  assert(mRetriever.get());
+  return mRetriever->getPTree(key);
 }
 
 } // namespace framework
