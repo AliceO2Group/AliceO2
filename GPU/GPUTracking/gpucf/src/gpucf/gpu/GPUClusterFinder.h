@@ -5,6 +5,7 @@
 #include <gpucf/common/Event.h>
 #include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
+#include <gpucf/gpu/ChargemapLayout.h>
 #include <gpucf/gpu/StreamCompaction.h>
 
 #include <nonstd/optional.hpp>
@@ -25,17 +26,18 @@ class GPUClusterFinder
 {
 
 public:
+
     struct Config
     {
         size_t chunks = 1;
 
-        bool usePackedDigits = false;
+        bool usePackedDigits = true;
 
-        bool useTilingLayout = false;
+        bool halfPrecisionChargemap = false;
 
-        bool useChargemapMacro = false;
+        ChargemapLayout layout = ChargemapLayout::TimeMajor;
 
-        bool usePadMajorLayout = false;
+        bool useChargemapMacro = false; //< Hunting ghosts with this option...
     };
     
     struct Result

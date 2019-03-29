@@ -108,8 +108,7 @@ void Benchmark::registerExperiments()
 
     {
         GPUClusterFinder::Config tilingLayout;
-        tilingLayout.usePackedDigits = true;
-        tilingLayout.useTilingLayout = true;
+        tilingLayout.layout = ChargemapLayout::Tiling4x4;
         experiments.emplace_back(
                 new TimeCf(
                         "Chargemap with tiling layout", 
@@ -119,6 +118,20 @@ void Benchmark::registerExperiments()
                         iterations->Get(), 
                         baseDir));
     }
+
+    {
+        GPUClusterFinder::Config padMajorLayout;
+        padMajorLayout.layout = ChargemapLayout::PadMajor;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap with pad major layout",
+                        "padMajor.json",
+                        padMajorLayout,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
 }
 
 

@@ -1,9 +1,0 @@
-input = [
-    { file = "in/packedClusterFinder.json", label = "row layout" }
-    { file = "in/tilingLayout.json", label = "tiling layout" }
-]
-
-type   = "bar"
-out    = "out/cmpRowAndTilingLayout.pdf"
-ylabel = "time [ms]"
-showLegend = true

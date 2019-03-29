@@ -634,43 +634,38 @@ void GPUClusterFinder::addDefines(ClEnv &env)
         env.addDefine("USE_PACKED_DIGIT");
     }
 
-    if (config.useTilingLayout)
+    switch (config.layout)
     {
+    case ChargemapLayout::TimeMajor: 
+        break;
+    case ChargemapLayout::PadMajor: 
+        env.addDefine("CHARGEMAP_PAD_MAJOR_LAYOUT");
+        break;
+    case ChargemapLayout::Tiling4x4:
         env.addDefine("CHARGEMAP_TILING_LAYOUT");
+        break;
+    default:
+        log::Fail() << "Unknown Layout";
     }
 
     if (config.useChargemapMacro)
     {
         env.addDefine("CHARGEMAP_IDX_MACRO");
-
-        if (config.useTilingLayout)
-        {
-            log::Error() 
-                << "useTilingLayout and useChargemapMacro were both selected."
-                << "But chargemap always uses row layout "
-                << "when useChargeMap is active.";
-        }
     }
 
-    if (config.usePadMajorLayout)
-    {
-        env.addDefine("CHARGEMAP_PAD_MAJOR_LAYOUT");
-    }
 }
 
 
 std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
 {
-    /* bool first = (p.prev == nonstd::nullopt); */
-
     std::vector<Step> steps = {
-        /* {"digitsToDevice", p.digitsToDevice}, */
+        {"digitsToDevice", p.digitsToDevice},
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
         p.streamCompaction.asStep("compactPeaks"),
         {"computeCluster", p.computingClusters},
         {"resetChargeMap", p.zeroChargeMap},
-        /* {"clusterToHost", p.clustersToHost}, */
+        {"clusterToHost", p.clustersToHost},
     };
 
     for (Step &step : steps)

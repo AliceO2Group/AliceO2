@@ -1,5 +1,5 @@
 input = [
-    { file = "in/paddedClusterFinder.json", label = "Cluster Finder" }
+    { file = "in/packedClusterFinder.json", label = "Cluster Finder" }
 ]
 
 type   = "bar"

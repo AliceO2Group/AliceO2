@@ -20,6 +20,9 @@ ENDSSH
 scp $remoteTgt:$tgtDir/$measurementsDir/in/* $measurementsDir/in
 
 
+plotFiles=$(find $measurementsDir -name '*.toml')
+plotCmd='run/plot.py'
+
 for config in ${plotFiles[*]}
 do
     $plotCmd $config

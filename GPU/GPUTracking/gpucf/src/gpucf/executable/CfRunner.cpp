@@ -84,26 +84,19 @@ int CfRunner::mainImpl()
 
     GPUClusterFinder::Config config;
 
-    if (*reference)
+    if (*chargemapIdxMacro) 
     {
-        config.usePackedDigits = true;
-    } 
-    else if (*chargemapIdxMacro) 
-    {
-        config.usePackedDigits   = true;
         config.useChargemapMacro = true;
     } 
     else if (*tilingLayout)
     {
-        config.usePackedDigits = true;
-        config.useTilingLayout = true;
+        config.layout = ChargemapLayout::Tiling4x4;
     }
     else if (*padMajor)
     {
-        config.usePackedDigits   = true;
-        config.usePadMajorLayout = true;
+        config.layout = ChargemapLayout::PadMajor;
     }
-    else
+    else if (!*reference)
     {
         log::Fail() << "Unknown configuration provided.";
     }

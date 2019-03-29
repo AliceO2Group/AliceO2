@@ -1,0 +1,11 @@
+input = [
+    { file = "in/padMajor.json", label = "pad major layout" }
+    { file = "in/packedClusterFinder.json", label = "time major layout" }
+    { file = "in/tilingLayout.json", label = "tiling layout" }
+]
+
+type   = "bar"
+out    = "out/cmpChargemapLayouts.pdf"
+ylabel = "time [ms]"
+showLegend = true
+stepBlacklist = ["digitsToDevice", "clusterToHost"]
