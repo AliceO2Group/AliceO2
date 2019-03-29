@@ -106,7 +106,6 @@ class AlpideCoder
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
-    // NOTE: decoder does not clean the chipData buffers, should be done outside
     //
     uint8_t dataC = 0, timestamp = 0;
     uint16_t dataS = 0, region = 0;
@@ -116,6 +115,8 @@ class AlpideCoder
     std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
 
     uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
+
+    chipData.clear();
 
     while (buffer.next(dataC)) {
       //
@@ -226,7 +227,8 @@ class AlpideCoder
       }
 
       if (!dataC) {
-        break; // 0 padding reached (end of the cable data)
+        buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
+        break;
       }
       return unexpectedEOF("Unknown word"); // either error
     }
