@@ -64,10 +64,14 @@ class MCTruthContainer
   ~MCTruthContainer() = default;
   // copy constructor
   MCTruthContainer(const MCTruthContainer& other) = default;
+  // move constructor
+  MCTruthContainer(MCTruthContainer&& other) = default;
   // assignment operator
   MCTruthContainer& operator=(const MCTruthContainer &other) = default;
+  // move assignment operator
+  MCTruthContainer& operator=(MCTruthContainer&& other) = default;
 
-    // access
+  // access
   MCTruthHeaderElement getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
   // access the element directly (can be encapsulated better away)... needs proper element index
   // which can be obtained from the MCTruthHeader startposition and size
