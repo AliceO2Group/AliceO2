@@ -15,6 +15,7 @@
 #define ALICEO2_TPC_HARDWARECLUSTERDECODER_H_
 
 #include <vector>
+#include <functional>
 #include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
@@ -38,12 +39,13 @@ public:
   HardwareClusterDecoder() = default;
   ~HardwareClusterDecoder() = default;
 
+  using OutputAllocator = std::function<char*(size_t)>;
+
   int decodeClusters(std::vector<std::pair<const o2::TPC::ClusterHardwareContainer*, std::size_t>>& inputClusters,
-                     std::vector<o2::TPC::ClusterNativeContainer>& outputClusters,
+                     OutputAllocator outputAllocator,
                      const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr,
                      std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels = nullptr);
-  static void sortClustersAndMC(std::vector<o2::TPC::ClusterNative> clusters,
-                                o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth);
+  static void sortClustersAndMC(ClusterNative* clusters, size_t nClusters, MCLabelContainer mcTruth);
 
  private:
   std::unique_ptr<DigitalCurrentClusterIntegrator> mIntegrator;
