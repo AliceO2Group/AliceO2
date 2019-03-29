@@ -14,57 +14,59 @@
 #ifndef ALICEO2_FIT_V0_HIT_H_
 #define ALICEO2_FIT_V0_HIT_H_
 
-#include "SimulationDataFormat/BaseHits.h"     // for BasicXYZEHit
-#include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
-#include "TVector3.h"     // for TVector3
+#include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
+#include "Rtypes.h"                        // for Bool_t, Double_t, Int_t, Double32_t, etc
+#include "TVector3.h"                      // for TVector3
 #include <iosfwd>
 #include "CommonUtils/ShmAllocator.h"
 
-namespace o2 {
-namespace v0 {
-
-class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
+namespace o2
 {
-  public:
+namespace v0
+{
 
-    /// Default constructor
-    Hit() = default;
+class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
+{
+ public:
+  /// Default constructor
+  Hit() = default;
 
-    /// Class Constructor
-    /// \param trackID Index of MCTrack
-    /// \param cellID Cell ID
-    /// \param startPos Coordinates at entrance to active volume [cm]
-    /// \param pos Coordinates to active volume [cm]
-    /// \param mom Momentum of track at entrance [GeV]
-    /// \param endTime Time at entrance [ns]
-    /// \param time Time since event start [ns]
-    /// \param eLoss Energy deposit [GeV]
-    /// \param startStatus: status at entrance
-    /// \param endStatus: status at exit
-    inline Hit(int trackID, int cellID, const TVector3& startPos, const TVector3& endPos,
-        const TVector3& startMom, double startE, double endTime, double eLoss,
-        float eTot, float eDep); // last two are for testing only
+  /// Class Constructor
+  /// \param trackID Index of MCTrack
+  /// \param cellID Cell ID
+  /// \param startPos Coordinates at entrance to active volume [cm]
+  /// \param pos Coordinates to active volume [cm]
+  /// \param mom Momentum of track at entrance [GeV]
+  /// \param endTime Time at entrance [ns]
+  /// \param time Time since event start [ns]
+  /// \param eLoss Energy deposit [GeV]
+  /// \param startStatus: status at entrance
+  /// \param endStatus: status at exit
+  inline Hit(int trackID, int cellID, const TVector3& startPos, const TVector3& endPos,
+             const TVector3& startMom, double startE, double endTime, double eLoss,
+             float eTot, float eDep); // last two are for testing only
 
-    // Entrance position getters
-    Point3D<Float_t> GetPosStart() const { return mPosStart; }
-    Float_t GetStartX() const { return mPosStart.X(); }
-    Float_t GetStartY() const { return mPosStart.Y(); }
-    Float_t GetStartZ() const { return mPosStart.Z(); }
-    template<typename F> void GetStartPosition(F &x, F &y, F &z) const
-    {
-      x = GetStartX();
-      y = GetStartY();
-      z = GetStartZ();
-    }
-    // momentum getters
-    Vector3D<Float_t> GetMomentum() const { return mMomentum; }
-    Vector3D<Float_t>& GetMomentum()      { return mMomentum; }
-    Float_t GetPx() const { return mMomentum.X(); }
-    Float_t GetPy() const { return mMomentum.Y(); }
-    Float_t GetPz() const { return mMomentum.Z(); }
-    Float_t GetE()  const { return mE; }
-    Float_t GetTotalEnergy() const { return GetE(); }
-/*
+  // Entrance position getters
+  Point3D<Float_t> GetPosStart() const { return mPosStart; }
+  Float_t GetStartX() const { return mPosStart.X(); }
+  Float_t GetStartY() const { return mPosStart.Y(); }
+  Float_t GetStartZ() const { return mPosStart.Z(); }
+  template <typename F>
+  void GetStartPosition(F& x, F& y, F& z) const
+  {
+    x = GetStartX();
+    y = GetStartY();
+    z = GetStartZ();
+  }
+  // momentum getters
+  Vector3D<Float_t> GetMomentum() const { return mMomentum; }
+  Vector3D<Float_t>& GetMomentum() { return mMomentum; }
+  Float_t GetPx() const { return mMomentum.X(); }
+  Float_t GetPy() const { return mMomentum.Y(); }
+  Float_t GetPz() const { return mMomentum.Z(); }
+  Float_t GetE() const { return mE; }
+  Float_t GetTotalEnergy() const { return GetE(); }
+  /*
     UChar_t GetStatusEnd()   const  { return mTrackStatusEnd; }
     UChar_t GetStatusStart() const  { return mTrackStatusStart; }
 
@@ -93,12 +95,12 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
       return of;
     }
 */
-    void Print(const Option_t *opt) const;
+  void Print(const Option_t* opt) const;
 
  private:
-    Vector3D<Float_t> mMomentum;              ///< momentum at entrance
-    Point3D<Float_t> mPosStart;               ///< position at entrance (base mPos give position on exit)
-    Float_t mE;                               ///< total energy at entrance
+  Vector3D<Float_t> mMomentum; ///< momentum at entrance
+  Point3D<Float_t> mPosStart;  ///< position at entrance (base mPos give position on exit)
+  Float_t mE;                  ///< total energy at entrance
 
   ClassDefNV(Hit, 1)
 };
@@ -111,7 +113,8 @@ Hit::Hit(int trackID, int detID, const TVector3& startPos, const TVector3& endPo
     mPosStart(startPos.X(), startPos.Y(), startPos.Z()),
     mE(startE)
 // TODO: may require adding initialization to eTot and eDep and corresponding fields in the Hit.h header
-{}
+{
+}
 
 } // namespace v0
 } // namespace o2

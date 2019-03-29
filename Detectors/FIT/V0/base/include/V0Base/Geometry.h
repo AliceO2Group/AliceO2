@@ -28,18 +28,18 @@ namespace v0
 class Geometry
 {
  public:
-    enum EGeoType {
-      eUninitilized,
-      eDummy,
-      eOnlySensitive,
-      eFull
-    }; // Geometry type options possible to be initialized
+  enum EGeoType {
+    eUninitilized,
+    eDummy,
+    eOnlySensitive,
+    eFull
+  }; // Geometry type options possible to be initialized
 
   ///
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  Geometry(){mGeometryType = eUninitilized;};
+  Geometry() { mGeometryType = eUninitilized; };
   /// Standard constructor
   /// \param initType[in]  The type of geometry, that will be initialized
   ///                       -> initType == 0 => only sensitive detector parts
@@ -50,7 +50,7 @@ class Geometry
   /// Copy constructor.
   Geometry(const Geometry& geom);
 
-  static constexpr float sEpsilon = 0.01; // variable used to make sure one spatial dimension is infinitesimaly larger than the other
+  static constexpr float sEpsilon = 0.01;                  // variable used to make sure one spatial dimension is infinitesimaly larger than the other
   static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + separation gap
   static constexpr float sDzScint = 2;
   static constexpr float sPhiMinScint = 0;
@@ -60,14 +60,14 @@ class Geometry
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZposition==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of V0+ and aluminum covers of T0+
-  static constexpr float sZposition = 320-sDzScint; // z-position of the geometrical center of the detectors sensitive part
+  static constexpr float sZposition = 320 - sDzScint; // z-position of the geometrical center of the detectors sensitive part
 
  private:
   void initializeVectors();
   void initializeLuts();
 
   void buildGeometry();
-  void assembleSectors(TGeoVolumeAssembly *volV0);
+  void assembleSectors(TGeoVolumeAssembly* volV0);
   TGeoVolumeAssembly* buildSector(uint16_t iSector);
 
   std::vector<float> mvrAvgScint; // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)

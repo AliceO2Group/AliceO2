@@ -82,7 +82,7 @@ void Geometry::buildGeometry(){
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
-  TGeoBBox *geoBoxClockwise = new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size()-1), sDySeparationScint*2, sDzScint+sEpsilon);
+  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size()-1), sDySeparationScint*2, sDzScint+sEpsilon);
 
   std::stringstream ssName;
   ssName << "sector" << iSector+1;
@@ -94,7 +94,7 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
     ssNameGeoComposite << "cellGeoComposite" << iCell+1;
 
     // Generate separation between sectors by subtracting two cuboids from each tube segment
-    TGeoTubeSeg *geoCellTube = new TGeoTubeSeg(ssNameGeoTube.str().c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), sDzScint, sPhiMinScint, sDphiScint);
+    new TGeoTubeSeg(ssNameGeoTube.str().c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), sDzScint, sPhiMinScint, sDphiScint);
     std::string booleanFormula = "(";
     booleanFormula += ssNameGeoTube.str() + "-boolBoxScintSeparator)";          // subtract counter-clockwise box
     booleanFormula += (std::string)"-boolBoxScintSeparator" + ":rotPhiSector1"; // subtract clockwise box (same but rotated by 45 degrees)

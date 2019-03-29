@@ -64,12 +64,18 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
-// ------------------------------------------------------------------
+  // ------------------------------------------------------------------
 
   /// Registers the produced collections in FAIRRootManager
   void Register() override;
 
-  std::vector<o2::v0::Hit>* getHits(Int_t iColl) {if (iColl == 0) {return mHits;} return nullptr;}
+  std::vector<o2::v0::Hit>* getHits(Int_t iColl)
+  {
+    if (iColl == 0) {
+      return mHits;
+    }
+    return nullptr;
+  }
   /// Gets the produced hits
 
   /// Has to be called after each event to reset the containers
@@ -78,13 +84,13 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Called at the end of event
   void EndOfEvent() override;
 
-// TODO: From MFT -> are they needed?
-//    void FinishPrimary() override { ; }
-//    void FinishRun() override { ; }
-//    void BeginPrimary() override { ; }
-//    void PostTrack() override { ; }
-//    void PreTrack() override { ; }
-//    void SetSpecialPhysicsCuts() override { ; }
+  // TODO: From MFT -> are they needed?
+  //    void FinishPrimary() override { ; }
+  //    void FinishRun() override { ; }
+  //    void BeginPrimary() override { ; }
+  //    void PostTrack() override { ; }
+  //    void PreTrack() override { ; }
+  //    void SetSpecialPhysicsCuts() override { ; }
 
   // TODO: move to private
   /// Creates materials for the detector
@@ -116,9 +122,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   } mTrackData;                    //!
 
   o2::v0::Hit* addHit(Int_t trackId, Int_t cellId, Int_t particleId,
-      TVector3 startPos, TVector3 endPos,
-      TVector3 startMom, double startE,
-      double endTime, double eLoss, float eTot, float eDep);
+                      TVector3 startPos, TVector3 endPos,
+                      TVector3 startMom, double startE,
+                      double endTime, double eLoss, float eTot, float eDep);
 
   template <typename Det>
   friend class o2::Base::DetImpl;
