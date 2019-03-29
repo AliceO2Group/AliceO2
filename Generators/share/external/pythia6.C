@@ -4,6 +4,14 @@
 
 /// \author R+Preghenella - October 2018
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TPythia6.h"
+#include "FairGenerator.h"
+#include "Generators/GeneratorTGenerator.h"
+#include <fstream>
+#include <iostream>
+#endif
+
 R__LOAD_LIBRARY(libpythia6)
 
 void configure(TPythia6* py6, const char* params);

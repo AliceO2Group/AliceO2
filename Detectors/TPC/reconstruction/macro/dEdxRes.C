@@ -14,6 +14,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/CRU.h"
 
+#include "TFile.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TF1.h"
@@ -24,6 +25,7 @@
 #include "TProfile.h"
 #include "TPaveText.h"
 #include "TStyle.h"
+#include "TTree.h"
 #endif
 
 using namespace o2::TPC;

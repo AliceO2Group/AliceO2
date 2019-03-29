@@ -11,6 +11,7 @@
 #define FRAMEWORK_LOGPARSINGHELPERS
 
 #include <string>
+#include <string_view>
 
 namespace o2
 {
@@ -36,7 +37,7 @@ struct LogParsingHelpers {
   /// Token style can then be used for colouring the logs
   /// in the GUI or to exit with error if a sufficient
   /// number of LogLevel::Error is found.
-  static LogLevel parseTokenLevel(const std::string &s);
+  static LogLevel parseTokenLevel(std::string_view const s);
 };
 
 } // namespace framework

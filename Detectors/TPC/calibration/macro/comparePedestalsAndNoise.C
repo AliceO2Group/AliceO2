@@ -8,6 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TROOT.h"
+#include "TFile.h"
+#include "TPCBase/CalDet.h"
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TCanvas.h"
+#include "TPCBase/Painter.h"
+#endif
+
 std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pedestalFile, int roc)
 {
   using namespace o2::TPC;

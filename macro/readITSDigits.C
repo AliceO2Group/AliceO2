@@ -4,6 +4,7 @@
 #include <TTree.h>
 #include <TStopwatch.h>
 #include <memory>
+#include <iostream>
 #include "FairLogger.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTBase/Digit.h"

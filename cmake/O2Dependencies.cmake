@@ -526,10 +526,12 @@ o2_define_bucket(
     fairmq_bucket
     pthread Core Tree XMLParser Hist Net RIO z
     ${CURL_LIBRARIES}
+    common_utils_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 
     SYSTEMINCLUDE_DIRECTORIES
     ${PROTOBUF_INCLUDE_DIR}

@@ -1,3 +1,11 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
+#include "TLeaf.h"
+#include <stdio.h>
+#include "ReconstructionDataFormats/CalibInfoTOF.h"
+#endif
+
 void convertTreeTo02object()
 {
 

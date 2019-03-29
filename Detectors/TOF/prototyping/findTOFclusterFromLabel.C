@@ -1,3 +1,17 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
+#include "DataFormatsTOF/Cluster.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "CommonDataFormat/EvIndex.h"
+#include "TOFBase/Geo.h"
+#include "TOFBase/Digit.h"
+#endif
+
 void findTOFclusterFromLabel(int trackID, int eventID = 0, int sourceID = 0)
 {
 

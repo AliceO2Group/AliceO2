@@ -10,6 +10,12 @@
 //
 // Configuration macro for Geant3 VirtualMC
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TGeant3.h"
+#include "TGeant3TGeo.h"
+#include "FairRunSim.h"
+#include <iostream>
+#endif
 #include "commonConfig.C"
 
 void Config()
