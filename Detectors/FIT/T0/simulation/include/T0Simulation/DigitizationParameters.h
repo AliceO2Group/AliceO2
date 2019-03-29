@@ -20,7 +20,7 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.mAmpThreshold = 100;                                 // number of photoelectrons
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   result.mIsT0 = true;
- 
+
   return result;
 }
 } // namespace o2::t0

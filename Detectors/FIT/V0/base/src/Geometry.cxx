@@ -82,7 +82,7 @@ void Geometry::buildGeometry(){
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
-  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size()-1), sDySeparationScint*2, sDzScint+sEpsilon);
+  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size() - 1), sDySeparationScint * 2, sDzScint + sEpsilon);
 
   std::stringstream ssName;
   ssName << "sector" << iSector+1;

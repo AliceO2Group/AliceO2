@@ -202,21 +202,6 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
     mOrigin = DETOR;
     std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
   }
-
-};
-
-class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
-{
- public:
-  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
-  FITT0DPLDigitizerTask()
-  {
-    mID = DETID;
-    mOrigin = DETOR;
-    std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
-  }
 };
 
 constexpr o2::detectors::DetID::ID FITT0DPLDigitizerTask::DETID;
