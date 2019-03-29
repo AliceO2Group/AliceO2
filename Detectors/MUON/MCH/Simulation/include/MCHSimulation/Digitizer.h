@@ -54,6 +54,10 @@ class Digitizer
   void setEventID(int v);
   int getEventID() const { return mEventID; }
 
+  //for debugging
+  std::vector<Digit> getDigits() { return mDigits; }
+  std::vector<o2::MCCompLabel> getTrackLabels() { return mTrackLabels; }
+
  private:
   double mEventTime;
   int mEventID = 0;
@@ -65,8 +69,6 @@ class Digitizer
   const static int mNdE = 156;
   // digit per pad
   std::vector<Digit> mDigits;
-  //map to find back multiple digits per pad
-  std::multimap<int, int> mMultiple;
 
   //MCLabel container (transient)
   std::vector<o2::MCCompLabel> mTrackLabels;

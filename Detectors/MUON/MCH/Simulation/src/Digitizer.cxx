@@ -160,29 +160,28 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vector<o2::MCCompLabel> inputLabels)
+void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
 {
 
-  std::vector<int> indices(inputDigits.size());
+  std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
-
-  std::sort(indices.begin(), indices.end(), [&inputDigits](int a, int b) {
-    return inputDigits[a].getPadID() < inputDigits[b].getPadID();
+  std::sort(indices.begin(), indices.end(), [&digits](int a, int b) {
+    return digits[a].getPadID() < digits[b].getPadID();
   });
 
-  auto sortedDigits = [&inputDigits, &indices](int i) {
-    return inputDigits[indices[i]];
+  auto sortedDigits = [&digits, &indices](int i) {
+    return digits[indices[i]];
   };
 
-  auto sortedLabels = [&inputLabels, &indices](int i) {
-    return inputLabels[indices[i]];
+  auto sortedLabels = [&labels, &indices](int i) {
+    return labels[indices[i]];
   };
 
   mDigits.clear();
-  mDigits.reserve(inputDigits.size());
-
+  mDigits.reserve(digits.size());
   mTrackLabels.clear();
-  mTrackLabels.reserve(inputLabels.size());
+  mTrackLabels.reserve(labels.size());
+  int count = 0;
 
   int i = 0;
   while (i < indices.size()) {
@@ -197,10 +196,10 @@ void Digitizer::mergeDigits(const std::vector<Digit> inputDigits, const std::vec
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
     mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
     i = j;
+    ++count;
   }
   mDigits.resize(mDigits.size());
   mTrackLabels.resize(mTrackLabels.size());
-  return;
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
