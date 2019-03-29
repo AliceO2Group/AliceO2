@@ -43,7 +43,8 @@ class Config:
     optionalKeys = [
         "ylabel",
         "xlabel",
-        "showLegend"
+        "showLegend",
+        "stepBlacklist",
     ]
 
     def __init__(self, confDict, baseDir):
@@ -101,8 +102,14 @@ class Measurements:
 
         self._normalize()
 
-    def steps(self):
-        names = self._query(lambda s: s.name, unique=True)
+    def steps(self, blacklist=[]):
+        print(blacklist)
+        if blacklist:
+            pred = lambda s: s.name not in blacklist
+        else:
+            pred = None
+
+        names = self._query(lambda s: s.name, pred, unique=True)
 
         return names
 
@@ -159,15 +166,11 @@ class Measurements:
 
         for run in self.runs():
 
-            print("run =", run)
-
             stepsByRun = self._query(
                 lambda s: s, 
                 lambda s: s.run == run)
 
             offset = np.min([s.queued for s in stepsByRun])
-
-            print("offset =", offset)
 
             for step in stepsByRun:
                 step.normalize(offset)
@@ -186,7 +189,8 @@ def bar(cnf):
 
     measurements = Measurements(cnf.expand(cnf.input[0].file))
 
-    steps = measurements.steps()
+    print(cnf.__dict__)
+    steps = measurements.steps(cnf.stepBlacklist)
 
     stepSize = len(cnf.input)
     stepNum = len(steps)
@@ -202,8 +206,6 @@ def bar(cnf):
         fname = cnf.expand(i.file)
         label = i.label
         
-        print(fname, label)
-
         measurements = Measurements(fname)
 
         durations = np.array([
@@ -214,11 +216,6 @@ def bar(cnf):
 
         maxs -= medians
         mins = medians - mins
-
-        print(barPositions)
-        print(medians)
-        print(mins)
-        print(maxs)
 
         plt.bar(barPositions,
                 medians, 
@@ -249,10 +246,6 @@ def timeline(cnf):
 
         if queuenum is None:
             queuenum = len(start)
-
-        print(step)
-        print(start)
-        print(end)
 
         plt.barh(range(len(start)), end-start, left=start, label=step)
 
