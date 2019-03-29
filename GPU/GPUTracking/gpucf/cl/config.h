@@ -39,8 +39,7 @@ inline size_t chargemapIdx(uchar row, uchar pad, short time)
 
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 
-    return TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED * row 
-        + TPC_MAX_TIME_PADDED*pad + time;
+    return TPC_MAX_TIME_PADDED * tpcGlobalPadIdx(row, pad) + time;
 
 #else // Use row time-major layout
 
