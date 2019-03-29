@@ -235,7 +235,6 @@ class RawPixelReader : public PixelReader
   {
     mPadding128 = v;
     mGBTWordSize = mPadding128 ? ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
-    imposeMaxPage(mPadding128);
   }
 
   /// CRU pages are of max size of 8KB
@@ -244,7 +243,13 @@ class RawPixelReader : public PixelReader
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override
   {
     // decode new RU if no cached non-empty chips
-    while (mRUDecode.lastChipChecked >= mRUDecode.nChipsFired && decodeNextRUData()) {
+    while (mRUDecode.lastChipChecked >= mRUDecode.nChipsFired) {
+      if (mIOFile) {
+        loadInput(); // if needed, upload additional data to the buffer
+      }
+      if (!decodeNextRUData(mRawBuffer)) { // failure to decode would signal error or EOF
+        break;
+      }
     }
     if (mRUDecode.lastChipChecked < mRUDecode.nChipsFired) {
       auto& chipData = mRUDecode.chipsData[mRUDecode.lastChipChecked++];
@@ -570,44 +575,45 @@ class RawPixelReader : public PixelReader
   }
 
   //_____________________________________
-  int decodeNextRUData()
+  int decodeNextRUData(PayLoadCont& buffer)
   {
-    if (mIOFile) {
-      loadInput(); // if needed, upload additional data to the buffer
-    }
 
     int res = 0;
-    if (!mRawBuffer.isEmpty()) {
+    if (!buffer.isEmpty()) {
       bool aborted = false;
 
-      //printf("Unused: %d Size: %d Offs: %d\n", mRawBuffer.getUnusedSize(),  mRawBuffer.getSize(), mRawBuffer.getOffset() );
-      auto ptr = decodeRUData(mRawBuffer.getPtr(), aborted);
+      //printf("Unused: %d Size: %d Offs: %d\n", buffer.getUnusedSize(),  buffer.getSize(), buffer.getOffset() );
+      mRUDecode.clear();
+
+      auto ptr = decodeRUData(buffer.getPtr(), aborted);
 
       if (!aborted) {
-        mRawBuffer.setPtr(ptr);
+        decodeAlpideData(mRUDecode); // decode Alpide data from the compressed RU Data
+
+        buffer.setPtr(ptr);
         res = 1; // success
-        if (mRawBuffer.isEmpty()) {
-          mRawBuffer.clear();
+        if (buffer.isEmpty()) {
+          buffer.clear();
         }
       } else { // try to seek to the next RDH, can be done only for 128b padded GBT words
         LOG(ERROR) << "Will seek the next RDH after aborting (unreliable!!)";
-        auto ptrTail = mRawBuffer.getPtr() + mRawBuffer.getUnusedSize();
-        ptr += ((ptr - mRawBuffer.getPtr()) / mGBTWordSize) * mGBTWordSize; // jump to the next GBT word
+        auto ptrTail = buffer.getPtr() + buffer.getUnusedSize();
+        ptr += ((ptr - buffer.getPtr()) / mGBTWordSize) * mGBTWordSize; // jump to the next GBT word
         while (ptr + mGBTWordSize <= ptrTail) {
           auto* rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(ptr);
           if (isRDHHeuristic(rdh)) { // this heuristics is not reliable...
             LOG(WARNING) << "Assuming that found a new RDH";
             printRDH(*rdh);
-            mRawBuffer.setPtr(ptr);
+            buffer.setPtr(ptr);
             break;
           }
           ptr += mGBTWordSize;
         }
-        mRawBuffer.setPtr(ptr);
-        if (!mRawBuffer.isEmpty()) {
+        buffer.setPtr(ptr);
+        if (!buffer.isEmpty()) {
           res = 1; // found a RDH condidate
         } else {
-          mRawBuffer.clear(); // did not find new RDH
+          buffer.clear(); // did not find new RDH
         }
       } // try to seek to the next ...
     }
@@ -633,7 +639,6 @@ class RawPixelReader : public PixelReader
     /// In case of unrecoverable error set aborted to true
 
     aborted = false;
-    mRUDecode.clear();
 
     // data must start by RDH
     auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
@@ -829,9 +834,6 @@ class RawPixelReader : public PixelReader
 //      LOG(WARNING) << "Last packet(" << rdh->pageCnt << ") of GBT multi-packet is reached w/o STOP set in the RDH";
 //    }
 #endif
-
-    // decode Alpide data from the compressed RU Data
-    decodeAlpideData(mRUDecode);
 
     return raw;
   }
@@ -1122,7 +1124,6 @@ class RawPixelReader : public PixelReader
     auto* chipData = &decData.chipsData[0];
     auto& currRU = mRUDecodingStat[decData.ruInfo->idSW];
 
-    chipData->clear();
     decData.nChipsFired = decData.lastChipChecked = 0;
     int ntot = 0;
     for (int icab = 0; icab < decData.nCables; icab++) {
@@ -1140,7 +1141,6 @@ class RawPixelReader : public PixelReader
 
       while ((res = mCoder.decodeChip(*chipData, cableData))) { // we register only chips with hits or errors flags set
         if (res > 0) {
-
 #ifdef _RAW_READER_ERROR_CHECKS_
           // for the IB staves check if the cable ID is the same as the chip ID on the module
           if (decData.ruInfo->ruType == 0) { // ATTENTION: this is a hack tailored for temporary check
@@ -1156,10 +1156,13 @@ class RawPixelReader : public PixelReader
           chipData->setTrigger(mTrigger);
           mDecodingStat.nNonEmptyChips++;
           mDecodingStat.nHitsDecoded += chipData->getData().size();
-          // fetch next free chip
-          chipData = &decData.chipsData[++decData.nChipsFired];
-          chipData->clear();
           ntot += res;
+          // fetch next free chip
+          if (++decData.nChipsFired < MaxChipsPerRU) {
+            chipData = &decData.chipsData[decData.nChipsFired];
+          } else {
+            break; // last chip decoded
+          }
         }
       }
     }
@@ -1172,8 +1175,15 @@ class RawPixelReader : public PixelReader
     /// read single chip data to the provided container
 
     // decode new RU if no cached non-empty chips
-    while (mRUDecode.lastChipChecked >= mRUDecode.nChipsFired && decodeNextRUData()) {
+    while (mRUDecode.lastChipChecked >= mRUDecode.nChipsFired) {
+      if (mIOFile) {
+        loadInput(); // if needed, upload additional data to the buffer
+      }
+      if (!decodeNextRUData(mRawBuffer)) { // failure to decode would signal error or EOF
+        break;
+      }
     }
+
     if (mRUDecode.lastChipChecked < mRUDecode.nChipsFired) {
       chipData.swap(mRUDecode.chipsData[mRUDecode.lastChipChecked++]);
       return true;
@@ -1246,8 +1256,8 @@ class RawPixelReader : public PixelReader
 
   const RUDecodeData& getRUDecodeData() const { return mRUDecode; }
 
-  PayLoadCont& getRawBuffer() {return mRawBuffer;}
-  
+  PayLoadCont& getRawBuffer() { return mRawBuffer; }
+
  private:
   std::ifstream mIOFile;
   Coder mCoder;
