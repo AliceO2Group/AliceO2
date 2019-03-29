@@ -7,37 +7,23 @@
 
 #define HALF_NEIGHBORS_NUM 4
 
-constant float CHARGE_THRESHOLD = 2;
-constant float OUTER_CHARGE_THRESHOLD = 0;
+constant charge_t CHARGE_THRESHOLD = 2;
+constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
 constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
-    {
-#if 0
-        (int2)(-1, -1), 
-        (int2)(-1, 0), 
-        (int2)(0, -1), 
-        (int2)(-1, 1)
-#else
-        (int2)(-1, -1), 
-        (int2)(-1, 0), 
-        (int2)(-1, 1),
-        (int2)(0, -1)
-#endif
-    };
+{
+    (int2)(-1, -1), 
+    (int2)(-1, 0), 
+    (int2)(-1, 1),
+    (int2)(0, -1)
+};
 constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = 
-    {
-#if 0
-        (int2)(1, -1),
-        (int2)(1, 0), 
-        (int2)(1, 1), 
-        (int2)(0, 1)
-#else
-        (int2)(0, 1),
-        (int2)(1, -1),
-        (int2)(1, 0), 
-        (int2)(1, 1)
-#endif
-    };
+{
+    (int2)(0, 1),
+    (int2)(1, -1),
+    (int2)(1, 0), 
+    (int2)(1, 1)
+};
 
 
 Cluster newCluster()
@@ -56,18 +42,18 @@ void updateCluster(Cluster *cluster, float charge, int dp, int dt)
 }
 
 void updateClusterOuter(
-        global const float   *chargeMap,
-                     Cluster *cluster, 
-                     int      row,
-                     int      pad,
-                     int      time,
-                     float    innerCharge,
-                     int      dpIn, 
-                     int      dtIn,
-                     int      dpOut,
-                     int      dtOut)
+        global const charge_t *chargeMap,
+                     Cluster  *cluster, 
+                     int       row,
+                     int       pad,
+                     int       time,
+                     charge_t  innerCharge,
+                     int       dpIn, 
+                     int       dtIn,
+                     int       dpOut,
+                     int       dtOut)
 {
-    float outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
+    charge_t outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
 
     if (   innerCharge >       CHARGE_THRESHOLD 
         && outerCharge > OUTER_CHARGE_THRESHOLD) 
@@ -77,15 +63,15 @@ void updateClusterOuter(
 }
 
 void addCorner(
-        global const float   *chargeMap,
-                     Cluster *myCluster,
-                     int      row,
-                     int      pad,
-                     int      time,
-                     int      dp,
-                     int      dt)
+        global const charge_t *chargeMap,
+                     Cluster  *myCluster,
+                     int       row,
+                     int       pad,
+                     int       time,
+                     int       dp,
+                     int       dt)
 {
-    float innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+    charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp,   dt);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt,   dp, 2*dt);
@@ -93,25 +79,25 @@ void addCorner(
 }
 
 void addLine(
-        global const float   *chargeMap,
-                     Cluster *myCluster,
-                     int      row,
-                     int      pad,
-                     int      time,
-                     int      dp,
-                     int      dt)
+        global const charge_t *chargeMap,
+                     Cluster  *myCluster,
+                     int       row,
+                     int       pad,
+                     int       time,
+                     int       dp,
+                     int       dt)
 {
-    float innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+    charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp, 2*dt);
 }
 
 void buildCluster(
-        global const float   *chargeMap,
-                     Cluster *myCluster,
-                     int      row,
-                     int      pad,
-                     int      time)
+        global const charge_t *chargeMap,
+                     Cluster  *myCluster,
+                     int       row,
+                     int       pad,
+                     int       time)
 {
     myCluster->Q = 0;
     myCluster->QMax = 0;
@@ -166,10 +152,10 @@ void buildCluster(
 
 
 bool isPeak(
-               const Digit *digit,
-        global const float *chargeMap)
+               const Digit    *digit,
+        global const charge_t *chargeMap)
 {
-    float myCharge = digit->charge;
+    charge_t myCharge = digit->charge;
     short time = digit->time;
     uchar row = digit->row;
     uchar pad = digit->pad;
@@ -180,7 +166,7 @@ bool isPeak(
     {
         int dp = LEQ_NEIGHBORS[i].x;
         int dt = LEQ_NEIGHBORS[i].y;
-        float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+        charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge <= myCharge);
 
         if (!peak)
@@ -194,7 +180,7 @@ bool isPeak(
     {
         int dp = LQ_NEIGHBORS[i].x;
         int dt = LQ_NEIGHBORS[i].y;
-        float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+        charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge < myCharge);
 
         if (!peak)
@@ -248,8 +234,8 @@ void finalizeCluster(
 
 kernel
 void fillChargeMap(
-       global const Digit *digits,
-       global       float *chargeMap)
+       global const Digit    *digits,
+       global       charge_t *chargeMap)
 {
     int idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -259,8 +245,8 @@ void fillChargeMap(
 
 kernel
 void resetChargeMap(
-        global const Digit *digits,
-        global       float *chargeMap)
+        global const Digit    *digits,
+        global       charge_t *chargeMap)
 {
     int idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -270,9 +256,9 @@ void resetChargeMap(
 
 kernel
 void findPeaks(
-         global const float *chargeMap,
-         global const Digit *digits,
-         global       int   *isPeakPredicate)
+         global const charge_t *chargeMap,
+         global const Digit    *digits,
+         global       int      *isPeakPredicate)
 {
     int idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -284,11 +270,11 @@ void findPeaks(
 
 kernel
 void computeClusters(
-        global const float   *chargeMap,
-        global const Digit   *digits,
-        global const int     *globalToLocalRow,
-        global const int     *globalRowToCru,
-        global       Cluster *clusters)
+        global const charge_t *chargeMap,
+        global const Digit    *digits,
+        global const int      *globalToLocalRow,
+        global const int      *globalRowToCru,
+        global       Cluster  *clusters)
 {
     int idx = get_global_id(0);
 

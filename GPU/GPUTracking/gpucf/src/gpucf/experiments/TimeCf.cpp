@@ -30,7 +30,7 @@ void TimeCf::run(ClEnv &env)
 
     Measurements measurements;
 
-    for (size_t i = 0; i < repeats; i++)
+    for (size_t i = 0; i < repeats+1; i++)
     {
         ClEnv envCopy = env;
         GPUClusterFinder cf; 
@@ -38,8 +38,11 @@ void TimeCf::run(ClEnv &env)
 
         auto res = cf.run();
 
-        measurements.add(res.profiling);
-        measurements.finishRun();
+        if (i > 0)
+        {
+            measurements.add(res.profiling);
+            measurements.finishRun();
+        }
     }
 
     save(tgtFile, measurements);

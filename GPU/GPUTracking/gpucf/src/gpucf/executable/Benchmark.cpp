@@ -93,6 +93,19 @@ void Benchmark::registerExperiments()
     }
 
     {
+        GPUClusterFinder::Config halfs;
+        halfs.halfPrecisionCharges = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap storing half charges.",
+                        "halfs.json",
+                        halfs,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
+    {
         GPUClusterFinder::Config multipleChunks;
         multipleChunks.usePackedDigits = true;
         multipleChunks.chunks = 4;

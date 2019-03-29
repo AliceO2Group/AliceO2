@@ -28,6 +28,7 @@ private:
     OptFlag chargemapIdxMacro;
     OptFlag tilingLayout;
     OptFlag padMajor;
+    OptFlag halfs;
 };
 
 } // namespace gpucf
