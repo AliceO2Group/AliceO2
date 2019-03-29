@@ -1,7 +1,7 @@
 #if !defined(CONFIG_H)
 #    define  CONFIG_H
 
-#pragma OPENCL cl_khr_fp16 : require
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
 
 #include "shared/Cluster.h"
@@ -15,6 +15,13 @@ typedef FloatCluster Cluster;
   typedef PackedDigit Digit;
 #else
   typedef PaddedDigit Digit;
+#endif
+
+
+#if defined(CHARGEMAP_TYPE_HALF)
+  typedef half charge_t;
+#else
+  typedef float charge_t;
 #endif
 
 

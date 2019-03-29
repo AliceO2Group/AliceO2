@@ -33,7 +33,7 @@ public:
 
         bool usePackedDigits = true;
 
-        bool halfPrecisionChargemap = false;
+        bool halfPrecisionCharges = false;
 
         ChargemapLayout layout = ChargemapLayout::TimeMajor;
 

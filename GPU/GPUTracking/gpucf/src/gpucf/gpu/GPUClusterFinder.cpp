@@ -272,92 +272,6 @@ void GPUClusterFinder::Worker::join()
     clustering.finish();
 }
 
-/* size_t GPUClusterFinder::computeAndReadClusters() */
-/* { */
-/*     Worker &worker = workers.front(); */
-
-
-    /*************************************************************************
-     * Compact peaks
-     ************************************************************************/
-
-/*     size_t clusterNum = streamCompaction.enqueue( */
-/*             worker.clustering, */
-/*             mem.digits, */
-/*             mem.peaks, */
-/*             mem.isPeak); */
-
-/*     /1* log::Debug() << "Found " << clusterNum << " peaks"; *1/ */
-
-
-    /*************************************************************************
-     * Compute cluster
-     ************************************************************************/
-
-/*     cl::NDRange local(64); */
-
-/*     if (clusterNum > 0) */
-/*     { */
-/*         worker.computeClusters.setArg(0, mem.chargeMap); */
-/*         worker.computeClusters.setArg(1, mem.peaks); */
-/*         worker.computeClusters.setArg(2, mem.globalToLocalRow); */
-/*         worker.computeClusters.setArg(3, mem.globalRowToCru); */
-/*         worker.computeClusters.setArg(4, mem.cluster); */
-/*         worker.clustering.enqueueNDRangeKernel( */
-/*                 worker.computeClusters, */
-/*                 cl::NullRange, */
-/*                 cl::NDRange(clusterNum), */
-/*                 local, */
-/*                 nullptr, */
-/*                 worker.computingClusters.get()); */
-/*     } */
-
-
-    
-
-    /*************************************************************************
-     * Copy cluster to host
-     ************************************************************************/
-
-/*     ASSERT(clusters.size() == size_t(digits.size())); */
-
-/*     log::Info() << "Copy results back..."; */
-
-/*     if (clusterNum > 0) */
-/*     { */
-/*         worker.clustering.enqueueReadBuffer( */
-/*                 mem.cluster, */ 
-/*                 CL_TRUE, */ 
-/*                 0, */ 
-/*                 clusterNum * sizeof(Cluster), */ 
-/*                 clusters.data(), */
-/*                 nullptr, */
-/*                 worker.clustersToHost.get()); */
-/*     } */
-
-/*     worker.clustering.finish(); */
-
-/*     return clusterNum; */
-/* } */
-
-/* Lane GPUClusterFinder::Worker::finish() */
-/* { */
-/*     clustering.finish(); */
-/*     cleanup.finish(); */
-
-/*     Lane measurements = */
-/*     { */
-/*         {"digitsToDevice", digitsToDevice}, */
-/*         {"fillChargeMap", fillingChargeMap}, */
-/*         {"findPeaks", findingPeaks}, */
-/*         parent.streamCompaction.asStep("compactPeaks"), */
-/*         {"computeClusters", computingClusters}, */
-/*         {"resetChargeMap", zeroChargeMap}, */
-/*         {"clustersToHost", clustersToHost}, */
-/*     }; */
-
-/*     return measurements; */
-/* } */
 
 std::vector<Digit> GPUClusterFinder::getPeaks() const
 {
@@ -439,10 +353,13 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
 
     log::Info() << "Found " << numOfRows << " rows";
 
+    size_t chargeSize = 
+        (config.halfPrecisionCharges) ? sizeof(cl_half)
+                                      : sizeof(cl_float);
     size_t chargeMapSize  = 
         numOfRows * TPC_PADS_PER_ROW_PADDED 
         * TPC_MAX_TIME_PADDED 
-        * sizeof(cl_float);
+        * chargeSize;
     mem.chargeMap = cl::Buffer(context, CL_MEM_READ_WRITE, chargeMapSize);
 
 
@@ -629,11 +546,6 @@ void GPUClusterFinder::fillPackedDigits()
 
 void GPUClusterFinder::addDefines(ClEnv &env)
 {
-    if (config.usePackedDigits)
-    {
-        env.addDefine("USE_PACKED_DIGIT");
-    }
-
     switch (config.layout)
     {
     case ChargemapLayout::TimeMajor: 
@@ -648,11 +560,20 @@ void GPUClusterFinder::addDefines(ClEnv &env)
         log::Fail() << "Unknown Layout";
     }
 
+    if (config.usePackedDigits)
+    {
+        env.addDefine("USE_PACKED_DIGIT");
+    }
+
     if (config.useChargemapMacro)
     {
         env.addDefine("CHARGEMAP_IDX_MACRO");
     }
 
+    if (config.halfPrecisionCharges)
+    {
+        env.addDefine("CHARGEMAP_TYPE_HALF");
+    }
 }
 
 
