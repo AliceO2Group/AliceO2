@@ -58,6 +58,8 @@ std::string GeometryTGeo::sLadderName = "MFT_L";     ///<
 std::string GeometryTGeo::sChipName = "MFT_C";       ///<
 std::string GeometryTGeo::sSensorName = "MFTSensor"; ///<
 
+GeometryTGeo::~GeometryTGeo() = default; // Instantiate explicitly to avoid missing symbol
+
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::MFT)
 {

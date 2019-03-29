@@ -63,7 +63,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
                );
 
   /// Default destructor
-  ~GeometryTGeo() override = default;
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;

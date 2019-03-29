@@ -28,10 +28,12 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
+#include "Framework/Signpost.h"
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 
+#include "DataProcessingStatus.h"
 #include "DDSConfigHelpers.h"
 #include "O2ControlHelpers.h"
 #include "DeviceSpecHelpers.h"
@@ -131,12 +133,13 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
 // FIXME: We should really print full lines.
 bool getChildData(int infd, DeviceInfo& outinfo)
 {
-  char buffer[1024];
+  char buffer[1024 * 16];
   int bytes_read;
   // NOTE: do not quite understand read ends up blocking if I read more than
   //        once. Oh well... Good enough for now.
+  O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_READ, outinfo.pid, infd, 0);
   // do {
-  bytes_read = read(infd, buffer, 1024);
+  bytes_read = read(infd, buffer, 1024 * 16);
   if (bytes_read == 0) {
     return false;
   }
@@ -150,7 +153,8 @@ bool getChildData(int infd, DeviceInfo& outinfo)
   }
   assert(bytes_read > 0);
   outinfo.unprinted += std::string(buffer, bytes_read);
-  //  } while (bytes_read != 0);
+  // } while (bytes_read != 0);
+  O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
   return true;
 }
 
@@ -372,7 +376,6 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   assert(infos.size() == controls.size());
   std::smatch match;
   ParsedMetricMatch metricMatch;
-  std::string token;
   const std::string delimiter("\n");
   bool hasNewMetric = false;
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
@@ -384,7 +387,9 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       continue;
     }
 
-    auto s = info.unprinted;
+    O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, info.pid, 0, 0);
+
+    std::string_view s = info.unprinted;
     size_t pos = 0;
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
@@ -400,7 +405,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     };
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
-      token = s.substr(0, pos);
+      std::string token{ s.substr(0, pos) };
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
 
       // Check if the token is a metric from SimpleMetricsService
@@ -431,7 +436,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
             }
           }
         }
-      } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr) &&
+      } else if (!control.quiet && (token.find(control.logFilter) != std::string::npos) &&
                  logLevel >= control.logLevel) {
         assert(info.historyPos >= 0);
         assert(info.historyPos < info.history.size());
@@ -449,9 +454,11 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       if (logLevel == LogParsingHelpers::LogLevel::Error) {
         info.lastError = token;
       }
-      s.erase(0, pos + delimiter.length());
+      s.remove_prefix(pos + delimiter.length());
     }
+    size_t oldSize = info.unprinted.size();
     info.unprinted = s;
+    O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
   }
   if (hasNewMetric) {
     hasNewMetric = false;

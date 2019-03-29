@@ -1,18 +1,19 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <TSystem.h>
-  #include <TMath.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+#include "TGeoManager.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Field/MagneticField.h"
-  #include "EMCALSimulation/Detector.h"
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
+#include "EMCALSimulation/Detector.h"
 #endif
 
 extern TSystem *gSystem;

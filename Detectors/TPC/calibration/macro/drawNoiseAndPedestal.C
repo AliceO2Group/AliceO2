@@ -8,6 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TROOT.h"
+#include "TMath.h"
+#include "TH2.h"
+#include "TFile.h"
+#include "TPCBase/CalDet.h"
+#include "TPCBase/Painter.h"
+#include "TPad.h"
+#include "TCanvas.h"
+#include "TH1F.h"
+#endif
+
 /// Helper to get active histogram and bin information
 TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 

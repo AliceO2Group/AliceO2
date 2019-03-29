@@ -1,3 +1,15 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsTOF/Cluster.h"
+#include "TOFBase/Geo.h"
+#endif
+
 void findLabels(int itrk, int ientry)
 {
 

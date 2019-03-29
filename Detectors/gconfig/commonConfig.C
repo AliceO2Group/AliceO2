@@ -1,5 +1,11 @@
 // common piece of code to setup stack and register
 // with VMC instances
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/StackParam.h"
+#endif
+
 template <typename T, typename R>
 void stackSetup(T* vmc, R* run)
 {
