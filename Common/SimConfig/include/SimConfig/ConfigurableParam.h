@@ -145,12 +145,6 @@ class ConfigurableParam
     }
   }
 
-  friend std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
-  {
-    param.output(out);
-    return out;
-  }
-
   // initializes the parameter database
   static void initialize();
 
@@ -170,6 +164,8 @@ class ConfigurableParam
   // registering the concrete parameters
   ConfigurableParam();
 
+  friend std::ostream& operator<<(std::ostream& out, const ConfigurableParam& me);
+
   static void initPropertyTree();
   static bool updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
   static bool updateThroughStorageMapWithConversion(std::string const&, std::string const&);
@@ -182,8 +178,6 @@ class ConfigurableParam
 
   virtual void serializeTo(TFile*) const = 0;
   virtual void initFrom(TFile*) = 0;
-
-  // friend std::ostream& operator<<(std::ostream& out, const ConfigurableParam& me);
 
   // static map keeping, for each configuration key, its memory location and type
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)

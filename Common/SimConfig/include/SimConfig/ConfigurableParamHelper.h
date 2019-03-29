@@ -25,7 +25,6 @@ namespace o2
 {
 namespace conf
 {
-
 // Utility structure for passing around ConfigurableParam data member info
 // (where value is the string representation)
 struct paramDataMember {
@@ -36,7 +35,6 @@ struct paramDataMember {
   std::string toString(bool showProv) const
   {
     std::string nil = "<null>";
-
     std::string val = ((value == nullptr) ? nil : std::string(value));
 
     std::ostringstream out;
@@ -57,10 +55,6 @@ struct paramDataMember {
     return out;
   }
 };
-
-// ----------------------------------------------------------------
-// ----------------------------------------------------------------
-// ----------------------------------------------------------------
 
 // just a (non-templated) helper with exclusively private functions
 // used by ConfigurableParamHelper

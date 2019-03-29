@@ -39,6 +39,14 @@ bool ConfigurableParam::sRegisterMode = true;
 
 // ------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
+{
+  param.output(out);
+  return out;
+}
+
+// ------------------------------------------------------------------
+
 void ConfigurableParam::writeINI(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
