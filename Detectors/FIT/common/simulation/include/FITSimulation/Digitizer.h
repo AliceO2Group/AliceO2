@@ -15,7 +15,7 @@
 #include "T0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FITBase/MCLabel.h"
+#include "FITSimulation/MCLabel.h"
 #include "FITSimulation/DigitizationParameters.h"
 
 namespace o2

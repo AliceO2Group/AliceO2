@@ -18,6 +18,7 @@
 #include "FITSimulation/Digitizer.h"
 #include "T0Simulation/DigitizationParameters.h"
 #include "FITBase/Digit.h"
+#include "FITSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -107,6 +108,7 @@ class FITDPLDigitizerTask
       mDigitizer.setEventTime(timesview[collID].timeNS);
       mDigitizer.setOrbit(timesview[collID].orbit);
       mDigitizer.setBC(timesview[collID].bc);
+      mDigitizer.setMCLabels(&mLabels);
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -120,6 +122,7 @@ class FITDPLDigitizerTask
         // call actual digitization procedure
         labels.clear();
         // digits.clear();
+	mDigitizer.setSrcID(part.sourceID);
         mDigitizer.process(&hits, &digit);
         const auto& data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
