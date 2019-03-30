@@ -4,11 +4,10 @@
 
 
 
-
-#define HALF_NEIGHBORS_NUM 4
-
 constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
+
+#define HALF_NEIGHBORS_NUM 4
 
 constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
 {
@@ -168,13 +167,7 @@ bool isPeak(
         int dt = LEQ_NEIGHBORS[i].y;
         charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge <= myCharge);
-
-        if (!peak)
-        {
-            return false;
-        }
     }
-
 
     for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
     {
@@ -182,11 +175,6 @@ bool isPeak(
         int dt = LQ_NEIGHBORS[i].y;
         charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge < myCharge);
-
-        if (!peak)
-        {
-            return false;
-        }
     }
 
     peak &= (myCharge > CHARGE_THRESHOLD);
