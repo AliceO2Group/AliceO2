@@ -25,13 +25,26 @@ typedef FloatCluster Cluster;
 #endif
 
 
-inline size_t chargemapIdx(uchar row, uchar pad, short time)
+inline size_t chargemapIdx(uchar row, uchar pad, ushort time)
 {
-#if defined(CHARGEMAP_TILING_LAYOUT)
+#if defined(CHARGEMAP_4x4_TILING_LAYOUT) \
+    || defined(CHARGEMAP_4x8_TILING_LAYOUT) \
+    || defined(CHARGEMAP_8x4_TILING_LAYOUT)
 
-    const int tileW = 4;
-    const int tileH = 4;
-    const int widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
+#if defined(CHARGEMAP_4x4_TILING_LAYOUT)
+  #define TILE_WIDTH 4
+  #define TILE_HEIGHT 4
+#elif defined(CHARGEMAP_4x8_TILING_LAYOUT)
+  #define TILE_WIDTH 4
+  #define TILE_HEIGHT 8
+#elif defined(CHARGEMAP_8x4_TILING_LAYOUT)
+  #define TILE_WIDTH 8
+  #define TILE_HEIGHT 4
+#endif
+
+    const size_t tileW = TILE_WIDTH;
+    const size_t tileH = TILE_HEIGHT;
+    const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
 
     const size_t globPad = tpcGlobalPadIdx(row, pad);
 
@@ -43,6 +56,9 @@ inline size_t chargemapIdx(uchar row, uchar pad, short time)
 
     return (tileTime * widthInTiles + tilePad) * (tileW * tileH)
         + inTileTime * tileW + inTilePad;
+
+#undef TILE_WIDTH
+#undef TILE_HEIGHT
 
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 

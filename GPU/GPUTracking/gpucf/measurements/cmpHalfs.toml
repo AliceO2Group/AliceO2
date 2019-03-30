@@ -1,0 +1,13 @@
+input = [
+    { file = "in/packedClusterFinder.json", label = "time major layout (floats)" }
+    { file = "in/halfs.json", label = "time major layout (halfs)" }
+    { file = "in/halfsPadMajor.json", label = "pad major layout (halfs)" }
+    { file = "in/halfs4x8Tiling.json", label = "4x8 tiling layout (halfs)" }
+    { file = "in/halfs8x4Tiling.json", label = "8x4 tiling layout (halfs)" }
+]
+
+type   = "bar"
+out    = "out/cmpHalfs.pdf"
+ylabel = "time [ms]"
+showLegend = true
+stepBlacklist = ["digitsToDevice", "clusterToHost"]

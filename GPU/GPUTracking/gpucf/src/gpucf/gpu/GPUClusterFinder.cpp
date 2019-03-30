@@ -554,7 +554,13 @@ void GPUClusterFinder::addDefines(ClEnv &env)
         env.addDefine("CHARGEMAP_PAD_MAJOR_LAYOUT");
         break;
     case ChargemapLayout::Tiling4x4:
-        env.addDefine("CHARGEMAP_TILING_LAYOUT");
+        env.addDefine("CHARGEMAP_4x4_TILING_LAYOUT");
+        break;
+    case ChargemapLayout::Tiling4x8:
+        env.addDefine("CHARGEMAP_4x8_TILING_LAYOUT");
+        break;
+    case ChargemapLayout::Tiling8x4:
+        env.addDefine("CHARGEMAP_8x4_TILING_LAYOUT");
         break;
     default:
         log::Fail() << "Unknown Layout";

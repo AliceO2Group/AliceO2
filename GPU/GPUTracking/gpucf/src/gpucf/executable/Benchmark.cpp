@@ -93,19 +93,6 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config halfs;
-        halfs.halfPrecisionCharges = true;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap storing half charges.",
-                        "halfs.json",
-                        halfs,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
-    }
-
-    {
         GPUClusterFinder::Config multipleChunks;
         multipleChunks.usePackedDigits = true;
         multipleChunks.chunks = 4;
@@ -145,8 +132,65 @@ void Benchmark::registerExperiments()
                         baseDir));
     }
 
-}
+    {
+        GPUClusterFinder::Config halfs;
+        halfs.halfPrecisionCharges = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap storing half charges.",
+                        "halfs.json",
+                        halfs,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
 
+    {
+        GPUClusterFinder::Config halfsPadMajor;
+        halfsPadMajor.halfPrecisionCharges = true;
+        halfsPadMajor.layout = ChargemapLayout::PadMajor;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap storing half charges (pad major layout)",
+                        "halfsPadMajor.json",
+                        halfsPadMajor,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+        
+    }
+
+    {
+        GPUClusterFinder::Config halfs4x8Tiling;
+        halfs4x8Tiling.halfPrecisionCharges = true;
+        halfs4x8Tiling.layout = ChargemapLayout::Tiling4x8;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap storing half charges (4x8 tiling layout)",
+                        "halfs4x8Tiling.json",
+                        halfs4x8Tiling,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+        
+    }
+
+    {
+        GPUClusterFinder::Config halfs8x4Tiling;
+        halfs8x4Tiling.halfPrecisionCharges = true;
+        halfs8x4Tiling.layout = ChargemapLayout::Tiling8x4;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Chargemap storing half charges (8x4 tiling layout)",
+                        "halfs8x4Tiling.json",
+                        halfs8x4Tiling,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+        
+    }
+
+}
 
 void Benchmark::runExperiments(ClEnv &env)
 {
