@@ -82,7 +82,7 @@ void Geometry::buildGeometry(){
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
-  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size() - 1), sDySeparationScint * 2, sDzScint + sEpsilon);
+  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size()-1), sDySeparationScint*2, sDzScint+sEpsilon);
 
   std::stringstream ssName;
   ssName << "sector" << iSector+1;
@@ -100,8 +100,8 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
     booleanFormula += (std::string)"-boolBoxScintSeparator" + ":rotPhiSector1"; // subtract clockwise box (same but rotated by 45 degrees)
     TGeoCompositeShape* geoCell = new TGeoCompositeShape(ssNameGeoComposite.str().c_str(), booleanFormula.c_str());
 
-    TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator");
-    TGeoVolume *volCell = new TGeoVolume("cell", geoCell, kMed);
+    TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
+    TGeoVolume *volCell = new TGeoVolume("V0cell", geoCell, kMed);
 
     volCell->SetLineColor(kYellow);
     sector->AddNode(volCell, iCell+1);
@@ -110,7 +110,6 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
 }
 
 void Geometry::assembleSectors(TGeoVolumeAssembly *volV0){
-//  for(uint16_t isector=0; isector<1; isector++){
   for(uint16_t isector=0; isector<mvPhiRot.size(); isector++){
     TGeoVolumeAssembly *sector = buildSector(isector);
     volV0->AddNode(sector, isector+1, mvPhiRot.at(isector));
