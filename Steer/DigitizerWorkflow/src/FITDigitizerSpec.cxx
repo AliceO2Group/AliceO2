@@ -40,7 +40,7 @@ class FITDPLDigitizerTask
 {
 
  public:
-  FITDPLDigitizerTask(o2::fit::DigitizationParameters const& parameters)
+  FITDPLDigitizerTask(const o2::fit::DigitizationParameters& parameters)
     : mDigitizer(parameters) {}
   ~FITDPLDigitizerTask() = default;
 
