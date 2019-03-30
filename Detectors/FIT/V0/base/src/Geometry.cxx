@@ -82,7 +82,7 @@ void Geometry::buildGeometry(){
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
-  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size()-1), sDySeparationScint*2, sDzScint+sEpsilon);
+  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size() - 1), sDySeparationScint * 2, sDzScint + sEpsilon);
 
   std::stringstream ssName;
   ssName << "sector" << iSector+1;
@@ -101,7 +101,7 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector){
     TGeoCompositeShape* geoCell = new TGeoCompositeShape(ssNameGeoComposite.str().c_str(), booleanFormula.c_str());
 
     TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
-    TGeoVolume *volCell = new TGeoVolume("V0cell", geoCell, kMed);
+    TGeoVolume* volCell = new TGeoVolume("V0cell", geoCell, kMed);
 
     volCell->SetLineColor(kYellow);
     sector->AddNode(volCell, iCell+1);
