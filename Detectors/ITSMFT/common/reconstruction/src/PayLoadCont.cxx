@@ -15,16 +15,16 @@
 
 using namespace o2::ITSMFT;
 
-constexpr int PayLoadCont::MinCapacity;
+constexpr size_t PayLoadCont::MinCapacity;
 
-void PayLoadCont::expand(int sz)
+void PayLoadCont::expand(size_t sz)
 {
   ///< increase the buffer size
   auto* oldHead = mBuffer.data();
   if (sz < MinCapacity) {
     sz = MinCapacity;
   }
-  if (sz < int(mBuffer.size())) { // never decrease the size
+  if (sz < mBuffer.size()) { // never decrease the size
     return;
   }
   mBuffer.resize(sz);
