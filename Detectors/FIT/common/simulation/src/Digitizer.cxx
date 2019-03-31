@@ -87,7 +87,6 @@ void Digitizer::computeAverage(Digit& digit)
     ch_data.CFDTime /= ch_data.numberOfParticles;
     if (parameters.mIsT0)
       ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
-
   }
   channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
                                     [this](ChannelData const& ch_data) {
