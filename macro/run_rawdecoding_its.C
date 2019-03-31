@@ -45,10 +45,10 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin",
 
   const auto& MAP = rawReader.getMapping();
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
-    const auto& ruStat = rawReader.getRUDecodingStatSW(ir);
-    if (ruStat.nPackets) {
+    const auto ruStat = rawReader.getRUDecodingStatSW(ir);
+    if (ruStat && ruStat->nPackets) {
       printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
-      ruStat.print();
+      ruStat->print();
     }
   }
   rawReader.getDecodingStat().print();

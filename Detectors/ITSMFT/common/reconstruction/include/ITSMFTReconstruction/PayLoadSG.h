@@ -33,7 +33,7 @@ class PayLoadSG
   ~PayLoadSG() = default;
 
   ///< add n bytes to the buffer
-  void add(const uint8_t* ptr, int n)
+  void add(const uint8_t* ptr, size_t n)
   {
     if (n) {
       mBuffer.emplace_back(ptr, n);
