@@ -18,16 +18,46 @@
 #include <TIterator.h>
 #include <TList.h>
 #include <iostream>
+#include <sstream>
 #include "FairLogger.h"
 #include <boost/property_tree/ptree.hpp>
 #include <functional>
 
 using namespace o2::conf;
 
+// ----------------------------------------------------------------------
+
+std::string paramDataMember::toString(bool showProv) const
+{
+  std::string nil = "<null>";
+  std::string val = ((value == nullptr) ? nil : std::string(value));
+
+  std::ostringstream out;
+  out << name << " : " << val;
+
+  if (showProv) {
+    std::string prov = (provenance == "" ? nil : provenance);
+    out << "\t\t[ " + prov + " ]";
+  }
+
+  out << "\n";
+  return out.str();
+}
+
+std::ostream& operator<<(std::ostream& out, const paramDataMember& pdm)
+{
+  out << pdm.toString(false);
+  return out;
+}
+
+// ----------------------------------------------------------------------
+
 bool isString(TDataMember const& dm)
 {
   return strcmp(dm.GetTrueTypeName(), "string") == 0;
 }
+
+// ----------------------------------------------------------------------
 
 // a generic looper of data members of a TClass; calling a callback
 // reused in various functions below
@@ -67,6 +97,8 @@ void loopOverMembers(TClass* cl, void* obj,
   }
 }
 
+// ----------------------------------------------------------------------
+
 // construct name (in dependence on vector or scalar data and index)
 std::string getName(const TDataMember* dm, int index, int size)
 {
@@ -77,6 +109,8 @@ std::string getName(const TDataMember* dm, int index, int size)
   }
   return namestream.str();
 }
+
+// ----------------------------------------------------------------------
 
 const char* asString(TDataMember const& dm, char* pointer)
 {
@@ -96,26 +130,35 @@ const char* asString(TDataMember const& dm, char* pointer)
   return nullptr;
 }
 
-void _ParamHelper::printParametersImpl(std::string mainkey, TClass* cl, void* obj,
-                                       std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
+// ----------------------------------------------------------------------
+
+std::vector<paramDataMember>* _ParamHelper::getDataMembersImpl(std::string mainkey, TClass* cl, void* obj,
+                                                               std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
-  auto printMembers = [&mainkey, obj, provmap](const TDataMember* dm, int index, int size) {
-    // pointer to object
+  std::vector<paramDataMember>* members = new std::vector<paramDataMember>;
+
+  auto toDataMember = [&members, obj, mainkey, provmap](const TDataMember* dm, int index, int size) {
     auto dt = dm->GetDataType();
     auto TS = dt ? dt->Size() : 0;
     char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
-    const auto name = getName(dm, index, size);
-    std::cout << name << " : " << asString(*dm, pointer);
-    if (provmap != nullptr) {
-      auto iter = provmap->find(mainkey + "." + name);
-      if (iter != provmap->end()) {
-        std::cout << "\t\t[ " << ConfigurableParam::toString(iter->second) << " ]";
-      }
+    const std::string name = getName(dm, index, size);
+    const char* value = asString(*dm, pointer);
+
+    std::string prov = "";
+    auto iter = provmap->find(mainkey + "." + name);
+    if (iter != provmap->end()) {
+      prov = ConfigurableParam::toString(iter->second);
     }
-    std::cout << "\n";
+
+    paramDataMember member = { name, value, prov };
+    members->push_back(member);
   };
-  loopOverMembers(cl, obj, printMembers);
+
+  loopOverMembers(cl, obj, toDataMember);
+  return members;
 }
+
+// ----------------------------------------------------------------------
 
 // a function converting a string representing a type to the type_info
 // because unfortunately typeid(double) != typeid("double")
@@ -180,6 +223,8 @@ std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
   return typeid("ERROR");
 }
 
+// ----------------------------------------------------------------------
+
 void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj, boost::property_tree::ptree* tree,
                                      std::map<std::string, std::pair<std::type_info const&, void*>>* keytostoragemap)
 {
@@ -200,6 +245,25 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
   tree->add_child(mainkey, localtree);
 }
 
+// ----------------------------------------------------------------------
+
+void _ParamHelper::printMembersImpl(std::vector<paramDataMember>* members, bool showProv)
+{
+  _ParamHelper::outputMembersImpl(std::cout, members, showProv);
+}
+
+void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv)
+{
+  if (members == nullptr)
+    return;
+
+  for (auto& member : *members) {
+    out << member.toString(showProv);
+  }
+}
+
+// ----------------------------------------------------------------------
+
 bool isMemblockDifferent(char const* block1, char const* block2, int sizeinbytes)
 {
   // loop over thing in elements of bytes
@@ -210,6 +274,8 @@ bool isMemblockDifferent(char const* block1, char const* block2, int sizeinbytes
   }
   return true;
 }
+
+// ----------------------------------------------------------------------
 
 void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
                                   std::map<std::string, ConfigurableParam::EParamProvenance>* provmap)
@@ -255,6 +321,8 @@ void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, voi
   };
   loopOverMembers(cl, to, assignifchanged);
 }
+
+// ----------------------------------------------------------------------
 
 void _ParamHelper::printWarning(std::type_info const& tinfo)
 {
