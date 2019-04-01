@@ -32,7 +32,10 @@ using namespace o2::TPC;
 using namespace o2;
 using namespace o2::dataformats;
 
-int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters, HardwareClusterDecoder::OutputAllocator outputAllocator, const std::vector<MCLabelContainer>* inMCLabels, std::vector<MCLabelContainer>* outMCLabels)
+int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters,
+                                           HardwareClusterDecoder::OutputAllocator outputAllocator,
+                                           const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels,
+                                           std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels)
 {
   if (mIntegrator == nullptr) mIntegrator.reset(new DigitalCurrentClusterIntegrator);
   if (!inMCLabels) outMCLabels = nullptr;
@@ -80,7 +83,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels)
             {
-              MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
+              auto& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
                 mcOut.addElement(nCls, element);
               }
@@ -138,7 +141,8 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
   return(0);
 }
 
-void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters, MCLabelContainer mcTruth)
+void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters,
+                                               o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth)
 {
   std::vector<unsigned int> indizes(nClusters);
   std::iota(indizes.begin(), indizes.end(), 0);
@@ -155,10 +159,8 @@ void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t n
     auto tmp = actual[i];
     actual[i] = actual[indizes[i]];
     actual[indizes[i]] = tmp;
-    gsl::span<const MCCompLabel> mcArray = tmpMC.getLabels(indizes[i]);
-    for (int k = 0;k < mcArray.size();k++)
-    {
-      mcTruth.addElement(i, mcArray[k]);
+    for (auto const& label : tmpMC.getLabels(indizes[i])) {
+      mcTruth.addElement(i, label);
     }
   }
 }
