@@ -12,7 +12,7 @@
 #define ALICEO2_MERGEINTERFACE_H
 
 /// \file MergeInterface.h
-/// \brief Definition of O2 Mergers merging interface, v1.0
+/// \brief Definition of O2 Mergers merging interface, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

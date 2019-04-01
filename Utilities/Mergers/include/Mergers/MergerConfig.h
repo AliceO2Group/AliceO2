@@ -12,7 +12,7 @@
 #define ALICEO2_MERGERCONFIG_H
 
 /// \file MergerConfig.h
-/// \brief Definition of O2 MergerConfig, v1.0
+/// \brief Definition of O2 MergerConfig, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

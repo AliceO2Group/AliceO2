@@ -12,7 +12,7 @@
 #define ALICEO2_INFRASTRUCTUREBUILDER_H
 
 /// \file MergerInfrastructureBuilder.h
-/// \brief Definition of O2 MergerInfrastructureBuilder, v1.0
+/// \brief Definition of O2 MergerInfrastructureBuilder, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

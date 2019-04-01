@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Merger.cxx
-/// \brief Implementation of O2 Mergers, v1.0
+/// \brief Implementation of O2 Mergers, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

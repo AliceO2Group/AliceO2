@@ -12,7 +12,7 @@
 #define ALICEO2_MERGERBUILDER_H
 
 /// \file MergeBuilder.h
-/// \brief Definition of O2 Mergers builder, v1.0
+/// \brief Definition of O2 Mergers builder, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

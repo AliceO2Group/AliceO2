@@ -12,7 +12,7 @@
 #define ALICEO2_MERGERCACHE_H
 
 /// \file MergerCache.h
-/// \brief Definition of O2 Merger cache, v1.0
+/// \brief Definition of O2 Merger cache, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 

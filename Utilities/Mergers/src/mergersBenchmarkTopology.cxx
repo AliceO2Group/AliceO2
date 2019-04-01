@@ -9,10 +9,10 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    mergersTopologyExample.cxx
+/// \file    mergersBenchmarkTopology.cxx
 /// \author  Piotr Konopka
 ///
-/// \brief This is a DPL workflow to see Mergers in action
+/// \brief This is a DPL workflow to benchmark Mergers
 
 #include "Mergers/MergerBuilder.h"
 

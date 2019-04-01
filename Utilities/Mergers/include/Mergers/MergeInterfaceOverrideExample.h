@@ -12,7 +12,7 @@
 #define ALICEO2_MERGEINTERFACEOVERRIDEEXAMPLE_H
 
 /// \file MergeInterfaceOverrideExample.h
-/// \brief An example of overriding O2 Mergers merging interface, v1.0
+/// \brief An example of overriding O2 Mergers merging interface, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
