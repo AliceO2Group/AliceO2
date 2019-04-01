@@ -14,8 +14,6 @@
 #define COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAMHELPER_H_
 
 #include "SimConfig/ConfigurableParam.h"
-#include <sstream>
-#include <iostream>
 #include "TClass.h"
 #include <type_traits>
 #include <typeinfo>
@@ -25,6 +23,9 @@ namespace o2
 {
 namespace conf
 {
+
+// ----------------------------------------------------------------
+
 // Utility structure for passing around ConfigurableParam data member info
 // (where value is the string representation)
 struct paramDataMember {
@@ -32,29 +33,10 @@ struct paramDataMember {
   const char* value;
   std::string provenance;
 
-  std::string toString(bool showProv) const
-  {
-    std::string nil = "<null>";
-    std::string val = ((value == nullptr) ? nil : std::string(value));
-
-    std::ostringstream out;
-    out << name << " : " << val;
-
-    if (showProv) {
-      std::string prov = (provenance == "" ? nil : provenance);
-      out << "\t\t[ " + prov + " ]";
-    }
-
-    out << "\n";
-    return out.str();
-  }
-
-  std::ostream& operator<<(std::ostream& out)
-  {
-    out << this->toString(false);
-    return out;
-  }
+  std::string toString(bool showProv) const;
 };
+
+// ----------------------------------------------------------------
 
 // just a (non-templated) helper with exclusively private functions
 // used by ConfigurableParamHelper
@@ -72,12 +54,13 @@ class _ParamHelper
   static void assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
                              std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
+  static void outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv);
+  static void printMembersImpl(std::vector<paramDataMember>* members, bool showProv);
+
   template <typename P>
   friend class ConfigurableParamHelper;
 };
 
-// ----------------------------------------------------------------
-// ----------------------------------------------------------------
 // ----------------------------------------------------------------
 
 // implementer (and checker) for concrete ConfigurableParam classes P
@@ -101,16 +84,10 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   // ----------------------------------------------------------------
 
   // one of the key methods, using introspection to print itself
-  void printKeyValues(bool showprov) const final
+  void printKeyValues(bool showProv) const final
   {
     auto members = getDataMembers();
-    if (members == nullptr) {
-      return;
-    }
-
-    for (auto& member : *members) {
-      std::cout << member.toString(showprov);
-    }
+    _ParamHelper::printMembersImpl(members, showProv);
   }
 
   // ----------------------------------------------------------------
@@ -118,13 +95,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   void output(std::ostream& out) const final
   {
     auto members = getDataMembers();
-    if (members == nullptr) {
-      return;
-    }
-
-    for (auto& member : *members) {
-      out << member.toString(true);
-    }
+    _ParamHelper::outputMembersImpl(out, members, true);
   }
 
   // ----------------------------------------------------------------

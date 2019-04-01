@@ -18,11 +18,37 @@
 #include <TIterator.h>
 #include <TList.h>
 #include <iostream>
+#include <sstream>
 #include "FairLogger.h"
 #include <boost/property_tree/ptree.hpp>
 #include <functional>
 
 using namespace o2::conf;
+
+// ----------------------------------------------------------------------
+
+std::string paramDataMember::toString(bool showProv) const
+{
+  std::string nil = "<null>";
+  std::string val = ((value == nullptr) ? nil : std::string(value));
+
+  std::ostringstream out;
+  out << name << " : " << val;
+
+  if (showProv) {
+    std::string prov = (provenance == "" ? nil : provenance);
+    out << "\t\t[ " + prov + " ]";
+  }
+
+  out << "\n";
+  return out.str();
+}
+
+std::ostream& operator<<(std::ostream& out, const paramDataMember& pdm)
+{
+  out << pdm.toString(false);
+  return out;
+}
 
 // ----------------------------------------------------------------------
 
@@ -217,6 +243,22 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
   };
   loopOverMembers(cl, obj, fillMap);
   tree->add_child(mainkey, localtree);
+}
+
+// ----------------------------------------------------------------------
+
+void _ParamHelper::printMembersImpl(std::vector<paramDataMember>* members, bool showProv)
+{
+  _ParamHelper::outputMembersImpl(std::cout, members, showProv);
+}
+
+void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv)
+{
+  if (members == nullptr) return;
+
+  for (auto& member : *members) {
+    out << member.toString(showProv);
+  }
 }
 
 // ----------------------------------------------------------------------
