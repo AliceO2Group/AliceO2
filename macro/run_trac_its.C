@@ -103,7 +103,8 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setContinuousMode(isContITS);
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
-  tracker.setMCTruthContainers(labels, trackLabels);
+  if (mcTruth)
+    tracker.setMCTruthContainers(labels, trackLabels);
   //===========================================
 
   //-------------------- settings -----------//
