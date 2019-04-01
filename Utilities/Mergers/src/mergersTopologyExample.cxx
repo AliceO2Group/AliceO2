@@ -31,7 +31,7 @@ void customize(std::vector<CompletionPolicy>& policies)
 }
 
 #include <Framework/runDataProcessing.h>
-#include <FairLogger.h>
+#include <fairmq/FairMQLogger.h>
 #include <Mergers/MergeInterfaceOverrideExample.h>
 
 #include "Mergers/MergerInfrastructureBuilder.h"

@@ -46,7 +46,7 @@ void customize(std::vector<ConfigParamSpec>& options)
 }
 
 #include <Framework/runDataProcessing.h>
-#include <FairLogger.h>
+#include <fairmq/FairMQLogger.h>
 #include <Mergers/MergeInterfaceOverrideExample.h>
 
 #include "Mergers/MergerInfrastructureBuilder.h"
