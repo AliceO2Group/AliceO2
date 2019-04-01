@@ -975,8 +975,13 @@ o2_define_bucket(
   Core
   Hist
   arrow_bucket
+  fairmq_bucket
+  O2FrameworkCore_bucket
 
   INCLUDE_DIRECTORIES
+  ${MS_GSL_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/DataFormats/MemoryResources/include
+  ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
   ${CMAKE_SOURCE_DIR}/Framework/Core/include
   ${CMAKE_SOURCE_DIR}/Utilities/Mergers/include
 )
