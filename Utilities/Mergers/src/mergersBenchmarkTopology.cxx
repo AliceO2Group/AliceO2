@@ -41,7 +41,8 @@ void customize(std::vector<ConfigParamSpec>& options)
   options.push_back({ "mergers-merge-decision", VariantType::String, "publication", { "At which occasion objects are merged: 'arrival' or 'publication'" } });
   options.push_back({ "mergers-publication-decision", VariantType::String, "interval", { "When merged objects are published: interval or all-updated" } });
   options.push_back({ "mergers-publication-interval", VariantType::Double, 10.0, { "Publication interval of merged object [s]. It takes effect with --mergers-publication-decision interval" } });
-  options.push_back({ "mergers-ownership-mode", VariantType::String, "diffs", { "Should the topology use 'diffs' or 'full' objects" } });
+  options.push_back(
+    { "mergers-ownership-mode", VariantType::String, "diffs", { "Should the topology use 'diffs' or 'full' objects" } });
 }
 
 #include <Framework/runDataProcessing.h>
@@ -52,7 +53,6 @@ void customize(std::vector<ConfigParamSpec>& options)
 
 using namespace std::chrono;
 
-// clang-format off
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   int objectsBins = config.options().get<int>("obj-bins");
@@ -68,9 +68,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   OwnershipMode mergersOwnershipMode =
     config.options().get<std::string>("mergers-ownership-mode") == "full" ? OwnershipMode::Full : OwnershipMode::Integral;
 
-
   WorkflowSpec specs;
-
+  // clang-format off
   // one 1D histo, binwise
   {
     Inputs mergersInputs;
@@ -110,7 +109,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "HISTO", 0 });
     MergerConfig mergerConfig;
     mergerConfig.ownershipMode = { mergersOwnershipMode };
-    mergerConfig.publicationDecision = { mergersPublicationDecision, mergersPublicationDecision == PublicationDecision::EachNSeconds ? mergersPublicationInterval : 1.0};
+    mergerConfig.publicationDecision = { mergersPublicationDecision, mergersPublicationDecision == PublicationDecision::EachNSeconds ? mergersPublicationInterval : 1.0 };
     mergerConfig.mergingTime = { mergersMergeDecision };
     mergerConfig.timespan = { Timespan::FullHistory };
     mergerConfig.topologySize = { TopologySize::NumberOfLayers, mergersLayers };

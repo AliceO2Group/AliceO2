@@ -14,7 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::experimental::mergers::MergeInterface+;
-#pragma link C++ class o2::experimental::mergers::MergeInterfaceOverrideExample+;
+#pragma link C++ class o2::experimental::mergers::MergeInterface + ;
+#pragma link C++ class o2::experimental::mergers::MergeInterfaceOverrideExample + ;
 
 #endif

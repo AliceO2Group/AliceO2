@@ -242,7 +242,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     specs.push_back(printer);
   }
 
-
   return specs;
 }
 // clang-format on
