@@ -48,6 +48,13 @@ O2_GENERATE_EXECUTABLE(
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "mergersBenchmarkTopology"
+  SOURCES "src/mergersBenchmarkTopology.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
 set(TEST_SRCS
   test/test_InfrastructureBuilder.cxx
   )
