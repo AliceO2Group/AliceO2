@@ -254,7 +254,8 @@ void _ParamHelper::printMembersImpl(std::vector<paramDataMember>* members, bool 
 
 void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv)
 {
-  if (members == nullptr) return;
+  if (members == nullptr)
+    return;
 
   for (auto& member : *members) {
     out << member.toString(showProv);
