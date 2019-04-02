@@ -729,6 +729,8 @@ class RawPixelReader : public PixelReader
             mInteractionRecord.bc = rdh->triggerBC;
             mInteractionRecord.orbit = rdh->triggerOrbit;
             mTrigger = rdh->triggerType;
+            mInteractionRecordHB.bc = rdh->heartbeatBC;
+            mInteractionRecordHB.orbit = rdh->heartbeatOrbit;
             break;
           }
         }
@@ -1050,7 +1052,11 @@ class RawPixelReader : public PixelReader
 
     mInteractionRecord.bc = rdh->triggerBC;
     mInteractionRecord.orbit = rdh->triggerOrbit;
+
     mTrigger = rdh->triggerType;
+
+    mInteractionRecordHB.bc = rdh->heartbeatBC;
+    mInteractionRecordHB.orbit = rdh->heartbeatOrbit;
 
     auto& ruStat = mRUDecodeVec[mRUEntry[ruIDSW]].statistics;
     ruStat.nPackets++;
