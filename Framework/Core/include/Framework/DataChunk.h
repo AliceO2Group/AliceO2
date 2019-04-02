@@ -10,17 +10,15 @@
 #ifndef FRAMEWORK_DATACHUNK_H
 #define FRAMEWORK_DATACHUNK_H
 
+#include "MemoryResources/MemoryResources.h"
+
 namespace o2
 {
 namespace framework
 {
-
-/// Simple struct to hold a pointer to the actual FairMQMessage.
-/// In principle this could be an iovec...
-struct DataChunk {
-  char *data;
-  size_t size;
-};
+// FIXME: make sure that a DataChunk can not be copied or assigned, because the context returns the
+// object by reference and we have to make sure that the code is using the reference instead of a copy
+using DataChunk = std::vector<char, o2::pmr::polymorphic_allocator<char>>;
 
 } // namespace framework
 } // namespace o2

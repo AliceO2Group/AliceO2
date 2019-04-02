@@ -147,7 +147,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       char* outputBuffer = nullptr;
       auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
-        outputBuffer = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, size).data;
+        outputBuffer = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, size).data();
         return outputBuffer;
       };
       std::vector<MCLabelContainer> mcoutList;

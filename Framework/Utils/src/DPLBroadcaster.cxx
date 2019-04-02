@@ -47,8 +47,8 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
                auto msgSize = (*funcPtr)(inputMsg);
                // Iterating over the OutputSpecs to push the input message to all the output destinations
                for (const auto& itOutputs : (*outputsPtr)) {
-                 auto fwdMsg = ctx.outputs().newChunk(itOutputs, msgSize);
-                 std::memcpy(fwdMsg.data, inputMsg.payload, msgSize);
+                 auto& fwdMsg = ctx.outputs().newChunk(itOutputs, msgSize);
+                 std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);
                }
              };
            } } };

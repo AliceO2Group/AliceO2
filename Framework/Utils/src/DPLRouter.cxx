@@ -42,8 +42,8 @@ o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o
                auto msgSize = (o2::header::get<o2::header::DataHeader*>(inputMsg.header))->payloadSize;
                auto& outputCh = (*outputsPtr)[(*mappingFuncPtr)(inputMsg)];
 
-               auto fwdMsg = ctx.outputs().newChunk(outputCh, msgSize);
-               std::memcpy(fwdMsg.data, inputMsg.payload, msgSize);
+               auto& fwdMsg = ctx.outputs().newChunk(outputCh, msgSize);
+               std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);
              };
            } } };
 }
