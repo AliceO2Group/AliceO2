@@ -61,8 +61,8 @@ DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
   throw std::runtime_error(str.str());
 }
 
-DataChunk
-DataAllocator::newChunk(const Output& spec, size_t size) {
+DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
+{
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto context = mContextRegistry->get<MessageContext>();
 
@@ -70,12 +70,12 @@ DataAllocator::newChunk(const Output& spec, size_t size) {
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
                                                            );
-  auto& co = context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, size);
-  return DataChunk{ reinterpret_cast<char*>(co.data()), size };
+  auto& co = context->add<MessageContext::VectorObject<DataChunk::value_type>>(std::move(headerMessage), channel, 0, size);
+  return co;
 }
 
-DataChunk
-DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
+void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fairmq_free_fn* freefn, void* hint = nullptr)
+{
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
@@ -87,8 +87,7 @@ DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_
 
   // FIXME: how do we want to use subchannels? time based parallelism?
   auto context = mContextRegistry->get<MessageContext>();
-  auto& co = context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
-  return DataChunk{ reinterpret_cast<char*>(co.data()), size };
+  context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
 }
 
 FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,                     //

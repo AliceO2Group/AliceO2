@@ -12,6 +12,8 @@
 
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TypeTraits.h"
+#include "MemoryResources/MemoryResources.h"
+#include "Headers/DataHeader.h"
 
 #include <fairmq/FairMQMessage.h>
 #include <fairmq/FairMQParts.h>
@@ -20,6 +22,7 @@
 #include <cassert>
 #include <string>
 #include <type_traits>
+#include <stdexcept>
 
 class FairMQDevice;
 
@@ -35,25 +38,56 @@ class MessageContext {
   {
   }
 
-  // thhis is the virtual interface for context objects
+  // this is the virtual interface for context objects
   class ContextObject
   {
    public:
     ContextObject() = default;
     ContextObject(FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, const std::string& bindingChannel)
-      : parts{}, channel{ bindingChannel }
+      : mParts{}, mChannel{ bindingChannel }
     {
-      parts.AddPart(std::move(headerMsg));
-      parts.AddPart(std::move(payloadMsg));
+      mParts.AddPart(std::move(headerMsg));
+      mParts.AddPart(std::move(payloadMsg));
+    }
+    ContextObject(FairMQMessagePtr&& headerMsg, const std::string& bindingChannel)
+      : mParts{}, mChannel{ bindingChannel }
+    {
+      mParts.AddPart(std::move(headerMsg));
     }
     virtual ~ContextObject() = default;
 
-    // TODO: we keep this public for the moment to keep the current interface
-    // the send-handler loops over all objects and can acces the message parts
-    // directly, needs to be changed when the context is generalized, then the
-    // information needs to be stored in the derived class
-    FairMQParts parts;
-    std::string channel;
+    /// @brief Finalize the object and return the parts by move
+    /// This is the default method and can be overloaded by other implmentations to carry out other
+    /// tasks before returning the parts objects
+    virtual FairMQParts finalize()
+    {
+      FairMQParts parts = std::move(mParts);
+      assert(parts.Size() == 2);
+      auto* header = o2::header::get<o2::header::DataHeader*>(parts.At(0)->GetData());
+      if (header == nullptr) {
+        throw std::logic_error("No valid header message found");
+      } else {
+        // o2::header::get returns const pointer, but here we can change the message
+        const_cast<o2::header::DataHeader*>(header)->payloadSize = parts.At(1)->GetSize();
+      }
+      // return value optimization returns by move
+      return parts;
+    }
+
+    /// @brief return the channel name
+    const std::string& channel() const
+    {
+      return mChannel;
+    }
+
+    bool empty() const
+    {
+      return mParts.Size() == 0;
+    }
+
+   protected:
+    FairMQParts mParts;
+    std::string mChannel;
   };
 
   /// TrivialObject handles a message object
@@ -78,13 +112,85 @@ class MessageContext {
 
     auto* data()
     {
-      assert(parts.Size() == 2);
-      return parts[1].GetData();
+      assert(mParts.Size() == 2);
+      return mParts[1].GetData();
     }
+  };
+
+  /// VectorObject handles a message object holding std::vector with polymorphic_allocator
+  /// can not adopt an existing message, because the polymorphic_allocator will call the element constructor,
+  /// so this works only with new messages
+  template <typename T>
+  class VectorObject : public ContextObject
+  {
+   public:
+    using value_type = T;
+    using return_type = std::vector<char, o2::pmr::polymorphic_allocator<char>>;
+    using buffer_type = return_type;
+    /// default contructor forbidden, object always has to control message instances
+    VectorObject() = delete;
+    /// constructor taking header message by move and creating the paypload message
+    template <typename ContextType, typename... Args>
+    VectorObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t size)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
+        // backup of initially allocated size
+        mAllocatedSize{ size * sizeof(value_type) },
+        // the transport factory
+        mFactory{ context->proxy().getTransport(bindingChannel, index) },
+        // the memory resource takes ownership of the message
+        mResource{ mFactory ? mFactory->GetMemoryResource() : nullptr },
+        // create the vector with apropriate underlying memory resource for the message
+        mData{ size, pmr::polymorphic_allocator<value_type>(mResource) }
+    {
+      // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
+      // introduce error policy
+      if (mFactory == nullptr) {
+        throw std::runtime_error(std::string("failed to get transport factory for channel ") + bindingChannel);
+      }
+      if (mResource == nullptr) {
+        throw std::runtime_error(std::string("no memory resource for channel ") + bindingChannel);
+      }
+    }
+    ~VectorObject() override = default;
+
+    /// @brief Finalize object and return parts by move
+    /// This retrieves the actual message from the vector object and moves it to the parts
+    FairMQParts finalize() final
+    {
+      assert(mParts.Size() == 1);
+      auto payloadMsg = o2::pmr::getMessage(std::move(mData));
+      mParts.AddPart(std::move(payloadMsg));
+      return ContextObject::finalize();
+    }
+
+    /// @brief return reference to the handled vector object
+    operator return_type&()
+    {
+      return mData;
+    }
+
+    /// @brief return reference to the handled vector object
+    return_type& get()
+    {
+      return mData;
+    }
+
+    /// @brief return data pointer of the handled vector object
+    value_type* data()
+    {
+      return mData.data();
+    }
+
+   private:
+    size_t mAllocatedSize;                          /// backup of initially allocated size
+    FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
+    pmr::FairMQMemoryResource* mResource = nullptr; /// message resource
+    buffer_type mData;                              /// the data buffer
   };
 
   // SpanObject creates a trivial binary object for an array of elements of
   // type T and holds a span over the elements
+  // FIXME: probably obsolete after introducing of vector with polymorphic_allocator
   template <typename T>
   class SpanObject : public ContextObject
   {
@@ -101,9 +207,9 @@ class MessageContext {
       // TODO: we probably also want to check consistency of the header message, i.e. payloadSize member
       auto payloadMsg = context->createMessage(bindingChannel, index, nElements * sizeof(T));
       mValue = value_type(reinterpret_cast<T*>(payloadMsg->GetData()), nElements);
-      parts.AddPart(std::move(headerMsg));
-      parts.AddPart(std::move(payloadMsg));
-      channel = bindingChannel;
+      mParts.AddPart(std::move(headerMsg));
+      mParts.AddPart(std::move(payloadMsg));
+      mChannel = bindingChannel;
     }
     ~SpanObject() override = default;
 
@@ -152,7 +258,7 @@ class MessageContext {
   {
     // Verify that everything has been sent on clear.
     for (auto &m : mMessages) {
-      assert(m->parts.Size() == 0);
+      assert(m->empty());
     }
     mMessages.clear();
   }

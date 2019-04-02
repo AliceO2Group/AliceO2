@@ -107,6 +107,14 @@ DataProcessorSpec getSourceSpec()
     auto freefct = [](void* data, void* hint) {}; // simply ignore the cleanup for the test
     static std::string teststring = "adoptchunk";
     pc.outputs().adoptChunk(Output{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe }, teststring.data(), teststring.length(), freefct, nullptr);
+    // test resizable data chunk, initial size 0 and grow
+    auto& growchunk = pc.outputs().newChunk(OutputRef{ "growchunk", 0 }, 0);
+    growchunk.resize(sizeof(o2::test::TriviallyCopyable));
+    memcpy(growchunk.data(), &a, sizeof(o2::test::TriviallyCopyable));
+    // test resizable data chunk, large initial size and shrink
+    auto& shrinkchunk = pc.outputs().newChunk(OutputRef{ "shrinkchunk", 0 }, 1000000);
+    shrinkchunk.resize(sizeof(o2::test::TriviallyCopyable));
+    memcpy(shrinkchunk.data(), &a, sizeof(o2::test::TriviallyCopyable));
   };
 
   return DataProcessorSpec{ "source", // name of the processor
@@ -114,6 +122,8 @@ DataProcessorSpec getSourceSpec()
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
                               OutputSpec{ { "makesingle" }, "TST", "MAKESINGLE", 0, Lifetime::Timeframe },
                               OutputSpec{ { "makespan" }, "TST", "MAKESPAN", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "growchunk" }, "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "shrinkchunk" }, "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
@@ -143,8 +153,10 @@ DataProcessorSpec getSinkSpec()
       dumpStack(dh);
     }
     // plain, unserialized object in input1 channel
+    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input1";
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input1";
     auto object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
     ASSERT_ERROR(object1span.size() == 1);
     ASSERT_ERROR(sizeof(typename decltype(object1span)::value_type) == sizeof(o2::test::TriviallyCopyable));
@@ -157,49 +169,66 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(metaHeader2 != nullptr && metaHeader2->secret == 23);
 
     // ROOT-serialized messageable object in input2 channel
+    LOG(INFO) << "extracting o2::test::TriviallyCopyable pointer from input2";
     auto object2 = pc.inputs().get<o2::test::TriviallyCopyable*>("input2");
     ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     // ROOT-serialized, non-messageable object in input3 channel
+    LOG(INFO) << "extracting o2::test::Polymorphic pointer from input3";
     auto object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
     ASSERT_ERROR(object3 != nullptr);
     ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 
     // container of objects
+    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input4";
     auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
     ASSERT_ERROR(object4.size() == 2);
     ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
+    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input5";
     auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
     ASSERT_ERROR(object5.size() == 2);
     ASSERT_ERROR(object5[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object5[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
+    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input6";
     auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
     ASSERT_ERROR(object6.size() == 2);
     ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
 
     // checking retrieving buffer as raw char*, and checking content by cast
+    LOG(INFO) << "extracting raw char* from input1";
     auto rawchar = pc.inputs().get<const char*>("input1");
     const auto& data1 = *reinterpret_cast<const o2::test::TriviallyCopyable*>(rawchar);
     ASSERT_ERROR(data1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input7";
     auto object7 = pc.inputs().get<o2::test::TriviallyCopyable>("input7");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input8";
     auto objectspan8 = DataRefUtils::as<o2::test::TriviallyCopyable>(pc.inputs().get("input8"));
     ASSERT_ERROR(objectspan8.size() == 3);
     for (auto const& object8 : objectspan8) {
       ASSERT_ERROR(object8 == o2::test::TriviallyCopyable(42, 23, 0xdead));
     }
 
+    LOG(INFO) << "extracting std::string from input9";
     auto object9 = pc.inputs().get<std::string>("input9");
     ASSERT_ERROR(object9 == "adoptchunk");
+
+    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input10";
+    auto object10 = pc.inputs().get<o2::test::TriviallyCopyable>("input10");
+    ASSERT_ERROR(object10 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+
+    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input11";
+    auto object11 = pc.inputs().get<o2::test::TriviallyCopyable>("input11");
+    ASSERT_ERROR(object11 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     pc.services().get<ControlService>().readyToQuit(true);
   };
@@ -213,7 +242,9 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe },
                               InputSpec{ "input7", "TST", "MAKESINGLE", 0, Lifetime::Timeframe },
                               InputSpec{ "input8", "TST", "MAKESPAN", 0, Lifetime::Timeframe },
-                              InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe } },
+                              InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
+                              InputSpec{ "input10", "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
+                              InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }
