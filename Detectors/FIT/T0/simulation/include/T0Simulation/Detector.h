@@ -34,7 +34,7 @@ class Geometry;
 } // namespace o2
 
 namespace o2
-{
+{ 
 namespace t0
 {
 // using HitType = o2::BasicXYZEHit<float>;
@@ -45,6 +45,7 @@ class Detector : public o2::base::DetImpl<Detector>
   enum constants {
     kAir = 1,
     kVac = 3,
+    kCeramic=4,
     kGlass = 6,
     kOpAir = 7,
     kAl = 15,
