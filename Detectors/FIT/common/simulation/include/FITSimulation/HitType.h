@@ -19,7 +19,6 @@ class HitType : public o2::BasicXYZEHit<float>
 
 } // namespace o2
 
-#endif
 
 #ifdef USESHM
 namespace std
@@ -29,4 +28,5 @@ class allocator<o2::fit::HitType> : public o2::utils::ShmAllocator<o2::fit::HitT
 {
 };
 } // namespace std
+#endif
 #endif
