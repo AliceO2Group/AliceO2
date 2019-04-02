@@ -43,7 +43,8 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <FITSimulation/Detector.h>
+#include <T0Simulation/Detector.h>
+#include <V0Simulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
@@ -466,8 +467,12 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
       counter++;
     }
-    if (i == DetID::FIT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fit::Detector>(true));
+    if (i == DetID::T0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::t0::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::V0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
       counter++;
     }
     if (i == DetID::MCH) {

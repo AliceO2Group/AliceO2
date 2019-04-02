@@ -38,6 +38,7 @@ enum struct DriverStatus : uint32_t {
   BYTES_READ = 0,
   BYTES_PROCESSED = 1,
   BUFFER_OVERFLOWS = 2
+
 };
 
 } // namespace framework
