@@ -16,6 +16,7 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include <vector>
+#include <string>
 
 namespace o2
 {
@@ -25,29 +26,39 @@ namespace framework
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, boost::property_tree::ptree& pt, boost::program_options::variables_map const& vmap)
 {
   for (auto& spec : schema) {
-    switch (spec.type) {
-      case VariantType::Int:
-        pt.put(spec.name, vmap[spec.name].as<int>());
-        break;
-      case VariantType::Int64:
-        pt.put(spec.name, vmap[spec.name].as<int64_t>());
-        break;
-      case VariantType::Float:
-        pt.put(spec.name, vmap[spec.name].as<float>());
-        break;
-      case VariantType::Double:
-        pt.put(spec.name, vmap[spec.name].as<double>());
-        break;
-      case VariantType::String:
-        pt.put(spec.name, vmap[spec.name].as<std::string>());
-        break;
-      case VariantType::Bool:
-        pt.put(spec.name, vmap[spec.name].as<bool>());
-        break;
-      case VariantType::Unknown:
-      case VariantType::Empty:
-      default:
-        throw std::runtime_error("Unknown variant type");
+    // strip short version to get the correct key
+    std::string key = spec.name.substr(0, spec.name.find(","));
+    try {
+      switch (spec.type) {
+        case VariantType::Int:
+          pt.put(key, vmap[key].as<int>());
+          break;
+        case VariantType::Int64:
+          pt.put(key, vmap[key].as<int64_t>());
+          break;
+        case VariantType::Float:
+          pt.put(key, vmap[key].as<float>());
+          break;
+        case VariantType::Double:
+          pt.put(key, vmap[key].as<double>());
+          break;
+        case VariantType::String:
+          pt.put(key, vmap[key].as<std::string>());
+          break;
+        case VariantType::Bool:
+          pt.put(key, vmap[key].as<bool>());
+          break;
+        case VariantType::Unknown:
+        case VariantType::Empty:
+        default:
+          throw std::runtime_error("Unknown variant type");
+      }
+    } catch (std::runtime_error& re) {
+      throw re;
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("missing option: ") + key);
     }
   }
 }
