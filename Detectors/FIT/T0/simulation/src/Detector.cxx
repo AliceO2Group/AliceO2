@@ -374,7 +374,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
     if (fMC->TrackCharge()) { //charge particles for MCtrue
-      AddHit(x, y, z, time, enDep, trackID, detID);
+      AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) // If particles is photon then ...
     {
@@ -515,12 +515,8 @@ void Detector::FillOtherOptProperties()
 //------------------------------------------------------------------------
 Bool_t Detector::RegisterPhotoE(float energy)
 {
-  //  Float_t hc=197.326960*1.e6; //mev*nm
-  float hc = 1.973 * 1.e-6; // gev*nm
-  float lambda = hc / energy;
-  float eff = mPMTeff->Eval(lambda);
+  float eff = mPMTeff->Eval(energy);
   float p = gRandom->Rndm();
-
   if (p > eff)
     return kFALSE;
 
