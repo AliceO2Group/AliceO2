@@ -31,6 +31,8 @@ inline size_t chargemapIdx(uchar row, uchar pad, ushort time)
     || defined(CHARGEMAP_4x8_TILING_LAYOUT) \
     || defined(CHARGEMAP_8x4_TILING_LAYOUT)
 
+#define CHARGEMAP_TILING_LAYOUT
+
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT)
   #define TILE_WIDTH 4
   #define TILE_HEIGHT 4
@@ -40,6 +42,8 @@ inline size_t chargemapIdx(uchar row, uchar pad, ushort time)
 #elif defined(CHARGEMAP_8x4_TILING_LAYOUT)
   #define TILE_WIDTH 8
   #define TILE_HEIGHT 4
+#else
+  #error("Unknown tiling layout")
 #endif
 
     const size_t tileW = TILE_WIDTH;
@@ -48,11 +52,11 @@ inline size_t chargemapIdx(uchar row, uchar pad, ushort time)
 
     const size_t globPad = tpcGlobalPadIdx(row, pad);
 
-    size_t tilePad  = globPad / tileW;
-    size_t tileTime = time / tileH;
+    const size_t tilePad  = globPad / tileW;
+    const size_t tileTime = time / tileH;
 
-    size_t inTilePad = globPad % tileW;
-    size_t inTileTime = time % tileH;
+    const size_t inTilePad = globPad % tileW;
+    const size_t inTileTime = time % tileH;
 
     return (tileTime * widthInTiles + tilePad) * (tileW * tileH)
         + inTileTime * tileW + inTilePad;

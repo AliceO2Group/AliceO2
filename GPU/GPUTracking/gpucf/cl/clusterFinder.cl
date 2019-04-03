@@ -7,22 +7,8 @@
 constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
-#define HALF_NEIGHBORS_NUM 4
 
-constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
-{
-    (int2)(-1, -1), 
-    (int2)(-1, 0), 
-    (int2)(-1, 1),
-    (int2)(0, -1)
-};
-constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = 
-{
-    (int2)(0, 1),
-    (int2)(1, -1),
-    (int2)(1, 0), 
-    (int2)(1, 1)
-};
+
 
 
 Cluster newCluster()
@@ -150,32 +136,84 @@ void buildCluster(
 }
 
 
+#define HALF_NEIGHBORS_NUM 4
+
+constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
+{
+    (int2)(-1, -1), 
+    (int2)(-1, 0), 
+    (int2)(-1, 1),
+    (int2)(0, -1)
+};
+constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = 
+{
+    (int2)(0, 1),
+    (int2)(1, -1),
+    (int2)(1, 0), 
+    (int2)(1, 1)
+};
+
+
+
 bool isPeak(
                const Digit    *digit,
         global const charge_t *chargeMap)
 {
-    charge_t myCharge = digit->charge;
+    const charge_t myCharge = digit->charge;
     short time = digit->time;
     uchar row = digit->row;
     uchar pad = digit->pad;
 
     bool peak = true;
 
-    for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
-    {
-        int dp = LEQ_NEIGHBORS[i].x;
-        int dt = LEQ_NEIGHBORS[i].y;
-        charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        peak &= (otherCharge <= myCharge);
-    }
+#define CMP_NEIGHBOR(dp, dt, cmpOp) \
+    do \
+    { \
+        const charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt); \
+        peak &= (otherCharge cmpOp myCharge); \
+    } \
+    while (false)
 
-    for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
-    {
-        int dp = LQ_NEIGHBORS[i].x;
-        int dt = LQ_NEIGHBORS[i].y;
-        charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        peak &= (otherCharge < myCharge);
-    }
+#define CMP_LT CMP_NEIGHBOR(-1, -1, <=)
+#define CMP_T  CMP_NEIGHBOR(-1, 0, <=)
+#define CMP_RT CMP_NEIGHBOR(-1, 1, <=)
+
+#define CMP_L  CMP_NEIGHBOR(0, -1, <=)
+#define CMP_R  CMP_NEIGHBOR(0, 1, < )
+
+#define CMP_LB CMP_NEIGHBOR(1, -1, < )
+#define CMP_B  CMP_NEIGHBOR(1, 0, < )
+#define CMP_RB CMP_NEIGHBOR(1, 1, < )
+
+#if defined(CHARGEMAP_TILING_LAYOUT)
+    CMP_LT;
+    CMP_T;
+    CMP_RT;
+    CMP_R;
+    CMP_RB;
+    CMP_B;
+    CMP_LB;
+    CMP_L;
+#else
+    CMP_LT;
+    CMP_T;
+    CMP_RT;
+    CMP_L;
+    CMP_R;
+    CMP_LB;
+    CMP_B;
+    CMP_RB;
+#endif
+
+#undef CMP_LT
+#undef CMP_T
+#undef CMP_RT
+#undef CMP_L
+#undef CMP_R
+#undef CMP_LB
+#undef CMP_B
+#undef CMP_RB
+#undef CMP_NEIGHBOR
 
     peak &= (myCharge > CHARGE_THRESHOLD);
 
