@@ -1,0 +1,9 @@
+input = [
+    { file = "in/padMajor.json", label = "Cluster Finder" }
+]
+
+type   = "bar"
+out    = "out/padMajor.pdf"
+ylabel = "time [ms]"
+showLegend = false
+stepBlacklist = ["digitsToDevice", "clusterToHost"]
