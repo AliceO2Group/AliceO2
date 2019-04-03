@@ -40,16 +40,8 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 
     cfconfig = std::make_unique<args::Group>(
-            required,
-            "Cluster finder config (provide exactly one!)",
-            args::Group::Validators::Xor);
-
-    reference = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use standard config",
-            {"std"});
+            optional,
+            "Cluster finder config");
 
     chargemapIdxMacro = INIT_FLAG(
             args::Flag,
@@ -58,12 +50,26 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "Use macro for chargemap Idx",
             {"idxMacro"});
 
-    tilingLayout = INIT_FLAG(
+    tiling4x4 = INIT_FLAG(
             args::Flag,
             *cfconfig,
             "",
-            "Use tiling layout in charge map",
-            {"tiling"});
+            "Use 4x4 tiling layout",
+            {"tiling4x4"});
+
+    tiling4x8 = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use 4x8 tiling layout",
+            {"tiling4x8"});
+
+    tiling8x4 = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Use 8x4 tiling layout",
+            {"tiling8x4"});
 
     padMajor = INIT_FLAG(
             args::Flag,
@@ -95,21 +101,30 @@ int CfRunner::mainImpl()
     {
         config.useChargemapMacro = true;
     } 
-    else if (*tilingLayout)
-    {
-        config.layout = ChargemapLayout::Tiling4x4;
-    }
-    else if (*padMajor)
+
+    if (*padMajor)
     {
         config.layout = ChargemapLayout::PadMajor;
     }
-    else if (*halfs)
+
+    if (*tiling4x4)
+    {
+        config.layout = ChargemapLayout::Tiling4x4;
+    }
+
+    if (*tiling4x8)
+    {
+        config.layout = ChargemapLayout::Tiling4x8;
+    }
+
+    if (*tiling8x4)
+    {
+        config.layout = ChargemapLayout::Tiling8x4;
+    }
+
+    if (*halfs)
     {
         config.halfPrecisionCharges = true;
-    }
-    else if (!*reference)
-    {
-        log::Fail() << "Unknown configuration provided.";
     }
 
     GPUClusterFinder cf;
