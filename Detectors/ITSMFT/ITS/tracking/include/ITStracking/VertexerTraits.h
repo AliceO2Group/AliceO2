@@ -59,12 +59,13 @@ class VertexerTraits
   virtual ~VertexerTraits();
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPU_DEVICE static const int4 getBinsRect2(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPU_HOST_DEVICE static const int4 getBinsRect2(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
   // virtual vertexer interface
   virtual void reset();
   virtual void initialise(ROframe*);
   virtual void computeTracklets(const bool useMCLabel = false);
+  void computeTracklets(const bool useMCLabel, const bool useSerialKernels);
   virtual void computeVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
@@ -143,7 +144,7 @@ inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentC
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 
-inline GPU_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,
+inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,
                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;

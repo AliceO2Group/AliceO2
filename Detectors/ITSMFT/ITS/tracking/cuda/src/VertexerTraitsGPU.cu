@@ -89,6 +89,7 @@ GPU_GLOBAL void trackleterKernel(
   const float phiCut,
   Tracklet* GPUtracklets,
   int* foundTracklets,
+  int* counter,
   // int* debugarray,
   const char isMc = false,
   const int* MClabelsNext = nullptr,
@@ -100,11 +101,11 @@ GPU_GLOBAL void trackleterKernel(
   // const int currentClusterIndex = static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x);
   // const int currentClusterIndex{ getGlobalIdx() };
   for (int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < GPUclusterSize1; currentClusterIndex += blockDim.x * gridDim.x) {
-    // if (currentClusterIndex == 1)
-    //  printf("gridDim.x %d gridDim.y %d gridDim.z %d\n blockDim.x %d blockDim.y %d blockDim.z %d\n", gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z);
-
-    // if (layerOrder == LAYER0_TO_LAYER1)
-    // printf("%d, ", currentClusterIndex);
+    if (layerOrder == LAYER0_TO_LAYER1) {
+      atomicAdd(&counter[0], 1);
+    } else {
+      atomicAdd(&counter[1], 1);
+    }
     if (currentClusterIndex < GPUclusterSize1) {
       int storedTracklets{ 0 };
       // const Cluster currentCluster{ GPUclustersCurrent[currentClusterIndex] };
@@ -146,7 +147,7 @@ GPU_GLOBAL void trackleterKernel(
           for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
             const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
             const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
-            if (/*MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut &&*/ testMC) {
+            if (MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
               if (storedTracklets < maxTrackletsPerCluster) {
                 // printf("i am %d: going to write to %d position\n", currentClusterIndex, stride + storedTracklets);
                 if (layerOrder == LAYER0_TO_LAYER1) {
@@ -154,8 +155,10 @@ GPU_GLOBAL void trackleterKernel(
                 } else {
                   new (GPUtracklets + stride + storedTracklets) Tracklet(currentClusterIndex, iNextLayerCluster, currentCluster, nextCluster);
                 }
+                ++storedTracklets;
+              } else {
+                printf("debug: leaving tracklet behind\n");
               }
-              ++storedTracklets;
             }
           }
         }
@@ -193,7 +196,7 @@ GPU_GLOBAL void trackletSelectionKernel(
     if (validTracklets != maxTracklets) {
       new (destTracklets + stride + validTracklets) Line(); // always complete line with empty one unless all spaces taken
     } else {
-      printf("[INFO]: Fulfilled all the space with tracklets.");
+      printf("[INFO]: Fulfilled all the space with tracklets.\n");
     }
   }
 }
@@ -236,9 +239,9 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   int* numTracks12;
 
   // DEBUG
-  // int* debugArray;
-  // cudaMalloc(reinterpret_cast<void**>(&debugArray), clusterSize1 * sizeof(int));
-  // cudaMemset(debugArray, 0, clusterSize1 * sizeof(int));
+  int* debugArray;
+  cudaMalloc(reinterpret_cast<void**>(&debugArray), 2 * sizeof(int));
+  cudaMemset(debugArray, 0, 2 * sizeof(int));
 
   cudaMalloc(reinterpret_cast<void**>(&numTracks01), clusterSize1 * sizeof(int));
   cudaMalloc(reinterpret_cast<void**>(&numTracks12), clusterSize1 * sizeof(int));
@@ -257,9 +260,9 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   cudaMemcpy(mGPUclusters2, mClusters[2].data(), mClusters[2].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
 
   if (useMCLabel) {
-    const std::vector<int> mclabels0 = getMClabelsLayer(0);
-    const std::vector<int> mclabels1 = getMClabelsLayer(1);
-    const std::vector<int> mclabels2 = getMClabelsLayer(2);
+    // const std::vector<int> mclabels0 = getMClabelsLayer(0);
+    // const std::vector<int> mclabels1 = getMClabelsLayer(1);
+    // const std::vector<int> mclabels2 = getMClabelsLayer(2);
 
     cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels0), clusterSize0 * sizeof(int));
     cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels1), clusterSize1 * sizeof(int));
@@ -272,7 +275,7 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
 
   std::cout << "clusters on L0: " << clusterSize0 << " clusters on L1: " << clusterSize1 << " clusters on L2: " << clusterSize2 << std::endl;
 
-  GPU::trackleterKernel<<</* blocksGrid, threadsPerBlock*/1,1>>>(
+  GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     mGPUclusters0,
     mGPUclusters1,
     mClusters[0].size(),
@@ -282,12 +285,12 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
     mVrtParams.phiCut, // 3.14f,
     mGPURefTracklet01,
     numTracks01,
-    // debugArray,
+    debugArray,
     useMCLabel,
     mGPUMClabels0,
     mGPUMClabels1);
 
-  GPU::trackleterKernel<<</* blocksGrid, threadsPerBlock*/1,1>>>(
+  GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     mGPUclusters2,
     mGPUclusters1,
     mClusters[2].size(),
@@ -297,6 +300,7 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
     mVrtParams.phiCut, // 3.14f,
     mGPURefTracklet12,
     numTracks12,
+    debugArray,
     useMCLabel,
     mGPUMClabels2,
     mGPUMClabels1);
@@ -329,15 +333,17 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   Tracklet* comb12 = new Tracklet[static_cast<int>(80e6)];
   int* foundTracklets01_h = new int[clusterSize1];
   int* foundTracklets12_h = new int[clusterSize1];
-  // int* cartellino = new int[clusterSize1];
+  int* cartellino = new int[2];
 
   cudaMemcpy(comb01, mGPURefTracklet01, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
   cudaMemcpy(comb12, mGPURefTracklet12, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
   cudaMemcpy(foundTracklets01_h, numTracks01, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(foundTracklets12_h, numTracks12, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(lines, mGPUtracklets, static_cast<int>(80e6) * sizeof(Line), cudaMemcpyDeviceToHost);
-  // cudaMemcpy(cartellino, debugArray, sizeof(int) * clusterSize1, cudaMemcpyDeviceToHost);
+  cudaMemcpy(cartellino, debugArray, sizeof(int) * 2, cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
+
+  std::cout << "counter1: " << cartellino[0] << " counter2: " << cartellino[1] << std::endl;
 
   for (int i{ 0 }; i < clusterSize1; ++i) {
     const int stride{ i * static_cast<int>(2e3) };
@@ -364,20 +370,16 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
     }
   }
 
-  // for (int i {0}; i < clusterSize1; ++i) {
-  //   std::cout<<cartellino[i]<<" ";
-  // }
-  // std::cout<<std::endl;
-
   delete[] lines;
   delete[] comb01;
   delete[] comb12;
   delete[] foundTracklets01_h;
   delete[] foundTracklets12_h;
-  // delete[] cartellino;
+  delete[] cartellino;
 
   // \DEBUG section
 
+  cudaFree(debugArray);
   cudaFree(numTracks01);
   cudaFree(numTracks12);
 

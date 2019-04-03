@@ -25,8 +25,8 @@ namespace ITS
 struct Line final {
   GPU_HOST_DEVICE Line();
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
-  GPU_DEVICE Line(const float firstPoint[3], const float secondPoint[3]);
-  GPU_DEVICE Line(const Tracklet&, const Cluster*, const Cluster*);
+  GPU_HOST_DEVICE Line(const float firstPoint[3], const float secondPoint[3]);
+  GPU_HOST_DEVICE Line(const Tracklet&, const Cluster*, const Cluster*);
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
