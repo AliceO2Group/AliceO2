@@ -37,34 +37,28 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         // D0 candidates schema. The first string is just a label
         // so that the algorithm can be in principle be reused for different
         // kind of candidates.
-	//InputSpec{ "tracks", "RN2", "TRACKPAR" }, //works
-	  InputSpec{ "tracks", "RN2", "MUON" },
-	  },//muons instead of tracks not working (together with input)
-      // No outputs for the time being.TODO tuples!
+        InputSpec{ "tracks", "RN2", "MUON" },
+      },
       Outputs{},
       AlgorithmSpec{
         // This is the actual per "message" loop, where a message could
         // be the contents of a file or part of it.
         // FIXME: Too much boilerplate.
         adaptStateless([](InputRecord& inputs) {
-	    auto input = inputs.get<TableConsumer>("tracks");
-	    //muons not working instead of tracks (in sync)
-	    //muons instead of tracks not working
-	    // This does a single loop on all the candidates in the input message
-	    // using a simple mask on the cand_type_ML column and does
-	    // a simple 1D histogram of the filtered entries.
-	    auto tracks = o2::analysis::doSingleLoopOn(input);//need to introduce "CombineParticle"
+          auto input = inputs.get<TableConsumer>("tracks");
+          // This does a single loop on all the candidates in the input message
+          // a simple 1D histogram of the filtered entries.
+          auto tracks = o2::analysis::doSingleLoopOn(input); //need to introduce "CombineParticle"
 
-	    auto h1 = tracks.Filter("fInverseBendingMomentum < 10000.0").Histo1D("fInverseBendingMomentum");
-	    //	    auto h1 = tracks.Filter("fSigned1Pt > 20").Histo1D("fSigned1Pt");	      
-	
-	    // FIXME: For the moment we hardcode saving the histograms.
+          auto h1 = tracks.Filter("fInverseBendingMomentum < 10000.0").Histo1D("fInverseBendingMomentum");
+
+          // FIXME: For the moment we hardcode saving the histograms.
           // In reality it should send the results as outputs to a downstream merger
           // process which merges them as wished.
           TFile f("result.root", "RECREATE");
           h1->SetName("InverseBendingMomentum");
           h1->Write();
-	  }) } }
+        }) } }
   };
   return workflow;
 }
