@@ -32,14 +32,27 @@ namespace framework
 ///        Use options? YES! OptionsRegistry...
 class ConfigParamRegistry
 {
-public:
+ public:
   ConfigParamRegistry(std::unique_ptr<ParamRetriever> retriever)
   : mRetriever{std::move(retriever)} {
   }
 
   template <typename T>
+  T get(const char* key) const
+  {
+    try {
+      return do_get<T>(key);
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("missing option: ") + key);
+    }
+  }
+
+ private:
+  template <typename T>
   typename std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value == false, T>
-    get(const char*) const
+    do_get(const char*) const
   {
     static_assert(std::is_constructible<T, boost::property_tree::ptree>::value == false,
                   "No constructor from ptree provided");
@@ -50,7 +63,7 @@ public:
   /// a constructor which takes a ptree.
   template <typename T>
   std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value, T>
-    get(const char* key) const
+    do_get(const char* key) const
   {
     return T{ mRetriever->getPTree(key) };
   }
@@ -59,33 +72,43 @@ public:
   std::unique_ptr<ParamRetriever> mRetriever;
 };
 
-template <> inline int ConfigParamRegistry::get<int>(const char *key) const {
+template <>
+inline int ConfigParamRegistry::do_get<int>(const char* key) const
+{
   assert(mRetriever.get());
   return mRetriever->getInt(key);
 }
 
-template <> inline float ConfigParamRegistry::get<float>(const char *key) const {
+template <>
+inline float ConfigParamRegistry::do_get<float>(const char* key) const
+{
   assert(mRetriever.get());
   return mRetriever->getFloat(key);
 }
 
-template <> inline double ConfigParamRegistry::get<double>(const char *key) const {
+template <>
+inline double ConfigParamRegistry::do_get<double>(const char* key) const
+{
   assert(mRetriever.get());
   return mRetriever->getDouble(key);
 }
 
-template <> inline std::string ConfigParamRegistry::get<std::string>(const char *key) const {
+template <>
+inline std::string ConfigParamRegistry::do_get<std::string>(const char* key) const
+{
   assert(mRetriever.get());
   return mRetriever->getString(key);
 }
 
-template <> inline bool ConfigParamRegistry::get<bool>(const char *key) const {
+template <>
+inline bool ConfigParamRegistry::do_get<bool>(const char* key) const
+{
   assert(mRetriever.get());
   return mRetriever->getBool(key);
 }
 
 template <>
-inline boost::property_tree::ptree ConfigParamRegistry::get<boost::property_tree::ptree>(const char* key) const
+inline boost::property_tree::ptree ConfigParamRegistry::do_get<boost::property_tree::ptree>(const char* key) const
 {
   assert(mRetriever.get());
   return mRetriever->getPTree(key);
