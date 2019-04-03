@@ -35,7 +35,7 @@ using namespace o2::EMCAL;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("EMC", active),
+  : o2::base::DetImpl<Detector>("EMC", active),
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
@@ -67,7 +67,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mBirkC0(rhs.mBirkC0),
     mBirkC1(rhs.mBirkC1),
     mBirkC2(rhs.mBirkC2),
@@ -519,7 +519,7 @@ void Detector::CreateMaterials()
 
   Int_t isxfld = 2;
   Float_t sxmgmx = 10.0;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // Air                                                                         -> idtmed[1599]
   Medium(ID_AIR, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);

@@ -33,7 +33,7 @@ namespace field
 class MagFieldFast;
 }
 
-namespace Base
+namespace base
 {
 class Propagator
 {

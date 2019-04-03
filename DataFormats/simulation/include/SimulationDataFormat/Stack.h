@@ -34,7 +34,7 @@ class TRefArray;
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 class Detector;
 }
@@ -235,7 +235,7 @@ class Stack : public FairGenericStack
   std::map<Int_t, Int_t> mIndexMap; //!
 
   /// cache active O2 detectors
-  std::vector<o2::Base::Detector*> mActiveDetectors; //!
+  std::vector<o2::base::Detector*> mActiveDetectors; //!
 
   /// Some indices and counters
   Int_t mIndexOfCurrentTrack;        //! Global index of current track

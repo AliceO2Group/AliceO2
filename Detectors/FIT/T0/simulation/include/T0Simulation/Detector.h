@@ -39,7 +39,7 @@ namespace t0
 {
 // using HitType = o2::BasicXYZEHit<float>;
 class Geometry;
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum constants {
@@ -139,7 +139,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Geometry* mGeometry = nullptr; //! Geometry
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -153,13 +153,13 @@ std::istream& operator>>(std::istream& os, Detector& source);
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::t0::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

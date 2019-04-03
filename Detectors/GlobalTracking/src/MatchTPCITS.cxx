@@ -977,7 +977,7 @@ void MatchTPCITS::addTrackCloneForNeighbourSector(const TrackLocITS& src, int se
   mITSWork.push_back(src); // clone the track defined in given sector
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
-      o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged, MaxSnp,
+      o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged, MaxSnp,
                                                            2., 0)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
@@ -996,7 +996,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   // is consistent with TPC sector
   bool refReached = false;
   refReached = mXRef < 10.; // RS: tmp, to cover mXRef~0
-  while (o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged,
+  while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged,
                                                               MaxSnp, 2., 1)) {
     if (refReached)
       break; // RS: tmp
@@ -1139,7 +1139,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
   float chi2 = 0.f;
   auto geom = o2::ITS::GeometryTGeo::Instance();
-  auto propagator = o2::Base::Propagator::Instance();
+  auto propagator = o2::base::Propagator::Instance();
   for (int icl = 0; icl < ncl; icl++) {
     const auto& clus = (*mITSClustersArrayInp)[itsTrOrig.getClusterIndex(icl)];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();

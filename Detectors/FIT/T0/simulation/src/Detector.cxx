@@ -34,7 +34,7 @@ using o2::t0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::DetImpl<Detector>("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::fit::HitType>())
+  : o2::base::DetImpl<Detector>("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::fit::HitType>())
 
 {
   // Gegeo  = GetGeometry() ;
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t Active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::fit::HitType>())
+  : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::fit::HitType>())
 {
 }
 
@@ -339,7 +339,7 @@ void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;     // magneticField->Integ();
   Float_t sxmgmx = 10.; // magneticField->Max();
-  // FIXME: use o2::Base::Detector::initFieldTrack to init mag field params
+  // FIXME: use o2::base::Detector::initFieldTrack to init mag field params
 
   //   Float_t a,z,d,radl,absl,buf[1];
   // Int_t nbuf;

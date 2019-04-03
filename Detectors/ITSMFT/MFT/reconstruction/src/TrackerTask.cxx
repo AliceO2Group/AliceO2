@@ -21,7 +21,7 @@
 ClassImp(o2::MFT::TrackerTask);
 
 using namespace o2::MFT;
-using namespace o2::Base;
+using namespace o2::base;
 
 //_____________________________________________________________________________
 TrackerTask::TrackerTask(Int_t n, Bool_t useMCTruth) : FairTask("MFTTrackerTask"), mTracker(n)

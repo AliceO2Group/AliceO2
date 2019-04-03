@@ -45,7 +45,7 @@ namespace o2
 {
 namespace MFT
 {
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   /// Default constructor
@@ -157,7 +157,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   } mTrackData;                    //!
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -170,13 +170,13 @@ std::istream& operator>>(std::istream& os, Detector& source);
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::MFT::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

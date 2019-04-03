@@ -101,6 +101,15 @@ struct ClusterNative {
     }
     sigmaPadPacked = tmp;
   }
+
+  bool operator<(const ClusterNative& rhs) const
+  {
+    if (this->getTimePacked() != rhs.getTimePacked()) {
+      return (this->getTimePacked() < rhs.getTimePacked());
+    } else {
+      return (this->padPacked < rhs.padPacked);
+    }
+  }
 };
 
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to

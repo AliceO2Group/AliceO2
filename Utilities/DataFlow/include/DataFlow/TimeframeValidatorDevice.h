@@ -17,7 +17,7 @@ namespace o2 {
 namespace DataFlow {
 
 /// A validating device for time frame data (coming from EPN)
-class TimeframeValidatorDevice : public Base::O2Device
+class TimeframeValidatorDevice : public base::O2Device
 {
 public:
     static constexpr const char* OptionKeyInputChannelName = "input-channel-name";

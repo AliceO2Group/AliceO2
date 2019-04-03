@@ -17,7 +17,7 @@ namespace o2 {
 namespace DataFlow {
 
 /// A device which writes to file the timeframes.
-class FakeTimeframeGeneratorDevice : public Base::O2Device
+class FakeTimeframeGeneratorDevice : public base::O2Device
 {
 public:
     static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";

@@ -63,10 +63,10 @@ void TrackerDPL::init(InitContext& ic)
   const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
     mGRP.reset(grp);
-    o2::Base::Propagator::initFieldFromGRP(grp);
+    o2::base::Propagator::initFieldFromGRP(grp);
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
-    o2::Base::GeometryManager::loadGeometry();
+    o2::base::GeometryManager::loadGeometry();
     o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                               o2::TransformType::T2G));

@@ -58,8 +58,8 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
 #endif
 
   //-------- init geometry and field --------//
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   //-------------------- settings -----------//
   matching.setITSROFrameLengthMUS(5.0f); // ITS ROFrame duration in \mus

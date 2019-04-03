@@ -231,7 +231,7 @@ void finalize_geometry(FairRunSim* run)
   TIter next(modArr);
   FairModule* module = nullptr;
   while ((module = (FairModule*)next())) {
-    o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+    o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
     if (det)
       det->addAlignableVolumes();
   }

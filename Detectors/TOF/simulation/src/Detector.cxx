@@ -27,14 +27,14 @@ using namespace o2::tof;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(o2::utils::createSimVector<HitType>())
+  : o2::base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(o2::utils::createSimVector<HitType>())
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mEventNr(0),
     mTOFHoles(rhs.mTOFHoles),
     mHits(o2::utils::createSimVector<HitType>())
@@ -119,7 +119,7 @@ void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //--- Quartz (SiO2) ---
   Float_t aq[2] = { 28.0855, 15.9994 };
@@ -1856,7 +1856,7 @@ void Detector::addAlignableVolumes() const
 
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
-      modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
+      modUID = o2::base::GeometryManager::getSensID(idTOF, modnum++);
       LOG(DEBUG) << "modUID: " << modUID;
 
       if (mTOFSectors[isect] == -1)

@@ -61,7 +61,7 @@ namespace ITS
 {
 class V3Layer;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum Model {
@@ -224,7 +224,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Return Chip Volume UID
   /// \param id volume id
-  Int_t chipVolUID(Int_t id) const { return o2::Base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
+  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
 
   void SetSpecialPhysicsCuts() override { ; }
   void EndOfEvent() override;
@@ -310,7 +310,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   V3Layer* mGeometry[sNumberLayers]; //! Geometry
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -324,13 +324,13 @@ std::istream& operator>>(std::istream& os, Detector& source);
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::ITS::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

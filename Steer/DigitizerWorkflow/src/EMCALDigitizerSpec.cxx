@@ -152,7 +152,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
     // run 3 geometry == run 2 geometry for EMCAL
     // to be adapted with run numbers at a later stage

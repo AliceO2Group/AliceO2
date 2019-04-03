@@ -748,7 +748,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
   if (xStart < 50.)
     xStart = 50.;
   int istep = 1;
-  bool hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+  bool hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   while (hasPropagated) {
     if (trc.getX() > xRef) {
       refReached = true; // we reached the 371cm reference
@@ -765,7 +765,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
     }
     if (refReached)
       break;
-    hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+    hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   }
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
   //Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trc.getSnp(), TMath::ASin(trc.getSnp())*TMath::RadToDeg());

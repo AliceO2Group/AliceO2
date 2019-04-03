@@ -71,7 +71,7 @@ class TRDDPLDigitizerTask
     }
 
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
   }
 
