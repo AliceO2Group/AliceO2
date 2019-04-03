@@ -1,240 +1,256 @@
-[Run2ESDConverter/latest O2/latest] ~/simulation_anaworkflow $> o2MuonAnalysis --esd-file AliESDs_muonpPb_forward.root 
+alidock
+Starting a shell into the container
+[alidock] ~ $> 
+[alidock] ~ $> 
+[alidock] ~ $> alienv enter O2/latest Run2ESDConverter/latest
+Currently Loaded Modulefiles:
+  1) BASE/1.0                         22) GEANT4/v10.4.2-3
+  2) FairLogger/v1.2.0-7              23) vgm/v4-4-1
+  3) GCC-Toolchain/v7.3.0-alice1-7    24) GEANT4_VMC/v3-6-p1-1
+  4) libpng/v1.6.34-11                25) protobuf/v3.5.2-6
+  5) FreeType/v2.6-41                 26) pythia6/428-alice1-10
+  6) Python/v2.7.10-42                27) yaml-cpp/yaml-cpp-0.6.2-5
+  7) boost/v1.68.0-8                  28) lhapdf/v6.2.1-alice2-6
+  8) ZeroMQ/v4.1.5-12                 29) pythia/v8235-alice2-1
+  9) nanomsg/1.1.5-1                  30) FairRoot/c672f280ec-33
+ 10) msgpack/v3.1.1-3                 31) Vc/1.4.1-1
+ 11) DDS/2.2-4                        32) ROOT/v6-16-00-7
+ 12) FairMQ/v1.3.8-5                  33) HepMC3/v3.0.0-git_d43693ce0e-19
+ 13) zlib/v1.2.8-45                   34) Monitoring/v2.5.0-1
+ 14) OpenSSL/v1.0.2o-8                35) Ppconsul/0.1.0-1
+ 15) libxml2/v2.9.3-13                36) Configuration/v2.2.1-1
+ 16) GSL/v1.16-34                     37) Common-O2/v1.4.0-1
+ 17) Python-modules/1.0-25            38) libInfoLogger/v1.2.4-1
+ 18) arrow/v0.12.0-alice6-2           39) ms_gsl/1-8
+ 19) lzma/v5.2.3-8                    40) O2/latest
+ 20) ROOT/v6-16-00-1                  41) Run2ESDConverter/latest
+ 21) GEANT3/v2-7-1
+Use alienv list to list loaded modules. Use exit to exit this environment.
+[O2/latest Run2ESDConverter/latest] ~ $> cd simulation
+bash: cd: simulation: No such file or directory
+[O2/latest Run2ESDConverter/latest] ~ $> cd simulation_anaworkflow/
+[O2/latest Run2ESDConverter/latest] ~/simulation_anaworkflow $> 
+[O2/latest Run2ESDConverter/latest] ~/simulation_anaworkflow $> o2MuonAnalysis --esd-file AliESDs.root 
 [INFO] Using port range [21999, 22999]
 [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
 [INFO] Initialising O2 Data Processing Layer
 [INFO] O2 Data Processing Layer initialised. We brake for nobody.
 [INFO] Redeployment of configuration asked.
-Starting internal-dpl-esd-reader on pid 4914
-Starting internal-dpl-clock on pid 4915
-Starting muon-analysis on pid 4916
+Starting internal-dpl-esd-reader on pid 13314
+Starting internal-dpl-clock on pid 13315
+Starting muon-analysis on pid 13316
 [INFO] Redeployment of configuration done.
-[4916]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
-[4914]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
-[4914]: [INFO] Spawing new device internal-dpl-esd-reader in process with pid 4914
-[4915]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
-[4915]: [INFO] Spawing new device internal-dpl-clock in process with pid 4915
-[4916]: [INFO] Spawing new device muon-analysis in process with pid 4916
-[4914]: [08:00:07][INFO] Configuration: 
-[4914]: catch-signals                                                            = 1                                                                                                    <int>            [default] 
-[4914]: channel-config                                                           = name=from_internal-dpl-esd-reader_to_muon-analysis,type=push,method=bind,address=tcp://*:22000,rateLogging=60  name=from_internal-dpl-clock_to_internal-dpl-esd-reader,type=pull,method=connect,address=tcp://127.0.0.1:22001,rateLogging=60   <vector<string>> [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.address       = tcp://127.0.0.1:22001                                                                                <string>         [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.autoBind      = 1                                                                                                    <bool>           [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.linger        = 500                                                                                                  <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.method        = connect                                                                                              <string>         [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rateLogging   = 60                                                                                                   <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.transport     = default                                                                                              <string>         [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.type          = pull                                                                                                 <string>         [provided]
-[4914]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.numSockets      = 1                                                                                                    <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.address            = tcp://*:22000                                                                                        <string>         [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.autoBind           = 1                                                                                                    <bool>           [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.linger             = 500                                                                                                  <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.method             = bind                                                                                                 <string>         [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMax       = 23000                                                                                                <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMin       = 22000                                                                                                <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rateLogging        = 60                                                                                                   <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvBufSize         = 1000                                                                                                 <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvKernelSize      = 0                                                                                                    <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndBufSize         = 1000                                                                                                 <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndKernelSize      = 0                                                                                                    <int>            [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.transport          = default                                                                                              <string>         [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.type               = push                                                                                                 <string>         [provided]
-[4914]: chans.from_internal-dpl-esd-reader_to_muon-analysis.numSockets           = 1                                                                                                    <int>            [provided]
-[4914]: color                                                                    = 0                                                                                                    <bool>           [provided]
-[4914]: control                                                                  = static                                                                                               <string>         [provided]
-[4914]: end-value-enumeration                                                    = -1                                                                                                   <int>            [provided]
-[4914]: esd-file                                                                 = AliESDs_muonpPb_forward.root                                                                         <string>         [provided]
-[4914]: id                                                                       = internal-dpl-esd-reader                                                                              <string>         [provided]
-[4914]: infologger-mode                                                          =                                                                                                      <string>         [default] 
-[4914]: infologger-severity                                                      =                                                                                                      <string>         [default] 
-[4914]: initialization-timeout                                                   = 120                                                                                                  <int>            [default] 
-[4914]: io-threads                                                               = 1                                                                                                    <int>            [default] 
-[4914]: log-to-file                                                              =                                                                                                      <string>         [default] 
-[4914]: monitoring-backend                                                       = infologger://                                                                                        <string>         [default] 
-[4914]: network-interface                                                        = default                                                                                              <string>         [default] 
-[4914]: rate                                                                     = 0                                                                                                    <float>          [default] 
-[4914]: session                                                                  = default                                                                                              <string>         [default] 
-[4914]: severity                                                                 = debug                                                                                                <string>         [default] 
-[4914]: shm-monitor                                                              = 1                                                                                                    <bool>           [default] 
-[4914]: shm-segment-size                                                         = 2000000000                                                                                           <std::size_t>    [default] 
-[4914]: start-value-enumeration                                                  = 0                                                                                                    <int>            [provided]
-[4914]: step-value-enumeration                                                   = 1                                                                                                    <int>            [provided]
-[4914]: transport                                                                = zeromq                                                                                               <string>         [default] 
-[4914]: verbosity                                                                = medium                                                                                               <string>         [default] 
-[4914]: 
-[4914]: [08:00:07][INFO] 
-[4914]:       ______      _    _______  _________ 
-[4914]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
-[4914]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
-[4914]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
-[4914]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
-[4914]: 
-[4914]: 2019-04-03 08:00:07	StdOut backend initialized
-[4914]: [08:00:07][STATE] Starting FairMQ state machine
-[4914]: [08:00:07][STATE] Entering IDLE state
-[4915]: [08:00:07][INFO] Configuration: 
-[4915]: catch-signals                                                            = 1                                                                                                    <int>            [default] 
-[4915]: channel-config                                                           = name=from_internal-dpl-clock_to_internal-dpl-esd-reader,type=push,method=bind,address=tcp://*:22001,rateLogging=60   <vector<string>> [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.address       = tcp://*:22001                                                                                        <string>         [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.autoBind      = 1                                                                                                    <bool>           [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.linger        = 500                                                                                                  <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.method        = bind                                                                                                 <string>         [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rateLogging   = 60                                                                                                   <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.transport     = default                                                                                              <string>         [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.type          = push                                                                                                 <string>         [provided]
-[4915]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.numSockets      = 1                                                                                                    <int>            [provided]
-[4915]: color                                                                    = 0                                                                                                    <bool>           [provided]
-[4915]: control                                                                  = static                                                                                               <string>         [provided]
-[4915]: id                                                                       = internal-dpl-clock                                                                                   <string>         [provided]
-[4915]: infologger-mode                                                          =                                                                                                      <string>         [default] 
-[4915]: infologger-severity                                                      =                                                                                                      <string>         [default] 
-[4915]: initialization-timeout                                                   = 120                                                                                                  <int>            [default] 
-[4915]: io-threads                                                               = 1                                                                                                    <int>            [default] 
-[4915]: log-to-file                                                              =                                                                                                      <string>         [default] 
-[4915]: monitoring-backend                                                       = infologger://                                                                                        <string>         [default] 
-[4915]: network-interface                                                        = default                                                                                              <string>         [default] 
-[4915]: rate                                                                     = 0                                                                                                    <float>          [default] 
-[4915]: session                                                                  = default                                                                                              <string>         [default] 
-[4915]: severity                                                                 = debug                                                                                                <string>         [default] 
-[4915]: shm-monitor                                                              = 1                                                                                                    <bool>           [default] 
-[4915]: shm-segment-size                                                         = 2000000000                                                                                           <std::size_t>    [default] 
-[4915]: transport                                                                = zeromq                                                                                               <string>         [default] 
-[4915]: verbosity                                                                = medium                                                                                               <string>         [default] 
-[4915]: 
-[4915]: [08:00:07][INFO] 
-[4915]:       ______      _    _______  _________ 
-[4915]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
-[4915]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
-[4915]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
-[4915]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
-[4915]: 
-[4915]: 2019-04-03 08:00:07	StdOut backend initialized
-[4915]: [08:00:07][STATE] Starting FairMQ state machine
-[4915]: [08:00:07][STATE] Entering IDLE state
-[4916]: [08:00:07][INFO] Configuration: 
-[4916]: catch-signals                                                       = 1                                                                                                    <int>            [default] 
-[4916]: channel-config                                                      = name=from_internal-dpl-esd-reader_to_muon-analysis,type=pull,method=connect,address=tcp://127.0.0.1:22000,rateLogging=60   <vector<string>> [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.address       = tcp://127.0.0.1:22000                                                                                <string>         [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.autoBind      = 1                                                                                                    <bool>           [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.linger        = 500                                                                                                  <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.method        = connect                                                                                              <string>         [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMax  = 23000                                                                                                <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMin  = 22000                                                                                                <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rateLogging   = 60                                                                                                   <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndKernelSize = 0                                                                                                    <int>            [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.transport     = default                                                                                              <string>         [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.type          = pull                                                                                                 <string>         [provided]
-[4916]: chans.from_internal-dpl-esd-reader_to_muon-analysis.numSockets      = 1                                                                                                    <int>            [provided]
-[4916]: color                                                               = 0                                                                                                    <bool>           [provided]
-[4916]: control                                                             = static                                                                                               <string>         [provided]
-[4916]: id                                                                  = muon-analysis                                                                                        <string>         [provided]
-[4916]: infologger-mode                                                     =                                                                                                      <string>         [default] 
-[4916]: infologger-severity                                                 =                                                                                                      <string>         [default] 
-[4916]: initialization-timeout                                              = 120                                                                                                  <int>            [default] 
-[4916]: io-threads                                                          = 1                                                                                                    <int>            [default] 
-[4916]: log-to-file                                                         =                                                                                                      <string>         [default] 
-[4916]: monitoring-backend                                                  = infologger://                                                                                        <string>         [default] 
-[4916]: network-interface                                                   = default                                                                                              <string>         [default] 
-[4916]: rate                                                                = 0                                                                                                    <float>          [default] 
-[4916]: session                                                             = default                                                                                              <string>         [default] 
-[4916]: severity                                                            = debug                                                                                                <string>         [default] 
-[4916]: shm-monitor                                                         = 1                                                                                                    <bool>           [default] 
-[4916]: shm-segment-size                                                    = 2000000000                                                                                           <std::size_t>    [default] 
-[4916]: transport                                                           = zeromq                                                                                               <string>         [default] 
-[4916]: verbosity                                                           = medium                                                                                               <string>         [default] 
-[4916]: 
-[4916]: [08:00:07][INFO] 
-[4916]:       ______      _    _______  _________ 
-[4916]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
-[4916]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
-[4916]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
-[4916]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
-[4916]: 
-[4916]: 2019-04-03 08:00:07	StdOut backend initialized
-[4916]: [08:00:07][STATE] Starting FairMQ state machine
-[4916]: [08:00:07][STATE] Entering IDLE state
-[4914]: [08:00:07][STATE] Entering INITIALIZING_DEVICE state
-[4914]: 2019-04-03 08:00:07	Buffering enabled (100)
-[4914]: [08:00:07][STATE] Entering DEVICE_READY state
-[4914]: [08:00:07][STATE] Entering INITIALIZING_TASK state
-[4914]: [08:00:07][STATE] Entering READY state
-[4914]: [08:00:07][STATE] Entering RUNNING state
-[4914]: [08:00:07][INFO] DEVICE: Running...
-[4915]: [08:00:07][STATE] Entering INITIALIZING_DEVICE state
-[4915]: 2019-04-03 08:00:07	Buffering enabled (100)
-[4915]: [08:00:07][INFO] This is not a real device, merely a placeholder for external inputs
-[4915]: [08:00:07][INFO] To be hidden / removed at some point.
-[4915]: [08:00:07][STATE] Entering DEVICE_READY state
-[4915]: [08:00:07][STATE] Entering INITIALIZING_TASK state
-[4915]: [08:00:07][STATE] Entering READY state
-[4915]: [08:00:07][STATE] Entering RUNNING state
-[4915]: [08:00:07][INFO] DEVICE: Running...
-[4916]: [08:00:07][STATE] Entering INITIALIZING_DEVICE state
-[4916]: 2019-04-03 08:00:07	Buffering enabled (100)
-[4916]: [08:00:07][STATE] Entering DEVICE_READY state
-[4916]: [08:00:07][STATE] Entering INITIALIZING_TASK state
-[4916]: [08:00:07][STATE] Entering READY state
-[4916]: [08:00:07][STATE] Entering RUNNING state
-[4916]: [08:00:07][INFO] DEVICE: Running...
-[4914]: Error in <TExMap::Add>: key 139692601468800 is not unique
-[4914]: Error in <TCling::RegisterModule>: cannot find dictionary module libRun2ESDConverterDict_rdict.pcm
-[4914]: W-AliESDEvent::ReadFromTree: AliESDEvent::ReadFromTree() TList contains less than the standard contents 33 < 38 
-[4914]: 
-[4914]: E-TTree::SetBranchAddress: unknown branch -> fDetectorStatus
-[4914]: E-TTree::SetBranchAddress: unknown branch -> fDAQDetectorPattern
-[4914]: E-TTree::SetBranchAddress: unknown branch -> fDAQAttributes
-[4914]: E-TTree::SetBranchAddress: unknown branch -> fNTPCClusters
-[4914]: W-TClassTable::Add: class ROOT::Experimental::TTaskGroup already in TClassTable
-[4914]: W-TClassTable::Add: class ROOT::Internal::TPoolManager already in TClassTable
-[4914]: W-TClassTable::Add: class ROOT::TThreadExecutor already in TClassTable
-[4914]: [08:00:11][INFO] 4
-[4914]: [08:00:11][INFO] 632
-[4914]: [08:00:11][INFO] 632
-[4914]: [08:00:11][INFO] 636
-[4914]: [08:00:11][INFO] 1160
-[4916]: [08:01:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:01:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:01:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:01:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:02:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:02:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:02:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:02:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:03:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:03:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:03:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:03:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:04:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:04:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:04:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:04:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:05:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:05:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:05:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:05:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:06:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:06:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:06:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:06:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:07:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:07:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:07:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:07:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4916]: [08:08:06][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4915]: [08:08:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:08:06][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
-[4914]: [08:08:06][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13315]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[13316]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[13315]: [INFO] Spawing new device internal-dpl-clock in process with pid 13315
+[13316]: [INFO] Spawing new device muon-analysis in process with pid 13316
+[13315]: [12:04:04][INFO] Configuration: 
+[13315]: catch-signals                                                            = 1                                                                                                    <int>            [default] 
+[13315]: channel-config                                                           = name=from_internal-dpl-clock_to_internal-dpl-esd-reader,type=push,method=bind,address=tcp://*:22001,rateLogging=60   <vector<string>> [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.address       = tcp://*:22001                                                                                        <string>         [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.linger        = 500                                                                                                  <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.method        = bind                                                                                                 <string>         [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.transport     = default                                                                                              <string>         [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.type          = push                                                                                                 <string>         [provided]
+[13315]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.numSockets      = 1                                                                                                    <int>            [provided]
+[13315]: color                                                                    = 0                                                                                                    <bool>           [provided]
+[13315]: control                                                                  = static                                                                                               <string>         [provided]
+[13315]: id                                                                       = internal-dpl-clock                                                                                   <string>         [provided]
+[13315]: infologger-mode                                                          =                                                                                                      <string>         [default] 
+[13315]: infologger-severity                                                      =                                                                                                      <string>         [default] 
+[13315]: initialization-timeout                                                   = 120                                                                                                  <int>            [default] 
+[13315]: io-threads                                                               = 1                                                                                                    <int>            [default] 
+[13315]: log-to-file                                                              =                                                                                                      <string>         [default] 
+[13315]: monitoring-backend                                                       = infologger://                                                                                        <string>         [default] 
+[13315]: network-interface                                                        = default                                                                                              <string>         [default] 
+[13315]: rate                                                                     = 0                                                                                                    <float>          [default] 
+[13315]: session                                                                  = default                                                                                              <string>         [default] 
+[13315]: severity                                                                 = debug                                                                                                <string>         [default] 
+[13315]: shm-monitor                                                              = 1                                                                                                    <bool>           [default] 
+[13315]: shm-segment-size                                                         = 2000000000                                                                                           <std::size_t>    [default] 
+[13315]: transport                                                                = zeromq                                                                                               <string>         [default] 
+[13315]: verbosity                                                                = medium                                                                                               <string>         [default] 
+[13315]: 
+[13315]: [12:04:04][INFO] 
+[13315]:       ______      _    _______  _________ 
+[13315]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[13315]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[13315]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[13315]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[13315]: 
+[13315]: 2019-04-03 12:04:04	StdOut backend initialized
+[13315]: [12:04:04][STATE] Starting FairMQ state machine
+[13315]: [12:04:04][STATE] Entering IDLE state
+[13316]: [12:04:04][INFO] Configuration: 
+[13316]: catch-signals                                                       = 1                                                                                                    <int>            [default] 
+[13316]: channel-config                                                      = name=from_internal-dpl-esd-reader_to_muon-analysis,type=pull,method=connect,address=tcp://127.0.0.1:22000,rateLogging=60   <vector<string>> [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.address       = tcp://127.0.0.1:22000                                                                                <string>         [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.linger        = 500                                                                                                  <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.method        = connect                                                                                              <string>         [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.transport     = default                                                                                              <string>         [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.type          = pull                                                                                                 <string>         [provided]
+[13316]: chans.from_internal-dpl-esd-reader_to_muon-analysis.numSockets      = 1                                                                                                    <int>            [provided]
+[13316]: color                                                               = 0                                                                                                    <bool>           [provided]
+[13316]: control                                                             = static                                                                                               <string>         [provided]
+[13316]: id                                                                  = muon-analysis                                                                                        <string>         [provided]
+[13316]: infologger-mode                                                     =                                                                                                      <string>         [default] 
+[13316]: infologger-severity                                                 =                                                                                                      <string>         [default] 
+[13316]: initialization-timeout                                              = 120                                                                                                  <int>            [default] 
+[13316]: io-threads                                                          = 1                                                                                                    <int>            [default] 
+[13316]: log-to-file                                                         =                                                                                                      <string>         [default] 
+[13316]: monitoring-backend                                                  = infologger://                                                                                        <string>         [default] 
+[13316]: network-interface                                                   = default                                                                                              <string>         [default] 
+[13316]: rate                                                                = 0                                                                                                    <float>          [default] 
+[13316]: session                                                             = default                                                                                              <string>         [default] 
+[13316]: severity                                                            = debug                                                                                                <string>         [default] 
+[13316]: shm-monitor                                                         = 1                                                                                                    <bool>           [default] 
+[13316]: shm-segment-size                                                    = 2000000000                                                                                           <std::size_t>    [default] 
+[13316]: transport                                                           = zeromq                                                                                               <string>         [default] 
+[13316]: verbosity                                                           = medium                                                                                               <string>         [default] 
+[13316]: 
+[13316]: [12:04:04][INFO] 
+[13316]:       ______      _    _______  _________ 
+[13316]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[13316]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[13316]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[13316]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[13316]: 
+[13316]: 2019-04-03 12:04:04	StdOut backend initialized
+[13316]: [12:04:04][STATE] Starting FairMQ state machine
+[13316]: [12:04:04][STATE] Entering IDLE state
+[13314]: [WARN] Could not create GUI. Switching to batch mode. Do you have GLFW on your system?
+[13314]: [INFO] Spawing new device internal-dpl-esd-reader in process with pid 13314
+[13314]: [12:04:04][INFO] Configuration: 
+[13314]: catch-signals                                                            = 1                                                                                                    <int>            [default] 
+[13314]: channel-config                                                           = name=from_internal-dpl-esd-reader_to_muon-analysis,type=push,method=bind,address=tcp://*:22000,rateLogging=60  name=from_internal-dpl-clock_to_internal-dpl-esd-reader,type=pull,method=connect,address=tcp://127.0.0.1:22001,rateLogging=60   <vector<string>> [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.address       = tcp://127.0.0.1:22001                                                                                <string>         [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.autoBind      = 1                                                                                                    <bool>           [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.linger        = 500                                                                                                  <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.method        = connect                                                                                              <string>         [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMax  = 23000                                                                                                <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.portRangeMin  = 22000                                                                                                <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rateLogging   = 60                                                                                                   <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvBufSize    = 1000                                                                                                 <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.rcvKernelSize = 0                                                                                                    <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndBufSize    = 1000                                                                                                 <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.sndKernelSize = 0                                                                                                    <int>            [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.transport     = default                                                                                              <string>         [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.0.type          = pull                                                                                                 <string>         [provided]
+[13314]: chans.from_internal-dpl-clock_to_internal-dpl-esd-reader.numSockets      = 1                                                                                                    <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.address            = tcp://*:22000                                                                                        <string>         [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.autoBind           = 1                                                                                                    <bool>           [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.linger             = 500                                                                                                  <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.method             = bind                                                                                                 <string>         [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMax       = 23000                                                                                                <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.portRangeMin       = 22000                                                                                                <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rateLogging        = 60                                                                                                   <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvBufSize         = 1000                                                                                                 <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.rcvKernelSize      = 0                                                                                                    <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndBufSize         = 1000                                                                                                 <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.sndKernelSize      = 0                                                                                                    <int>            [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.transport          = default                                                                                              <string>         [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.0.type               = push                                                                                                 <string>         [provided]
+[13314]: chans.from_internal-dpl-esd-reader_to_muon-analysis.numSockets           = 1                                                                                                    <int>            [provided]
+[13314]: color                                                                    = 0                                                                                                    <bool>           [provided]
+[13314]: control                                                                  = static                                                                                               <string>         [provided]
+[13314]: end-value-enumeration                                                    = -1                                                                                                   <int>            [provided]
+[13314]: esd-file                                                                 = AliESDs.root                                                                                         <string>         [provided]
+[13314]: id                                                                       = internal-dpl-esd-reader                                                                              <string>         [provided]
+[13314]: infologger-mode                                                          =                                                                                                      <string>         [default] 
+[13314]: infologger-severity                                                      =                                                                                                      <string>         [default] 
+[13314]: initialization-timeout                                                   = 120                                                                                                  <int>            [default] 
+[13314]: io-threads                                                               = 1                                                                                                    <int>            [default] 
+[13314]: log-to-file                                                              =                                                                                                      <string>         [default] 
+[13314]: monitoring-backend                                                       = infologger://                                                                                        <string>         [default] 
+[13314]: network-interface                                                        = default                                                                                              <string>         [default] 
+[13314]: rate                                                                     = 0                                                                                                    <float>          [default] 
+[13314]: session                                                                  = default                                                                                              <string>         [default] 
+[13314]: severity                                                                 = debug                                                                                                <string>         [default] 
+[13314]: shm-monitor                                                              = 1                                                                                                    <bool>           [default] 
+[13314]: shm-segment-size                                                         = 2000000000                                                                                           <std::size_t>    [default] 
+[13314]: start-value-enumeration                                                  = 0                                                                                                    <int>            [provided]
+[13314]: step-value-enumeration                                                   = 1                                                                                                    <int>            [provided]
+[13314]: transport                                                                = zeromq                                                                                               <string>         [default] 
+[13314]: verbosity                                                                = medium                                                                                               <string>         [default] 
+[13314]: 
+[13314]: [12:04:04][INFO] 
+[13314]:       ______      _    _______  _________ 
+[13314]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
+[13314]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[13314]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[13314]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
+[13314]: 
+[13314]: 2019-04-03 12:04:04	StdOut backend initialized
+[13314]: [12:04:04][STATE] Starting FairMQ state machine
+[13314]: [12:04:04][STATE] Entering IDLE state
+[13315]: [12:04:04][STATE] Entering INITIALIZING_DEVICE state
+[13315]: 2019-04-03 12:04:04	Buffering enabled (100)
+[13315]: [12:04:04][INFO] This is not a real device, merely a placeholder for external inputs
+[13315]: [12:04:04][INFO] To be hidden / removed at some point.
+[13315]: [12:04:04][STATE] Entering DEVICE_READY state
+[13315]: [12:04:04][STATE] Entering INITIALIZING_TASK state
+[13315]: [12:04:04][STATE] Entering READY state
+[13315]: [12:04:04][STATE] Entering RUNNING state
+[13315]: [12:04:04][INFO] DEVICE: Running...
+[13316]: [12:04:04][STATE] Entering INITIALIZING_DEVICE state
+[13316]: 2019-04-03 12:04:04	Buffering enabled (100)
+[13316]: [12:04:04][STATE] Entering DEVICE_READY state
+[13316]: [12:04:04][STATE] Entering INITIALIZING_TASK state
+[13316]: [12:04:04][STATE] Entering READY state
+[13316]: [12:04:04][STATE] Entering RUNNING state
+[13316]: [12:04:04][INFO] DEVICE: Running...
+[13314]: [12:04:04][STATE] Entering INITIALIZING_DEVICE state
+[13314]: 2019-04-03 12:04:04	Buffering enabled (100)
+[13314]: [12:04:04][STATE] Entering DEVICE_READY state
+[13314]: [12:04:04][STATE] Entering INITIALIZING_TASK state
+[13314]: [12:04:04][STATE] Entering READY state
+[13314]: [12:04:04][STATE] Entering RUNNING state
+[13314]: [12:04:04][INFO] DEVICE: Running...
+[13314]: Error in <TExMap::Add>: key 140415218788224 is not unique
+[13314]: Error in <TCling::RegisterModule>: cannot find dictionary module libRun2ESDConverterDict_rdict.pcm
+[13314]: W-AliESDEvent::ReadFromTree: AliESDEvent::ReadFromTree() TList contains less than the standard contents 33 < 38 
+[13314]: 
+[13314]: E-TTree::SetBranchAddress: unknown branch -> fDetectorStatus
+[13314]: E-TTree::SetBranchAddress: unknown branch -> fDAQDetectorPattern
+[13314]: E-TTree::SetBranchAddress: unknown branch -> fDAQAttributes
+[13314]: E-TTree::SetBranchAddress: unknown branch -> fNTPCClusters
+[13314]: W-TClassTable::Add: class ROOT::Experimental::TTaskGroup already in TClassTable
+[13314]: W-TClassTable::Add: class ROOT::Internal::TPoolManager already in TClassTable
+[13314]: W-TClassTable::Add: class ROOT::TThreadExecutor already in TClassTable
+[13314]: [12:04:09][INFO] 4
+[13314]: [12:04:09][INFO] 632
+[13314]: [12:04:09][INFO] 632
+[13314]: [12:04:09][INFO] 636
+[13314]: [12:04:09][INFO] 1160
+[13316]: [12:05:03][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13315]: [12:05:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:05:03][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:05:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13316]: [12:06:03][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13315]: [12:06:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:06:03][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:06:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13316]: [12:07:03][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13315]: [12:07:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:07:03][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:07:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13316]: [12:08:03][INFO] from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13315]: [12:08:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:08:03][INFO]      from_internal-dpl-esd-reader_to_muon-analysis[0]: in: 0 (0 MB) out: 0 (0 MB)
+[13314]: [12:08:03][INFO] from_internal-dpl-clock_to_internal-dpl-esd-reader[0]: in: 0 (0 MB) out: 0 (0 MB)
