@@ -194,14 +194,15 @@ TGeoCompositeShape* FrameStructure::createTOFRail(float y)
   char nameCV[16];
   snprintf(nameCV, 16, "CV");
   TGeoArb8* CV = new TGeoArb8(nameCV, 2.35);
-  CV->SetVertex(0, 0.89, -y);
-  CV->SetVertex(1, 0.89, y);
-  CV->SetVertex(2, 0.09, y);
-  CV->SetVertex(3, 0.09, -y);
-  CV->SetVertex(4, -0.09, -y);
-  CV->SetVertex(5, -0.09, y);
-  CV->SetVertex(6, -0.89, y);
-  CV->SetVertex(7, -0.89, -y);
+  CV->SetVertex(0, 0.09, -y);
+  CV->SetVertex(1, 0.09, y);
+  CV->SetVertex(2, 0.89, y);
+  CV->SetVertex(3, 0.89, -y);
+  CV->SetVertex(4, -0.89, -y);
+  CV->SetVertex(5, -0.89, y);
+  CV->SetVertex(6, -0.09, y);
+  CV->SetVertex(7, -0.09, -y);
+
   char nameCOB[16];
   snprintf(nameCOB, 16, "COB");
   TGeoBBox* boxCOB = new TGeoBBox(nameCOB, 2.0, y, 0.4);
