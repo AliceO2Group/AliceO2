@@ -87,7 +87,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     }
   }
 
-  if(dispatcher.getInputSpecs().size() > 0) {
+  if (dispatcher.getInputSpecs().size() > 0) {
     DataProcessorSpec spec;
     spec.name = dispatcher.getName();
     spec.inputs = dispatcher.getInputSpecs();
