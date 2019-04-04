@@ -182,7 +182,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
 
-    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+    o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
     stack->addHit(GetDetId());
   }
 

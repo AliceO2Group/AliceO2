@@ -166,7 +166,7 @@ class O2SimDevice : public FairMQDevice
 
         // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
         auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
-        auto chunk = static_cast<o2::Data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
+        auto chunk = static_cast<o2::data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
 
         mVMCApp->setPrimaries(chunk->mParticles);
 

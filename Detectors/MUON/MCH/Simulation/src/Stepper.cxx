@@ -39,7 +39,7 @@ void Stepper::process(const TVirtualMC& vmc)
   int detElemId;
   vmc.CurrentVolOffID(2, detElemId); // go up 2 levels in the hierarchy to get the DE
 
-  auto stack = static_cast<o2::Data::Stack*>(vmc.GetStack());
+  auto stack = static_cast<o2::data::Stack*>(vmc.GetStack());
 
   if (t.isEntering() || t.isExiting()) {
     // generate a track referenced

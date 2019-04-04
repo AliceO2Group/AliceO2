@@ -97,7 +97,7 @@ void O2MCApplication::initLate()
   }
 }
 
-void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::Data::SubEventInfo const& info) const
+void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::data::SubEventInfo const& info) const
 {
   // parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
   o2::base::attachTMessage(info, *mSimDataChannel, parts);
@@ -127,7 +127,7 @@ void O2MCApplication::SendData()
 
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?
-  mSubEventInfo.npersistenttracks = static_cast<o2::Data::Stack*>(GetStack())->getMCTracks()->size();
+  mSubEventInfo.npersistenttracks = static_cast<o2::data::Stack*>(GetStack())->getMCTracks()->size();
   attachSubEventInfo(simdataparts, mSubEventInfo);
   auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);
