@@ -109,11 +109,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
 
   if (continuous) {
-    int nclLeft = clusters.size();
-    while (nclLeft > 0) {
-      int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, event, &clusters, labels.get());
+    for (const auto& rof : rofs) {
+      int nclUsed = o2::ITS::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
       if (nclUsed) {
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters left: " << nclLeft;
+        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
@@ -126,7 +125,6 @@ void TrackerDPL::run(ProcessingContext& pc)
         rofs[roFrame].setNROFEntries(number);
         std::copy(tracks.begin(), tracks.end(), std::back_inserter(allTracks));
         allTrackLabels.mergeAtBack(trackLabels);
-        nclLeft -= nclUsed;
       }
       roFrame++;
     }
