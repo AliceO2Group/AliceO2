@@ -79,7 +79,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   float posx, posy, posz;
   fMC->TrackPosition(posx, posy, posz);
   float time = fMC->TrackTime() * 1.0e09;
-  auto stack = static_cast<o2::Data::Stack*>(fMC->GetStack());
+  auto stack = static_cast<o2::data::Stack*>(fMC->GetStack());
   int trackID = stack->GetCurrentTrackNumber();
   int sensID = v->getMCid();
   Int_t det[5];

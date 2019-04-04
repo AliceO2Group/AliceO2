@@ -172,7 +172,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
   lightyield /= geom->GetSampling();
 
-  auto o2stack = static_cast<o2::Data::Stack*>(fMC->GetStack());
+  auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
   const bool isDaughterOfSeenTrack = o2stack->isTrackDaughterOf(partID, mCurrentTrackID);
   if (!isDaughterOfSeenTrack || detID != mCurrentCellID || !mCurrentHit) {
     // Condition for new hit:

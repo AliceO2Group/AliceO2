@@ -147,7 +147,7 @@ o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId, Int_t particleId,
 {
 
   mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, eTot, eDep);
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());
   return &(mHits->back());
 }

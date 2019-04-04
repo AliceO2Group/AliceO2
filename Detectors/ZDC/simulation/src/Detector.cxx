@@ -256,7 +256,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   Vector3D<float> xImp(xDet[0], xDet[1], xDet[2]);
 
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
   int trackparent = stack->GetCurrentTrack()->GetMother(0);
   const bool isDaughterOfSeenTrack = stack->isTrackDaughterOf(trackn, mCurrentTrackID);
