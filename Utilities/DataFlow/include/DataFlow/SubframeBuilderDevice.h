@@ -29,7 +29,7 @@
 class FairMQParts;
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// @class SubframeBuilderDevice
 /// A demonstrator device for building of sub timeframes
@@ -131,6 +131,6 @@ private:
   }
 };
 
-}; // namespace DataFlow
+} // namespace data_flow
 }; // namespace AliceO2
 #endif

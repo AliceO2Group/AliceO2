@@ -51,7 +51,7 @@ namespace {
 
 }
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec> &specs, std::size_t &totalSize) {
   // Calculate the total size of your timeframe. This is

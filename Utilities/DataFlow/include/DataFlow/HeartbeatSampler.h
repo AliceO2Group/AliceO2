@@ -24,7 +24,7 @@
 #include <string>
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// @class HeartbeatSampler
 /// @brief A sampler for heartbeat triggers
@@ -63,6 +63,6 @@ private:
   int mCount = 0;
 };
 
-}; // namespace DataFlow
+} // namespace data_flow
 }; // namespace AliceO2
 #endif

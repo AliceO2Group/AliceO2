@@ -15,7 +15,7 @@
 #include <fstream>
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// A device which writes to file the timeframes.
 class TimeframeReaderDevice : public base::O2Device
@@ -42,7 +42,7 @@ public:
     std::vector<std::string> mSeen;
 };
 
-} // namespace DataFlow
+} // namespace data_flow
 } // namespace o2
 
 #endif

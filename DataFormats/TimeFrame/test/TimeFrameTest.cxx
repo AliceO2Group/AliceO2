@@ -110,5 +110,5 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   }
 }
 
-} // end namespace DataFlow
+} // namespace data_flow
 } // end namespace AliceO2
