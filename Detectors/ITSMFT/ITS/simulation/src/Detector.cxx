@@ -86,11 +86,18 @@ static void configITS(Detector* its)
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
-  enum { kRmn, kRmd, kRmx, kNModPerStave, kPhi0, kNStave, kNPar };
+  enum { kRmn,
+         kRmd,
+         kRmx,
+         kNModPerStave,
+         kPhi0,
+         kNStave,
+         kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
     { 2.24, 2.34, 2.67, 9., 16.42, 12 }, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    { 3.01, 3.15, 3.46, 9., 12.18, 16 }, { 3.78, 3.93, 4.21, 9., 9.55, 20 },
+    { 3.01, 3.15, 3.46, 9., 12.18, 16 },
+    { 3.78, 3.93, 4.21, 9., 9.55, 20 },
     { -1, 19.6, -1, 4., 0., 24 },  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
     { -1, 24.55, -1, 4., 0., 30 }, // 30 was 61
     { -1, 34.39, -1, 7., 0., 42 }, // 42 was 88
@@ -126,7 +133,7 @@ static void configITS(Detector* its)
       its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, kSiThickOB, Segmentation::SensorThickness,
                        kSensTypeID, kBuildLevel);
     } else {
-      turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
+      turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
       its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
                             kSiThickIB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     }
