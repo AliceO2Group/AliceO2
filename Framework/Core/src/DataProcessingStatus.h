@@ -13,6 +13,9 @@
 #include "Framework/Signpost.h"
 #include <cstdint>
 
+/// probes to be used by the DPL
+#define O2_PROBE_DATARELAYER 3
+
 namespace o2
 {
 namespace framework
@@ -38,7 +41,6 @@ enum struct DriverStatus : uint32_t {
   BYTES_READ = 0,
   BYTES_PROCESSED = 1,
   BUFFER_OVERFLOWS = 2
-
 };
 
 } // namespace framework

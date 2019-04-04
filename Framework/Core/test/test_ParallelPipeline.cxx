@@ -44,8 +44,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{ [](ProcessingContext& ctx) {
         for (auto const& input : ctx.inputs()) {
           auto const& parallelContext = ctx.services().get<ParallelContext>();
-          std::cout << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
-                    << *input.spec << ": " << *((int*)input.payload) << std::endl;
+          LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+                     << *input.spec << ": " << *((int*)input.payload);
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           //auto data& = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
           auto& data = ctx.outputs().make<int>(Output{ "TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe });
@@ -62,8 +62,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{ [](ProcessingContext& ctx) {
         for (auto const& input : ctx.inputs()) {
           auto const& parallelContext = ctx.services().get<ParallelContext>();
-          std::cout << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
-                    << *input.spec << ": " << *((int*)input.payload) << std::endl;
+          LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+                     << *input.spec << ": " << *((int*)input.payload);
           ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           // TODO: there is a bug in the API for using OutputRef, returns an rvalue which can not be bound to
@@ -140,7 +140,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     Outputs(),
     AlgorithmSpec{ [checkMap](ProcessingContext& ctx) {
       for (auto const& input : ctx.inputs()) {
-        std::cout << "consuming : " << *input.spec << ": " << *((int*)input.payload) << std::endl;
+        LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
         auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
         if (input.spec->binding.compare(0, 6, "datain") == 0) {
           ASSERT_ERROR((*checkMap)[dataheader->subSpecification] == ctx.inputs().get<int>(input.spec->binding.c_str()));

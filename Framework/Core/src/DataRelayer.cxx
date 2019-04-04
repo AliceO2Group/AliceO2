@@ -17,6 +17,8 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
+#include "DataProcessingStatus.h"
+#include "Framework/Signpost.h"
 
 #include <Monitoring/Monitoring.h>
 
@@ -348,7 +350,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
 
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
-    LOG(DEBUG) << "Received timeslice " << timeslice.value;
+    O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
