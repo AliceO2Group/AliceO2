@@ -53,7 +53,7 @@ void Detector::InitializeO2Detector()
 bool Detector::ProcessHits(FairVolume* v)
 {
   TString volname = fMC->CurrentVolName();
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
 
   //Treat photons
   //photon (Ckov or feedback) hits on module PC (Hpad)

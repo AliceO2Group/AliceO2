@@ -186,7 +186,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   const float time = fMC->TrackTime() * 1.0e9;
   const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
   const int detID = vol->getMCid();
-  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));

@@ -170,8 +170,8 @@ class O2PrimaryServerDevice : public FairMQDevice
     // number of parts should be at least 1 (even if empty)
     numberofparts = std::max(1, numberofparts);
 
-    o2::Data::PrimaryChunk m;
-    o2::Data::SubEventInfo i;
+    o2::data::PrimaryChunk m;
+    o2::data::SubEventInfo i;
     i.eventID = counter;
     i.maxEvents = mMaxEvents;
     i.part = mPartCounter + 1;
@@ -217,7 +217,7 @@ class O2PrimaryServerDevice : public FairMQDevice
     }
 
     TMessage* tmsg = new TMessage(kMESS_OBJECT);
-    tmsg->WriteObjectAny((void*)&m, TClass::GetClass("o2::Data::PrimaryChunk"));
+    tmsg->WriteObjectAny((void*)&m, TClass::GetClass("o2::data::PrimaryChunk"));
 
     auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
 
@@ -236,7 +236,7 @@ class O2PrimaryServerDevice : public FairMQDevice
   std::string mOutChannelName = "";
   o2::eventgen::PrimaryGenerator mPrimGen;
   o2::dataformats::MCEventHeader mEventHeader;
-  o2::Data::Stack mStack;      // the stack which is filled
+  o2::data::Stack mStack;      // the stack which is filled
   int mChunkGranularity = 500; // how many primaries to send to a worker
   int mLastPosition = 0;       // last position in stack vector
   int mPartCounter = 0;
