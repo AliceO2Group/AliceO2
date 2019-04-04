@@ -94,7 +94,7 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
-  int loadClusters(const std::vector<Cluster>& clusters);
+  int loadClusters(const std::vector<Cluster>& clusters, const o2::ITSMFT::ROFRecord& rof);
   void unloadClusters();
 
   std::vector<TrackITS> trackInThread(Int_t first, Int_t last);

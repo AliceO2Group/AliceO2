@@ -131,7 +131,7 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* 
   }
 }
 
-int IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+int IOUtils::loadROFrameData(const o2::ITSMFT::ROFRecord& rof, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -142,26 +142,26 @@ int IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::v
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
   int clusterId{ 0 };
-  int nused = 0;
-  for (auto& c : *clusters) {
-    if (c.getROFrame() == roFrame) {
-      int layer = geom->getLayer(c.getSensorID());
 
-      /// Clusters are stored in the tracking frame
-      event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
-                                        std::array<float, 2>{ c.getY(), c.getZ() },
-                                        std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
+  auto first = rof.getROFEntry().getIndex();
+  auto number = rof.getNROFEntries();
+  auto clusters_in_frame = gsl::make_span(&(*clusters)[first], number);
+  for (auto& c : clusters_in_frame) {
+    int layer = geom->getLayer(c.getSensorID());
 
-      /// Rotate to the global frame
-      auto xyz = c.getXYZGloRot(*geom);
-      event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
-      event.addClusterExternalIndexToLayer(layer, clusterId);
-      nused++;
-    }
+    /// Clusters are stored in the tracking frame
+    event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
+                                      std::array<float, 2>{ c.getY(), c.getZ() },
+                                      std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
+
+    /// Rotate to the global frame
+    auto xyz = c.getXYZGloRot(*geom);
+    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
+    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
-  return nused;
+  return number;
 }
 
 std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int eventsNum, const std::string& fileName)
