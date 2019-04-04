@@ -40,8 +40,26 @@ class ConfigParamRegistry
   template <typename T>
   T get(const char* key) const
   {
+    assert(mRetriever);
     try {
-      return do_get<T>(key);
+      if constexpr (std::is_same_v<T, int>) {
+        return mRetriever->getInt(key);
+      } else if constexpr (std::is_same_v<T, float>) {
+        return mRetriever->getFloat(key);
+      } else if constexpr (std::is_same_v<T, double>) {
+        return mRetriever->getDouble(key);
+      } else if constexpr (std::is_same_v<T, std::string>) {
+        return mRetriever->getString(key);
+      } else if constexpr (std::is_same_v<T, bool>) {
+        return mRetriever->getBool(key);
+      } else if constexpr (std::is_same_v<T, boost::property_tree::ptree>) {
+        return mRetriever->getPTree(key);
+      } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree>) {
+        return T{ mRetriever->getPTree(key) };
+      } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree> == false) {
+        static_assert(std::is_constructible_v<T, boost::property_tree::ptree> == false,
+                      "Not a basic type and no constructor from ptree provided");
+      }
     } catch (std::exception& e) {
       throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
     } catch (...) {
@@ -50,71 +68,10 @@ class ConfigParamRegistry
   }
 
  private:
-  template <typename T>
-  typename std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value == false, T>
-    do_get(const char*) const
-  {
-    static_assert(std::is_constructible<T, boost::property_tree::ptree>::value == false,
-                  "No constructor from ptree provided");
-  }
-
-  /// Generic getter to extract an object of type T.
-  /// Notice that in order for this to work you need to have
-  /// a constructor which takes a ptree.
-  template <typename T>
-  std::enable_if_t<std::is_constructible<T, boost::property_tree::ptree>::value, T>
-    do_get(const char* key) const
-  {
-    return T{ mRetriever->getPTree(key) };
-  }
-
- private:
   std::unique_ptr<ParamRetriever> mRetriever;
 };
-
-template <>
-inline int ConfigParamRegistry::do_get<int>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getInt(key);
-}
-
-template <>
-inline float ConfigParamRegistry::do_get<float>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getFloat(key);
-}
-
-template <>
-inline double ConfigParamRegistry::do_get<double>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getDouble(key);
-}
-
-template <>
-inline std::string ConfigParamRegistry::do_get<std::string>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getString(key);
-}
-
-template <>
-inline bool ConfigParamRegistry::do_get<bool>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getBool(key);
-}
-
-template <>
-inline boost::property_tree::ptree ConfigParamRegistry::do_get<boost::property_tree::ptree>(const char* key) const
-{
-  assert(mRetriever.get());
-  return mRetriever->getPTree(key);
-}
 
 } // namespace framework
 } // namespace o2
 
-#endif //FRAMEWORK_CONFIGPARAMREGISTRY_H
+#endif // FRAMEWORK_CONFIGPARAMREGISTRY_H

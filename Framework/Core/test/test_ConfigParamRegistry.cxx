@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
     ("aDouble", bpo::value<double>()->default_value(20.))                 //
     ("anInt", bpo::value<int>()->default_value(1))                        //
     ("aBoolean", bpo::value<bool>()->zero_tokens()->default_value(false)) //
-    ("aString", bpo::value<std::string>()->default_value("something"))    //
+    ("aString,s", bpo::value<std::string>()->default_value("something"))  //
     ("aNested.x", bpo::value<int>()->default_value(2))                    //
     ("aNested.y", bpo::value<float>()->default_value(3.f));               //
 
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
                       "--aDouble", "2.0",
                       "--anInt", "10",
                       "--aBoolean",
-                      "--aString", "somethingelse",
+                      "-s", "somethingelse",
                       "--aNested.x", "1",
                       "--aNested.y", "2" },
                     false);
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
     ConfigParamSpec{ "anInt", VariantType::Int, 1, { "an int option" } },
     ConfigParamSpec{ "aFloat", VariantType::Float, 2.0f, { "a float option" } },
     ConfigParamSpec{ "aDouble", VariantType::Double, 3., { "a double option" } },
-    ConfigParamSpec{ "aString", VariantType::String, "foo", { "a string option" } },
+    ConfigParamSpec{ "aString,s", VariantType::String, "foo", { "a string option" } },
     ConfigParamSpec{ "aBoolean", VariantType::Bool, true, { "a boolean option" } },
     ConfigParamSpec{ "aNested.x", VariantType::Int, 2, { "an int option, nested in an object" } },
     ConfigParamSpec{ "aNested.y", VariantType::Float, 3.f, { "a float option, nested in an object" } },
