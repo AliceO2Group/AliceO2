@@ -14,7 +14,7 @@
 #include "O2Device/O2Device.h"
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// A device which writes to file the timeframes.
 class FakeTimeframeGeneratorDevice : public base::O2Device
@@ -40,7 +40,7 @@ public:
     size_t           mTimeframeCount;
 };
 
-} // namespace DataFlow
+} // namespace data_flow
 } // namespace o2
 
 #endif

@@ -30,7 +30,7 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using IndexElement = o2::DataFormat::IndexElement;
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 // Possible states for the parsing of a timeframe
 // PARSE_BEGIN_STREAM ->
@@ -203,4 +203,4 @@ void streamTimeframe(std::ostream &stream, FairMQParts &parts) {
   }
 }
 
-}} // namespace o2::DataFlow
+}} // namespace o2::data_flow

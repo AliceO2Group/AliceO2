@@ -91,6 +91,6 @@ protected:
   std::string mFileName;
 };
 
-}; // namespace DataFlow
+} // namespace data_flow
 }; // namespace AliceO2
 #endif

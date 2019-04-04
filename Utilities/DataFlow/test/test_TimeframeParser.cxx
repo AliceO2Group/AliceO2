@@ -39,7 +39,7 @@ main(int argc, char **argv) {
 
   // Prepare a test timeframe to be streamed
   auto zeroFiller = [](char *b, size_t s) {memset(b, 0, s);};
-  std::vector<o2::DataFlow::FakeTimeframeSpec> specs = {
+  std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
     {
       .origin = "TPC",
       .dataDescription = "CLUSTERS",
@@ -55,7 +55,7 @@ main(int argc, char **argv) {
   std::istream s(&osrb);
 
   try {
-    o2::DataFlow::streamTimeframe(s, onAddParts, onSend);
+    o2::data_flow::streamTimeframe(s, onAddParts, onSend);
   } catch(std::runtime_error &e) {
     LOG(ERROR) << e.what() << std::endl;
     exit(1);
