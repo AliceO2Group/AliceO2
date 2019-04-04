@@ -95,27 +95,28 @@ void trackletSelectionKernelSerial(
   const float tanLambdaCut = 0.025f,
   const int maxTracklets = static_cast<int>(2e3))
 {
-  int register01{ 0 };
-  int register12{ 0 };
+  int offset01{ 0 };
+  int offset12{ 0 };
   // loop on layer1 clusters
   for (int iCurrentClusterIndex{ 0 }; iCurrentClusterIndex < clustersCurrentLayer.size(); ++iCurrentClusterIndex) {
     int validTracklets{ 0 };
-    for (int iTracklet12{ 0 }; iTracklet12 < foundTracklets12[iCurrentClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{ 0 }; iTracklet01 < foundTracklets01[iCurrentClusterIndex] && validTracklets < maxTracklets; ++iTracklet01) {
-        const float deltaTanLambda{ MATH_ABS(tracklets01[register01].tanLambda - tracklets12[register12].tanLambda) };
-        if (deltaTanLambda < tanLambdaCut) {
-          destTracklets.emplace_back(tracklets01[register01], clustersCurrentLayer.data(), clustersNextLayer.data());
-          ++validTracklets;
+    for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentClusterIndex]; ++iTracklet12) {
+      for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentClusterIndex]; ++iTracklet01) {
+        // std::cout<<" > "<<iTracklet12<<" < "<<iTracklet01<<std::endl;
+        const float deltaTanLambda{ MATH_ABS(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
+        if (deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets) {
+          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
+           ++validTracklets;
         }
-        ++register12;
       }
-      ++register01;
     }
-    // if (validTracklets != maxTracklets) {
-    //   new (destTracklets + stride + validTracklets) Line(); // always complete line with empty one unless all spaces taken
-    // } else {
-    //   printf("[INFO]: Fulfilled all the space with tracklets.\n");
-    // }
+    offset01 += foundTracklets01[iCurrentClusterIndex];
+    offset12 += foundTracklets12[iCurrentClusterIndex];
+    // // if (validTracklets != maxTracklets) {
+    // //   new (destTracklets + stride + validTracklets) Line(); // always complete line with empty one unless all spaces taken
+    // // } else {
+    // //   printf("[INFO]: Fulfilled all the space with tracklets.\n");
+    // // }
   }
 }
 
@@ -210,7 +211,7 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
   return filteredBins;
 }
 
-void VertexerTraits::computeTracklets(const bool useMCLabel)
+/*void VertexerTraits::computeTracklets(const bool useMCLabel)
 {
   if (useMCLabel)
     std::cout << "Running in MOntecarlo check mode\n";
@@ -317,9 +318,9 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
       }
     }
   }
-}
+}*/
 
-void VertexerTraits::computeTracklets(const bool useMCLabel, const bool useSerialKernels)
+void VertexerTraits::computeTracklets(const bool useMCLabel)
 {
   if (useMCLabel)
     std::cout << "Running in MOntecarlo check mode\n";
@@ -356,7 +357,7 @@ void VertexerTraits::computeTracklets(const bool useMCLabel, const bool useSeria
     labelsMC2,
     labelsMC1);
 
-  trackletSelectionKernelSerial(
+ trackletSelectionKernelSerial(
     mClusters[0],
     mClusters[1],
     mComb01,
@@ -366,6 +367,7 @@ void VertexerTraits::computeTracklets(const bool useMCLabel, const bool useSeria
     mTracklets);
   // const float tanLambdaCut = 0.025f,
   // const int maxTracklets = static_cast<int>(2e3))
+
 }
 
 void VertexerTraits::computeVertices()

@@ -22,17 +22,22 @@
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-int run_vert_gpu(const bool useMCcheck = false,
-                 const int inspEvt = -1,
-                 const int numEvents = 1,
-                 const std::string inputClustersITS = "o2clus_its.root",
-                 const std::string inputGRP = "o2sim_grp.root",
-                 const std::string paramfilename = "o2sim_par.root",
-                 std::string outfile = "vertexer_gpu_data.root")
+int run_primary_vertexer_ITS(const bool useGPU = false,
+                             const bool useMCcheck = false,
+                             const int inspEvt = -1,
+                             const int numEvents = 1,
+                             const std::string inputClustersITS = "o2clus_its.root",
+                             const std::string inputGRP = "o2sim_grp.root",
+                             const std::string paramfilename = "o2sim_par.root")
 {
-  // gSystem->Load("libITStracking.so");
-
   const std::string path = "./";
+
+  std::string outfile;
+  if (useGPU) {
+    outfile = "vertexer_gpu_data.root";
+  } else {
+    outfile = "vertexer_serial_data.root";
+  }
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   const bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   const bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
@@ -74,7 +79,14 @@ int run_vert_gpu(const bool useMCcheck = false,
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + numEvents;
   o2::ITS::ROframe frame(-123);
 
-  o2::ITS::Vertexer vertexer(o2::ITS::createVertexerTraitsGPU());
+  o2::ITS::VertexerTraits* traits = nullptr;
+  if (useGPU) {
+    traits = o2::ITS::createVertexerTraitsGPU();
+  } else {
+    traits = o2::ITS::createVertexerTraits();
+  }
+
+  o2::ITS::Vertexer vertexer(traits);
   // o2::ITS::Vertexer vertexer(o2::ITS::createVertexerTraits());
   vertexer.setROframe(roFrame);
   for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
@@ -92,7 +104,7 @@ int run_vert_gpu(const bool useMCcheck = false,
           std::vector<o2::ITS::Tracklet> c01 = vertexer.getTracklets01();
           std::vector<o2::ITS::Tracklet> c12 = vertexer.getTracklets12();
           std::array<std::vector<o2::ITS::Cluster>, 3> clusters = vertexer.getClusters();
- 
+
           for (auto& line : lines)
             tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2]);
           for (int i{ 0 }; i < static_cast<int>(c01.size()); ++i) {
