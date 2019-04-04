@@ -65,7 +65,7 @@ class VertexerTraits
   virtual void reset();
   virtual void initialise(ROframe*);
   virtual void computeTracklets(const bool useMCLabel = false);
-  void computeTracklets(const bool useMCLabel, const bool useSerialKernels);
+  // void computeTracklets(const bool useMCLabel, const bool useSerialKernels);
   virtual void computeVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
