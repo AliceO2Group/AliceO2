@@ -580,7 +580,7 @@ void DataRelayer::sendContextState()
                                mMetrics, sVariablesMetricsNames);
   }
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    mMetrics.send({mCachedStateMetrics[si], sMetricsNames[si]});
+    mMetrics.send({ mCachedStateMetrics[si], sMetricsNames[si] });
   }
 }
 
