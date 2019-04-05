@@ -39,7 +39,7 @@ namespace base
 class Detector;
 }
 
-namespace Data
+namespace data
 {
 /// This class handles the particle stack for the transport simulation.
 /// For the stack FILO functunality, it uses the STL stack. To store

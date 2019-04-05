@@ -36,7 +36,7 @@
 using std::cout;
 using std::endl;
 using std::pair;
-using namespace o2::Data;
+using namespace o2::data;
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -642,5 +642,5 @@ void Stack::fillParentIDs(std::vector<int>& parentids) const
   } while (mother != -1);
 }
 
-FairGenericStack* Stack::CloneStack() const { return new o2::Data::Stack(*this); }
-ClassImp(o2::Data::Stack)
+FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
+ClassImp(o2::data::Stack)

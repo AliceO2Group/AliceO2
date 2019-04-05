@@ -26,7 +26,7 @@
 #include "TString.h"     // for TString
 
 using namespace o2::field;
-using namespace o2::mathUtils;
+using namespace o2::math_utils;
 
 ClassImp(MagneticWrapperChebyshev)
 

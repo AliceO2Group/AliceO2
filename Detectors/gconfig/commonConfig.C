@@ -10,7 +10,7 @@ template <typename T, typename R>
 void stackSetup(T* vmc, R* run)
 {
   // create the O2 vmc stack instance
-  auto st = new o2::Data::Stack();
+  auto st = new o2::data::Stack();
   st->setMinHits(1);
   auto& stackparam = o2::sim::StackParam::Instance();
   st->StoreSecondaries(stackparam.storeSecondaries);

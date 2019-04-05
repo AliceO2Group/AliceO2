@@ -312,7 +312,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 o2::fit::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());
   return &(mHits->back());
 }

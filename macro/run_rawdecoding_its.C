@@ -20,13 +20,14 @@
 // the data obtained by the removing the 128 bit padding from GBT words
 
 void run_rawdecoding_its(std::string inpName = "rawits.bin",
-                         bool padding = true,
+                         bool padding = true, bool page8kb = true,
                          int verbose = 0)
 {
 
   o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
   rawReader.openInput(inpName);
-  rawReader.setPadding128(padding);
+  rawReader.setPadding128(padding); // payload GBT words are padded to 16B
+  rawReader.imposeMaxPage(page8kb); // pages are 8kB in size (no skimming)
   rawReader.setVerbosity(verbose);
 
   o2::ITSMFT::ChipPixelData chipData;
@@ -44,10 +45,10 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin",
 
   const auto& MAP = rawReader.getMapping();
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
-    const auto& ruStat = rawReader.getRUDecodingStatSW(ir);
-    if (ruStat.nPackets) {
+    const auto ruStat = rawReader.getRUDecodingStatSW(ir);
+    if (ruStat && ruStat->nPackets) {
       printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
-      ruStat.print();
+      ruStat->print();
     }
   }
   rawReader.getDecodingStat().print();

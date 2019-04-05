@@ -201,7 +201,7 @@ class O2HitMerger : public FairMQDevice
   // fills a special branch of SubEventInfos in order to keep
   // track of which entry corresponds to which event etc.
   // also creates the MCEventHeader branch expected for physics analysis
-  void fillSubEventInfoEntry(o2::Data::SubEventInfo& info)
+  void fillSubEventInfoEntry(o2::data::SubEventInfo& info)
   {
     auto infoptr = &info;
     fillBranch("SubEventInfo", infoptr);
@@ -215,8 +215,8 @@ class O2HitMerger : public FairMQDevice
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
 
     int index = 0;
-    auto infoptr = o2::base::decodeTMessage<o2::Data::SubEventInfo*>(data, index++);
-    o2::Data::SubEventInfo info = *infoptr;
+    auto infoptr = o2::base::decodeTMessage<o2::data::SubEventInfo*>(data, index++);
+    o2::data::SubEventInfo info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     fillSubEventInfoEntry(info);
@@ -333,7 +333,7 @@ class O2HitMerger : public FairMQDevice
     eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
-    o2::Data::SubEventInfo* info = nullptr;
+    o2::data::SubEventInfo* info = nullptr;
     infobr->SetAddress(&info);
     for (int i = 0; i < infobr->GetEntries(); ++i) {
       infobr->GetEntry(i);
