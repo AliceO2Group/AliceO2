@@ -702,7 +702,7 @@ void CookedTracker::Layer::init()
     BringTo02Pi(phi);
     mPhi.push_back(phi);
     Int_t s = phi * kNSectors / k2PI;
-    mSectors[s].emplace_back(i, c->getZ());
+    mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
   }
 
   if (m)
