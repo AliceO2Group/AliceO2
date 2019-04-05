@@ -17,16 +17,19 @@
 
 ClassImp(o2::v0::Hit)
 
-  using std::cout;
-using std::endl;
-using namespace o2::v0;
-using namespace o2; //::base;
-
-void Hit::Print(const Option_t* opt) const
+  namespace o2
 {
-  printf(
-    "Det: %5d Track: %6d E.loss: %.3e P: %+.3e %+.3e %+.3e\n"
-    "PosIn: %+.3e %+.3e %+.3e PosOut: %+.3e %+.3e %+.3e\n",
-    GetDetectorID(), GetTrackID(), GetEnergyLoss(), GetPx(), GetPy(), GetPz(),
-    GetStartX(), GetStartY(), GetStartZ(), GetX(), GetY(), GetZ());
-}
+  namespace v0
+  {
+
+  void Hit::Print(const Option_t* opt) const
+  {
+    printf(
+      "Det: %5d Track: %6d E.loss: %.3e P: %+.3e %+.3e %+.3e\n"
+      "PosIn: %+.3e %+.3e %+.3e PosOut: %+.3e %+.3e %+.3e\n",
+      GetDetectorID(), GetTrackID(), GetEnergyLoss(), GetPx(), GetPy(), GetPz(),
+      GetStartX(), GetStartY(), GetStartZ(), GetX(), GetY(), GetZ());
+  }
+
+  } // namespace v0
+} // namespace o2

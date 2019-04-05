@@ -64,49 +64,29 @@ Detector::Detector(Bool_t isActive)
 
 void Detector::InitializeO2Detector()
 {
-  LOG(INFO) << "FIT_V0: Initializing O2 detector";
-
+  LOG(INFO) << "FIT_V0: Initializing O2 detector. Adding sensitive volume.";
   TGeoVolume* volSensitive = gGeoManager->GetVolume("V0cell");
   if (!volSensitive) {
     LOG(FATAL) << "Can't find FIT V0 sensitive volume: cell";
   } else {
     AddSensitiveVolume(volSensitive);
     LOG(INFO) << "FIT-V0: Sensitive volume: " << volSensitive->GetName() << "   " << volSensitive->GetNumber();
-    // TODO: Code from MFT
-    //    if (!mftGeom->getSensorVolumeID()) {
-    //      mftGeom->setSensorVolumeID(vol->GetNumber());
-    //    }
-    //    else if (mftGeom->getSensorVolumeID() != vol->GetNumber()) {
-    //      LOG(FATAL) << "CreateSensors: different Sensor volume ID !!!!";
-    //    }
   }
 }
 
-// TODO: Check if it works and remove some fields if same in MFT base as in T0
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // This method is called from the MC stepping
 
   // Track only charged particles and photons
   bool isPhotonTrack = false;
-  Int_t particleId = fMC->TrackPid();
-  if (particleId == 50000050) { // If particle is photon
+  Int_t particlePdg = fMC->TrackPid();
+  if (particlePdg == 22) { // If particle is standard PDG photon
     isPhotonTrack = true;
   }
   if (!(isPhotonTrack || fMC->TrackCharge())) {
     return kFALSE;
   }
-
-  // TODO: Uncomment or change the approach after geometry is ready
-  //  Geometry* v0Geo = Geometry::instance();
-  //  Int_t copy;
-  // Check if hit is into a FIT-V0 sensitive volume
-  //  if (fMC->CurrentVolID(copy) != v0Geo->getSensorVolumeID())
-  //    return kFALSE;
-
-  // Get unique ID of the cell
-  Int_t cellId = -1;
-  fMC->CurrentVolOffID(1, cellId);
 
   // Check track status to define when hit is started and when it is stopped
   bool startHit = false, stopHit = false;
@@ -116,37 +96,48 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     stopHit = true;
   }
 
+  // Increment energy loss at all steps except entrance
+  if (!startHit) {
+    mTrackData.mEnergyLoss += fMC->Edep();
+  }
+
   // Track is entering or created in the volume
+  // Start registering new hit, defined as the combination of all the steps from a given particle
   if (startHit) {
+    mTrackData.mHitStarted = true;
     mTrackData.mEnergyLoss = 0.;
     fMC->TrackMomentum(mTrackData.mMomentumStart);
     fMC->TrackPosition(mTrackData.mPositionStart);
-    mTrackData.mHitStarted = true;
   }
-  // Track is exiting or stopped within the volume
+
+  // Track is exiting or stopped within the volume, finalize recording of this hit and save it
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
-    // TODO: compare this base with methods used by T0 (3 lines below)
-    float etot = fMC->Etot();
-    float eDep = fMC->Edep();
-    addHit(trackID, cellId, particleId,
+    // Get unique ID of the detector cell (sensitive volume)
+    Int_t cellId = -1;
+    fMC->CurrentVolOffID(0, cellId);
+
+    addHit(trackID, cellId,
            mTrackData.mPositionStart.Vect(), positionStop.Vect(),
            mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(),
-           positionStop.T(), mTrackData.mEnergyLoss, etot, eDep);
+           positionStop.T(), mTrackData.mEnergyLoss, particlePdg);
+  } else {
+    return kFALSE; // do noting more
   }
+
   return kTRUE;
 }
 
-o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId, Int_t particleId,
+o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
                               TVector3 startPos, TVector3 endPos,
                               TVector3 startMom, double startE,
-                              double endTime, double eLoss, float eTot, float eDep)
+                              double endTime, double eLoss, Int_t particlePdg)
 {
 
-  mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, eTot, eDep);
+  mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);
   auto stack = (o2::data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());
   return &(mHits->back());
@@ -156,6 +147,7 @@ o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId, Int_t particleId,
 void Detector::createMaterials()
 {
   LOG(INFO) << "FIT_V0: Creating materials";
+
   // Air mixture
   const Int_t nAir = 4;
   Float_t aAir[nAir] = { 12.0107, 14.0067, 15.9994, 39.948 };
@@ -166,19 +158,9 @@ void Detector::createMaterials()
   // Scintillator mixture; TODO: Looks very rough, improve these numbers?
   const Int_t nScint = 2;
   Float_t aScint[nScint] = { 1, 12.01 };
-  Float_t zScint[nScint] = {
-    1,
-    6,
-  };
+  Float_t zScint[nScint] = { 1, 6 };
   Float_t wScint[nScint] = { 0.016, 0.984 };
   Float_t dScint = 1.023;
-
-  // Aluminum
-  //  Float_t aAlu = 26.98;
-  //  Float_t zAlu = 13.;
-  //  Float_t dAlu = 2.70;     // density [gr/cm^3]
-  //  Float_t radAlu = 8.897;  // rad len [cm]
-  //  Float_t absAlu = 39.70;  // abs len [cm]
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
@@ -193,7 +175,7 @@ void Detector::createMaterials()
   Int_t fieldType;
   Float_t maxField;
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
-  LOG(DEBUG) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField;
+  LOG(INFO) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField;
 
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
   fieldType = 2;
@@ -204,9 +186,6 @@ void Detector::createMaterials()
 
   o2::base::Detector::Mixture(++matId, "Scintillator$", aScint, zScint, dScint, nScint, wScint);
   o2::base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //  o2::base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
-  //  o2::base::Detector::Medium(Alu, "Alu$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
   LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
 }
