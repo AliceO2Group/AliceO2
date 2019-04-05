@@ -134,7 +134,7 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
 
 struct VertexingParameters {
   float zCut = 0.002f;   //0.002f
-  float phiCut = 0.05f; //0.005f
+  float phiCut = 0.5f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   int clusterContributorsCut = 16;

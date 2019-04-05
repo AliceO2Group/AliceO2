@@ -60,12 +60,13 @@ class VertexerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
   GPU_HOST_DEVICE static const int4 getBinsRect2(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPU_HOST_DEVICE static const int2 getPhiBins(const int layerIndex, float phi, float deltaPhi);
 
   // virtual vertexer interface
   virtual void reset();
   virtual void initialise(ROframe*);
   virtual void computeTracklets(const bool useMCLabel = false);
-  // void computeTracklets(const bool useMCLabel, const bool useSerialKernels);
+  virtual void computeTrackletsPureMontecarlo();
   virtual void computeVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
@@ -84,6 +85,10 @@ class VertexerTraits
   std::vector<Tracklet> mComb01;
   std::vector<Tracklet> mComb12;
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
+  std::vector<std::array<float, 7>> mDeltaTanlambdas;
+  std::vector<std::array<float, 6>> mLinesData;
+  std::vector<std::array<float, 4>> mCentroids;
+  void processLines();
 
  protected:
   bool mIsGPU;
@@ -142,6 +147,11 @@ inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentC
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
                MATH_MIN(Constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
+}
+
+inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(const int layerIndex, float phi, float dPhi) {
+  return int2{IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi - dPhi)),
+    IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi + dPhi))};
 }
 
 inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,

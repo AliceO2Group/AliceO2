@@ -53,7 +53,7 @@ class ROframe final
   const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
-  std::vector<int> getTracksId(const int layerId) const;
+  std::vector<int> getTracksId(const int layerId, const std::vector<Cluster>& cl);
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
@@ -120,11 +120,11 @@ inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const
 }
 
 
-inline std::vector<int> ROframe::getTracksId(const int layerId) const
+inline std::vector<int> ROframe::getTracksId(const int layerId, const std::vector<Cluster>& cl)
 {
   std::vector<int> tracksId;
-  for (auto& MClabel : mClusterLabels[layerId]) {
-    tracksId.push_back(MClabel);
+  for (auto& cluster : cl) {
+    tracksId.push_back(getClusterLabels(layerId, cluster).getTrackID());
   }
   return tracksId;
 }
