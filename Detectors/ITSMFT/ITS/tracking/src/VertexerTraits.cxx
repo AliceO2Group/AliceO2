@@ -34,8 +34,8 @@ using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
 void trackleterKernelSerial(
-  const std::vector<Cluster>& clustersNextLayer,
-  const std::vector<Cluster>& clustersCurrentLayer,
+  const std::vector<Cluster>& clustersNextLayer,    // 0 2
+  const std::vector<Cluster>& clustersCurrentLayer, // 1 1
   const std::array<int, ZBins * PhiBins + 1>& indexTableNext,
   const char layerOrder,
   const float phiCut,
@@ -48,9 +48,9 @@ void trackleterKernelSerial(
 {
   foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
-  for (int iCurrentClusterIndex{ 0 }; iCurrentClusterIndex < clustersCurrentLayer.size(); ++iCurrentClusterIndex) {
+  for (int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{ 0 };
-    const Cluster currentCluster{ clustersCurrentLayer[iCurrentClusterIndex] };
+    const Cluster currentCluster{ clustersCurrentLayer[iCurrentLayerClusterIndex] };
     const int layerIndex{ layerOrder == LAYER0_TO_LAYER1 ? 0 : 2 };
     const int4 selectedBinsRect{ VertexerTraits::getBinsRect2(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
@@ -64,15 +64,16 @@ void trackleterKernelSerial(
         const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
         const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
         // loop on clusters next layer
-        for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < clustersNextLayer.size(); ++iNextLayerCluster) {
-          const Cluster& nextCluster{ clustersNextLayer[iNextLayerCluster] };
-          const char testMC{ !isMc || nextLayerMClabels[iNextLayerCluster] == currentLayerMClabels[iCurrentClusterIndex] && nextLayerMClabels[iNextLayerCluster] != -1 };
+        for (int iNextLayerClusterIndex{ firstRowClusterIndex }; iNextLayerClusterIndex <= maxRowClusterIndex && iNextLayerClusterIndex < clustersNextLayer.size(); ++iNextLayerClusterIndex) {
+          const Cluster& nextCluster{ clustersNextLayer[iNextLayerClusterIndex] };
+          // std::cout<<nextLayerMClabels[iNextLayerClusterIndex]<<" =?= "<<currentLayerMClabels[iCurrentLayerClusterIndex]<<std::endl;
+          const char testMC{ !isMc || nextLayerMClabels[iNextLayerClusterIndex] == currentLayerMClabels[iCurrentLayerClusterIndex] && nextLayerMClabels[iNextLayerClusterIndex] != -1 };
           if (MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (layerOrder == LAYER0_TO_LAYER1) {
-                Tracklets.emplace_back(iNextLayerCluster, iCurrentClusterIndex, nextCluster, currentCluster);
+                Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
               } else {
-                Tracklets.emplace_back(iCurrentClusterIndex, iNextLayerCluster, currentCluster, nextCluster);
+                Tracklets.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
               }
               ++storedTracklets;
             }
@@ -80,38 +81,44 @@ void trackleterKernelSerial(
         }
       }
     }
-    foundTracklets[iCurrentClusterIndex] = storedTracklets;
+    foundTracklets[iCurrentLayerClusterIndex] = storedTracklets;
   }
 }
 
 void trackletSelectionKernelSerial(
-  const std::vector<Cluster>& clustersNextLayer,
-  const std::vector<Cluster>& clustersCurrentLayer,
+  const std::vector<Cluster>& clustersNextLayer,    //0
+  const std::vector<Cluster>& clustersCurrentLayer, //1
+  const std::vector<Cluster>& debugClustersLayer2,  //2
   const std::vector<Tracklet>& tracklets01,
   const std::vector<Tracklet>& tracklets12,
   const std::vector<int>& foundTracklets01,
   const std::vector<int>& foundTracklets12,
   std::vector<Line>& destTracklets,
+  std::vector<std::array<float, 7>>& tlv,
   const float tanLambdaCut = 0.025f,
   const int maxTracklets = static_cast<int>(2e3))
 {
   int offset01{ 0 };
   int offset12{ 0 };
-  // loop on layer1 clusters
-  for (int iCurrentClusterIndex{ 0 }; iCurrentClusterIndex < clustersCurrentLayer.size(); ++iCurrentClusterIndex) {
+  for (int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int validTracklets{ 0 };
-    for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentClusterIndex]; ++iTracklet01) {
-        // std::cout<<" > "<<iTracklet12<<" < "<<iTracklet01<<std::endl;
+    for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
+      for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
+        // std::cout<<"\t>> "<<iTracklet01<<std::endl;
         const float deltaTanLambda{ MATH_ABS(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
-        if (deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets) {
+        if (/*deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets*/ true) {
+          assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
+          tlv.push_back(std::array<float, 7>{ deltaTanLambda,
+                                              clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].zCoordinate, clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].rCoordinate,
+                                              clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].zCoordinate, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].rCoordinate,
+                                              debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].zCoordinate, debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].rCoordinate });
           destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
-           ++validTracklets;
+          ++validTracklets;
         }
       }
     }
-    offset01 += foundTracklets01[iCurrentClusterIndex];
-    offset12 += foundTracklets12[iCurrentClusterIndex];
+    offset01 += foundTracklets01[iCurrentLayerClusterIndex];
+    offset12 += foundTracklets12[iCurrentLayerClusterIndex];
     // // if (validTracklets != maxTracklets) {
     // //   new (destTracklets + stride + validTracklets) Line(); // always complete line with empty one unless all spaces taken
     // // } else {
@@ -142,13 +149,16 @@ void VertexerTraits::reset()
   mVertices.clear();
   mComb01.clear();
   mComb12.clear();
+  mDeltaTanlambdas.clear();
+  mCentroids.clear();
+  mLinesData.clear();
   mAverageClustersRadii = { 0.f, 0.f, 0.f };
   mMaxDirectorCosine3 = 0.f;
 }
 
 std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 {
-  return mEvent->getTracksId(layer);
+  return mEvent->getTracksId(layer, mClusters[layer]);
 }
 
 void VertexerTraits::arrangeClusters(ROframe* event)
@@ -211,7 +221,7 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
   return filteredBins;
 }
 
-/*void VertexerTraits::computeTracklets(const bool useMCLabel)
+/* void VertexerTraits::computeTracklets(const bool useMCLabel)
 {
   if (useMCLabel)
     std::cout << "Running in MOntecarlo check mode\n";
@@ -251,8 +261,8 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
                                (mAverageClustersRadii[2] - mClusters[0][iCluster0].rCoordinate) *
                                  (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
                                  (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
-            float ZProjectionInner{ mClusters[0][iCluster0].zCoordinate +
-                                    (mClusters[0][iCluster0].rCoordinate) *
+            float ZProindexTableNextectionInner{ mClusters[0][iCluster0].zCoordinate +
+                      indexTableNext             (mClusters[0][iCluster0].rCoordinate) *
                                       (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
                                       (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
             if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mVrtParams.zCut))
@@ -320,10 +330,63 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
   }
 }*/
 
+void VertexerTraits::computeTrackletsPureMontecarlo()
+{
+
+  std::cout << "Running in Montecarlo trivial mode\n";
+  std::cout << "clusters on L0: " << mClusters[0].size() << " clusters on L1: " << mClusters[1].size() << " clusters on L2: " << mClusters[2].size() << std::endl;
+
+  std::vector<int> foundTracklets01;
+  std::vector<int> foundTracklets12;
+
+  std::vector<int> labelsMC0 = getMClabelsLayer(0);
+  std::vector<int> labelsMC1 = getMClabelsLayer(1);
+  std::vector<int> labelsMC2 = getMClabelsLayer(2);
+
+  for (int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < mClusters[0].size(); ++iCurrentLayerClusterIndex) {
+    auto& cluster{ mClusters[0][iCurrentLayerClusterIndex] };
+    const int2 selectedBinsRect{ VertexerTraits::getPhiBins(1, cluster.phiCoordinate, mVrtParams.phiCut) };
+    for (int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
+      const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
+      if (/*MATH_ABS(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut &&*/ labelsMC1[iNextLayerClusterIndex] == labelsMC0[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
+          /*mEvent->getClusterLabels(0, cluster).getTrackID() == mEvent->getClusterLabels(1, nextCluster).getTrackID() && mEvent->getClusterLabels(0, cluster).getTrackID() != -1*/)
+        mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, cluster, nextCluster);
+    }
+  }
+
+  for (int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < mClusters[2].size(); ++iCurrentLayerClusterIndex) {
+    auto& cluster{ mClusters[2][iCurrentLayerClusterIndex] };
+    const int2 selectedBinsRect{ VertexerTraits::getPhiBins(1, cluster.phiCoordinate, mVrtParams.phiCut) };
+    for (int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
+      const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
+      if (/*MATH_ABS(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut && (*/ labelsMC1[iNextLayerClusterIndex] == labelsMC2[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
+          /*mEvent->getClusterLabels(2, cluster).getTrackID() == mEvent->getClusterLabels(1, nextCluster).getTrackID() && mEvent->getClusterLabels(2, cluster).getTrackID() != -1*/)
+        mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, cluster);
+    }
+  }
+
+  for (auto& trklet01 : mComb01) {
+    for (auto& trklet12 : mComb12) {
+      if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
+        const float deltaTanLambda{ MATH_ABS(trklet01.tanLambda - trklet12.tanLambda) };
+        mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
+                                                         mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
+                                                         mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
+                                                         mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate });
+      }
+    }
+  }
+
+  for (auto& trk : mComb01) {
+    mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data());
+  }
+}
+
 void VertexerTraits::computeTracklets(const bool useMCLabel)
 {
+  // computeTrackletsPureMontecarlo();
   if (useMCLabel)
-    std::cout << "Running in MOntecarlo check mode\n";
+    std::cout << "Running in Montecarlo check mode\n";
   std::cout << "clusters on L0: " << mClusters[0].size() << " clusters on L1: " << mClusters[1].size() << " clusters on L2: " << mClusters[2].size() << std::endl;
 
   std::vector<int> foundTracklets01;
@@ -357,17 +420,16 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     labelsMC2,
     labelsMC1);
 
- trackletSelectionKernelSerial(
+  trackletSelectionKernelSerial(
     mClusters[0],
     mClusters[1],
+    mClusters[2],
     mComb01,
     mComb12,
     foundTracklets01,
     foundTracklets12,
-    mTracklets);
-  // const float tanLambdaCut = 0.025f,
-  // const int maxTracklets = static_cast<int>(2e3))
-
+    mTracklets,
+    mDeltaTanlambdas);
 }
 
 void VertexerTraits::computeVertices()
@@ -468,6 +530,23 @@ void VertexerTraits::dumpVertexerTraits()
 VertexerTraits* createVertexerTraits()
 {
   return new VertexerTraits;
+}
+
+void VertexerTraits::processLines()
+{
+  for (auto iLine1{ 0 }; iLine1 < mTracklets.size(); ++iLine1) {
+    auto line1 = mTracklets[iLine1];
+    for (auto iLine2{ iLine1 + 1 }; iLine2 < mTracklets.size(); ++iLine2) {
+      auto line2 = mTracklets[iLine2];
+      float dca{ Line::getDCA(line1, line2) };
+      ClusterLines cluster{ -1, line1, -1, line2 };
+      auto vtx = cluster.getVertex();
+      if (vtx[0] * vtx[0] + vtx[1] * vtx[1] < 1.98 * 1.98) {
+        mCentroids.push_back(std::array<float, 4>{ vtx[0], vtx[1], vtx[2], dca });
+      }
+    }
+    mLinesData.push_back(Line::getDCAComponents(line1, std::array<float, 3>{ 0., 0., 0. }));
+  }
 }
 
 } // namespace ITS

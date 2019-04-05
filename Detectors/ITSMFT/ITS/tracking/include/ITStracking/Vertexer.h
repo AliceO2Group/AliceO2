@@ -60,8 +60,10 @@ class Vertexer
   template <typename... T>
   void initialiseVertexer(T&&... args);
 
-  template <typename...T>
+  template <typename... T>
   void findTracklets(T&&... args);
+
+  void findTrivialMCTracklets();
 
   void findVertices();
 
@@ -75,6 +77,10 @@ class Vertexer
   std::vector<Tracklet> getTracklets01() const;
   std::vector<Tracklet> getTracklets12() const;
   std::array<std::vector<Cluster>, 3> getClusters() const;
+  std::vector<std::array<float, 7>> getDeltaTanLambdas() const;
+  std::vector<std::array<float, 4>> getCentroids() const;
+  std::vector<std::array<float, 6>> getLinesData() const;
+  void processLines();
 
  private:
   std::uint32_t mROframe = 0;
@@ -92,6 +98,11 @@ template <typename... T>
 void Vertexer::findTracklets(T&&... args)
 {
   mTraits->computeTracklets(std::forward<T>(args)...);
+}
+
+void Vertexer::findTrivialMCTracklets()
+{
+  mTraits->computeTrackletsPureMontecarlo();
 }
 
 void Vertexer::dumpTraits()
@@ -155,6 +166,26 @@ inline std::vector<Tracklet> Vertexer::getTracklets12() const
 inline std::array<std::vector<Cluster>, 3> Vertexer::getClusters() const
 {
   return mTraits->mClusters;
+}
+
+inline std::vector<std::array<float, 7>> Vertexer::getDeltaTanLambdas() const
+{
+  return mTraits->mDeltaTanlambdas;
+}
+
+inline std::vector<std::array<float, 4>> Vertexer::getCentroids() const
+{
+  return mTraits->mCentroids;
+}
+
+inline std::vector<std::array<float, 6>> Vertexer::getLinesData() const
+{
+  return mTraits->mLinesData;
+}
+
+inline void Vertexer::processLines()
+{
+  mTraits->processLines();
 }
 
 } // namespace ITS

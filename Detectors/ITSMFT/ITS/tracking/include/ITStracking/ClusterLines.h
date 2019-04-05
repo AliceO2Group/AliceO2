@@ -50,7 +50,7 @@ inline GPU_HOST_DEVICE Line::Line() : weightMatrix{ 1., 0., 0., 1., 0., 1. }
   isEmpty = true;
 }
 
-inline GPU_DEVICE Line::Line(const float firstPoint[3], const float secondPoint[3])
+inline GPU_HOST_DEVICE Line::Line(const float firstPoint[3], const float secondPoint[3])
 {
   for (int i{ 0 }; i < 3; ++i) {
     originPoint[i] = firstPoint[i];
@@ -64,7 +64,7 @@ inline GPU_DEVICE Line::Line(const float firstPoint[3], const float secondPoint[
     cosinesDirector[index] *= inverseNorm;
 }
 
-inline GPU_DEVICE Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
+inline GPU_HOST_DEVICE Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
 {
   originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
   originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
