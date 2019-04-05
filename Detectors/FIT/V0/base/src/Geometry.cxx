@@ -41,13 +41,8 @@ Geometry::Geometry(const Geometry& geom)
 void Geometry::initializeVectors()
 {
   // RADII
-  // Index of rAvgScint is NOT linked directly to any ring number
-  mvrAvgScint.push_back(4.01); // ring 1 lower radius
-  mvrAvgScint.push_back(7.25); // ring 1 upper radius and ring 2 lower radius
-  mvrAvgScint.push_back(12.83);
-  mvrAvgScint.push_back(21.22);
-  mvrAvgScint.push_back(38.664);
-  mvrAvgScint.push_back(72.09);
+  // Index of mvrAvgScint is NOT linked directly to any ring number
+  mvrAvgScint.assign(sRingRadiiScint, sRingRadiiScint + sNumberOfRings + 1);
 
   // Set real plastic radi (reduced by painting of 0.06 and separation gap of 0.08)
   for (uint16_t ir = 1; ir < mvrAvgScint.size(); ir++) { // shift of indices to match index with ring number (starting from 0)
@@ -87,7 +82,7 @@ void Geometry::buildGeometry()
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector)
 {
-  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size() - 1), sDySeparationScint * 2, sDzScint + sEpsilon);
+  new TGeoBBox("boolBoxScintSeparator", mvrMaxScint.at(mvrMaxScint.size() - 1), sDySeparationScint * 2, sDzScint / 2 + sEpsilon);
 
   std::stringstream ssName;
   ssName << "sector" << iSector + 1;
@@ -99,7 +94,7 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector)
     ssNameGeoComposite << "cellGeoComposite" << iCell + 1;
 
     // Generate separation between sectors by subtracting two cuboids from each tube segment
-    new TGeoTubeSeg(ssNameGeoTube.str().c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), sDzScint, sPhiMinScint, sDphiScint);
+    new TGeoTubeSeg(ssNameGeoTube.str().c_str(), mvrMinScint.at(ir), mvrMaxScint.at(ir), sDzScint / 2, sPhiMinScint, sDphiScint);
     std::string booleanFormula = "(";
     booleanFormula += ssNameGeoTube.str() + "-boolBoxScintSeparator)";           // subtract counter-clockwise box
     booleanFormula += (std::string) "-boolBoxScintSeparator" + ":rotPhiSector1"; // subtract clockwise box (same but rotated by 45 degrees)
