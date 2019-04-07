@@ -18,6 +18,7 @@
 #include "FITSimulation/Digitizer.h"
 #include "T0Simulation/DigitizationParameters.h"
 #include "FITBase/Digit.h"
+#include "FITSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -95,11 +96,11 @@ class FITDPLDigitizerTask
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
     static std::vector<o2::fit::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
+    o2::dataformats::MCTruthContainer<o2::fit::MCLabel> labelAccum;
+    o2::dataformats::MCTruthContainer<o2::fit::MCLabel> labels;
     o2::fit::Digit digit;
     std::vector<o2::fit::Digit> digitAccum; // digit accumulator
-
+    mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
@@ -124,7 +125,7 @@ class FITDPLDigitizerTask
         const auto& data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
-        // labelAccum.mergeAtBack(*labels);
+        labelAccum.mergeAtBack(labels);
       }
       mDigitizer.computeAverage(digit);
       mDigitizer.setTriggers(&digit);
@@ -146,7 +147,7 @@ class FITDPLDigitizerTask
     // LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
-    // pc.outputs().snapshot(Output{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
 
     LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
@@ -222,7 +223,7 @@ o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
     (detStr + "Digitizer").c_str(),
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-             /*OutputSpec{ detOrig "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }*/
+	OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<FITT0DPLDigitizerTask>() },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
