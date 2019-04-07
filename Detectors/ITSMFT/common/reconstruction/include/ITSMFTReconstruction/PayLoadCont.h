@@ -74,6 +74,13 @@ class PayLoadCont
     }
   }
 
+  ///< fill n bytes with given symbol w/o checking for the size
+  void fillFast(const uint8_t c, size_t n)
+  {
+    std::memset(mEnd, c, n);
+    mEnd += n;
+  }
+
   ///< add n bytes to the buffer w/o checking for the size
   void addFast(const uint8_t* ptr, size_t n)
   {
@@ -102,6 +109,13 @@ class PayLoadCont
     } else {
       eraseFast(n);
     }
+  }
+
+  ///< fill n bytes with given symbol
+  void fill(const uint8_t c, size_t n)
+  {
+    ensureFreeCapacity(n);
+    fillFast(c, n);
   }
 
   ///< add n bytes to the buffer, expand if needed. no check for overlap
