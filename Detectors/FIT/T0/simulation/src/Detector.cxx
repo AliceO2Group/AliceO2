@@ -361,6 +361,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
+  TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
   if (fMC->IsTrackEntering()) {
     float x, y, z;
@@ -368,19 +369,23 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
-    int trackID = fMC->GetStack()->GetCurrentTrackNumber();
+    int trackID = stack->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
+    Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
     if (fMC->TrackCharge()) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
-        AddHit(x, y, z, time, enDep, trackID, detID);
-      }
+	//        AddHit(x, y, z, time, enDep, trackID, detID);
+        AddHit(x, y, z, time, enDep, parentID, detID);
+	//	std::cout << trackID <<" parent "<<parentID<<std::endl;
+ 
+     }
     }
 
     return kTRUE;
