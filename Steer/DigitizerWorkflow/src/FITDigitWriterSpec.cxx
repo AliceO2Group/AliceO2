@@ -15,6 +15,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
 #include "FITBase/Digit.h"
+#include "FITSimulation/MCLabel.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -38,7 +39,8 @@ namespace fit
 class FITDPLDigitWriter
 {
 
-  using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCCont = o2::dataformats::MCTruthContainer<o2::fit::MCLabel>;
+  //  using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
   void init(framework::InitContext& ic)
@@ -72,15 +74,15 @@ class FITDPLDigitWriter
     auto inDigits = pc.inputs().get<std::vector<o2::fit::Digit>>((detStr + "digits").c_str());
     //    auto inROFs = pc.inputs().get<std::vector<o2::ITSMFT::ROFRecord>>((detStr + "digitsROF").c_str());
     //   auto inMC2ROFs = pc.inputs().get<std::vector<o2::ITSMFT::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
-    //   auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
+    auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
     auto digitsP = &inDigits;
-    //   auto labelsRaw = inLabels.get();
+    auto labelsRaw = inLabels.get();
     // connect this to a particular branch
 
     auto brDig = getOrMakeBranch(*mOutTree.get(), (detStr + "Digit").c_str(), &digitsP);
-    //   auto brLbl = getOrMakeBranch(*mOutTree.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
+    auto brLbl = getOrMakeBranch(*mOutTree.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
     mOutTree->Fill();
 
     mOutFile->cd();
@@ -141,6 +143,7 @@ DataProcessorSpec getT0DigitWriterSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{ (detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe });
 
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
