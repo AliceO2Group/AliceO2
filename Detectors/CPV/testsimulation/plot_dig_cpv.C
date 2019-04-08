@@ -35,7 +35,6 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   }
   hitTree->GetEvent(ievent);
 
-
   TH2D* vMod[5][100] = { 0 };
   int primLabels[5][100];
   for (int mod = 1; mod < 5; mod++)
@@ -75,7 +74,7 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   }
 
   TCanvas* c[5];
-  TH2D* box = new TH2D("box", "CPV module",60, 0., 60., 128, 0., 128.);
+  TH2D* box = new TH2D("box", "CPV module", 60, 0., 60., 128, 0., 128.);
   for (int mod = 1; mod < 5; mod++) {
     c[mod] =
       new TCanvas(Form("DigitInMod%d", mod), Form("CPV hits in module %d", mod), 10 * mod, 0, 600 + 10 * mod, 400);

@@ -34,7 +34,6 @@ void plot_hit_cpv(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.cpv.m
   }
   hitTree->GetEvent(ievent);
 
-
   TH2D* vMod[5][100] = { 0 };
   int primLabels[5][100];
   for (int mod = 1; mod < 5; mod++)
@@ -48,20 +47,19 @@ void plot_hit_cpv(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.cpv.m
 
   //  for(it=mHitsArray->begin(); it!=mHitsArray->end(); it++){
 
-        std::ostream stream(nullptr);
-        stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-  //      stream.rdbuf(LOG(DEBUG2));
-      for (int i = 0; i < mHitsArray->size(); i++) {
-         mHitsArray->at(i).PrintStream(stream);
-        }
-
+  std::ostream stream(nullptr);
+  stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
+                                   //      stream.rdbuf(LOG(DEBUG2));
+  for (int i = 0; i < mHitsArray->size(); i++) {
+    mHitsArray->at(i).PrintStream(stream);
+  }
 
   for (auto& it : *mHitsArray) {
     int absId = it.GetDetectorID();
     double en = it.GetEnergyLoss();
     int lab = it.GetTrackID();
     geom->AbsToRelNumbering(absId, relId);
-printf("reldId=(%d,%d,%d) \n",relId[0],relId[1],relId[2]) ;    
+    printf("reldId=(%d,%d,%d) \n", relId[0], relId[1], relId[2]);
     // check, if this label already exist
     int j = 0;
     bool found = false;

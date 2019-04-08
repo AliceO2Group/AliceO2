@@ -43,7 +43,6 @@ void drawCPVgeometry()
   o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
 
-
   o2::cpv::Detector* cpv = new o2::cpv::Detector(kTRUE);
   run->AddModule(cpv);
 
@@ -57,9 +56,9 @@ void drawCPVgeometry()
     while ((name = (TObjString*)iToHide->Next()))
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kFALSE);
 
-    TString ToShow = "" ;
-//      "CPV CPVG CPVC CPVF CPVAr CPVQ";
-   
+    TString ToShow = "";
+    //      "CPV CPVG CPVC CPVF CPVAr CPVQ";
+
     TObjArray* lToShow = ToShow.Tokenize(" ");
     TIter* iToShow = new TIter(lToShow);
     while ((name = (TObjString*)iToShow->Next())) {

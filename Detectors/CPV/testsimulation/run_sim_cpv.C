@@ -49,7 +49,7 @@ void run_sim_cpv(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Debug option
   gDebug = 0;
-//  FairLogger::GetLogger()->SetLogScreenLevel("DEBUG4");
+  //  FairLogger::GetLogger()->SetLogScreenLevel("DEBUG4");
 
   // Timer
   TStopwatch timer;
@@ -87,7 +87,7 @@ void run_sim_cpv(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   boxGen->SetEtaRange(-0.2, 0.2);
   boxGen->SetPRange(4., 10.);
   boxGen->SetPhiRange(210., 360.);
-//  boxGen->SetDebug(kTRUE);
+  //  boxGen->SetDebug(kTRUE);
 
   primGen->AddGenerator(boxGen);
 #else
@@ -126,10 +126,12 @@ void run_sim_cpv(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   std::cout << "Output file is " << outFile << std::endl;
   std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
   std::cout << "Memory used " << sysinfo.GetMaxMemory() << "\n";
 }

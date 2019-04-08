@@ -17,8 +17,8 @@
 // int updateITSinGRP(std::string inputGRP, std::string grpName = "GRP");
 
 void run_digi_cpv(std::string outputfile = "o2dig.root",
-                  std::string inputfile  = "AliceO2_TGeant3.cpv.mc_10_event.root",
-                  std::string paramfile  = "AliceO2_TGeant3.cpv.params_10.root")
+                  std::string inputfile = "AliceO2_TGeant3.cpv.mc_10_event.root",
+                  std::string paramfile = "AliceO2_TGeant3.cpv.params_10.root")
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
