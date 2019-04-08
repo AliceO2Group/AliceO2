@@ -4,7 +4,7 @@ set(BUCKET_NAME mch_simulation_test_bucket)
 # trying to get only one test exe for this module
 O2_GENERATE_EXECUTABLE(
   EXE_NAME test_MCHSimulation
-  SOURCES testDigitMerging.cxx DigitMerging.cxx testDigitization.cxx #testGeometry.cxx 
+  SOURCES testDigitMerging.cxx DigitMerging.cxx testDigitization.cxx testGeometry.cxx 
   BUCKET_NAME mch_simulation_test_bucket
   NO_INSTALL TRUE
 )
