@@ -50,7 +50,7 @@ void plot_hit_cpv(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.cpv.m
   std::ostream stream(nullptr);
   stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
                                    //      stream.rdbuf(LOG(DEBUG2));
-  for (int i = 0; i < mHitsArray->size(); i++) {
+  for (uint i = 0; i < mHitsArray->size(); i++) {
     mHitsArray->at(i).PrintStream(stream);
   }
 
