@@ -18,7 +18,7 @@ void dumpDigits(const std::vector<Digit>& digits)
   std::cout << "\n";
 }
 
-std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
+std::vector<Digit> mergeDigits_sortnosizeadjust(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
@@ -56,7 +56,7 @@ std::vector<Digit> mergeDigitsLA1(const std::vector<Digit>& inputDigits, const s
   return digits;
 }
 
-std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
+std::vector<Digit> mergeDigits_sortsizeadjust(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   std::vector<int> indices(inputDigits.size());
   std::iota(begin(indices), end(indices), 0);
@@ -98,7 +98,7 @@ std::vector<Digit> mergeDigitsLA2(const std::vector<Digit>& inputDigits, const s
   return digits;
 }
 
-std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
+std::vector<Digit> mergeDigits_map(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   int iter = 0;
   int count = 0;
@@ -135,5 +135,5 @@ std::vector<Digit> mergeDigitsMW(const std::vector<Digit>& inputDigits, const st
 
 std::vector<MergingFunctionType> mergingFunctions()
 {
-  return std::vector<MergingFunctionType>{ mergeDigitsLA1, mergeDigitsLA2, mergeDigitsMW };
+  return std::vector<MergingFunctionType>{ mergeDigits_sortnosizeadjust, mergeDigits_sortsizeadjust, mergeDigits_map };
 }
