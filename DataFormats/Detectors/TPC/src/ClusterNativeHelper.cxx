@@ -109,7 +109,7 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
         LOG(ERROR) << "can not find corresponding 'Size' branch for data branch " << branchname << ", skipping it";
       }
     }
-    branchname = mMCBranchName + " " + std::to_string(sector);
+    branchname = mMCBranchName + "_" + std::to_string(sector);
     branch = mTree->GetBranch(branchname.c_str());
     if (branch) {
       branch->SetAddress(&mSectorMC);
