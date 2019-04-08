@@ -94,14 +94,12 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  
-//       std::ostream stream(nullptr);
-//       stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-//      stream.rdbuf(LOG(DEBUG2));
-//      for (int i = 0; i < mHits->size(); i++) {
-//         mHits->at(i).PrintStream(stream);
-//       }
-  
+  //       std::ostream stream(nullptr);
+  //       stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
+  //      stream.rdbuf(LOG(DEBUG2));
+  //      for (int i = 0; i < mHits->size(); i++) {
+  //         mHits->at(i).PrintStream(stream);
+  //       }
 }
 void Detector::Reset()
 {
@@ -144,14 +142,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //  int idPCPQ = fMC->VolId("CPVQ");
   //  if( fMC->CurrentVolID(copy) != idPCPQ) return ;
 
-  //analyze only charged 
-  if(fMC->TrackCharge() == 0){
+  //analyze only charged
+  if (fMC->TrackCharge() == 0) {
     fMC->SetMaxStep(1.e10);
-    return false ;
+    return false;
   }
 
   if (!fMC->IsTrackEntering()) { //simulate once per track
-    return false; 
+    return false;
   }
 
   if (!mGeom) {
@@ -264,7 +262,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float zcell = zhit / kPadSizeZ;
     float xcell = xhit / kPadSizeX;
     if (zcell <= 0 || xcell <= 0 ||
-        zcell >= knCellZ || xcell >= knCellX) {  
+        zcell >= knCellZ || xcell >= knCellX) {
       return true; //beyond CPV
     }
     int izcell = (int)zcell;
@@ -353,7 +351,6 @@ void Detector::AddHit(int trackID, int detID, const Point3D<float>& pos, double 
   LOG(DEBUG4) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << "), time" << time << ", qdep =" << qdep << std::endl;
   mHits->emplace_back(trackID, detID, pos, time, qdep);
-
 }
 
 void Detector::ConstructGeometry()
@@ -519,8 +516,8 @@ void Detector::CreateMaterials()
   Medium(ID_TEXTOLIT, "Textolit", ID_TEXTOLIT, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // Copper                                                                         -> idtmed[710]
-  Material(ID_CU, "Cupr", 63.546, 29, 8.96, 1.43, 14.8, 0, 0);
-  Medium(ID_CU, "Cupr", ID_CU, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0);
+  Material(ID_CU, "Cupr", 63.546, 29, 8.96, 1.43, 14.8, nullptr, 0);
+  Medium(ID_CU, "Cupr", ID_CU, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, nullptr, 0);
 
   // The gas mixture: ArCo2                                                         -> idtmed[715]
   // Ar+CO2 Mixture (80% / 20%)
@@ -541,7 +538,7 @@ void Detector::CreateMaterials()
   wArCO[2] = (1 - arContent) * 2;
   float dArCO = arContent * dAr + (1 - arContent) * dCO;
   Mixture(ID_AR, "ArCo2", aArCO, zArCO, dArCO, -3, wArCO);
-  Medium(ID_AR, "ArCo2", ID_AR, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0);
+  Medium(ID_AR, "ArCo2", ID_AR, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, nullptr, 0);
 
   // Various Aluminium parts made of Al                                             -> idtmed[701]
   Material(ID_AL, "Al", 26.98, 13., 2.7, 8.9, 999., nullptr, 0);

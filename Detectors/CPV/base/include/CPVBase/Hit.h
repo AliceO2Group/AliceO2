@@ -40,7 +40,7 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param length Length of the segment
   Hit(int trackID, int detID, const Point3D<float>& pos, double tof, double qLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, qLoss, trackID, detID)
-  {   
+  {
   }
 
   Hit& operator=(const Hit& hit) = default;
