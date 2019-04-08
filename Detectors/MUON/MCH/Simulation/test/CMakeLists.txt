@@ -4,7 +4,7 @@ set(BUCKET_NAME mch_simulation_test_bucket)
 # trying to get only one test exe for this module
 O2_GENERATE_EXECUTABLE(
   EXE_NAME test_MCHSimulation
-  SOURCES testDigitMerging.cxx DigitMerging.cxx testDigitization.cxx testGeometry.cxx 
+  SOURCES testDigitMerging.cxx DigitMerging.cxx testGeometry.cxx testDigitization.cxx
   BUCKET_NAME mch_simulation_test_bucket
   NO_INSTALL TRUE
 )
@@ -16,7 +16,7 @@ add_test_wrap(NAME test_MCHSimulation COMMAND test_MCHSimulation)
 if (benchmark_FOUND)
   O2_GENERATE_EXECUTABLE(
     EXE_NAME o2-mch-bench-digit-merging
-    SOURCES benchDigitMerging.cxx DigitMerging.cxx #testDigitisation.cxx
+    SOURCES benchDigitMerging.cxx DigitMerging.cxx
     BUCKET_NAME ${BUCKET_NAME}
     NO_INSTALL TRUE
     )
