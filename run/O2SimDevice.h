@@ -90,7 +90,7 @@ class O2SimDevice : public FairMQDevice
     std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
     int timeoutinMS = 100000; // wait for 100s max
-    if (channel.Send(request, timeoutinMS) >= 0) {
+    if (channel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for configuration answer ";
       if (channel.Receive(reply, timeoutinMS) > 0) {
         LOG(INFO) << "Configuration answer received, containing " << reply->GetSize() << " bytes ";
@@ -156,8 +156,8 @@ class O2SimDevice : public FairMQDevice
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
     LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 10000; // wait for 10s max -- we should have a more robust solution
-    if (requestchannel.Send(request, timeoutinMS) >= 0) {
+    int timeoutinMS = 100000; // wait for 100s max -- we should have a more robust solution
+    if (requestchannel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for answer ";
       // asking for primary generation
 
