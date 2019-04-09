@@ -694,7 +694,7 @@ void Pipe::ConstructGeometry()
   TGeoVolume* voRB24B1Bellow = MakeBellow("RB24B1", kRB24B1NumberOfPlies, kRB24B1BellowRi, kRB24B1BellowRo,
                                           kRB24B1BellowUndL, kRB24B1PlieRadius, kRB24B1PlieThickness);
   voRB24B1Bellow->SetVisibility(0);
-  Float_t newRB24B1BellowUndL = 2*(static_cast<TGeoTube*>(voRB24B1Bellow->GetShape()))->GetDz();
+  Float_t newRB24B1BellowUndL = 2 * (static_cast<TGeoTube*>(voRB24B1Bellow->GetShape()))->GetDz();
 
   //
   // Bellow mother volume
@@ -1051,8 +1051,7 @@ void Pipe::ConstructGeometry()
   // Inner volume
   //
   TGeoVolume* voRB24ValveBoI = new TGeoVolume(
-    "RB24ValveBoI", new TGeoBBox(kRB24ValveBoWx / 2. - kRB24ValveBoD, kRB24ValveBoWy / 2. - kRB24ValveBoD / 2.,
-                                 kRB24ValveBoWz / 2. - kRB24ValveBoD),
+    "RB24ValveBoI", new TGeoBBox(kRB24ValveBoWx / 2. - kRB24ValveBoD, kRB24ValveBoWy / 2. - kRB24ValveBoD / 2., kRB24ValveBoWz / 2. - kRB24ValveBoD),
     kMedVac);
   voRB24ValveBo->AddNode(voRB24ValveBoI, 1, new TGeoTranslation(0., kRB24ValveBoD / 2., 0.));
   //
@@ -1274,16 +1273,13 @@ void Pipe::ConstructGeometry()
   // Tube 2
   voRB24VMABCRB->AddNode(voRB24VMABCRBT2, 1, gGeoIdentity);
   // Flange Tube 2
-  voRB24VMABCRB->AddNode(voRB24VMABCRBF2, 1, new TGeoCombiTrans(kRB24VMABCPy + kRB24VMABCRBF2L / 2., 0.,
-                                                                kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotxz));
+  voRB24VMABCRB->AddNode(voRB24VMABCRBF2, 1, new TGeoCombiTrans(kRB24VMABCPy + kRB24VMABCRBF2L / 2., 0., kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotxz));
   // Blank Flange Tube 2
-  voRB24VMABCRB->AddNode(voRB24VMABCRBF2B, 1, new TGeoCombiTrans(kRB24VMABCPy - kRB24VMABCRBF2L / 2., 0.,
-                                                                 kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotxz));
+  voRB24VMABCRB->AddNode(voRB24VMABCRBF2B, 1, new TGeoCombiTrans(kRB24VMABCPy - kRB24VMABCRBF2L / 2., 0., kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotxz));
   // Tube 3
   voRB24VMABCRB->AddNode(voRB24VMABCRBT3, 1, gGeoIdentity);
   // Flange Tube 3
-  voRB24VMABCRB->AddNode(voRB24VMABCRBF3, 1, new TGeoCombiTrans(0., 11.2 - kRB24VMABCRBF3L / 2.,
-                                                                kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotyz));
+  voRB24VMABCRB->AddNode(voRB24VMABCRBF3, 1, new TGeoCombiTrans(0., 11.2 - kRB24VMABCRBF3L / 2., kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotyz));
   // Pirani Gauge
   voRB24VMABCRB->AddNode(voRB24VMABCPirani, 1,
                          new TGeoCombiTrans(0., 11.2, kRB24VMABCTz - kRB24VMABCRBT1L / 2., rotyz));
@@ -1497,7 +1493,7 @@ void Pipe::ConstructGeometry()
 
   //
   //
-  top->AddNode(voRB24, 1, new TGeoCombiTrans(0., 0., kRB24CuTubeL / 2 + 88.5 + 400.+0.375, rot180));
+  top->AddNode(voRB24, 1, new TGeoCombiTrans(0., 0., kRB24CuTubeL / 2 + 88.5 + 400. + 0.375, rot180));
 
   //
   ////////////////////////////////////////////////////////////////////////////////
@@ -1596,7 +1592,7 @@ void Pipe::ConstructGeometry()
   const Float_t kRB26s2BellowRi = 12.12 / 2.; // Bellow inner radius        [Pos 1]
   const Int_t kRB26s2NumberOfPlies = 14;      // Number of plies            [Pos 1]
   const Float_t kRB26s2BellowUndL =
-    10.00; // Length of undulated region [Pos 1]  [+10 mm installed including pretension ?]
+    10.00;                                     // Length of undulated region [Pos 1]  [+10 mm installed including pretension ?]
   const Float_t kRB26s2PlieThickness = 0.025;  // Plie thickness             [Pos 1]
   const Float_t kRB26s2ConnectionPlieR = 0.21; // Connection plie radius     [Pos 1]
   //  Plie radius
@@ -1992,7 +1988,7 @@ void Pipe::ConstructGeometry()
   const Float_t kRB26s3WeldingTubeLeftL2 = 3.4; // Left connection tube length             [Pos 4]
   const Float_t kRB26s3WeldingTubeLeftL = 7.0;  // Left connection tube total length       [Pos 4]
   const Float_t kRB26s3WeldingTubeRightL1 =
-    2.3; // Right connection tube length            [Pos 3] (0.3 cm added for welding)
+    2.3;                                          // Right connection tube length            [Pos 3] (0.3 cm added for welding)
   const Float_t kRB26s3WeldingTubeRightL2 = 13.4; // Right connection tube length            [Pos 3]
 
   const Float_t kRB26s3WeldingTubeT1 = 0.6; // Length of first r-transition            [Pos 4 + 3]
@@ -2063,7 +2059,7 @@ void Pipe::ConstructGeometry()
 
   //
   // The bellow itself
-  Float_t zBellowTot = kRB26s3NumberOfPlies*(static_cast<TGeoBBox*>(voRB26s3Wiggle->GetShape()))->GetDZ();
+  Float_t zBellowTot = kRB26s3NumberOfPlies * (static_cast<TGeoBBox*>(voRB26s3Wiggle->GetShape()))->GetDZ();
   TGeoVolume* voRB26s3Bellow =
     new TGeoVolume("RB26s3Bellow", new TGeoTube(kRB26s3BellowRi, kRB26s3BellowRo, zBellowTot), kMedVac);
 
@@ -2673,8 +2669,8 @@ TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t 
     // reinit polycon from parameters
     mother->SetDimensions(pconparams.data());
   } else
-   for (Int_t i = 0; i < zplanecounter; i++)
-     mother->DefineSection(i, pconparams[3+3*i], pconparams[4+3*i], pconparams[5+3*i]);
+    for (Int_t i = 0; i < zplanecounter; i++)
+      mother->DefineSection(i, pconparams[3 + 3 * i], pconparams[4 + 3 * i], pconparams[5 + 3 * i]);
 
   return mother;
 }
@@ -2761,7 +2757,7 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   asWiggle->GetShape()->ComputeBBox(); // enforce recomputing of BBox
   //
   snprintf(name, 64, "%sBellowUS", ext);
-  Float_t zBellowTot = nc*(static_cast<TGeoBBox*>(asWiggle->GetShape()))->GetDZ();
+  Float_t zBellowTot = nc * (static_cast<TGeoBBox*>(asWiggle->GetShape()))->GetDZ();
   TGeoVolume* voBellow = new TGeoVolume(name, new TGeoTube(rMin, rMax, zBellowTot), kMedVac);
   // Positioning of the volumes
   z0 = -dU / 2. + rPlie;
