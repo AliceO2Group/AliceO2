@@ -219,143 +219,143 @@ void Detector::ConstructOpGeometry()
 void Detector::SetOneMCP(TGeoVolume* ins)
 {
 
-  Double_t x,y,z;
-  Double_t crad = 82.;		   // Define concave c-side radius here
+  Double_t x, y, z;
+  Double_t crad = 82.;         // Define concave c-side radius here
   Double_t dP = 3.31735114408; // Work in Progress side length
-  
-  Float_t pinstart[3] = {2.95,2.95,2.5};
-  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
-  Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
-  Double_t prfv[3]= {0.0002,1.323, 1.};      // Vertical refracting layer bettwen radiators and between radiator and not optical Air
-  Double_t prfh[3]= {1.323,0.0002, 1.};      // Horizontal refracting layer bettwen radiators and ...
-  Float_t pmcp[3] = {2.949, 2.949, 1.};     // MCP
-  Float_t pmcpinner[3] = {2.749, 2.979, 0.1};
-  Float_t pmcpside[3] = {0.1, 2.949, 1};
-  Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
-  Float_t pmcptopglass[3] = {2.949, 2.949, 0.1};     // MCP top glass optical
- 
-  Float_t preg[3] = {1.324, 1.324, 0.05};   // Photcathode
-  Double_t pal[3]= {2.648,2.648, 0.25};      // 5mm Al on top of each radiator
+
+  Float_t pinstart[3] = { 2.95, 2.95, 2.5 };
+  Float_t ptop[3] = { 1.324, 1.324, 1. };      // Cherenkov radiator
+  Float_t ptopref[3] = { 1.3241, 1.3241, 1. }; // Cherenkov radiator wrapped with reflector
+  Double_t prfv[3] = { 0.0002, 1.323, 1. };    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
+  Double_t prfh[3] = { 1.323, 0.0002, 1. };    // Horizontal refracting layer bettwen radiators and ...
+  Float_t pmcp[3] = { 2.949, 2.949, 1. };      // MCP
+  Float_t pmcpinner[3] = { 2.749, 2.979, 0.1 };
+  Float_t pmcpside[3] = { 0.1, 2.949, 1 };
+  Float_t pmcpbase[3] = { 2.949, 2.949, 0.1 };
+  Float_t pmcptopglass[3] = { 2.949, 2.949, 0.1 }; // MCP top glass optical
+
+  Float_t preg[3] = { 1.324, 1.324, 0.05 }; // Photcathode
+  Double_t pal[3] = { 2.648, 2.648, 0.25 }; // 5mm Al on top of each radiator
   // Entry window (glass)
-  TVirtualMC::GetMC()->Gsvolu("0TOP","BOX", getMediumID(kOpGlass),ptop,3); // Glass radiator
-  TGeoVolume *top = gGeoManager->GetVolume("0TOP");
-  TVirtualMC::GetMC()->Gsvolu("0TRE","BOX", getMediumID(kAir),ptopref,3);  // Air: wrapped  radiator
-  TGeoVolume *topref = gGeoManager->GetVolume("0TRE");
-  TVirtualMC::GetMC()->Gsvolu("0RFV","BOX", getMediumID(kOpAir),prfv,3);   // Optical Air vertical
-  TGeoVolume *rfv = gGeoManager->GetVolume("0RFV");
-  TVirtualMC::GetMC()->Gsvolu("0RFH","BOX", getMediumID(kOpAir),prfh,3);   // Optical Air horizontal
-  TGeoVolume *rfh = gGeoManager->GetVolume("0RFH");
-  
-  TVirtualMC::GetMC()->Gsvolu("0PAL","BOX", getMediumID(kAl),pal,3); // 5mm Al on top of the radiator
-  TGeoVolume *altop = gGeoManager->GetVolume("0PAL");
-  
-  Double_t thet = TMath::ATan(dP/crad);
-  Double_t rat = TMath::Tan(thet)/2.0;
-    
-  //Al housing definition  
+  TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
+  TGeoVolume* top = gGeoManager->GetVolume("0TOP");
+  TVirtualMC::GetMC()->Gsvolu("0TRE", "BOX", getMediumID(kAir), ptopref, 3); // Air: wrapped  radiator
+  TGeoVolume* topref = gGeoManager->GetVolume("0TRE");
+  TVirtualMC::GetMC()->Gsvolu("0RFV", "BOX", getMediumID(kOpAir), prfv, 3); // Optical Air vertical
+  TGeoVolume* rfv = gGeoManager->GetVolume("0RFV");
+  TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOpAir), prfh, 3); // Optical Air horizontal
+  TGeoVolume* rfh = gGeoManager->GetVolume("0RFH");
+
+  TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
+  TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
+
+  Double_t thet = TMath::ATan(dP / crad);
+  Double_t rat = TMath::Tan(thet) / 2.0;
+  /*
+  //Al housing definition
   Double_t mgon[16];
 
-  mgon[0]  = -45; 
-  mgon[1]  = 360.0;
-  mgon[2]  = 4;
-  mgon[3]  = 4;
-  
-  z = -pinstart[2] + 2*pal[2];
-  mgon[4]  = z;
-  mgon[5]  = 2*ptop[0] + preg[2];
-  mgon[6]  = dP+rat*z*4/3;
-  
-  z = -pinstart[2] + 2*pal[2] + 2*ptopref[2];
-  mgon[7]  = z;
-  mgon[8]  = mgon[5];
-  mgon[9]  = dP+z*rat;
+  mgon[0] = -45;
+  mgon[1] = 360.0;
+  mgon[2] = 4;
+  mgon[3] = 4;
+
+  z = -pinstart[2] + 2 * pal[2];
+  mgon[4] = z;
+  mgon[5] = 2 * ptop[0] + preg[2];
+  mgon[6] = dP + rat * z * 4 / 3;
+
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2];
+  mgon[7] = z;
+  mgon[8] = mgon[5];
+  mgon[9] = dP + z * rat;
   mgon[10] = z;
   mgon[11] = pmcp[0] + preg[2];
   mgon[12] = mgon[9];
-  
-  z = -pinstart[2] + 2*pal[2] + 2*ptopref[2] + 2*preg[2] + 2*pmcp[2];
+
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * preg[2] + 2 * pmcp[2];
   mgon[13] = z;
   mgon[14] = mgon[11];
-  mgon[15] = dP+z*rat*pmcp[2]*9/10;  
-  
-  TVirtualMC::GetMC()->Gsvolu("0SUP","PGON", getMediumID(kAl), mgon, 16); //Al Housing for Support Structure
-  TGeoVolume *alsup = gGeoManager->GetVolume("0SUP");
+  mgon[15] = dP + z * rat * pmcp[2] * 9 / 10;
 
-  TVirtualMC::GetMC()->Gsvolu ("0REG", "BOX",  getMediumID(kOpGlassCathode), preg, 3);
-  TGeoVolume *cat = gGeoManager->GetVolume("0REG");
+  TVirtualMC::GetMC()->Gsvolu("0SUP", "PGON", getMediumID(kAl), mgon, 16); //Al Housing for Support Structure//
+  TGeoVolume* alsup = gGeoManager->GetVolume("0SUP");
+  */
+  TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
+  TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
   //wrapped radiator +  reflecting layers
-  
-  Int_t ntops=0, nrfvs=0, nrfhs=0;
-  Float_t xin=0, yin=0, xinv=0, yinv=0,xinh=0,yinh=0;
-  x=y=z=0;
-  topref->AddNode(top, 1, new TGeoTranslation(0,0,0) );
+
+  Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
+  Float_t xin = 0, yin = 0, xinv = 0, yinv = 0, xinh = 0, yinh = 0;
+  x = y = z = 0;
+  topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   xinv = -ptop[0] - prfv[0];
-  topref->AddNode(rfv, 1, new TGeoTranslation(xinv,0,0) );
-  printf(" GEOGEO  refv %f ,  0,0 \n",xinv);
+  topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
+  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
-  topref->AddNode(rfv, 2, new TGeoTranslation(xinv,0,0) );
-  printf(" GEOGEO  refv %f ,  0,0 \n",xinv);
+  topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
+  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   yinv = -ptop[1] - prfh[1];
-  topref->AddNode(rfh, 1, new TGeoTranslation(0,yinv,0) );
-  printf(" GEOGEO  refh  ,  0, %f, 0 \n",yinv);
+  topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
+  printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
-  topref->AddNode(rfh, 2, new TGeoTranslation(0,yinv,0) );
-  
+  topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
+
   //container for radiator, cathode
-  for (Int_t ix=0; ix<2; ix++) {
-    xin = - pinstart[0] + 0.3 + (ix+0.5)*2*ptopref[0];
-    for (Int_t iy=0; iy<2 ; iy++) {
-      z = - pinstart[2] + 2*pal[2] + ptopref[2];
-      yin = - pinstart[1] + 0.3 + (iy+0.5)*2*ptopref[1];
+  for (Int_t ix = 0; ix < 2; ix++) {
+    xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
+    for (Int_t iy = 0; iy < 2; iy++) {
+      z = -pinstart[2] + 2 * pal[2] + ptopref[2];
+      yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
-      ins->AddNode(topref, ntops, new TGeoTranslation(xin,yin,z) );
+      ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       printf(" 0TOP  full %i x %f y %f z %f \n", ntops, xin, yin, z);
-      z += ptopref[2] + 2.*pmcptopglass[2] + preg[2] ;
-      ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z) );
+      z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
+      ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       cat->Print();
       printf(" GEOGEO  CATHOD x=%f , y= %f z= %f num  %i\n", xin, yin, z, ntops);
     }
   }
   //Al top
-  z=-pinstart[2] + pal[2];
-  ins->AddNode(altop, 1 , new TGeoTranslation(0,0,z) );
-  
-  // MCP
-  TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX",  getMediumID(kOpGlass), pmcptopglass,3); //Op  Glass
-  TGeoVolume *mcptop = gGeoManager->GetVolume("0MTO");
-  z = - pinstart[2] + 2*pal[2] + 2*ptopref[2] + pmcptopglass[2];
-  ins->AddNode(mcptop, 1, new TGeoTranslation(0,0,z) );
+  z = -pinstart[2] + pal[2];
+  ins->AddNode(altop, 1, new TGeoTranslation(0, 0, z));
 
-  TVirtualMC::GetMC()->Gsvolu("0MCP","BOX", getMediumID(kAir),pmcp,3); //glass
-  TGeoVolume *mcp = gGeoManager->GetVolume("0MCP");
-  z = -pinstart[2] +  2*pal[2] + 2*ptopref[2] + 2*pmcptopglass[2] + 2* preg[2] + pmcp[2];
-  ins->AddNode(mcp, 1, new TGeoTranslation(0,0,z) );
-  TVirtualMC::GetMC()->Gsvolu("0MIN","BOX", getMediumID(kGlass),pmcpinner,3); //glass
-  TGeoVolume *mcpinner = gGeoManager->GetVolume("0MIN");
-  mcp->AddNode(mcpinner,1,new TGeoTranslation(0,0,0) );
-  
-  TVirtualMC::GetMC()->Gsvolu("0MSI","BOX", getMediumID(kGlass),pmcpside,3); //glass
-  TGeoVolume *mcpside = gGeoManager->GetVolume("0MSI");
+  // MCP
+  TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
+  TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2];
+  ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
+
+  TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); //glass
+  TGeoVolume* mcp = gGeoManager->GetVolume("0MCP");
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
+  ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, z));
+  TVirtualMC::GetMC()->Gsvolu("0MIN", "BOX", getMediumID(kGlass), pmcpinner, 3); //glass
+  TGeoVolume* mcpinner = gGeoManager->GetVolume("0MIN");
+  mcp->AddNode(mcpinner, 1, new TGeoTranslation(0, 0, 0));
+
+  TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kGlass), pmcpside, 3); //glass
+  TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");
   x = -pmcp[0] + pmcpside[0];
   y = -pmcp[1] + pmcpside[1];
-  mcp->AddNode(mcpside,1,new TGeoTranslation(x,y,0) );
+  mcp->AddNode(mcpside, 1, new TGeoTranslation(x, y, 0));
   x = pmcp[0] - pmcpside[0];
   y = pmcp[1] - pmcpside[1];
-  mcp->AddNode(mcpside,2,new TGeoTranslation(x,y,0) );
+  mcp->AddNode(mcpside, 2, new TGeoTranslation(x, y, 0));
   x = -pmcp[1] + pmcpside[1];
   y = -pmcp[0] + pmcpside[0];
-  mcp->AddNode(mcpside,3,new TGeoCombiTrans(x,y,0, new TGeoRotation("R2",90,0,0) )) ;
+  mcp->AddNode(mcpside, 3, new TGeoCombiTrans(x, y, 0, new TGeoRotation("R2", 90, 0, 0)));
   x = pmcp[1] - pmcpside[1];
   y = pmcp[0] - pmcpside[0];
-  mcp->AddNode(mcpside,4,new TGeoCombiTrans(x,y,0, new TGeoRotation("R2",90,0,0) )) ;
-  
-  TVirtualMC::GetMC()->Gsvolu("0MBA","BOX", getMediumID(kCeramic),pmcpbase,3); //glass
-  TGeoVolume *mcpbase = gGeoManager->GetVolume("0MBA");
-  z = - pinstart[2] + 2*pal[2] + 2*ptopref[2] + pmcptopglass[2] + 2*pmcp[2] + pmcpbase[2];
-  ins->AddNode(mcpbase,1,new TGeoTranslation(0,0,z) );
-  
-   // Al Housing for Support Structure
+  mcp->AddNode(mcpside, 4, new TGeoCombiTrans(x, y, 0, new TGeoRotation("R2", 90, 0, 0)));
+
+  TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
+  TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
+  ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
+
+  // Al Housing for Support Structure
   //  ins->AddNode(alsup,1);
 }
 
@@ -381,11 +381,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
-	//        AddHit(x, y, z, time, enDep, trackID, detID);
+        //        AddHit(x, y, z, time, enDep, trackID, detID);
         AddHit(x, y, z, time, enDep, parentID, detID);
-	//	std::cout << trackID <<" parent "<<parentID<<std::endl;
- 
-     }
+        //	std::cout << trackID <<" parent "<<parentID<<std::endl;
+      }
     }
 
     return kTRUE;
@@ -442,17 +441,17 @@ void Detector::CreateMaterials()
   // MCP glass SiO2
   Float_t dglass_mcp = 1.3;
   // Ceramic   97.2% Al2O3 , 2.8% SiO2
-  Float_t aCeramic[2]  = { 26.981539,15.9994 };
-  Float_t zCeramic[2]  = { 13.,8. };
-  Float_t wCeramic[2]  = { 2.,3. };
-  Float_t denscer  = 3.6;
+  Float_t aCeramic[2] = { 26.981539, 15.9994 };
+  Float_t zCeramic[2] = { 13., 8. };
+  Float_t wCeramic[2] = { 2., 3. };
+  Float_t denscer = 3.6;
   //*** Definition Of avaible FIT materials ***
   Material(11, "Aliminium$", 26.98, 13.0, 2.7, 8.9, 999);
   Mixture(1, "Vacuum$", aAir, zAir, dAir1, 4, wAir);
   Mixture(2, "Air$", aAir, zAir, dAir, 4, wAir);
   Mixture(4, "MCP glass   $", aglass, zglass, dglass_mcp, -2, wglass);
   Mixture(24, "Radiator Optical glass$", aglass, zglass, dglass, -2, wglass);
-  Mixture( 3, "Ceramic  $",aCeramic, zCeramic, denscer, -2, wCeramic);
+  Mixture(3, "Ceramic  $", aCeramic, zCeramic, denscer, -2, wCeramic);
 
   Medium(1, "Air$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(3, "Vacuum$", 1, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
@@ -477,7 +476,7 @@ void Detector::DefineOpticalProperties()
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
-  
+
   if (ReadOptProperties(optPropPath.Data()) < 0) {
     // Error reading file
     LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;

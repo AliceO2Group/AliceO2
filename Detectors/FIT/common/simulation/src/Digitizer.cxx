@@ -33,10 +33,10 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   constexpr Float_t A_side_cable_cmps = 11.08; //ns
   constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
-  auto sorted_hits{*hits};
+  auto sorted_hits{ *hits };
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fit::HitType const& a, o2::fit::HitType const& b) {
-      return a.GetTrackID() < b.GetTrackID();
-    });
+    return a.GetTrackID() < b.GetTrackID();
+  });
   digit->setTime(mEventTime);
   digit->setBC(mBC);
   digit->setOrbit(mOrbit);
@@ -68,7 +68,7 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
     }
 
     //charge particles in MCLabel
-    Int_t  parentID =  hit.GetTrackID();
+    Int_t parentID = hit.GetTrackID();
     if (parentID != parent) {
       o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;

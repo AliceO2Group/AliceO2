@@ -47,13 +47,11 @@ class FITDPLDigitizerTask
 
   void init(framework::InitContext& ic)
   {
-    std::cout << " @@@@ init " << std::endl;
     // setup the input chain for the hits
     mSimChains.emplace_back(new TChain("o2sim"));
 
     // add the main (background) file
     mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-    std::cout << " @@@@@ sim file " << ic.options().get<std::string>("simFile").c_str() << std::endl;
     // maybe add a particular signal file
     auto signalfilename = ic.options().get<std::string>("simFileS");
     if (signalfilename.size() > 0) {
@@ -61,14 +59,10 @@ class FITDPLDigitizerTask
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
     static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
-    std::cout << " o2::detectors::DetID::T0 " << mID.getName() << std::endl;
     if (mID == o2::detectors::DetID::T0) {
       mDigitizer.init();
-      std::cout << " @@@@  mT0Digitizer.init" << std::endl;
     }
     const bool isContinuous = ic.options().get<int>("pileup");
-    // mT0Digitizer.setContinuous(isContinuous);
-    // mT0Digitizer.setMCTruthContainer(labels.get());
   }
 
   void run(framework::ProcessingContext& pc)
@@ -79,7 +73,6 @@ class FITDPLDigitizerTask
       return;
     }
     std::string detStr = mID.getName();
-    std::cout << " @@@@  run !!!!!!!   " << detStr << std::endl;
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
@@ -111,7 +104,6 @@ class FITDPLDigitizerTask
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
-      std::cout << " @@@@ mOrigin " << mOrigin << " mID " << mID.getName() << std::endl;
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
@@ -134,17 +126,7 @@ class FITDPLDigitizerTask
       LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
       digit.printStream(std::cout);
     }
-    //    if (mT0Digitizer.isContinuous()) {
-    //      digits->clear();
-    //      labels->clear();
-    //      digitizer->flushOutputContainer(*digits.get());
-    //      LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
-    //      // copy digits into accumulator
-    //      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-    //      labelAccum.mergeAtBack(*labels);
-    //    }
 
-    // LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
     pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
@@ -179,9 +161,7 @@ class FITDPLDigitizerTask
                     std::vector<o2::fit::HitType>* hits)
   {
     std::string detStr = mID.getName();
-    std::cout << "@@@@  retrieveHit " << detStr << std::endl;
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
-    //  auto br = chains[sourceID]->GetBranch(brname);
     if (!br) {
       LOG(ERROR) << "No branch found";
       return;
@@ -201,7 +181,6 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
   {
     mID = DETID;
     mOrigin = DETOR;
-    std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
   }
 };
 
@@ -217,20 +196,18 @@ o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::string detStr = o2::detectors::DetID::getName(FITT0DPLDigitizerTask::DETID);
   auto detOrig = FITT0DPLDigitizerTask::DETOR;
-  std::cout << "@@@@ getFITT0DigitizerSpec " << detStr << " dteOrig " << detOrig << std::endl;
 
   return DataProcessorSpec{
     (detStr + "Digitizer").c_str(),
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-	OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
+             OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<FITT0DPLDigitizerTask>() },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
              { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
 
-    // I can't use VariantType::Bool as it seems to have a problem
   };
 }
 

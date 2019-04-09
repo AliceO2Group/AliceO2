@@ -40,7 +40,6 @@ class FITDPLDigitWriter
 {
 
   using MCCont = o2::dataformats::MCTruthContainer<o2::fit::MCLabel>;
-  //  using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
   void init(framework::InitContext& ic)
@@ -50,7 +49,6 @@ class FITDPLDigitWriter
 
     auto filename = ic.options().get<std::string>((detStrL + "-digit-outfile").c_str());
     auto treename = ic.options().get<std::string>("treename");
-    std::cout << " @@@ FITDPLDigitWriter " << detStrL << " file " << filename << " tree " << treename << std::endl;
 
     mOutFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
     if (!mOutFile || mOutFile->IsZombie()) {
@@ -72,8 +70,7 @@ class FITDPLDigitWriter
 
     // retrieve the digits from the input
     auto inDigits = pc.inputs().get<std::vector<o2::fit::Digit>>((detStr + "digits").c_str());
-    //    auto inROFs = pc.inputs().get<std::vector<o2::ITSMFT::ROFRecord>>((detStr + "digitsROF").c_str());
-    //   auto inMC2ROFs = pc.inputs().get<std::vector<o2::ITSMFT::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
+
     auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
@@ -94,7 +91,7 @@ class FITDPLDigitWriter
   }
 
  protected:
-  FITDPLDigitWriter() {}
+  FITDPLDigitWriter() = default;
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {
