@@ -11,9 +11,7 @@
 /// \brief This task tests the Digitizer and the Response of the MCH digitization
 /// \author Michael Winn, DPhN/IRFU/CEA, michael.winn@cern.ch
 
-//#define BOOST_TEST_MODULE Test MCHSimulation Digitization
 #define BOOST_TEST_DYN_LINK
-//#define BOOST_TEST_MAIN
 
 #include <boost/test/unit_test.hpp>
 
