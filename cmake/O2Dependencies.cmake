@@ -1492,6 +1492,7 @@ o2_define_bucket(
     FITBase
     T0Base
     V0Base
+    FDDBase
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
@@ -1506,10 +1507,12 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
@@ -1803,6 +1806,7 @@ o2_define_bucket(
     FITSimulation
     T0Simulation
     V0Simulation
+    FDDSimulation
     HMPIDSimulation
     PHOSSimulation
     PHOSReconstruction
@@ -1837,6 +1841,7 @@ o2_define_bucket(
     TOFReconstruction
     FITSimulation
     T0Simulation
+    FDDSimulation
     EMCALSimulation
     HMPIDBase
     HMPIDSimulation

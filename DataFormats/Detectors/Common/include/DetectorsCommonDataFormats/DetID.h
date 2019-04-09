@@ -60,7 +60,8 @@ class DetID
   static constexpr ID ZDC = 11;
   static constexpr ID T0 = 12;
   static constexpr ID V0 = 13;
-  static constexpr ID ACO = 14;
+  static constexpr ID FDD = 14;
+  static constexpr ID ACO = 15;
   static constexpr ID First = ITS;
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
 
@@ -107,13 +108,13 @@ class DetID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 
-    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "T0", "V0", "ACO", nullptr };
+    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "T0", "V0", "FDD", "ACO", nullptr };
 
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
     { utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
       utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(T0), utils::bit2Mask(V0), utils::bit2Mask(ACO) };
+      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(T0), utils::bit2Mask(V0), utils::bit2Mask(FDD), utils::bit2Mask(ACO) };
 
   ClassDefNV(DetID, 1);
 };
