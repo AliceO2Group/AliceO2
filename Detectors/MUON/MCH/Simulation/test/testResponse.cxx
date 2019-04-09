@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(Response_test)
   BOOST_CHECK_CLOSE(threshold, threshold_target, threshold_precision);
 
   //check conversion energy to charge
-  float eloss = 1e-6; 
+  float eloss = 1e-6;
   TH1D hTest("hTest", "", 10000, 0, 1000);
   TF1 gaus("gaus", "gaus");
   for (int i = 0; i < 1000000; i++) {
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(Response_test)
   float ymin = -0.0934209;
   float ymax = 0.326579;
 
-  float expected_chargeonpad_stat1 = 0.29306942 * charge_on_plane; 
+  float expected_chargeonpad_stat1 = 0.29306942 * charge_on_plane;
 
   float chargeonpad_precision = expected_chargeonpad_stat1 / 10.f;
   float result_chargeonpad_stat1 = r_stat1.chargePadfraction(xmin, xmax, ymin, ymax) * charge_on_plane;
