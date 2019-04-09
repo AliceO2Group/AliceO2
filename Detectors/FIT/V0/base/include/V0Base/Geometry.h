@@ -51,16 +51,18 @@ class Geometry
   Geometry(const Geometry& geom);
 
   static constexpr float sEpsilon = 0.01;                  // variable used to make sure one spatial dimension is infinitesimaly larger than the other
-  static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + separation gap
-  static constexpr float sDzScint = 2;
-  static constexpr float sPhiMinScint = 0;
-  static constexpr float sDphiScint = 45;
-  static constexpr float sGlobalPhiRotation = 90;
+  static constexpr float sDrSeparationScint = 0.03 + 0.04; // paint thickness + half of separation gap
+  static constexpr float sDzScint = 4;                     // thickness of scintillator
+  static constexpr float sPhiMinScint = 0;                 // miminum angle, at which the first sector starts
+  static constexpr float sDphiScint = 45;                  // relative phi angle at which the first sector ends
+  static constexpr float sGlobalPhiRotation = 90;          // global phi rotation (to enable making two detector halves, possible to separate vertically)
   static constexpr float sDySeparationScint = sDrSeparationScint;
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZposition==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of V0+ and aluminum covers of T0+
-  static constexpr float sZposition = 320 - sDzScint; // z-position of the geometrical center of the detectors sensitive part
+  static constexpr float sZposition = 320 - sDzScint / 2;                                                // z-position of the geometrical center of the detectors sensitive part
+  static constexpr int sNumberOfRings = 5;                                                               // number of rings
+  static constexpr float sRingRadiiScint[sNumberOfRings + 1] = { 4.07, 7.3, 12.9, 21.25, 38.7, 71.975 }; // average ring radii
 
  private:
   void initializeVectors();

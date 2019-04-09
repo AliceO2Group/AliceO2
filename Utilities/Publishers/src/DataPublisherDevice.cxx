@@ -21,8 +21,8 @@
 
 using HeartbeatHeader = o2::header::HeartbeatHeader;
 using HeartbeatTrailer = o2::header::HeartbeatTrailer;
-using TPCTestCluster = o2::DataFlow::TPCTestCluster;
-using ITSRawData = o2::DataFlow::ITSRawData;
+using TPCTestCluster = o2::data_flow::TPCTestCluster;
+using ITSRawData = o2::data_flow::ITSRawData;
 
 using DataDescription = o2::header::DataDescription;
 using DataOrigin = o2::header::DataOrigin;

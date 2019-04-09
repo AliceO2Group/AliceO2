@@ -27,9 +27,6 @@ class FairVolume;
 class TGeoVolume;
 class TGraph;
 
-// TODO: Check run/O2HitMerger.h:471 - problem with merging stage of o2sim (no o2sim.root file is created)
-// TODO: Perhaps it will start working correctly once any geometry with sensitive parts is defined and hit processing works
-
 namespace o2
 {
 namespace v0
@@ -42,7 +39,6 @@ namespace o2
 {
 namespace v0
 {
-// using HitType = o2::BasicXYZEHit<float>;
 class Geometry;
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -69,6 +65,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Registers the produced collections in FAIRRootManager
   void Register() override;
 
+  /// Gets the produced hits
   std::vector<o2::v0::Hit>* getHits(Int_t iColl)
   {
     if (iColl == 0) {
@@ -76,7 +73,6 @@ class Detector : public o2::base::DetImpl<Detector>
     }
     return nullptr;
   }
-  /// Gets the produced hits
 
   /// Has to be called after each event to reset the containers
   void Reset() override;
@@ -92,8 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
   //    void PreTrack() override { ; }
   //    void SetSpecialPhysicsCuts() override { ; }
 
-  // TODO: move to private
-  /// Creates materials for the detector
+  /// Registers new materials in o2::base::Detector
   void createMaterials();
 
   /// Creates materials and geometry
@@ -103,28 +98,27 @@ class Detector : public o2::base::DetImpl<Detector>
     Zero,
     Air,
     Scintillator
-  }; // media IDs used in CreateMaterials
+  }; // media IDs used in createMaterials
 
  private:
   /// Container for hits
   std::vector<o2::v0::Hit>* mHits = nullptr;
 
   /// Geometry pointer
-  Geometry* mGeometry = nullptr; //! Geometry
+  Geometry* mGeometry = nullptr; //!
 
   /// Transient data about track passing the sensor, needed by ProcessHits()
   struct TrackData {               // this is transient
     bool mHitStarted;              //! hit creation started
-    unsigned char mTrkStatusStart; //! track status flag
     TLorentzVector mPositionStart; //! position at entrance
     TLorentzVector mMomentumStart; //! momentum
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
-  o2::v0::Hit* addHit(Int_t trackId, Int_t cellId, Int_t particleId,
+  o2::v0::Hit* addHit(Int_t trackId, Int_t cellId,
                       TVector3 startPos, TVector3 endPos,
                       TVector3 startMom, double startE,
-                      double endTime, double eLoss, float eTot, float eDep);
+                      double endTime, double eLoss, Int_t particlePdg);
 
   template <typename Det>
   friend class o2::base::DetImpl;

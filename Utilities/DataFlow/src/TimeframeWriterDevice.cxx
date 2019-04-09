@@ -28,7 +28,7 @@
 using DataHeader = o2::header::DataHeader;
 using IndexElement = o2::DataFormat::IndexElement;
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 TimeframeWriterDevice::TimeframeWriterDevice()
   : O2Device{}
@@ -94,4 +94,4 @@ void TimeframeWriterDevice::PostRun()
   }
 }
 
-}} // namespace o2::DataFlow
+}} // namespace o2::data_flow

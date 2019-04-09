@@ -14,7 +14,7 @@
 #include "O2Device/O2Device.h"
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// A validating device for time frame data (coming from EPN)
 class TimeframeValidatorDevice : public base::O2Device
