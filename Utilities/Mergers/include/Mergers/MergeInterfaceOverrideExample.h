@@ -34,7 +34,7 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
     return { this };
   }
 
-  virtual Long64_t merge(TCollection* list) override
+  Long64_t merge(TCollection* list) override
   {
     auto iter = list->MakeIterator();
     while (auto element = iter->Next()) {
@@ -43,7 +43,7 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
     return 0;
   }
 
-  virtual double getTimestamp() override
+  double getTimestamp() override
   {
     return 0;
   };
