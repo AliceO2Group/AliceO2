@@ -7,14 +7,15 @@ set(SRCS
   src/Digitizer.cxx
   src/DigitizerTask.cxx
   src/SpaceFrame.cxx
+  src/SimParam.cxx
 )
 
 set(HEADERS
   include/EMCALSimulation/Detector.h
   include/EMCALSimulation/Digitizer.h
   include/EMCALSimulation/DigitizerTask.h
-  include/EMCALSimulation/MCLabel.h
   include/EMCALSimulation/SpaceFrame.h
+  include/EMCALSimulation/SimParam.h
 )
 
 SET(LINKDEF src/EMCALSimulationLinkDef.h)
