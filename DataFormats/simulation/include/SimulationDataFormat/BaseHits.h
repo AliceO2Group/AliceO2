@@ -38,7 +38,10 @@ class BaseHit
 // these are meant to be an alternative to FairMCPoint
 // which always includes the momentum and is purely based on double values
 
-// T is basic type for position, E is basic type for time and hit value
+// Generic class to keep position, time and hit value
+// T is basic type for position,
+// E is basic type for time,
+// V is basic type for hit value.
 template <typename T, typename E, typename V = float>
 class BasicXYZVHit : public BaseHit
 {
@@ -86,6 +89,10 @@ class BasicXYZVHit : public BaseHit
   ClassDefNV(BasicXYZVHit, 1);
 };
 
+// Class for a hit containing energy loss as hit value
+// T is basic type for position,
+// E is basic type for time (float as default),
+// V is basic type for hit value (float as default).
 template <typename T, typename E = float, typename V = float>
 class BasicXYZEHit : public BasicXYZVHit<T, E, V>
 {
@@ -96,6 +103,22 @@ class BasicXYZEHit : public BasicXYZVHit<T, E, V>
   void SetEnergyLoss(V val) { BasicXYZVHit<T, E, V>::SetHitValue(val); }
 
   ClassDefNV(BasicXYZEHit, 1);
+};
+
+// Class for a hit containing charge as hit value
+// T is basic type for position,
+// E is basic type for time (float as default),
+// V is basic type for hit value (int as default).
+template <typename T, typename E = float, typename V = int>
+class BasicXYZQHit : public BasicXYZVHit<T, E, V>
+{
+ public:
+  using BasicXYZVHit<T, E, V>::BasicXYZVHit;
+
+  V GetCharge() const { return BasicXYZVHit<T, E, V>::GetHitValue(); }
+  void SetCharge(V val) { BasicXYZVHit<T, E, V>::SetHitValue(val); }
+
+  ClassDefNV(BasicXYZQHit, 1);
 };
 
 } // namespace o2
