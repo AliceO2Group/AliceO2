@@ -43,10 +43,6 @@ Merger::Merger(MergerConfig config, header::DataHeader::SubSpecificationType sub
 {
 }
 
-Merger::~Merger()
-{
-}
-
 void Merger::init(framework::InitContext& ictx)
 {
   if (mConfig.publicationDecision.value == PublicationDecision::EachNSeconds) {

@@ -27,14 +27,14 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
 {
  public:
   MergeInterfaceOverrideExample(int secret = 9000) : TObject(), MergeInterface(), mSecret(secret) {}
-  virtual ~MergeInterfaceOverrideExample() = default;
+  ~MergeInterfaceOverrideExample() override = default;
 
-  std::vector<TObject*> unpack()
+  std::vector<TObject*> unpack() override
   {
     return { this };
   }
 
-  virtual Long64_t merge(TCollection* list)
+  virtual Long64_t merge(TCollection* list) override
   {
     auto iter = list->MakeIterator();
     while (auto element = iter->Next()) {
@@ -43,7 +43,7 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
     return 0;
   }
 
-  virtual double getTimestamp()
+  virtual double getTimestamp() override
   {
     return 0;
   };
@@ -53,7 +53,7 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
  private:
   int mSecret = 0;
 
-  ClassDef(MergeInterfaceOverrideExample, 1);
+  ClassDefOverride(MergeInterfaceOverrideExample, 1);
 };
 
 } // namespace experimental::mergers
