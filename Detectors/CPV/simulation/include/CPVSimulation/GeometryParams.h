@@ -33,8 +33,9 @@ class GeometryParams : public TNamed
   /// Get singleton (create if necessary)
   static GeometryParams* GetInstance(const std::string_view name = "CPVRun3Params")
   {
-    if (!sGeomParam)
+    if (!sGeomParam) {
       sGeomParam = new GeometryParams(name);
+    }
     return sGeomParam;
   }
 

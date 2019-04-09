@@ -77,14 +77,16 @@ int Geometry::AreNeighbours(int absId1, int absId2) const
     if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
       return 1;
     } else {
-      if ((relid2[1] > relid1[1]) && (relid2[2] > relid1[2] + 1))
+      if ((relid2[1] > relid1[1]) && (relid2[2] > relid1[2] + 1)) {
         return 2; //  Difference in row numbers is too large to look further
+      }
     }
     return 0;
 
   } else {
-    if (relid1[0] > relid2[0]) // we switched to the next module
+    if (relid1[0] > relid2[0]) { // we switched to the next module
       return -1;
+    }
     return 2;
   }
   return 0;

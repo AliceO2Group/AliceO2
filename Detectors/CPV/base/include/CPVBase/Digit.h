@@ -80,20 +80,22 @@ class Digit : public DigitBase
 
   Label getLabel(int idx) const
   {
-    if (idx < kMaxLabels)
+    if (idx < kMaxLabels) {
       return mLabels[idx];
-    else
+    } else {
       return -1;
+    }
   }
   /// \brief Proportion of charge deposited by particle idx
   /// \param idx index in a list of a particles, max length kMaxLabels
   /// \return Proportion of energy from this particle.
   Label getLabelEProp(int idx) const
   {
-    if (idx < kMaxLabels)
+    if (idx < kMaxLabels) {
       return mEProp[idx];
-    else
+    } else {
       return 0.;
+    }
   }
   /// \brief Number of particles assosiated with this digit
   int getNLabels() const { return mNlabels; }

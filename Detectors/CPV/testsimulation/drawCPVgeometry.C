@@ -63,10 +63,11 @@ void drawCPVgeometry()
     TObjArray* lToShow = ToShow.Tokenize(" ");
     TIter* iToShow = new TIter(lToShow);
     while ((name = (TObjString*)iToShow->Next())) {
-      if (gGeoManager->GetVolume(name->GetName()))
+      if (gGeoManager->GetVolume(name->GetName())) {
         gGeoManager->GetVolume(name->GetName())->SetVisibility(kTRUE);
-      else
+      } else {
         printf("No volume <%s>\n", name->GetName());
+      }
     }
 
     const TString ToTrans = ""; // ";
@@ -74,10 +75,11 @@ void drawCPVgeometry()
     TObjArray* lToTrans = ToTrans.Tokenize(" ");
     TIter* iToTrans = new TIter(lToTrans);
     while ((name = (TObjString*)iToTrans->Next())) {
-      if (gGeoManager->GetVolume(name->GetName()))
+      if (gGeoManager->GetVolume(name->GetName())) {
         gGeoManager->GetVolume(name->GetName())->SetTransparency(80);
-      else
+      } else {
         printf("No volume <%s>\n", name->GetName());
+      }
     }
   }
 
