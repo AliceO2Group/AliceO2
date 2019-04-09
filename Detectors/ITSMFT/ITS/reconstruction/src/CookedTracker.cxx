@@ -490,12 +490,6 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
   LOG(INFO) << "CookedTracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads
             << FairLogger::endl;
 
-  Int_t numOfClustersLeft = clusters.size(); // total number of clusters
-  if (numOfClustersLeft == 0) {
-    LOG(WARNING) << "No clusters to process !" << FairLogger::endl;
-    return;
-  }
-
   auto start = std::chrono::system_clock::now();
 
   mFirstCluster = &clusters.front();
