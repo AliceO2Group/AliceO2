@@ -3,6 +3,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSReconstruction/ClustererTask.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "FairLogger.h"
 #endif
@@ -25,7 +26,7 @@
 void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
                     std::string outputfile = "clr.root",  // input file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
-                    float strobe = 6000.,                 // strobe length of ALPIDE readout
+                    float strobe = -1.,                   // strobe length in ns of ALPIDE readout, if <0, get automatically
                     bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin")
 {
   // Initialize logger
@@ -45,10 +46,15 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
   }
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
+  if (strobe < 0) {
+    const auto& dgParams = o2::ITSMFT::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    strobe = dgParams.roFrameLength;
+  }
   clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 
+  clus->getClusterer().print();
   clus->run(inputfile, outputfile, entryPerROF);
 
   timer.Stop();
