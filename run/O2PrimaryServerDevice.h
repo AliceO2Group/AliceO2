@@ -44,7 +44,6 @@ class O2PrimaryServerDevice : public FairMQDevice
   O2PrimaryServerDevice()
   {
     mStack.setExternalMode(true);
-    OnData("primary-get", &O2PrimaryServerDevice::HandleRequest);
   }
 
   /// Default destructor
@@ -147,6 +146,18 @@ class O2PrimaryServerDevice : public FairMQDevice
       return true;
     }
     return true;
+  }
+
+  bool ConditionalRun() override
+  {
+    auto& channel = fChannels.at("primary-get").at(0);
+    std::unique_ptr<FairMQMessage> request(channel.NewMessage());
+    auto bytes = channel.Receive(request);
+    if (bytes < 0) {
+      LOG(ERROR) << "Some error occurred on socket during receive";
+      return true; // keep going
+    }
+    return HandleRequest(request, 0);
   }
 
   /// Overloads the ConditionalRun() method of FairMQDevice
