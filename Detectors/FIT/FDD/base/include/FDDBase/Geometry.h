@@ -33,7 +33,7 @@ class Geometry
     eDummy,
     eOnlySensitive,
     eFull
-  }; 
+  };
 
   //Default constructor.
   Geometry() { mGeometryType = eUninitilized; };
@@ -50,6 +50,5 @@ class Geometry
 };
 } // namespace fdd
 } // namespace o2
-
 
 #endif

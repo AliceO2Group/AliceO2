@@ -47,12 +47,13 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Registers the produced collections in FAIRRootManager
   void Register() override;
-  
+
   o2::fdd::Hit* addHit(int trackID, unsigned short detID, const TVector3& Pos, double Time, double eLoss, int nPhot);
-  
+
   std::vector<o2::fdd::Hit>* getHits(Int_t iColl)
   {
-    if (iColl == 0) return mHits;
+    if (iColl == 0)
+      return mHits;
     return nullptr;
   }
 
@@ -65,12 +66,12 @@ class Detector : public o2::base::DetImpl<Detector>
  private:
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
-  
+
   /// Container for data points
   std::vector<o2::fdd::Hit>* mHits = nullptr;
 
   Detector& operator=(const Detector&);
-  
+
   Geometry* mGeometry = nullptr; //! Geometry
 
   template <typename Det>
@@ -85,7 +86,6 @@ std::istream& operator>>(std::istream& os, Detector& source);
 } // namespace fdd
 } // namespace o2
 
-
 #ifdef USESHM
 namespace o2
 {
@@ -99,4 +99,3 @@ struct UseShm<o2::fdd::Detector> {
 } // namespace o2
 #endif
 #endif
-
