@@ -154,7 +154,7 @@ class MCTrackT
 
   // hitmask stored as an int
   // if bit i is set it means that this track left a trace in detector i
-  // we should have sizeof(int) < o2::Base::DetId::nDetectors
+  // we should have sizeof(int) < o2::base::DetId::nDetectors
   Int_t mProp = 0;
 
   // internal structure to allow convenient manipulation

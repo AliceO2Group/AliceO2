@@ -18,7 +18,7 @@
 #include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
 
-using namespace o2::Base;
+using namespace o2::base;
 
 Propagator::Propagator()
 {

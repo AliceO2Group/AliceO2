@@ -159,7 +159,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   getVolumePath(det, path);
   if (!gGeoManager) {
     LOG(WARNING) << " no TGeo! Loading it";
-    o2::Base::GeometryManager::loadGeometry();
+    o2::base::GeometryManager::loadGeometry();
   }
   FILE* fOutTXT = fopen("TOF_geo.txt", "w");
   fprintf(fOutTXT, "path = %s, gGeoManager = %p", path, gGeoManager);

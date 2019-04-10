@@ -33,10 +33,10 @@ namespace utilities {
 /// Utility device for data publishing
 ///
 /// TODO: Generalize with an input policy
-class DataPublisherDevice : public Base::O2Device
+class DataPublisherDevice : public base::O2Device
 {
 public:
-  typedef o2::Base::O2Message O2Message;
+  typedef o2::base::O2Message O2Message;
   /// TODO: use type alias when it has been added to DataHeader.h
   typedef uint64_t SubSpecificationT;
 
@@ -91,6 +91,6 @@ protected:
   std::string mFileName;
 };
 
-}; // namespace DataFlow
+} // namespace data_flow
 }; // namespace AliceO2
 #endif

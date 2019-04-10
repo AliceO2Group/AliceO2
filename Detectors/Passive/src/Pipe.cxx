@@ -77,7 +77,7 @@ void Pipe::ConstructGeometry()
   //
 
   // Media
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   const TGeoMedium* kMedAir = matmgr.getTGeoMedium("PIPE_AIR");
   const TGeoMedium* kMedAirHigh = matmgr.getTGeoMedium("PIPE_AIR_HIGH");
   const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
@@ -2479,7 +2479,7 @@ void Pipe::createMaterials()
   //
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // Steel (Inox)
   Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
@@ -2561,7 +2561,7 @@ void Pipe::createMaterials()
   // ***************
   //
 
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   //    Beryllium
   matmgr.Material("PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
@@ -2696,7 +2696,7 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
   const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
 
@@ -2768,7 +2768,7 @@ TGeoVolume* Pipe::MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float
   // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
   const TGeoMedium* kMedAlu5083 = matmgr.getTGeoMedium("PIPE_AA5083"); // fm
 

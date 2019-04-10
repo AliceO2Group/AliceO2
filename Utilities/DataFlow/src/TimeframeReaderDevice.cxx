@@ -18,7 +18,7 @@
 
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 TimeframeReaderDevice::TimeframeReaderDevice()
   : O2Device{}
@@ -63,4 +63,4 @@ bool TimeframeReaderDevice::ConditionalRun()
   return false;
 }
 
-}} // namespace o2::DataFlow
+}} // namespace o2::data_flow

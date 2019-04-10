@@ -31,16 +31,16 @@ class PayLoadCont
   // Big endian is used.
 
  public:
-  static constexpr int MinCapacity = 16;
+  static constexpr size_t MinCapacity = 16;
 
   ///< allocate buffer
-  PayLoadCont(int iniSize = MinCapacity) { expand(iniSize); }
+  PayLoadCont(size_t iniSize = MinCapacity) { expand(iniSize); }
   ~PayLoadCont() = default;
 
   const uint8_t* data() const { return mBuffer.data(); }
 
   ///< increase the buffer size
-  void expand(int sz);
+  void expand(size_t sz);
 
   bool isEmpty() const { return mPtr >= mEnd; }
 
@@ -52,30 +52,37 @@ class PayLoadCont
   }
 
   ///< get unused size
-  int getUnusedSize() const { return mEnd - mPtr; }
+  size_t getUnusedSize() const { return mEnd > mPtr ? mEnd - mPtr : 0; }
 
   ///< get filled size
-  int getSize() const { return mEnd - mBuffer.data(); }
+  size_t getSize() const { return mEnd - mBuffer.data(); }
 
   ///< get offset of the current ptr from the head
-  int getOffset() const { return mPtr - mBuffer.data(); }
+  size_t getOffset() const { return mPtr - mBuffer.data(); }
 
   ///< booked capacity
-  int getCapacity() const { return mBuffer.size(); }
+  size_t getCapacity() const { return mBuffer.size(); }
 
   ///< number of bytes still can accept w/o expanding the buffer
-  int getFreeCapacity() const { return mBuffer.size() - getSize(); }
+  size_t getFreeCapacity() const { return mBuffer.size() - getSize(); }
 
   ///< make sure buffer may accept at least n bytes
-  void ensureFreeCapacity(int n)
+  void ensureFreeCapacity(size_t n)
   {
     if (getFreeCapacity() < n) {
       expand(getCapacity() + 2 * n);
     }
   }
 
+  ///< fill n bytes with given symbol w/o checking for the size
+  void fillFast(const uint8_t c, size_t n)
+  {
+    std::memset(mEnd, c, n);
+    mEnd += n;
+  }
+
   ///< add n bytes to the buffer w/o checking for the size
-  void addFast(const uint8_t* ptr, int n)
+  void addFast(const uint8_t* ptr, size_t n)
   {
     std::memcpy(mEnd, ptr, n);
     mEnd += n;
@@ -92,10 +99,10 @@ class PayLoadCont
   }
 
   ///< erase n bytes w/o checking for the underflow
-  void eraseFast(int n) { mEnd -= n; }
+  void eraseFast(size_t n) { mEnd -= n; }
 
   ///< erase n bytes
-  void erase(int n)
+  void erase(size_t n)
   {
     if (n > getSize()) {
       clear();
@@ -104,8 +111,15 @@ class PayLoadCont
     }
   }
 
+  ///< fill n bytes with given symbol
+  void fill(const uint8_t c, size_t n)
+  {
+    ensureFreeCapacity(n);
+    fillFast(c, n);
+  }
+
   ///< add n bytes to the buffer, expand if needed. no check for overlap
-  void add(const uint8_t* ptr, int n)
+  void add(const uint8_t* ptr, size_t n)
   {
     ensureFreeCapacity(n);
     addFast(ptr, n);
@@ -126,16 +140,16 @@ class PayLoadCont
   }
 
   ///< shrink buffer to requested size, no check on over/under flow
-  void shrinkToSize(int sz)
+  void shrinkToSize(size_t sz)
   {
     mEnd = mPtr + sz;
   }
 
   ///< direct const access to value at a given slot, w/o checking for overflow
-  uint8_t operator[](int i) const { return mBuffer[i]; }
+  uint8_t operator[](size_t i) const { return mBuffer[i]; }
 
   ///< direct access to value at a given slot, w/o checking for overflow
-  uint8_t& operator[](int i) { return mBuffer[i]; }
+  uint8_t& operator[](size_t i) { return mBuffer[i]; }
 
   ///< read current character value from buffer w/o stepping forward
   bool current(uint8_t& v) const
@@ -186,7 +200,7 @@ class PayLoadCont
 
   ///< move unused data to the head and upload new chunk of data
   // (attemtint to use all free capacity) using the method provided via getNext
-  int append(std::function<int(uint8_t*, int)> getNext)
+  size_t append(std::function<size_t(uint8_t*, size_t)> getNext)
   {
     moveUnusedToHead();
     auto nRead = getNext(mEnd, getFreeCapacity());

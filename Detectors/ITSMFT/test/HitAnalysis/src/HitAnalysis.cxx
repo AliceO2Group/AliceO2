@@ -34,7 +34,7 @@ using Segmentation = o2::ITSMFT::SegmentationAlpide;
 using o2::ITSMFT::Hit;
 
 using namespace o2::ITS;
-using namespace o2::Base;
+using namespace o2::base;
 using namespace o2::utils;
 
 HitAnalysis::HitAnalysis()

@@ -45,15 +45,6 @@ struct ClusterNativeContainer : public ClusterGroupAttribute {
   using attribute_type = ClusterGroupAttribute;
   using value_type = ClusterNative;
 
-  static bool sortComparison(const ClusterNative& a, const ClusterNative& b)
-  {
-    if (a.getTimePacked() != b.getTimePacked()) {
-      return (a.getTimePacked() < b.getTimePacked());
-    } else {
-      return (a.padPacked < b.padPacked);
-    }
-  }
-
   size_t getFlatSize() const { return sizeof(attribute_type) + clusters.size() * sizeof(value_type); }
 
   const value_type* data() const { return clusters.data(); }
@@ -61,6 +52,27 @@ struct ClusterNativeContainer : public ClusterGroupAttribute {
   value_type* data() { return clusters.data(); }
 
   std::vector<ClusterNative> clusters;
+};
+
+/// @struct ClusterNativeBuffer
+/// Contiguous buffer for a collection of ClusterNative objects
+/// belonging to a row.
+/// The struct inherits the sector, globalPadRow, and nClusters members from the property
+/// ClusterGroupHeader.
+///
+/// Used for messages
+///
+struct ClusterNativeBuffer : public ClusterGroupHeader {
+  using attribute_type = ClusterGroupHeader;
+  using value_type = ClusterNative;
+
+  size_t getFlatSize() const { return sizeof(attribute_type) + nClusters * sizeof(value_type); }
+
+  const value_type* data() const { return clusters; }
+
+  value_type* data() { return clusters; }
+
+  value_type clusters[0];
 };
 
 /// @class ClusterNativeHelper utility class for TPC native clusters

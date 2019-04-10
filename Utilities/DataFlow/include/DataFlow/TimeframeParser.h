@@ -16,7 +16,7 @@
 
 class FairMQParts;
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 /// An helper function which takes a std::istream pointing
 /// to a naively persisted timeframe and pumps its parts to

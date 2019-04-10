@@ -27,7 +27,7 @@
 #include "TNamed.h"           // for TNamed
 #include "TObjArray.h"        // for TObjArray
 
-using namespace o2::mathUtils;
+using namespace o2::math_utils;
 
 ClassImp(Chebyshev3D)
 

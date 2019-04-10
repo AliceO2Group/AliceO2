@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     };
 
     try {
-      o2::DataFlow::streamTimeframe(s, onAddParts, onSend);
+      o2::data_flow::streamTimeframe(s, onAddParts, onSend);
     } catch(std::runtime_error &e) {
       LOG(ERROR) << e.what() << std::endl;
       exit(1);

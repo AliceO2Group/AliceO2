@@ -10,6 +10,6 @@
 
 #include "MathUtils/CachingTF1.h"
 
-using namespace o2::Base;
+using namespace o2::base;
 
-ClassImp(o2::Base::CachingTF1);
+ClassImp(o2::base::CachingTF1);

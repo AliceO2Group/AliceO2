@@ -43,7 +43,8 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <FITSimulation/Detector.h>
+#include <T0Simulation/Detector.h>
+#include <V0Simulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
@@ -182,7 +183,7 @@ class O2HitMerger : public FairMQDevice
   template <typename T>
   void fillBranch(std::string const& name, T* ptr)
   {
-    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &ptr);
+    auto br = o2::base::getOrMakeBranch(*mOutTree, name.c_str(), &ptr);
     br->SetAddress(&ptr);
     br->Fill();
     br->ResetAddress();
@@ -191,7 +192,7 @@ class O2HitMerger : public FairMQDevice
   template <typename T>
   void consumeData(std::string name, FairMQParts& data, int& index)
   {
-    auto decodeddata = o2::Base::decodeTMessage<T*>(data, index);
+    auto decodeddata = o2::base::decodeTMessage<T*>(data, index);
     fillBranch(name, decodeddata);
     delete decodeddata;
     index++;
@@ -200,7 +201,7 @@ class O2HitMerger : public FairMQDevice
   // fills a special branch of SubEventInfos in order to keep
   // track of which entry corresponds to which event etc.
   // also creates the MCEventHeader branch expected for physics analysis
-  void fillSubEventInfoEntry(o2::Data::SubEventInfo& info)
+  void fillSubEventInfoEntry(o2::data::SubEventInfo& info)
   {
     auto infoptr = &info;
     fillBranch("SubEventInfo", infoptr);
@@ -214,8 +215,8 @@ class O2HitMerger : public FairMQDevice
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
 
     int index = 0;
-    auto infoptr = o2::Base::decodeTMessage<o2::Data::SubEventInfo*>(data, index++);
-    o2::Data::SubEventInfo info = *infoptr;
+    auto infoptr = o2::base::decodeTMessage<o2::data::SubEventInfo*>(data, index++);
+    o2::data::SubEventInfo info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     fillSubEventInfoEntry(info);
@@ -290,7 +291,7 @@ class O2HitMerger : public FairMQDevice
       }
 
       // fill target for this event
-      auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &filladdress);
+      auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &filladdress);
       targetbr->SetAddress(&filladdress);
       targetbr->Fill();
       targetbr->ResetAddress();
@@ -332,7 +333,7 @@ class O2HitMerger : public FairMQDevice
     eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
-    o2::Data::SubEventInfo* info = nullptr;
+    o2::data::SubEventInfo* info = nullptr;
     infobr->SetAddress(&info);
     for (int i = 0; i < infobr->GetEntries(); ++i) {
       infobr->GetEntry(i);
@@ -371,7 +372,7 @@ class O2HitMerger : public FairMQDevice
 
     // put the event headers into the new TTree
     o2::dataformats::MCEventHeader header;
-    auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
+    auto headerbr = o2::base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
       header = eventheaders[i];
       headerbr->Fill();
@@ -418,7 +419,7 @@ class O2HitMerger : public FairMQDevice
 
   int mPipeToDriver = -1;
 
-  std::vector<std::unique_ptr<o2::Base::Detector>> mDetectorInstances;
+  std::vector<std::unique_ptr<o2::base::Detector>> mDetectorInstances;
 
   // init detector instances
   void initDetInstances();
@@ -466,8 +467,12 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
       counter++;
     }
-    if (i == DetID::FIT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fit::Detector>(true));
+    if (i == DetID::T0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::t0::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::V0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
       counter++;
     }
     if (i == DetID::MCH) {

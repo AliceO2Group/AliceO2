@@ -20,7 +20,7 @@
 #include <TTree.h>
 
 using namespace o2::ITS;
-using namespace o2::Base;
+using namespace o2::base;
 using namespace o2::utils;
 
 //_____________________________________________________________________

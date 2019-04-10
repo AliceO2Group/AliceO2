@@ -64,8 +64,8 @@ int run_test_vert_ca_its(const int inspEvt = -1,
   if (!grp) {
     LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
   }
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(grp);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
     LOG(FATAL) << "Failed to load ma" << FairLogger::endl;

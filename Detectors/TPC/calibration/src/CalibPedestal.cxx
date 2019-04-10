@@ -17,9 +17,9 @@
 #include "TPCCalibration/CalibPedestal.h"
 
 using namespace o2::TPC;
-using o2::mathUtils::mathBase::fitGaus;
-using o2::mathUtils::mathBase::getStatisticsData;
-using o2::mathUtils::mathBase::StatisticsData;
+using o2::math_utils::math_base::fitGaus;
+using o2::math_utils::math_base::getStatisticsData;
+using o2::math_utils::math_base::StatisticsData;
 
 CalibPedestal::CalibPedestal(PadSubset padSubset)
   : CalibRawBase(padSubset),

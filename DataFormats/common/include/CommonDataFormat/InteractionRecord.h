@@ -68,7 +68,7 @@ struct InteractionRecord {
 
   bool operator==(const InteractionRecord& other) const
   {
-    return (orbit == other.orbit) && (bc == other.bc);
+    return (bc == other.bc) && (orbit == other.orbit);
   }
 
   int differenceInBC(const InteractionRecord& other) const
@@ -79,6 +79,22 @@ struct InteractionRecord {
       diffBC += (int(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
     }
     return diffBC;
+  }
+
+  int64_t toLong() const
+  {
+    // return as single long number
+    return (int64_t(orbit) * o2::constants::lhc::LHCMaxBunches) + bc;
+  }
+
+  bool operator>(const InteractionRecord& other) const
+  {
+    return (orbit == other.orbit) ? (bc > other.bc) : (orbit > other.orbit);
+  }
+
+  bool operator<(const InteractionRecord& other) const
+  {
+    return (orbit == other.orbit) ? (bc < other.bc) : (orbit < other.orbit);
   }
 
   void print() const;

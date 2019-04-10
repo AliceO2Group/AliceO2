@@ -22,7 +22,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::Data::Stack + ;
+#pragma link C++ class o2::data::Stack + ;
 #pragma link C++ class o2::sim::StackParam+;
 #pragma link C++ class o2::conf::ConfigurableParamHelper<o2::sim::StackParam>+;
 #pragma link C++ class o2::MCTrackT < double > +;
@@ -48,9 +48,9 @@
 #pragma link C++ class std::vector<o2::TrackReference>+;
 #pragma link C++ class o2::dataformats::MCTruthContainer<o2::TrackReference>+;
 
-#pragma link C++ struct o2::Data::SubEventInfo+;
-#pragma link C++ class std::vector<o2::Data::SubEventInfo>+;
-#pragma link C++ struct o2::Data::PrimaryChunk+;
+#pragma link C++ struct o2::data::SubEventInfo+;
+#pragma link C++ class std::vector<o2::data::SubEventInfo>+;
+#pragma link C++ struct o2::data::PrimaryChunk+;
 
 #pragma link C++ class o2::steer::RunContext + ;
 #pragma link C++ class o2::steer::EventPart + ;

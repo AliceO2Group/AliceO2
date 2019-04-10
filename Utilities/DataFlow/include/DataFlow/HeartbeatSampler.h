@@ -24,7 +24,7 @@
 #include <string>
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// @class HeartbeatSampler
 /// @brief A sampler for heartbeat triggers
@@ -36,10 +36,10 @@ namespace DataFlow {
 ///
 /// TODO: the class can evolve to a general clock sampler device with
 /// configurable period, even randomly distributed
-class HeartbeatSampler : public Base::O2Device
+class HeartbeatSampler : public base::O2Device
 {
 public:
-  typedef o2::Base::O2Message O2Message;
+  typedef o2::base::O2Message O2Message;
 
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyPeriod = "period";
@@ -63,6 +63,6 @@ private:
   int mCount = 0;
 };
 
-}; // namespace DataFlow
+} // namespace data_flow
 }; // namespace AliceO2
 #endif

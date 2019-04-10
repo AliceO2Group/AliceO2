@@ -29,15 +29,15 @@ using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 using DataHeader = o2::header::DataHeader;
 using SubframeId = o2::dataflow::SubframeId;
 
-o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
+o2::data_flow::SubframeBuilderDevice::SubframeBuilderDevice()
   : O2Device()
 {
 }
 
-o2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
+o2::data_flow::SubframeBuilderDevice::~SubframeBuilderDevice()
 = default;
 
-void o2::DataFlow::SubframeBuilderDevice::InitTask()
+void o2::data_flow::SubframeBuilderDevice::InitTask()
 {
   mOrbitDuration = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitDuration);
   mOrbitsPerTimeframe = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitsPerTimeframe);
@@ -76,10 +76,10 @@ void o2::DataFlow::SubframeBuilderDevice::InitTask()
   };
 
   mMerger.reset(new Merger(makeId, checkIfComplete, payloadExtractor));
-  OnData(mInputChannelName.c_str(), &o2::DataFlow::SubframeBuilderDevice::HandleData);
+  OnData(mInputChannelName.c_str(), &o2::data_flow::SubframeBuilderDevice::HandleData);
 }
 
-bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
+bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
 {
   auto id = mMerger->aggregate(inParts.At(1));
 
@@ -116,10 +116,10 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   // Add the metadata about the merged subtimeframes
   // FIXME: do we really need this?
   O2Message outgoing;
-  o2::Base::addDataBlock(outgoing, dh, NewSimpleMessage(md));
+  o2::base::addDataBlock(outgoing, dh, NewSimpleMessage(md));
 
   // Add the actual merged payload.
-  o2::Base::addDataBlock(outgoing, payloadheader,
+  o2::base::addDataBlock(outgoing, payloadheader,
                          NewMessage(*outBuffer, outSize,
                                     [](void* data, void* hint) { delete[] reinterpret_cast<char*>(hint); }, *outBuffer));
   // send message
@@ -130,7 +130,7 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   return true;
 }
 
-bool o2::DataFlow::SubframeBuilderDevice::HandleData(FairMQParts& msgParts, int /*index*/)
+bool o2::data_flow::SubframeBuilderDevice::HandleData(FairMQParts& msgParts, int /*index*/)
 {
   // loop over header payload pairs in the incoming multimessage
   // for each pair

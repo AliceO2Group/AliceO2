@@ -27,10 +27,10 @@
 #include "DetectorsCommonDataFormats/AlignParam.h"
 
 using namespace o2::detectors;
-using namespace o2::Base;
+using namespace o2::base;
 
-ClassImp(o2::Base::GeometryManager);
-ClassImp(o2::Base::GeometryManager::MatBudget);
+ClassImp(o2::base::GeometryManager);
+ClassImp(o2::base::GeometryManager::MatBudget);
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it

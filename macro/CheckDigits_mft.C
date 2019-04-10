@@ -21,7 +21,7 @@
 
 #endif
 
-using namespace o2::Base;
+using namespace o2::base;
 
 void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3")
 {

@@ -15,10 +15,10 @@
 #include <fstream>
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// A device which writes to file the timeframes.
-class TimeframeReaderDevice : public Base::O2Device
+class TimeframeReaderDevice : public base::O2Device
 {
 public:
     static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
@@ -42,7 +42,7 @@ public:
     std::vector<std::string> mSeen;
 };
 
-} // namespace DataFlow
+} // namespace data_flow
 } // namespace o2
 
 #endif

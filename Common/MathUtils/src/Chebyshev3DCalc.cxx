@@ -17,7 +17,7 @@
 #include "TNamed.h"   // for TNamed
 #include "TString.h"  // for TString, TString::EStripType::kBoth
 
-using namespace o2::mathUtils;
+using namespace o2::math_utils;
 
 ClassImp(Chebyshev3DCalc)
 
