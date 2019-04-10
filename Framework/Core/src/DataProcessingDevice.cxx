@@ -44,27 +44,6 @@ namespace o2
 namespace framework
 {
 
-/// Handle the fact that FairMQ deprecated ReceiveAsync and changed the behavior of receive.
-namespace
-{
-struct FairMQDeviceLegacyWrapper {
-  // If both APIs are available, this has precendence because of dummy.
-  // Only the old API before the deprecation had FairMQSocket::TrySend().
-  template <typename S>
-  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, int dummy) -> typename std::enable_if<(sizeof(decltype(std::declval<S>().TrySend(parts.At(0)))) > 0), int>::type
-  {
-    return device->ReceiveAsync(parts, channel);
-  }
-
-  // Otherwise if we are here it means that TrySend() is not there anymore
-  template <typename S>
-  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, long dummy) -> int
-  {
-    return device->Receive(parts, channel, 0, 0);
-  }
-};
-}
-
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry)
   : mSpec{ spec },
     mInit{ spec.algorithm.onInit },
@@ -201,7 +180,7 @@ bool DataProcessingDevice::ConditionalRun()
   bool active = false;
   for (auto& channel : mSpec.inputChannels) {
     FairMQParts parts;
-    auto result = FairMQDeviceLegacyWrapper::ReceiveAsync<FairMQSocket>(this, parts, channel.name, 0);
+    auto result = this->Receive(parts, channel.name, 0, 0);
     if (result > 0) {
       this->handleData(parts);
       active |= this->tryDispatchComputation();
