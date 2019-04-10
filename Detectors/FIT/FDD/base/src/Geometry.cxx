@@ -44,14 +44,14 @@ void Geometry::buildGeometry()
   LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << vFDD->GetName();
 
   //Rotations used
-  TGeoRotation* Rx90m = new TGeoRotation("Rx90m", 0., -90., 0.);
-  TGeoRotation* Rx90 = new TGeoRotation("Rx90", 0., 90., 0.);
+  //TGeoRotation* Rx90m = new TGeoRotation("Rx90m", 0., -90., 0.);
+  //TGeoRotation* Rx90 = new TGeoRotation("Rx90", 0., 90., 0.);
   TGeoRotation* Rx180 = new TGeoRotation("Rx180", 0., 180., 0.);   //   4    |   1
   TGeoRotation* Rz180 = new TGeoRotation("Rz180", 180., 0., 0.);   // --------------->  x
   TGeoRotation* Ry180 = new TGeoRotation("Ry180", 180., 180., 0.); //   3    |   2
-  TGeoRotation* Ry90m = new TGeoRotation("Ry90m", 90., -90., -90.);
-  TGeoRotation* Ry90 = new TGeoRotation("Ry90", 90., 90., -90.);
-  TGeoRotation* Rz90 = new TGeoRotation("Rz90", 90., 0., 0.);
+  //TGeoRotation* Ry90m = new TGeoRotation("Ry90m", 90., -90., -90.);
+  //TGeoRotation* Ry90 = new TGeoRotation("Ry90", 90., 90., -90.);
+  //TGeoRotation* Rz90 = new TGeoRotation("Rz90", 90., 0., 0.);
 
   const Double_t kZbegFrontBar = 1949.1; // Begining of Front Bar
 
