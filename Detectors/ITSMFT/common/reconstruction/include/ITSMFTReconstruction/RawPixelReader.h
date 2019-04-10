@@ -924,10 +924,9 @@ class RawPixelReader : public PixelReader
           LOG(ERROR) << "FEE#" << rdh->feeId << " Lanes not in time-out but not sending data";
           ruStat.errorCounts[RUDecodingStat::ErrNoDataForActiveLane]++;
         }
-
+#endif
         // accumulate packet states
         ruStat.packetStates[gbtT->getPacketState()]++;
-#endif
 
         break;
       }
