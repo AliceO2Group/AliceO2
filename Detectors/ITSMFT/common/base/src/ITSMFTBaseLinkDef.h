@@ -18,10 +18,12 @@
 #pragma link C++ class o2::ITSMFT::Digit + ;
 #pragma link C++ class std::vector < o2::ITSMFT::Digit > +;
 #pragma link C++ class o2::ITSMFT::SegmentationAlpide + ;
-//#pragma link C++ class o2::ITS::ContainerFactory;
-//#pragma link C++ class o2::ITS::MisalignmentParameter+;
 
-/// RS At the moment failing to generate dictionary for
+#pragma link C++ class o2::ITSMFT::DPLAlpideParam < o2::detectors::DetID::ITS> + ;
+#pragma link C++ class o2::ITSMFT::DPLAlpideParam < o2::detectors::DetID::MFT> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ITSMFT::DPLAlpideParam < o2::detectors::DetID::ITS>> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ITSMFT::DPLAlpideParam < o2::detectors::DetID::MFT>> + ;
+
 #pragma link C++ class o2::ITSMFT::GeometryTGeo;
 
 #endif

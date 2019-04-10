@@ -740,6 +740,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     fairroot_base_bucket
+    configuration_bucket
     MathCore
     Geom
     RIO
@@ -747,6 +748,7 @@ o2_define_bucket(
     ParBase
     Field
     SimulationDataFormat
+    SimConfig
     CommonDataFormat
     detectors_base_bucket
     DetectorsBase
@@ -757,6 +759,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/Base/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include/
 )
 
 o2_define_bucket(
