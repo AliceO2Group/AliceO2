@@ -117,21 +117,24 @@ class MessageContext {
     }
   };
 
-  /// VectorObject handles a message object holding std::vector with polymorphic_allocator
-  /// can not adopt an existing message, because the polymorphic_allocator will call the element constructor,
+  /// ContainerRefObject handles a message object holding an instance of type T
+  /// The allocator type is required to be o2::pmr::polymorphic_allocator
+  /// can not adopt an existing message, because the polymorphic_allocator will call type constructor,
   /// so this works only with new messages
+  /// FIXME: not sure if we want to have this for all container types
   template <typename T>
-  class VectorObject : public ContextObject
+  class ContainerRefObject : public ContextObject
   {
    public:
-    using value_type = T;
-    using return_type = std::vector<char, o2::pmr::polymorphic_allocator<char>>;
+    using value_type = typename T::value_type;
+    using return_type = T;
     using buffer_type = return_type;
+    static_assert(std::is_same<typename T::allocator_type, o2::pmr::polymorphic_allocator<value_type>>::value, "container must have polymorphic allocator");
     /// default contructor forbidden, object always has to control message instances
-    VectorObject() = delete;
+    ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message
-    template <typename ContextType, typename... Args>
-    VectorObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t size)
+    template <typename ContextType>
+    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t size)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
         // backup of initially allocated size
         mAllocatedSize{ size * sizeof(value_type) },
@@ -151,7 +154,7 @@ class MessageContext {
         throw std::runtime_error(std::string("no memory resource for channel ") + bindingChannel);
       }
     }
-    ~VectorObject() override = default;
+    ~ContainerRefObject() override = default;
 
     /// @brief Finalize object and return parts by move
     /// This retrieves the actual message from the vector object and moves it to the parts
@@ -186,6 +189,19 @@ class MessageContext {
     FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
     pmr::FairMQMemoryResource* mResource = nullptr; /// message resource
     buffer_type mData;                              /// the data buffer
+  };
+
+  /// VectorObject handles a message object holding std::vector with polymorphic_allocator
+  /// can not adopt an existing message, because the polymorphic_allocator will call the element constructor,
+  /// so this works only with new messages
+  template <typename T, typename _BASE = ContainerRefObject<std::vector<T, o2::pmr::polymorphic_allocator<T>>>>
+  class VectorObject : public _BASE
+  {
+   public:
+    template <typename... Args>
+    VectorObject(Args&&... args) : _BASE(std::forward<Args>(args)...)
+    {
+    }
   };
 
   // SpanObject creates a trivial binary object for an array of elements of
