@@ -487,53 +487,6 @@ void processSigChild(DeviceInfos& infos)
   }
 }
 
-// Magic to support both old and new FairRoot logger behavior
-// is_define<fair::Logger> only works if Logger is fully defined,
-// not forward declared.
-namespace fair
-{
-// This is required to be declared (but not defined) for the SFINAE below
-// to work
-class Logger;
-namespace mq
-{
-namespace logger
-{
-// This we can leave it empty, as the sole purpose is to
-// allow the using namespace below.
-}
-} // namespace mq
-} // namespace fair
-
-template <class, class, class = void>
-struct is_defined : std::false_type {
-};
-
-template <class S, class T>
-struct is_defined<S, T, std::enable_if_t<std::is_object<T>::value && !std::is_pointer<T>::value && (sizeof(T) > 0)>>
-  : std::true_type {
-  using logger = T;
-};
-
-using namespace fair::mq::logger;
-
-struct TurnOffColors {
-
-  template <typename T>
-  static auto apply(T value, int) -> decltype(ReinitLogger(value), void())
-  {
-    ReinitLogger(value);
-  }
-  template <typename T>
-  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type
-  {
-    // By using is_defined<T, fair::Logger>::logger rather than fair::Logger
-    // directly, we avoid the error about using an incomplete type in a nested
-    // expression.
-    is_defined<T, fair::Logger>::logger::SetConsoleColor(value);
-  }
-};
-
 // Creates the sink for FairLogger / InfoLogger integration
 auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique_ptr<InfoLoggerContext>& ctx)
 {
@@ -592,7 +545,7 @@ auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique
 
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 {
-  TurnOffColors::apply(false, 0);
+  fair::Logger::SetConsoleColor(false);
   LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
   try {
@@ -672,7 +625,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
-      TurnOffColors::apply(false, 0);
+      fair::Logger::SetConsoleColor(false);
     };
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
