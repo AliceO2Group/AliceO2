@@ -218,21 +218,27 @@ O2_GENERATE_MAN(NAME FairMQDevice)
 # Macros from this list will be excluded from tests. To be used only in exceptional cases, such as
 # when the macro uses symbols from outside the standard O2 build/runtime environment
 set(EXCLUDE_MACROS_FROM_TEST
+
   ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
   ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
+
   # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
   # correctly some Boost headers
   ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
   ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
   ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+
   # Disabled until AliTPCCommon is merged
   ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
   ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
   ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
-  # End of temporarily disabled macros
+
   # Disabled from @mconcas: will be removed soon in any case
   ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
-  # /end disabled
+
+  # This macro is used by the o2sim tests, no need to re-check. Parallel tests
+  # of the same macro are also breaking it
+  ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C
 )
 
 # Macros from this list will have the test in compiled mode ran in a non-fatal way
