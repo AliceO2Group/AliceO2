@@ -180,8 +180,7 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
     pos[1] = hit.GetY();
     pos[2] = hit.GetZ();
 
-    const float eDep = hit.GetEnergyLoss();
-    const int qTotal = (int)eDep; // Small kind of hack, this will be fixed later
+    const int qTotal = hit.GetCharge();
 
     gGeoManager->SetCurrentPoint(pos);
     gGeoManager->FindNode();

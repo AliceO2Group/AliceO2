@@ -24,10 +24,10 @@ namespace o2
 {
 namespace trd
 {
-class HitType : public o2::BasicXYZEHit<float>
+class HitType : public o2::BasicXYZQHit<float>
 {
  public:
-  using BasicXYZEHit<float>::BasicXYZEHit;
+  using BasicXYZQHit<float>::BasicXYZQHit;
 };
 } // namespace trd
 } // namespace o2
