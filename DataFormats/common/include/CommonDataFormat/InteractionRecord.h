@@ -71,6 +71,11 @@ struct InteractionRecord {
     return (bc == other.bc) && (orbit == other.orbit);
   }
 
+  bool operator!=(const InteractionRecord& other) const
+  {
+    return (bc != other.bc) || (orbit != other.orbit);
+  }
+
   int differenceInBC(const InteractionRecord& other) const
   {
     // return differenc in bunch-crossings
