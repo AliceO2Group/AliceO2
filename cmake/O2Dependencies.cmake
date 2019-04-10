@@ -1716,6 +1716,60 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    cpv_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    data_format_simulation_bucket
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
+)
+
+o2_define_bucket(
+    NAME
+    cpv_simulation_bucket
+
+    DEPENDENCIES
+    cpv_base_bucket
+    root_base_bucket
+    fairroot_geom
+    detectors_base_bucket
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    CPVBase
+    DetectorsBase
+    SimulationDataFormat
+
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/CPV/base/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
+)
+
+
+o2_define_bucket(
+    NAME
     event_visualisation_base_bucket
 
     DEPENDENCIES
