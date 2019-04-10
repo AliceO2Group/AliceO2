@@ -70,7 +70,7 @@ DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
                                                            );
-  auto& co = context->add<MessageContext::VectorObject<DataChunk::value_type>>(std::move(headerMessage), channel, 0, size);
+  auto& co = context->add<MessageContext::ContainerRefObject<DataChunk>>(std::move(headerMessage), channel, 0, size);
   return co;
 }
 
