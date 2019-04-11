@@ -28,9 +28,9 @@ namespace conf
 
 // Utility structure for passing around ConfigurableParam data member info
 // (where value is the string representation)
-struct paramDataMember {
+struct ParamDataMember {
   std::string name;
-  const char* value;
+  std::string value;
   std::string provenance;
 
   std::string toString(bool showProv) const;
@@ -43,7 +43,7 @@ struct paramDataMember {
 class _ParamHelper
 {
  private:
-  static std::vector<paramDataMember>* getDataMembersImpl(std::string mainkey, TClass* cl, void*,
+  static std::vector<ParamDataMember>* getDataMembersImpl(std::string mainkey, TClass* cl, void*,
                                                           std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
   static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
@@ -54,8 +54,8 @@ class _ParamHelper
   static void assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
                              std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
-  static void outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv);
-  static void printMembersImpl(std::vector<paramDataMember>* members, bool showProv);
+  static void outputMembersImpl(std::ostream& out, std::vector<ParamDataMember> const* members, bool showProv);
+  static void printMembersImpl(std::vector<ParamDataMember> const* members, bool showProv);
 
   template <typename P>
   friend class ConfigurableParamHelper;
@@ -102,7 +102,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
 
   // Grab the list of ConfigurableParam data members
   // Returns a nullptr if the TClass of the P template class cannot be created.
-  std::vector<paramDataMember>* getDataMembers() const
+  std::vector<ParamDataMember>* getDataMembers() const
   {
     // just a helper line to make sure P::sInstance is looked-up
     // and that compiler complains about missing static sInstance of type P
