@@ -336,7 +336,7 @@ void Detector::CreateMaterials()
   radLength = 8.9;
   absLength = 37.2;
   id = 4;
-  o2::base::Detector::Material(id, "Alum", a_ad, z_ad, density, radLength, absLength, 0, 0);
+  o2::base::Detector::Material(id, "Alum", a_ad, z_ad, density, radLength, absLength);
   o2::base::Detector::Medium(id, "Alum", id, 1, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Parameters for FDCPMG: Glass for the simulation Aluminium
@@ -346,7 +346,7 @@ void Detector::CreateMaterials()
   radLength = 8.9;
   absLength = 37.2;
   id = 5;
-  o2::base::Detector::Material(id, "Glass", a_ad, z_ad, density, radLength, absLength, 0, 0);
+  o2::base::Detector::Material(id, "Glass", a_ad, z_ad, density, radLength, absLength);
   o2::base::Detector::Medium(id, "Glass", id, 1, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 }
 //_____________________________________________________________________________

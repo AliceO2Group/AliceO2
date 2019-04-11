@@ -113,7 +113,7 @@ void Geometry::buildGeometry()
   // Add PAD
   Double_t fX_FDA_WLS_s = 0.1 + WLS_dx / 2.0;
   Double_t fX_FDA_WLS_l = kShiftX + WLS_dx / 2.0 + kFDACellSideX + 0.04;
-  secFDA->AddNode(vFDApad, 1, 0);
+  secFDA->AddNode(vFDApad, 1);
   secFDA->AddNode(vFDA_WLS_s, 1, new TGeoTranslation(fX_FDA_WLS_s, kFDABeamPipeR + WLS_SideA_Short_dy / 2.0, 0.0));
   secFDA->AddNode(vFDA_WLS_l, 1, new TGeoTranslation(fX_FDA_WLS_l, kShiftY + WLS_SideA_Long_dy / 2.0, 0.0));
 
@@ -142,7 +142,7 @@ void Geometry::buildGeometry()
   /// Creating Sector for Tunnel (Asembly:  Scintillator Pad + Light guide)
   TGeoVolume* voFDC = new TGeoVolumeAssembly("FDCsec");
   // Add PAD
-  voFDC->AddNode(vFDCpad, 1, 0);
+  voFDC->AddNode(vFDCpad, 1);
   // Add FDC WLS Short bar
   voFDC->AddNode(vFDC_WLS_s, 1, new TGeoTranslation(0.1 + WLS_dx / 2.0, kFDCBeamPipeR + WLS_SideC_Short_dy / 2.0, 0.0));
   // Add FDC WLS Long  bar
