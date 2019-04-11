@@ -33,8 +33,10 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   constexpr Float_t A_side_cable_cmps = 11.08; //ns
   constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
-  Int_t nlbl = 0; //number of MCtrues
-
+  auto sorted_hits{ *hits };
+  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fit::HitType const& a, o2::fit::HitType const& b) {
+    return a.GetTrackID() < b.GetTrackID();
+  });
   digit->setTime(mEventTime);
   digit->setBC(mBC);
   digit->setOrbit(mOrbit);
@@ -46,8 +48,9 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
     for (int i = 0; i < parameters.mMCPs; ++i)
       channel_data.emplace_back(ChannelData{ i, 0, 0, 0 });
   }
+  Int_t parent = -10;
   assert(digit->getChDgData().size() == parameters.mMCPs);
-  for (auto& hit : *hits) {
+  for (auto& hit : sorted_hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
     Bool_t is_A_side = (hit_ch <= 4 * parameters.NCellsA);
@@ -65,14 +68,15 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
     }
 
     //charge particles in MCLabel
-    if (hit.GetEnergyLoss() > 0) {
+    Int_t parentID = hit.GetTrackID();
+    if (parentID != parent) {
       o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;
       if (mMCLabels) {
         lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
         mMCLabels->addElement(lblCurrent, label);
-        nlbl++;
       }
+      parent = parentID;
     }
   }
 }
