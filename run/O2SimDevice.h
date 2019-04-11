@@ -175,7 +175,9 @@ class O2SimDevice : public FairMQDevice
         auto info = chunk->mSubEventInfo;
         mVMCApp->setSubEventInfo(info);
 
-        LOG(INFO) << "Processing " << chunk->mParticles.size() << FairLogger::endl;
+        LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
+                  << "for event " << info.eventID << "/" << info.maxEvents << " "
+                  << "part " << info.part << "/" << info.nparts;
         gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
         auto& conf = o2::conf::SimConfig::Instance();

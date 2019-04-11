@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
 
     const std::string name("O2HitMergerRunner");
     const std::string path = installpath + "/" + name;
-    execl(path.c_str(), name.c_str(), "--control", "static", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
+    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
           (char*)nullptr);
     return 0;
   } else {
