@@ -209,7 +209,8 @@ class O2HitMerger : public FairMQDevice
     fillBranch("MCEventHeader.", headerptr);
   }
 
-  bool ConditionalRun() override {
+  bool ConditionalRun() override
+  {
     auto& channel = fChannels.at("simdata").at(0);
     FairMQParts request;
     auto bytes = channel.Receive(request);
