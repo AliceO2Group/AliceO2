@@ -80,7 +80,6 @@ class O2HitMerger : public FairMQDevice
     // has to be after init of Detectors
     o2::utils::ShmManager::Instance().attachToGlobalSegment();
 
-    OnData("simdata", &O2HitMerger::handleSimData);
     mTimer.Start();
   }
 
@@ -210,6 +209,17 @@ class O2HitMerger : public FairMQDevice
     fillBranch("MCEventHeader.", headerptr);
   }
 
+  bool ConditionalRun() override {
+    auto& channel = fChannels.at("simdata").at(0);
+    FairMQParts request;
+    auto bytes = channel.Receive(request);
+    if (bytes < 0) {
+      LOG(ERROR) << "Some error occurred on socket during receive on sim data";
+      return true; // keep going
+    }
+    return handleSimData(request, 0);
+  }
+
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
@@ -241,6 +251,7 @@ class O2HitMerger : public FairMQDevice
       mEventChecksum += info.eventID;
       // we also need to check if we have all events
       if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
+        LOG(INFO) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
         return false;
       }
     }
