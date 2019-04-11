@@ -45,6 +45,7 @@
 #include <TRDSimulation/Detector.h>
 #include <T0Simulation/Detector.h>
 #include <V0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
@@ -473,6 +474,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::V0) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::FDD) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::fdd::Detector>(true));
       counter++;
     }
     if (i == DetID::MCH) {

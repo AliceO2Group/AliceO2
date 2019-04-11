@@ -87,6 +87,18 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     boxGen->SetPhiRange(0., 360.);
     boxGen->SetDebug(kTRUE);
     primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("fddgen") == 0) {
+    LOG(INFO) << "Init box FDD generator";
+    auto boxGenFDC = new FairBoxGenerator(13, 1000);
+    boxGenFDC->SetEtaRange(-7.0, -4.8);
+    boxGenFDC->SetPRange(10, 500);
+    boxGenFDC->SetPhiRange(0., 360.);
+    auto boxGenFDA = new FairBoxGenerator(13, 1000);
+    boxGenFDA->SetEtaRange(4.9, 6.3);
+    boxGenFDA->SetPRange(10, 500);
+    boxGenFDA->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGenFDA);
+    primGen->AddGenerator(boxGenFDC);
   } else if (genconfig.compare("extkin") == 0) {
     // external kinematics
     // needs precense of a kinematics file "Kinematics.root"

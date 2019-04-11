@@ -31,6 +31,7 @@
 #include <TRDSimulation/Detector.h>
 #include <T0Simulation/Detector.h>
 #include <V0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
@@ -192,6 +193,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("V0")) {
     // FIT-V0
     run->AddModule(new o2::v0::Detector(true));
+  }
+
+  if (isActivated("FDD")) {
+    // FIT-FDD
+    run->AddModule(new o2::fdd::Detector(true));
   }
 
   if (isActivated("HMP")) {

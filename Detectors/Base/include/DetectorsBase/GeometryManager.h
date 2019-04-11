@@ -113,7 +113,7 @@ class GeometryManager : public TObject
 
  private:
   /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
-  static constexpr UInt_t sDetOffset = 16; /// detector identifier will start from this bit
+  static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
 
