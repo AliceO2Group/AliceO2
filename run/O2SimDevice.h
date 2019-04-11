@@ -174,8 +174,8 @@ class O2SimDevice : public FairMQDevice
         mVMCApp->setSubEventInfo(info);
 
         LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
-	          << "for event " << info.eventID << "/" << info.maxEvents << " "
-	          << "part " << info.part << "/" << info.nparts;
+                  << "for event " << info.eventID << "/" << info.maxEvents << " "
+                  << "part " << info.part << "/" << info.nparts;
         gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
         mVMC->ProcessRun(1);
