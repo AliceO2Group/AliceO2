@@ -56,7 +56,9 @@ if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we requ
   find_package(FairLogger REQUIRED)
 endif()
 find_package(DDS)
-find_package(Protobuf REQUIRED)
+cmake_policy(SET CMP0077 NEW)
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(protobuf CONFIG REQUIRED)
 find_package(InfoLogger REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
@@ -518,7 +520,7 @@ o2_define_bucket(
     dl
     common_boost_bucket
     Boost::filesystem
-    ${PROTOBUF_LIBRARY}
+    protobuf::libprotobuf
     Base
     FairTools
     ParBase
