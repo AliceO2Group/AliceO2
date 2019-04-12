@@ -104,23 +104,23 @@ bool Cluster::operator==(const Cluster &other) const
 
 bool Cluster::eq(
         const Cluster &other, 
-        float epsilonSmall, 
-        float epsilonBig, 
+        float /*epsilonSmall*/, 
+        float /*epsilonBig*/, 
         FieldMask mask) const
 {
     return cru == other.cru
         && row == other.row
-        && (floatEq(Q, other.Q, epsilonBig) 
+        && (almostEqual(Q, other.Q)
                 || !(mask & Field_Q))
-        && (floatEq(QMax, other.QMax, epsilonSmall)
+        && (almostEqual(QMax, other.QMax)
                 || !(mask & Field_QMax))
-        && (floatEq(timeMean, other.timeMean, epsilonSmall)
+        && (almostEqual(timeMean, other.timeMean)
                 || !(mask & Field_timeMean))
-        && (floatEq(padMean, other.padMean, epsilonSmall)
+        && (almostEqual(padMean, other.padMean)
                 || !(mask & Field_padMean))
-        && (floatEq(timeSigma, other.timeSigma, epsilonSmall)
+        && (almostEqual(timeSigma, other.timeSigma)
                 || !(mask & Field_timeSigma))
-        && (floatEq(padSigma, other.padSigma, epsilonSmall)
+        && (almostEqual(padSigma, other.padSigma)
                 || !(mask & Field_padSigma));
 }
 
