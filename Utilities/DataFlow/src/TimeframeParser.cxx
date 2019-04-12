@@ -28,7 +28,7 @@
 
 using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
 namespace o2 { namespace data_flow {
 

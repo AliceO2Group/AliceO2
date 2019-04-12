@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace DataFormat
+namespace dataformats
 {
 BOOST_AUTO_TEST_CASE(MessageSizePair_test)
 {
