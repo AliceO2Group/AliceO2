@@ -31,8 +31,8 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   using namespace o2::base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::Cluster;
-  using o2::ITSMFT::Hit;
+  using o2::itsmft::Cluster;
+  using o2::itsmft::Hit;
 
   TFile* f = nullptr;
 

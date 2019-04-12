@@ -26,7 +26,7 @@
 #include <algorithm>
 
 namespace o2 {
-  namespace ITSMFT {
+  namespace itsmft {
 
     class ClusterShape : public TObject {
 

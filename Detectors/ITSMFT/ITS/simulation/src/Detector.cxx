@@ -47,8 +47,8 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::ITSMFT::Hit;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using o2::itsmft::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::ITS;
 
 Detector::Detector()
@@ -63,7 +63,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -152,7 +152,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -198,7 +198,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {

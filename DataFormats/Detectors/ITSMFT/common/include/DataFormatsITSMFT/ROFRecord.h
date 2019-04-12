@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 /// ROFRecord class encodes the trigger interaction record of given ROF and

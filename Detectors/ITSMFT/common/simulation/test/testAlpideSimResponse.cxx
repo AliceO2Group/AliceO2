@@ -16,7 +16,7 @@
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "FairLogger.h"
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
 {

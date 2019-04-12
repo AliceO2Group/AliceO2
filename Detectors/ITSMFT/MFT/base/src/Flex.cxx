@@ -32,7 +32,7 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 
 using namespace o2::MFT;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 ClassImp(o2::MFT::Flex);
 

@@ -34,7 +34,7 @@ class TString;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Hit;
 }
@@ -103,7 +103,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced collections
-  std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -171,7 +171,7 @@ class Detector : public o2::base::DetImpl<Detector>
                                   Double_t& tilt, Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
+  o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
                           const TVector3& startMom, double startE, double endTime, double eLoss,
                           unsigned char startStatus, unsigned char endStatus);
 
@@ -287,7 +287,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mBuildLevel[sNumberLayers];           //! Vector of Material Budget Studies
 
   /// Container for hit data
-  std::vector<o2::ITSMFT::Hit>* mHits;
+  std::vector<o2::itsmft::Hit>* mHits;
 
   /// Creates an air-filled wrapper cylindrical volume
   TGeoVolume* createWrapperVolume(const Int_t nLay);

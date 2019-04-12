@@ -27,7 +27,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class DigitPixelReader : public PixelReader
@@ -36,23 +36,23 @@ class DigitPixelReader : public PixelReader
   DigitPixelReader() = default;
   ~DigitPixelReader() override;
 
-  const std::vector<o2::ITSMFT::MC2ROFRecord>* getMC2ROFRecords() const
+  const std::vector<o2::itsmft::MC2ROFRecord>* getMC2ROFRecords() const
   {
     return mMC2ROFRecVec;
   }
 
-  void setMC2ROFRecords(const std::vector<o2::ITSMFT::MC2ROFRecord>* a)
+  void setMC2ROFRecords(const std::vector<o2::itsmft::MC2ROFRecord>* a)
   {
     mMC2ROFRecVec = a;
   }
 
-  void setROFRecords(const std::vector<o2::ITSMFT::ROFRecord>* a)
+  void setROFRecords(const std::vector<o2::itsmft::ROFRecord>* a)
   {
     mROFRecVec = a;
     mIdROF = -1;
   }
 
-  void setDigits(const std::vector<o2::ITSMFT::Digit>* a)
+  void setDigits(const std::vector<o2::itsmft::Digit>* a)
   {
     mDigits = a;
     mIdDig = 0;
@@ -93,14 +93,14 @@ class DigitPixelReader : public PixelReader
 
   // pointer for input containers in the self-managed mode: due to the requirements of the
   // fairroot the externally settable pointers must be const...
-  std::vector<o2::ITSMFT::Digit>* mDigitsSelf = nullptr;
-  std::vector<o2::ITSMFT::ROFRecord>* mROFRecVecSelf = nullptr;
-  std::vector<o2::ITSMFT::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
+  std::vector<o2::itsmft::Digit>* mDigitsSelf = nullptr;
+  std::vector<o2::itsmft::ROFRecord>* mROFRecVecSelf = nullptr;
+  std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
-  const std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;
-  const std::vector<o2::ITSMFT::ROFRecord>* mROFRecVec = nullptr;
-  const std::vector<o2::ITSMFT::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
+  const std::vector<o2::itsmft::Digit>* mDigits = nullptr;
+  const std::vector<o2::itsmft::ROFRecord>* mROFRecVec = nullptr;
+  const std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
   const Digit* mLastDigit = nullptr;
@@ -114,7 +114,7 @@ class DigitPixelReader : public PixelReader
   ClassDefOverride(DigitPixelReader, 1);
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_DIGITPIXELREADER_H */

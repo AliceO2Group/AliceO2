@@ -102,7 +102,7 @@ std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -131,7 +131,7 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* 
   }
 }
 
-int IOUtils::loadROFrameData(const o2::ITSMFT::ROFRecord& rof, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+int IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {

@@ -24,7 +24,7 @@
 #include "TGeoMatrix.h"       // for TGeoMatrix
 #include "FairLogger.h" // for LOG
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 ClassImp(AlpideChip)
 

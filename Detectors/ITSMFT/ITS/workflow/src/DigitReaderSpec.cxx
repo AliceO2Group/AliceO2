@@ -22,7 +22,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 using namespace o2::framework;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 namespace o2
 {
@@ -53,8 +53,8 @@ void DigitReader::run(ProcessingContext& pc)
 
   if (treeDig && treeROF && treeMC2ROF) {
 
-    std::vector<o2::ITSMFT::Digit> allDigits;
-    std::vector<o2::ITSMFT::Digit> digits, *pdigits = &digits;
+    std::vector<o2::itsmft::Digit> allDigits;
+    std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
 
     treeDig->SetBranchAddress("ITSDigit", &pdigits);
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;

@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 struct RUInfo {
@@ -61,7 +61,7 @@ struct ChipInfo {
 
   void print() const;
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

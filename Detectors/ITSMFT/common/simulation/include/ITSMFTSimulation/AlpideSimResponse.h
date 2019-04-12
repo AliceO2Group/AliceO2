@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 /*
  * AlpideRespSimMat : class to access the response: probability to collect electron 

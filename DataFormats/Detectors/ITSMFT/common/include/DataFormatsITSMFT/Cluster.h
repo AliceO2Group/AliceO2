@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class GeometryTGeo;
 /// \class Cluster
@@ -186,7 +186,7 @@ inline void Cluster::setClusterUsage(Int_t n)
   if (!n)
     resetBit(kUsed);
 }
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */

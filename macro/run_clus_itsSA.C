@@ -11,7 +11,7 @@
 // Clusterization avoiding FairRunAna management.
 // Works both with MC digits and with "raw" data (in this case the last argument must be
 // set to true). The raw data should be prepared beforeahand from the MC digits using e.g.
-// o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> reader;
+// o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> reader;
 // reader.convertDigits2Raw("dig.raw","o2dig.root","o2sim","ITSDigit");
 //
 // Use for MC mode:
@@ -47,7 +47,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
   if (strobe < 0) {
-    const auto& dgParams = o2::ITSMFT::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    const auto& dgParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     strobe = dgParams.roFrameLength;
   }
   clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);

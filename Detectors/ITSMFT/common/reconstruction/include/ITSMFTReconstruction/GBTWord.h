@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 constexpr uint64_t LANESMask = (0x1 << 28) - 1; // at most 28 lanes
@@ -205,7 +205,7 @@ class GBTData : public GBTWord
 
   ClassDefNV(GBTData, 1);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

@@ -33,7 +33,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ITSMFTDPLDigitWriter
@@ -79,9 +79,9 @@ class ITSMFTDPLDigitWriter
     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
     // retrieve the digits from the input
-    auto inDigits = pc.inputs().get<std::vector<o2::ITSMFT::Digit>>((detStr + "digits").c_str());
-    auto inROFs = pc.inputs().get<std::vector<o2::ITSMFT::ROFRecord>>((detStr + "digitsROF").c_str());
-    auto inMC2ROFs = pc.inputs().get<std::vector<o2::ITSMFT::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
+    auto inDigits = pc.inputs().get<std::vector<o2::itsmft::Digit>>((detStr + "digits").c_str());
+    auto inROFs = pc.inputs().get<std::vector<o2::itsmft::ROFRecord>>((detStr + "digitsROF").c_str());
+    auto inMC2ROFs = pc.inputs().get<std::vector<o2::itsmft::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
     auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
@@ -101,8 +101,8 @@ class ITSMFTDPLDigitWriter
     auto brMC2ROF = getOrMakeBranch(*mOutTreeMC2ROF.get(), (detStr + "DigitMC2ROF").c_str(), &mc2rofP);
     mOutTreeMC2ROF->Fill();
 
-    //    mOutFile->WriteObjectAny(&inROFs, "std::vector<o2::ITSMFT::ROFRecord>", (detStr + "DigitROF").c_str());
-    //    mOutFile->WriteObjectAny(&inMC2ROFs, "std::vector<o2::ITSMFT::MC2ROFRecord>", (detStr + "DigitMC2ROF").c_str());
+    //    mOutFile->WriteObjectAny(&inROFs, "std::vector<o2::itsmft::ROFRecord>", (detStr + "DigitROF").c_str());
+    //    mOutFile->WriteObjectAny(&inMC2ROFs, "std::vector<o2::itsmft::MC2ROFRecord>", (detStr + "DigitMC2ROF").c_str());
     mOutTreeDig->Write();
     mOutTreeROF->Write();
     mOutTreeMC2ROF->Write();
@@ -136,7 +136,7 @@ class ITSMFTDPLDigitWriter
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  std::vector<o2::ITSMFT::Digit> mDigits; // input digits
+  std::vector<o2::itsmft::Digit> mDigits; // input digits
   std::unique_ptr<TFile> mOutFile;
   std::unique_ptr<TTree> mOutTreeDig;    // output tree with digits
   std::unique_ptr<TTree> mOutTreeROF;    // output tree with ROF records
@@ -231,5 +231,5 @@ DataProcessorSpec getMFTDigitWriterSpec()
   };
 }
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2

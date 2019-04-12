@@ -35,7 +35,7 @@ namespace MFT
 {
 class DigitizerTask : public FairTask
 {
-  using Digitizer = o2::ITSMFT::Digitizer;
+  using Digitizer = o2::itsmft::Digitizer;
 
  public:
   DigitizerTask();
@@ -48,8 +48,8 @@ class DigitizerTask : public FairTask
   void FinishTask() override;
 
   Digitizer& getDigitizer() { return mDigitizer; }
-  o2::ITSMFT::DigiParams& getDigiParams() { return mDigitizer.getParams(); }
-  const o2::ITSMFT::DigiParams& getDigiParams() const { return mDigitizer.getParams(); }
+  o2::itsmft::DigiParams& getDigiParams() { return mDigitizer.getParams(); }
+  const o2::itsmft::DigiParams& getDigiParams() const { return mDigitizer.getParams(); }
 
   void setContinuous(bool v) { mDigitizer.getParams().setContinuous(v); }
   bool isContinuous() const { return mDigitizer.getParams().isContinuous(); }
@@ -68,17 +68,17 @@ class DigitizerTask : public FairTask
   Int_t mEventID = 0;           ///< current event id from the source
   Digitizer mDigitizer;         ///< Digitizer
 
-  const std::vector<o2::ITSMFT::Hit>* mHitsArray = nullptr; //! Array of MC hits
+  const std::vector<o2::itsmft::Hit>* mHitsArray = nullptr; //! Array of MC hits
 
   TBranch* mQEDBranch = nullptr;                               //! optional special branch of hits from QED collitions
-  const std::vector<o2::ITSMFT::Hit>* mHitsArrayQED = nullptr; //! array of MC hits from ED
+  const std::vector<o2::itsmft::Hit>* mHitsArrayQED = nullptr; //! array of MC hits from ED
   float mQEDEntryTimeBinNS = 0.f;                              ///< every entry in the QED branch integrates QED for so many nanosec.
   double mLastQEDTimeNS = 0.;                                  ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
   int mLastQEDEntry = -1;                                      ///< last used QED entry
   UChar_t mQEDSourceID = 0;                                    ///< MC ID source of the QED (stored in the labels)
 
-  std::vector<o2::ITSMFT::Digit> mDigitsArray;                     //!  Array of digits
-  std::vector<o2::ITSMFT::Digit>* mDigitsArrayPtr = &mDigitsArray; //! pointer on the digits array
+  std::vector<o2::itsmft::Digit> mDigitsArray;                     //!  Array of digits
+  std::vector<o2::itsmft::Digit>* mDigitsArrayPtr = &mDigitsArray; //! pointer on the digits array
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;                      //! Labels containter
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer

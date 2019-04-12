@@ -20,7 +20,7 @@
 ClassImp(o2::MFT::TrackMFT);
 
 using namespace o2::MFT;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 using namespace o2::constants::math;
 using namespace o2::track;
 

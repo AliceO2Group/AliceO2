@@ -13,7 +13,7 @@
 
 #include "ITSMFTReconstruction/GBTWord.h"
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 void GBTWord::printX(bool padded) const
 {

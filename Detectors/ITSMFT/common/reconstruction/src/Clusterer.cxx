@@ -17,8 +17,8 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::ITSMFT;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using namespace o2::itsmft;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
 //__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
@@ -40,7 +40,7 @@ Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1
 //__________________________________________________
 void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
                         std::vector<CompClusterExt>* compClus, MCTruth* labelsCl,
-                        std::vector<o2::ITSMFT::ROFRecord>* vecROFRec)
+                        std::vector<o2::itsmft::ROFRecord>* vecROFRec)
 {
 
 #ifdef _PERFORM_TIMING_

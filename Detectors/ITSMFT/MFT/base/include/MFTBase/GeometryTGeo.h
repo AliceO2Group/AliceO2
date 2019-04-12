@@ -32,7 +32,7 @@ namespace o2
 {
 namespace MFT
 {
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
@@ -69,7 +69,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo

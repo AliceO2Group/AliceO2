@@ -35,7 +35,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 struct TopologyInfo {
   int mSizeX = 0;
@@ -95,6 +95,6 @@ class BuildTopologyDictionary
 
   ClassDefNV(BuildTopologyDictionary, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 #endif

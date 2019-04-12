@@ -36,7 +36,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class BuildTopologyDictionary;
 class LookUp;
@@ -104,7 +104,7 @@ class TopologyDictionary
 
   ClassDefNV(TopologyDictionary, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

@@ -19,9 +19,9 @@
 
 #include <cstdlib>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
-ClassImp(o2::ITSMFT::Cluster)
+ClassImp(o2::itsmft::Cluster)
 
 #ifdef _ClusterTopology_
   //______________________________________________________________________________

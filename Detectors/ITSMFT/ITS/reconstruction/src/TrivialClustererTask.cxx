@@ -59,7 +59,7 @@ InitStatus TrivialClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
+  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Digit>*>("ITSDigit");
   if (!mDigitsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

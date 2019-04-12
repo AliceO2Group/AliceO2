@@ -30,8 +30,8 @@
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
-using o2::ITSMFT::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
+using o2::itsmft::Hit;
 
 using namespace o2::ITS;
 using namespace o2::base;
@@ -73,7 +73,7 @@ InitStatus HitAnalysis::Init()
     return kERROR;
   }
 
-  mHits = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("ITSHit");
+  mHits = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("ITSHit");
   if (!mHits) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

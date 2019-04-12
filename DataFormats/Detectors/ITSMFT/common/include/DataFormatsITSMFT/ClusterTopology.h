@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class ClusterTopology
 {
@@ -71,7 +71,7 @@ class ClusterTopology
 
   ClassDefNV(ClusterTopology, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_CLUSTERTOPOLOGY_H */
