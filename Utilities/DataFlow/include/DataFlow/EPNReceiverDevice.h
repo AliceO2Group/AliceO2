@@ -19,7 +19,7 @@
 #include <FairMQDevice.h>
 
 namespace o2 {
-namespace Devices {
+namespace devices {
 
 /// Container for (sub-)timeframes
 
@@ -61,7 +61,7 @@ class EPNReceiverDevice : public FairMQDevice
     std::string mAckChannelName = "";
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

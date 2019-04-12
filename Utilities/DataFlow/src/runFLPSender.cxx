@@ -30,5 +30,5 @@ void addCustomOptions(bpo::options_description& options)
 
 FairMQDevice* getDevice(const FairMQProgOptions& config)
 {
-  return new o2::Devices::FLPSenderDevice();
+  return new o2::devices::FLPSenderDevice();
 }

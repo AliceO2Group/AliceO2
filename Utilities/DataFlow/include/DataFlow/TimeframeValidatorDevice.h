@@ -37,7 +37,7 @@ public:
     std::string mInChannelName;
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

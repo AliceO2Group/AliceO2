@@ -25,7 +25,7 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 using SubframeMetadata = o2::data_flow::SubframeMetadata;
 using TPCTestPayload = o2::data_flow::TPCTestPayload;
 using TPCTestCluster = o2::data_flow::TPCTestCluster;
