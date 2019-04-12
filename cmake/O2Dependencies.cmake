@@ -1381,7 +1381,7 @@ o2_define_bucket(
     Gpad
     Matrix
     Physics
-    EMCALBase
+    O2EMCALBase
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
@@ -1877,7 +1877,7 @@ o2_define_bucket(
     MCHSimulation
     MIDSimulation
     TRDSimulation
-    EMCALSimulation
+    O2EMCALSimulation
     TOFSimulation
     FITSimulation
     T0Simulation
@@ -1918,7 +1918,7 @@ o2_define_bucket(
     FITSimulation
     T0Simulation
     FDDSimulation
-    EMCALSimulation
+    O2EMCALSimulation
     HMPIDBase
     HMPIDSimulation
     MCHBase
