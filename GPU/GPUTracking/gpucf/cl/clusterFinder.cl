@@ -8,16 +8,17 @@ constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
 
-
-
-
-Cluster newCluster()
+typedef struct PartialCluster_s
 {
-    Cluster c = {0, 0, 0, 0, 0, 0, 0, 0};
-    return c;
-}
+    charge_t Q;
+    charge_t padMean;
+    charge_t padSigma;
+    charge_t timeMean;
+    charge_t timeSigma;
+} PartialCluster;
 
-void updateCluster(Cluster *cluster, float charge, int dp, int dt)
+
+void updateCluster(PartialCluster *cluster, charge_t charge, int dp, int dt)
 {
     cluster->Q         += charge;
     cluster->padMean   += charge*dp;
@@ -27,69 +28,70 @@ void updateCluster(Cluster *cluster, float charge, int dp, int dt)
 }
 
 void updateClusterOuter(
-        global const charge_t *chargeMap,
-                     Cluster  *cluster, 
-                     int       row,
-                     int       pad,
-                     int       time,
-                     charge_t  innerCharge,
-                     int       dpIn, 
-                     int       dtIn,
-                     int       dpOut,
-                     int       dtOut)
+        global const charge_t       *chargeMap,
+                     PartialCluster *cluster, 
+                     row_t           row,
+                     pad_t           pad,
+                     timestamp       time,
+                     int             dpOut,
+                     int             dtOut)
 {
     charge_t outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
 
-    if (   innerCharge >       CHARGE_THRESHOLD 
-        && outerCharge > OUTER_CHARGE_THRESHOLD) 
-    {
-        updateCluster(cluster, outerCharge, dpOut, dtOut);
-    }
+    outerCharge = (outerCharge > OUTER_CHARGE_THRESHOLD) ? outerCharge : 0;
+    updateCluster(cluster, outerCharge, dpOut, dtOut);
 }
 
 void addCorner(
-        global const charge_t *chargeMap,
-                     Cluster  *myCluster,
-                     int       row,
-                     int       pad,
-                     int       time,
-                     int       dp,
-                     int       dt)
+        global const charge_t       *chargeMap,
+                     PartialCluster *myCluster,
+                     row_t           row,
+                     pad_t           pad,
+                     timestamp       time,
+                     int             dp,
+                     int             dt)
 {
     charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp,   dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt,   dp, 2*dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp, 2*dt);
+    
+    if (innerCharge > CHARGE_THRESHOLD)
+    {
+        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp,   dt);
+        updateClusterOuter(chargeMap, myCluster, row, pad, time,   dp, 2*dt);
+        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp, 2*dt);
+    }
 }
 
 void addLine(
-        global const charge_t *chargeMap,
-                     Cluster  *myCluster,
-                     int       row,
-                     int       pad,
-                     int       time,
-                     int       dp,
-                     int       dt)
+        global const charge_t       *chargeMap,
+                     PartialCluster *myCluster,
+                     row_t           row,
+                     pad_t           pad,
+                     timestamp       time,
+                     int             dp,
+                     int             dt)
 {
     charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp, 2*dt);
+
+    if (innerCharge > CHARGE_THRESHOLD)
+    {
+        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp, 2*dt);
+    }
 }
 
 void buildCluster(
-        global const charge_t *chargeMap,
-                     Cluster  *myCluster,
-                     int       row,
-                     int       pad,
-                     int       time)
+        global const charge_t       *chargeMap,
+                     PartialCluster *myCluster,
+                     row_t           row,
+                     pad_t           pad,
+                     timestamp       time)
 {
-    myCluster->Q = 0;
-    myCluster->QMax = 0;
-    myCluster->padMean = 0;
-    myCluster->timeMean = 0;
-    myCluster->padSigma = 0;
-    myCluster->timeSigma = 0;
+    myCluster->Q = 0.f;
+    myCluster->padMean = 0.f;
+    myCluster->timeMean = 0.f;
+    myCluster->padSigma = 0.f;
+    myCluster->timeSigma = 0.f;
 
     // Add charges in top left corner:
     // O O o o o
@@ -99,6 +101,14 @@ void buildCluster(
     // o o o o o
     addCorner(chargeMap, myCluster, row, pad, time, -1, -1);
 
+    // Add upper charges
+    // o o O o o
+    // o i I i o
+    // o i c i o
+    // o i i i o
+    // o o o o o
+    addLine(chargeMap, myCluster, row, pad, time,  0, -1);
+
     // Add charges in top right corner:
     // o o o O O
     // o i i I O
@@ -107,13 +117,23 @@ void buildCluster(
     // o o o o o
     addCorner(chargeMap, myCluster, row, pad, time, 1, -1);
 
-    // Add charges in bottom right corner:
+
+    // Add left charges
     // o o o o o
     // o i i i o
-    // o i c i o
-    // o i i I O
-    // o o o O O
-    addCorner(chargeMap, myCluster, row, pad, time, 1, 1);
+    // O I c i o
+    // o i i i o
+    // o o o o o
+    addLine(chargeMap, myCluster, row, pad, time, -1,  0);
+
+    // Add right charges
+    // o o o o o
+    // o i i i o
+    // o i c I O
+    // o i i i o
+    // o o o o o
+    addLine(chargeMap, myCluster, row, pad, time,  1,  0);
+
 
     // Add charges in bottom left corner:
     // o o o o o
@@ -123,16 +143,21 @@ void buildCluster(
     // O O o o o
     addCorner(chargeMap, myCluster, row, pad, time, -1, 1);
 
-    // Add remaining charges:
-    // o o O o o
+    // Add bottom charges
+    // o o o o o
+    // o i i i o
+    // o i c i o
     // o i I i o
-    // O I c I O
-    // o i I i o
     // o o O o o
-    addLine(chargeMap, myCluster, row, pad, time,  0, -1);
-    addLine(chargeMap, myCluster, row, pad, time,  1,  0);
     addLine(chargeMap, myCluster, row, pad, time,  0,  1);
-    addLine(chargeMap, myCluster, row, pad, time, -1,  0);
+
+    // Add charges in bottom right corner:
+    // o o o o o
+    // o i i i o
+    // o i c i o
+    // o i i I O
+    // o o o O O
+    addCorner(chargeMap, myCluster, row, pad, time, 1, 1);
 }
 
 
@@ -222,18 +247,17 @@ bool isPeak(
 
 
 void finalizeCluster(
-                     Cluster *myCluster, 
-               const Digit   *myDigit, 
-        global const int     *globalToLocalRow,
-        global const int     *globalRowToCru)
+               const PartialCluster *pc,
+               const Digit          *myDigit, 
+        global const int            *globalToLocalRow,
+        global const int            *globalRowToCru,
+                     Cluster        *outCluster)
 {
-    myCluster->Q += myDigit->charge;
-
-    float totalCharge = myCluster->Q;
-    float padMean     = myCluster->padMean;
-    float timeMean    = myCluster->timeMean;
-    float padSigma    = myCluster->padSigma;
-    float timeSigma   = myCluster->timeSigma;
+    charge_t totalCharge = pc->Q + myDigit->charge;
+    charge_t padMean     = pc->padMean;
+    charge_t timeMean    = pc->timeMean;
+    charge_t padSigma    = pc->padSigma;
+    charge_t timeSigma   = pc->timeSigma;
 
     padMean   /= totalCharge;
     timeMean  /= totalCharge;
@@ -247,14 +271,16 @@ void finalizeCluster(
     padMean  += myDigit->pad;
     timeMean += myDigit->time;
 
-    myCluster->QMax      = round(myDigit->charge);
-    myCluster->padMean   = padMean;
-    myCluster->timeMean  = timeMean;
-    myCluster->timeSigma = timeSigma;
-    myCluster->padSigma  = padSigma;
 
-    myCluster->cru = globalRowToCru[myDigit->row];
-    myCluster->row = globalToLocalRow[myDigit->row];
+    outCluster->Q         = totalCharge;
+    outCluster->QMax      = round(myDigit->charge);
+    outCluster->padMean   = padMean;
+    outCluster->timeMean  = timeMean;
+    outCluster->timeSigma = timeSigma;
+    outCluster->padSigma  = padSigma;
+
+    outCluster->cru = globalRowToCru[myDigit->row];
+    outCluster->row = globalToLocalRow[myDigit->row];
 }
 
 
@@ -263,22 +289,24 @@ void fillChargeMap(
        global const Digit    *digits,
        global       charge_t *chargeMap)
 {
-    int idx = get_global_id(0);
+    size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
     DIGIT_CHARGE(chargeMap, myDigit) = myDigit.charge;
 }
+
 
 kernel
 void resetChargeMap(
         global const Digit    *digits,
         global       charge_t *chargeMap)
 {
-    int idx = get_global_id(0);
+    size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
     DIGIT_CHARGE(chargeMap, myDigit) = 0.0f;
 }
+
 
 kernel
 void findPeaks(
@@ -286,7 +314,7 @@ void findPeaks(
          global const Digit    *digits,
          global       int      *isPeakPredicate)
 {
-    int idx = get_global_id(0);
+    size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
     bool peak = isPeak(&myDigit, chargeMap);
@@ -294,21 +322,25 @@ void findPeaks(
     isPeakPredicate[idx] = peak;
 }
 
+
 kernel
 void computeClusters(
         global const charge_t *chargeMap,
         global const Digit    *digits,
-        global const int      *globalToLocalRow,
-        global const int      *globalRowToCru,
+        global const int  *globalToLocalRow,
+        global const int  *globalRowToCru,
         global       Cluster  *clusters)
 {
-    int idx = get_global_id(0);
+    size_t idx = get_global_id(0);
 
     Digit myDigit = digits[idx];
 
+    PartialCluster pc;
+    buildCluster(chargeMap, &pc, myDigit.row, myDigit.pad, myDigit.time);
+
     Cluster myCluster;
-    buildCluster(chargeMap, &myCluster, myDigit.row, myDigit.pad, myDigit.time);
-    finalizeCluster(&myCluster, &myDigit, globalToLocalRow, globalRowToCru);
+    finalizeCluster(
+            &pc, &myDigit, globalToLocalRow, globalRowToCru, &myCluster);
 
     clusters[idx] = myCluster;
 }

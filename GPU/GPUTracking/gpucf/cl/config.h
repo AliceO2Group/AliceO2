@@ -25,7 +25,7 @@ typedef FloatCluster Cluster;
 #endif
 
 
-inline size_t chargemapIdx(uchar row, uchar pad, ushort time)
+inline size_t chargemapIdx(row_t row, pad_t pad, timestamp time)
 {
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT) \
     || defined(CHARGEMAP_4x8_TILING_LAYOUT) \

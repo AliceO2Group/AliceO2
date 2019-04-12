@@ -1,16 +1,16 @@
 #if !defined(SHARED_DIGIT_H)
 #    define  SHARED_DIGIT_H
 
-#include "types.h"
+#include "tpc.h"
 
 
 typedef struct PaddedDigit_s
 {
     SHARED_FLOAT charge;
-    SHARED_USHORT time;
-    SHARED_UCHAR pad;
-    SHARED_UCHAR row;
-    SHARED_UCHAR cru;
+    timestamp time;
+    pad_t pad;
+    row_t row;
+    cru_t cru;
     /*SHARED_UCHAR padding[3]; Implicit padding to keep struct 4 byte aligned*/
 } PaddedDigit;
 
@@ -20,9 +20,9 @@ typedef struct PaddedDigit_s
 typedef struct PackedDigit_s
 {
     SHARED_FLOAT charge;
-    SHARED_USHORT time;
-    SHARED_UCHAR pad;
-    SHARED_UCHAR row;
+    timestamp time;
+    pad_t pad;
+    row_t row;
 } PackedDigit;
 
 #define PACKED_DIGIT_SIZE 8

@@ -202,6 +202,8 @@ def bar(cnf):
 
     barPositions = np.array(indexes)
 
+    numOfBars = len(steps) * len(cnf.input)
+
     for i in cnf.input:
         fname = cnf.expand(i.file)
         label = i.label
@@ -221,7 +223,8 @@ def bar(cnf):
                 medians, 
                 barWidth,
                 yerr=[mins,maxs],
-                label=label)
+                label=label,
+                capsize=60/numOfBars)
         barPositions += barWidth
 
     plt.ylim(ymin=0)
