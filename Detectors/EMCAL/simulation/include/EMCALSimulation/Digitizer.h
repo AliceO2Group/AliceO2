@@ -31,7 +31,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class Digitizer : public TObject
 {
@@ -71,7 +71,7 @@ class Digitizer : public TObject
   void setCurrEvID(int v);
   int getCurrEvID() const { return mCurrEvID; }
 
-  void setGeometry(const o2::EMCAL::Geometry* gm) { mGeometry = gm; }
+  void setGeometry(const o2::emcal::Geometry* gm) { mGeometry = gm; }
 
   Digit hitToDigit(const Hit& hit, const Int_t label);
 
@@ -95,7 +95,7 @@ class Digitizer : public TObject
 
   ClassDefOverride(Digitizer, 1);
 };
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 
 #endif /* ALICEO2_EMCAL_DIGITIZER_H */

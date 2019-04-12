@@ -23,12 +23,12 @@
 #include <TRandom.h>
 #include "FairLogger.h" // for LOG
 
-ClassImp(o2::EMCAL::Digitizer);
+ClassImp(o2::emcal::Digitizer);
 
-using o2::EMCAL::Digit;
-using o2::EMCAL::Hit;
+using o2::emcal::Digit;
+using o2::emcal::Hit;
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 //_______________________________________________________________________
 void Digitizer::init()
@@ -83,7 +83,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 }
 
 //_______________________________________________________________________
-o2::EMCAL::Digit Digitizer::hitToDigit(const Hit& hit, const Int_t label)
+o2::emcal::Digit Digitizer::hitToDigit(const Hit& hit, const Int_t label)
 {
   Int_t tower = hit.GetDetectorID();
   Double_t amplitude = hit.GetEnergyLoss();

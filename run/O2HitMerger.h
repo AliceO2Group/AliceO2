@@ -469,7 +469,7 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::EMC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::EMCAL::Detector>(true));
+      mDetectorInstances[i] = std::move(std::make_unique<o2::emcal::Detector>(true));
       counter++;
     }
     if (i == DetID::HMP) {

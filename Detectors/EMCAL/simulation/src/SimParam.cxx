@@ -12,11 +12,11 @@
 #include <iostream>
 #include <TMath.h>
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 SimParam* SimParam::mSimParam = nullptr;
 
-std::ostream& operator<<(std::ostream& stream, const o2::EMCAL::SimParam& s)
+std::ostream& operator<<(std::ostream& stream, const o2::emcal::SimParam& s)
 {
   s.PrintStream(stream);
   return stream;

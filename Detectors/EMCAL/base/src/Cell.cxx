@@ -12,7 +12,7 @@
 #include <iostream>
 #include <bitset>
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 ClassImp(Cell)
 

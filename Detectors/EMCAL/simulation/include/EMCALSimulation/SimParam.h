@@ -15,7 +15,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 /// \class SimParam
 /// \brief EMCal simulation parameters
@@ -78,7 +78,7 @@ class SimParam
  private:
   SimParam() = default;
 
-  static o2::EMCAL::SimParam* mSimParam; // pointer to the unique instance of the class
+  static o2::emcal::SimParam* mSimParam; // pointer to the unique instance of the class
 
   // Digitizer
   Int_t mDigitThreshold{ 3 };              // Threshold for storing digits in EMC
@@ -100,7 +100,7 @@ class SimParam
 
 std::ostream& operator<<(std::ostream& stream, const SimParam& s);
 
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 
 #endif

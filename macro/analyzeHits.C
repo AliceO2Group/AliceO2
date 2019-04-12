@@ -221,7 +221,7 @@ void analyzeTOF(TTree* reftree)
 // do comparison for EMC
 void analyzeEMC(TTree* reftree)
 {
-  auto refresult = analyse<o2::EMCAL::Hit, HitStats<o2::EMCAL::Hit>>(reftree, "EMCHit");
+  auto refresult = analyse<o2::emcal::Hit, HitStats<o2::emcal::Hit>>(reftree, "EMCHit");
   std::cout << gPrefix << " EMC ";
   refresult.print();
 }

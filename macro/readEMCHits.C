@@ -39,7 +39,7 @@ void readEMCHits(std::string path = "./",
     return;
   }
 
-  std::vector<o2::EMCAL::Hit>* dv = nullptr;
+  std::vector<o2::emcal::Hit>* dv = nullptr;
   hitTree->SetBranchAddress("EMCHit", &dv);
 
   for (int iev = 0; iev < hitTree->GetEntries(); iev++) {
