@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class Cell
 {
@@ -51,7 +51,7 @@ class Cell
 };
 
 std::ostream& operator<<(std::ostream& stream, const Cell& c);
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 
 #endif

@@ -177,7 +177,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("EMC")) {
     // emcal
-    run->AddModule(new o2::EMCAL::Detector(true));
+    run->AddModule(new o2::emcal::Detector(true));
   }
 
   if (isActivated("PHS")) {

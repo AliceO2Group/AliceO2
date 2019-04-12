@@ -30,7 +30,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 ClassImp(Detector);
 
