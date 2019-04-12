@@ -26,7 +26,7 @@
 #include <FairMQDevice.h>
 
 namespace o2 {
-namespace Devices {
+namespace devices {
 
 /// Sends sub-timframes to epnReceivers
 ///
@@ -70,7 +70,7 @@ class FLPSender : public FairMQDevice
     std::string mOutChannelName;
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

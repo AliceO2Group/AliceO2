@@ -25,7 +25,7 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 
 FLPSyncSampler::FLPSyncSampler()
   : mTimeframeRTT()
