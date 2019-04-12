@@ -23,13 +23,14 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TRobustEstimator.h>
+#include <sstream>
 
-#include "TRDBase/TRDCalROC.h"
+#include "TRDBase/CalROC.h"
 
 using namespace o2::trd;
 
 //_____________________________________________________________________________
-TRDCalROC::TRDCalROC(int p, int c)
+CalROC::CalROC(int p, int c)
   : mPla(p),
     mCha(c),
     mNcols(144)
@@ -99,36 +100,20 @@ TRDCalROC::TRDCalROC(int p, int c)
   };
 
   mNchannels = mNrows * mNcols;
-  if (mNchannels != 0) {
-    mData = new unsigned short[mNchannels];
-  }
-
-  for (int i = 0; i < mNchannels; ++i) {
-    mData[i] = 0;
-  }
-}
-
-//_____________________________________________________________________________
-TRDCalROC::~TRDCalROC()
-{
-  //
-  // TRDCalROC destructor
-  //
-
-  if (mData) {
-    delete[] mData;
-    mData = nullptr;
+  if (mData.size() != mNchannels) {
+    mData.resize(mNchannels);
+    memset(&mData[0], 0, mData.size() * mNchannels);
   }
 }
 
 //___________________________________________________________________________________
-double TRDCalROC::getMean(TRDCalROC* const outlierROC) const
+double CalROC::getMean(CalROC* const outlierROC) const
 {
   //
   // Calculate the mean
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
     if ((!outlierROC) || (!(outlierROC->getValue(i)))) {
@@ -138,18 +123,17 @@ double TRDCalROC::getMean(TRDCalROC* const outlierROC) const
       //}
     }
   }
-  double mean = TMath::Mean(nPoints, ddata);
-  delete[] ddata;
+  double mean = TMath::Mean(nPoints, ddata.data());
   return mean;
 }
 //___________________________________________________________________________________
-double TRDCalROC::getMeanNotNull() const
+double CalROC::getMeanNotNull() const
 {
   //
   // Calculate the mean rejecting null value
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
     if (mData[i] > 0.000000000000001) {
@@ -158,22 +142,20 @@ double TRDCalROC::getMeanNotNull() const
     }
   }
   if (nPoints < 1) {
-    delete[] ddata;
     return -1;
   }
-  double mean = TMath::Mean(nPoints, ddata);
-  delete[] ddata;
+  double mean = TMath::Mean(nPoints, ddata.data());
   return mean;
 }
 
 //_______________________________________________________________________________________
-double TRDCalROC::getMedian(TRDCalROC* const outlierROC) const
+double CalROC::getMedian(CalROC* const outlierROC) const
 {
   //
   // Calculate the median
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
     if ((!outlierROC) || (!(outlierROC->getValue(i)))) {
@@ -183,19 +165,18 @@ double TRDCalROC::getMedian(TRDCalROC* const outlierROC) const
       }
     }
   }
-  double mean = TMath::Median(nPoints, ddata);
-  delete[] ddata;
+  double mean = TMath::Median(nPoints, ddata.data());
   return mean;
 }
 
 //____________________________________________________________________________________________
-double TRDCalROC::getRMS(TRDCalROC* const outlierROC) const
+double CalROC::getRMS(CalROC* const outlierROC) const
 {
   //
   // Calculate the RMS
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
     if ((!outlierROC) || (!(outlierROC->getValue(i)))) {
@@ -205,19 +186,18 @@ double TRDCalROC::getRMS(TRDCalROC* const outlierROC) const
       //}
     }
   }
-  double mean = TMath::RMS(nPoints, ddata);
-  delete[] ddata;
+  double mean = TMath::RMS(nPoints, ddata.data());
   return mean;
 }
 
 //____________________________________________________________________________________________
-double TRDCalROC::getRMSNotNull() const
+double CalROC::getRMSNotNull() const
 {
   //
   // Calculate the RMS
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
     if (mData[i] > 0.000000000000001) {
@@ -226,21 +206,19 @@ double TRDCalROC::getRMSNotNull() const
     }
   }
   if (nPoints < 1) {
-    delete[] ddata;
     return -1;
   }
-  double mean = TMath::RMS(nPoints, ddata);
-  delete[] ddata;
+  double mean = TMath::RMS(nPoints, ddata.data());
   return mean;
 }
 //______________________________________________________________________________________________
-double TRDCalROC::getLTM(double* sigma, double fraction, TRDCalROC* const outlierROC)
+double CalROC::getLTM(double* sigma, double fraction, CalROC* const outlierROC)
 {
   //
   //  Calculate LTM mean and sigma
   //
 
-  double* ddata = new double[mNchannels];
+  std::vector<double> ddata(mNchannels);
   double mean = 0, lsigma = 0;
   unsigned int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
@@ -253,16 +231,15 @@ double TRDCalROC::getLTM(double* sigma, double fraction, TRDCalROC* const outlie
   }
   int hh = TMath::Min(TMath::Nint(fraction * nPoints), int(nPoints));
   TRobustEstimator tre;
-  tre.EvaluateUni(nPoints, ddata, mean, lsigma, hh);
+  tre.EvaluateUni(nPoints, ddata.data(), mean, lsigma, hh);
   if (sigma) {
     *sigma = lsigma;
   }
-  delete[] ddata;
   return mean;
 }
 
 //___________________________________________________________________________________
-bool TRDCalROC::add(float c1)
+bool CalROC::add(float c1)
 {
   //
   // add constant
@@ -281,7 +258,7 @@ bool TRDCalROC::add(float c1)
 }
 
 //_______________________________________________________________________________________
-bool TRDCalROC::multiply(float c1)
+bool CalROC::multiply(float c1)
 {
   //
   // multiply constant
@@ -302,7 +279,7 @@ bool TRDCalROC::multiply(float c1)
 }
 
 //____________________________________________________________________________________________
-bool TRDCalROC::add(const TRDCalROC* roc, double c1)
+bool CalROC::add(const CalROC* roc, double c1)
 {
   //
   // add values
@@ -322,7 +299,7 @@ bool TRDCalROC::add(const TRDCalROC* roc, double c1)
 }
 
 //____________________________________________________________________________________________
-bool TRDCalROC::multiply(const TRDCalROC* roc)
+bool CalROC::multiply(const CalROC* roc)
 {
   //
   // multiply values - per by pad
@@ -341,7 +318,7 @@ bool TRDCalROC::multiply(const TRDCalROC* roc)
 }
 
 //______________________________________________________________________________________________
-bool TRDCalROC::divide(const TRDCalROC* roc)
+bool CalROC::divide(const CalROC* roc)
 {
   //
   // divide values
@@ -364,7 +341,7 @@ bool TRDCalROC::divide(const TRDCalROC* roc)
   return result;
 }
 //______________________________________________________________________________________________
-bool TRDCalROC::unfold()
+bool CalROC::unfold()
 {
   //
   // Compute the mean value per pad col
@@ -408,7 +385,7 @@ bool TRDCalROC::unfold()
   return result;
 }
 //__________________________________________________________________________________
-TH2F* TRDCalROC::makeHisto2D(float min, float max, int type, float mu)
+TH2F* CalROC::makeHisto2D(float min, float max, int type, float mu)
 {
   //
   // make 2D histo
@@ -416,8 +393,8 @@ TH2F* TRDCalROC::makeHisto2D(float min, float max, int type, float mu)
   //       0 = nsigma cut nsigma=min
   //       1 = delta cut around median delta=min
 
-  float epsr = 0.005;
   if (type >= 0) {
+    float epsr = 0.005;
     if (type == 0) {
       // nsigma range
       float mean = getMean();
@@ -446,9 +423,10 @@ TH2F* TRDCalROC::makeHisto2D(float min, float max, int type, float mu)
       max = mean + sigma;
     }
   }
-  char name[1000];
-  // snprintf(name, 1000, "%s 2D Plane %d Chamber %d", GetTitle(), fPla, fCha);
-  TH2F* his = new TH2F(name, name, mNrows, 0, mNrows, mNcols, 0, mNcols);
+  std::stringstream title;
+  title << mTitle.c_str() << " 2D Plane " << mPla << " Chamber " << mCha;
+  std::string titlestr = title.str();
+  TH2F* his = new TH2F(mName.c_str(), titlestr.c_str(), mNrows, 0, mNrows, mNcols, 0, mNcols);
   for (int irow = 0; irow < mNrows; irow++) {
     for (int icol = 0; icol < mNcols; icol++) {
       his->Fill(irow + 0.5, icol + 0.5, getValue(icol, irow) * mu);
@@ -461,7 +439,7 @@ TH2F* TRDCalROC::makeHisto2D(float min, float max, int type, float mu)
 }
 
 //_______________________________________________________________________________________
-TH1F* TRDCalROC::makeHisto1D(float min, float max, int type, float mu)
+TH1F* CalROC::makeHisto1D(float min, float max, int type, float mu)
 {
   //
   // make 1D histo
@@ -469,8 +447,8 @@ TH1F* TRDCalROC::makeHisto1D(float min, float max, int type, float mu)
   //       0 = nsigma cut nsigma=min
   //       1 = delta cut around median delta=min
 
-  float epsr = 0.005;
   if (type >= 0) {
+    float epsr = 0.005;
     if (type == 0) {
       // nsigma range
       float mean = getMean();
@@ -502,9 +480,10 @@ TH1F* TRDCalROC::makeHisto1D(float min, float max, int type, float mu)
       max = mean + sigma;
     }
   }
-  char name[1000];
-  // snprintf(name, 1000, "%s 1D Plane %d Chamber %d", GetTitle(), fPla, fCha);
-  TH1F* his = new TH1F(name, name, 100, min, max);
+  std::stringstream title;
+  title << mTitle.c_str() << " 1D Plane " << mPla << " Chamber " << mCha;
+  std::string titlestr = title.str();
+  TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), 100, min, max);
   for (int irow = 0; irow < mNrows; irow++) {
     for (int icol = 0; icol < mNcols; icol++) {
       his->Fill(getValue(icol, irow) * mu);

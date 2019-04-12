@@ -26,8 +26,8 @@
 #pragma link C++ class o2::trd::TRDSignalIndex + ;
 #pragma link C++ class o2::trd::TRDCalSingleChamberStatus + ;
 #pragma link C++ class o2::trd::TRDCalPadStatus + ;
-#pragma link C++ class o2::trd::TRDCalDet + ;
-#pragma link C++ class o2::trd::TRDCalROC + ;
+#pragma link C++ class o2::trd::CalDet + ;
+#pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::TRDArrayADC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
 

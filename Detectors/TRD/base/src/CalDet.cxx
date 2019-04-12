@@ -20,14 +20,15 @@
 #include <TH2F.h>
 #include <TRobustEstimator.h>
 
-#include "TRDBase/TRDCalDet.h"
-
+#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/CalDet.h"
 // #include "AliMathBase.h"
 
 using namespace o2::trd;
 
 //___________________________________________________________________________________
-double TRDCalDet::getMean(TRDCalDet* const outlierDet) const
+double CalDet::getMean(CalDet* const outlierDet) const
 {
   //
   // Calculate the mean
@@ -48,7 +49,7 @@ double TRDCalDet::getMean(TRDCalDet* const outlierDet) const
 }
 
 //_______________________________________________________________________________________
-double TRDCalDet::getMedian(TRDCalDet* const outlierDet) const
+double CalDet::getMedian(CalDet* const outlierDet) const
 {
   //
   // Calculate the median
@@ -69,7 +70,7 @@ double TRDCalDet::getMedian(TRDCalDet* const outlierDet) const
 }
 
 //____________________________________________________________________________________________
-double TRDCalDet::getRMS(TRDCalDet* const outlierDet) const
+double CalDet::getRMS(CalDet* const outlierDet) const
 {
   //
   // Calculate the RMS
@@ -90,7 +91,7 @@ double TRDCalDet::getRMS(TRDCalDet* const outlierDet) const
 }
 
 //____________________________________________________________________________________________
-double TRDCalDet::getRMSRobust(double robust) const
+double CalDet::getRMSRobust(double robust) const
 {
   //
   // Calculate the robust RMS
@@ -128,7 +129,7 @@ double TRDCalDet::getRMSRobust(double robust) const
 }
 
 //____________________________________________________________________________________________
-double TRDCalDet::getMeanRobust(double robust) const
+double CalDet::getMeanRobust(double robust) const
 {
   //
   // Calculate the robust mean
@@ -164,7 +165,7 @@ double TRDCalDet::getMeanRobust(double robust) const
 }
 
 //______________________________________________________________________________________________
-double TRDCalDet::getLTM(double* sigma, double fraction, TRDCalDet* const outlierDet)
+double CalDet::getLTM(double* sigma, double fraction, CalDet* const outlierDet)
 {
   //
   //  Calculate LTM mean and sigma
@@ -191,7 +192,7 @@ double TRDCalDet::getLTM(double* sigma, double fraction, TRDCalDet* const outlie
 }
 
 //_________________________________________________________________________
-TH1F* TRDCalDet::makeHisto1Distribution(float min, float max, int type)
+TH1F* CalDet::makeHisto1Distribution(float min, float max, int type)
 {
   //
   // make 1D histo
@@ -227,9 +228,10 @@ TH1F* TRDCalDet::makeHisto1Distribution(float min, float max, int type)
       max = mean + sigma;
     }
   }
-  char name[1000];
-  // snprintf(name, 1000, "%s CalDet 1Distribution", GetTitle()); // GetTitle is not defined here yet
-  TH1F* his = new TH1F(name, name, 100, min, max);
+  std::stringstream title;
+  title << mTitle.c_str() << " CalDet 1Distribution";
+  std::string titlestr = title.str();
+  TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), 100, min, max);
   for (int idet = 0; idet < kNdet; idet++) {
     his->Fill(getValue(idet));
   }
@@ -237,7 +239,7 @@ TH1F* TRDCalDet::makeHisto1Distribution(float min, float max, int type)
 }
 
 //________________________________________________________________________________
-TH1F* TRDCalDet::makeHisto1DAsFunctionOfDet(float min, float max, int type)
+TH1F* CalDet::makeHisto1DAsFunctionOfDet(float min, float max, int type)
 {
   //
   // make 1D histo
@@ -271,9 +273,10 @@ TH1F* TRDCalDet::makeHisto1DAsFunctionOfDet(float min, float max, int type)
     }
   }
 
-  char name[1000];
-  // snprintf(name, 1000, "%s CalDet as function of det", GetTitle());
-  TH1F* his = new TH1F(name, name, kNdet, 0, kNdet);
+  std::stringstream title;
+  title << mTitle.c_str() << " CalDet as function of det";
+  std::string titlestr = title.str();
+  TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), kNdet, 0, kNdet);
   for (int det = 0; det < kNdet; det++) {
     his->Fill(det + 0.5, getValue(det));
   }
@@ -283,7 +286,7 @@ TH1F* TRDCalDet::makeHisto1DAsFunctionOfDet(float min, float max, int type)
 }
 
 //_____________________________________________________________________________
-TH2F* TRDCalDet::makeHisto2DCh(int ch, float min, float max, int type)
+TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
 {
   //
   // Make 2D graph
@@ -323,9 +326,10 @@ TH2F* TRDCalDet::makeHisto2DCh(int ch, float min, float max, int type)
   float poslocal[3] = { 0, 0, 0 };
   float posglobal[3] = { 0, 0, 0 };
 
-  char name[1000];
-  // snprintf(name, 1000, "%s CalDet 2D ch %d", GetTitle(), ch);
-  TH2F* his = new TH2F(name, name, 400, -400.0, 400.0, 400, -400.0, 400.0);
+  std::stringstream title;
+  title << mTitle.c_str() << " Cal AADet 2D ch " << ch;
+  std::string titlestr = title.str();
+  TH2F* his = new TH2F(mName.c_str(), titlestr.c_str(), 400, -400.0, 400.0, 400, -400.0, 400.0);
 
   // Where we begin
   int offsetch = 6 * ch;
@@ -355,7 +359,7 @@ TH2F* TRDCalDet::makeHisto2DCh(int ch, float min, float max, int type)
 }
 
 //_____________________________________________________________________________
-TH2F* TRDCalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
+TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
 {
   //
   // Make 2D graph
@@ -396,9 +400,9 @@ TH2F* TRDCalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
   double row0 = padPlane0->getRow0();
   double col0 = padPlane0->getCol0();
 
-  char name[1000];
-  // snprintf(name, 1000, "%s CalDet 2D sm %d and pl %d", GetTitle(), sm, pl);
-  TH2F* his = new TH2F(name, name, 5, -TMath::Abs(row0), TMath::Abs(row0), 4, -2 * TMath::Abs(col0), 2 * TMath::Abs(col0));
+  std::stringstream title;
+  title << mTitle.c_str() << " CalDet 2D sm " << sm << " and pl " << pl;
+  TH2F* his = new TH2F(mName.c_str(), title.str().c_str(), 5, -TMath::Abs(row0), TMath::Abs(row0), 4, -2 * TMath::Abs(col0), 2 * TMath::Abs(col0));
 
   // Where we begin
   int offsetsmpl = 30 * sm + pl;
@@ -419,7 +423,7 @@ TH2F* TRDCalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
 }
 
 //_____________________________________________________________________________
-void TRDCalDet::add(float c1)
+void CalDet::add(float c1)
 {
   //
   // Add constant for all detectors
@@ -431,7 +435,7 @@ void TRDCalDet::add(float c1)
 }
 
 //_____________________________________________________________________________
-void TRDCalDet::multiply(float c1)
+void CalDet::multiply(float c1)
 {
   //
   // multiply constant for all detectors
@@ -443,7 +447,7 @@ void TRDCalDet::multiply(float c1)
 }
 
 //_____________________________________________________________________________
-void TRDCalDet::add(const TRDCalDet* calDet, double c1)
+void CalDet::add(const CalDet* calDet, double c1)
 {
   //
   // add caldet channel by channel multiplied by c1
@@ -455,7 +459,7 @@ void TRDCalDet::add(const TRDCalDet* calDet, double c1)
 }
 
 //_____________________________________________________________________________
-void TRDCalDet::multiply(const TRDCalDet* calDet)
+void CalDet::multiply(const CalDet* calDet)
 {
   //
   // multiply caldet channel by channel
@@ -467,7 +471,7 @@ void TRDCalDet::multiply(const TRDCalDet* calDet)
 }
 
 //_____________________________________________________________________________
-void TRDCalDet::divide(const TRDCalDet* calDet)
+void CalDet::divide(const CalDet* calDet)
 {
   //
   // divide caldet channel by channel
@@ -482,29 +486,25 @@ void TRDCalDet::divide(const TRDCalDet* calDet)
 }
 
 //_____________________________________________________________________________
-double TRDCalDet::calcMean(bool wghtPads, int& calib)
+double CalDet::calcMean(bool wghtPads, int& calib)
 {
   // Calculate the mean value after rejection of the chambers not calibrated
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
   // calib = number of used chambers for the mean calculation
 
-  int iSM;
   double sum = 0.0;
   int ndet = 0;
   double meanALL = 0.0;
   double meanWP = 0.0;
-  double pads = 0.0;
   double padsALL = (144 * 16 * 24 + 144 * 12 * 6) * 18;
   std::array<double, 18> meanSM{};
   std::array<double, 18> meanSMWP{};
-  std::for_each(meanSM.begin(), meanSM.end(), [](double& n) { n = 0; });
-  std::for_each(meanSMWP.begin(), meanSMWP.end(), [](double& n) { n = 0; });
 
   int det = 0;
   while (det < 540) {
     float val = mData[det];
-    iSM = (int)(det / (6 * 5));
-    pads = (((int)(det % (6 * 5)) / 6) == 2) ? 144 * 12 : 144 * 16;
+    int iSM = (int)(det / (6 * 5));
+    double pads = (((int)(det % (6 * 5)) / 6) == 2) ? 144 * 12 : 144 * 16;
     meanALL += val / 540.;
     meanSM[iSM] += val / 30.;
     meanWP += val * (pads / padsALL);
@@ -533,7 +533,7 @@ double TRDCalDet::calcMean(bool wghtPads, int& calib)
 }
 
 //_____________________________________________________________________________
-double TRDCalDet::calcMean(bool wghtPads)
+double CalDet::calcMean(bool wghtPads)
 {
   // Calculate the mean value after rejection of the chambers not calibrated
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
@@ -543,28 +543,25 @@ double TRDCalDet::calcMean(bool wghtPads)
   return calcMean(wghtPads, calib);
 }
 //_____________________________________________________________________________
-double TRDCalDet::calcRMS(bool wghtPads, int& calib)
+double CalDet::calcRMS(bool wghtPads, int& calib)
 {
   // Calculate the RMS value after rejection of the chambers not calibrated
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
   // calib = number of used chambers for the mean calculation
 
-  int iSM;
   double sum = 0.0;
   int ndet = 0;
   double meanALL = 0.0;
   double meanWP = 0.0;
-  double pads = 0.0;
   double padsALL = (144 * 16 * 24 + 144 * 12 * 6) * 18;
   std::array<double, 18> meanSM{};
   std::array<double, 18> meanSMWP{};
-  std::for_each(meanSM.begin(), meanSM.end(), [](double& n) { n = 0; });
-  std::for_each(meanSMWP.begin(), meanSMWP.end(), [](double& n) { n = 0; });
 
   int det = 0;
   while (det < 540) {
+    double pads = 0.0;
     float val = mData[det];
-    iSM = (int)(det / (6 * 5));
+    int iSM = (int)(det / (6 * 5));
     pads = (((int)(det % (6 * 5)) / 6) == 2) ? 144 * 12 : 144 * 16;
     meanALL += val / 540.;
     meanSM[iSM] += val / 30.;
@@ -602,7 +599,7 @@ double TRDCalDet::calcRMS(bool wghtPads, int& calib)
   return (sum != 0.0 ? TMath::Sqrt(sum / ndet) : -1);
 }
 //_____________________________________________________________________________
-double TRDCalDet::calcRMS(bool wghtPads)
+double CalDet::calcRMS(bool wghtPads)
 {
   // Calculate the RMS value after rejection of the chambers not calibrated
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
@@ -612,26 +609,22 @@ double TRDCalDet::calcRMS(bool wghtPads)
   return calcRMS(wghtPads, calib);
 }
 //_____________________________________________________________________________
-double TRDCalDet::getMeanSM(bool wghtPads, int sector) const
+double CalDet::getMeanSM(bool wghtPads, int sector) const
 {
   // Calculate the mean value for given sector
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
 
-  int iSM = 0;
   double meanALL = 0.0;
   double meanWP = 0.0;
-  double pads = 0.0;
   double padsALL = (144 * 16 * 24 + 144 * 12 * 6) * 18;
   std::array<double, 18> meanSM{};
   std::array<double, 18> meanSMWP{};
-  std::for_each(meanSM.begin(), meanSM.end(), [](double& n) { n = 0; });
-  std::for_each(meanSMWP.begin(), meanSMWP.end(), [](double& n) { n = 0; });
 
   int det = 0;
   while (det < 540) {
     float val = mData[det];
-    iSM = (int)(det / (6 * 5));
-    pads = (((int)(det % (6 * 5)) / 6) == 2) ? 144 * 12 : 144 * 16;
+    int iSM = (int)(det / (6 * 5));
+    double pads = (((int)(det % (6 * 5)) / 6) == 2) ? 144 * 12 : 144 * 16;
     meanALL += val / 540.;
     meanSM[iSM] += val / 30.;
     meanWP += val * (pads / padsALL);

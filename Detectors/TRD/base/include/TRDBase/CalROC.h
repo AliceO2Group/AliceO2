@@ -16,7 +16,6 @@
 //                                              //
 //////////////////////////////////////////////////
 
-
 class TH1F;
 class TH2F;
 
@@ -24,12 +23,12 @@ namespace o2
 {
 namespace trd
 {
-class TRDCalROC
+class CalROC
 {
  public:
-  TRDCalROC() = default;
-  TRDCalROC(int, int);
-  ~TRDCalROC();
+  CalROC() = default;
+  CalROC(int, int);
+  ~CalROC() = default;
 
   int getNrows() const { return mNrows; };
   int getNcols() const { return mNcols; };
@@ -42,21 +41,24 @@ class TRDCalROC
   {
     setValue(getChannel(col, row), value);
   };
-
+  void setName(std::string name) { mName = name; };
+  void setTitle(std::string title) { mTitle = title; };
+  std::string& getName() { return mName; };
+  std::string& getTitle() { return mTitle; };
   // statistic
-  double getMean(TRDCalROC* const outlierROC = nullptr) const;
+  double getMean(CalROC* const outlierROC = nullptr) const;
   double getMeanNotNull() const;
-  double getRMS(TRDCalROC* const outlierROC = nullptr) const;
+  double getRMS(CalROC* const outlierROC = nullptr) const;
   double getRMSNotNull() const;
-  double getMedian(TRDCalROC* const outlierROC = nullptr) const;
-  double getLTM(double* sigma = nullptr, double fraction = 0.9, TRDCalROC* const outlierROC = nullptr);
+  double getMedian(CalROC* const outlierROC = nullptr) const;
+  double getLTM(double* sigma = nullptr, double fraction = 0.9, CalROC* const outlierROC = nullptr);
 
   // algebra
   bool add(float c1);
   bool multiply(float c1);
-  bool add(const TRDCalROC* roc, double c1 = 1);
-  bool multiply(const TRDCalROC* roc);
-  bool divide(const TRDCalROC* roc);
+  bool add(const CalROC* roc, double c1 = 1);
+  bool multiply(const CalROC* roc);
+  bool divide(const CalROC* roc);
 
   // noise
   bool unfold();
@@ -66,12 +68,14 @@ class TRDCalROC
   TH1F* makeHisto1D(float min, float max, int type, float mu = 1.0);
 
  protected:
-  int mPla{ 0 };                   //  Plane number
-  int mCha{ 0 };                   //  Chamber number
-  int mNrows{ 0 };                 //  Number of rows
-  int mNcols{ 0 };                 //  Number of columns
-  int mNchannels{ 0 };             //  Number of channels
-  unsigned short* mData = nullptr; //[mNchannels] Data
+  int mPla{ 0 };                     //  Plane number
+  int mCha{ 0 };                     //  Chamber number
+  int mNrows{ 0 };                   //  Number of rows
+  int mNcols{ 0 };                   //  Number of columns
+  int mNchannels{ 0 };               //  Number of channels
+  std::string mName;                 // for naming spectra, originally inherited from TNamed
+  std::string mTitle;                // for prepending to spectra title spectra, originally inherited from TNamed
+  std::vector<unsigned short> mData; //[mNchannels] Data
 };
 } // namespace trd
 } // namespace o2
