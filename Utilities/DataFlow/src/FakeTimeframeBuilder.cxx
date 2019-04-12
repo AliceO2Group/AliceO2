@@ -19,7 +19,7 @@
 using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataOrigin = o2::header::DataOrigin;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
 namespace {
   o2::header::DataDescription lookupDataDescription(const char *key) {

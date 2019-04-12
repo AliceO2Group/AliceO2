@@ -26,7 +26,7 @@
 using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
 o2::data_flow::TimeframeValidatorDevice::TimeframeValidatorDevice()
   : O2Device()

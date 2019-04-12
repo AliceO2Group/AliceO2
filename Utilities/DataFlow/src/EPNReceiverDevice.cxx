@@ -29,7 +29,7 @@ using namespace o2::Devices;
 using SubframeMetadata = o2::data_flow::SubframeMetadata;
 using TPCTestPayload = o2::data_flow::TPCTestPayload;
 using TPCTestCluster = o2::data_flow::TPCTestCluster;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
 void EPNReceiverDevice::InitTask()
 {
