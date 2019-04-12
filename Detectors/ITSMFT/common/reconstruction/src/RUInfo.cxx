@@ -13,7 +13,7 @@
 
 #include <ITSMFTReconstruction/RUInfo.h>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 void ChipOnRUInfo::print() const
 {

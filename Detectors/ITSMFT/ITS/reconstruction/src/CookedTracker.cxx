@@ -35,7 +35,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITS;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 using namespace o2::constants::math;
 using namespace o2::utils;
 using o2::field::MagneticField;
@@ -479,7 +479,7 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
 }
 
 void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
-                            std::vector<o2::ITSMFT::ROFRecord>& rofs)
+                            std::vector<o2::itsmft::ROFRecord>& rofs)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -609,7 +609,7 @@ bool CookedTracker::makeBackPropParam(TrackITS& track) const
   return true;
 }
 
-int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::ITSMFT::ROFRecord& rof)
+int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,

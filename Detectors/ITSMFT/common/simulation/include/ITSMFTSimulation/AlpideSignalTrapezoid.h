@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class AlpideSignalTrapezoid

@@ -39,7 +39,7 @@ namespace ITS
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
 
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
@@ -79,7 +79,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(int mask) override;
 
   // cache parameters of sensors tracking frames

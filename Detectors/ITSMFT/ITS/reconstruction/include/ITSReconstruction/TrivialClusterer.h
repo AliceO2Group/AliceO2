@@ -17,7 +17,7 @@
 #include "ITSMFTBase/GeometryTGeo.h"
 
 namespace o2 {
-  namespace ITSMFT {
+  namespace itsmft {
     class Digit;
     class Cluster;
   }
@@ -35,8 +35,8 @@ namespace ITS
 {
   class TrivialClusterer
 {
-  using Digit = o2::ITSMFT::Digit;
-  using Cluster = o2::ITSMFT::Cluster;
+  using Digit = o2::itsmft::Digit;
+  using Cluster = o2::itsmft::Cluster;
   using Label = o2::MCCompLabel;
  public:
   TrivialClusterer();
@@ -49,14 +49,14 @@ namespace ITS
   /// @param points Container with ITS points
   /// @return digits container
   void process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters);
-  // provide the common ITSMFT::GeometryTGeo to access matrices
-  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
+  // provide the common itsmft::GeometryTGeo to access matrices
+  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm;}
   void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
     mClsLabels = truth;
   }
 
  protected:
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; // Cluster MC labels
 
 };

@@ -16,7 +16,7 @@
 #include <sstream>
 #include <iomanip>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesAlongStaveSB;
 

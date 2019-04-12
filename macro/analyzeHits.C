@@ -129,7 +129,7 @@ struct TRDHitStats : public HitStatsBase {
 
 struct ITSHitStats : public HitStatsBase {
   // adds a hit to the statistics
-  void addHit(o2::ITSMFT::Hit const& hit)
+  void addHit(o2::itsmft::Hit const& hit)
   {
     NHits++;
     auto x = hit.GetStartX();
@@ -205,7 +205,7 @@ TPCHitStats analyseTPC(TTree* tr)
 // do comparison for ITS
 void analyzeITS(TTree* reftree)
 {
-  auto refresult = analyse<o2::ITSMFT::Hit, ITSHitStats>(reftree, "ITSHit");
+  auto refresult = analyse<o2::itsmft::Hit, ITSHitStats>(reftree, "ITSHit");
   std::cout << gPrefix << " ITS ";
   refresult.print();
 }
@@ -259,7 +259,7 @@ void analyzeHMP(TTree* reftree)
 
 void analyzeMFT(TTree* reftree)
 {
-  auto refresult = analyse<o2::ITSMFT::Hit, ITSHitStats>(reftree, "MFTHit");
+  auto refresult = analyse<o2::itsmft::Hit, ITSHitStats>(reftree, "MFTHit");
   std::cout << gPrefix << " MFT ";
   refresult.print();
 }

@@ -12,7 +12,7 @@
 // \brief Automatically generated MFT chip <-> module mapping
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::ChipMappingData{ { // chip:   0 (2), ladder:  0, layer: 0, disk: 0, half: 0
                                                                                                 { 0, 0 },
                                                                                                 { 0, 1 },

@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 template <int N>
 struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<N>> {
@@ -43,7 +43,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
 template <int N>
 DPLAlpideParam<N> DPLAlpideParam<N>::sInstance;
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

@@ -15,9 +15,9 @@
 #include "ITSMFTSimulation/DigiParams.h"
 #include <cassert>
 
-ClassImp(o2::ITSMFT::DigiParams);
+ClassImp(o2::itsmft::DigiParams);
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 DigiParams::DigiParams()
 {

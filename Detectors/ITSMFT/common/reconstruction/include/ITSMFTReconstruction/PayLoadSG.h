@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class PayLoadSG
@@ -117,7 +117,7 @@ class PayLoadSG
 
   ClassDefNV(PayLoadSG, 1);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

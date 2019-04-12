@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -30,7 +30,7 @@ namespace ITS
 {
 class TrackITS : public o2::track::TrackParCov
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors

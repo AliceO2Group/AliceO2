@@ -32,7 +32,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -41,7 +41,7 @@ namespace MFT
 {
 class Tracker
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
   Tracker(Int_t nThreads = 1);

@@ -16,11 +16,11 @@
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include <iostream>
 
-ClassImp(o2::ITSMFT::ClusterTopology)
+ClassImp(o2::itsmft::ClusterTopology)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
   ClusterTopology::ClusterTopology() : mPattern{}, mHash{ 0 } {}
 
@@ -141,5 +141,5 @@ ClassImp(o2::ITSMFT::ClusterTopology)
     os << topology.mPattern << std::endl;
     return os;
   }
-  } // namespace ITSMFT
+  } // namespace itsmft
 }

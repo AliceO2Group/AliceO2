@@ -24,7 +24,7 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 /// \class PixelReader
 /// \brief PixelReader class for the ITSMFT
@@ -68,7 +68,7 @@ class PixelReader
   ClassDef(PixelReader, 1);
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_PIXELREADER_H */

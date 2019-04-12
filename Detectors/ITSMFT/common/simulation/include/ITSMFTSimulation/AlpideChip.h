@@ -24,7 +24,7 @@ class TGeoManager;
 namespace o2
 {
   
-namespace ITSMFT
+namespace itsmft
 {
 
 /// AlpideChip class creates a TGeoVolume representing the Alpide Chip

@@ -30,7 +30,7 @@ void compareTopologyDistributions(
 
   TFile* cluster_file = TFile::Open(cluster_file_name.c_str());
   TTreeReader reader("o2sim", cluster_file);
-  TTreeReaderValue<std::vector<o2::ITSMFT::CompClusterExt>> comp_clus_vec(
+  TTreeReaderValue<std::vector<o2::itsmft::CompClusterExt>> comp_clus_vec(
     reader, "ITSClusterComp");
   TH1F* hRec =
     new TH1F("hRec", ";Topology ID;", nBins, lower_bound, upper_bound);

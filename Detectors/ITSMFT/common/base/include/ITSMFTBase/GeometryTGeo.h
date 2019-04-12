@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {

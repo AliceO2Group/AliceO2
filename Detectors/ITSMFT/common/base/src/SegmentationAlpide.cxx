@@ -14,9 +14,9 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include <cstdio>
 
-ClassImp(o2::ITSMFT::SegmentationAlpide);
+ClassImp(o2::itsmft::SegmentationAlpide);
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 void SegmentationAlpide::print()
 {

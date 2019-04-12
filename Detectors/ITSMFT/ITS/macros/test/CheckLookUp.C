@@ -27,11 +27,11 @@ bool verbose = false;
 void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
 {
 
-  using o2::ITSMFT::BuildTopologyDictionary;
-  using o2::ITSMFT::Cluster;
-  using o2::ITSMFT::ClusterTopology;
-  using o2::ITSMFT::LookUp;
-  using o2::ITSMFT::TopologyDictionary;
+  using o2::itsmft::BuildTopologyDictionary;
+  using o2::itsmft::Cluster;
+  using o2::itsmft::ClusterTopology;
+  using o2::itsmft::LookUp;
+  using o2::itsmft::TopologyDictionary;
 
   LookUp finder("complete_dictionary.bin");
   TopologyDictionary dict;

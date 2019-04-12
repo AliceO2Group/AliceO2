@@ -23,7 +23,7 @@
 
 void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
 {
-  using namespace o2::ITSMFT;
+  using namespace o2::itsmft;
   using namespace o2::ITS;
 
   TFile* f = TFile::Open("CheckTracks.root", "recreate");

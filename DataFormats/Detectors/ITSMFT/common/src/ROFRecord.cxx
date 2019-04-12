@@ -11,7 +11,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include <iostream>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 void ROFRecord::print() const
 {

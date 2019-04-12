@@ -15,7 +15,7 @@
 #include <cassert>
 #include <iostream>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 std::ostream& operator<<(std::ostream& stream, const CompCluster& cl)
 {

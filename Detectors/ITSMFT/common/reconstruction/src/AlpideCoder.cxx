@@ -16,7 +16,7 @@
 
 //#define _RAW_READER_DEBUG_ // to produce debug output during decoding
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 //_____________________________________
 void AlpideCoder::print() const
@@ -41,7 +41,7 @@ void AlpideCoder::reset()
 }
 
 //_____________________________________
-int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::ITSMFT::ChipPixelData& chipData,
+int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
                             uint16_t chipInModule, uint16_t bc, uint16_t roflags)
 {
   // Encode chip data into provided buffer. Data must be provided sorted in row/col, no check is done

@@ -54,7 +54,7 @@ InitStatus TrackerTask::Init()
     return kERROR;
   }
 
-  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster>*>("MFTCluster");
+  mClustersArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Cluster>*>("MFTCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "MFT clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

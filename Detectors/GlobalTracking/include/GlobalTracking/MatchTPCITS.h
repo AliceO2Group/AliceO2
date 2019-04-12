@@ -50,7 +50,7 @@ namespace ITS
 class TrackITS;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -417,7 +417,7 @@ class MatchTPCITS
   std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = nullptr; ///< input ITS tracks
   std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr; ///< input TPC tracks
 
-  std::vector<o2::ITSMFT::Cluster>* mITSClustersArrayInp = nullptr; ///< input ITS clusters
+  std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr; ///< input ITS clusters
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTPCTrkLabels = nullptr; ///< input TPC Track MC labels

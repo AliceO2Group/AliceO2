@@ -23,11 +23,11 @@
 #include <numeric>
 #include "FairLogger.h" // for LOG
 
-using o2::ITSMFT::Hit;
-using o2::ITSMFT::Digit;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using o2::itsmft::Hit;
+using o2::itsmft::Digit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 // using namespace o2::base;
 
 //_______________________________________________________________________
@@ -39,7 +39,7 @@ void Digitizer::init()
     mChips[i].setChipIndex(i);
   }
   if (!mParams.getAlpSimResponse()) {
-    mAlpSimResp = std::make_unique<o2::ITSMFT::AlpideSimResponse>();
+    mAlpSimResp = std::make_unique<o2::itsmft::AlpideSimResponse>();
     mAlpSimResp->initData();
     mParams.setAlpSimResponse(mAlpSimResp.get());
   }
@@ -129,7 +129,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   LOG(INFO) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
             << frameLast << FairLogger::endl;
 
-  o2::ITSMFT::ROFRecord rcROF;
+  o2::itsmft::ROFRecord rcROF;
 
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
@@ -178,7 +178,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
 
@@ -266,7 +266,7 @@ void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, 
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-  const o2::ITSMFT::AlpideSimResponse* resp = mParams.getAlpSimResponse();
+  const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
   // take into account that the AlpideSimResponse has min/max thickness non-symmetric around 0
   xyzLocS.SetY(xyzLocS.Y() + resp->getDepthShift());

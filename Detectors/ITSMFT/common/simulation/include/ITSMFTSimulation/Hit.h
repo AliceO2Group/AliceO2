@@ -21,7 +21,7 @@
 #include "CommonUtils/ShmAllocator.h"
 
 namespace o2 {
-namespace ITSMFT {
+namespace itsmft {
 
 class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
 {
@@ -134,7 +134,7 @@ Hit::Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVec
 namespace std
 {
 template <>
-class allocator<o2::ITSMFT::Hit> : public o2::utils::ShmAllocator<o2::ITSMFT::Hit>
+class allocator<o2::itsmft::Hit> : public o2::utils::ShmAllocator<o2::itsmft::Hit>
 {
 };
 } // namespace std
