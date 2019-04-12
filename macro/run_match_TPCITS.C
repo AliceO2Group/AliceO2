@@ -10,6 +10,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "GlobalTracking/MatchTPCITS.h"
 #endif
@@ -17,7 +19,9 @@
 void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match_itstpc.root",
                       std::string inputTracksITS = "o2track_its.root",
                       std::string inputTracksTPC = "tracksFromNative.root",
-                      std::string inputClustersITS = "o2clus.root", std::string inputGeom = "O2geometry.root",
+                      std::string inputClustersITS = "o2clus.root",
+		      std::string inputClustersTPC = "tpc-native-clusters.root",
+		      std::string inputGeom = "O2geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -29,21 +33,25 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
 
   //>>>---------- attach input data --------------->>>
   TChain itsTracks("o2sim");
-  itsTracks.AddFile((path + inputTracksITS).data());
+  itsTracks.AddFile((path + inputTracksITS).c_str());
   matching.setInputTreeITSTracks(&itsTracks);
 
   TChain tpcTracks("events");
-  tpcTracks.AddFile((path + inputTracksTPC).data());
+  tpcTracks.AddFile((path + inputTracksTPC).c_str());
   matching.setInputTreeTPCTracks(&tpcTracks);
 
   TChain itsClusters("o2sim");
-  itsClusters.AddFile((path + inputClustersITS).data());
+  itsClusters.AddFile((path + inputClustersITS).c_str());
   matching.setInputTreeITSClusters(&itsClusters);
 
+  ClusterNativeHelper::Reader tcpClusterReader;
+  tcpClusterReader.init(inputGeom.c_str());
+  matching.setInputTPCClustersReader(&tcpClusterReader);
+  
   //<<<---------- attach input data ---------------<<<
 
   // create/attach output tree
-  TFile outFile((path + outputfile).data(), "recreate");
+  TFile outFile((path + outputfile).c_str(), "recreate");
   TTree outTree("matchTPCITS", "Matched TPC-ITS tracks");
   matching.setOutputTree(&outTree);
 
