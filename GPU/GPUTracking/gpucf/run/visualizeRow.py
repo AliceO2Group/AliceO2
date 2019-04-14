@@ -163,7 +163,7 @@ class GridCanvas:
                               col)
 
     def drawEllipse(self, padCenter, timeCenter, padWidth, timeWidth, 
-            col: QColor):
+            col: QColor, lineWidth=None, fill=False):
         padCenter -= self.startPad
         timeCenter -= self.startTime
         padCenter *= self.cellPadWidth
@@ -171,16 +171,32 @@ class GridCanvas:
         padWidth *= self.cellPadWidth
         timeWidth *= self.cellTimeWidth
 
-        self.painter.setPen(col)
+        self.painter.save()
+
+        if lineWidth is None:
+            lineWidth = self.cellTimeWidth / 8
+        pen = QPen(col)
+        pen.setWidth(lineWidth)
+        self.painter.setPen(pen)
+
+        if fill:
+            self.painter.setBrush(col)
+
         self.painter.drawEllipse(
                 QPointF(padCenter, timeCenter), 
                 padWidth, timeWidth)
 
+        self.painter.restore()
+
     def drawDigits(self, digits, col: QColor):
+        maxQ = max([d.charge for d in digits])
         for digit in digits:
             if self.pointInGrid(digit.pad, digit.time):
                 print(digit)
-                self.fillCell(digit.pad, digit.time, col)
+                # self.fillCell(digit.pad, digit.time, col)
+                normQ = (digit.charge ** 2) / (maxQ**2  * 2)
+                self.drawEllipse(digit.pad, digit.time, normQ, normQ, col, 
+                        lineWidth=0, fill=True)
 
     def drawClusters(self, clusters, col: QColor):
         for cluster in clusters:
