@@ -34,6 +34,8 @@ private:
         bool contains(const Cluster &) const;
         nonstd::optional<Cluster> tryLookup(const Cluster &) const;
 
+        std::vector<Cluster> findDuplicates() const;
+
         void setClusterEqParams(float, float, Cluster::FieldMask);
 
         size_t size() const;
@@ -57,6 +59,10 @@ private:
             bool showExample,
             float,
             float,
+            Cluster::FieldMask);
+
+    void printDuplicates(
+            nonstd::span<const Cluster>,
             Cluster::FieldMask);
 
     ClusterMap truth;

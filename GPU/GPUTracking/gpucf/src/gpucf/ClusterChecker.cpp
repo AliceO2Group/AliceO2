@@ -81,6 +81,37 @@ nonstd::optional<Cluster> ClusterChecker::ClusterMap::tryLookup(
     return *lookup;
 }
 
+std::vector<Cluster> ClusterChecker::ClusterMap::findDuplicates() const
+{
+    std::vector<Cluster> duplicates;
+
+    for (const auto &it : clusters)
+    {
+        const std::vector<Cluster> &row = it.second;
+
+        for (size_t i = 0; i < row.size(); i++)
+        {
+            const Cluster &curr = row[i];
+
+            for (size_t j = 0; j < row.size(); j++)
+            {
+                if (i == j)
+                {
+                    continue;
+                }
+
+                if (curr.eq(row[j], epsilonSmall, epsilonBig, mask))
+                {
+                    duplicates.push_back(curr);     
+                }
+                
+            }
+        }
+    }
+
+    return duplicates;
+}
+
 void ClusterChecker::ClusterMap::setClusterEqParams(
         float epsilonSmall, 
         float epsilonBig,
@@ -166,6 +197,8 @@ bool ClusterChecker::verify(
         FEQ_EPSILON_BIG,
         Cluster::Field_timeMean | Cluster::Field_padMean);
 
+    printDuplicates(clusters, Cluster::Field_all ^ Cluster::Field_QMax);
+
     size_t brokenClusters = 0;
     size_t nansFound = 0;
     for (const Cluster &cluster : clusters)
@@ -236,6 +269,25 @@ void ClusterChecker::findAndLogTruth(
             log::Debug() << "Truth: " << withTruth[i].first;
             log::Debug() << "GPU:   " << withTruth[i].second;
         }
+    }
+}
+
+void ClusterChecker::printDuplicates(
+        nonstd::span<const Cluster> clusters,
+        Cluster::FieldMask mask)
+{
+    ClusterMap map;     
+
+    map.setClusterEqParams(0, 0, mask);
+    map.addAll(clusters);
+
+    std::vector<Cluster> duplicates = map.findDuplicates();
+
+    log::Info() << "Found duplicates: " << duplicates.size();
+
+    for (const Cluster &d : duplicates)
+    {
+        log::Debug() << d;
     }
 }
 
