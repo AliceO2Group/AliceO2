@@ -88,7 +88,9 @@ void O2MCApplicationBase::FinishEvent()
   finishEventCommon();
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
-  if (header->getMCEventStats().getNHits() == 0) {
+  auto& confref = o2::conf::SimConfig::Instance();
+
+  if (confref.isFilterOutNoHitEvents() && header->getMCEventStats().getNHits() == 0) {
     LOG(INFO) << "Discarding current event due to no hits";
     SetSaveCurrentEvent(false);
   }

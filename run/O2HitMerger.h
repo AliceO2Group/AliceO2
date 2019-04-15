@@ -335,7 +335,9 @@ class O2HitMerger : public FairMQDevice
     // we produce a vector<vector<int>>
     auto infobr = mOutTree->GetBranch("SubEventInfo");
 
-    if (infobr->GetEntries() == mNExpectedEvents) {
+    auto& confref = o2::conf::SimConfig::Instance();
+    if (!confref.isFilterOutNoHitEvents() && (infobr->GetEntries() == mNExpectedEvents)) {
+      LOG(INFO) << "NO MERGING NECESSARY";
       return false;
     }
 
@@ -365,10 +367,16 @@ class O2HitMerger : public FairMQDevice
       }
     }
 
-    // quick check if we need to merge at all
-    if (info->maxEvents == infobr->GetEntries()) {
-      LOG(INFO) << "NO MERGING NECESSARY";
-      return false;
+    // now see which events can be discarded in any case due to no hits
+    if (confref.isFilterOutNoHitEvents()) {
+      for (int i = 0; i < info->maxEvents; i++) {
+        if (eventheaders[i] && eventheaders[i]->getMCEventStats().getNHits() == 0) {
+          LOG(INFO) << "Taking out event " << i << " due to no hits";
+          entrygroups.erase(i + 1); // +1 since "eventID"
+          trackoffsets.erase(i + 1);
+          eventheaders[i].reset();
+        }
+      }
     }
 
     // create the final output
@@ -393,8 +401,10 @@ class O2HitMerger : public FairMQDevice
     o2::dataformats::MCEventHeader header;
     auto headerbr = o2::base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
-      header = *(eventheaders[i]);
-      headerbr->Fill();
+      if (eventheaders[i]) {
+        header = *(eventheaders[i]);
+        headerbr->Fill();
+      }
     }
     // attention: We need to make sure that we write everything in the same event order
     // but iteration over keys of a standard map in C++ is ordered

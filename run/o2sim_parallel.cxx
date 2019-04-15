@@ -77,7 +77,9 @@ int checkresult()
   if (!tr) {
     errors++;
   } else {
-    errors += tr->GetEntries() != conf.getNEvents();
+    if (!conf.isFilterOutNoHitEvents()) {
+      errors += tr->GetEntries() != conf.getNEvents();
+    }
   }
 
   // add more simple checks

@@ -44,7 +44,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")("chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
-    "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)");
+    "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
+    "noemptyevents", "only writes events with at least one hit");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -93,6 +94,9 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   mConfigData.mStartSeed = vm["seed"].as<int>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
+  if (vm.count("noemptyevents")) {
+    mConfigData.mFilterNoHitEvents = true;
+  }
   return true;
 }
 

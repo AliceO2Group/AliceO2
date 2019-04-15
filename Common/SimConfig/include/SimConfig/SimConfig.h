@@ -43,6 +43,7 @@ struct SimConfigData {
   int mInternalChunkSize;                    //
   int mStartSeed;                            // base for random number seeds
   int mSimWorkers = 1;                       // number of parallel sim workers (when it applies)
+  bool mFilterNoHitEvents = false;           // whether to filter out events not leaving any response
 
   ClassDefNV(SimConfigData, 2);
 };
@@ -104,6 +105,7 @@ class SimConfig
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
   int getStartSeed() const { return mConfigData.mStartSeed; }
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
+  bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
 
  private:
   SimConfigData mConfigData; //!
