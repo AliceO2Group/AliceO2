@@ -73,17 +73,39 @@ void O2MCApplicationBase::PreTrack()
   FairMCApplication::PreTrack();
 }
 
+void O2MCApplicationBase::finishEventCommon()
+{
+  LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
+
+  auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
+  header->getMCEventStats().setNSteps(mStepCounter);
+
+  static_cast<o2::data::Stack*>(GetStack())->updateEventStats();
+}
+
 void O2MCApplicationBase::FinishEvent()
 {
-  // dispatch first to function in FairRoot
+  finishEventCommon();
+
+  auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
+  if (header->getMCEventStats().getNHits() == 0) {
+    LOG(INFO) << "Discarding current event due to no hits";
+    SetSaveCurrentEvent(false);
+  }
+
+  // dispatch to function in FairRoot
   FairMCApplication::FinishEvent();
-  LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
 }
 
 void O2MCApplicationBase::BeginEvent()
 {
   // dispatch first to function in FairRoot
   FairMCApplication::BeginEvent();
+
+  // register event header with our stack
+  auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
+  static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
+
   mStepCounter = 0;
 }
 
@@ -121,18 +143,25 @@ const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQPar
   return data;
 }
 
+void O2MCApplication::setSubEventInfo(o2::data::SubEventInfo* i)
+{
+  mSubEventInfo = i;
+  // being communicated a SubEventInfo also means we get a FairMCEventHeader
+  fMCEventHeader = &mSubEventInfo->mMCEventHeader;
+}
+
 void O2MCApplication::SendData()
 {
   FairMQParts simdataparts;
 
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?
-  mSubEventInfo.npersistenttracks = static_cast<o2::data::Stack*>(GetStack())->getMCTracks()->size();
-  attachSubEventInfo(simdataparts, mSubEventInfo);
+  mSubEventInfo->npersistenttracks = static_cast<o2::data::Stack*>(GetStack())->getMCTracks()->size();
+  attachSubEventInfo(simdataparts, *mSubEventInfo);
   auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);
   attachBranch<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *mSimDataChannel, simdataparts);
-  assert(tracks->size() == mSubEventInfo.npersistenttracks);
+  assert(tracks->size() == mSubEventInfo->npersistenttracks);
 
   for (auto det : listActiveDetectors) {
     if (dynamic_cast<o2::base::Detector*>(det)) {

@@ -173,7 +173,7 @@ class O2SimDevice : public FairMQDevice
         mVMCApp->setPrimaries(chunk->mParticles);
 
         auto info = chunk->mSubEventInfo;
-        mVMCApp->setSubEventInfo(info);
+        mVMCApp->setSubEventInfo(&info);
 
         LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
                   << "for event " << info.eventID << "/" << info.maxEvents << " "

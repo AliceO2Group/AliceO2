@@ -427,7 +427,7 @@ class DetImpl : public o2::base::Detector
         // for each branch name we extract/decode hits from the message parts ...
         bool* busy;
         auto hitsptr = decodeShmMessage<Hit_t>(parts, index++, busy);
-        LOG(INFO) << "GOT " << hitsptr->size() << " HITS ";
+        LOG(DEBUG2) << "GOT " << hitsptr->size() << " HITS ";
         // ... and fill the tree branch
         auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
         br->SetAddress(static_cast<void*>(&hitsptr));
@@ -461,6 +461,9 @@ class DetImpl : public o2::base::Detector
     }
   }
 
+  // default implementation for setting hits
+  // always returns false indicating that there is no other
+  // component to assign to apart from i == 0
   template <typename Hit_t>
   bool setHits(int i, std::vector<Hit_t>* ptr)
   {
