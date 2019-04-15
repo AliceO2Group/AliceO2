@@ -14,11 +14,11 @@
 /// \date   08 March 2018
 
 #include "benchmark/benchmark.h"
-#include <iostream>
 #include <random>
+#include <gsl/gsl>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "MIDClustering/PreClusters.h"
+#include "MIDClustering/PreCluster.h"
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 
@@ -128,7 +128,8 @@ BENCHMARK_DEFINE_F(BenchClustering, clustering)
     inputData = generateTestData(deId, nClusters, clusterSize, midMapping);
     state.ResumeTiming();
     preClusterizer.process(inputData);
-    clusterizer.process(preClusterizer.getPreClusters());
+    gsl::span<const o2::mid::PreCluster> preClusters(preClusterizer.getPreClusters().data(), preClusterizer.getPreClusters().size());
+    clusterizer.process(preClusters);
     ++num;
   }
 

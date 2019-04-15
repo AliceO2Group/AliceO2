@@ -23,38 +23,24 @@ namespace mid
 {
 
 //______________________________________________________________________________
-PreClusterizer::PreClusterizer()
-  : mMapping(), mMpDEs(), mPreClusters(), mActiveDEs()
-{
-  /// Default constructor
-}
-
-//______________________________________________________________________________
-bool PreClusterizer::process(const std::vector<ColumnData>& stripPatterns)
+bool PreClusterizer::process(gsl::span<const ColumnData> stripPatterns)
 {
   /// Main function: runs on a data containing the strip patterns
   /// and builds the clusters
   /// @param stripPatterns Vector of strip patterns per column
 
-  // Reset fired DEs and cluster information
+  // Reset fired DEs and pre-cluster information
   reset();
 
   // Load the stripPatterns to get the fired strips
   if (loadPatterns(stripPatterns)) {
     // Loop only on fired detection elements
-    for (auto& pair : mActiveDEs) {
-      // loop on active DEs
-      int deIndex = pair.first;
-
-      PreClusters& pcs = nextPreCluster();
-
+    for (auto& deIndex : mActiveDEs) {
       // reset the precluster
-      pcs.reset();
-      pcs.setDEId(deIndex);
-      PatternStruct& de = mMpDEs[deIndex];
+      PatternStruct& de = mMpDEs[deIndex.first];
 
-      preClusterizeNBP(de, pcs);
-      preClusterizeBP(de, pcs);
+      preClusterizeNBP(de);
+      preClusterizeBP(de);
 
       de.firedColumns = 0; // Reset fired columns
     }
@@ -69,17 +55,17 @@ bool PreClusterizer::init()
   /// Initializes the class
 
   // Initialize pre-clusters
-  mPreClusters.reserve(72);
+  mPreClusters.reserve(100);
   return true;
 }
 
 //______________________________________________________________________________
-bool PreClusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
+bool PreClusterizer::loadPatterns(gsl::span<const ColumnData>& stripPatterns)
 {
   /// Fills the mpDE structure with fired pads
 
   // Loop on stripPatterns
-  for (auto col : stripPatterns) {
+  for (auto& col : stripPatterns) {
     int deIndex = col.deId;
     assert(deIndex < 72);
 
@@ -92,7 +78,7 @@ bool PreClusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
       de = &(search->second);
     }
 
-    mActiveDEs[deIndex] = 1;
+    mActiveDEs[deIndex] = true;
 
     de->firedColumns |= (1 << col.columnId);
     de->columns[col.columnId] = col;
@@ -102,22 +88,10 @@ bool PreClusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
 }
 
 //______________________________________________________________________________
-PreClusters& PreClusterizer::nextPreCluster()
-{
-  /// Iterates on pre-clusters
-  if (mNPreClusters >= static_cast<int>(mPreClusters.size())) {
-    mPreClusters.emplace_back(PreClusters());
-    mPreClusters.back().init();
-  }
-  return mPreClusters[mNPreClusters++];
-}
-
-//______________________________________________________________________________
-void PreClusterizer::preClusterizeNBP(PatternStruct& de, PreClusters& pcs)
+void PreClusterizer::preClusterizeNBP(PatternStruct& de)
 {
   /// PreClusterizes non-bending plane
-  PreClusters::PreClusterNBP* pc = nullptr;
-  double limit = 0;
+  PreCluster* pc = nullptr;
   for (int icolumn = 0; icolumn < 7; ++icolumn) {
     if (de.columns[icolumn].getNonBendPattern() == 0) {
       continue;
@@ -125,29 +99,13 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de, PreClusters& pcs)
     int nStripsNBP = mMapping.getNStripsNBP(icolumn, de.deId);
     for (int istrip = 0; istrip < nStripsNBP; ++istrip) {
       if (de.columns[icolumn].isNBPStripFired(istrip)) {
-        if (pc) {
-          if (istrip == 0) {
-            // We're changing column
-            // In principle we could simply add the pitch, but for the cut RPCs
-            // the y dimension changes as well in column 0
-            pc->area[icolumn] = mMapping.stripByLocation(istrip, 1, 0, icolumn, de.deId);
-            limit = pc->area[icolumn].getXmax();
-          } else {
-            limit += mMapping.getStripSize(istrip, 1, icolumn, de.deId);
-          }
-        } else {
-          pc = pcs.nextPreClusterNBP();
-          pc->paired = 0;
-          pc->firstColumn = icolumn;
-          pc->area[icolumn] = mMapping.stripByLocation(istrip, 1, 0, icolumn, de.deId);
-          limit = pc->area[icolumn].getXmax();
+        if (!pc) {
           LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
+          mPreClusters.push_back({ static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip) });
+          pc = &mPreClusters.back();
         }
         pc->lastColumn = icolumn;
-        pc->area[icolumn].setXmax(limit);
-        LOG(DEBUG) << "  adding col " << icolumn << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin() << ", "
-                   << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
-                   << pc->area[icolumn].getYmax() << ")";
+        pc->lastStrip = istrip;
       } else {
         pc = nullptr;
       }
@@ -157,15 +115,14 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de, PreClusters& pcs)
 }
 
 //______________________________________________________________________________
-void PreClusterizer::preClusterizeBP(PatternStruct& de, PreClusters& pcs)
+void PreClusterizer::preClusterizeBP(PatternStruct& de)
 {
   /// PreClusterizes bending plane
-  double limit = 0;
   for (int icolumn = mMapping.getFirstColumn(de.deId); icolumn < 7; ++icolumn) {
     if ((de.firedColumns & (1 << icolumn)) == 0) {
       continue;
     }
-    PreClusters::PreClusterBP* pc = nullptr;
+    PreCluster* pc = nullptr;
     int firstLine = mMapping.getFirstBoardBP(icolumn, de.deId);
     int lastLine = mMapping.getLastBoardBP(icolumn, de.deId);
     for (int iline = firstLine; iline <= lastLine; ++iline) {
@@ -174,71 +131,22 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de, PreClusters& pcs)
       }
       for (int istrip = 0; istrip < 16; ++istrip) {
         if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
-          if (pc) {
-            limit += mMapping.getStripSize(istrip, 0, icolumn, de.deId);
-          } else {
-            pc = pcs.nextPreClusterBP(icolumn);
-            pc->paired = 0;
-            pc->column = icolumn;
-            pc->area = mMapping.stripByLocation(istrip, 0, iline, icolumn, de.deId);
-            limit = pc->area.getYmax();
-            LOG(DEBUG) << "New precluster BP: DE  " << de.deId << "  icolumn " << icolumn;
+          if (!pc) {
+            LOG(DEBUG) << "New precluster BP: DE  " << de.deId;
+            mPreClusters.push_back({ static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip) });
+            pc = &mPreClusters.back();
           }
-          pc->area.setYmax(limit);
-          LOG(DEBUG) << "  adding line " << iline << "  strip " << istrip << "  (" << pc->area.getXmin()
-                     << ", " << pc->area.getXmax() << ") (" << pc->area.getYmin() << ", "
-                     << pc->area.getYmax() << ")";
+          pc->lastLine = iline;
+          pc->lastStrip = istrip;
         } else {
           pc = nullptr;
         }
       }
       de.columns[icolumn].setBendPattern(0, iline); // Reset pattern
-    }                                               // loop on lines
-  }                                                 // loop on columns
+
+    } // loop on lines
+  }   // loop on columns
 }
-
-// //______________________________________________________________________________
-// bool PreClusterizer::buildListOfNeighbours(int icolumn, int lastColumn, std::vector<std::vector<std::pair<int, int>>>& neighbours,
-//                                            bool skipPaired, int currentList)
-// {
-//   /// Build list of neighbours
-//   LOG(DEBUG) << "Building list of neighbours in (" << icolumn << ", " << lastColumn << ")";
-//   for (int jcolumn = icolumn; jcolumn <= lastColumn; ++jcolumn) {
-//     for (int ib = 0; ib < mNPreClusters[jcolumn]; ++ib) {
-//       PreCluster& pcB = mPreClusters[jcolumn][ib];
-//       if (skipPaired && pcB.paired > 0) {
-//         LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already paired => skipPaired";
-//         continue;
-//       }
-//       if (currentList >= neighbours.size()) {
-//         // We are starting a new series of neighbour
-//         // Let's make sure the pre-cluster is not already part of another list
-//         if (pcB.paired == 2) {
-//           LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already in a list";
-//           continue;
-//         }
-//         LOG(DEBUG) << "New list " << currentList;
-//         neighbours.emplace_back(std::vector<std::pair<int, int>>());
-//       }
-//       std::vector<PreCluster*>& neighList = neighbours[currentList];
-//       if (!neighList.empty()) {
-//         auto pair = neighList.back();
-//         auto& neigh = mPreClusters[pair.first][pair.second];
-//         if (neigh.area[jcolumn - 1].getYmin() > pcB.area[jcolumn].getYmax())
-//           continue;
-//         if (neigh.area[jcolumn - 1].getYmax() < pcB.area[jcolumn].getYmin())
-//           continue;
-//       }
-//       pcB.paired = 2;
-//       LOG(DEBUG) << "  adding column " << jcolumn << "  ib " << ib << "  to " << currentList;
-//       neighList.emplace_back(jcolumn, ib);
-//       buildListOfNeighbours(jcolumn + 1, lastColumn, neighbours, skipPaired, currentList);
-//       ++currentList;
-//     }
-//   }
-
-//   return (neighbours.size() > 0);
-// }
 
 //______________________________________________________________________________
 void PreClusterizer::reset()
@@ -248,7 +156,8 @@ void PreClusterizer::reset()
   // No need to reset the strip patterns here:
   // it is done while the patterns are processed to spare a loop
   mActiveDEs.clear();
-  mNPreClusters = 0;
+  mPreClusters.clear();
 }
+
 } // namespace mid
 } // namespace o2
