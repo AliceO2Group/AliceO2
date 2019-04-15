@@ -18,14 +18,14 @@ namespace o2
 {
 namespace mid
 {
-void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, std::vector<ColumnData>& outDigitStore, o2::dataformats::MCTruthContainer<MCLabel>& outMCContainer, int timestampdiff)
+void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, std::vector<ColumnData>& outDigitStore, o2::dataformats::MCTruthContainer<MCLabel>& outMCContainer)
 {
-  /// Merges the digits which have a timestamp difference smaller than timestamp diff
+  /// Merges the MC digits that are provided per hit
+  /// into the format that we expect from data
   /// \param inDigitStore Vector of input MC digits
   /// \param inMCContainer Container with MC labels for input MC digits
   /// \param outDigitStore Vector with merged digits
   /// \param outMCContainer Container with MC labels for merged digits
-  /// \param timestampdiff Maximum timestamp difference between digits to be merged
   outDigitStore.clear();
   outMCContainer.clear();
   mDigitsLabels.clear();
@@ -35,7 +35,7 @@ void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const 
     size_t idx = inIt - inDigitStore.begin();
     for (auto& pair : mDigitsLabels) {
       auto& outCol = pair.first;
-      if (outCol.deId == inIt->deId && outCol.columnId == inIt->columnId && std::abs(inIt->getTimeStamp() - outCol.getTimeStamp()) <= timestampdiff) {
+      if (outCol.deId == inIt->deId && outCol.columnId == inIt->columnId) {
         outCol |= (*inIt);
         pair.second.emplace_back(idx);
         isNew = false;
