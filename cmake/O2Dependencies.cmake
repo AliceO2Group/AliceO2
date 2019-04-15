@@ -2172,7 +2172,9 @@ o2_define_bucket(
     detectors_base_bucket
     its_base_bucket
     tpc_base_bucket
+    tpc_reconstruction_bucket
     tof_base_bucket
+    TPCCAGPUTracking_bucket
     data_parameters_bucket
     common_utils_bucket
     common_math_bucket
@@ -2181,6 +2183,7 @@ o2_define_bucket(
     ReconstructionDataFormats
     CommonDataFormat
     ITSReconstruction
+    TPCReconstruction
     DataFormatsITSMFT
     DetectorsBase
     DataFormatsTPC
@@ -2192,6 +2195,8 @@ o2_define_bucket(
     CommonUtils
     MathUtils
     Field
+    O2TPCCAGPUTracking
+    O2TPCFastTransformation
     RIO
     Core
     Geom
