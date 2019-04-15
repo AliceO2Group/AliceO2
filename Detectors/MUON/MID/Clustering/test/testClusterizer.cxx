@@ -25,10 +25,9 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <gsl/gsl>
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
-
-#include "FairLogger.h"
 
 namespace o2
 {
@@ -134,12 +133,12 @@ std::vector<Cluster2D> getClusters(int event)
   return clusters;
 }
 
-bool areClustersEqual(Cluster2D& cl1, Cluster2D& cl2)
+bool areClustersEqual(const Cluster2D& cl1, const Cluster2D& cl2)
 {
   int nBad = 0;
   float precision = 1.e-3;
   if (cl1.deId != cl2.deId) {
-    std::cerr << "Id: " << cl1.deId << " != " << cl2.deId << std::endl;
+    std::cerr << "Id: " << (int)cl1.deId << " != " << (int)cl2.deId << std::endl;
     ++nBad;
   }
 
@@ -173,7 +172,6 @@ class MyFixture
   {
     preClusterizer.init();
     clusterizer.init();
-    // fair::Logger::SetConsoleSeverity(fair::Severity::debug);
   }
   PreClusterizer preClusterizer;
   Clusterizer clusterizer;
@@ -183,20 +181,21 @@ class MyFixture
 BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::xrange(3))
 {
   preClusterizer.process(getColumnsFixed(sample));
-  clusterizer.process(preClusterizer.getPreClusters());
+  gsl::span<const PreCluster> preClusters(preClusterizer.getPreClusters().data(), preClusterizer.getPreClusters().size());
+
+  clusterizer.process(preClusters);
   std::vector<Cluster2D> clusters = getClusters(sample);
-  BOOST_TEST(clusters.size() == clusterizer.getNClusters());
-  unsigned long minNcl = clusters.size();
-  if (clusterizer.getNClusters() < minNcl) {
-    minNcl = clusterizer.getNClusters();
+  BOOST_TEST(clusters.size() == clusterizer.getClusters().size());
+  size_t minNcl = clusters.size();
+  if (clusterizer.getClusters().size() < minNcl) {
+    minNcl = clusterizer.getClusters().size();
   }
-  std::vector<Cluster2D> recoClusters = clusterizer.getClusters();
-  for (unsigned long icl = 0; icl < clusters.size(); ++icl) {
-    BOOST_TEST(areClustersEqual(clusters[icl], recoClusters[icl]));
+  for (size_t icl = 0; icl < minNcl; ++icl) {
+    BOOST_TEST(areClustersEqual(clusters[icl], clusterizer.getClusters()[icl]));
   }
 }
 
-bool isWithinUncertainties(float xPos, float yPos, Cluster2D& cl)
+bool isWithinUncertainties(float xPos, float yPos, const Cluster2D& cl)
 {
   std::string str[2] = { "x", "y" };
   float inputPos[2] = { xPos, yPos };
@@ -269,12 +268,12 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Random, boost::unit_test::data:
       continue;
     }
     preClusterizer.process(columns);
-    clusterizer.process(preClusterizer.getPreClusters());
-    BOOST_TEST(clusterizer.getNClusters() == 1);
+    gsl::span<const PreCluster> preClusters(preClusterizer.getPreClusters().data(), preClusterizer.getPreClusters().size());
+    clusterizer.process(preClusters);
+    BOOST_TEST(clusterizer.getClusters().size() == 1);
 
-    std::vector<Cluster2D> recoClusters = clusterizer.getClusters();
-    for (int icl = 0; icl < clusterizer.getNClusters(); ++icl) {
-      BOOST_TEST(isWithinUncertainties(xPos, yPos, recoClusters[icl]));
+    for (const auto& clus : clusterizer.getClusters()) {
+      BOOST_TEST(isWithinUncertainties(xPos, yPos, clus));
     }
   }
 }

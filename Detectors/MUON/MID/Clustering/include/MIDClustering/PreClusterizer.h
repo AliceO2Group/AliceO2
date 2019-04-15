@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MIDClustering/PreClusterizer.h
-/// \brief  Pre-Cluster reconstruction algorithm for MID
+/// \brief  Pre-cluster reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   05 July 2018
 
@@ -18,10 +18,10 @@
 
 #include <unordered_map>
 #include <vector>
+#include <gsl/gsl>
 #include "MIDBase/Mapping.h"
-#include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "MIDClustering/PreClusters.h"
+#include "MIDClustering/PreCluster.h"
 
 namespace o2
 {
@@ -31,22 +31,11 @@ namespace mid
 class PreClusterizer
 {
  public:
-  PreClusterizer();
-  virtual ~PreClusterizer() = default;
-
-  PreClusterizer(const PreClusterizer&) = delete;
-  PreClusterizer& operator=(const PreClusterizer&) = delete;
-  PreClusterizer(PreClusterizer&&) = delete;
-  PreClusterizer& operator=(PreClusterizer&&) = delete;
-
   bool init();
-  bool process(const std::vector<ColumnData>& stripPatterns);
+  bool process(gsl::span<const ColumnData> stripPatterns);
 
-  /// Gets the array of reconstructes pre-clusters
-  std::vector<PreClusters>& getPreClusters() { return mPreClusters; }
-
-  /// Gets the number of reconstructed pre-clusters
-  unsigned long int getNPreClusters() { return mNPreClusters; }
+  /// Gets the vector of reconstructed pre-clusters
+  const std::vector<PreCluster>& getPreClusters() { return mPreClusters; }
 
  private:
   struct PatternStruct {
@@ -55,21 +44,16 @@ class PreClusterizer
     std::array<ColumnData, 7> columns; ///< Array of strip patterns
   };
 
-  bool loadPatterns(const std::vector<ColumnData>& stripPatterns);
+  bool loadPatterns(gsl::span<const ColumnData>& stripPatterns);
   void reset();
 
-  void preClusterizeBP(PatternStruct& de, PreClusters& pcs);
-  void preClusterizeNBP(PatternStruct& de, PreClusters& pcs);
-
-  PreClusters& nextPreCluster();
-
-  // bool buildListOfNeighbours(int icolumn, int lastColumn, std::vector<std::vector<std::pair<int, int>>>& neighbours, bool skipPaired = false, int currentList = 0);
+  void preClusterizeBP(PatternStruct& de);
+  void preClusterizeNBP(PatternStruct& de);
 
   Mapping mMapping;                              ///< Mapping
   std::unordered_map<int, PatternStruct> mMpDEs; ///< Internal mapping
-  std::vector<PreClusters> mPreClusters;         ///< List of pre-clusters
-  int mNPreClusters;                             ///< Number of pre-clusters
   std::unordered_map<int, bool> mActiveDEs;      ///< List of active detection elements for event
+  std::vector<PreCluster> mPreClusters;          ///< List of pre-clusters
 };
 } // namespace mid
 } // namespace o2

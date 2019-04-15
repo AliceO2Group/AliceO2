@@ -16,7 +16,7 @@
 #ifndef O2_MID_CLUSTER2D_H
 #define O2_MID_CLUSTER2D_H
 
-#include <boost/serialization/access.hpp>
+#include <ostream>
 #include <cstdint>
 
 namespace o2
@@ -30,20 +30,14 @@ struct Cluster2D {
   float yCoor;   ///< Local y coordinate
   float sigmaX2; ///< Square of dispersion along x
   float sigmaY2; ///< Square of dispersion along y
-
-  friend class boost::serialization::access;
-
-  /// Serializes the struct
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    ar& deId;
-    ar& xCoor;
-    ar& yCoor;
-    ar& sigmaX2;
-    ar& sigmaY2;
-  }
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Cluster2D& data)
+{
+  /// Overload ostream operator
+  os << "deId: " << static_cast<int>(data.deId) << "  position: (" << data.xCoor << ", " << data.yCoor << ")  variance: (" << data.sigmaX2 << ", " << data.sigmaY2 << ")";
+  return os;
+}
 } // namespace mid
 } // namespace o2
 

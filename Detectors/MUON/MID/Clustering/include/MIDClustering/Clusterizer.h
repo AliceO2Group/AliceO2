@@ -16,12 +16,15 @@
 #ifndef O2_MID_CLUSTERIZER_H
 #define O2_MID_CLUSTERIZER_H
 
+#include <functional>
 #include <unordered_map>
 #include <vector>
-#include "MIDBase/Mapping.h"
+#include <gsl/gsl>
 #include "DataFormatsMID/Cluster2D.h"
-#include "DataFormatsMID/ColumnData.h"
-#include "MIDClustering/PreClusters.h"
+#include "MIDBase/MpArea.h"
+#include "MIDClustering/PreCluster.h"
+#include "MIDClustering/PreClusterHelper.h"
+#include "MIDClustering/PreClustersDE.h"
 
 namespace o2
 {
@@ -31,37 +34,26 @@ namespace mid
 class Clusterizer
 {
  public:
-  Clusterizer();
-  virtual ~Clusterizer() = default;
+  bool init(std::function<void(size_t, size_t)> func = [](size_t, size_t) {});
+  bool process(gsl::span<const PreCluster> preClusters);
 
-  Clusterizer(const Clusterizer&) = delete;
-  Clusterizer& operator=(const Clusterizer&) = delete;
-  Clusterizer(Clusterizer&&) = delete;
-  Clusterizer& operator=(Clusterizer&&) = delete;
-
-  bool init();
-  bool process(std::vector<PreClusters>& preClusters);
-
-  /// Gets the array of reconstructes clusters
+  /// Gets the vector of reconstructed clusters
   const std::vector<Cluster2D>& getClusters() { return mClusters; }
-
-  /// Gets the number of reconstructed clusters
-  unsigned long int getNClusters() { return mNClusters; }
 
  private:
   void reset();
+  bool loadPreClusters(gsl::span<const PreCluster>& preClusters);
 
-  PreClusters::PreClusterBP getNeighbour(int icolumn, bool skipPaired);
+  bool makeClusters(PreClustersDE& pcs);
+  void makeCluster(const MpArea& areaBP, const MpArea& areaNBP, const int& icolumn, const int& deIndex);
+  void makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE::BP& pcBPNeigh, const PreClustersDE::NBP& pcNBP, const int& deIndex);
 
-  Cluster2D& nextCluster();
-  bool makeClusters(PreClusters& pcs);
-  void makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
-  void makeCluster(PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
-  void makeCluster(PreClusters::PreClusterBP& clBend, const int& deIndex);
-  void makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterBP& clBendNeigh, PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
-
-  std::vector<Cluster2D> mClusters; ///< list of clusters
-  unsigned long int mNClusters = 0; ///< Number of clusters
+  const gsl::span<const PreCluster>* mPreClusters = nullptr; ///! Input pre-clusters
+  std::unordered_map<int, PreClustersDE> mPreClustersDE;     ///! Sorted pre-clusters
+  std::unordered_map<int, bool> mActiveDEs;                  ///! List of active detection elements for event
+  PreClusterHelper mPreClusterHelper;                        ///! Helper for pre-clusters
+  std::vector<Cluster2D> mClusters;                          ///< List of clusters
+  std::function<void(size_t, size_t)> mFunction;             ///! Function to keep track of input-output relation
 };
 } // namespace mid
 } // namespace o2

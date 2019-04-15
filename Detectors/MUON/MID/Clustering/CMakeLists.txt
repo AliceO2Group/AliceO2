@@ -5,7 +5,9 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
    src/Clusterizer.cxx
    src/PreClusterizer.cxx
-   src/PreClusters.cxx
+   src/PreCluster.cxx
+   src/PreClusterHelper.cxx
+   src/PreClustersDE.cxx
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
