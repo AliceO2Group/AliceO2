@@ -2690,3 +2690,22 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/GPU/TPCSpaceChargeBase
 )
+
+o2_define_bucket(
+    NAME
+    mid_workflow_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    DPLUtils_bucket
+
+    O2Framework
+    O2DPLUtils
+    O2DataFormatsMID
+    O2MIDClustering
+    O2MIDSimulation
+    O2MIDTracking
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MID/Workflow/include
+)
