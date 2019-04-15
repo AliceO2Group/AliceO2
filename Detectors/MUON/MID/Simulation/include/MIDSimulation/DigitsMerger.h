@@ -28,7 +28,7 @@ namespace mid
 class DigitsMerger
 {
  public:
-  void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, std::vector<ColumnData>& outDigitStore, o2::dataformats::MCTruthContainer<MCLabel>& outMCContainer, int timestampdiff = 0);
+  void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, std::vector<ColumnData>& outDigitStore, o2::dataformats::MCTruthContainer<MCLabel>& outMCContainer);
 
  private:
   std::vector<std::pair<ColumnDataMC, std::vector<size_t>>> mDigitsLabels; //! Temporary digits store
@@ -37,4 +37,4 @@ class DigitsMerger
 } // namespace mid
 } // namespace o2
 
-#endif /* O2_MID_DIGITSMEREGER_H */
+#endif /* O2_MID_DIGITSMERGER_H */
