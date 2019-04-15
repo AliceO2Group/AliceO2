@@ -34,13 +34,13 @@ namespace mid
 {
 
 struct SIMUL {
-  static o2::mid::Mapping mapping;
-  static o2::mid::ChamberResponseParams params;
-  static o2::mid::GeometryTransformer geoTrans;
-  static o2::mid::Digitizer digitizer;
-  static o2::mid::DigitsMerger digitsMerger;
-  static o2::mid::PreClusterizer preClusterizer;
-  static o2::mid::Clusterizer clusterizer;
+  static Mapping mapping;
+  static ChamberResponseParams params;
+  static GeometryTransformer geoTrans;
+  static Digitizer digitizer;
+  static DigitsMerger digitsMerger;
+  static PreClusterizer preClusterizer;
+  static Clusterizer clusterizer;
 
   void setup()
   {
@@ -48,15 +48,15 @@ struct SIMUL {
   }
 };
 
-o2::mid::Mapping SIMUL::mapping;
-o2::mid::ChamberResponseParams SIMUL::params = createDefaultChamberResponseParams();
-o2::mid::GeometryTransformer SIMUL::geoTrans = createDefaultTransformer();
-o2::mid::Digitizer SIMUL::digitizer = createDefaultDigitizer();
-o2::mid::DigitsMerger SIMUL::digitsMerger;
-o2::mid::PreClusterizer SIMUL::preClusterizer;
-o2::mid::Clusterizer SIMUL::clusterizer;
+Mapping SIMUL::mapping;
+ChamberResponseParams SIMUL::params = createDefaultChamberResponseParams();
+GeometryTransformer SIMUL::geoTrans = createDefaultTransformer();
+Digitizer SIMUL::digitizer = createDefaultDigitizer();
+DigitsMerger SIMUL::digitsMerger;
+PreClusterizer SIMUL::preClusterizer;
+Clusterizer SIMUL::clusterizer;
 
-std::vector<Hit> generateHits(size_t nHits, int deId, const o2::mid::Mapping& mapping, const o2::mid::GeometryTransformer geoTrans)
+std::vector<Hit> generateHits(size_t nHits, int deId, const Mapping& mapping, const GeometryTransformer geoTrans)
 {
   std::vector<Hit> hits;
   std::random_device rd;
@@ -104,7 +104,7 @@ bool checkLabel(const ColumnData& digit, MCLabel& label, std::string& errorMessa
   }
   errorMessage = ss.str();
   return isOk;
-} // namespace mid
+}
 
 std::vector<int> getDEList()
 {
@@ -136,7 +136,7 @@ BOOST_DATA_TEST_CASE(MID_SimulChain, boost::unit_test::data::make(getDEList()), 
 
   std::vector<ColumnDataMC> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
-  std::vector<o2::mid::ColumnData> digitStore;
+  std::vector<ColumnData> digitStore;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabels;
 
   for (int ievent = 0; ievent < 100; ++ievent) {
@@ -146,8 +146,9 @@ BOOST_DATA_TEST_CASE(MID_SimulChain, boost::unit_test::data::make(getDEList()), 
     SIMUL::digitizer.process(hits, digitStoreMC, digitLabelsMC);
     SIMUL::digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
     SIMUL::preClusterizer.process(digitStore);
-    SIMUL::clusterizer.process(SIMUL::preClusterizer.getPreClusters());
-    nRecoClusters = SIMUL::clusterizer.getNClusters();
+    gsl::span<const PreCluster> preClusters(SIMUL::preClusterizer.getPreClusters().data(), SIMUL::preClusterizer.getPreClusters().size());
+    SIMUL::clusterizer.process(preClusters);
+    nRecoClusters = SIMUL::clusterizer.getClusters().size();
     ss << "nRecoClusters: " << nRecoClusters << "  nGenClusters: " << nGenClusters << "\n";
     for (auto& col : digitStore) {
       ss << col << "\n";
