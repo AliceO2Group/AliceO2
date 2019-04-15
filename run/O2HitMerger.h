@@ -166,11 +166,11 @@ class O2HitMerger : public FairMQDevice
   {
     auto detIDmessage = std::move(data.At(index++));
     // this should be a detector ID
-    LOG(INFO) << detIDmessage->GetSize();
     if (detIDmessage->GetSize() == 4) {
       auto ptr = (int*)detIDmessage->GetData();
       o2::detectors::DetID id(ptr[0]);
-      LOG(INFO) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB " << data.At(index)->GetSize() / 1024. / 1024.;
+      LOG(DEBUG2) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB "
+                  << data.At(index)->GetSize() / 1024. / 1024.;
 
       // get the detector than can interpret it
       auto detector = mDetectorInstances[id].get();
@@ -228,7 +228,7 @@ class O2HitMerger : public FairMQDevice
 
     int index = 0;
     auto infoptr = o2::base::decodeTMessage<o2::data::SubEventInfo*>(data, index++);
-    o2::data::SubEventInfo info = *infoptr;
+    o2::data::SubEventInfo& info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     fillSubEventInfoEntry(info);
@@ -342,7 +342,8 @@ class O2HitMerger : public FairMQDevice
     std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
 
-    std::vector<o2::dataformats::MCEventHeader> eventheaders; // collecting the event headers
+    std::vector<std::unique_ptr<o2::dataformats::MCEventHeader>> eventheaders; // collecting the event headers
+
     eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
@@ -356,7 +357,12 @@ class O2HitMerger : public FairMQDevice
       trackoffsets[event].emplace_back(info->npersistenttracks);
       assert(event <= mNExpectedEvents && event >= 1);
       LOG(INFO) << event << " " << mNExpectedEvents;
-      eventheaders[event - 1] = info->mMCEventHeader;
+      if (eventheaders[event - 1] == nullptr) {
+        eventheaders[event - 1] = std::unique_ptr<dataformats::MCEventHeader>(
+          new dataformats::MCEventHeader(info->mMCEventHeader));
+      } else {
+        eventheaders[event - 1]->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
+      }
     }
 
     // quick check if we need to merge at all
@@ -387,7 +393,7 @@ class O2HitMerger : public FairMQDevice
     o2::dataformats::MCEventHeader header;
     auto headerbr = o2::base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
-      header = eventheaders[i];
+      header = *(eventheaders[i]);
       headerbr->Fill();
     }
     // attention: We need to make sure that we write everything in the same event order

@@ -54,6 +54,9 @@ class O2MCApplicationBase : public FairMCApplication
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
   unsigned long long mStepCounter{ 0 };
 
+  /// some common parts of finishEvent
+  void finishEventCommon();
+
   ClassDefOverride(O2MCApplicationBase, 1)
 };
 

@@ -330,6 +330,15 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   return &mPrimaryParticles[iPrim];
 }
 
+void Stack::updateEventStats()
+{
+  if (mMCEventStats) {
+    mMCEventStats->setNHits(mHitCounter);
+    mMCEventStats->setNTransportedTracks(mNumberOfEntriesInParticles);
+    mMCEventStats->setNKeptTracks(mTracks->size());
+  }
+}
+
 void Stack::FillTrackArray()
 {
   /// This interface is not implemented since we are filtering/filling the output array
@@ -490,6 +499,7 @@ void Stack::Reset()
   mTrackRefs->clear();
   mIndexedTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
+  mHitCounter = 0;
 }
 
 void Stack::Register()
@@ -522,6 +532,7 @@ void Stack::Print(Option_t* option) const
 void Stack::addHit(int iDet) { addHit(iDet, mParticles.size() - 1); }
 void Stack::addHit(int iDet, Int_t iTrack)
 {
+  mHitCounter++;
   auto& part = mParticles[iTrack];
   part.setHit(iDet);
 }

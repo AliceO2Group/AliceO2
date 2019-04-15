@@ -14,6 +14,7 @@
 #define ALICEO2_DATAFORMATS_MCEVENTHEADER_H_
 
 #include "FairMCEventHeader.h"
+#include "SimulationDataFormat/MCEventStats.h"
 #include <string>
 
 namespace o2
@@ -26,6 +27,7 @@ class GeneratorHeader;
 /*****************************************************************/
 /*****************************************************************/
 
+// AliceO2 specialization of EventHeader class
 class MCEventHeader : public FairMCEventHeader
 {
 
@@ -42,11 +44,17 @@ class MCEventHeader : public FairMCEventHeader
   /** methods **/
   virtual void Reset();
 
+  MCEventStats& getMCEventStats() { return mEventStats; }
+
  protected:
   std::string mEmbeddingFileName;
   Int_t mEmbeddingEventIndex = 0;
 
-  ClassDefOverride(MCEventHeader, 1);
+  // store a view global properties that this event
+  // had in the current simulation (which can be used quick filtering/searching)
+  MCEventStats mEventStats{};
+
+  ClassDefOverride(MCEventHeader, 2);
 
 }; /** class MCEventHeader **/
 
