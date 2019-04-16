@@ -59,7 +59,9 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   // tell the transformation to apply the space charge distortions
 
-  fastTransform.setApplyDistortionFlag(1);
+  // FIXME: this is the awful initialization flag
+  constexpr int fastTransformFlag = 1;
+  fastTransform.setApplyDistortionFlag(fastTransformFlag);
 
   if (!mIsInitialized) {
     init();
