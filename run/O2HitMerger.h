@@ -48,6 +48,7 @@
 #include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
 #include <MIDSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
@@ -482,6 +483,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::PHS) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::phos::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::CPV) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::cpv::Detector>(true));
       counter++;
     }
     if (i == DetID::EMC) {

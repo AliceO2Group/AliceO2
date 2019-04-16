@@ -34,6 +34,7 @@
 #include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
@@ -183,6 +184,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("PHS")) {
     // phos
     run->AddModule(new o2::phos::Detector(true));
+  }
+
+  if (isActivated("CPV")) {
+    // cpv
+    run->AddModule(new o2::cpv::Detector(true));
   }
 
   if (isActivated("T0")) {
