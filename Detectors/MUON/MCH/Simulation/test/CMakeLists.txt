@@ -8,8 +8,7 @@ O2_GENERATE_EXECUTABLE(
   NO_INSTALL TRUE
 )
 
-target_link_libraries(test_MCHSimulation Boost::unit_test_framework MCHSimulation)
-
+target_link_libraries(test_MCHSimulation Boost::unit_test_framework O2MCHSimulation)
 add_test_wrap(NAME test_MCHSimulation COMMAND test_MCHSimulation)
 
 if (benchmark_FOUND)
