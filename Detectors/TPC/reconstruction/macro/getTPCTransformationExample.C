@@ -18,6 +18,7 @@
 
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TH1F.h"
+#include "TStyle.h"
 
 #endif
 
