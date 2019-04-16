@@ -57,13 +57,23 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
-  // the lane configuration defines the subspecification ids to be distributes
-  // among the lanes.
+  // the lane configuration defines the subspecification ids to be distributed among the lanes.
+  std::vector<int> laneConfiguration;
+  auto nLanes = cfgc.options().get<int>("tpc-lanes");
+  auto inputType = cfgc.options().get<std::string>("input-type");
+  if (inputType == "digitizer") {
+    // the digitizer is using a different lane setup so we have to force this for the moment
+    laneConfiguration.resize(nLanes);
+    std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
+  } else {
+    laneConfiguration = tpcSectors;
+  }
+
   return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    // sector configuration
-                                            tpcSectors,                                    // lane configuration
+                                            laneConfiguration,                             // lane configuration
                                             not cfgc.options().get<bool>("disable-mc"),    //
-                                            cfgc.options().get<int>("tpc-lanes"),          //
-                                            cfgc.options().get<std::string>("input-type"), //
+                                            nLanes,                                        //
+                                            inputType,                                     //
                                             cfgc.options().get<std::string>("output-type") //
-                                            );
+  );
 }
