@@ -31,8 +31,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #else
-#pragma cling load("libTPCReconstruction")
-#pragma cling load("libDataFormatsTPC")
+#pragma cling load("libO2TPCReconstruction")
+#pragma cling load("libO2DataFormatsTPC")
 #endif
 
 using namespace o2::gpu;
