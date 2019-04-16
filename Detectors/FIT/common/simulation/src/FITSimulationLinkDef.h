@@ -20,6 +20,5 @@
 #pragma link C++ class vector < o2::fit::HitType > +;
 #pragma link C++ class o2::fit::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::fit::MCLabel > +;
-#pragma link C++ class o2::base::DetImpl < o2::fit::Detector > +;
 
 #endif
