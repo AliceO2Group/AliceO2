@@ -1885,6 +1885,7 @@ o2_define_bucket(
     FDDSimulation
     HMPIDSimulation
     PHOSSimulation
+    CPVSimulation
     PHOSReconstruction
     ZDCSimulation
     Field
