@@ -129,6 +129,9 @@ class Stack : public FairGenericStack
   /// Declared in TVirtualMCStack
   Int_t GetCurrentParentTrackNumber() const override;
 
+  /// Returns the production process of the current track
+  TMCProcess GetProdProcessOfCurrentTrack() const;
+
   /// Fill the MCTrack output array, applying filter criteria
   void FillTrackArray() override;
 
@@ -327,6 +330,12 @@ inline void Stack::setMCEventStats(o2::dataformats::MCEventStats* header)
 {
   mMCEventStats = header;
 }
+
+inline TMCProcess Stack::GetProdProcessOfCurrentTrack() const
+{
+  return (TMCProcess)o2::data::Stack::GetCurrentTrack()->GetUniqueID();
+}
+
 } // namespace data
 } // namespace o2
 
