@@ -33,6 +33,9 @@
 #include <memory>
 
 using namespace o2::framework;
+using Key = o2::monitoring::tags::Key;
+using Value = o2::monitoring::tags::Value;
+using Metric = o2::monitoring::Metric;
 using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
@@ -99,6 +102,9 @@ void DataProcessingDevice::Init() {
 
   auto& monitoring = mServiceRegistry.get<Monitoring>();
   monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
+  static const std::string dataProcessorIdMetric = "dataprocessor_id";
+  static const std::string dataProcessorIdValue = mSpec.name;
+  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
@@ -129,20 +135,27 @@ bool DataProcessingDevice::ConditionalRun()
     }
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-    monitoring.send({ (int)relayerStats.malformedInputs, "dpl/malformed_inputs" });
-    monitoring.send({ (int)relayerStats.droppedComputations, "dpl/dropped_computations" });
-    monitoring.send({ (int)relayerStats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
-    monitoring.send({ (int)relayerStats.relayedMessages, "dpl/relayd_messages" });
 
-    monitoring.send({ (int) stats.pendingInputs, "inputs/relayed/pending" });
-    monitoring.send({ (int) stats.incomplete, "inputs/relayed/incomplete" });
-    monitoring.send({ (int) stats.inputParts, "inputs/relayed/total" });
-    monitoring.send({ stats.lastElapsedTimeMs, "dpl/elapsed_time_ms" });
-    monitoring.send({ stats.lastTotalProcessedSize, "dpl/processed_input_size_bytes" });
-    monitoring.send({ (stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000), "dpl/processing_rate_mb_s" });
-    monitoring.send({ stats.lastLatency.minLatency, "dpl/min_input_latency_ms" });
-    monitoring.send({ stats.lastLatency.maxLatency, "dpl/max_input_latency_ms" });
-    monitoring.send({ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "dpl/input_rate_mb_s" });
+    monitoring.send(Metric{ (int)relayerStats.malformedInputs, "malformed_inputs" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.droppedComputations, "dropped_computations" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.relayedMessages, "relayed_messages" }.addTag(Key::Subsystem, Value::DPL));
+
+    monitoring.send(Metric{ (int)stats.pendingInputs, "inputs/relayed/pending" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)stats.incomplete, "inputs/relayed/incomplete" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)stats.inputParts, "inputs/relayed/total" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastElapsedTimeMs, "elapsed_time_ms" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastTotalProcessedSize, "processed_input_size_byte" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
+                            "processing_rate_mb_s" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastLatency.minLatency, "min_input_latency_ms" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastLatency.maxLatency, "max_input_latency_ms" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "Value::DPL/input_rate_mb_s" }
+                      .addTag(Key::Subsystem, Value::DPL));
 
     lastSent = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
@@ -560,7 +573,7 @@ void
 DataProcessingDevice::error(const char *msg) {
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dpl/errors" });
+  mServiceRegistry.get<Monitoring>().send(Metric{ mErrorCount, "errors" }.addTag(Key::Subsystem, Value::DPL));
 }
 
 } // namespace framework
