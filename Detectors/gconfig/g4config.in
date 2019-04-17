@@ -1,6 +1,7 @@
 # Geant4 standard configuration based on AliDPG commit 7650a5b
 
 /control/verbose 2
+
 /mcVerbose/all 1
 /mcVerbose/geometryManager 1
 /mcVerbose/opGeometryManager 1

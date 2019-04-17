@@ -7,6 +7,7 @@ set(SRCS
   src/GeometryManager.cxx
   src/MaterialManager.cxx
   src/Propagator.cxx
+  src/RegionsManager.cxx
   )
 
 Set(HEADERS
@@ -14,6 +15,7 @@ Set(HEADERS
   include/${MODULE_NAME}/GeometryManager.h
   include/${MODULE_NAME}/MaterialManager.h
   include/${MODULE_NAME}/Propagator.h
+  include/${MODULE_NAME}/RegionsManager.h
   include/${MODULE_NAME}/Triggers.h
 )
 

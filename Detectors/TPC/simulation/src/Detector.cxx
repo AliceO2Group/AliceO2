@@ -12,6 +12,8 @@
 #include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterGas.h"
 
+#include "DetectorsBase/RegionsManager.h"
+
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
@@ -1001,6 +1003,7 @@ void Detector::ConstructTPCGeometry()
   //
   TGeoMedium* m1 = gGeoManager->GetMedium("TPC_Air");
   auto* v1 = new TGeoVolume("TPC_M", tpc, m1);
+
   //
   // drift volume - sensitive volume, extended beyond the
   // endcaps, because of the alignment
@@ -1017,6 +1020,8 @@ void Detector::ConstructTPCGeometry()
   //
   TGeoMedium* m5 = gGeoManager->GetMedium("TPC_DriftGas2");
   auto* v9 = new TGeoVolume("TPC_Drift", dvol, m5);
+  // This volume is now defined as root volume of a region
+  //o2::base::RegionsManager::Instance().addRootVolumeToRegion("TPC_DriftGas2", "TPC_M");
   //
   v1->AddNode(v9, 1);
   //

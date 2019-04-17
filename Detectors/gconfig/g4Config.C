@@ -13,7 +13,6 @@
 #include "TPythia6Decayer.h"
 #include "FairRunSim.h"
 #include "TSystem.h"
-#include "TG4RunConfiguration.h"
 #endif
 #include "commonConfig.C"
 
@@ -55,8 +54,9 @@ void Config()
                                  // one and all of its secondaries have been transported
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
 
-  auto runConfiguration = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT+optical", "stepLimiter+specialCuts",
-                                                  specialStacking, mtMode);
+  auto runConfiguration = new O2G4RunConfiguration("geomRoot", "QGSP_FTFP_BERT+optical", "stepLimiter+specialCuts",
+                                                   specialStacking, mtMode);
+
 
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);

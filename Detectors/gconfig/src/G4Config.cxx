@@ -20,6 +20,8 @@
 #include <DetectorsPassive/Cave.h>
 #include "DetectorsBase/MaterialManager.h"
 #include "SimSetup/GlobalProcessCutSimParam.h"
+#include "SimSetup/O2G4RunConfiguration.h"
+#include "SimSetup/O2G4FastSimConstruction.h"
 
 //using declarations here since SetCuts.C and g4Config.C are included within namespace
 // these are needed for SetCuts.C inclusion
@@ -27,6 +29,8 @@ using o2::GlobalProcessCutSimParam;
 using o2::base::ECut;
 using o2::base::EProc;
 using o2::base::MaterialManager;
+using o2::O2G4RunConfiguration;
+using o2::O2G4FastSimConstruction;
 // these are used in g4Config.C
 using std::cout;
 using std::endl;

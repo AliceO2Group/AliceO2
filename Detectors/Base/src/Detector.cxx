@@ -14,6 +14,7 @@
 #include "DetectorsBase/Detector.h"
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/MaterialManager.h"
+#include "DetectorsBase/RegionsManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString

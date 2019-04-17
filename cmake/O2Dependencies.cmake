@@ -2406,10 +2406,29 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/TestingSimTools/include
 )
 
+o2_define_bucket(
+    NAME
+    fastsim_base_bucket
+
+    DEPENDENCIES
+    ${Geant4_LIBRARIES}
+    ${Geant4VMC_LIBRARIES}
+    ${FairLogger_DEP}
+
+    INCLUDE_DIRECTORIES
+    ${Geant4VMC_INCLUDE_DIRS}
+    ${Geant4_INCLUDE_DIRS}
+    ${FairLogger_INCDIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/FastSim/base/FastSimBase/include
+)
 
 o2_define_bucket(
     NAME
     simulation_setup_bucket
+
+
+
+
 
     DEPENDENCIES
     ${Geant3_LIBRARIES}
@@ -2419,6 +2438,7 @@ o2_define_bucket(
     fairroot_geom
     SimulationDataFormat
     DetectorsPassive
+    FastSimBase
     pythia6 # this is needed by Geant3 and EGPythia6
     EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
 

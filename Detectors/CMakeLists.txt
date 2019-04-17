@@ -30,6 +30,7 @@ add_subdirectory(ZDC)
 add_subdirectory(GlobalTracking)
 IF (HAVESIMULATION)
   add_subdirectory(gconfig)
+  add_subdirectory(FastSim)
 ENDIF (HAVESIMULATION)
 
 if(DEFINED ALITPCCOMMON_DIR)

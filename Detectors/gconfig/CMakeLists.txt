@@ -7,11 +7,17 @@ set(SRCS
      src/G4Config.cxx
      src/SimSetup.cxx
      src/GlobalProcessCutSimParam.cxx
+     src/O2G4RegionsConstruction.cxx
+     src/O2G4FastSimConstruction.cxx
+     src/O2G4RunConfiguration.cxx
    )
 
 set(HEADERS
     include/${MODULE_NAME}/SimSetup.h
     include/${MODULE_NAME}/GlobalProcessCutSimParam.h
+    include/${MODULE_NAME}/O2G4RegionsConstruction.h
+    include/${MODULE_NAME}/O2G4FastSimConstruction.h
+    include/${MODULE_NAME}/O2G4RunConfiguration.h
    )
 
 Set(LINKDEF src/GConfLinkDef.h)
