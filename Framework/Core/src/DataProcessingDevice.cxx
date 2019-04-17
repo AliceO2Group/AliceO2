@@ -154,7 +154,7 @@ bool DataProcessingDevice::ConditionalRun()
                       .addTag(Key::Subsystem, Value::DPL));
     monitoring.send(Metric{ stats.lastLatency.maxLatency, "max_input_latency_ms" }
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "Value::DPL/input_rate_mb_s" }
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s" }
                       .addTag(Key::Subsystem, Value::DPL));
 
     lastSent = currentTime;
