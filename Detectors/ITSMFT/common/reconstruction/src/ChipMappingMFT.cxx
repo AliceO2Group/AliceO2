@@ -1233,7 +1233,6 @@ const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::Chi
   { 279, 2, 10, 16 },
   { 279, 3, 9, 17 },
   { 279, 4, 8, 18 }
-
 } };
 
 const std::array<MFTModuleMappingData, ChipMappingMFT::NModules> ChipMappingMFT::ModuleMappingData{ {
