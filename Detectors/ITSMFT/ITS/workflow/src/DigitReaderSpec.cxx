@@ -69,12 +69,29 @@ void DigitReader::run(ProcessingContext& pc)
     treeMC2ROF->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
     treeMC2ROF->GetEntry(0);
 
-    int ne = treeDig->GetEntries();
-    for (int e = 0; e < ne; e++) { // RS normally we should not have multiple entries here, if it happens, the references will be wrong
-      treeDig->GetEntry(e);
-      std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
-      allLabels.mergeAtBack(labels);
+    int prevEntry = -1;
+    int offset = 0;
+    for (auto& rof : rofs) {
+      int entry = rof.getROFEntry().getEvent();
+      if (entry > prevEntry) { // In principal, there should be just one entry...
+        if (treeDig->GetEntry(entry) <= 0) {
+          LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
+          return;
+        }
+        prevEntry = entry;
+        offset = allDigits.size();
+
+        //Accumulate digits and MC labels
+        std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
+        allLabels.mergeAtBack(labels);
+      }
+
+      //Once in memory, the RO frame boundaries should be "straightened"
+      rof.getROFEntry().setEvent(0);
+      int index = rof.getROFEntry().getIndex();
+      rof.getROFEntry().setIndex(index + offset);
     }
+
     LOG(INFO) << "ITSDigitReader pushed " << allDigits.size() << " digits, in "
               << profs->size() << " RO frames and "
               << pmc2rofs->size() << " MC events";
