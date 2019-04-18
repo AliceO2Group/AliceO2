@@ -21,6 +21,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -43,8 +44,20 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer = std::make_unique<o2::ITSMFT::Clusterer>();
   mClusterer->setGeometry(geom);
   mClusterer->setNChips(o2::ITSMFT::ChipMappingMFT::getNChips());
+  LOG(INFO) << "MFT ClustererDPL::init total number of sensors " << o2::ITSMFT::ChipMappingMFT::getNChips() << "\n";
 
   //mClusterer->setMaskOverflowPixels(false);
+
+  auto filenameGRP = ic.options().get<std::string>("grp-file");
+  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
+
+  if (grp) {
+    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("MFT"));
+  } else {
+    LOG(ERROR) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
+    mState = 0;
+    return;
+  }
 
   auto filename = ic.options().get<std::string>("mft-dictionary-file");
   mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
@@ -77,6 +90,8 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   o2::ITSMFT::DigitPixelReader reader;
   reader.setDigits(&digits);
+  reader.setROFRecords(&rofs);
+  reader.setMC2ROFRecords(&mc2rofs);
   reader.setDigitsMCTruth(labels.get());
   reader.init();
 
@@ -85,8 +100,10 @@ void ClustererDPL::run(ProcessingContext& pc)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
   std::vector<o2::ITSMFT::ROFRecord> clusterROframes;                  // To be filled in future
   std::vector<o2::ITSMFT::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
-
-  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels);
+  LOG(INFO) << "BV===== mClusterer->process\n";
+  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels, &clusterROframes);
+  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
+  // -> consider recalculationg maxROF
 
   LOG(INFO) << "MFTClusterer pushed " << clusters.size() << " clusters, in "
             << clusterROframes.size() << " RO frames and "
@@ -119,7 +136,8 @@ DataProcessorSpec getClustererSpec()
       OutputSpec{ "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<ClustererDPL>() },
     Options{
-      { "mft-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } } }
+      { "mft-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } },
+      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }
   };
 }
 
