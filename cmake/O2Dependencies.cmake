@@ -2344,23 +2344,6 @@ o2_define_bucket(
     MIDClustering
 )
 
-o2_define_bucket(
-    NAME
-    mid_simulation_bucket
-
-    DEPENDENCIES
-    mid_base_bucket
-    root_base_bucket
-    fairroot_base_bucket
-    DetectorsBase
-    detectors_base_bucket
-    SimulationDataFormat
-    MIDBase
-
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-)
 
 o2_define_bucket(
     NAME
@@ -2457,6 +2440,7 @@ o2_define_bucket(
     root_base_bucket
     mid_base_bucket
     MIDBase
+    SimulationDataFormat
 )
 
 o2_define_bucket(

@@ -10,6 +10,7 @@
 
 #include "MIDSimulation/Detector.h"
 #include "MIDSimulation/Geometry.h"
+#include "SimulationDataFormat/Stack.h"
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include "FairVolume.h"
@@ -40,7 +41,11 @@ void Detector::InitializeO2Detector()
 
 bool Detector::ProcessHits(FairVolume* vol)
 {
-  return mStepper.process(*fMC);
+  auto hit = mStepper.process(*fMC);
+  if (hit) {
+    (static_cast<o2::data::Stack*>(fMC->GetStack()))->addHit(GetDetId());
+  }
+  return hit;
 }
 
 std::vector<Hit>* Detector::getHits(int iColl)
