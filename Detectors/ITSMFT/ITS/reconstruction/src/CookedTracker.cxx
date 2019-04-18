@@ -532,7 +532,6 @@ void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
   if (!numOfClusters) {
     return;
   }
-  LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads << " for " << numOfClusters << " clusters";
 
   std::vector<std::future<std::vector<TrackITS>>> futures(mNumOfThreads);
   std::vector<std::vector<TrackITS>> seedArray(mNumOfThreads);
