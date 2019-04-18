@@ -25,6 +25,7 @@
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <TGeoManager.h>
 #include <fstream>
+#include <FairVolume.h>
 
 namespace o2
 {
@@ -95,6 +96,21 @@ void O2MCApplicationBase::ConstructGeometry()
     auto vol = static_cast<TGeoVolume*>(vollist->At(i));
     auto iter = fModVolMap.find(vol->GetNumber());
     voltomodulefile << vol->GetName() << ":" << mModIdToName[iter->second] << "\n";
+  }
+}
+
+void O2MCApplicationBase::InitGeometry()
+{
+  FairMCApplication::InitGeometry();
+  // now the sensitive volumes are set up in fVolMap and we can query them
+  for (auto e : fVolMap) {
+    // since fVolMap contains multiple entries (if multiple copies), this may
+    // write to the same entry multiple times
+    mSensitiveVolumes[e.first] = e.second->GetName();
+  }
+  std::ofstream sensvolfile("MCStepLoggerSenVol.dat");
+  for (auto e : mSensitiveVolumes) {
+    sensvolfile << e.first << ":" << e.second << "\n";
   }
 }
 
