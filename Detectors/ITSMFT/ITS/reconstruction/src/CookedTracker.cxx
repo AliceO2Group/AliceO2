@@ -516,8 +516,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
-    if (!mContinuousMode)
-      break;    // Done, if in triggered mode
+
     mROFrame++; // Increment the RO frame ID and go on, if in continuous mode
   }
 }
@@ -615,12 +614,8 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  int first = 0;
-  int number = clusters.size();
-  if (mContinuousMode) { // Load clusters from this ROFrame only, if in continuous mode
-    first = rof.getROFEntry().getIndex();
-    number = rof.getNROFEntries();
-  }
+  auto first = rof.getROFEntry().getIndex();
+  auto number = rof.getNROFEntries();
 
   auto clusters_in_frame = gsl::make_span(&clusters[first], number);
   for (const auto& c : clusters_in_frame) {
