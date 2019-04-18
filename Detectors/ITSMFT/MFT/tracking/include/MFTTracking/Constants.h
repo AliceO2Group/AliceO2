@@ -20,6 +20,8 @@
 
 #include <Rtypes.h>
 
+#include "CommonConstants/MathConstants.h"
+
 namespace o2
 {
 namespace MFT
@@ -28,16 +30,10 @@ namespace MFT
 namespace Constants
 {
 
-namespace Math
-{
-constexpr Float_t Pi{ 3.14159265359f };
-constexpr Float_t TwoPi{ 2.0f * Pi };
-constexpr Float_t FloatMinThreshold{ 1e-20f };
-} // namespace Math
-
 namespace MFT
 {
 constexpr Int_t LayersNumber{ 10 };
+constexpr Int_t DisksNumber{ 5 };
 constexpr Int_t TrackletsPerRoad{ LayersNumber - 1 };
 constexpr Int_t CellsPerRoad{ LayersNumber - 2 };
 constexpr Int_t ClustersPerCell{ 2 };
@@ -46,6 +42,10 @@ constexpr Float_t Resolution{ 0.0005f };
 constexpr std::array<Float_t, LayersNumber> LayerZCoordinate()
 {
   return std::array<Float_t, LayersNumber>{ -45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -68.0, -69.4, -76.1, -77.5 };
+}
+constexpr std::array<Float_t, LayersNumber> InverseLayerZCoordinate()
+{
+  return std::array<Float_t, LayersNumber>{ -1. / 45.3, -1. / 46.7, -1. / 48.6, -1. / 50.0, -1. / 52.4, -1. / 53.8, -1. / 68.0, -1. / 69.4, -1. / 76.1, -1. / 77.5 };
 }
 constexpr Int_t MinTrackPoints{ 4 };
 constexpr Int_t MaxTrackPoints{ 20 };
@@ -59,7 +59,7 @@ constexpr Float_t RMin{ 2.0 }; // [cm]
 constexpr Float_t RMax{ 16.0 };
 
 constexpr Float_t PhiMin{ 0. };
-constexpr Float_t PhiMax{ Constants::Math::TwoPi }; // [rad]
+constexpr Float_t PhiMax{ o2::constants::math::TwoPI }; // [rad]
 
 constexpr Int_t RBins{ 50 };
 constexpr Int_t PhiBins{ 50 };

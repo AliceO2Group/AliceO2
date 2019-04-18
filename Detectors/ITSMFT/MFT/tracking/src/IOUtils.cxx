@@ -21,9 +21,11 @@
 #include <unordered_set>
 #include <utility>
 
-#include "DataFormatsITSMFT/Cluster.h"
 #include "MFTBase/GeometryTGeo.h"
+
+#include "DataFormatsITSMFT/Cluster.h"
 #include "MathUtils/Utils.h"
+#include "MathUtils/Cartesian2D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -31,13 +33,6 @@ namespace o2
 {
 namespace MFT
 {
-
-using Constants::IndexTable::getBinIndex;
-using Constants::IndexTable::getPhiBinIndex;
-using Constants::IndexTable::getRBinIndex;
-using MathUtils::calculatePhiCoordinate;
-using MathUtils::calculateRCoordinate;
-using MathUtils::getNormalizedPhiCoordinate;
 
 Int_t IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
@@ -57,11 +52,13 @@ Int_t IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std:
 
       /// Rotate to the global frame
       auto xyz = c.getXYZGlo(*geom);
-      auto rCoord = calculateRCoordinate(xyz.x(), xyz.y());
-      auto phiCoord = getNormalizedPhiCoordinate(calculatePhiCoordinate(xyz.x(), xyz.y()));
-      auto rBinIndex = getRBinIndex(rCoord);
-      auto phiBinIndex = getPhiBinIndex(phiCoord);
-      auto binIndex = getBinIndex(rBinIndex, phiBinIndex);
+      auto clsPoint2D = Point2D<Float_t>(xyz.x(), xyz.y());
+      Float_t rCoord = clsPoint2D.R();
+      Float_t phiCoord = clsPoint2D.Phi();
+      o2::utils::BringTo02PiGen(phiCoord);
+      Int_t rBinIndex = Constants::IndexTable::getRBinIndex(rCoord);
+      Int_t phiBinIndex = Constants::IndexTable::getPhiBinIndex(phiCoord);
+      Int_t binIndex = Constants::IndexTable::getBinIndex(rBinIndex, phiBinIndex);
       event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
       event.addClusterExternalIndexToLayer(layer, clusterId);

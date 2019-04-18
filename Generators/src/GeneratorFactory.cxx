@@ -40,8 +40,11 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator
     LOG(INFO) << "Init box generator";
-    auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
-    boxGen->SetEtaRange(-0.9, 0.9);
+    //auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
+    //boxGen->SetEtaRange(-0.9, 0.9);
+    //boxGen->SetPRange(0.1, 5);
+    auto boxGen = new FairBoxGenerator(211, 200); /*protons*/
+    boxGen->SetEtaRange(-4.0, -2.5);
     boxGen->SetPRange(0.1, 5);
     boxGen->SetPhiRange(0., 360.);
     boxGen->SetDebug(kTRUE);

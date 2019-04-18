@@ -17,7 +17,6 @@
 
 #include <array>
 
-#include "MFTTracking/MathUtils.h"
 #include "MFTTracking/IndexTableUtils.h"
 
 #include "AliTPCCommonDefGPU.h"

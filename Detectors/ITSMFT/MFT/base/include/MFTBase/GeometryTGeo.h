@@ -106,6 +106,12 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return extractNumberOfSensorsPerLadder(half, disk, ladderID);
   }
 
+  /// Returns the ladder geometry ID from the matrix ID
+  Int_t getLadderID(Int_t disk, Int_t ladder) const
+  {
+    return mLadderIndex2Id[disk][ladder];
+  }
+
  protected:
   /// Determines the number of detector halves in the Geometry
   Int_t extractNumberOfHalves();

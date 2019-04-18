@@ -110,7 +110,7 @@ class ChipMappingMFT
  private:
   int invalid() const;
   static constexpr int NModules = 280;
-  static constexpr int NChips = 920;
+  static constexpr int NChips = 936;
 
   static const std::array<MFTChipMappingData, NChips> ChipMappingData;
   static const std::array<MFTModuleMappingData, NModules> ModuleMappingData;
