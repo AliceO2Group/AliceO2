@@ -78,6 +78,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   }
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
+  std::vector<o2::itsmft::Cluster> allClusters;
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
@@ -85,6 +86,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
+  MCLabCont allLabels;
 
   TChain itsClustersROF("ITSClustersROF");
   itsClustersROF.AddFile((path + inputClustersITS).data());
@@ -105,6 +107,9 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   MCLabCont* trackLabels = new MCLabCont();
   outTree.Branch("ITSTrack", &tracksITS);
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
+
+  TTree treeROF("ITSTracksROF", "ROF records tree");
+  treeROF.Branch("ITSTracksROF", &rofs);
   //<<<--------- create/attach output -------------<<<
 
   //=================== INIT ==================
@@ -115,24 +120,43 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
   if (mcTruth)
-    tracker.setMCTruthContainers(labels, trackLabels);
+    tracker.setMCTruthContainers(&allLabels, trackLabels);
   //===========================================
 
-  //-------------------- settings -----------//
-  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
+  // Load all clusters into a single vector
+  int prevEntry = -1;
+  int offset = 0;
+  for (auto& rof : *rofs) {
+    int entry = rof.getROFEntry().getEvent();
+    if (entry > prevEntry) { // In principal, there should be just one entry...
+      if (itsClusters.GetEntry(entry) <= 0) {
+        LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
+        return;
+      }
+      prevEntry = entry;
+      offset = allClusters.size();
 
-    std::vector<std::array<Double_t, 3>> vertices;
-    vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
+      std::copy(clusters->begin(), clusters->end(), std::back_inserter(allClusters));
+      allLabels.mergeAtBack(*labels);
+    }
 
-    itsClusters.GetEntry(iEvent);
-    tracker.setVertices(vertices);
-    tracker.process(*clusters, *tracksITS, *rofs);
-    outTree.Fill();
-    tracksITS->clear();
-    trackLabels->clear();
+    rof.getROFEntry().setEvent(0);
+    int index = rof.getROFEntry().getIndex();
+    rof.getROFEntry().setIndex(index + offset);
+
+    std::cout << "entry nclusters offset " << entry << ' ' << clusters->size() << ' ' << offset << '\n';
   }
+
+  std::vector<std::array<Double_t, 3>> vertices;
+  vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
+  tracker.setVertices(vertices);
+  tracker.process(allClusters, *tracksITS, *rofs);
+  outTree.Fill();
+  treeROF.Fill();
+
   outFile.cd();
   outTree.Write();
+  treeROF.Write();
   outFile.Close();
 
   timer.Stop();
