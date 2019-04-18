@@ -68,7 +68,7 @@ void Tracker::computeCells(ROframe& event)
       for (auto binR : binsR) {
         for (auto binPhi : binsPhi) {
           // the global bin index
-          bin = getBinIndex(binR, binPhi);
+          bin = Constants::IndexTable::getBinIndex(binR, binPhi);
           if (!getBinClusterRange(event, layer2, bin, clsMinIndex, clsMaxIndex)) {
             continue;
           }
@@ -92,7 +92,7 @@ void Tracker::findTracksLTF(ROframe& event)
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Float_t dR, dRmin, dRcut = Constants::MFT::LTFclsRCut;
   std::vector<Int_t> binsR, binsPhi, binsRS, binsPhiS;
-  Bool_t hasDisk[Constants::MFT::LayersNumber / 2], newPoint, seed = kTRUE;
+  Bool_t hasDisk[Constants::MFT::DisksNumber], newPoint, seed = kTRUE;
 
   binsRS.resize(Constants::IndexTable::LTFseed2BinWin);
   binsPhiS.resize(Constants::IndexTable::LTFseed2BinWin);
@@ -143,7 +143,7 @@ void Tracker::findTracksLTF(ROframe& event)
       for (auto binRS : binsRS) {
         for (auto binPhiS : binsPhiS) {
           // the global bin index
-          bin = getBinIndex(binRS, binPhiS);
+          bin = Constants::IndexTable::getBinIndex(binRS, binPhiS);
           if (!getBinClusterRange(event, layer2, bin, clsMinIndexS, clsMaxIndexS)) {
             continue;
           }
@@ -153,7 +153,7 @@ void Tracker::findTracksLTF(ROframe& event)
             }
             const Cluster& cluster2 = event.getClustersInLayer(layer2)[clsLayer2];
 
-            for (Int_t i = 0; i < (Constants::MFT::LayersNumber / 2); i++) {
+            for (Int_t i = 0; i < (Constants::MFT::DisksNumber); i++) {
               hasDisk[i] = kFALSE;
             }
 
@@ -187,7 +187,7 @@ void Tracker::findTracksLTF(ROframe& event)
               for (auto binR : binsR) {
                 for (auto binPhi : binsPhi) {
                   // the global bin index
-                  bin = getBinIndex(binR, binPhi);
+                  bin = Constants::IndexTable::getBinIndex(binR, binPhi);
                   if (!getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex)) {
                     continue;
                   }
@@ -223,7 +223,7 @@ void Tracker::findTracksLTF(ROframe& event)
               continue;
             }
             nPointDisks = 0;
-            for (Int_t disk = 0; disk < (Constants::MFT::LayersNumber / 2); ++disk) {
+            for (Int_t disk = 0; disk < (Constants::MFT::DisksNumber); ++disk) {
               if (hasDisk[disk])
                 ++nPointDisks;
             }
@@ -261,13 +261,13 @@ void Tracker::findTracksCA(ROframe& event)
   Int_t layer2Max[4] = { 9, 9, 9, 9 };
 
   MCCompLabel mcCompLabel;
-  Int_t roadLength, roadId, nPointDisks;
+  Int_t roadId, nPointDisks;
   Int_t nClsInLayer1, nClsInLayer2, nClsInLayer;
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Float_t dR, dRcut = Constants::MFT::ROADclsRCut;
   std::vector<Int_t> binsR, binsPhi, binsRS, binsPhiS;
-  Bool_t hasDisk[Constants::MFT::LayersNumber / 2], newPoint;
+  Bool_t hasDisk[Constants::MFT::DisksNumber], newPoint;
 
   binsRS.resize(Constants::IndexTable::LTFseed2BinWin);
   binsPhiS.resize(Constants::IndexTable::LTFseed2BinWin);
@@ -284,7 +284,6 @@ void Tracker::findTracksCA(ROframe& event)
     for (Int_t layer2 = layer2Max[layer1]; layer2 >= layer2Min[layer1]; --layer2) {
 
       nClsInLayer2 = event.getClustersInLayer(layer2).size();
-      roadLength = layer2 / 2 - layer1 / 2;
 
       for (Int_t clsLayer1 = 0; clsLayer1 < nClsInLayer1; ++clsLayer1) {
 
@@ -305,7 +304,7 @@ void Tracker::findTracksCA(ROframe& event)
         for (auto binRS : binsRS) {
           for (auto binPhiS : binsPhiS) {
             // the global bin index
-            bin = getBinIndex(binRS, binPhiS);
+            bin = Constants::IndexTable::getBinIndex(binRS, binPhiS);
             if (!getBinClusterRange(event, layer2, bin, clsMinIndexS, clsMaxIndexS)) {
               continue;
             }
@@ -315,7 +314,7 @@ void Tracker::findTracksCA(ROframe& event)
               }
               const Cluster& cluster2 = event.getClustersInLayer(layer2)[clsLayer2];
 
-              for (Int_t i = 0; i < (Constants::MFT::LayersNumber / 2); i++) {
+              for (Int_t i = 0; i < (Constants::MFT::DisksNumber); i++) {
                 hasDisk[i] = kFALSE;
               }
 
@@ -346,7 +345,7 @@ void Tracker::findTracksCA(ROframe& event)
                 for (auto binR : binsR) {
                   for (auto binPhi : binsPhi) {
                     // the global bin index
-                    bin = getBinIndex(binR, binPhi);
+                    bin = Constants::IndexTable::getBinIndex(binR, binPhi);
                     if (!getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex)) {
                       continue;
                     }
@@ -383,7 +382,7 @@ void Tracker::findTracksCA(ROframe& event)
                 continue;
               }
               nPointDisks = 0;
-              for (Int_t disk = 0; disk < (Constants::MFT::LayersNumber / 2); ++disk) {
+              for (Int_t disk = 0; disk < (Constants::MFT::DisksNumber); ++disk) {
                 if (hasDisk[disk])
                   ++nPointDisks;
               }
@@ -420,14 +419,17 @@ void Tracker::computeCellsInRoad(Road& road)
   Int_t cellId = 0;
   for (layer1 = layer1min; layer1 <= layer1max; ++layer1) {
     layer2min = layer1 + 1;
+    layer2max = MATH_MIN(layer1 + (Constants::MFT::DisksNumber - isDiskFace(layer1)), Constants::MFT::LayersNumber - 1);
     nPtsInLayer1 = road.getNPointsInLayer(layer1);
     for (Int_t point1 = 0; point1 < nPtsInLayer1; ++point1) {
-      layer2max = MATH_MIN(layer1 + (Constants::MFT::LayersNumber / 2 - isDiskFace(layer1)), Constants::MFT::LayersNumber - 1);
       clsLayer1 = road.getClustersIdInLayer(layer1)[point1];
       layer2 = layer2min;
       noCell = kTRUE;
       while (noCell && (layer2 <= layer2max)) {
         nPtsInLayer2 = road.getNPointsInLayer(layer2);
+        if (nPtsInLayer2 > 1) {
+          LOG(INFO) << "BV===== more than one point in road " << road.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
+        }
         for (Int_t point2 = 0; point2 < nPtsInLayer2; ++point2) {
           clsLayer2 = road.getClustersIdInLayer(layer2)[point2];
           noCell = kFALSE;
@@ -496,7 +498,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
   if (mMaxCellLevel == 1)
     return; // we have only isolated cells
 
-  Bool_t addCellToNewTrack, hasDisk[Constants::MFT::LayersNumber / 2];
+  Bool_t addCellToNewTrack, hasDisk[Constants::MFT::DisksNumber];
 
   Int_t iSelectChisquare, iSelectDeviation, lastCellLayer, lastCellId;
   Int_t icell, layerC, cellIdC, nPointDisks;
@@ -549,7 +551,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
         deviationPrev = -1.;
 
         // loop over left neighbours
-        deviationPrev = Constants::Math::TwoPi;
+        deviationPrev = o2::constants::math::TwoPI;
         chisquarePrev = 1.E5;
         for (auto leftNeighbour : cellRC.getLeftNeighbours()) {
           Int_t layerL = leftNeighbour.first;
@@ -604,7 +606,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
       }   // end  while(addCellToNewTrack)
 
       // check the track length
-      for (Int_t i = 0; i < (Constants::MFT::LayersNumber / 2); ++i) {
+      for (Int_t i = 0; i < (Constants::MFT::DisksNumber); ++i) {
         hasDisk[i] = kFALSE;
       }
       for (icell = 0; icell < event.getCurrentTrackCA().getNCells(); ++icell) {
@@ -615,7 +617,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
         hasDisk[cellC.getSecondLayerId() / 2] = kTRUE;
       }
       nPointDisks = 0;
-      for (Int_t disk = 0; disk < (Constants::MFT::LayersNumber / 2); ++disk) {
+      for (Int_t disk = 0; disk < (Constants::MFT::DisksNumber); ++disk) {
         if (hasDisk[disk]) {
           ++nPointDisks;
         }

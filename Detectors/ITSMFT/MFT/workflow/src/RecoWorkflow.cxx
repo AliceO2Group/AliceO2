@@ -37,7 +37,7 @@ framework::WorkflowSpec getWorkflow()
 
   specs.emplace_back(o2::MFT::getClusterReaderSpec());
   specs.emplace_back(o2::MFT::getTrackerSpec());
-  //specs.emplace_back(o2::MFT::getTrackWriterSpec());
+  specs.emplace_back(o2::MFT::getTrackWriterSpec());
 
   return specs;
 }

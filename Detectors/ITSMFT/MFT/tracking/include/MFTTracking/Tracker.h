@@ -17,6 +17,9 @@
 
 #include "MFTTracking/ROframe.h"
 #include "MFTTracking/Definitions.h"
+
+#include "MathUtils/Utils.h"
+#include "MathUtils/Cartesian2D.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -25,13 +28,6 @@ namespace o2
 {
 namespace MFT
 {
-
-using Constants::IndexTable::getBinIndex;
-using Constants::IndexTable::getPhiBinIndex;
-using Constants::IndexTable::getRBinIndex;
-using MathUtils::calculatePhiCoordinate;
-using MathUtils::calculateRCoordinate;
-using MathUtils::getNormalizedPhiCoordinate;
 
 class TrackLTF;
 
@@ -122,12 +118,14 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
 {
   Float_t dz, x_proj, y_proj, r_proj, phi_proj;
   dz = Constants::MFT::LayerZCoordinate()[layer] - Constants::MFT::LayerZCoordinate()[layer1];
-  x_proj = cluster1.xCoordinate + dz * cluster1.xCoordinate / Constants::MFT::LayerZCoordinate()[layer1];
-  y_proj = cluster1.yCoordinate + dz * cluster1.yCoordinate / Constants::MFT::LayerZCoordinate()[layer1];
-  r_proj = calculateRCoordinate(x_proj, y_proj);
-  phi_proj = getNormalizedPhiCoordinate(calculatePhiCoordinate(x_proj, y_proj));
-  binR_proj = getRBinIndex(r_proj);
-  binPhi_proj = getPhiBinIndex(phi_proj);
+  x_proj = cluster1.xCoordinate + dz * cluster1.xCoordinate * Constants::MFT::InverseLayerZCoordinate()[layer1];
+  y_proj = cluster1.yCoordinate + dz * cluster1.yCoordinate * Constants::MFT::InverseLayerZCoordinate()[layer1];
+  auto clsPoint2D = Point2D<Float_t>(x_proj, y_proj);
+  r_proj = clsPoint2D.R();
+  phi_proj = clsPoint2D.Phi();
+  o2::utils::BringTo02PiGen(phi_proj);
+  binR_proj = Constants::IndexTable::getRBinIndex(r_proj);
+  binPhi_proj = Constants::IndexTable::getPhiBinIndex(phi_proj);
   return;
 }
 

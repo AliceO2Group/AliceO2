@@ -13,40 +13,44 @@
 
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/IndexTableUtils.h"
-#include "MFTTracking/MathUtils.h"
+
+#include "MathUtils/Utils.h"
+#include "MathUtils/Cartesian2D.h"
 
 namespace o2
 {
 namespace MFT
 {
 
-using MathUtils::calculatePhiCoordinate;
-using MathUtils::calculateRCoordinate;
-using MathUtils::getNormalizedPhiCoordinate;
-
 Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index)
   : xCoordinate{ x },
     yCoordinate{ y },
     zCoordinate{ z },
-    phiCoordinate{ getNormalizedPhiCoordinate(calculatePhiCoordinate(x, y)) },
-    rCoordinate{ calculateRCoordinate(x, y) },
+    phiCoordinate{ 0. },
+    rCoordinate{ 0. },
     clusterId{ index },
     indexTableBin{ 0 }
 {
-  // Nothing to do
+  auto clsPoint2D = Point2D<Float_t>(x, y);
+  rCoordinate = clsPoint2D.R();
+  phiCoordinate = clsPoint2D.Phi();
+  o2::utils::BringTo02PiGen(phiCoordinate);
 }
 
 Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
   : xCoordinate{ other.xCoordinate },
     yCoordinate{ other.yCoordinate },
     zCoordinate{ other.zCoordinate },
-    phiCoordinate{ getNormalizedPhiCoordinate(calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
-    rCoordinate{ calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
+    phiCoordinate{ 0. },
+    rCoordinate{ 0. },
     clusterId{ other.clusterId },
     indexTableBin{ IndexTableUtils::getBinIndex(IndexTableUtils::getRBinIndex(layerIndex, rCoordinate),
                                                 IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
 {
-  // Nothing to do
+  auto clsPoint2D = Point2D<Float_t>(other.xCoordinate, other.yCoordinate);
+  rCoordinate = clsPoint2D.R();
+  phiCoordinate = clsPoint2D.Phi();
+  o2::utils::BringTo02PiGen(phiCoordinate);
 }
 
 } // namespace MFT
