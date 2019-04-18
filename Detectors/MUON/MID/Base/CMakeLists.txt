@@ -11,15 +11,6 @@ set(SRCS
   src/MpArea.cxx
 )
 
-set(NO_DICT_HEADERS
-  include/${MODULE_NAME}/ChamberEfficiency.h
-  include/${MODULE_NAME}/Constants.h
-  include/${MODULE_NAME}/GeometryTransformer.h
-  include/${MODULE_NAME}/HitFinder.h
-  include/${MODULE_NAME}/Mapping.h
-  include/${MODULE_NAME}/MpArea.h
-)
-
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME mid_base_bucket)
 
