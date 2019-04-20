@@ -50,7 +50,7 @@ namespace globaltracking
 ///< original track in the currently loaded TPC-ITS reco output
 struct TrackLocTPCITS : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  timeBracket timeBins;                      ///< bracketing time-bins
+  TimeBracket timeBins;                      ///< bracketing time-bins
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (none if MinusOne) of TOF matchTOF struct in the mMatchesTOF

@@ -26,9 +26,11 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
@@ -80,24 +82,24 @@ enum TrackRejFlag : int {
 };
 
 ///< timing (in TPC time-bins) bracket assumed for the track
-struct timeBracket {
+struct TimeBracket {
   float tmin = 0.f; ///< min possible time(bin)
   float tmax = 0.f; ///< max possible time(bin)
-  timeBracket() = default;
-  timeBracket(float mn, float mx) : tmin(mn), tmax(mx) {}
+  TimeBracket() = default;
+  TimeBracket(float mn, float mx) : tmin(mn), tmax(mx) {}
   void set(float tmn, float tmx)
   {
     tmin = tmn;
     tmax = tmx;
   }
-  ClassDefNV(timeBracket, 1);
+  ClassDefNV(TimeBracket, 1);
 };
 
 ///< TPC track parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded TPC reco output
 struct TrackLocTPC : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  timeBracket timeBins;                      ///< bracketing time-bins
+  TimeBracket timeBins;                      ///< bracketing time-bins
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
@@ -110,7 +112,6 @@ struct TrackLocTPC : public o2::track::TrackParCov {
 ///< original track in the currently loaded ITS reco output
 struct TrackLocITS : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  timeBracket timeBins;                      ///< bracketing time-bins
   int roFrame = MinusOne;                    ///< ITS readout frame assigned to this track
   int matchID = MinusOne;                    ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
   TrackLocITS(const o2::track::TrackParCov& src, int tch, int tid) : o2::track::TrackParCov(src), source(tch, tid) {}
@@ -157,6 +158,13 @@ class MatchTPCITS
   ///< perform all initializations
   void init();
 
+  ///< set InteractionRecods for the beginning of the TF
+  void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
+
+  ///< ITS readout mode
+  void setITSTriggered(bool v) { mITSTriggered = v; }
+  bool isITSTriggered() const { return mITSTriggered; }
+
   ///< get max number of output matched tracks to store per tree entry
   int getMaxOutputTracksPerEntry() const { return mMaxOutputTracksPerEntry; }
   ///< set max number of output matched tracks to store per tree entry
@@ -170,6 +178,9 @@ class MatchTPCITS
 
   ///< set tree/chain containing ITS tracks
   void setInputTreeITSTracks(TTree* tree) { mTreeITSTracks = tree; }
+
+  ///< set tree/chain containing ITS ROFRecs
+  void setInputTreeITSTrackROFRec(TTree* tree) { mTreeITSTrackROFRec = tree; }
 
   ///< set tree/chain containing TPC tracks
   void setInputTreeTPCTracks(TTree* tree) { mTreeTPCTracks = tree; }
@@ -330,12 +341,21 @@ class MatchTPCITS
   ///< convert TPC time bin to ITS ROFrame units
   int tpcTimeBin2ITSROFrame(float tbin) const
   {
+    if (mITSTriggered) {
+      return mITSROFofTPCBin[int(tbin > 0 ? tbin : 0)];
+    }
     int rof = tbin * mTPCBin2ITSROFrame - mITSROFramePhaseOffset;
     return rof < 0 ? 0 : rof;
   }
 
-  ///< convert ITS ROFrame to TPC time bin units
+  ///< convert ITS ROFrame to TPC time bin units // TOREMOVE
   float itsROFrame2TPCTimeBin(int rof) const { return (rof + mITSROFramePhaseOffset) * mITSROFrame2TPCBin; }
+
+  ///< convert Interaction Record for TPC time bin units
+  float intRecord2TPCTimeBin(const o2::InteractionRecord& bc) const
+  {
+    return bc.differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS / 1000 / mTPCTBinMUS;
+  }
 
   ///< convert Z interval to TPC time-bins
   float z2TPCBin(float z) const { return z * mZ2TPCBin; }
@@ -355,12 +375,14 @@ class MatchTPCITS
 
   int mCurrTPCTracksTreeEntry = -1;   ///< current TPC tracks tree entry loaded to memory
   int mCurrTPCClustersTreeEntry = -1; ///< current TPC clusters tree entry loaded to memory
-  int mCurrITSTracksTreeEntry = -1;   ///< current ITS tracks tree entry loaded to memory
   int mCurrITSClustersTreeEntry = -1; ///< current ITS clusters tree entry loaded to memory
+  int mCurrITSTracksTreeEntry = -1;   ///< current ITS tracks tree entry loaded to memory
 
   bool mMCTruthON = false; ///< flag availability of MC truth
-
+  o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+
+  bool mITSTriggered = false; ///< ITS readout is triggered
 
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
@@ -404,6 +426,7 @@ class MatchTPCITS
   float mTPCZMax = 0.;              ///< max drift length
 
   TTree* mTreeITSTracks = nullptr;   ///< input tree for ITS tracks
+  TTree* mTreeITSTrackROFRec = nullptr; ///< input tree for ITS Tracks ROFRecords vector
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
   TTree* mTreeITSClusters = nullptr; ///< input tree for ITS clusters
   o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
@@ -415,6 +438,7 @@ class MatchTPCITS
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
+  std::vector<o2::ITSMFT::ROFRecord>* mITSTrackROFRec = nullptr; ///< input ITS tracks ROFRecord
   std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = nullptr; ///< input ITS tracks
   std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr; ///< input TPC tracks
 
@@ -442,10 +466,12 @@ class MatchTPCITS
   ///< here we will keep index of TPC track in mTPCWork for each match
   std::vector<int> mTPCMatch2Track;
 
-  std::vector<TrackLocTPC> mTPCWork;        ///<TPC track params prepared for matching
-  std::vector<TrackLocITS> mITSWork;        ///<ITS track params prepared for matching
-  std::vector<o2::MCCompLabel> mTPCLblWork; ///<TPC track labels
-  std::vector<o2::MCCompLabel> mITSLblWork; ///<ITS track labels
+  std::vector<int> mITSROFofTPCBin;         ///< aux structure for mapping of TPC time-bins on ITS ROFs
+  std::vector<TimeBracket> mITSROFTimes;    ///< min/max times of ITS ROFs in TPC time-bins
+  std::vector<TrackLocTPC> mTPCWork;        ///< TPC track params prepared for matching
+  std::vector<TrackLocITS> mITSWork;        ///< ITS track params prepared for matching
+  std::vector<o2::MCCompLabel> mTPCLblWork; ///< TPC track labels
+  std::vector<o2::MCCompLabel> mITSLblWork; ///< ITS track labels
   std::vector<float> mWinnerChi2Refit;      ///< vector of refitChi2 for winners
 
   ///< per sector indices of TPC track entry in mTPCWork
@@ -466,6 +492,7 @@ class MatchTPCITS
   int mMaxOutputTracksPerEntry = 500; ///< max number of output tracks to store per entry
 
   std::string mITSTrackBranchName = "ITSTrack";          ///< name of branch containing input ITS tracks
+  std::string mITSTrackROFRecBranchName = "ITSTracksROF"; ///< name of branch containing input ITS tracks ROFRecords
   std::string mTPCTrackBranchName = "Tracks";            ///< name of branch containing input TPC tracks
   std::string mITSClusterBranchName = "ITSCluster";      ///< name of branch containing input ITS clusters
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels

@@ -57,8 +57,9 @@ void MatchTPCITS::run()
 
   mTimerTot.Start();
 
-  prepareTPCTracks();
   prepareITSTracks();
+  prepareTPCTracks();
+
   for (int sec = o2::constants::math::NSectors; sec--;) {
     doMatching(sec);
   }
@@ -277,6 +278,10 @@ void MatchTPCITS::attachInputTrees()
     LOG(FATAL) << "ITS tracks data input tree is not set";
   }
 
+  if (!mTreeITSTrackROFRec) {
+    LOG(FATAL) << "ITS ROFRec data input tree is not set";
+  }
+
   if (!mTreeTPCTracks) {
     LOG(FATAL) << "TPC tracks data input tree is not set";
   }
@@ -291,6 +296,13 @@ void MatchTPCITS::attachInputTrees()
   mTreeITSTracks->SetBranchAddress(mITSTrackBranchName.data(), &mITSTracksArrayInp);
   LOG(INFO) << "Attached ITS tracks " << mITSTrackBranchName << " branch with " << mTreeITSTracks->GetEntries()
             << " entries";
+
+  if (!mTreeITSTrackROFRec->GetBranch(mITSTrackROFRecBranchName.data())) {
+    LOG(FATAL) << "Did not find ITS tracks ROFRecords branch " << mITSTrackROFRecBranchName << " in the input tree";
+  }
+  mTreeITSTrackROFRec->SetBranchAddress(mITSTrackROFRecBranchName.data(), &mITSTrackROFRec);
+  LOG(INFO) << "Attached ITS tracks ROFRec " << mITSTrackROFRecBranchName << " branch with "
+            << mTreeITSTrackROFRec->GetEntries() << " entries";
 
   if (!mTreeTPCTracks->GetBranch(mTPCTrackBranchName.data())) {
     LOG(FATAL) << "Did not find TPC tracks branch " << mTPCTrackBranchName << " in the input tree";
@@ -323,8 +335,6 @@ void MatchTPCITS::attachInputTrees()
   }
 
   mMCTruthON = (mITSTrkLabels && mTPCTrkLabels);
-  mCurrTPCTracksTreeEntry = -1;
-  mCurrITSTracksTreeEntry = -1;
 }
 
 //______________________________________________
@@ -336,7 +346,7 @@ bool MatchTPCITS::prepareTPCTracks()
   if (!loadTPCTracksNextChunk()) {
     return false;
   }
-
+  int curTracksEntry = mTreeTPCTracks ? mTreeTPCTracks->GetReadEntry() : 0;
   int ntr = mTPCTracksArrayInp->size();
 
   mMatchesTPC.reserve(mMatchesTPC.size() + ntr);
@@ -365,7 +375,7 @@ bool MatchTPCITS::prepareTPCTracks()
       continue; // failed propagation to inner TPC radius, cannot be matched
 
     // create working copy of track param
-    mTPCWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig), mCurrTPCTracksTreeEntry, it);
+    mTPCWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig), curTracksEntry, it);
     auto& trc = mTPCWork.back();
     // propagate to matching Xref
     if (!propagateToRefX(trc)) {
@@ -392,7 +402,8 @@ bool MatchTPCITS::prepareTPCTracks()
     // cache work track index
     mTPCSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
   }
-
+  float maxTimeBin = 0;
+  int nITSROFs = mITSROFTimes.size();
   // sort tracks in each sector according to their timeMax
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTPCSectIndexCache[sec];
@@ -405,20 +416,24 @@ bool MatchTPCITS::prepareTPCTracks()
       return (trcA.timeBins.tmax - trcB.timeBins.tmax) < 0.;
     });
 
-    // build array of 1st entries with tmax corresponding to each ITS RO cycle
+    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger)
     float tmax = mTPCWork[indexCache.back()].timeBins.tmax;
+    if (maxTimeBin < tmax) {
+      maxTimeBin = tmax;
+    }
     int nbins = 1 + tpcTimeBin2ITSROFrame(tmax);
     auto& tbinStart = mTPCTimeBinStart[sec];
-    tbinStart.resize(nbins > 1 ? nbins : 1, -1);
-    tbinStart[0] = 0;
+    tbinStart.resize(nITSROFs, -1);
+    int itsROF = 0;
+    tbinStart[0] = itsROF;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-      int bTrc = tpcTimeBin2ITSROFrame(trc.timeBins.tmax);
-      if (bTrc < 0) {
-        continue;
+
+      while (trc.timeBins.tmax < mITSROFTimes[itsROF].tmin && itsROF < nITSROFs) {
+        itsROF++;
       }
-      if (tbinStart[bTrc] == -1) {
-        tbinStart[bTrc] = itr;
+      if (tbinStart[itsROF] == -1) {
+        tbinStart[itsROF] = itr;
       }
     }
     for (int i = 1; i < nbins; i++) {
@@ -428,6 +443,20 @@ bool MatchTPCITS::prepareTPCTracks()
     }
   } // loop over tracks of single sector
 
+  // create mapping from TPC time-bins to ITS ROFs
+
+  if (maxTimeBin < mITSROFTimes.back().tmax) {
+    maxTimeBin = mITSROFTimes.back().tmax;
+  }
+  int nb = int(maxTimeBin) + 1;
+  mITSROFofTPCBin.resize(nb, -1);
+  int itsROF = 0;
+  for (int ib = 0; ib < nb; ib++) {
+    while (ib < mITSROFTimes[itsROF].tmin && itsROF < nITSROFs) {
+      itsROF++;
+    }
+    mITSROFofTPCBin[ib] = itsROF;
+  }
   return true;
 }
 
@@ -435,30 +464,57 @@ bool MatchTPCITS::prepareTPCTracks()
 bool MatchTPCITS::prepareITSTracks()
 {
   // load next chunk of ITS data and prepare for matching
+
+  if (mTreeITSTrackROFRec) { // for input from tree read ROFrecords vector
+    mTreeITSTrackROFRec->GetEntry(0);
+  }
+  int nROFs = mITSTrackROFRec->size();
+
   mMatchesITS.clear();
+
+  if (!nROFs) {
+    LOG(INFO) << "Empty TF";
+    return true;
+  }
+
   mITSWork.clear();
+  mITSROFTimes.clear();
   // number of records might be actually more than N tracks!
   mMatchRecordsITS.clear(); // RS TODO reserve(mMatchRecordsITS.size() + mMaxMatchCandidates*ntr);
   if (mMCTruthON) {
     mITSLblWork.clear();
   }
+
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
+    mITSTimeBinStart[sec].clear();
+    mITSTimeBinStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
+  setStartIR((*mITSTrackROFRec)[0].getBCData());
+  for (int irof = 0; irof < nROFs; irof++) {
+    const auto& rofRec = (*mITSTrackROFRec)[irof];
+    // in case of the input from the tree make sure needed entry is loaded
+    auto rEntry = rofRec.getROFEntry().getEvent();
+    if (mTreeITSTracks && mCurrITSTracksTreeEntry != rEntry) {
+      mTreeITSTracks->GetEntry((mCurrITSTracksTreeEntry = rEntry));
+    }
+    float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
+    mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
 
-  while (loadITSTracksNextChunk()) {
-    int ntr = mITSTracksArrayInp->size();
-    for (int it = 0; it < ntr; it++) {
+    for (int sec = o2::constants::math::NSectors; sec--;) {         // start of sector's tracks for this ROF
+      mITSTimeBinStart[sec][irof] = mITSSectIndexCache[sec].size(); // The sorting does not affect this
+    }
+
+    int trlim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
+    for (int it = rofRec.getROFEntry().getIndex(); it < trlim; it++) {
       auto& trcOrig = (*mITSTracksArrayInp)[it];
-
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
       }
       // working copy of outer track param
-      mITSWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig.getParamOut()), mCurrITSTracksTreeEntry, it);
+      mITSWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig.getParamOut()), rEntry, it);
       auto& trc = mITSWork.back();
 
-      // TODO: why I did this?
       if (!trc.rotate(o2::utils::Angle2Alpha(trc.getPhiPos()))) {
         mITSWork.pop_back(); // discard failed track
         continue;
@@ -471,10 +527,7 @@ bool MatchTPCITS::prepareITSTracks()
       if (mMCTruthON) {
         mITSLblWork.emplace_back(mITSTrkLabels->getLabels(it)[0]);
       }
-
-      float tmn = itsROFrame2TPCTimeBin(trcOrig.getROFrame());
-      trc.timeBins.set(tmn, tmn + mITSROFrame2TPCBin);
-      trc.roFrame = trcOrig.getROFrame();
+      trc.roFrame = irof;
 
       // cache work track index
       int sector = o2::utils::Angle2Sector(trc.getAlpha());
@@ -519,7 +572,8 @@ bool MatchTPCITS::prepareITSTracks()
       return trackA.getTgl() < trackB.getTgl();
     });
 
-    // build array of 1st entries with of each ITS RO cycle
+    /* TOREMOVE?
+    // build array of 1st entries with of each ITS ROFrame
     int nbins = 1 + mITSWork[indexCache.back()].roFrame;
     auto& tbinStart = mITSTimeBinStart[sec];
     tbinStart.resize(nbins > 1 ? nbins : 1, -1);
@@ -531,10 +585,11 @@ bool MatchTPCITS::prepareITSTracks()
       }
     }
     for (int i = 1; i < nbins; i++) {
-      if (tbinStart[i] == -1) { // fill gaps with preceding indices
+      if (tbinStart[i] == -1) { // fill gaps with preceding indices. TODO ? Shall we do this for cont.readout in ITS only?
         tbinStart[i] = tbinStart[i - 1];
       }
     }
+    */
   } // loop over tracks of single sector
   mMatchesITS.reserve(mITSWork.size());
   mMatchRecordsITS.reserve(mITSWork.size() * mMaxMatchCandidates);
@@ -543,32 +598,10 @@ bool MatchTPCITS::prepareITSTracks()
 }
 
 //_____________________________________________________
-bool MatchTPCITS::loadITSTracksNextChunk()
-{
-  ///< load next chunk of ITS data
-  mTimerIO.Start(false);
-
-  while (++mCurrITSTracksTreeEntry < mTreeITSTracks->GetEntries()) {
-    mTreeITSTracks->GetEntry(mCurrITSTracksTreeEntry);
-    LOG(DEBUG) << "Loading ITS tracks entry " << mCurrITSTracksTreeEntry << " -> " << mITSTracksArrayInp->size()
-               << " tracks";
-    if (!mITSTracksArrayInp->size()) {
-      continue;
-    }
-    mTimerIO.Stop();
-    return true;
-  }
-  --mCurrITSTracksTreeEntry;
-  mTimerIO.Stop();
-  return false;
-}
-
-//_____________________________________________________
 bool MatchTPCITS::loadTPCTracksNextChunk()
 {
   ///< load next chunk of TPC data
   mTimerIO.Start(false);
-
   while (++mCurrTPCTracksTreeEntry < mTreeTPCTracks->GetEntries()) {
     mTreeTPCTracks->GetEntry(mCurrTPCTracksTreeEntry);
     LOG(DEBUG) << "Loading TPC tracks entry " << mCurrTPCTracksTreeEntry << " -> " << mTPCTracksArrayInp->size()
@@ -579,8 +612,6 @@ bool MatchTPCITS::loadTPCTracksNextChunk()
     mTimerIO.Stop();
     return true;
   }
-  --mCurrTPCTracksTreeEntry;
-
   mTimerIO.Stop();
   return false;
 }
@@ -627,13 +658,14 @@ void MatchTPCITS::doMatching(int sec)
     nCheckTPCControl++;
     for (auto iits = iits0; iits < nTracksITS; iits++) {
       auto& trefITS = mITSWork[cacheITS[iits]];
+      const auto& timeITS = mITSROFTimes[trefITS.roFrame];
       // compare if the ITS and TPC tracks may overlap in time
-      if (trefTPC.timeBins.tmax < trefITS.timeBins.tmin) {
+      if (trefTPC.timeBins.tmax < timeITS.tmin) {
         // since TPC tracks are sorted in timeMax and ITS tracks are sorted in timeMin
         // all following ITS tracks also will not match
         break;
       }
-      if (trefTPC.timeBins.tmin > trefITS.timeBins.tmax) { // its bracket is fully before TPC bracket
+      if (trefTPC.timeBins.tmin > timeITS.tmax) { // its bracket is fully before TPC bracket
         continue;
       }
       nCheckITSControl++;
@@ -1085,7 +1117,6 @@ void MatchTPCITS::refitWinners()
 
   LOG(INFO) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
-  mCurrITSTracksTreeEntry = -1;
   mCurrITSClustersTreeEntry = -1;
   for (int iITS = 0; iITS < mITSWork.size(); iITS++) {
     if (!refitTrackITSTPC(iITS)) {
@@ -1324,9 +1355,9 @@ void MatchTPCITS::loadTPCClustersChunk(int chunk)
 void MatchTPCITS::loadITSTracksChunk(int chunk)
 {
   // load single entry from ITS tracks tree
-  if (mCurrITSTracksTreeEntry != chunk) {
+  if (mTreeITSTracks && mTreeITSTracks->GetReadEntry() != chunk) {
     mTimerIO.Start(false);
-    mTreeITSTracks->GetEntry(mCurrITSTracksTreeEntry = chunk);
+    mTreeITSTracks->GetEntry(chunk);
     mTimerIO.Stop();
   }
 }
@@ -1335,9 +1366,9 @@ void MatchTPCITS::loadITSTracksChunk(int chunk)
 void MatchTPCITS::loadTPCTracksChunk(int chunk)
 {
   // load single entry from TPC tracks tree
-  if (mCurrTPCTracksTreeEntry != chunk) {
+  if (mTreeTPCTracks && mTreeTPCTracks->GetReadEntry() != chunk) {
     mTimerIO.Start(false);
-    mTreeITSTracks->GetEntry(mCurrTPCTracksTreeEntry = chunk);
+    mTreeTPCTracks->GetEntry(chunk);
     mTimerIO.Stop();
   }
 }
