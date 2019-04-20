@@ -37,6 +37,10 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   itsTracks.AddFile((path + inputTracksITS).c_str());
   matching.setInputTreeITSTracks(&itsTracks);
 
+  TChain itsTrackROF("ITSTracksROF");
+  itsTrackROF.AddFile((path + inputTracksITS).c_str());
+  matching.setInputTreeITSTrackROFRec(&itsTrackROF);
+
   TChain tpcTracks("events");
   tpcTracks.AddFile((path + inputTracksTPC).c_str());
   matching.setInputTreeTPCTracks(&tpcTracks);
