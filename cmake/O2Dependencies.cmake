@@ -975,6 +975,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    GlobalTracking_workflow_bucket
+
+    DEPENDENCIES
+    Framework
+    ReconstructionDataFormats
+    GlobalTracking
+    TPCWorkflow
+    ITSWorkflow
+    ITSMFTWorkflow
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/GlobalTrackingWorkflow/include
+)
+
+o2_define_bucket(
+    NAME
     hitanalysis_bucket
 
     DEPENDENCIES
