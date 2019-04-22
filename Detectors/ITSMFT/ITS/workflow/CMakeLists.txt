@@ -11,6 +11,7 @@ set(SRCS
   src/TrackerSpec.cxx
   src/CookedTrackerSpec.cxx
   src/TrackWriterSpec.cxx
+  src/TrackReaderSpec.cxx
    )
 
 set(LIBRARY_NAME ${MODULE_NAME})
