@@ -1,0 +1,14 @@
+set(MODULE_NAME "ITSMFTWorkflow")
+set(MODULE_BUCKET_NAME ITSMFT_workflow_bucket)
+
+O2_SETUP(NAME ${MODULE_NAME})
+
+set(SRCS
+  src/ClusterReaderSpec.cxx
+  )
+
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+
+O2_GENERATE_LIBRARY()
+
