@@ -960,6 +960,21 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    ITSMFT_workflow_bucket
+
+    DEPENDENCIES
+    Framework
+    data_format_itsmft_bucket
+    itsmft_reconstruction_bucket
+    ITSMFTReconstruction
+    DataFormatsITSMFT
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/workflow/include
+)
+
+o2_define_bucket(
+    NAME
     hitanalysis_bucket
 
     DEPENDENCIES
