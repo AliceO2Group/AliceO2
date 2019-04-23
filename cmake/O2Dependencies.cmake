@@ -2457,6 +2457,25 @@ o2_define_bucket(
     O2MIDClustering
 )
 
+o2_define_bucket(
+    NAME
+    mid_simulation_bucket
+
+    DEPENDENCIES
+    mid_base_bucket
+    root_base_bucket
+    fairroot_base_bucket
+    O2DetectorsBase
+    detectors_base_bucket
+    data_format_simulation_bucket
+    O2SimulationDataFormat
+    O2MIDBase
+    O2MIDClustering
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/include
+)
 
 o2_define_bucket(
     NAME
@@ -2542,18 +2561,6 @@ o2_define_bucket(
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
-)
-
-o2_define_bucket(
-    NAME
-    mid_simulation_bucket
-
-    DEPENDENCIES
-    data_format_simulation_bucket
-    root_base_bucket
-    mid_base_bucket
-    O2MIDBase
-    O2SimulationDataFormat
 )
 
 o2_define_bucket(
