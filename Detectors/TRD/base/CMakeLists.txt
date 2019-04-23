@@ -29,6 +29,7 @@ SET(HEADERS
   include/${MODULE_NAME}/TRDSimParam.h
   include/${MODULE_NAME}/TRDCommonParam.h
   include/${MODULE_NAME}/Digit.h
+  include/${MODULE_NAME}/DigitIndex.h
   include/${MODULE_NAME}/TRDDigitsParam.h
   include/${MODULE_NAME}/TRDArrayADC.h
   include/${MODULE_NAME}/TRDArrayDictionary.h
