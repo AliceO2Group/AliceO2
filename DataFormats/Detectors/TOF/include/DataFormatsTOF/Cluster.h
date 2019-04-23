@@ -32,16 +32,17 @@ class Cluster : public o2::BaseCluster<float>
   static constexpr float RadiusOutOfRange = 9999; // used to check if the radius was already calculated or not
   static constexpr float PhiOutOfRange = 9999;    // used to check if phi was already calculated or not
 
+  static constexpr int NPADSXSECTOR = 8736;
+
  public:
-  enum { kMain = 0x3FFFF,
-         kUpLeft = 0x40000,     // 2^18, 19th bit
-         kUp = 0x80000,         // 2^19, 20th bit
-         kUpRight = 0x100000,   // 2^20, 21th bit
-         kRight = 0x200000,     // 2^21, 22th bit
-         kDownRight = 0x400000, // 2^22, 23th bit
-         kDown = 0x800000,      // 2^23, 24th bit
-         kDownLeft = 0x1000000, // 2^24, 25th bit
-         kLeft = 0x2000000 };   // 2^25, 26th bit
+  enum { kUpLeft = 0,     // 2^0, 1st bit
+         kUp = 1,         // 2^1, 2nd bit
+         kUpRight = 2,    // 2^2, 3rd bit
+         kRight = 3,      // 2^3, 4th bit
+         kDownRight = 4,  // 2^4, 5th bit
+         kDown = 5,       // 2^5, 6th bit
+         kDownLeft = 6,   // 2^6, 7th bit
+         kLeft = 7 };     // 2^7, 8th bit
 
   Cluster() = default;
 
@@ -49,7 +50,11 @@ class Cluster : public o2::BaseCluster<float>
 
   ~Cluster() = default;
 
-  void setBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz);
+  std::int8_t getSector() const { return getCount(); }
+  void setSector(std::int8_t value) { setCount(value); }
+
+  std::int16_t getPadInSector() const { return getSensorID(); }
+  void setPadInSector(std::int16_t value) { setSensorID(value); }
 
   double getTimeRaw() const { return mTimeRaw; }            // Cluster ToF getter
   void setTimeRaw(double timeRaw) { mTimeRaw = timeRaw; }   // Cluster ToF setter
@@ -62,70 +67,41 @@ class Cluster : public o2::BaseCluster<float>
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC
   void setDeltaBC(int value) { mDeltaBC = value; };         // deltaBC
   //float  getZ()   const   {return mZ;}   // Cluster Z - already in the definition of the cluster
-  float getR()
+
+  float getR() // Cluster Radius
   {
     if (mR == RadiusOutOfRange) {
       mR = TMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
     }
     return mR;
-  } // Cluster Radius
-  float getPhi()
+  }
+
+  float getPhi() // Cluster Phi
   {
     if (mPhi == PhiOutOfRange) {
       mPhi = TMath::ATan2(getY(), getX());
     }
     return mPhi;
-  } // Cluster Phi
-  int getSector()
-  {
-    if (mSector == -1) {
-      mSector = (TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05;
-    }
-    return mSector;
-  } // Cluster Sector
+  }
 
-  int getContributingChannels() const { return mContributingChannels; }
-  void setContributingChannels(int contributingChannels) { mContributingChannels = contributingChannels; }
-  void addBitInContributingChannels(int mask) { mContributingChannels |= mask; }
+  void setR(float value){ mR = value; }
+  void setPhi(float value){ mPhi = value; }
+
   int getNumOfContributingChannels() const; // returns the number of hits associated to the cluster, i.e. the number of hits that built the cluster; it is the equivalente of the old AliESDTOFCluster::GetNTOFhits()
-  int getMainContributingChannel() const { return mContributingChannels & kMain; }
+  int getMainContributingChannel() const { return getSector()*NPADSXSECTOR + getPadInSector(); }
+
+  void addBitInContributingChannels(int bit) { setBit(bit); }
+  void resetBitInContributingChannels(int bit) { resetBit(bit); }
+  std::uint8_t getAdditionalContributingChannels() const {return getBits();}
+  void setAdditionalContributingChannels(std::uint8_t mask) {setBits(mask);}
+
+  bool isAdditionalChannelSet(int bit /* e.g. o2::tof::Cluster::kUpLeft */) const { return isBitSet(bit); }
 
   void setMainContributingChannel(int newvalue)
   {
-    int mask = kMain;
-    mContributingChannels &= ~mask;
-    mContributingChannels |= newvalue & mask;
-  } // first we do "bitwise-and" with all bits set to 1 but the first 18, which is the negation of "mask"
-
-  // setting the up, down, right, left bits
-  void setUpLeftContributingChannel() { mContributingChannels |= kUpLeft; }       // we do "bitwise-or" with the 19th bit (2^18)
-  void setUpContributingChannel() { mContributingChannels |= kUp; }               // we do "bitwise-or" with the 20th bit (2^19)
-  void setUpRightContributingChannel() { mContributingChannels |= kUpRight; }     // we do "bitwise-or" with the 21th bit (2^20)
-  void setRightContributingChannel() { mContributingChannels |= kRight; }         // we do "bitwise-or" with the 22th bit (2^21)
-  void setDownRightContributingChannel() { mContributingChannels |= kDownRight; } // we do "bitwise-or" with the 23th bit (2^22)
-  void setDownContributingChannel() { mContributingChannels |= kDown; }           // we do "bitwise-or" with the 24th bit (2^23)
-  void setDownLeftContributingChannel() { mContributingChannels |= kDownLeft; }   // we do "bitwise-or" with the 25th bit (2^24)
-  void setLeftContributingChannel() { mContributingChannels |= kLeft; }           // we do "bitwise-or" with the 26th bit (2^25)
-
-  // resetting the up, down, right, left bits
-  void resetUpLeftContributingChannel() { mContributingChannels &= ~kUpLeft; }       // we do "bitwise-and" with the 19th bit only set to zero, which is the negation of "mask"
-  void resetUpContributingChannel() { mContributingChannels &= ~kUp; }               // we do "bitwise-and" with the 20th bit only set to zero, which is the negation of "mask"
-  void resetUpRightContributingChannel() { mContributingChannels &= ~kUpRight; }     // we do "bitwise-and" with the 21th bit only set to zero, which is the negation of "mask"
-  void resetRightContributingChannel() { mContributingChannels &= ~kRight; }         // we do "bitwise-and" with the 22th bit only set to zero, which is the negation of "mask"
-  void resetDownRightContributingChannel() { mContributingChannels &= ~kDownRight; } // we do "bitwise-and" with the 23th bit only set to zero, which is the negation of "mask"
-  void resetDownContributingChannel() { mContributingChannels &= ~kDown; }           // we do "bitwise-and" with the 24th bit only set to zero, which is the negation of "mask"
-  void resetDownLeftContributingChannel() { mContributingChannels &= ~kDownLeft; }   // we do "bitwise-and" with the 25th bit only set to zero, which is the negation of "mask"
-  void resetLeftContributingChannel() { mContributingChannels &= ~kLeft; }           // we do "bitwise-and" with the 26th bit only set to zero, which is the negation of "mask"
-
-  // getters of the up, down, right, left bits
-  bool isUpLeftContributing() const { return mContributingChannels & kUpLeft; }
-  bool isUpContributing() const { return mContributingChannels & kUp; }
-  bool isUpRightContributing() const { return mContributingChannels & kUpRight; }
-  bool isRightContributing() const { return mContributingChannels & kRight; }
-  bool isDownRightContributing() const { return mContributingChannels & kDownRight; }
-  bool isDownContributing() const { return mContributingChannels & kDown; }
-  bool isDownLeftContributing() const { return mContributingChannels & kDownLeft; }
-  bool isLeftContributing() const { return mContributingChannels & kLeft; }
+    setSector(newvalue / NPADSXSECTOR);
+    setPadInSector(newvalue % NPADSXSECTOR);
+  } 
 
  private:
   friend class boost::serialization::access;
@@ -138,19 +114,8 @@ class Cluster : public o2::BaseCluster<float>
   //float  mZ;           //! z-coordinate // CZ: to be verified if it is the same in the BaseCluster class
   float mR = RadiusOutOfRange; //! radius
   float mPhi = PhiOutOfRange;  //! phi coordinate
-  int mSector = -1;            //! sector number
-  int mContributingChannels; // index of the channels that contributed to the cluster; to be read like this:
-                             // channel & 0x3FFFF -> first 18 bits to store the main channel
-                             // channel & bit19 (0x40000) -> alsoUPLEFT
-                             // channel & bit20 (0x80000) -> alsoUP
-                             // channel & bit21 (0x100000)-> alsoUPRIGHT
-                             // channel & bit22 (0x200000)-> alsoRIGHT
-                             // channel & bit23 (0x400000)-> alsoDOWNRIGHT
-                             // channel & bit24 (0x800000)-> alsoDOWN
-                             // channel & bit25 (0x1000000)-> alsoDOWNLEFT
-                             // channel & bit26 (0x2000000)-> alsoLEFT
 
-  ClassDefNV(Cluster, 1);
+  ClassDefNV(Cluster, 2);
 };
 
 std::ostream& operator<<(std::ostream& os, Cluster& c);

@@ -636,6 +636,10 @@ void MatchTOF::doMatching(int sec)
       int mainChannel = trefTOF.getMainContributingChannel();
       int indices[5];
       Geo::getVolumeIndices(mainChannel, indices);
+
+      // TO be done
+      // weighted average to be included in case of multipad clusters
+
       const auto& labelsTOF = mTOFClusLabels->getLabels(mTOFClusSectIndexCache[indices[0]][itof]);
       int trackIdTOF;
       int eventIdTOF;
