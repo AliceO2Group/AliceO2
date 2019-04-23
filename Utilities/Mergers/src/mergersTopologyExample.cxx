@@ -225,7 +225,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.generateInfrastructure(specs);
 
     DataProcessorSpec printer{
-      "printer-bins",
+      "printer-custom",
       Inputs{
         { "custom", "TST", "CUSTOM", 0 }
       },
