@@ -23,6 +23,8 @@
 #pragma link C++ class std::vector < o2::mid::Hit > +;
 #pragma link C++ class o2::mid::ColumnDataMC + ;
 #pragma link C++ class std::vector < o2::mid::ColumnDataMC > +;
+#pragma link C++ class o2::mid::MCClusterLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::mid::MCClusterLabel > +;
 #pragma link C++ class o2::mid::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::mid::MCLabel > +;
 
