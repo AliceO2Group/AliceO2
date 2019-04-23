@@ -208,7 +208,7 @@ class AliTPCPoissonSolver : public TNamed
   Double_t fMaxExact;
   Bool_t fExactPresent = kFALSE;
   /// \cond CLASSIMP
-  ClassDef(AliTPCPoissonSolver, 5);
+  ClassDefOverride(AliTPCPoissonSolver, 5);
   /// \endcond
 };
 
