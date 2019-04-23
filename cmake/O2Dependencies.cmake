@@ -2182,7 +2182,7 @@ o2_define_bucket(
     tpc_base_bucket
     tpc_reconstruction_bucket
     tof_base_bucket
-    TPCCAGPUTracking_bucket
+    GPUTracking_bucket
     data_parameters_bucket
     common_utils_bucket
     common_math_bucket
@@ -2203,7 +2203,7 @@ o2_define_bucket(
     CommonUtils
     MathUtils
     Field
-    O2TPCCAGPUTracking
+    O2GPUTracking
     O2TPCFastTransformation
     RIO
     Core
@@ -2225,6 +2225,10 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Interface
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
 )
 
 o2_define_bucket(
