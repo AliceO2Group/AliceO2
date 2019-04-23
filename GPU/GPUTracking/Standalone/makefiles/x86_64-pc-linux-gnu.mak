@@ -134,7 +134,7 @@ endif
 
 ifeq ($(CONFIG_HIP), 1)
 LIBPATHSUSE						+= -L$(HIP_PATH)/lib/
-LIBSUSE							+= -lhip_hcc
+LIBSUSE							+= -lhip_hcc -lhsa-runtime64
 endif
 
 ifeq ("$(CONFIG_CAL)", "1")
