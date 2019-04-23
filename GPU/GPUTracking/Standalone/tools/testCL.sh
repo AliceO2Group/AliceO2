@@ -10,6 +10,9 @@ LLVM_SPIRV=llvm-spirv
 echo Test1 - Preprocess
 echo $COMPILER -cl-std=c++ -x cl -I ../. -I ../Base -I ../SliceTracker -I ../Common -I ../Merger -I ../TRDTracking -I../ITS -DGPUCA_STANDALONE -DGPUCA_ENABLE_GPU_TRACKER -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -Dcl_clang_storage_class_specifiers -E ../Base/opencl/GPUReconstructionOCL.cl > test.cl
      $COMPILER -cl-std=c++ -x cl -I ../. -I ../Base -I ../SliceTracker -I ../Common -I ../Merger -I ../TRDTracking -I../ITS -DGPUCA_STANDALONE -DGPUCA_ENABLE_GPU_TRACKER -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -Dcl_clang_storage_class_specifiers -E ../Base/opencl/GPUReconstructionOCL.cl > test.cl
+    #Test 1A - Compile Preprocessed
+    #$COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -c test.cl -o test.o
+    #exit
 
 echo Test2 - amdgcn
 echo $COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -I../. -I ../Base -I ../SliceTracker -I ../Common -I ../Merger -I ../TRDTracking -I../ITS -DGPUCA_STANDALONE -DGPUCA_ENABLE_GPU_TRACKER -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -Dcl_clang_storage_class_specifiers -c ../Base/opencl/GPUReconstructionOCL.cl -o test.o
