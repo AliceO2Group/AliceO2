@@ -1346,7 +1346,7 @@ class RawPixelReader : public PixelReader
   int getNRUs() const { return mNRUs; }
 
   // get vector of RU decode containers for RUs seen in the data
-  const std::vector<RUDecodeData>& getRUDecodeVec() const { return mRUDecodeVec; }
+  const std::array<RUDecodeData, ChipMappingITS::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
 
   const std::array<int, ChipMappingITS::getNRUs()>& getRUEntries() const { return mRUEntry; }
 
