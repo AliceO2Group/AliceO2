@@ -50,9 +50,13 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
 void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
 {
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
+    char origin[5];
+    origin[4] = 0;
+    char description[17];
+    description[16] = 0;
     snprintf(buffer, size, "%s/%s/%" PRIu64,
-             concrete->origin.str,
-             concrete->description.str,
+             (strncpy(origin, concrete->origin.str, 4), origin),
+             (strncpy(description, concrete->description.str, 16), description),
              concrete->subSpec);
   } else if (auto matcher = std::get_if<DataDescriptorMatcher>(&spec.matcher)) {
     std::ostringstream ss;
