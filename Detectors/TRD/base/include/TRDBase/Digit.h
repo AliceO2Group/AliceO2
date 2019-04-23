@@ -12,6 +12,7 @@
 #define ALICEO2_TRD_DIGIT_H_
 
 #include <vector>
+#include <cstdint>
 
 namespace o2
 {
