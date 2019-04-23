@@ -164,7 +164,7 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
+#if defined(__OPENCL__) && (!defined(__OPENCLCPP__) || (defined(__clang__) && !defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS)))
 GPUdi() unsigned int GPUCommonMath::AtomicExchShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { return ::atomic_xchg((GPUshared() GPUAtomic(unsigned int) *)addr, val); }
 GPUdi() unsigned int GPUCommonMath::AtomicAddShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { return ::atomic_add((GPUshared() GPUAtomic(unsigned int) *)addr, val); }
 GPUdi() void GPUCommonMath::AtomicMaxShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { ::atomic_max((GPUshared() GPUAtomic(unsigned int) *)addr, val); }
