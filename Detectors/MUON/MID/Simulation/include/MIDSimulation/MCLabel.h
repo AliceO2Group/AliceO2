@@ -45,6 +45,8 @@ class MCLabel : public o2::MCCompLabel
   MCLabel() = default;
   MCLabel(int trackID, int eventID, int srcID, int deId, int columnId, int cathode, int firstStrip, int lastStrip);
 
+  bool operator==(const MCLabel& other) const;
+
   /// Sets the detection element ID
   void setDEId(int deId) { set(deId, sMaskDE, sOffsetDE); }
   /// Gets the detection element ID
