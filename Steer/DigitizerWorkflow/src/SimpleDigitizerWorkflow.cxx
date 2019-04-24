@@ -301,7 +301,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
   const auto grp = readGRP();
   if (!grp) {
-    return specs;
+    return WorkflowSpec{};
   }
 
   // onlyDet takes precedence on skipDet
