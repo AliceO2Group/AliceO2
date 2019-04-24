@@ -12,7 +12,6 @@
 #define ALICEO2_TRD_DIGIT_H_
 
 #include <vector>
-#include <cstdint>
 
 namespace o2
 {
@@ -21,7 +20,7 @@ namespace trd
 
 class DigitIndex;
 
-typedef std::uint16_t Digit;
+typedef unsigned short Digit;
 typedef std::vector<Digit> DigitContainer;
 typedef std::vector<DigitIndex> DigitIndexContainer;
 
