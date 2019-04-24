@@ -14,7 +14,7 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/ControlService.h"
-#include "PublisherSpec.h"
+#include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "Utils/RootTreeReader.h"
 #include "TPCBase/Sector.h"

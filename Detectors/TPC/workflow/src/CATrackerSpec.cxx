@@ -13,7 +13,7 @@
 /// @since  2018-04-18
 /// @brief  Processor spec for running TPC CA tracking
 
-#include "CATrackerSpec.h"
+#include "TPCWorkflow/CATrackerSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"

@@ -13,7 +13,7 @@
 /// @since  2018-03-26
 /// @brief  Processor spec for decoder of TPC raw cluster data
 
-#include "ClusterDecoderRawSpec.h"
+#include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"

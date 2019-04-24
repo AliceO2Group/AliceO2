@@ -13,7 +13,7 @@
 /// @since  2018-03-23
 /// @brief  spec definition for a TPC clusterer process
 
-#include "ClustererSpec.h"
+#include "TPCWorkflow/ClustererSpec.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Digit.h"
