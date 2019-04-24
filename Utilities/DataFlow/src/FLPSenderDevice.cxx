@@ -21,7 +21,7 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 using SubframeMetadata = o2::data_flow::SubframeMetadata;
 
 void FLPSenderDevice::InitTask()

@@ -27,16 +27,15 @@ using namespace o2::conf;
 
 // ----------------------------------------------------------------------
 
-std::string paramDataMember::toString(bool showProv) const
+std::string ParamDataMember::toString(bool showProv) const
 {
   std::string nil = "<null>";
-  std::string val = ((value == nullptr) ? nil : std::string(value));
 
   std::ostringstream out;
-  out << name << " : " << val;
+  out << name << " : " << value;
 
   if (showProv) {
-    std::string prov = (provenance == "" ? nil : provenance);
+    std::string prov = (provenance.compare("") == 0 ? nil : provenance);
     out << "\t\t[ " + prov + " ]";
   }
 
@@ -44,7 +43,7 @@ std::string paramDataMember::toString(bool showProv) const
   return out.str();
 }
 
-std::ostream& operator<<(std::ostream& out, const paramDataMember& pdm)
+std::ostream& operator<<(std::ostream& out, const ParamDataMember& pdm)
 {
   out << pdm.toString(false);
   return out;
@@ -132,10 +131,10 @@ const char* asString(TDataMember const& dm, char* pointer)
 
 // ----------------------------------------------------------------------
 
-std::vector<paramDataMember>* _ParamHelper::getDataMembersImpl(std::string mainkey, TClass* cl, void* obj,
+std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string mainkey, TClass* cl, void* obj,
                                                                std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
-  std::vector<paramDataMember>* members = new std::vector<paramDataMember>;
+  std::vector<ParamDataMember>* members = new std::vector<ParamDataMember>;
 
   auto toDataMember = [&members, obj, mainkey, provmap](const TDataMember* dm, int index, int size) {
     auto dt = dm->GetDataType();
@@ -149,8 +148,7 @@ std::vector<paramDataMember>* _ParamHelper::getDataMembersImpl(std::string maink
     if (iter != provmap->end()) {
       prov = ConfigurableParam::toString(iter->second);
     }
-
-    paramDataMember member = { name, value, prov };
+    ParamDataMember member{ name, value, prov };
     members->push_back(member);
   };
 
@@ -247,15 +245,16 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
 
 // ----------------------------------------------------------------------
 
-void _ParamHelper::printMembersImpl(std::vector<paramDataMember>* members, bool showProv)
+void _ParamHelper::printMembersImpl(std::vector<ParamDataMember> const* members, bool showProv)
 {
   _ParamHelper::outputMembersImpl(std::cout, members, showProv);
 }
 
-void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<paramDataMember>* members, bool showProv)
+void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<ParamDataMember> const* members, bool showProv)
 {
-  if (members == nullptr)
+  if (members == nullptr) {
     return;
+  }
 
   for (auto& member : *members) {
     out << member.toString(showProv);

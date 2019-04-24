@@ -82,7 +82,6 @@ struct HitStatsBase {
 
 template <typename T>
 struct HitStats : public HitStatsBase {
-
   // adds a hit to the statistics
   void addHit(T const& hit)
   {
@@ -97,6 +96,29 @@ struct HitStats : public HitStatsBase {
     ZAvg += z;
     Z2Avg += z * z;
     auto e = hit.GetEnergyLoss();
+    EAvg += e;
+    E2Avg += e * e;
+    auto t = hit.GetTime();
+    TAvg += t;
+    T2Avg += t * t;
+  }
+};
+
+struct TRDHitStats : public HitStatsBase {
+  // adds a hit to the statistics
+  void addHit(o2::trd::HitType const& hit)
+  {
+    NHits++;
+    auto x = hit.GetX();
+    XAvg += x;
+    X2Avg += x * x;
+    auto y = hit.GetY();
+    YAvg += y;
+    Y2Avg += y * y;
+    auto z = hit.GetZ();
+    ZAvg += z;
+    Z2Avg += z * z;
+    auto e = hit.GetCharge();
     EAvg += e;
     E2Avg += e * e;
     auto t = hit.GetTime();
@@ -199,15 +221,16 @@ void analyzeTOF(TTree* reftree)
 // do comparison for EMC
 void analyzeEMC(TTree* reftree)
 {
-  auto refresult = analyse<o2::EMCAL::Hit, HitStats<o2::EMCAL::Hit>>(reftree, "EMCHit");
+  auto refresult = analyse<o2::emcal::Hit, HitStats<o2::emcal::Hit>>(reftree, "EMCHit");
   std::cout << gPrefix << " EMC ";
   refresult.print();
 }
 
 // do comparison for TRD
+// need a different version of TRDHitStats to retrieve the hit value
 void analyzeTRD(TTree* reftree)
 {
-  auto refresult = analyse<o2::trd::HitType, HitStats<o2::trd::HitType>>(reftree, "TRDHit");
+  auto refresult = analyse<o2::trd::HitType, TRDHitStats>(reftree, "TRDHit");
   std::cout << gPrefix << " TRD ";
   refresult.print();
 }

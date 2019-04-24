@@ -16,6 +16,7 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
@@ -84,6 +85,16 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
+
+  TChain itsClustersROF("ITSClustersROF");
+  itsClustersROF.AddFile((path + inputClustersITS).data());
+
+  if (!itsClustersROF.GetBranch("ITSClustersROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
+  }
+  std::vector<o2::ITSMFT::ROFRecord>* rofs = nullptr;
+  itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
+  itsClustersROF.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
 
   //>>>--------- create/attach output ------------->>>
@@ -108,7 +119,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //===========================================
 
   //-------------------- settings -----------//
-  std::uint32_t roFrame = 0;
   for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
 
     std::vector<std::array<Double_t, 3>> vertices;
@@ -116,7 +126,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
     itsClusters.GetEntry(iEvent);
     tracker.setVertices(vertices);
-    tracker.process(*clusters, *tracksITS);
+    tracker.process(*clusters, *tracksITS, *rofs);
     outTree.Fill();
     tracksITS->clear();
     trackLabels->clear();

@@ -56,7 +56,9 @@ if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we requ
   find_package(FairLogger REQUIRED)
 endif()
 find_package(DDS)
-find_package(Protobuf REQUIRED)
+cmake_policy(SET CMP0077 NEW)
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(protobuf CONFIG REQUIRED)
 find_package(InfoLogger REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
@@ -518,7 +520,7 @@ o2_define_bucket(
     dl
     common_boost_bucket
     Boost::filesystem
-    ${PROTOBUF_LIBRARY}
+    protobuf::libprotobuf
     Base
     FairTools
     ParBase
@@ -740,6 +742,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     fairroot_base_bucket
+    configuration_bucket
     MathCore
     Geom
     RIO
@@ -747,6 +750,7 @@ o2_define_bucket(
     ParBase
     Field
     SimulationDataFormat
+    SimConfig
     CommonDataFormat
     detectors_base_bucket
     DetectorsBase
@@ -757,6 +761,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/Base/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include/
 )
 
 o2_define_bucket(
@@ -965,6 +970,28 @@ o2_define_bucket(
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
     )
+
+o2_define_bucket(
+  NAME
+  mergers_bucket
+
+  DEPENDENCIES
+  Base
+  Headers
+  Framework
+  Core
+  Hist
+  arrow_bucket
+  fairmq_bucket
+  O2FrameworkCore_bucket
+
+  INCLUDE_DIRECTORIES
+  ${MS_GSL_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/DataFormats/MemoryResources/include
+  ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
+  ${CMAKE_SOURCE_DIR}/Framework/Core/include
+  ${CMAKE_SOURCE_DIR}/Utilities/Mergers/include
+)
 
 o2_define_bucket(
     NAME
@@ -1492,6 +1519,7 @@ o2_define_bucket(
     FITBase
     T0Base
     V0Base
+    FDDBase
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
@@ -1506,10 +1534,12 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
@@ -1716,6 +1746,60 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    cpv_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    data_format_simulation_bucket
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
+)
+
+o2_define_bucket(
+    NAME
+    cpv_simulation_bucket
+
+    DEPENDENCIES
+    cpv_base_bucket
+    root_base_bucket
+    fairroot_geom
+    detectors_base_bucket
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    CPVBase
+    DetectorsBase
+    SimulationDataFormat
+
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/CPV/base/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
+)
+
+
+o2_define_bucket(
+    NAME
     event_visualisation_base_bucket
 
     DEPENDENCIES
@@ -1803,8 +1887,10 @@ o2_define_bucket(
     FITSimulation
     T0Simulation
     V0Simulation
+    FDDSimulation
     HMPIDSimulation
     PHOSSimulation
+    CPVSimulation
     PHOSReconstruction
     ZDCSimulation
     Field
@@ -1837,6 +1923,7 @@ o2_define_bucket(
     TOFReconstruction
     FITSimulation
     T0Simulation
+    FDDSimulation
     EMCALSimulation
     HMPIDBase
     HMPIDSimulation
@@ -2092,7 +2179,9 @@ o2_define_bucket(
     detectors_base_bucket
     its_base_bucket
     tpc_base_bucket
+    tpc_reconstruction_bucket
     tof_base_bucket
+    TPCCAGPUTracking_bucket
     data_parameters_bucket
     common_utils_bucket
     common_math_bucket
@@ -2101,6 +2190,7 @@ o2_define_bucket(
     ReconstructionDataFormats
     CommonDataFormat
     ITSReconstruction
+    TPCReconstruction
     DataFormatsITSMFT
     DetectorsBase
     DataFormatsTPC
@@ -2112,6 +2202,8 @@ o2_define_bucket(
     CommonUtils
     MathUtils
     Field
+    O2TPCCAGPUTracking
+    O2TPCFastTransformation
     RIO
     Core
     Geom

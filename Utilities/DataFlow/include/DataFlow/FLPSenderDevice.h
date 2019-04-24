@@ -19,7 +19,7 @@
 #include <FairMQDevice.h>
 
 namespace o2 {
-namespace Devices {
+namespace devices {
 
 /// Sends sub-timframes to epnReceivers
 ///
@@ -64,7 +64,7 @@ class FLPSenderDevice : public FairMQDevice
     int mLastTimeframeId = -1;
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

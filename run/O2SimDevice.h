@@ -24,6 +24,7 @@
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
+#include <string.h>
 
 namespace o2
 {
@@ -103,6 +104,7 @@ class O2SimDevice : public FairMQDevice
         }
 
         LOG(INFO) << "COMMUNICATED ENGINE " << config->mMCEngine;
+
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
         delete config;
@@ -171,12 +173,22 @@ class O2SimDevice : public FairMQDevice
         mVMCApp->setPrimaries(chunk->mParticles);
 
         auto info = chunk->mSubEventInfo;
-        mVMCApp->setSubEventInfo(info);
+        mVMCApp->setSubEventInfo(&info);
 
-        LOG(INFO) << "Processing " << chunk->mParticles.size() << FairLogger::endl;
+        LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
+                  << "for event " << info.eventID << "/" << info.maxEvents << " "
+                  << "part " << info.part << "/" << info.nparts;
         gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
-        mVMC->ProcessRun(1);
+        auto& conf = o2::conf::SimConfig::Instance();
+        if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
+          mVMC->ProcessEvent();
+        } else {
+          // for Geant3 at least calling ProcessEvent is not enough
+          // as some hooks are not called
+          mVMC->ProcessRun(1);
+        }
+
         FairSystemInfo sysinfo;
         LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
         mTimer.Continue();
@@ -205,7 +217,7 @@ class O2SimDevice : public FairMQDevice
   TStopwatch mTimer;                             //!
   o2::steer::O2MCApplication* mVMCApp = nullptr; //!
   TVirtualMC* mVMC = nullptr;                    //!
-  std::unique_ptr<FairRunSim> mSimRun;
+  std::unique_ptr<FairRunSim> mSimRun;           //!
 };
 
 } // namespace devices

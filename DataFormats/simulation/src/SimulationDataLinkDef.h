@@ -34,8 +34,14 @@
 #pragma link C++ class o2::MCCompLabel + ;
 
 #pragma link C++ class o2::BaseHit + ;
-#pragma link C++ class o2::BasicXYZEHit < float, float > +;
-#pragma link C++ class o2::BasicXYZEHit < double, double > +;
+#pragma link C++ class o2::BasicXYZVHit < float, float, float > +;
+#pragma link C++ class o2::BasicXYZVHit < double, double, double > +;
+#pragma link C++ class o2::BasicXYZVHit < float, float, int > +;
+#pragma link C++ class o2::BasicXYZVHit < double, double, int > +;
+#pragma link C++ class o2::BasicXYZEHit < float, float, float > +;
+#pragma link C++ class o2::BasicXYZEHit < double, double, double > +;
+#pragma link C++ class o2::BasicXYZQHit < float, float, int > +;
+#pragma link C++ class o2::BasicXYZQHit < double, double, int > +;
 #pragma link C++ struct o2::dataformats::MCTruthHeaderElement + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < long > +;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel > +;
@@ -57,6 +63,7 @@
 #pragma link C++ class vector < o2::steer::EventPart > +;
 #pragma link C++ class vector < vector < o2::steer::EventPart >> +;
 
+#pragma link C++ class o2::dataformats::MCEventStats + ;
 #pragma link C++ class o2::dataformats::MCEventHeader + ;
 
 #endif

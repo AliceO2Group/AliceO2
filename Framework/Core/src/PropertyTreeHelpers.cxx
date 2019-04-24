@@ -43,7 +43,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, b
           pt.put(key, vmap[key].as<double>());
           break;
         case VariantType::String:
-          pt.put(key, vmap[key].as<std::string>());
+          if (auto v = boost::any_cast<std::string>(&vmap[key].value())) {
+            pt.put(key, *v);
+          }
           break;
         case VariantType::Bool:
           pt.put(key, vmap[key].as<bool>());

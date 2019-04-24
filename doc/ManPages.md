@@ -1,3 +1,5 @@
+\page refdocManPages Man Pages
+
 You can create man pages in nroff format under:
 
     Subsystem/Module/docs/<man-page-name>.<section>.in

@@ -51,6 +51,8 @@ class O2MCApplication : public O2MCApplicationBase
     fStack->FillTrackArray();
     fStack->UpdateTrackIndex(fActiveDetectors);
 
+    finishEventCommon();
+
     // This special finish event version does not fill the output tree of FairRootManager
     // but forwards the data to the HitMerger
     SendData();
@@ -95,12 +97,12 @@ class O2MCApplication : public O2MCApplicationBase
   }
 
   void setSimDataChannel(FairMQChannel* channel) { mSimDataChannel = channel; }
-  void setSubEventInfo(o2::data::SubEventInfo& i) { mSubEventInfo = i; }
+  void setSubEventInfo(o2::data::SubEventInfo* i);
 
   std::vector<TParticle> mPrimaries; //!
 
   FairMQChannel* mSimDataChannel;                      //! generic channel on which to send sim data
-  o2::data::SubEventInfo mSubEventInfo;                //! what are we currently processing?
+  o2::data::SubEventInfo* mSubEventInfo = nullptr;     //! what are we currently processing?
   std::vector<o2::base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
 
   ClassDefOverride(O2MCApplication, 1) //Interface to MonteCarlo application

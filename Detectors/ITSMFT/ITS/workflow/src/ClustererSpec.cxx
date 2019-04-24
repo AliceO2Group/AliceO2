@@ -25,6 +25,8 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::framework;
 
@@ -54,6 +56,10 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
+  // settings for the fired pixel overflow masking
+  const auto& alpParams = o2::ITSMFT::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+
   auto filename = ic.options().get<std::string>("its-dictionary-file");
   mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
   if (mFile->good()) {
@@ -63,7 +69,6 @@ void ClustererDPL::init(InitContext& ic)
   } else {
     LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
     mState = 0;
-    return;
   }
 
   mClusterer->print();

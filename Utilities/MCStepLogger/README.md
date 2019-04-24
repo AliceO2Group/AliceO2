@@ -1,3 +1,5 @@
+\page refUtilitiesMCStepLogger MCStepLogger
+
 ### NOTE: The MCStepLogger has moved to https://github.com/AliceO2Group/VMCStepLogger.git
 
 ## MCStepLogger

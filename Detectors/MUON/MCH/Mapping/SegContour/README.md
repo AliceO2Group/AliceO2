@@ -1,3 +1,5 @@
+\page refMUONMCHMappingSegContour MCH Mapping SegContour
+
 # Segmentation contours
 
 This module contains convenience functions that can compute the

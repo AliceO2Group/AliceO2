@@ -196,11 +196,13 @@ class ClusterNativeHelper
     /// tree
     TTree* mTree = nullptr;
     /// the array of raw buffers
-    std::array<std::vector<char>*, NSectors> mSectorRaw;
+    std::array<std::vector<char>*, NSectors> mSectorRaw = { nullptr };
     /// the array of raw buffers
-    std::array<size_t, NSectors> mSectorRawSize;
+    std::array<size_t, NSectors> mSectorRawSize = { 0 };
     /// the array of MC label containers
     std::array<std::vector<MCLabelContainer>, NSectors> mSectorMC;
+    /// pointers on the elements of array of MC label containers
+    std::array<std::vector<MCLabelContainer>*, NSectors> mSectorMCPtr = { nullptr };
   };
 
   /// @class TreeWriter

@@ -34,6 +34,7 @@
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 
 #include "GlobalTracking/MatchTOF.h"
+#include "GlobalTracking/MatchTPCITS.h"
 
 using namespace o2::globaltracking;
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
@@ -289,7 +290,12 @@ bool MatchTOF::prepareTracks()
     //o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig); // this would take the TPCout track
     //auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     auto& trc = mTracksWork.back().getParamOut();        // with this we take the TPCITS track propagated to the vertex
-    auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length and time as it was calculated at 70 cm (corresponding to the trc defined above)
+    auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
+
+    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.) { // tpc-its track outward propagation did not reach outer ref.radius, skip this track
+      nNotPropagatedToTOF++;
+      continue;
+    }
 
     // propagate to matching Xref
     trc.getXYZGlo(globalPos);

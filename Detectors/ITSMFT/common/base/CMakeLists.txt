@@ -6,18 +6,16 @@ set(SRCS
      src/SDigit.cxx
      src/Digit.cxx
      src/SegmentationAlpide.cxx
-#    src/ContainerFactory.cxx
-#    src/MisalignmentParameter.cxx
      src/GeometryTGeo.cxx
+     src/DPLAlpideParam.cxx
     )
 
 set(HEADERS
      include/${MODULE_NAME}/SDigit.h
      include/${MODULE_NAME}/Digit.h
      include/${MODULE_NAME}/SegmentationAlpide.h
-#    include/${MODULE_NAME}/ContainerFactory.h
-#    include/${MODULE_NAME}/MisalignmentParameter.h
      include/${MODULE_NAME}/GeometryTGeo.h
+     include/${MODULE_NAME}/DPLAlpideParam.h
     )
 
 

@@ -26,7 +26,7 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 
 struct f2eHeader {
   uint16_t timeFrameId;

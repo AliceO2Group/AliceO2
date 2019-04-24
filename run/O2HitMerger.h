@@ -45,8 +45,10 @@
 #include <TRDSimulation/Detector.h>
 #include <T0Simulation/Detector.h>
 #include <V0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
 #include <MIDSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
@@ -80,7 +82,6 @@ class O2HitMerger : public FairMQDevice
     // has to be after init of Detectors
     o2::utils::ShmManager::Instance().attachToGlobalSegment();
 
-    OnData("simdata", &O2HitMerger::handleSimData);
     mTimer.Start();
   }
 
@@ -166,11 +167,11 @@ class O2HitMerger : public FairMQDevice
   {
     auto detIDmessage = std::move(data.At(index++));
     // this should be a detector ID
-    LOG(INFO) << detIDmessage->GetSize();
     if (detIDmessage->GetSize() == 4) {
       auto ptr = (int*)detIDmessage->GetData();
       o2::detectors::DetID id(ptr[0]);
-      LOG(INFO) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB " << data.At(index)->GetSize() / 1024. / 1024.;
+      LOG(DEBUG2) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB "
+                  << data.At(index)->GetSize() / 1024. / 1024.;
 
       // get the detector than can interpret it
       auto detector = mDetectorInstances[id].get();
@@ -210,13 +211,25 @@ class O2HitMerger : public FairMQDevice
     fillBranch("MCEventHeader.", headerptr);
   }
 
+  bool ConditionalRun() override
+  {
+    auto& channel = fChannels.at("simdata").at(0);
+    FairMQParts request;
+    auto bytes = channel.Receive(request);
+    if (bytes < 0) {
+      LOG(ERROR) << "Some error occurred on socket during receive on sim data";
+      return true; // keep going
+    }
+    return handleSimData(request, 0);
+  }
+
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
 
     int index = 0;
     auto infoptr = o2::base::decodeTMessage<o2::data::SubEventInfo*>(data, index++);
-    o2::data::SubEventInfo info = *infoptr;
+    o2::data::SubEventInfo& info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     fillSubEventInfoEntry(info);
@@ -241,6 +254,7 @@ class O2HitMerger : public FairMQDevice
       mEventChecksum += info.eventID;
       // we also need to check if we have all events
       if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
+        LOG(INFO) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
         return false;
       }
     }
@@ -322,14 +336,17 @@ class O2HitMerger : public FairMQDevice
     // we produce a vector<vector<int>>
     auto infobr = mOutTree->GetBranch("SubEventInfo");
 
-    if (infobr->GetEntries() == mNExpectedEvents) {
+    auto& confref = o2::conf::SimConfig::Instance();
+    if (!confref.isFilterOutNoHitEvents() && (infobr->GetEntries() == mNExpectedEvents)) {
+      LOG(INFO) << "NO MERGING NECESSARY";
       return false;
     }
 
     std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
 
-    std::vector<o2::dataformats::MCEventHeader> eventheaders; // collecting the event headers
+    std::vector<std::unique_ptr<o2::dataformats::MCEventHeader>> eventheaders; // collecting the event headers
+
     eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
@@ -343,13 +360,24 @@ class O2HitMerger : public FairMQDevice
       trackoffsets[event].emplace_back(info->npersistenttracks);
       assert(event <= mNExpectedEvents && event >= 1);
       LOG(INFO) << event << " " << mNExpectedEvents;
-      eventheaders[event - 1] = info->mMCEventHeader;
+      if (eventheaders[event - 1] == nullptr) {
+        eventheaders[event - 1] = std::unique_ptr<dataformats::MCEventHeader>(
+          new dataformats::MCEventHeader(info->mMCEventHeader));
+      } else {
+        eventheaders[event - 1]->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
+      }
     }
 
-    // quick check if we need to merge at all
-    if (info->maxEvents == infobr->GetEntries()) {
-      LOG(INFO) << "NO MERGING NECESSARY";
-      return false;
+    // now see which events can be discarded in any case due to no hits
+    if (confref.isFilterOutNoHitEvents()) {
+      for (int i = 0; i < info->maxEvents; i++) {
+        if (eventheaders[i] && eventheaders[i]->getMCEventStats().getNHits() == 0) {
+          LOG(INFO) << "Taking out event " << i << " due to no hits";
+          entrygroups.erase(i + 1); // +1 since "eventID"
+          trackoffsets.erase(i + 1);
+          eventheaders[i].reset();
+        }
+      }
     }
 
     // create the final output
@@ -374,8 +402,10 @@ class O2HitMerger : public FairMQDevice
     o2::dataformats::MCEventHeader header;
     auto headerbr = o2::base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
-      header = eventheaders[i];
-      headerbr->Fill();
+      if (eventheaders[i]) {
+        header = *(eventheaders[i]);
+        headerbr->Fill();
+      }
     }
     // attention: We need to make sure that we write everything in the same event order
     // but iteration over keys of a standard map in C++ is ordered
@@ -455,8 +485,12 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::phos::Detector>(true));
       counter++;
     }
+    if (i == DetID::CPV) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::cpv::Detector>(true));
+      counter++;
+    }
     if (i == DetID::EMC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::EMCAL::Detector>(true));
+      mDetectorInstances[i] = std::move(std::make_unique<o2::emcal::Detector>(true));
       counter++;
     }
     if (i == DetID::HMP) {
@@ -473,6 +507,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::V0) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::FDD) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::fdd::Detector>(true));
       counter++;
     }
     if (i == DetID::MCH) {

@@ -9,11 +9,12 @@ mcGener=boxgen
 
 o2sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
 
-digitizer-workflow --ITStriggered >& digi.log
+# Digitizing in triggered readout mode...
+digitizer-workflow --configKeyValues "ITSDigitizerParam.continuous=0" >& digi.log 
 
 root.exe -b -q CheckDigits.C+ >& CheckDigits.log
 
-root -b -q $O2_ROOT/share/macro/run_clus_itsSA.C+\(\"o2clus_its.root\",\"itsdigits.root\"\) >& clus_its.log
+root -b -q $O2_ROOT/share/macro/run_clus_itsSA.C+\(\"itsdigits.root\",\"o2clus_its.root\",false\) >& clus_its.log
 
 root.exe -b -q CheckClusters.C+ >& CheckClusters.log
 

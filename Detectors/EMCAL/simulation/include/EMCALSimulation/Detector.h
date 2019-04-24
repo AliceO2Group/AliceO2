@@ -23,7 +23,7 @@ class TClonesArray;
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class Hit;
 class Geometry;
@@ -201,7 +201,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::EMCAL::Detector> {
+struct UseShm<o2::emcal::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base
