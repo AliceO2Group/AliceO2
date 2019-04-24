@@ -137,7 +137,7 @@ void CookedTracker::setExternalIndices(TrackITS& t) const
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    Int_t idx = c - mFirstCluster; // Index of this cluster in event
+    Int_t idx = c - mFirstCluster - mROFrame; // Index of this cluster in event
     t.setExternalClusterIndex(i, idx);
   }
 }
@@ -516,8 +516,6 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
-
-    mROFrame++; // Increment the RO frame ID and go on, if in continuous mode
   }
 }
 
@@ -557,7 +555,6 @@ void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
         mTrkLabels->addElement(idx, label);
       }
       setExternalIndices(track);
-      track.setROFrame(mROFrame);
       tracks.push_back(track);
     }
   }
@@ -615,6 +612,8 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::
   //--------------------------------------------------------------------
   auto first = rof.getROFEntry().getIndex();
   auto number = rof.getNROFEntries();
+
+  mROFrame = first;
 
   auto clusters_in_frame = gsl::make_span(&clusters[first], number);
   for (const auto& c : clusters_in_frame) {
