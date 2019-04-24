@@ -375,7 +375,7 @@ TEveElement* Data::getEveTracks()
     int nc = rec.getNumberOfClusters();
     while (nc--) {
       Int_t idx = rec.getClusterIndex(nc);
-      const Cluster& c = (*mClusterBuffer)[idx];
+      const Cluster& c = mClusters[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
     }
