@@ -701,7 +701,8 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
 {
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = CAMath::Finite(mX) && CAMath::Finite(mChi2);
-  CADEBUG(printf("OK %d - ", (int)ok); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
+  CADEBUG(
+    printf("OK %d - ", (int)ok); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
   const float* c = mC;
   for (int i = 0; i < 15; i++) {
     ok = ok && CAMath::Finite(c[i]);

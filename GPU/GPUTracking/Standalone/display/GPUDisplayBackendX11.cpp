@@ -328,7 +328,8 @@ int GPUDisplayBackendX11::OpenGLMain()
             mMouseDnX = event.xmotion.x;
             mMouseDnY = event.xmotion.y;
           }
-        } break;
+          break;
+        }
 
         case ButtonRelease: {
           if (event.xbutton.button != 4 && event.xbutton.button != 5) {
@@ -338,14 +339,16 @@ int GPUDisplayBackendX11::OpenGLMain()
               mMouseDnR = false;
             }
           }
-        } break;
+          break;
+        }
 
         case KeyPress: {
           int handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
           mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
-        } break;
+          break;
+        }
 
         case KeyRelease: {
           int handleKey = 0, keyPress = 0;
@@ -355,19 +358,23 @@ int GPUDisplayBackendX11::OpenGLMain()
           }
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
-        } break;
+          break;
+        }
 
         case MotionNotify: {
           mouseMvX = event.xmotion.x;
           mouseMvY = event.xmotion.y;
-        } break;
+          break;
+        }
 
         case Expose: {
-        } break;
+          break;
+        }
 
         case ConfigureNotify: {
           ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
-        } break;
+          break;
+        }
 
         case ClientMessage: {
           if (event.xclient.message_type == XInternAtom(mDisplay, "_NET_WM_STATE", False)) {
@@ -375,7 +382,8 @@ int GPUDisplayBackendX11::OpenGLMain()
           } else {
             mDisplayControl = 2;
           }
-        } break;
+          break;
+        }
       }
     } while (XPending(mDisplay)); // Loop to compress events
     if (mDisplayControl == 2) {

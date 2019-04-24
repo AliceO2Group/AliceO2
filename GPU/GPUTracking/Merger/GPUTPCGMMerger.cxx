@@ -444,7 +444,8 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
       } else if (d > 3) {
         d = 3;
       }
-      CADEBUG(printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
+      CADEBUG(
+        printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
       range1[itr].fId = itr;
       range1[itr].fMin = b.Par()[1] + b.ZOffset() - d;
       range1[itr].fMax = b.Par()[1] + b.ZOffset() + d;
@@ -466,7 +467,8 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
         } else if (d > 3) {
           d = 3;
         }
-        CADEBUG(printf("  Input Slice 2 %d Track %d: ", iSlice2, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
+        CADEBUG(
+          printf("  Input Slice 2 %d Track %d: ", iSlice2, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
         range2[itr].fId = itr;
         range2[itr].fMin = b.Par()[1] + b.ZOffset() - d;
         range2[itr].fMax = b.Par()[1] + b.ZOffset() + d;
@@ -504,8 +506,10 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
       if (GetTrackLabel(b1) != GetTrackLabel(b2)) // DEBUG CODE, match by MC label
 #endif
       {
-        CADEBUG(printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""));
-        CADEBUG(for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"));
+        CADEBUG(
+          printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""));
+        CADEBUG(
+          for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"));
         if (b2.NClusters() < lBest2) {
           CADEBUG2(continue, printf("!NCl1\n"));
         }
@@ -566,7 +570,8 @@ void GPUTPCGMMerger::MergeWithingSlices()
       GPUTPCGMBorderTrack& b = mBorder[iSlice][nBord];
       if (track.TransportToX(x0, mCAParam->ConstBz, b, maxSin)) {
         b.SetTrackID(itr);
-        CADEBUG(printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
+        CADEBUG(
+          printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
         b.SetNClusters(track.NClusters());
         nBord++;
       }
