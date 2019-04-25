@@ -34,6 +34,7 @@
 #include "GPUReconstruction.h"
 #include "GPUMemoryResource.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonAlgorithm.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -212,11 +213,7 @@ void GPUTRDTracker::DoTracking()
 //--------------------------------------------------------------------
 
 // sort tracklets and fill index array
-#ifndef GPUCA_GPUCODE
-  std::sort(&mTracklets[0], mTracklets + mNTracklets);
-#else
-  Quicksort(0, mNTracklets - 1, mNTracklets);
-#endif
+  CAAlgo::sort(mTracklets, mTracklets + mNTracklets);
   int trkltCounter = 0;
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
     if (mNTrackletsInChamber[iDet] != 0) {
@@ -1155,55 +1152,4 @@ GPUd() bool GPUTRDTracker::IsGeoFindable(const GPUTRDTrack* t, const int layer, 
   }
 
   return true;
-}
-
-GPUd() void GPUTRDTracker::SwapTracklets(const int left, const int right)
-{
-  //--------------------------------------------------------------------
-  // swapping function for tracklets
-  //--------------------------------------------------------------------
-  GPUTRDTrackletWord tmp = mTracklets[left];
-  mTracklets[left] = mTracklets[right];
-  mTracklets[right] = tmp;
-}
-
-GPUd() int GPUTRDTracker::PartitionTracklets(const int left, const int right)
-{
-  //--------------------------------------------------------------------
-  // partitioning for tracklets
-  //--------------------------------------------------------------------
-  const int mid = left + (right - left) / 2;
-  GPUTRDTrackletWord pivot = mTracklets[mid];
-  SwapTracklets(mid, left);
-  int i = left + 1;
-  int j = right;
-  while (i <= j) {
-    while (i <= j && mTracklets[i] <= pivot) {
-      i++;
-    }
-    while (i <= j && mTracklets[j] > pivot) {
-      j--;
-    }
-    if (i < j) {
-      SwapTracklets(i, j);
-    }
-  }
-  SwapTracklets(i - 1, left);
-  return i - 1;
-}
-
-GPUd() void GPUTRDTracker::Quicksort(const int left, const int right, const int size)
-{
-  //--------------------------------------------------------------------
-  // use own quicksort implementation since std::sort not available
-  // sorting either tracklet array (type == 0)
-  // or hypothesis array (type == 1)
-  //--------------------------------------------------------------------
-  if (left >= right) {
-    return;
-  }
-  int part = PartitionTracklets(left, right);
-
-  Quicksort(left, part - 1, size);
-  Quicksort(part + 1, right, size);
 }
