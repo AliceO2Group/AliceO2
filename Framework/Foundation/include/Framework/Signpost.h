@@ -20,6 +20,16 @@
 #define O2_SIGNPOST(code, arg1, arg2, arg3, color) kdebug_signpost((uint32_t)code, (uintptr_t)arg1, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)color)
 #define O2_SIGNPOST_START(code, interval_id, arg2, arg3, color) kdebug_signpost_start((uint32_t)code, (uintptr_t)interval_id, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)color)
 #define O2_SIGNPOST_END(code, interval_id, arg2, arg3, color) kdebug_signpost_end((uint32_t)code, (uintptr_t)interval_id, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)color)
+#elif __has_include(<sys/kdebug.h>) // Compatibility with old API
+#include <sys/kdebug.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#ifndef SYS_kdebug_trace
+#define SYS_kdebug_trace 180
+#endif
+#define O2_SIGNPOST(code, arg1, arg2, arg3, arg4) syscall(SYS_kdebug_trace, APPSDBG_CODE(DBG_MACH_CHUD, (uint32_t)code) | DBG_FUNC_NONE, (uintptr_t)arg1, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)arg4);
+#define O2_SIGNPOST_START(code, arg1, arg2, arg3, arg4) syscall(SYS_kdebug_trace, APPSDBG_CODE(DBG_MACH_CHUD, (uint32_t)code) | DBG_FUNC_START, (uintptr_t)arg1, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)arg4);
+#define O2_SIGNPOST_END(code, arg1, arg2, arg3, arg4) syscall(SYS_kdebug_trace, APPSDBG_CODE(DBG_MACH_CHUD, (uintptr_t)code) | DBG_FUNC_END, (uintptr_t)arg1, (uintptr_t)arg2, (uintptr_t)arg3, (uintptr_t)arg4);
 #elif __has_include(<sys/sdt.h>) // This will be true on Linux if systemtap-std-dev / systemtap-std-devel
 #include <sys/sdt.h>
 #define O2_SIGNPOST(code, arg1, arg2, arg3, arg4) STAP_PROBE4(dpl, probe##code, arg1, arg2, arg3, arg4)
