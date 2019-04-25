@@ -50,14 +50,14 @@ Dipole& Dipole::operator=(const Dipole& rhs)
 
 void Dipole::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   //
   // Create Materials for Magnetic Dipole
   //
   Int_t isxfld1 = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld1, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld1, sxmgmx);
 
   Int_t isxfld2 = 2; // TODO: set this properly ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
 
@@ -197,7 +197,7 @@ void Dipole::createSpectrometerDipole()
   //
   // Media
   //
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedSteel = matmgr.getTGeoMedium("DIPO_ST_C3");
   auto kMedCoil = matmgr.getTGeoMedium("DIPO_Coil_C1");
   auto kMedCoilSh = matmgr.getTGeoMedium("DIPO_Coil_C3");
@@ -574,7 +574,7 @@ TGeoVolume* Dipole::createMagnetYoke()
   TGeoVolumeAssembly* voMagnet = new TGeoVolumeAssembly("DCM0");
   voMagnet->SetName("DCM0");
   TGeoRotation* Ry180 = new TGeoRotation("Ry180", 180., 180., 0.);
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedAlu = matmgr.getTGeoMedium("DIPO_ALU_C0");
   auto kMedCooper = matmgr.getTGeoMedium("DIPO_Cu_C0");
   auto kMedIron = matmgr.getTGeoMedium("DIPO_FE_C0");

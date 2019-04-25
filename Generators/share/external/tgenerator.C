@@ -2,6 +2,12 @@
 
 /// \author R+Preghenella - March 2019
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TGenerator.h"
+#include "FairGenerator.h"
+#include "Generators/GeneratorTGenerator.h"
+#endif
+
 FairGenerator*
   tgenerator()
 {

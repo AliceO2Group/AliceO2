@@ -9,26 +9,26 @@
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
 
+#include <chrono>
+
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
   return WorkflowSpec{
-  {
-    "A",
-    Inputs{},
-    Outputs{
-      {"TST", "A1", Lifetime::Timeframe}
-    },
-    AlgorithmSpec{
-      [](const InputRecord &inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
-       sleep(1);
-       auto aData = allocator.make<int>(Output{"TST", "A1", 0}, 1);
-      }
-    },
-    Options{{"test-option", VariantType::String, "test", "A test option"}},
-  }
+    {
+      "A",
+      Inputs{},
+      Outputs{
+        { "TST", "A1", Lifetime::Timeframe } },
+      AlgorithmSpec{
+        [](const InputRecord& inputs,
+           ServiceRegistry& services,
+           DataAllocator& allocator) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+          auto aData = allocator.make<int>(Output{ "TST", "A1", 0 }, 1);
+        } },
+      Options{ { "test-option", VariantType::String, "test", "A test option" } },
+    }
   };
 }

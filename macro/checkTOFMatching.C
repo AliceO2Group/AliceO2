@@ -1,3 +1,12 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
+#include "GlobalTracking/MatchTOF.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#endif
+
 void checkTOFMatching()
 {
 

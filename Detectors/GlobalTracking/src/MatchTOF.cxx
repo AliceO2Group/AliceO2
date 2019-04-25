@@ -34,6 +34,7 @@
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 
 #include "GlobalTracking/MatchTOF.h"
+#include "GlobalTracking/MatchTPCITS.h"
 
 using namespace o2::globaltracking;
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
@@ -289,7 +290,12 @@ bool MatchTOF::prepareTracks()
     //o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig); // this would take the TPCout track
     //auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     auto& trc = mTracksWork.back().getParamOut();        // with this we take the TPCITS track propagated to the vertex
-    auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length and time as it was calculated at 70 cm (corresponding to the trc defined above)
+    auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
+
+    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.) { // tpc-its track outward propagation did not reach outer ref.radius, skip this track
+      nNotPropagatedToTOF++;
+      continue;
+    }
 
     // propagate to matching Xref
     trc.getXYZGlo(globalPos);
@@ -748,7 +754,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
   if (xStart < 50.)
     xStart = 50.;
   int istep = 1;
-  bool hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+  bool hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   while (hasPropagated) {
     if (trc.getX() > xRef) {
       refReached = true; // we reached the 371cm reference
@@ -765,7 +771,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
     }
     if (refReached)
       break;
-    hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+    hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   }
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
   //Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trc.getSnp(), TMath::ASin(trc.getSnp())*TMath::RadToDeg());

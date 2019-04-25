@@ -34,12 +34,11 @@
 #pragma cling load("libDataFormatsTPC")
 #endif
 
-using namespace o2;
 using namespace o2::TPC;
 using namespace o2::dataformats;
 using namespace std;
 
-using MCLabelContainer = MCTruthContainer<MCCompLabel>;
+using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
 
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg
 // TClonesArray of clusters.

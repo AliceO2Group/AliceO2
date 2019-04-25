@@ -14,6 +14,8 @@
 #include "Framework/ErrorContext.h"
 #include "Framework/InitContext.h"
 
+#include "Framework/FunctionalHelpers.h"
+
 #include <functional>
 
 namespace o2
@@ -136,23 +138,6 @@ AlgorithmSpec::ProcessCallback adaptStatelessP(R (*callback)(ARGS...))
 {
   std::function<R(ARGS...)> f = callback;
   return adaptStatelessF(f);
-}
-
-template <typename T>
-struct memfun_type {
-  using type = void;
-};
-
-template <typename Ret, typename Class, typename... Args>
-struct memfun_type<Ret (Class::*)(Args...) const> {
-  using type = std::function<Ret(Args...)>;
-};
-
-template <typename F>
-typename memfun_type<decltype(&F::operator())>::type
-  FFL(F const& func)
-{ // Function from lambda !
-  return func;
 }
 
 /// This helper allows us to create a process callback without

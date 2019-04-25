@@ -1,3 +1,5 @@
+\page refMUONMCHMappingImpl3 MCH Mapping Impl3
+
 # MCH Mapping Implementation
 
 This is an implementation of the [C interface](../Interface/include/MCHMappingInterface/SegmentationCInterface.h) of the MCH mapping.

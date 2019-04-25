@@ -4,7 +4,7 @@ static
 --id
 primary-server
 --mq-config
-o2simtopology_2088.json
+o2simtopology_25218.json
 -n
 10
 -e
@@ -14,1961 +14,413 @@ boxgen
 -m
 PIPE
 ITS
-$$$$[[01;36m16:45:07[0m][[01;34mDEBUG[0m] mq-config: Using default JSON parser
-[[01;36m16:45:07[0m][[01;32mINFO[0m] Configuration: 
-bMax                              = 0                       <float>          [default] 
-catch-signals                     = 1                       <int>            [default] 
-chans.primary-get.0.address       = tcp://*:25046           <string>         [provided]
-chans.primary-get.0.autoBind      = 1                       <bool>           [provided]
-chans.primary-get.0.linger        = 500                     <int>            [provided]
-chans.primary-get.0.method        = bind                    <string>         [provided]
-chans.primary-get.0.portRangeMax  = 23000                   <int>            [provided]
-chans.primary-get.0.portRangeMin  = 22000                   <int>            [provided]
-chans.primary-get.0.rateLogging   = 0                       <int>            [provided]
-chans.primary-get.0.rcvBufSize    = 1000                    <int>            [provided]
-chans.primary-get.0.rcvKernelSize = 0                       <int>            [provided]
-chans.primary-get.0.sndBufSize    = 1000                    <int>            [provided]
-chans.primary-get.0.sndKernelSize = 0                       <int>            [provided]
-chans.primary-get.0.transport     = default                 <string>         [provided]
-chans.primary-get.0.type          = rep                     <string>         [provided]
-chans.primary-get.numSockets      = 1                       <int>            [provided]
-chunkSize                         = 10000                   <std::uint32_t>  [default] 
-chunkSizeI                        = -1                      <int>            [default] 
-color                             = 1                       <bool>           [default] 
-configKeyValues                   =                         <string>         [default] 
-control                           = static                  <string>         [provided]
-embedIntoFile                     =                         <string>         [default] 
-extGenFile                        = extgen.C                <string>         [default] 
-extGenFunc                        =                         <string>         [default] 
-extKinFile                        = Kinematics.root         <string>         [default] 
-generator                         = boxgen                  <string>         [provided]
-id                                = primary-server          <string>         [provided]
-initialization-timeout            = 120                     <int>            [default] 
-io-threads                        = 1                       <int>            [default] 
-isMT                              = 0                       <bool>           [default] 
-log-to-file                       =                         <string>         [default] 
-logseverity                       = INFO                    <string>         [default] 
-logverbosity                      = low                     <string>         [default] 
-mcEngine                          = TGeant3                 <string>         [provided]
-modules                           = PIPE  ITS               <vector<string>> [provided]
-mq-config                         = o2simtopology_2088.json <string>         [provided]
-nEvents                           = 10                      <std::uint32_t>  [provided]
-network-interface                 = default                 <string>         [default] 
-nworkers                          = 12                      <int>            [default] 
-outPrefix                         = o2sim                   <string>         [default] 
-rate                              = 0                       <float>          [default] 
-seed                              = -1                      <int>            [default] 
-session                           = default                 <string>         [default] 
-severity                          = debug                   <string>         [default] 
-shm-monitor                       = 1                       <bool>           [default] 
-shm-segment-size                  = 2000000000              <std::size_t>    [default] 
-skipModules                       =                         <vector<string>> [default] 
-startEvent                        = 0                       <std::uint32_t>  [default] 
-transport                         = zeromq                  <string>         [default] 
-verbosity                         = medium                  <string>         [default] 
+$$$$[[01;36m13:22:42[0m][[01;34mDEBUG[0m] mq-config: Using default JSON parser
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Configuration: 
+bMax                              = 0                        <float>          [default] 
+catch-signals                     = 1                        <int>            [default] 
+chans.primary-get.0.address       = tcp://*:25008            <string>         [provided]
+chans.primary-get.0.autoBind      = 1                        <bool>           [provided]
+chans.primary-get.0.linger        = 500                      <int>            [provided]
+chans.primary-get.0.method        = bind                     <string>         [provided]
+chans.primary-get.0.portRangeMax  = 23000                    <int>            [provided]
+chans.primary-get.0.portRangeMin  = 22000                    <int>            [provided]
+chans.primary-get.0.rateLogging   = 0                        <int>            [provided]
+chans.primary-get.0.rcvBufSize    = 100000                   <int>            [provided]
+chans.primary-get.0.rcvKernelSize = 0                        <int>            [provided]
+chans.primary-get.0.sndBufSize    = 100000                   <int>            [provided]
+chans.primary-get.0.sndKernelSize = 0                        <int>            [provided]
+chans.primary-get.0.transport     = default                  <string>         [provided]
+chans.primary-get.0.type          = rep                      <string>         [provided]
+chans.primary-get.numSockets      = 1                        <int>            [provided]
+chunkSize                         = 5000                     <std::uint32_t>  [default] 
+chunkSizeI                        = -1                       <int>            [default] 
+color                             = 1                        <bool>           [default] 
+configKeyValues                   =                          <string>         [default] 
+control                           = static                   <string>         [provided]
+embedIntoFile                     =                          <string>         [default] 
+extGenFile                        = extgen.C                 <string>         [default] 
+extGenFunc                        =                          <string>         [default] 
+extKinFile                        = Kinematics.root          <string>         [default] 
+generator                         = boxgen                   <string>         [provided]
+id                                = primary-server           <string>         [provided]
+initialization-timeout            = 120                      <int>            [default] 
+io-threads                        = 1                        <int>            [default] 
+isMT                              = 0                        <bool>           [default] 
+log-to-file                       =                          <string>         [default] 
+logseverity                       = INFO                     <string>         [default] 
+logverbosity                      = low                      <string>         [default] 
+mcEngine                          = TGeant3                  <string>         [provided]
+modules                           = PIPE  ITS                <vector<string>> [provided]
+mq-config                         = o2simtopology_25218.json <string>         [provided]
+nEvents                           = 10                       <std::uint32_t>  [provided]
+network-interface                 = default                  <string>         [default] 
+nworkers                          = 12                       <int>            [default] 
+outPrefix                         = o2sim                    <string>         [default] 
+rate                              = 0                        <float>          [default] 
+seed                              = -1                       <int>            [default] 
+session                           = default                  <string>         [default] 
+severity                          = debug                    <string>         [default] 
+shm-monitor                       = 1                        <bool>           [default] 
+shm-segment-size                  = 2000000000               <std::size_t>    [default] 
+skipModules                       =                          <vector<string>> [default] 
+startEvent                        = 0                        <std::uint32_t>  [default] 
+transport                         = zeromq                   <string>         [default] 
+verbosity                         = medium                   <string>         [default] 
 
-[[01;36m16:45:07[0m][[01;32mINFO[0m] 
+[[01;36m13:22:42[0m][[01;32mINFO[0m] 
       ______      _    _______  _________ 
      / ____/___ _(_)_______   |/  /_  __ \    version 1.3.8
     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2018 GSI
 
-[[01;36m16:45:07[0m][[01;35mSTATE[0m] Starting FairMQ state machine
-[[01;36m16:45:07[0m][[01;35mSTATE[0m] Entering IDLE state
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] PID: 2091
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Loaded plugin: 'control', version '1.3.8', maintainer 'FairRootGroup <fairroot@gsi.de>', homepage 'https://github.com/FairRootGroup/FairRoot'
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Running builtin controller: static
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] catch-signals: 1
-[[01;36m16:45:07[0m][[01;35mSTATE[0m] Entering INITIALIZING_DEVICE state
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Inserting new device channel from config: primary-get
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Requesting 'zeromq' as default transport for the device
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Transport: Using ZeroMQ library, version: 4.1.5
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Adding 'zeromq' transport to the device.
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] primary-get[0]: using default transport
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Validating channel 'primary-get[0]'... VALID
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Created socket primary-server.primary-get[0].rep
-[[01;36m16:45:07[0m][[01;34mDEBUG[0m] Attached channel primary-get[0] to tcp://*:25046 (bind) (rep)
-[[01;36m16:45:07[0m][[01;35mSTATE[0m] Entering DEVICE_READY state
-[[01;36m16:45:07[0m][[01;35mSTATE[0m] Entering INITIALIZING_TASK state
-[[01;36m16:45:07[0m][[01;32mINFO[0m] Init Server device 
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// bMax f
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// catch-signals i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.address NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.autoBind b
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.linger i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.method NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.portRangeMax i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.portRangeMin i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rateLogging i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rcvBufSize i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rcvKernelSize i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.sndBufSize i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.sndKernelSize i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.transport NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.0.type NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chans.primary-get.numSockets i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chunkSize j
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// chunkSizeI i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// color b
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// configKeyValues NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// control NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// embedIntoFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// extGenFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// extGenFunc NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// extKinFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// generator NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// id NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// initialization-timeout i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// io-threads i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// isMT b
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// log-to-file NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// logseverity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// logverbosity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// mcEngine NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// modules St6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS5_EE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// mq-config NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// nEvents j
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// network-interface NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// nworkers i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// outPrefix NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// rate f
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// seed i
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// session NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// severity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// shm-monitor b
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// shm-segment-size m
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// skipModules St6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS5_EE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// startEvent j
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// transport NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ///// verbosity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-[[01;36m16:45:07[0m][[01;32mINFO[0m] ENGINE SET TO TGeant3
-[[01;36m16:45:07[0m][[01;32mINFO[0m] CHUNK SIZE SET TO 10000
-[[01;36m16:45:07[0m][[01;32mINFO[0m] RNG INITIAL SEED 624107902
-[[01;36m16:45:08[0m][[01;32mINFO[0m] ASSIGNED PIPE HANDLE 4
-[[01;36m16:45:08[0m][[01;35mSTATE[0m] Entering READY state
-[[01;36m16:45:08[0m][[01;35mSTATE[0m] Entering RUNNING state
-[[01;36m16:45:08[0m][[01;32mINFO[0m] DEVICE: Running...
-[[01;36m16:45:08[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 13
-[[01;36m16:45:08[0m][[01;32mINFO[0m] received config request
-[[01;36m16:45:08[0m][[01;32mINFO[0m] Init box generator
-[[01;36m16:45:08[0m][[01;32mINFO[0m] Initialising primary generator
-[[01;36m16:45:08[0m][[01;32mINFO[0m] Setting interaction diamond: position = {0,0,0} cm
-[[01;36m16:45:08[0m][[01;32mINFO[0m] Setting interaction diamond: width = {0,0,0} cm
-[[01;36m16:45:08[0m][[01;32mINFO[0m] config reply send 
-[[01;36m16:45:08[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 13
-[[01;36m16:45:08[0m][[01;32mINFO[0m] received config request
-[[01;36m16:45:08[0m][[01;32mINFO[0m] config reply send 
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(2.28, -4.29, -0.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.04, 1.82, -2.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, -3.19, 1.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.85, 1.96, -0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.18, -1.30, -0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.05, 1.97, -0.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.49, -3.12, 2.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.14, 1.92, -2.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.52, 2.47, -1.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.50, -3.94, -0.44) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 1) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 1 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.49, 1.44, -2.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.64, -0.74, -0.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.34, 0.28, 0.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.70, 1.62, 2.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.75, 0.92, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.97, 3.34, 2.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.32, -0.11, 0.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.04, -1.54, 1.92) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.01, 0.27, -0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.31, -2.32, 2.51) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 2) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 2 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.73, 0.41, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.42, 2.76, -3.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.20, 4.49, 0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.80, 2.98, 0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.98, 1.22, 0.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.62, 1.18, 1.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.92, 1.06, 0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.47, -0.35, 1.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.10, -0.01, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.58, -3.86, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 3) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 3 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.82, -0.74, -0.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.15, -1.05, -1.92) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.84, 0.01, 2.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.02, 1.90, 1.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.19, -0.35, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.02, 0.77, -1.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.44, 3.18, -1.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.51, -0.49, 2.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.02, -0.60, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.82, -2.09, -0.96) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 4) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 4 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.04, 0.24, -0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.86, 3.39, 3.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.50, -1.70, -2.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.54, 0.52, 1.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.29, -2.42, -3.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.04, -0.06, 0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.31, 0.70, -0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.92, -1.88, 1.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.96, -3.51, -1.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.44, 2.66, 3.06) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 5) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 5 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-2.34, 0.51, 1.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.03, -1.36, 0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.55, 4.06, -0.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.20, 0.33, -0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.98, -2.48, -1.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.92, 0.56, 0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.76, -2.28, 0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.69, 0.65, 0.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, -1.11, -0.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.92, 0.24, 0.91) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 6) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 6 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.09, 0.06, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.98, 0.91, 2.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.76, 0.37, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.89, 2.37, 3.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.50, 3.08, -3.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.99, 0.05, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.41, 0.78, -0.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.69, 1.02, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.77, 1.67, -2.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.79, 2.28, 1.26) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 7) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 7 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.51, 0.66, 0.70) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.90, 1.67, 0.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.98, -2.37, 1.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.10, 0.59, 0.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.82, -3.43, -2.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.70, 2.30, -1.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.83, -1.75, 1.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.28, -2.95, -2.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.97, 0.25, -0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.48, -1.23, 0.35) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 8) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 8 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.21, -0.38, -0.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.59, -1.95, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.34, 2.79, 1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.70, -3.32, 0.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.37, 1.85, -1.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.74, 2.97, 2.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.74, 0.67, 0.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.28, -1.55, 2.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.89, 1.58, -2.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.04, 0.37, 0.18) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 9) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 9 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.84, 1.36, 0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.01, -3.01, 1.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.90, 2.22, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.43, 1.84, 2.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.18, -1.58, -1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.87, 0.04, 0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.84, 0.13, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.37, 0.61, -1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.87, -0.06, 0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.44, 2.74, 1.89) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] (Event 10) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m16:45:12[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m16:45:12[0m][[01;33mWARN[0m] treating ev 10 part 1 out of 1
-
-[[01;36m16:45:12[0m][[01;32mINFO[0m] reply send
-[[01;36m16:45:12[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] RUNNING state finished without an external event, entering READY state
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Entering RESETTING_TASK state
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING TASK
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Entering DEVICE_READY state
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Entering RESETTING_DEVICE state
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING DEVICE
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Entering IDLE state
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Entering EXITING state
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Shutting down Plugin Manager
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Unloaded plugin: 'control', version '1.3.8', maintainer 'FairRootGroup <fairroot@gsi.de>', homepage 'https://github.com/FairRootGroup/FairRoot'
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Shutting down Plugin Services
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] Destructing device primary-server
-[[01;36m16:45:12[0m][[01;35mSTATE[0m] Exiting FairMQ state machine
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] removed RTDB container factory PassiveContFact
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] removed RTDB container factory ContainerFactory
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] removed RTDB container factory MagFieldContFact
-[[01;36m16:45:12[0m][[01;34mDEBUG[0m] removed RTDB container factory FairBaseContFact
-m16:06:02[0m][[01;34mDEBUG[0m] removed RTDB container factory FairBaseContFact
-en: kf=211, p=(1.72, 2.17, -0.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.20, 0.26, -0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.00, -2.17, -1.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.28, -0.34, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.80, 2.22, 0.99) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 12) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 12 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.47, 0.87, 0.70) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.12, 2.79, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.10, 0.31, 2.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.70, 1.27, -1.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.23, -1.20, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.26, -1.04, -0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.96, 0.92, -1.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.29, -2.21, -2.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.19, -0.35, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.78, 0.64, -1.90) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 13) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 13 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.88, 0.88, -0.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.13, -3.59, 2.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.75, -0.51, -0.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.81, 0.91, 2.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.52, 2.37, -1.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.94, -2.59, -2.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.70, -0.31, -1.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.44, -2.90, 2.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.33, -3.15, 0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.82, -1.87, 0.38) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 14) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 14 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.80, -2.22, -0.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.57, 0.73, 1.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.98, -3.01, -1.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.96, 2.00, -2.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.63, -1.02, -1.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.85, 2.43, -0.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.38, -2.44, 1.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.28, -0.11, 0.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.19, 0.23, 0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.88, 0.48, 0.16) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 15) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 15 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.07, -0.06, -0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.46, 2.49, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.07, 3.09, -1.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.09, 0.28, -0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, -0.17, -0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.76, 4.01, 0.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.32, -1.86, 2.41) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.98, 0.48, -1.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.08, 2.48, -2.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.23, 0.02, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 16) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 16 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.86, -1.47, 2.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.97, -2.82, 3.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.06, -0.93, 2.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.63, -0.51, -0.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.68, -0.58, 0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.52, 0.62, 0.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.46, -2.25, -0.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.76, 0.08, -0.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.13, -2.37, -0.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.90, -0.00, -0.91) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 17) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 17 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.23, -0.01, 1.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.35, 0.52, 0.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.71, -0.60, 1.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.48, 1.76, 1.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.21, 0.71, -0.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.09, 2.06, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.28, 1.63, 1.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.14, 2.31, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.47, 3.75, 1.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, 0.34, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 18) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 18 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.57, -2.54, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.68, -2.38, -1.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.72, -0.22, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.40, -2.26, 2.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.84, -0.36, 2.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.71, 0.52, -2.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.61, 0.54, -1.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.89, 1.03, -1.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.67, 0.04, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.00, -0.33, 0.27) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 19) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 19 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-2.15, 2.34, 3.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.04, -2.46, -1.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.15, 0.12, -0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.60, 0.12, 0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.03, 1.90, -1.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.68, 1.73, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.04, -0.41, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.90, 3.68, 1.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.03, -0.23, -0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.08, 0.02, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 20) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 20 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(2.58, 3.03, 0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.15, -1.82, 1.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.41, -2.62, -2.59) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.89, -2.76, 2.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.71, 1.01, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.51, 1.94, 1.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.05, 0.89, 0.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.25, 3.21, 2.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.25, -0.17, -1.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.47, 1.37, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 21) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 21 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.45, 0.03, -0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.92, 2.15, 1.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.46, -0.66, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.81, -0.80, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.37, 0.81, 0.88) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.15, -2.21, -1.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.33, -0.27, 1.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.81, -2.27, -0.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.16, -0.05, -0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.37, -0.53, -0.26) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 22) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 22 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(4.04, -2.20, -1.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.80, -0.59, -0.75) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.84, 0.65, 0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.44, 0.28, -0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.25, 0.86, 0.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.04, 0.56, -0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.35, 0.49, 0.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.57, 0.38, -0.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.89, 1.11, 0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.40, 0.03, 1.80) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 23) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 23 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.87, 1.07, 0.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.05, 0.10, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.33, -3.38, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.48, -0.66, 1.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.43, 0.31, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.30, -1.37, -0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.50, -0.47, 0.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.48, -4.11, 1.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.19, 2.10, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.76, 0.37, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 24) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 24 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.06, -1.74, -0.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.14, 1.33, -0.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.82, -0.01, 0.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.40, 0.71, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.17, -1.08, 0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.17, 0.10, -1.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.26, -0.01, 0.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.91, 1.18, -0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.58, 2.71, 1.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.05, 1.98, -0.87) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 25) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 25 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.34, 1.22, 1.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.69, -1.82, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.85, -3.80, 0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.74, 0.71, 2.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.06, -1.14, -0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.88, 2.78, -2.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.16, 0.23, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.20, 2.02, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.08, 1.52, -0.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.28, 1.96, -1.15) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 26) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 26 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.92, 1.30, -0.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.60, 1.36, -1.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.48, -0.05, 1.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.22, -2.68, 0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.19, 0.51, -0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.77, 2.85, -0.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.39, -1.86, -0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.82, 0.37, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.10, 2.60, -0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.31, 2.08, -1.22) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 27) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 27 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.05, -0.54, 1.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.31, 2.40, -0.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.90, -1.61, 0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.65, 1.63, -0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.86, -0.26, -1.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.79, 1.55, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.95, 1.32, 1.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.62, 2.15, 1.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.99, 0.04, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.62, 0.29, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 28) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 28 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.20, 2.73, -1.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.17, 3.94, 2.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.45, -1.88, -1.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.85, 1.86, -0.87) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.83, 0.37, 1.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.18, -1.39, -2.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.28, -2.45, 1.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.18, -0.03, -0.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.70, 2.20, 1.88) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.50, 0.75, 0.82) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 29) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 29 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.35, -1.04, 0.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.72, 2.64, 0.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.40, 0.25, 1.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, -3.04, 2.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.04, -2.91, 2.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.89, 1.51, -1.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.23, -0.95, -0.59) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.29, -1.11, 1.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.64, -0.27, 1.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.28, -0.35, 2.03) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 30) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 30 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.63, 0.63, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.04, -1.65, 1.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.31, 3.42, 0.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.37, -0.30, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.17, -3.13, -2.88) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.06, 0.14, 1.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.21, 0.14, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.23, 4.09, 0.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.88, 2.37, 2.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.14, -3.74, 2.26) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 31) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 31 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.75, -1.29, 1.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.35, -0.98, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.38, 4.44, -1.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.19, -1.10, -1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.21, 1.10, 1.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.94, -1.47, 1.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.12, -0.69, 1.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.61, -0.84, 0.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.41, -0.27, 0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.67, -2.25, -1.76) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 32) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 32 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(2.16, -0.02, 1.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.32, -0.66, 1.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.33, -0.69, 2.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.18, -0.64, 0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.40, -0.26, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.36, 1.95, -1.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.32, 0.66, 0.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.83, -1.24, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.23, 0.05, 0.92) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.33, 0.26, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 33) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 33 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.02, 1.08, 1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.06, 2.00, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.07, -0.88, -0.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.48, -0.89, 0.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.25, 4.45, 0.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.51, -2.27, -1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.75, 0.32, -0.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.95, -1.72, 0.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.65, 0.17, 1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.86, 1.01, 0.08) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 34) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 34 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.63, -0.28, -0.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.07, -0.07, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.53, -0.54, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.48, -1.43, -0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.27, 0.74, -0.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.97, 1.68, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.00, 1.18, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.23, 1.00, 0.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.43, -0.15, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.05, 0.94, -1.87) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 35) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 35 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.82, 0.68, -1.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.46, 1.12, 1.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.73, 1.14, 1.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.31, 0.15, 0.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.47, -0.42, -0.96) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.95, 0.67, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.53, -0.94, 0.96) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.47, -0.13, 0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.05, -0.19, -0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.72, -1.92, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 36) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 36 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.69, 2.23, 1.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.95, 1.95, 2.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.30, 1.03, 0.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.29, 1.09, -1.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.64, 2.24, -2.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.40, -2.65, -1.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.79, -1.44, -0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.77, 0.31, -0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.03, -0.04, -0.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.99, 0.80, -1.84) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 37) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 37 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(2.10, -0.78, 1.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.26, 1.82, 2.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.41, -4.13, -0.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.64, 1.07, 3.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.35, -0.43, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.72, -0.88, 0.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.77, 0.73, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.45, 0.70, -0.59) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.15, 1.98, -1.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.17, -1.34, 0.94) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 38) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 38 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.04, 0.28, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, -0.92, -0.87) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.88, 1.38, 0.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.47, 1.37, 0.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.70, 2.95, 3.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.94, 3.20, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.33, -0.73, 0.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.45, -1.10, -0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.60, 3.85, 2.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.00, 2.26, 0.85) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 39) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 39 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.06, -1.47, -0.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.08, 0.18, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.61, 2.00, -1.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.51, 2.67, 1.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.23, 0.22, -0.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.29, 1.43, 0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.35, -0.07, -0.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.50, 0.96, 0.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.59, 0.62, 1.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.24, 0.34, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 40) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 40 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.44, -0.92, -0.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.13, -0.01, -0.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.75, -0.27, 0.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.90, 1.56, -0.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.12, 1.43, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.30, 0.58, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.35, 0.77, -0.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.11, -0.41, 1.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.14, -3.23, 1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.25, 0.24, 0.32) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 41) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 41 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.85, -0.73, 0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.29, -1.90, 0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.58, 2.26, -1.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.14, 3.38, 2.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.08, 0.28, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.56, 3.78, 0.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.26, -2.08, 0.34) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.92, -4.12, 1.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.24, -2.53, -1.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.96, -1.74, 0.82) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 42) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 42 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.62, -0.99, -0.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.31, -4.09, -1.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.52, 0.27, 0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.41, 0.25, -0.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.30, 1.23, -2.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.94, 2.39, -1.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.92, -0.51, -2.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.96, 2.96, 1.80) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.75, 1.10, 1.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.89, -2.39, -2.03) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 43) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 43 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.66, 1.11, 1.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.26, 3.48, -1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.24, -0.55, -0.70) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.63, -0.46, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.07, 0.36, -1.96) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.53, 1.60, -1.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.67, -1.42, 2.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.29, 1.02, -1.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.15, -2.56, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.12, 0.01, 0.00) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 44) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 44 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.06, -1.44, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.05, 0.69, -0.92) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.38, 2.18, -0.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.99, -0.45, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.56, 2.61, -1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.32, -1.45, -0.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.38, -2.07, 1.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.05, -0.40, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.91, -1.49, -0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.64, 2.09, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 45) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 45 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.30, -1.69, -1.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.38, 1.83, -1.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.77, 1.92, -1.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.75, -1.67, -1.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.54, -0.63, 1.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.71, -2.03, 0.72) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.25, -0.61, 1.88) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.93, 0.03, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.97, -4.14, -2.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.55, 3.78, -1.14) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 46) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 46 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.78, -2.34, -0.41) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.53, -0.86, 0.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.63, 1.39, -0.84) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.72, 1.06, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.14, -1.36, 0.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.38, 0.18, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.34, 1.17, -0.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.58, -2.64, 1.88) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.55, 2.30, 0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.26, -1.76, -0.69) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 47) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 47 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.05, -0.72, -1.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.02, -0.25, 2.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.16, -1.38, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.08, 1.14, -0.87) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.76, -1.06, -0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.48, -1.21, -0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.86, -0.17, 1.72) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.96, -2.81, 3.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.57, 1.61, -0.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.43, 0.34, 1.17) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 48) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 48 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.01, -1.08, 0.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.26, -0.45, -0.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.09, -1.22, 2.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.01, 0.39, 0.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.66, -0.30, -0.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.56, 0.13, 1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.08, 0.16, 0.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.90, 1.69, 1.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.11, 0.64, 0.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.58, 0.60, 0.98) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 49) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 49 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.21, 0.17, 0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.22, -0.27, -0.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.99, -0.43, 0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.72, -1.15, 0.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.08, -0.11, -0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.97, -2.14, 1.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, 0.43, 0.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.05, -1.40, -1.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.62, -2.11, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.37, 2.44, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 50) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 50 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.72, 2.18, -2.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.16, 1.39, 0.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.33, -2.30, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.52, -0.38, 0.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.22, 1.32, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.42, 2.53, 1.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.61, 1.58, -1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.02, 0.68, -0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.33, 2.86, 0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.07, 0.16, -0.03) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 51) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 51 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.14, 0.13, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.38, -0.05, 0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.42, 0.33, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.70, 2.51, -1.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.09, 0.04, -0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.54, 0.59, 0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.38, -3.27, -0.34) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.08, 2.52, -0.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.25, 3.76, -2.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.28, -2.92, 1.90) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 52) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 52 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.48, 0.25, -0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.38, 0.82, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.71, 0.23, -0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.31, 1.40, -2.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.73, -0.07, -0.72) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.41, 2.48, -2.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.88, -2.86, -2.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.69, -2.18, 2.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.66, 3.18, -2.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.70, -1.93, -0.44) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 53) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 53 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.38, 0.10, 0.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.98, -2.12, 1.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.80, 2.67, -1.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.02, 1.13, -1.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.24, -0.30, 0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.98, -0.30, -2.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.84, -0.01, 1.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.54, -1.22, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.97, -2.03, -2.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.31, 1.46, -2.64) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 54) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 54 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.68, -0.95, -0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.59, -2.53, -0.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.24, -0.39, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.44, 0.44, -1.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.11, 0.17, 0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.37, -3.09, -2.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.25, 4.58, -0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.66, -4.03, 2.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.29, 0.04, -0.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.20, 1.53, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 55) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 55 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.88, 1.76, -1.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.19, 0.08, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.36, -0.39, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.55, 0.01, 1.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.58, -0.88, -1.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.44, -0.32, -0.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.98, -2.43, 2.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.55, 0.51, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.35, -4.42, -1.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.67, -1.61, -1.23) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 56) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 56 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.01, 0.67, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.90, -0.96, 3.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.25, 1.15, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.90, 1.64, -1.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.45, 1.02, -0.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.92, 0.66, -1.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.50, -0.52, 0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.40, 3.02, 2.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.11, 2.15, -2.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.62, -0.25, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 57) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 57 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.89, 4.08, 0.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.58, -1.06, -1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.66, 0.14, -2.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.78, -1.61, 2.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.10, 2.54, -2.96) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.00, -0.51, -1.80) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, 3.80, 0.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.16, 0.24, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.11, -0.89, -0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.63, -0.57, 0.34) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 58) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 58 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.05, -0.13, -0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.10, 0.72, 0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.04, -0.71, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.70, 1.84, 0.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.48, -0.63, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.39, 1.51, -1.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.34, 1.46, -0.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, -4.20, 1.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.84, 0.50, -0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.54, -0.34, -0.39) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 59) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 59 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.61, -2.32, -2.69) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.19, -0.16, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.21, 1.02, 0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.28, 0.91, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.84, -4.43, 0.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.56, 0.49, 2.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.27, -2.34, 1.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.57, -0.72, 0.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.41, 3.31, -0.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.64, -0.25, -0.43) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 60) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 60 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-2.64, 0.69, -0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.12, 2.43, -1.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.74, 0.29, -1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.89, -2.41, -0.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.70, -0.43, -0.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.94, -0.08, 1.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.33, 0.23, 0.98) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.90, -0.28, -0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.28, 0.87, -0.86) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.22, 2.69, 0.05) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 61) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 61 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-3.07, -0.13, 1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.25, 1.12, 1.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.90, -2.79, -2.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.54, 0.36, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.05, 3.60, -0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.63, -3.86, -0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.95, 0.11, 1.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.23, 0.50, -2.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.14, -0.57, 0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.21, -0.51, 2.79) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 62) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 62 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.68, -0.43, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.76, -0.43, -2.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.82, 4.18, 1.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.21, -0.28, -0.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.42, 2.08, -1.81) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.40, 0.59, -1.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.15, -1.03, -0.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.38, -0.69, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.41, -0.11, -3.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.07, -0.83, -0.25) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 63) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 63 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.84, -1.94, -2.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.28, 0.56, 0.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.43, -0.41, -2.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.03, -2.41, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.08, -2.03, 0.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.23, 0.83, 1.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.45, 1.18, 1.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.42, 0.61, -0.62) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.09, 0.11, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.44, -0.25, -0.39) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 64) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 64 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.80, -0.09, -0.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.23, 1.15, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.24, 1.38, -1.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.70, 0.59, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.56, -0.13, -0.34) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.97, 0.30, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.91, 2.86, -1.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.72, 2.69, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.55, 2.02, 1.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.58, -1.55, -0.25) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 65) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 65 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.29, -0.18, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.63, -1.78, 0.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.74, -0.40, 0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.03, 2.29, 0.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.44, 1.11, -0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.67, 1.08, 0.87) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.91, -0.72, -0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.17, -1.38, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.89, -2.01, 1.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.79, -2.65, 1.33) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 66) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 66 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.24, 3.31, -1.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.67, 1.34, -2.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.51, -4.27, 1.84) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.51, -0.79, 0.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.60, -0.06, -1.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.56, -2.95, -1.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.45, 1.94, -1.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.81, -2.31, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.68, -3.05, -1.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.19, -0.98, -0.55) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 67) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 67 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.09, -0.25, -0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.46, -0.55, -0.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.14, -0.11, -0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.63, -1.62, -1.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.05, 0.98, 2.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.56, -3.54, -2.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.03, 1.78, -1.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.88, 2.10, -0.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.34, -0.17, -0.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.35, -0.48, -0.13) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 68) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 68 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.15, -0.27, 0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.27, 3.22, -2.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.24, 0.34, 0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.62, 1.47, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.57, 0.22, -0.80) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.02, 1.04, -0.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.14, -3.07, -1.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.17, -0.10, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.56, 1.50, 0.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.36, -0.12, 0.23) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 69) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 69 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.88, 2.30, -1.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.83, 2.58, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.21, -0.12, -1.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.30, 0.67, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.51, 0.15, 0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.54, 0.20, -1.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.59, -0.85, -1.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.22, -1.44, -0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.66, 1.58, 1.77) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.27, 3.81, 1.25) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 70) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 70 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.30, -2.91, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.52, 0.90, -0.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.23, 1.03, -1.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.16, 0.10, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.72, -1.47, 1.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.61, 1.87, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.62, 4.00, -0.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.25, -0.94, -0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.51, 0.89, 1.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.36, 1.55, -2.47) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 71) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 71 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.08, -0.15, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.16, -0.49, -1.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.48, 0.11, -0.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.42, 2.06, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.42, -0.72, 0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.34, 0.06, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.58, -2.05, -1.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.32, 0.35, -0.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.17, -1.02, -0.80) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.34, 1.69, 2.36) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 72) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 72 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.76, -1.58, 1.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.06, 0.58, 1.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.26, -0.05, -0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.22, -1.87, 1.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.06, 1.07, -0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.08, -0.63, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.31, 4.02, 1.39) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.61, -2.28, 2.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.54, -2.66, 2.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.52, -3.42, 2.52) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 73) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 73 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.58, -0.75, 0.63) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.29, -1.62, -1.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, -0.89, -0.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.98, -1.52, 0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.23, 0.20, 0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.64, 0.48, -2.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.91, 0.95, -1.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.51, 0.73, -0.70) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.44, 2.33, 2.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.14, -0.14, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 74) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 74 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.12, -3.77, -2.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.72, 0.47, -0.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.07, 0.66, -0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.75, 1.51, -1.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.51, -0.52, -1.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.92, 2.35, 0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.84, 1.45, -1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.21, -0.25, 2.41) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.38, -0.25, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.17, -1.04, -0.56) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 75) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 75 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.87, -0.86, -0.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.86, -0.98, -1.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.37, 1.10, -0.74) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.63, 3.01, 2.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.26, 2.07, -1.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.26, 0.78, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.39, -0.37, -1.34) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.09, 2.48, 1.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.14, 0.08, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.92, -1.34, -2.64) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 76) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 76 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.57, 1.71, 0.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.14, -0.14, 0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.72, -4.83, 0.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.06, -0.22, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.16, 0.14, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, 0.50, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.07, -4.38, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.18, 4.30, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.07, 2.34, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.97, -0.27, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 77) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 77 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.85, 3.34, -3.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.69, 0.07, -2.75) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.83, 1.85, -1.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.57, 0.55, -1.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.76, -2.21, 1.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.10, -0.07, 0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.36, 0.48, -1.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.51, 1.97, -1.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.09, 0.07, 0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.81, -2.48, -3.12) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 78) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 78 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.20, 3.96, -1.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.18, -1.76, -1.96) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.05, -0.72, -1.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.93, -0.17, 0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.23, 1.78, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.55, -2.72, 2.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.35, -0.09, 0.35) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, 0.07, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.43, -1.34, -1.89) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.99, 4.29, -0.40) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 79) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 79 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.83, 0.58, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.89, -0.26, 0.94) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.18, 1.61, -0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.65, 0.12, 0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.46, 1.40, -0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.87, -1.76, -2.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.43, -2.55, 1.81) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.10, 0.56, -1.17) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.93, 2.23, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.11, -1.34, 0.10) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 80) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 80 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.41, 0.45, 1.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.60, 3.73, 1.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.74, 3.12, -3.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.59, -0.17, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.91, -1.63, 0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.58, 0.87, 1.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.29, 0.69, 1.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.05, 3.38, -0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.43, -0.11, -0.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.90, 4.36, -0.72) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 81) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 81 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.25, -1.89, -0.76) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.51, -1.42, 1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.84, 0.24, -1.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.21, 2.21, 1.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.89, -2.49, -0.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.18, 4.00, 2.30) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.21, -0.62, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.87, -0.30, -0.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.66, -0.10, 0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.24, -0.88, -0.48) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 82) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 82 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-2.49, 2.48, 3.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.29, 0.85, 0.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.56, -1.49, -0.18) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.38, -4.10, -1.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.59, 0.93, -1.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.73, 2.08, 1.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.89, -2.32, -0.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.20, 0.66, 0.09) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.89, -1.84, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.78, 2.30, -1.27) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 83) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 83 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.09, -1.75, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.15, -1.38, -2.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.51, 0.11, -0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.65, 0.22, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.39, 0.19, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.92, -1.50, -1.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.47, -0.89, -2.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.01, -1.64, 0.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.37, 1.06, -1.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.94, -4.36, 0.55) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 84) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 84 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.33, -0.02, -0.27) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.09, 1.80, -1.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.13, 0.06, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.86, 0.78, -1.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.68, 2.99, 1.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.04, -1.42, -1.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.20, -1.75, -1.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.14, -0.22, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.49, -1.06, -0.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.24, -2.56, 0.83) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 85) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 85 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.18, -0.17, 0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.15, 1.55, -0.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.36, -0.04, 0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.59, -0.25, 0.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.24, -0.12, -0.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.01, -1.47, 1.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.91, -0.95, 1.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.06, -1.55, 1.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.69, -2.18, -2.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.32, 0.38, -0.14) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 86) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 86 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.63, 0.65, 1.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.84, 1.35, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.51, -2.48, 0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.73, -2.48, -1.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.20, -0.07, -0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.40, -1.60, -1.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, 0.13, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.52, -2.52, -1.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.88, -2.25, -1.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.80, -0.43, 1.44) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 87) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 87 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.08, 0.89, 0.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.78, -2.06, 0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.04, -0.10, -0.06) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.79, -0.49, 0.59) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.82, -0.19, 0.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.66, 2.97, -1.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.78, -2.47, -0.28) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.47, 0.17, -0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.01, -0.09, 0.08) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.63, 0.70, 1.92) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 88) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 88 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-3.48, -0.30, -2.45) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.04, -1.29, 1.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.18, -1.34, -1.05) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.94, -1.45, -1.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.14, -0.72, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.13, 1.75, 1.60) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.48, 2.34, 1.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.02, -0.33, -0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.28, -1.40, -1.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.78, 1.35, 1.22) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 89) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 89 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(0.01, -0.11, -0.10) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.28, -1.07, 1.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.80, 3.02, -0.43) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.09, -0.28, -0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.88, 2.78, -2.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.54, -1.63, -2.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.66, -0.68, -1.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.14, 4.36, -1.80) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.22, -0.74, -0.66) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.71, 0.65, -0.75) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 90) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 90 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.40, -0.44, -0.46) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.21, -4.13, -1.23) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.09, 2.27, 0.20) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.10, -0.10, -0.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.29, -2.21, -2.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, -0.96, -0.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.85, -1.77, 0.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.43, 0.62, -0.32) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.26, -0.83, 0.59) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.93, -1.26, -0.64) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 91) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 91 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(2.63, 1.71, -2.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.93, 3.68, 2.99) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.58, 0.89, -1.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, -2.63, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.36, -1.67, 1.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.65, 1.82, -0.34) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.24, 0.33, 0.29) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.01, 0.43, 0.13) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.00, 0.78, 1.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.26, -3.37, 0.85) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 92) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 92 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.99, -1.15, 0.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.77, 1.69, -1.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.86, -0.58, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.01, -1.82, -1.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.92, 2.91, -2.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.92, 0.92, 0.44) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.90, 1.09, -1.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.31, -3.28, 1.67) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.32, -0.87, 0.64) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.89, -0.23, -0.32) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 93) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 93 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.07, -0.93, 1.50) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.10, -2.57, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.14, 0.88, 0.58) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.70, 1.69, 1.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.28, 0.20, -0.07) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.13, 0.29, 0.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.10, -3.54, -1.38) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.03, -0.09, 0.21) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.40, 0.61, -0.36) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.34, 1.33, 1.06) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 94) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 94 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-1.29, -0.13, -1.00) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.40, 0.36, 0.49) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.73, -1.18, 1.83) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.38, 3.13, -0.90) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.70, -0.70, 0.79) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.76, 0.90, 0.15) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.89, 4.12, 2.40) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.75, -3.67, 2.85) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.67, 0.04, 0.24) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.21, -2.70, 2.05) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 95) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 95 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.80, -4.34, 0.95) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-4.41, 0.07, -1.57) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.81, 1.94, -1.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.53, -0.33, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.60, 2.63, -2.68) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.61, -1.89, 0.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.93, 0.82, -0.65) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.86, 0.52, -0.82) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(4.03, -0.59, -2.84) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.25, 0.06, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 96) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 96 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(1.24, 0.92, 0.73) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.00, -1.20, -0.56) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.55, 2.65, -1.41) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.02, 1.07, 0.26) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.89, -0.88, -1.87) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(3.15, -1.75, -1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.14, -1.00, -0.33) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.97, 2.78, 1.91) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.75, -2.61, -0.11) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.92, -0.15, -0.90) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 97) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 97 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(3.25, 0.15, 1.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.18, -0.42, 0.16) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.09, -0.21, -0.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.58, 1.47, 0.93) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.91, 1.09, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.16, -3.70, 1.52) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.63, 0.90, -0.70) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.88, 0.12, 0.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.06, -0.95, 0.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.16, -0.49, 0.34) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 98) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 98 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.35, -0.82, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.71, -3.87, -0.51) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.94, -3.43, -1.19) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.89, -1.93, 1.31) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.03, 0.98, -0.42) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-2.27, -1.15, 1.37) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.43, 3.38, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.26, -2.62, -2.22) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(2.85, -0.02, 0.71) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.93, -0.35, 1.12) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 99) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 99 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;32mINFO[0m] Received request for work 
-BoxGen: kf=211, p=(-0.29, -1.48, 1.03) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.30, -0.01, 0.14) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-3.93, -1.48, -2.55) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.21, -2.45, -0.53) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(0.34, 1.69, -0.75) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.20, -0.68, -1.25) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.96, -3.78, 2.48) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(1.08, 3.15, 2.61) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-0.54, 2.27, -1.97) GeV, x=(0.0, 0.0, 0.0) cm
-BoxGen: kf=211, p=(-1.71, 2.85, -1.49) GeV, x=(0.0, 0.0, 0.0) cm
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] (Event 100) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
-[[01;36m14:53:56[0m][[01;33mWARN[0m] Sending 10 particles
-
-[[01;36m14:53:56[0m][[01;33mWARN[0m] treating ev 100 part 1 out of 1
-
-[[01;36m14:53:56[0m][[01;32mINFO[0m] reply send
-[[01;36m14:53:56[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] RUNNING state finished without an external event, entering READY state
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Entering RESETTING_TASK state
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING TASK
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Entering DEVICE_READY state
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Entering RESETTING_DEVICE state
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING DEVICE
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Entering IDLE state
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Entering EXITING state
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Shutting down Plugin Manager
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Unloaded plugin: 'control', version '1.3.8', maintainer 'FairRootGroup <fairroot@gsi.de>', homepage 'https://github.com/FairRootGroup/FairRoot'
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Shutting down Plugin Services
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] Destructing device primary-server
-[[01;36m14:53:56[0m][[01;35mSTATE[0m] Exiting FairMQ state machine
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] removed RTDB container factory PassiveContFact
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] removed RTDB container factory ContainerFactory
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] removed RTDB container factory MagFieldContFact
-[[01;36m14:53:56[0m][[01;34mDEBUG[0m] removed RTDB container factory FairBaseContFact
-ainer factory FairBaseContFact
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Starting FairMQ state machine
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering IDLE state
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] PID: 25221
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Loaded plugin: 'control', version '1.3.8', maintainer 'FairRootGroup <fairroot@gsi.de>', homepage 'https://github.com/FairRootGroup/FairRoot'
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Running builtin controller: static
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] catch-signals: 1
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering INITIALIZING_DEVICE state
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Inserting new device channel from config: primary-get
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Requesting 'zeromq' as default transport for the device
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Transport: Using ZeroMQ library, version: 4.1.5
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Adding 'zeromq' transport to the device.
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] primary-get[0]: using default transport
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Validating channel 'primary-get[0]'... VALID
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Created socket primary-server.primary-get[0].rep
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] Attached channel primary-get[0] to tcp://*:25008 (bind) (rep)
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering DEVICE_READY state
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering INITIALIZING_TASK state
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Init Server device 
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// bMax f
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// catch-signals i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.address NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.autoBind b
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.linger i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.method NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.portRangeMax i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.portRangeMin i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rateLogging i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rcvBufSize i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.rcvKernelSize i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.sndBufSize i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.sndKernelSize i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.transport NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.0.type NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chans.primary-get.numSockets i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chunkSize j
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// chunkSizeI i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// color b
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// configKeyValues NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// control NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// embedIntoFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// extGenFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// extGenFunc NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// extKinFile NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// generator NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// id NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// initialization-timeout i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// io-threads i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// isMT b
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// log-to-file NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// logseverity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// logverbosity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// mcEngine NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// modules St6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS5_EE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// mq-config NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// nEvents j
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// network-interface NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// nworkers i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// outPrefix NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// rate f
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// seed i
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// session NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// severity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// shm-monitor b
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// shm-segment-size m
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// skipModules St6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS5_EE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// startEvent j
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// transport NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ///// verbosity NSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ENGINE SET TO TGeant3
+[[01;36m13:22:42[0m][[01;32mINFO[0m] CHUNK SIZE SET TO 5000
+[[01;36m13:22:42[0m][[01;32mINFO[0m] RNG INITIAL SEED -480663462
+Warning in <TClassTable::Add>: class TFileMerger already in TClassTable
+Warning in <TClassTable::Add>: class TDirectoryFile already in TClassTable
+Warning in <TClassTable::Add>: class TFile already in TClassTable
+Warning in <TClassTable::Add>: class TMemFile already in TClassTable
+Warning in <TClassTable::Add>: class ROOT::Experimental::TBufferMerger already in TClassTable
+Warning in <TClassTable::Add>: class ROOT::Experimental::TBufferMergerFile already in TClassTable
+Warning in <TClassTable::Add>: class TArchiveFile already in TClassTable
+Warning in <TClassTable::Add>: class TArchiveMember already in TClassTable
+Warning in <TClassTable::Add>: class TBufferIO already in TClassTable
+Warning in <TClassTable::Add>: class TBufferFile already in TClassTable
+Warning in <TClassTable::Add>: class TBufferText already in TClassTable
+Warning in <TClassTable::Add>: class TBufferJSON already in TClassTable
+Warning in <TClassTable::Add>: class TGenCollectionProxy already in TClassTable
+Warning in <TClassTable::Add>: class TGenCollectionProxy::Value already in TClassTable
+Warning in <TClassTable::Add>: class TGenCollectionProxy::Method already in TClassTable
+Warning in <TClassTable::Add>: class TCollectionProxyFactory already in TClassTable
+Warning in <TClassTable::Add>: class TCollectionStreamer already in TClassTable
+Warning in <TClassTable::Add>: class TCollectionClassStreamer already in TClassTable
+Warning in <TClassTable::Add>: class TCollectionMemberStreamer already in TClassTable
+Warning in <TClassTable::Add>: class TEmulatedCollectionProxy already in TClassTable
+Warning in <TClassTable::Add>: class TEmulatedMapProxy already in TClassTable
+Warning in <TClassTable::Add>: class TFileCacheRead already in TClassTable
+Warning in <TClassTable::Add>: class TFree already in TClassTable
+Warning in <TClassTable::Add>: class TFileCacheWrite already in TClassTable
+Warning in <TClassTable::Add>: class TFPBlock already in TClassTable
+Warning in <TClassTable::Add>: class TFilePrefetch already in TClassTable
+Warning in <TClassTable::Add>: class TKey already in TClassTable
+Warning in <TClassTable::Add>: class TKeyMapFile already in TClassTable
+Warning in <TClassTable::Add>: class TLockFile already in TClassTable
+Warning in <TClassTable::Add>: class TMapFile already in TClassTable
+Warning in <TClassTable::Add>: class TMapRec already in TClassTable
+Warning in <TClassTable::Add>: class TStreamerInfo already in TClassTable
+Warning in <TClassTable::Add>: class TVirtualArray already in TClassTable
+Warning in <TClassTable::Add>: class TStreamerInfoActions::TConfiguration already in TClassTable
+Warning in <TClassTable::Add>: class TStreamerInfoActions::TConfiguredAction already in TClassTable
+Warning in <TClassTable::Add>: class TStreamerInfoActions::TActionSequence already in TClassTable
+Warning in <TClassTable::Add>: class TVirtualObject already in TClassTable
+Warning in <TClassTable::Add>: class TZIPFile already in TClassTable
+Warning in <TClassTable::Add>: class TZIPMember already in TClassTable
+Error in <TExMap::Add>: key 140206305408896 is not unique
+Warning in <TClassTable::Add>: class ROOT::Experimental::TTaskGroup already in TClassTable
+Warning in <TClassTable::Add>: class ROOT::Internal::TPoolManager already in TClassTable
+Warning in <TClassTable::Add>: class ROOT::TThreadExecutor already in TClassTable
+[[01;36m13:22:42[0m][[01;32mINFO[0m] ASSIGNED PIPE HANDLE 4
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering READY state
+[[01;36m13:22:42[0m][[01;35mSTATE[0m] Entering RUNNING state
+[[01;36m13:22:42[0m][[01;32mINFO[0m] DEVICE: Running...
+[[01;36m13:22:42[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 13
+[[01;36m13:22:42[0m][[01;32mINFO[0m] received config request
+[[01;36m13:22:42[0m][[01;32mINFO[0m] config reply send 
+[[01;36m13:22:42[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 13
+[[01;36m13:22:42[0m][[01;32mINFO[0m] received config request
+[[01;36m13:22:42[0m][[01;32mINFO[0m] config reply send 
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Init box generator
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Initialising primary generator
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Setting interaction diamond: position = {0,0,0} cm
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Setting interaction diamond: width = {0,0,0} cm
+BoxGen: kf=211, p=(-2.40, -1.41, -1.60) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.52, 3.35, -2.36) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.04, -1.68, -1.10) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.08, 3.84, -1.68) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.48, -1.77, 0.72) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.30, 0.20, 0.55) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.96, 0.55, -0.48) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.71, -0.48, -0.49) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.73, -1.99, 1.29) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.06, -0.02, 0.59) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:42[0m][[01;34mDEBUG[0m] (Event 1) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:42[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 1 part 1 out of 1
+
+BoxGen: kf=211, p=(0.34, -4.91, -0.80) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.74, 2.56, -0.25) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.32, 1.17, -1.10) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.90, -3.49, -1.39) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.58, 4.65, -0.26) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.71, 0.14, -0.09) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.59, -0.34, -1.30) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.63, -2.86, -2.26) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.94, 2.68, -2.05) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.20, 1.18, 0.24) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 2) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 2 part 1 out of 1
+
+BoxGen: kf=211, p=(-0.23, 0.88, 0.68) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.30, 0.25, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.26, -0.37, 0.42) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.92, -1.42, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.28, 0.15, -0.06) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.13, 0.02, -1.00) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.37, 0.42, 0.30) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.72, 1.69, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.22, 0.90, 0.42) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+BoxGen: kf=211, p=(1.12, 0.42, -0.47) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 3) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 3 part 1 out of 1
+
+BoxGen: kf=211, p=(-0.03, -4.50, -1.97) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.21, 3.64, -0.50) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.40, -2.14, -0.60) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.25, 1.60, 0.02) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.54, 1.09, -0.43) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.71, 0.45, 0.17) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.26, -2.86, -0.59) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.59, 3.53, -0.81) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.56, -2.13, -2.54) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.31, 2.29, -0.02) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 4) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 4 part 1 out of 1
+
+BoxGen: kf=211, p=(0.23, -1.92, 1.20) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.29, 0.68, 0.74) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.64, -1.74, 0.59) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.27, -0.83, 0.55) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.71, -0.03, 0.22) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.57, 2.11, -0.94) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.54, 0.37, -0.86) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-4.42, -1.71, 0.43) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.24, -1.25, -1.25) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+BoxGen: kf=211, p=(0.30, -1.69, -1.40) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 5) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 5 part 1 out of 1
+
+BoxGen: kf=211, p=(-3.08, -3.18, -1.63) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.43, 0.20, 0.32) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-3.80, -0.09, 3.07) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.35, -1.18, -0.96) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.29, -2.69, 1.13) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.93, 0.06, 0.12) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.16, 1.39, 1.14) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.83, -1.33, 1.32) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.80, -1.86, 2.17) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.65, 0.26, -0.22) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 6) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 6 part 1 out of 1
+
+BoxGen: kf=211, p=(-0.74, 0.09, -0.63) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.85, -0.46, 0.42) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.48, 0.22, 0.06) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.26, -2.01, 1.10) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.41, -0.54, -1.14) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(3.21, 2.78, -0.78) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.44, -1.09, 1.44) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-3.06, -1.17, 2.27) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.52, 0.04, -2.53) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.13, 4.00, 1.94) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 7) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 7 part 1 out of 1
+
+BoxGen: kf=211, p=(-3.94, -0.59, 1.92) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.74, 0.28, -1.47) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.85, 0.55, 0.64) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.81, -1.46, -0.10) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-3.01, -0.43, 2.87) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.23, -0.51, -0.14) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.63, 0.34, -0.47) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.39, -1.22, 1.15) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.33, -0.65, 0.09) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.76, 3.19, -2.66) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 8) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 8 part 1 out of 1
+
+BoxGen: kf=211, p=(0.73, 3.73, 3.02) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-3.16, 1.29, 0.07) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-2.62, -1.69, 1.68) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.07, 3.18, -0.87) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.74, -2.42, 1.32) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+BoxGen: kf=211, p=(-0.28, 0.04, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.34, -1.51, -0.25) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.14, 0.51, -0.22) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.88, 2.57, 0.67) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.05, 0.55, -0.47) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 9) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 9 part 1 out of 1
+
+BoxGen: kf=211, p=(-3.04, -2.49, -0.54) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.51, 2.79, -1.98) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.77, 0.46, 1.58) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-1.88, 2.64, -2.64) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.06, 0.32, -0.01) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.21, -0.75, 0.56) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.01, -0.61, 0.04) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(2.32, -0.83, -0.73) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.82, -1.17, 1.45) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.03, -0.23, -0.06) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 10) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Received request for work 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Sending 10 particles
+
+[[01;36m13:22:44[0m][[01;32mINFO[0m] treating ev 10 part 1 out of 1
+
+BoxGen: kf=211, p=(-0.27, 0.55, 0.01) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.55, 2.81, -1.09) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-3.48, 0.84, -1.31) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;32mINFO[0m] reply send
+BoxGen: kf=211, p=(1.06, 0.89, -0.76) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.27, -0.12, -0.24) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.21, 0.02, 0.13) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.22, 0.95, 0.76) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(0.63, 1.32, -1.02) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(-0.02, -1.23, 0.76) GeV, x=(0.0, 0.0, 0.0) cm
+BoxGen: kf=211, p=(1.23, -0.96, -1.33) GeV, x=(0.0, 0.0, 0.0) cm
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] (Event 11) 10 primary tracks from vertex (0, 0, 0) with beam angle (0, 0) 
+[[01;36m13:22:44[0m][[01;32mINFO[0m] Event generation took 0s
+[[01;36m13:22:44[0m][[01;32mINFO[0m] GOT A REQUEST WITH SIZE 11
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] RUNNING state finished without an external event, entering READY state
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Entering RESETTING_TASK state
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING TASK
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Entering DEVICE_READY state
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Entering RESETTING_DEVICE state
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Controller ignoring event: RESETTING DEVICE
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Entering IDLE state
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Entering EXITING state
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Shutting down Plugin Manager
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Unloaded plugin: 'control', version '1.3.8', maintainer 'FairRootGroup <fairroot@gsi.de>', homepage 'https://github.com/FairRootGroup/FairRoot'
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Shutting down Plugin Services
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] Destructing device primary-server
+[[01;36m13:22:44[0m][[01;35mSTATE[0m] Exiting FairMQ state machine
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] removed RTDB container factory PassiveContFact
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] removed RTDB container factory ContainerFactory
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] removed RTDB container factory MagFieldContFact
+[[01;36m13:22:44[0m][[01;34mDEBUG[0m] removed RTDB container factory FairBaseContFact
+t
+Fact

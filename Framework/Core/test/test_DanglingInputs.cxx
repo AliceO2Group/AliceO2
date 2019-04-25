@@ -36,7 +36,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         OutputSpec{ { "a2" }, "TST", "A2" } },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          sleep(rand() % 2 + 1);
+          std::this_thread::sleep_for(std::chrono::milliseconds((rand() % 2 + 1) * 1000));
           auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
           auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
         } } },

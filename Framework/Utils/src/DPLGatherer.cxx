@@ -42,9 +42,9 @@ o2f::DataProcessorSpec defineGatherer(std::string devName, o2f::Inputs usrInputs
                  // Retrieving message size from API
                  auto msgSize = (o2::header::get<o2::header::DataHeader*>(itInputs.header))->payloadSize;
                  // Allocating new chunk
-                 auto fwdMsg = ctx.outputs().newChunk((*outputPtr), msgSize);
+                 auto& fwdMsg = ctx.outputs().newChunk((*outputPtr), msgSize);
                  // Moving the input to the output chunk
-                 std::memmove(fwdMsg.data, itInputs.payload, msgSize);
+                 std::memmove(fwdMsg.data(), itInputs.payload, msgSize);
                }
              };
            } } };

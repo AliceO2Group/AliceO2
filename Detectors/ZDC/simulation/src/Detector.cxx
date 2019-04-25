@@ -36,7 +36,7 @@ ClassImp(o2::zdc::Detector);
 
 //_____________________________________________________________________________
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("ZDC", active),
+  : o2::base::DetImpl<Detector>("ZDC", active),
     mHits(new std::vector<o2::zdc::Hit>),
     mCurrentTrackID(-1),
     mCurrentHit(nullptr),
@@ -54,7 +54,7 @@ Detector::Detector(Bool_t active)
 
 //_____________________________________________________________________________
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHits(new std::vector<o2::zdc::Hit>),
     mCurrentTrackID(-1),
     mCurrentHit(nullptr)
@@ -256,7 +256,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   Vector3D<float> xImp(xDet[0], xDet[1], xDet[2]);
 
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
   int trackparent = stack->GetCurrentTrack()->GetMother(0);
   const bool isDaughterOfSeenTrack = stack->isTrackDaughterOf(trackn, mCurrentTrackID);
@@ -365,7 +365,7 @@ void Detector::createMaterials()
 {
   Int_t ifield = 2;
   Float_t fieldm = 10.0;
-  o2::Base::Detector::initFieldTrackingParams(ifield, fieldm);
+  o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
   LOG(INFO) << "Detector::CreateMaterials >>>>> magnetic field: type " << ifield << " max " << fieldm << "\n";
 
   // ******** MATERIAL DEFINITION ********
@@ -1068,7 +1068,7 @@ void Detector::createAsideBeamLine()
   // Outer trousers
   TGeoCompositeShape* pOutTrousers = new TGeoCompositeShape("outTrousers", "QALext:ZDC_c1+QALext:ZDC_c2");
 
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   // Volume: QALext
   TGeoVolume* pQALext = new TGeoVolume("QALext", pOutTrousers, matmgr.getTGeoMedium("ZDC", kFe));
@@ -1134,7 +1134,7 @@ void Detector::createAsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createCsideBeamLine()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };

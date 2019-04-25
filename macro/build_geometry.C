@@ -29,9 +29,12 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <FITSimulation/Detector.h>
+#include <T0Simulation/Detector.h>
+#include <V0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
@@ -175,7 +178,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("EMC")) {
     // emcal
-    run->AddModule(new o2::EMCAL::Detector(true));
+    run->AddModule(new o2::emcal::Detector(true));
   }
 
   if (isActivated("PHS")) {
@@ -183,9 +186,24 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::phos::Detector(true));
   }
 
-  if (isActivated("FIT")) {
-    // FIT
-    run->AddModule(new o2::fit::Detector(true));
+  if (isActivated("CPV")) {
+    // cpv
+    run->AddModule(new o2::cpv::Detector(true));
+  }
+
+  if (isActivated("T0")) {
+    // FIT-T0
+    run->AddModule(new o2::t0::Detector(true));
+  }
+
+  if (isActivated("V0")) {
+    // FIT-V0
+    run->AddModule(new o2::v0::Detector(true));
+  }
+
+  if (isActivated("FDD")) {
+    // FIT-FDD
+    run->AddModule(new o2::fdd::Detector(true));
   }
 
   if (isActivated("HMP")) {
@@ -225,7 +243,7 @@ void finalize_geometry(FairRunSim* run)
   TIter next(modArr);
   FairModule* module = nullptr;
   while ((module = (FairModule*)next())) {
-    o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+    o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
     if (det)
       det->addAlignableVolumes();
   }

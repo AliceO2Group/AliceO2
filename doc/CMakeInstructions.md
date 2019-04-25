@@ -1,3 +1,5 @@
+\page refdocCMakeInstructions CMake Instructions
+
 CMake
 =====
 

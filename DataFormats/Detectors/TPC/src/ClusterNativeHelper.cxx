@@ -109,10 +109,11 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
         LOG(ERROR) << "can not find corresponding 'Size' branch for data branch " << branchname << ", skipping it";
       }
     }
-    branchname = mMCBranchName + " " + std::to_string(sector);
+    branchname = mMCBranchName + "_" + std::to_string(sector);
     branch = mTree->GetBranch(branchname.c_str());
     if (branch) {
-      branch->SetAddress(&mSectorMC);
+      mSectorMCPtr[sector] = &mSectorMC[sector];
+      branch->SetAddress(&mSectorMCPtr[sector]);
       ++nofMCBranches;
     }
   }
@@ -156,6 +157,7 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, st
   if (!buffer || size == 0) {
     return 0;
   }
+
   auto mcIterator = mcinput.begin();
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
   ClusterGroupParser parser;

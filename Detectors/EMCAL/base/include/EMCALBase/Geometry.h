@@ -28,7 +28,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class ShishKebabTrd1Module;
 

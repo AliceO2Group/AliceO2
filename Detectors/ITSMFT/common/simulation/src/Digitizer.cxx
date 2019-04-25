@@ -28,7 +28,7 @@ using o2::ITSMFT::Digit;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 using namespace o2::ITSMFT;
-// using namespace o2::Base;
+// using namespace o2::base;
 
 //_______________________________________________________________________
 void Digitizer::init()

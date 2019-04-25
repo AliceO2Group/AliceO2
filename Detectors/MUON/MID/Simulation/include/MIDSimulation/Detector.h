@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   Detector(bool active = true);
@@ -49,7 +49,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   o2::mid::Stepper mStepper; //! Stepper
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 

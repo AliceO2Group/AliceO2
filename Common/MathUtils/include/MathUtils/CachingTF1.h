@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 class CachingTF1 : public TF1
 {

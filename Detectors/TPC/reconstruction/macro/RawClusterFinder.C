@@ -21,6 +21,7 @@
 
 #include "Rtypes.h"
 #include "TFile.h"
+#include "TTree.h"
 #include "TSystem.h"
 #include "TGraph.h"
 #include "TLinearFitter.h"

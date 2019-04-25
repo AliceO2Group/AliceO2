@@ -23,7 +23,7 @@
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active)
+  : o2::base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
   if (TRDCommonParam::Instance()->IsXenon()) {
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHits(o2::utils::createSimVector<HitType>()),
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
@@ -123,7 +123,7 @@ bool Detector::ProcessHits(FairVolume* v)
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
 
-  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   float xp, yp, zp;
   float px, py, pz, etot;
   float trackLength = fMC->TrackLength(); // Return the length of the current track from its origin (in cm)
@@ -252,7 +252,7 @@ void Detector::createTRhit(int det)
 
     // Add the hit to the array. TR photon hits are marked by negative energy (and not by charge)
     float tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
-    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+    o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
     addHit(x, y, z, tof, totalChargeDep, trackID, det);
@@ -293,7 +293,7 @@ void Detector::createMaterials()
   //
   int isxfld = 2;
   float sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //////////////////////////////////////////////////////////////////////////
   //     Define Materials

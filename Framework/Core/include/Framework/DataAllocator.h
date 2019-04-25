@@ -78,11 +78,11 @@ class DataAllocator
                 ContextRegistry* contextes,
                 const AllowedOutputRoutes& routes);
 
-  DataChunk newChunk(const Output&, size_t);
+  DataChunk& newChunk(const Output&, size_t);
 
-  inline DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
+  inline DataChunk& newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
-  DataChunk adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
+  void adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
 
   // In case no extra argument is provided and the passed type is trivially
   // copyable and non polymorphic, the most likely wanted behavior is to create
@@ -91,12 +91,12 @@ class DataAllocator
   typename std::enable_if<is_messageable<T>::value == true, T&>::type
     make(const Output& spec)
   {
-    DataChunk chunk = newChunk(spec, sizeof(T));
-    return *reinterpret_cast<T*>(chunk.data);
+    return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
   }
 
   // In case an extra argument is provided, we consider this an array /
   // collection elements of that type
+  // FIXME: once the vector functionality with polymorphic allocator is fully in place, this might be dropped
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>&>::type
     make(const Output& spec, size_t nElements)

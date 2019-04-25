@@ -78,6 +78,7 @@ set(SRCS
     src/FrameworkGUIDeviceInspector.cxx
     src/FrameworkGUIDataRelayerUsage.cxx
     src/PaletteHelpers.cxx
+    src/PropertyTreeHelpers.cxx
     src/CommonDataProcessors.cxx
     src/RCombinedDS.cxx
     src/ReadoutAdapter.cxx
@@ -234,6 +235,7 @@ set(TEST_SRCS
       test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
       test/test_ContextRegistry.cxx
+      test/test_ConfigParamRegistry.cxx
       test/test_CustomGUISokol.cxx
       test/test_CustomGUIGL.cxx
       test/test_CompletionPolicy.cxx

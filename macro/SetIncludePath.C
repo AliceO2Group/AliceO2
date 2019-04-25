@@ -1,3 +1,10 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <cstdio>
+#include <iostream>
+#include "TString.h"
+#include "TSystem.h"
+#endif
+
 void SetIncludePath()
 {
  TString dir = getenv("VMCWORKDIR");

@@ -1,3 +1,5 @@
+\page refMUONMCHContour MCH Contour
+
 # MCH Contour library
 
 A header-only library to work with contours (polygons).

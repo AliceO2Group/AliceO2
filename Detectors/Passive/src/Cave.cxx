@@ -35,11 +35,11 @@ using namespace o2::Passive;
 
 void Cave::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   // Create materials and media
   Int_t isxfld;
   Float_t sxmgmx;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // AIR
   Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
@@ -56,7 +56,7 @@ void Cave::createMaterials()
 void Cave::ConstructGeometry()
 {
   createMaterials();
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   Float_t dALIC[3];
 
   if (mHasZDC) {

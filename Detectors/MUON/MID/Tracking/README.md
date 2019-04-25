@@ -1,3 +1,5 @@
+\page refMUONMIDTracking MID Tracking
+
 # Running MID Tracking
 
 The MID tracking takes as input the clusters and returns a vector of reconstructed tracks.

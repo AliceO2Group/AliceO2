@@ -1,4 +1,6 @@
 # Libraries
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
+add_subdirectory(common)
+add_subdirectory(T0)
+add_subdirectory(V0)
+add_subdirectory(FDD)
+

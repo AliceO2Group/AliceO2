@@ -8,6 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+#include "TPCCalibration/CalibPedestal.h"
+#include "TPCCalibration/CalibRawBase.h"
+#endif
+
 void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0)
 {
   using namespace o2::TPC;

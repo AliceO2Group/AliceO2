@@ -153,16 +153,16 @@ class ChipMappingITS
   int getNChipsPerCable(int ruType) { return NChipsPerCableSB[ruType]; }
 
   ///< get number cables on the RU served by a given RU type
-  int getNCablesOnRUType(int ruType) { return NCablesPerStaveSB[ruType]; }
+  int getNCablesOnRUType(int ruType) const { return NCablesPerStaveSB[ruType]; }
 
   ///< get pattern of lanes on the RU served by a given RU type
-  int getCablesOnRUType(int ruType) { return CablesOnStaveSB[ruType]; }
+  int getCablesOnRUType(int ruType) const { return CablesOnStaveSB[ruType]; }
 
   ///< get number of chips served by RU of given type (i.e. RU type for ITS)
-  int getNChipsOnRUType(int ruType) { return NChipsPerStaveSB[ruType]; }
+  int getNChipsOnRUType(int ruType) const { return NChipsPerStaveSB[ruType]; }
 
   ///< get RU type from the sequential ID of the RU
-  int getRUType(int ruID)
+  int getRUType(int ruID) const
   {
     ///< get the RU type corresponding to RU with secuential number ruID
     if (ruID > NStavesSB[IB] + NStavesSB[MB] - 1) {

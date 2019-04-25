@@ -24,10 +24,10 @@ namespace o2
 {
 namespace trd
 {
-class HitType : public o2::BasicXYZEHit<float>
+class HitType : public o2::BasicXYZQHit<float>
 {
  public:
-  using BasicXYZEHit<float>::BasicXYZEHit;
+  using BasicXYZQHit<float>::BasicXYZQHit;
 };
 } // namespace trd
 } // namespace o2
@@ -48,7 +48,7 @@ namespace trd
 {
 class TRDGeometry;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   Detector(Bool_t active = true);
@@ -99,7 +99,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   TRDGeometry* mGeom = nullptr;
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -115,13 +115,13 @@ void Detector::addHit(T x, T y, T z, T tof, int charge, int trackId, int detId)
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::trd::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 #endif

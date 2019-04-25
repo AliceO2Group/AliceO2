@@ -35,18 +35,24 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "GlobalTracking/MatchTPCITS.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 using namespace o2::globaltracking;
 
 using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
 using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double, 4>>;
 
+constexpr float MatchTPCITS::XTPCInnerRef;
+constexpr float MatchTPCITS::XTPCOuterRef;
+constexpr float MatchTPCITS::XMatchingRef;
+constexpr float MatchTPCITS::YMaxAtXMatchingRef;
+constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
 //______________________________________________
 void MatchTPCITS::run()
 {
   ///< perform matching for provided input
   if (!mInitDone) {
-    LOG(FATAL) << "init() was not done yet" << FairLogger::endl;
+    LOG(FATAL) << "init() was not done yet";
   }
 
   mTimerTot.Start();
@@ -97,14 +103,13 @@ void MatchTPCITS::init()
 {
   ///< perform initizalizations, precalculate what is needed
   if (mInitDone) {
-    LOG(ERROR) << "Initialization was already done" << FairLogger::endl;
+    LOG(ERROR) << "Initialization was already done";
     return;
   }
 
   // make sure T2GRot matrices are loaded into ITS geometry helper
   o2::ITS::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
 
-  mYMaxAtXRef = mXRef * std::tan(o2::constants::math::SectorSpanRad * 0.5); ///< max Y in the sector at reference X
   mSectEdgeMargin2 = mCrudeAbsDiffCut[o2::track::kY] * mCrudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
 
   const auto& gasParam = o2::TPC::ParameterGas::defaultInstance();
@@ -125,6 +130,11 @@ void MatchTPCITS::init()
 
   mTPCTimeEdgeTSafeMargin = z2TPCBin(mTPCTimeEdgeZSafeMargin);
 
+  std::unique_ptr<TPCTransform> fastTransform = (o2::TPC::TPCFastTransformHelperO2::instance()->create(0));
+  mTPCTransform = std::move(fastTransform);
+  mTPCClusterParam = std::make_unique<AliGPUCAParam>();
+  mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
+
   attachInputTrees();
 
   // create output branch
@@ -139,7 +149,7 @@ void MatchTPCITS::init()
       LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
     }
   } else {
-    LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored" << FairLogger::endl;
+    LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
   }
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -176,7 +186,7 @@ void MatchTPCITS::init()
 void MatchTPCITS::selectBestMatches()
 {
   ///< loop over match records and select the ones with best chi2
-  LOG(INFO) << "Selecting best matches for " << mMatchesTPC.size() << " TPC tracks" << FairLogger::endl;
+  LOG(INFO) << "Selecting best matches for " << mMatchesTPC.size() << " TPC tracks";
 
   int nValidated = 0, iter = 0;
 
@@ -264,48 +274,52 @@ int MatchTPCITS::getNMatchRecordsITS(const matchCand& itsMatch) const
 void MatchTPCITS::attachInputTrees()
 {
   if (!mTreeITSTracks) {
-    LOG(FATAL) << "ITS tracks data input tree is not set" << FairLogger::endl;
+    LOG(FATAL) << "ITS tracks data input tree is not set";
   }
 
   if (!mTreeTPCTracks) {
-    LOG(FATAL) << "TPC tracks data input tree is not set" << FairLogger::endl;
+    LOG(FATAL) << "TPC tracks data input tree is not set";
   }
 
   if (!mTreeITSClusters) {
-    LOG(FATAL) << "ITS clusters data input tree is not set" << FairLogger::endl;
+    LOG(FATAL) << "ITS clusters data input tree is not set";
   }
 
   if (!mTreeITSTracks->GetBranch(mITSTrackBranchName.data())) {
-    LOG(FATAL) << "Did not find ITS tracks branch " << mITSTrackBranchName << " in the input tree" << FairLogger::endl;
+    LOG(FATAL) << "Did not find ITS tracks branch " << mITSTrackBranchName << " in the input tree";
   }
   mTreeITSTracks->SetBranchAddress(mITSTrackBranchName.data(), &mITSTracksArrayInp);
   LOG(INFO) << "Attached ITS tracks " << mITSTrackBranchName << " branch with " << mTreeITSTracks->GetEntries()
-            << " entries" << FairLogger::endl;
+            << " entries";
 
   if (!mTreeTPCTracks->GetBranch(mTPCTrackBranchName.data())) {
-    LOG(FATAL) << "Did not find TPC tracks branch " << mTPCTrackBranchName << " in the input tree" << FairLogger::endl;
+    LOG(FATAL) << "Did not find TPC tracks branch " << mTPCTrackBranchName << " in the input tree";
   }
   mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTracksArrayInp);
   LOG(INFO) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with " << mTreeTPCTracks->GetEntries()
-            << " entries" << FairLogger::endl;
+            << " entries";
 
   if (!mTreeITSClusters->GetBranch(mITSClusterBranchName.data())) {
-    LOG(FATAL) << "Did not find ITS clusters branch " << mITSClusterBranchName << " in the input tree"
-               << FairLogger::endl;
+    LOG(FATAL) << "Did not find ITS clusters branch " << mITSClusterBranchName << " in the input tree";
   }
   mTreeITSClusters->SetBranchAddress(mITSClusterBranchName.data(), &mITSClustersArrayInp);
   LOG(INFO) << "Attached ITS clusters " << mITSClusterBranchName << " branch with " << mTreeITSClusters->GetEntries()
-            << " entries" << FairLogger::endl;
+            << " entries";
+
+  if (!mTPCClusterReader) {
+    LOG(FATAL) << "TPC clusters reader is not set";
+  }
+  LOG(INFO) << "Attached TPC clusters reader with " << mTPCClusterReader->getTreeSize();
 
   // is there MC info available ?
   if (mTreeITSTracks->GetBranch(mITSMCTruthBranchName.data())) {
     mTreeITSTracks->SetBranchAddress(mITSMCTruthBranchName.data(), &mITSTrkLabels);
-    LOG(INFO) << "Found ITS Track MCLabels branch " << mITSMCTruthBranchName << FairLogger::endl;
+    LOG(INFO) << "Found ITS Track MCLabels branch " << mITSMCTruthBranchName;
   }
   // is there MC info available ?
   if (mTreeTPCTracks->GetBranch(mTPCMCTruthBranchName.data())) {
     mTreeTPCTracks->SetBranchAddress(mTPCMCTruthBranchName.data(), &mTPCTrkLabels);
-    LOG(INFO) << "Found TPC Track MCLabels branch " << mTPCMCTruthBranchName << FairLogger::endl;
+    LOG(INFO) << "Found TPC Track MCLabels branch " << mTPCMCTruthBranchName;
   }
 
   mMCTruthON = (mITSTrkLabels && mTPCTrkLabels);
@@ -347,7 +361,7 @@ bool MatchTPCITS::prepareTPCTracks()
     o2::TPC::TrackTPC& trcOrig = (*mTPCTracksArrayInp)[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > mXTPCInnerRef + 0.1)
+    if (trcOrig.getX() > XTPCInnerRef + 0.1)
       continue; // failed propagation to inner TPC radius, cannot be matched
 
     // create working copy of track param
@@ -355,7 +369,7 @@ bool MatchTPCITS::prepareTPCTracks()
     auto& trc = mTPCWork.back();
     // propagate to matching Xref
     if (!propagateToRefX(trc)) {
-      mTPCWork.pop_back(); // discard track whose propagation to mXRef failed
+      mTPCWork.pop_back(); // discard track whose propagation to XMatchingRef failed
       continue;
     }
     if (mMCTruthON) {
@@ -382,7 +396,7 @@ bool MatchTPCITS::prepareTPCTracks()
   // sort tracks in each sector according to their timeMax
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTPCSectIndexCache[sec];
-    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TPC tracks" << FairLogger::endl;
+    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TPC tracks";
     if (!indexCache.size())
       continue;
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
@@ -476,12 +490,12 @@ bool MatchTPCITS::prepareITSTracks()
       tgp /= std::sqrt((1.f - tgp) * (1.f + tgp)); // tan of track direction XY
 
       // sector up
-      float dy2Up = (mYMaxAtXRef - trc.getY()) / (tgp + Tan70);
+      float dy2Up = (YMaxAtXMatchingRef - trc.getY()) / (tgp + Tan70);
       if ((dy2Up * dy2Up * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector up
         addTrackCloneForNeighbourSector(trc, sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
       }
       // sector down
-      float dy2Dn = (mYMaxAtXRef + trc.getY()) / (tgp - Tan70);
+      float dy2Dn = (YMaxAtXMatchingRef + trc.getY()) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addTrackCloneForNeighbourSector(trc, sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
       }
@@ -490,7 +504,7 @@ bool MatchTPCITS::prepareITSTracks()
   // sort tracks in each sector according to their time, then tgl
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
-    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " ITS tracks" << FairLogger::endl;
+    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " ITS tracks";
     if (!indexCache.size()) {
       continue;
     }
@@ -537,7 +551,7 @@ bool MatchTPCITS::loadITSTracksNextChunk()
   while (++mCurrITSTracksTreeEntry < mTreeITSTracks->GetEntries()) {
     mTreeITSTracks->GetEntry(mCurrITSTracksTreeEntry);
     LOG(DEBUG) << "Loading ITS tracks entry " << mCurrITSTracksTreeEntry << " -> " << mITSTracksArrayInp->size()
-               << " tracks" << FairLogger::endl;
+               << " tracks";
     if (!mITSTracksArrayInp->size()) {
       continue;
     }
@@ -558,7 +572,7 @@ bool MatchTPCITS::loadTPCTracksNextChunk()
   while (++mCurrTPCTracksTreeEntry < mTreeTPCTracks->GetEntries()) {
     mTreeTPCTracks->GetEntry(mCurrTPCTracksTreeEntry);
     LOG(DEBUG) << "Loading TPC tracks entry " << mCurrTPCTracksTreeEntry << " -> " << mTPCTracksArrayInp->size()
-               << " tracks" << FairLogger::endl;
+               << " tracks";
     if (mTPCTracksArrayInp->size() < 1) {
       continue;
     }
@@ -582,7 +596,7 @@ void MatchTPCITS::doMatching(int sec)
   int nTracksTPC = cacheTPC.size(), nTracksITS = cacheITS.size();
   if (!nTracksTPC || !nTracksITS) {
     LOG(INFO) << "Matchng sector " << sec << " : N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS << " in sector "
-              << sec << FairLogger::endl;
+              << sec;
     return;
   }
 
@@ -594,7 +608,7 @@ void MatchTPCITS::doMatching(int sec)
 
   if (minROFITS >= int(tbinStartTPC.size())) {
     LOG(INFO) << "ITS min ROFrame " << minROFITS << " exceeds all cached TPC track ROF eqiuvalent "
-              << cacheTPC.size() - 1 << FairLogger::endl;
+              << cacheTPC.size() - 1;
     return;
   }
 
@@ -662,7 +676,7 @@ void MatchTPCITS::doMatching(int sec)
 
   LOG(INFO) << "Match sector " << sec << " N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS
             << " N TPC tracks checked: " << nCheckTPCControl << " (starting from " << idxMinTPC
-            << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl << FairLogger::endl;
+            << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl;
 }
 
 //______________________________________________
@@ -930,12 +944,12 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
 
   //  if (std::abs(tr1.getAlpha() - tr2.getAlpha()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference Alpha of the tracks differ: "
-  //	       << tr1.getAlpha() << " : " << tr2.getAlpha() << FairLogger::endl;
+  //	       << tr1.getAlpha() << " : " << tr2.getAlpha();
   //    return 2. * o2::track::HugeF;
   //  }
   //  if (std::abs(tr1.getX() - tr2.getX()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference X of the tracks differ: "
-  //	       << tr1.getX() << " : " << tr2.getX() << FairLogger::endl;
+  //	       << tr1.getX() << " : " << tr2.getX();
   //    return 2. * o2::track::HugeF;
   //  }
   MatrixDSym4 covMat;
@@ -950,7 +964,7 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
   covMat(3, 2) = static_cast<double>(tr1.getSigma1PtTgl()) + static_cast<double>(tr2.getSigma1PtTgl());
   covMat(3, 3) = static_cast<double>(tr1.getSigma1Pt2()) + static_cast<double>(tr2.getSigma1Pt2());
   if (!covMat.Invert()) {
-    LOG(ERROR) << "Cov.matrix inversion failed: " << covMat << FairLogger::endl;
+    LOG(ERROR) << "Cov.matrix inversion failed: " << covMat;
     return 2. * o2::track::HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0.,
@@ -977,7 +991,7 @@ void MatchTPCITS::addTrackCloneForNeighbourSector(const TrackLocITS& src, int se
   mITSWork.push_back(src); // clone the track defined in given sector
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
-      o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged, MaxSnp,
+      o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
                                                            2., 0)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
@@ -995,13 +1009,14 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   // propagate track to matching reference X, making sure its assigned alpha
   // is consistent with TPC sector
   bool refReached = false;
-  refReached = mXRef < 10.; // RS: tmp, to cover mXRef~0
-  while (o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, mXRef, o2::constants::physics::MassPionCharged,
+  refReached = XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
+  while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged,
                                                               MaxSnp, 2., 1)) {
-    if (refReached)
-      break; // RS: tmp
+    if (refReached) {
+      break;
+    }
     // make sure the track is indeed within the sector defined by alpha
-    if (fabs(trc.getY()) < mXRef * tan(o2::constants::math::SectorSpanRad / 2)) {
+    if (fabs(trc.getY()) < XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
       refReached = true;
       break; // ok, within
     }
@@ -1024,7 +1039,7 @@ void MatchTPCITS::print() const
   }
 
   printf("MC truth: %s\n", mMCTruthON ? "on" : "off");
-  printf("Matching reference X: %.3f\n", mXRef);
+  printf("Matching reference X: %.3f\n", XMatchingRef);
   printf("Account Z dimension: %s\n", mCompareTracksDZ ? "on" : "off");
   printf("Cut on matching chi2: %.3f\n", mCutMatchingChi2);
   printf("Max number ITS candidates per TPC track: %d\n", mMaxMatchCandidates);
@@ -1068,7 +1083,7 @@ void MatchTPCITS::refitWinners()
 
   mTimerRefit.Start(false);
 
-  LOG(INFO) << "Refitting winner matches" << FairLogger::endl;
+  LOG(INFO) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   mCurrITSTracksTreeEntry = -1;
   mCurrITSClustersTreeEntry = -1;
@@ -1122,6 +1137,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
   loadITSClustersChunk(tITS.source.getEvent());
   loadITSTracksChunk(tITS.source.getEvent());
   loadTPCTracksChunk(tTPC.source.getEvent());
+  loadTPCClustersChunk(tTPC.source.getEvent());
 
   auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
@@ -1139,7 +1155,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
   float chi2 = 0.f;
   auto geom = o2::ITS::GeometryTGeo::Instance();
-  auto propagator = o2::Base::Propagator::Instance();
+  auto propagator = o2::base::Propagator::Instance();
   for (int icl = 0; icl < ncl; icl++) {
     const auto& clus = (*mITSClustersArrayInp)[itsTrOrig.getClusterIndex(icl)];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
@@ -1175,23 +1191,96 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
-  // refit ITS outer trackparam outward into the TPC
-  // TODO
-
   /// precise time estimate
   auto tpcTrOrig = (*mTPCTracksArrayInp)[tTPC.source.getIndex()];
-  float time = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
+  float timeTB = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
   if (tpcTrOrig.hasASideClustersOnly()) {
-    time += deltaT;
+    timeTB += deltaT;
   } else if (tpcTrOrig.hasCSideClustersOnly()) {
-    time -= deltaT;
+    timeTB -= deltaT;
   } else {
     // TODO : special treatment of tracks crossing the CE
   }
-  // convert time to microseconds
-  time *= mTPCTBinMUS;
+  // convert time in timebins to time in microseconds
+  float time = timeTB * mTPCTBinMUS;
   // estimate the error on time
   float timeErr = std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv;
+
+  // outward refit
+  auto& tracOut = trfit.getParamOut(); // this track is already at the matching reference X
+  {
+    int icl = tpcTrOrig.getNClusterReferences() - 1;
+    uint8_t sector, prevsector, row, prevrow;
+    uint32_t clusterIndexInRow;
+    std::array<float, 2> clsYZ;
+    std::array<float, 3> clsCov = {};
+    float clsX;
+
+    const auto& cl = tpcTrOrig.getCluster(icl, mTPCClusterIdxStruct, sector, row);
+    mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+    // rotate to 1 cluster's sector
+    if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
+      LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+      return false;
+    }
+    // TODO: consider propagating in empty space till TPC entrance in large step, and then in more detailed propagation with mat. corrections
+
+    // propagate to 1st cluster X
+    if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., 1, &trfit.getLTIntegralOut())) {
+      LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
+      return false;
+    }
+    //
+    mTPCClusterParam->GetClusterErrors2(row, clsYZ[1], tracOut.getSnp(), tracOut.getTgl(), clsCov[0], clsCov[2]);
+    //
+    float chi2Out = tracOut.getPredictedChi2(clsYZ, clsCov);
+    if (!tracOut.update(clsYZ, clsCov)) {
+      LOG(WARNING) << "Update failed at 1st cluster, chi2 =" << chi2Out;
+      return false;
+    }
+    prevrow = row;
+    prevsector = sector;
+
+    for (; icl--;) {
+      const auto& cl = tpcTrOrig.getCluster(icl, mTPCClusterIdxStruct, sector, row);
+      if (row <= prevrow) {
+        LOG(WARNING) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
+                     << '/' << int(prevsector) << " TrackID: " << tTPC.source.getIndex() << " Pt:" << tracOut.getPt();
+        if (row < prevrow) {
+          break;
+        } else {
+          continue; // just skip duplicate clusters
+        }
+      }
+      prevrow = row;
+      mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+      if (prevsector != sector) {
+        prevsector = sector;
+        if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
+          LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+          return false;
+        }
+      }
+      if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
+                                          10., 0, &trfit.getLTIntegralOut())) { // no material correction!
+        LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
+                  << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
+        return false;
+      }
+      chi2Out += tracOut.getPredictedChi2(clsYZ, clsCov);
+      if (!tracOut.update(clsYZ, clsCov)) {
+        LOG(WARNING) << "Update failed at 1st cluster, chi2 =" << chi2Out;
+        return false;
+      }
+    }
+    // propagate to the outer edge of the TPC, TODO: check outer radius
+    // Note: it is allowed to not reach the requested radius
+    propagator->PropagateToXBxByBz(tracOut, XTPCOuterRef, o2::constants::physics::MassPionCharged, MaxSnp,
+                                   10., 1, &trfit.getLTIntegralOut());
+
+    //    LOG(INFO) << "Refitted with chi2 = " << chi2Out;
+  }
+
   trfit.setChi2Match(itsMatchRec.chi2);
   trfit.setChi2Refit(chi2);
   trfit.setTimeMUS(time, timeErr);
@@ -1203,6 +1292,8 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     mOutTPCLabels.emplace_back(mTPCLblWork[iTPC]);
   }
 
+  //  trfit.print(); // DBG
+
   return true;
 }
 
@@ -1213,6 +1304,18 @@ void MatchTPCITS::loadITSClustersChunk(int chunk)
   if (mCurrITSClustersTreeEntry != chunk) {
     mTimerIO.Start(false);
     mTreeITSClusters->GetEntry(mCurrITSClustersTreeEntry = chunk);
+    mTimerIO.Stop();
+  }
+}
+
+//________________________________________________________
+void MatchTPCITS::loadTPCClustersChunk(int chunk)
+{
+  // load single entry from ITS clusters tree
+  if (mCurrTPCClustersTreeEntry != chunk) {
+    mTimerIO.Start(false);
+    mTPCClusterReader->read(mCurrTPCClustersTreeEntry = chunk);
+    mTPCClusterReader->fillIndex(mTPCClusterIdxStruct);
     mTimerIO.Stop();
   }
 }
@@ -1285,7 +1388,7 @@ void MatchTPCITS::dumpWinnerMatches()
 
   mTimerDBG.Start(false);
 
-  LOG(INFO) << "Dumping debug tree for winner matches" << FairLogger::endl;
+  LOG(INFO) << "Dumping debug tree for winner matches";
   for (int iits = 0; iits < int(mITSWork.size()); iits++) {
     auto& its = mITSWork[iits];
     if (its.matchID < 0 || isDisabledITS(mMatchesITS[its.matchID])) {

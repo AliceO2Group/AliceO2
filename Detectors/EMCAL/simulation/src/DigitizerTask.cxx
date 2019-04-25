@@ -19,13 +19,13 @@
 #include "FairTask.h"        // for FairTask, InitStatus
 #include "Rtypes.h"          // for DigitizerTask::Class, ClassDef, etc
 
-ClassImp(o2::EMCAL::DigitizerTask);
+ClassImp(o2::emcal::DigitizerTask);
 
-using o2::EMCAL::Digit;
-using o2::EMCAL::Digitizer;
-using o2::EMCAL::Hit;
+using o2::emcal::Digit;
+using o2::emcal::Digitizer;
+using o2::emcal::Hit;
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 DigitizerTask::DigitizerTask() : FairTask("EMCALDigitizerTask"), mDigitizer() {}
 
@@ -48,7 +48,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = mgr->InitObjectAs<const std::vector<o2::EMCAL::Hit>*>("EMCALHit");
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::emcal::Hit>*>("EMCALHit");
   if (!mHitsArray) {
     LOG(ERROR) << "EMCAL hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

@@ -22,7 +22,7 @@
 
 using boost::format;
 using boost::str;
-using o2::mathUtils::mathBase::median;
+using o2::math_utils::math_base::median;
 
 using namespace o2::TPC;
 

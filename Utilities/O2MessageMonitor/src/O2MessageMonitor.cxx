@@ -34,7 +34,7 @@
 
 using namespace std;
 using namespace o2::header;
-using namespace o2::Base;
+using namespace o2::base;
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
@@ -76,7 +76,7 @@ void O2MessageMonitor::Run()
     // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    o2::Base::forEach(message, [&](auto header, auto data) {
+    o2::base::forEach(message, [&](auto header, auto data) {
       hexDump("headerBuffer", header.data(), header.size());
       hexDump("dataBuffer", data.data(), data.size(), mLimitOutputCharacters);
     });
@@ -84,7 +84,7 @@ void O2MessageMonitor::Run()
 
     // maybe a reply message
     if (type == "rep") {
-      o2::Base::addDataBlock(message,
+      o2::base::addDataBlock(message,
                              { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
                              NewSimpleMessageFor("data", 0, ""));
       Send(message, "data");

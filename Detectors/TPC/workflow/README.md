@@ -1,9 +1,12 @@
+\page refTPCworkflow TPC workflow
+
 # DPL workflows for the TPC
 
 ## TPC reconstruction workflow
 The TPC reconstruction workflow starts from the TPC digits, the *clusterer* reconstructs clusters in the
 [ClusterHardware](../../../DataFormats/Detectors/TPC/include/DataFormatsTPC/ClusterHardware.h) format.
-The clusters are written to RAW pages and passed onto the *decoder* providing the decoded (native) cluster
+The clusters are directly written in the  *RAW page* format. The raw data are passed onto the *decoder*
+providing the [TPC native cluster](../../../DataFormats/Detectors/TPC/include/DataFormatsTPC/ClusterNative.h)
 format to the *tracker*.
 
 Note: The format of the raw pages is preliminary and does not reflect what is currently implemented in the CRU.
@@ -17,11 +20,10 @@ The workflow consists of the following DPL processors:
 * `tpc-track-writer` -> implements simple writing to ROOT file
 
 Depending on the input and output types the default workflow is extended by the following readers and writers:
-* `tpc-raw-cluster-reader`
-* `tpc-decoded-cluster-reader`
-* `tpc-raw-cluster-writer`
-* `tpc-decoded-cluster-writer`
-
+* `tpc-raw-cluster-writer` writes the binary raw format data to binary branches in a ROOT file
+* `tpc-raw-cluster-reader` reads data from binary branches of a ROOT file
+* `tpc-cluster-writer` writes the binary native cluster data to binary branches in a ROOT file
+* `tpc-cluster-reader` reads data from binary branches of a ROOT file
 
 MC labels are passed through the workflow along with the data objects and also written together with the
 output at the configured stages (see output types).
@@ -31,7 +33,7 @@ The input can be created by running the simulation (`o2sim`) and the digitizer w
 The digitizer workflow produces the file `tpcdigits.root` by default, data is stored in separated branches for
 all sectors.
 
-The workflow can be started starting from digits, raw clusters, or decoded (native) clusters, or directly attached to the
+The workflow can be run starting from digits, raw clusters, or (native) clusters, or directly attached to the
 `digitizer-workflow`, see comment on inputs types below.
 
 ### Quickstart running the reconstruction workflow
@@ -67,17 +69,17 @@ Options for the `tpc-track-writer` process
 
 Examples:
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15 --tracker-options "cont refX=83 bz=-5.0068597793"
+tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
+tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ### Global workflow options:
 ```
---input-type arg (=digits)            digitizer, digits, raw, decoded-clusters
---output-type arg (=tracks)           digits, raw, decoded-clusters, tracks
+--input-type arg (=digits)            digitizer, digits, raw, clusters
+--output-type arg (=tracks)           digits, raw, clusters, tracks
 --disable-mc arg (=0)                 disable sending of MC information
 --tpc-lanes arg (=1)                  number of parallel lanes up to the tracker
 --tpc-sectors arg (=0-35)             TPC sector range, e.g. 5-7,8,9
@@ -101,9 +103,12 @@ are supported in order to write data at intermediate steps, e.g.
 MC label data are stored in corresponding branches per sector. The sequence of MC objects must match
 the sequence of data objects.
 
+By default, all data is written to ROOT files, even the data in binary format like the raw data and cluster
+data. This allows to record multiple sets (i.e. timeframes/events) in one file alongside with the MC labels.
+
 #### Parallel processing
 Parallel processing is controlled by the option `--tpc-lanes n`. The digit reader will fan out to n processing
-lanes, each with clusterer, converter and decoder. The tracker will fan in from the parallel lanes.
+lanes, each with clusterer, and decoder. The tracker will fan in from multiple parallel lanes.
 For each sector, a dedicated DPL data channel is created. The channels are distributed among the lanes.
 The default configuration processes sector data belonging together in the same time slice, but in earlier
 implementations the sector data was distributed among multiple time slices (thus abusing the DPL time

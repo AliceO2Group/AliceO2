@@ -21,6 +21,7 @@
 #include "Framework/Signpost.h"
 
 #include "ScopedExit.h"
+
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
@@ -32,6 +33,9 @@
 #include <memory>
 
 using namespace o2::framework;
+using Key = o2::monitoring::tags::Key;
+using Value = o2::monitoring::tags::Value;
+using Metric = o2::monitoring::Metric;
 using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
@@ -42,27 +46,6 @@ namespace o2
 {
 namespace framework
 {
-
-/// Handle the fact that FairMQ deprecated ReceiveAsync and changed the behavior of receive.
-namespace
-{
-struct FairMQDeviceLegacyWrapper {
-  // If both APIs are available, this has precendence because of dummy.
-  // Only the old API before the deprecation had FairMQSocket::TrySend().
-  template <typename S>
-  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, int dummy) -> typename std::enable_if<(sizeof(decltype(std::declval<S>().TrySend(parts.At(0)))) > 0), int>::type
-  {
-    return device->ReceiveAsync(parts, channel);
-  }
-
-  // Otherwise if we are here it means that TrySend() is not there anymore
-  template <typename S>
-  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, long dummy) -> int
-  {
-    return device->Receive(parts, channel, 0, 0);
-  }
-};
-}
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry)
   : mSpec{ spec },
@@ -103,7 +86,7 @@ void DataProcessingDevice::Init() {
       }
     }
   }
-  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
+  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
 
   mExpirationHandlers.clear();
@@ -119,6 +102,9 @@ void DataProcessingDevice::Init() {
 
   auto& monitoring = mServiceRegistry.get<Monitoring>();
   monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
+  static const std::string dataProcessorIdMetric = "dataprocessor_id";
+  static const std::string dataProcessorIdValue = mSpec.name;
+  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
@@ -138,31 +124,76 @@ bool DataProcessingDevice::ConditionalRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [ stats = mRelayer.getStats(),
-                              &lastSent = mLastMetricSentTimestamp,
-                              &currentTime = mBeginIterationTimestamp,
-                              &monitoring = mServiceRegistry.get<Monitoring>() ]()
-                              ->void
-  {
+  auto sendRelayerMetrics = [relayerStats = mRelayer.getStats(),
+                             &stats = mStats,
+                             &lastSent = mLastSlowMetricSentTimestamp,
+                             &currentTime = mBeginIterationTimestamp,
+                             &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
     if (currentTime - lastSent < 5000) {
       return;
     }
-    monitoring.send({ (int)stats.malformedInputs, "dpl/malformed_inputs" });
-    monitoring.send({ (int)stats.droppedComputations, "dpl/dropped_computations" });
-    monitoring.send({ (int)stats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
-    monitoring.send({ (int)stats.relayedMessages, "dpl/relayd_messages" });
+
+    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+
+    monitoring.send(Metric{ (int)relayerStats.malformedInputs, "malformed_inputs" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.droppedComputations, "dropped_computations" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)relayerStats.relayedMessages, "relayed_messages" }.addTag(Key::Subsystem, Value::DPL));
+
+    monitoring.send(Metric{ (int)stats.pendingInputs, "inputs/relayed/pending" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)stats.incomplete, "inputs/relayed/incomplete" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (int)stats.inputParts, "inputs/relayed/total" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastElapsedTimeMs, "elapsed_time_ms" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastTotalProcessedSize, "processed_input_size_byte" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
+                            "processing_rate_mb_s" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastLatency.minLatency, "min_input_latency_ms" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ stats.lastLatency.maxLatency, "max_input_latency_ms" }
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "Value::DPL/input_rate_mb_s" }
+                      .addTag(Key::Subsystem, Value::DPL));
+
     lastSent = currentTime;
+    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+  };
+
+  /// This will flush metrics only once every second.
+  auto flushMetrics = [&stats = mStats,
+                       &relayer = mRelayer,
+                       &lastFlushed = mLastMetricFlushedTimestamp,
+                       &currentTime = mBeginIterationTimestamp,
+                       &monitoring = mServiceRegistry.get<Monitoring>()]()
+    -> void {
+    if (currentTime - lastFlushed < 1000) {
+      return;
+    }
+
+    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
+    // Send all the relevant metrics for the relayer to update the GUI
+    // FIXME: do a delta with the previous version if too many metrics are still
+    // sent...
+    for (size_t si = 0; si < stats.relayerState.size(); ++si) {
+      auto state = stats.relayerState[si];
+      monitoring.send({ state, "data_relayer/" + std::to_string(si) });
+    }
+    relayer.sendContextState();
+    monitoring.flushBuffer();
+    lastFlushed = currentTime;
+    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   };
 
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
-  sendRelayerMetrics();
 
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   bool active = false;
   for (auto& channel : mSpec.inputChannels) {
     FairMQParts parts;
-    auto result = FairMQDeviceLegacyWrapper::ReceiveAsync<FairMQSocket>(this, parts, channel.name, 0);
+    auto result = this->Receive(parts, channel.name, 0, 0);
     if (result > 0) {
       this->handleData(parts);
       active |= this->tryDispatchComputation();
@@ -173,6 +204,9 @@ bool DataProcessingDevice::ConditionalRun()
   }
   mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   this->tryDispatchComputation();
+
+  sendRelayerMetrics();
+  flushMetrics();
   return true;
 }
 
@@ -195,8 +229,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto& device = *this;
   auto& errorCount = mErrorCount;
@@ -207,9 +241,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&monitoringService, &parts]() -> bool {
-    // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
-    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
+  auto isValidInput = [&stats = mStats, &parts]() -> bool {
+    stats.inputParts = parts.Size();
 
     if (parts.Size() % 2) {
       return false;
@@ -305,8 +338,8 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   ScopedExit metricFlusher([&monitoringService] {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      monitoringService.flushBuffer(); });
+    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+  });
 
   auto reportError = [&device](const char* message) {
     device.error(message);
@@ -325,12 +358,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
-    int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
-    if (completed.empty()) {
-      monitoringService.send({ 1, "inputs/relayed/incomplete" });
-    }
+  auto getReadyActions = [&relayer, &completed, &stats = mStats]() -> std::vector<DataRelayer::RecordAction> {
+    stats.pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
+    stats.incomplete = completed.empty() ? 1 : 0;
     return completed;
   };
 
@@ -460,15 +490,8 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
   };
 
-  // We use this to keep track of the latency of the first message we get for a given input record
-  // and of the last one.
-  struct InputLatency {
-    uint64_t minLatency;
-    uint64_t maxLatency;
-  };
-
-  auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> InputLatency {
-    InputLatency result{ static_cast<uint64_t>(-1), 0 };
+  auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> DataProcessingStats::InputLatency {
+    DataProcessingStats::InputLatency result{ static_cast<int>(-1), 0 };
 
     auto currentTime = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
     for (auto& item : record) {
@@ -476,7 +499,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       if (header == nullptr) {
         continue;
       }
-      auto partLatency = currentTime - header->creation;
+      int partLatency = currentTime - header->creation;
       result.minLatency = std::min(result.minLatency, partLatency);
       result.maxLatency = std::max(result.maxLatency, partLatency);
     }
@@ -513,46 +536,27 @@ bool DataProcessingDevice::tryDispatchComputation()
       }
     }
     auto tStart = std::chrono::high_resolution_clock::now();
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 2 : 0;
+      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+      mStats.relayerState[cacheId] = state;
+    }
     try {
-      for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.slot.index * record.size() + ai;
-        auto state = record.isValid(ai) ? 2 : 0;
-        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
-      }
       dispatchProcessing(action.slot, record);
-      for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.slot.index * record.size() + ai;
-        auto state = record.isValid(ai) ? 3 : 0;
-        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
-      }
     } catch(std::exception &e) {
       errorHandling(e, record);
     }
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    double elapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    auto totalProcessedSize = calculateTotalInputRecordSize(record);
-    auto latency = calculateInputRecordLatency(record, tStart);
-
-    /// The size of all the input messages which have been processed in this iteration
-    monitoringService.send({ totalProcessedSize, "dpl/processed_input_size_bytes" });
-    /// The time to do the processing for this iteration
-    monitoringService.send({ elapsedTimeMs, "dpl/elapsed_time_ms" });
-    /// The rate at which processing was happening in this iteration
-    monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/processing_rate_mb_s" });
-    /// The smallest latency between an input message being created and its processing
-    /// starting.
-    monitoringService.send({ (int)latency.minLatency, "dpl/min_input_latency_ms" });
-    /// The largest latency between an input message being created and its processing
-    /// starting.
-    monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
-    /// The rate at which we get inputs, i.e. the longest time between one of the inputs being
-    /// created and actually reaching the consumer device.
-    if (latency.maxLatency == 0) {
-      // avoid division by zero by assuming at least one ms of latency.
-      latency.maxLatency = 1;
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 3 : 0;
+      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+      mStats.relayerState[cacheId] = state;
     }
-    monitoringService.send({ (int)((totalProcessedSize / latency.maxLatency) / 1000), "dpl/input_rate_mb_s" });
-
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    mStats.lastElapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    mStats.lastLatency = calculateInputRecordLatency(record, tStart);
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
@@ -569,7 +573,7 @@ void
 DataProcessingDevice::error(const char *msg) {
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dpl/errors" });
+  mServiceRegistry.get<Monitoring>().send(Metric{ mErrorCount, "errors" }.addTag(Key::Subsystem, Value::DPL));
 }
 
 } // namespace framework

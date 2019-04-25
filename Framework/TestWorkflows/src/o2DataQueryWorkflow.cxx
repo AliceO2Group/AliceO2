@@ -10,9 +10,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
-#include <vector>
 #include "Framework/runDataProcessing.h"
 #include "Framework/WorkflowSpec.h"
+
+#include <chrono>
+#include <vector>
 
 using namespace o2::framework;
 
@@ -21,7 +23,7 @@ AlgorithmSpec simplePipe(std::string const& what, size_t subSpec, int minDelay)
   return AlgorithmSpec{ [what, minDelay, subSpec](InitContext& ic) {
     srand(getpid());
     return [what, minDelay, subSpec](ProcessingContext& ctx) {
-      sleep((rand() % 5) + minDelay);
+      std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto bData = ctx.outputs().make<int>(OutputRef{ what, subSpec }, 1);
       bData[0] = subSpec;
     };
@@ -39,7 +41,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         OutputSpec{ { "a2" }, "TST", "A2" } },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          sleep(rand() % 2);
+          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
           auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
           auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
         } } },

@@ -26,20 +26,20 @@
 using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
-o2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()
+o2::data_flow::TimeframeValidatorDevice::TimeframeValidatorDevice()
   : O2Device()
   , mInChannelName()
 {
 }
 
-void o2::DataFlow::TimeframeValidatorDevice::InitTask()
+void o2::data_flow::TimeframeValidatorDevice::InitTask()
 {
   mInChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
 }
 
-void o2::DataFlow::TimeframeValidatorDevice::Run()
+void o2::data_flow::TimeframeValidatorDevice::Run()
 {
   while (CheckCurrentState(RUNNING)) {
     FairMQParts timeframeParts;

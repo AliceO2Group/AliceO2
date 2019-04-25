@@ -1,3 +1,5 @@
+\page refFrameworkCoreCOOKBOOK Core COOKBOOK
+
 # Data Processing Layer Cookbook
 
 This is a work in progress entrypoint for common DPL related tasks.

@@ -1,3 +1,9 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+#include "TSystem.h"
+#endif
+
+void rootlogon()
 {
   cout << endl;
   cout << endl;

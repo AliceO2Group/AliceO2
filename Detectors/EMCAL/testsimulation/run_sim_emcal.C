@@ -1,26 +1,26 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <iostream>
+#include <iostream>
 
-  #include "Rtypes.h"
-  #include "TSystem.h"
-  #include "TMath.h"
-  #include "TString.h"
-  #include "TStopwatch.h"
-  #include "TGeoManager.h"
+#include "Rtypes.h"
+#include "TSystem.h"
+#include "TMath.h"
+#include "TString.h"
+#include "TStopwatch.h"
+#include "TGeoManager.h"
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
-  #include "FairSystemInfo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+#include "FairSystemInfo.h"
 
-  #include "TGeoGlobalMagField.h"
-  #include "Field/MagneticField.h"
+#include "TGeoGlobalMagField.h"
+#include "Field/MagneticField.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Generators/GeneratorFromFile.h"
-  #include "TPCSimulation/Detector.h"
+#include "DetectorsPassive/Cave.h"
+#include "Generators/GeneratorFromFile.h"
+#include "EMCALSimulation/Detector.h"
 #endif
 
 #define BOX_GENERATOR 1
@@ -74,8 +74,8 @@ void run_sim_emcal(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   o2::field::MagneticField *magField = new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
   run->SetField(magField);
 
-  // ===| Add TPC |============================================================
-  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
+  // ===| Add EMCAL |============================================================
+  o2::emcal::Detector* emcal = new o2::emcal::Detector(kTRUE);
   run->AddModule(emcal);
 
   // Create PrimaryGenerator

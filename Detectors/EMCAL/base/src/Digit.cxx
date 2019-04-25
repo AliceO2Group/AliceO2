@@ -11,7 +11,7 @@
 #include "EMCALBase/Digit.h"
 #include <iostream>
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 ClassImp(Digit)
 

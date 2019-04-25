@@ -18,7 +18,7 @@
 #include <iostream>
 #include <vector>
 
-using namespace o2::Base;
+using namespace o2::base;
 using namespace o2::header;
 using namespace o2::pmr;
 

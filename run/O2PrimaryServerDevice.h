@@ -30,6 +30,7 @@
 #include <typeinfo>
 #include <thread>
 #include <TROOT.h>
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -43,11 +44,15 @@ class O2PrimaryServerDevice : public FairMQDevice
   O2PrimaryServerDevice()
   {
     mStack.setExternalMode(true);
-    OnData("primary-get", &O2PrimaryServerDevice::HandleRequest);
   }
 
   /// Default destructor
-  ~O2PrimaryServerDevice() final = default;
+  ~O2PrimaryServerDevice() final
+  {
+    if (mGeneratorThread.joinable()) {
+      mGeneratorThread.join();
+    }
+  }
 
  protected:
   void initGenerator()
@@ -62,6 +67,18 @@ class O2PrimaryServerDevice : public FairMQDevice
       mPrimGen.embedInto(embedinto_filename);
     }
     mPrimGen.Init();
+    generateEvent(); // generate a first event
+  }
+
+  // function generating one event
+  void generateEvent()
+  {
+    TStopwatch timer;
+    timer.Start();
+    mStack.Reset();
+    mPrimGen.GenerateEvent(&mStack);
+    timer.Stop();
+    LOG(INFO) << "Event generation took " << timer.CpuTime() << "s";
   }
 
   void InitTask() final
@@ -95,7 +112,7 @@ class O2PrimaryServerDevice : public FairMQDevice
     // lunch initialization of particle generator asynchronously
     // so that we reach the RUNNING state of the server quickly
     // and do not block here
-    mGeneratorInitThread = std::thread(&O2PrimaryServerDevice::initGenerator, this);
+    mGeneratorThread = std::thread(&O2PrimaryServerDevice::initGenerator, this);
 
     // init pipe
     auto pipeenv = getenv("ALICE_O2SIMSERVERTODRIVER_PIPE");
@@ -124,11 +141,23 @@ class O2PrimaryServerDevice : public FairMQDevice
       fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
 
     // send answer
-    if (Send(message, "primary-get") > 0) {
+    if (Send(message, "primary-get", 0) > 0) {
       LOG(INFO) << "config reply send ";
       return true;
     }
     return true;
+  }
+
+  bool ConditionalRun() override
+  {
+    auto& channel = fChannels.at("primary-get").at(0);
+    std::unique_ptr<FairMQMessage> request(channel.NewMessage());
+    auto bytes = channel.Receive(request);
+    if (bytes < 0) {
+      LOG(ERROR) << "Some error occurred on socket during receive";
+      return true; // keep going
+    }
+    return HandleRequest(request, 0);
   }
 
   /// Overloads the ConditionalRun() method of FairMQDevice
@@ -146,11 +175,6 @@ class O2PrimaryServerDevice : public FairMQDevice
       return true;
     }
 
-    // we only need the initialized generator at this moment
-    if (mGeneratorInitThread.joinable()) {
-      mGeneratorInitThread.join();
-    }
-
     static int counter = 0;
     if (counter >= mMaxEvents && mNeedNewEvent) {
       return false;
@@ -158,8 +182,10 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     LOG(INFO) << "Received request for work ";
     if (mNeedNewEvent) {
-      mStack.Reset();
-      mPrimGen.GenerateEvent(&mStack);
+      // we need a newly generated event now
+      if (mGeneratorThread.joinable()) {
+        mGeneratorThread.join();
+      }
       mNeedNewEvent = false;
       mPartCounter = 0;
       counter++;
@@ -170,8 +196,8 @@ class O2PrimaryServerDevice : public FairMQDevice
     // number of parts should be at least 1 (even if empty)
     numberofparts = std::max(1, numberofparts);
 
-    o2::Data::PrimaryChunk m;
-    o2::Data::SubEventInfo i;
+    o2::data::PrimaryChunk m;
+    o2::data::SubEventInfo i;
     i.eventID = counter;
     i.maxEvents = mMaxEvents;
     i.part = mPartCounter + 1;
@@ -181,13 +207,6 @@ class O2PrimaryServerDevice : public FairMQDevice
     i.mMCEventHeader = mEventHeader;
     m.mSubEventInfo = i;
 
-    //auto startoffset = (mPartCounter + 1) * mChunkGranularity;
-    //auto endoffset = startindex + mChunkGranularity;
-    //auto startiter = prims.begin() + mPartCounter * mChunkGranularity;
-    //auto enditer = endindex < prims.size() ? startiter + mChunkGranularity : prims.end();
-    //auto startiter = startoffset < prims.size() ? prims.rbegin() - startoffset : prims.begin();
-    //auto remaining = prims.size() - (mPartCounter + 1) * mChunkGranularity;
-    //auto enditer = startiter + (remaining > mChunkGranularity)? mChunkGranularity : remaining;
     int endindex = prims.size() - mPartCounter * mChunkGranularity;
     int startindex = prims.size() - (mPartCounter + 1) * mChunkGranularity;
     if (startindex < 0) {
@@ -197,13 +216,12 @@ class O2PrimaryServerDevice : public FairMQDevice
       endindex = 0;
     }
 
-    // std::copy(startiter, enditer, std::back_inserter(m.mParticles));
     for (int index = startindex; index < endindex; ++index) {
       m.mParticles.emplace_back(prims[index]);
     }
 
-    LOG(WARNING) << "Sending " << m.mParticles.size() << " particles\n";
-    LOG(WARNING) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";
+    LOG(INFO) << "Sending " << m.mParticles.size() << " particles\n";
+    LOG(INFO) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";
 
     // feedback to driver if new event started
     if (mPipeToDriver != -1 && i.part == 1) {
@@ -214,10 +232,12 @@ class O2PrimaryServerDevice : public FairMQDevice
     mPartCounter++;
     if (mPartCounter == numberofparts) {
       mNeedNewEvent = true;
+      // start generation of a new event
+      mGeneratorThread = std::thread(&O2PrimaryServerDevice::generateEvent, this);
     }
 
     TMessage* tmsg = new TMessage(kMESS_OBJECT);
-    tmsg->WriteObjectAny((void*)&m, TClass::GetClass("o2::Data::PrimaryChunk"));
+    tmsg->WriteObjectAny((void*)&m, TClass::GetClass("o2::data::PrimaryChunk"));
 
     auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
 
@@ -225,7 +245,7 @@ class O2PrimaryServerDevice : public FairMQDevice
       fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
 
     // send answer
-    if (Send(message, "primary-get") > 0) {
+    if (Send(message, "primary-get", 0) > 0) {
       LOG(INFO) << "reply send";
       return true;
     }
@@ -236,7 +256,7 @@ class O2PrimaryServerDevice : public FairMQDevice
   std::string mOutChannelName = "";
   o2::eventgen::PrimaryGenerator mPrimGen;
   o2::dataformats::MCEventHeader mEventHeader;
-  o2::Data::Stack mStack;      // the stack which is filled
+  o2::data::Stack mStack;      // the stack which is filled
   int mChunkGranularity = 500; // how many primaries to send to a worker
   int mLastPosition = 0;       // last position in stack vector
   int mPartCounter = 0;
@@ -245,7 +265,8 @@ class O2PrimaryServerDevice : public FairMQDevice
   int mInitialSeed = -1;
   int mPipeToDriver = -1; // handle for direct piper to driver (to communicate meta info)
 
-  std::thread mGeneratorInitThread; //! a thread used to concurrently init the particle generator
+  std::thread mGeneratorThread; //! a thread used to concurrently init the particle generator
+                                //  or to generate events
 };
 
 } // namespace devices

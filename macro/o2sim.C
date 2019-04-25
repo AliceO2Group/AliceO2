@@ -134,7 +134,7 @@ FairRunSim* o2sim_init(bool asservice)
     TIter next(modArr);
     FairModule* module = nullptr;
     while ((module = (FairModule*)next())) {
-      o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+      o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
       if (!det) {
         continue; // not a detector
       }

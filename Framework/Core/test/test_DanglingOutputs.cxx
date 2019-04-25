@@ -10,9 +10,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/DeviceSpec.h"
 #include <InfoLogger/InfoLogger.hxx>
-#include <vector>
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
+
+#include <chrono>
+#include <vector>
 
 using namespace o2::framework;
 
@@ -36,7 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         OutputSpec{ { "a2" }, "TST", "A2" } },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          sleep(rand() % 2 + 1);
+          std::this_thread::sleep_for(std::chrono::milliseconds((rand() % 2 + 1) * 1000));
           auto aData1 = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
           auto aData2 = ctx.outputs().make<int>(Output{ "TST", "A2" }, 1);
         } } },

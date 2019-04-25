@@ -30,6 +30,9 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "TPCFastTransform.h"
+#include "AliGPUCAParam.h" // Consider more universal access
 
 class TTree;
 
@@ -139,8 +142,14 @@ struct matchRecord {
 class MatchTPCITS
 {
   using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using TPCTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
 
  public:
+  static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
+  static constexpr float XTPCOuterRef = 255.0;                           ///< reference radius to propagate outer TPC track
+  static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
+  static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
+
   ///< perform matching for provided input
   void run();
 
@@ -166,6 +175,9 @@ class MatchTPCITS
 
   ///< set tree/chain containing ITS clusters
   void setInputTreeITSClusters(TTree* tree) { mTreeITSClusters = tree; }
+
+  ///< set reader for TPC clusters
+  void setInputTPCClustersReader(o2::TPC::ClusterNativeHelper::Reader* reader) { mTPCClusterReader = reader; }
 
   ///< set output tree to write matched tracks
   void setOutputTree(TTree* tr) { mOutputTree = tr; }
@@ -268,6 +280,7 @@ class MatchTPCITS
   bool loadITSTracksNextChunk();
   void loadITSClustersChunk(int chunk);
   void loadITSTracksChunk(int chunk);
+  void loadTPCClustersChunk(int chunk);
   void loadTPCTracksChunk(int chunk);
 
   void doMatching(int sec);
@@ -340,11 +353,9 @@ class MatchTPCITS
   bool mInitDone = false; ///< flag init already done
 
   int mCurrTPCTracksTreeEntry = -1;   ///< current TPC tracks tree entry loaded to memory
+  int mCurrTPCClustersTreeEntry = -1; ///< current TPC clusters tree entry loaded to memory
   int mCurrITSTracksTreeEntry = -1;   ///< current ITS tracks tree entry loaded to memory
   int mCurrITSClustersTreeEntry = -1; ///< current ITS clusters tree entry loaded to memory
-  float mXTPCInnerRef = 83.0;         ///< reference radius at which TPC provides the tracks
-  float mXRef = 70.0;                 ///< reference radius to propage tracks for matching
-  float mYMaxAtXRef = 0.;             ///< max Y in the sector at reference X
 
   bool mMCTruthON = false; ///< flag availability of MC truth
 
@@ -394,6 +405,10 @@ class MatchTPCITS
   TTree* mTreeITSTracks = nullptr;   ///< input tree for ITS tracks
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
   TTree* mTreeITSClusters = nullptr; ///< input tree for ITS clusters
+  o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
+  o2::TPC::ClusterNativeAccessFullTPC mTPCClusterIdxStruct;          ///< struct holding the TPC cluster indices
+  std::unique_ptr<TPCTransform> mTPCTransform;                       ///< TPC cluster transformation
+  std::unique_ptr<AliGPUCAParam> mTPCClusterParam;                   ///< TPC clusters error param
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
@@ -465,12 +480,10 @@ class MatchTPCITS
 #endif
 
   ///----------- aux stuff --------------///
-  static constexpr float TolerSortTime = 0.1;          ///<tolerance for comparison of 2 tracks times
-  static constexpr float TolerSortTgl = 1e-4;          ///<tolerance for comparison of 2 tracks tgl
   static constexpr float Tan70 = 2.74747771e+00;       // tg(70 degree): std::tan(70.*o2::constants::math::PI/180.);
   static constexpr float Cos70I2 = 1. + Tan70 * Tan70; // 1/cos^2(70) = 1 + tan^2(70)
-  static constexpr float MaxSnp = 0.85;                // max snp of ITS or TPC track at xRef to be matched
-  static constexpr float MaxTgp = 1.61357f;            // max tg corresponting to MaxSnp = MaxSnp/std::sqrt(1.-MaxSnp^2)
+  static constexpr float MaxSnp = 0.9;                 // max snp of ITS or TPC track at xRef to be matched
+  static constexpr float MaxTgp = 2.064;               // max tg corresponting to MaxSnp = MaxSnp/std::sqrt(1.-MaxSnp^2)
 
   TStopwatch mTimerTot;
   TStopwatch mTimerIO;

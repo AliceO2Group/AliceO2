@@ -21,7 +21,7 @@
 
 #include "EMCALSimulation/SpaceFrame.h"
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 void SpaceFrame::CreateGeometry()
 {

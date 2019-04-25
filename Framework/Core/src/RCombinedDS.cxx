@@ -32,6 +32,7 @@ double loop on the entries of the two RDataSources.
 
 #define protected public
 #include "Framework/RCombinedDS.h"
+#include "Framework/CompilerBuiltins.h"
 
 #if __has_include(<ROOT/RDF/Utils.hxx>)
 #include <ROOT/RDF/Utils.hxx>
@@ -214,6 +215,7 @@ std::vector<void*> RCombinedDS::GetColumnReadersImpl(std::string_view colName, c
     return fRight->GetColumnReadersImpl(colName, info);
   }
   assert(false);
+  O2_BUILTIN_UNREACHABLE();
 }
 
 void RCombinedDS::Initialise()
