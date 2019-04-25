@@ -56,10 +56,8 @@
 //Definitions steering enabling of GPU processing components
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
   #define GPUCA_BUILD_MERGER
-  #if defined(HAVE_O2HEADERS) && !defined(__HIPCC__)
+  #if defined(HAVE_O2HEADERS)
     #define GPUCA_BUILD_TRD
-  #endif
-  #if defined(HAVE_O2HEADERS) && !defined(__HIPCC__)
     #define GPUCA_BUILD_ITS
   #endif
 #endif
