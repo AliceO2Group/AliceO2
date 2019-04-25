@@ -15,7 +15,9 @@
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
 
+#ifndef __OPENCL__
 #include <array>
+#endif
 
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"

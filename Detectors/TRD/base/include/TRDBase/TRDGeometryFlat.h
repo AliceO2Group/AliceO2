@@ -11,7 +11,9 @@
 #ifndef O2_TRDGEOMETRYFLAT_H
 #define O2_TRDGEOMETRYFLAT_H
 
+#ifndef __OPENCL__
 #include <cstring>
+#endif
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonTransform3D.h"
@@ -32,6 +34,7 @@ class TRDGeometry;
 class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
 {
  public:
+#ifndef GPUCA_GPUCODE_DEVICE
   TRDGeometryFlat() = default;
   TRDGeometryFlat(const TRDGeometryFlat& v) : FlatObject(), TRDGeometryBase()
   {
@@ -39,7 +42,7 @@ class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
   }
   TRDGeometryFlat(const TRDGeometry& geo);
   ~TRDGeometryFlat() = default;
-
+#endif
   GPUd() const o2::gpu::Transform3D* getMatrixT2L(int det) const
   {
     if (mMatrixIndirection[det] == -1)

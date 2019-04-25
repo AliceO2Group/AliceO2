@@ -15,8 +15,10 @@
 #ifndef TRACKINGITSU_INCLUDE_CAUTILS_H_
 #define TRACKINGITSU_INCLUDE_CAUTILS_H_
 
+#ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#endif
 
 #include "ITStracking/Constants.h"
 #include "GPUCommonMath.h"

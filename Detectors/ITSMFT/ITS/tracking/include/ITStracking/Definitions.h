@@ -15,7 +15,9 @@
 #ifndef TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 #define TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 
+#ifndef __OPENCL__
 #include <array>
+#endif
 
 //#define CA_DEBUG
 

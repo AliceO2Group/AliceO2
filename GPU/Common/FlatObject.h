@@ -322,6 +322,7 @@ class FlatObject
 ///
 /// ========================================================================================================
 
+#ifndef GPUCA_GPUCODE // code invisible on GPU
 inline void FlatObject::startConstruction()
 {
   /// Starts the construction procedure. A daughter class should reserve temporary memory.
@@ -353,7 +354,6 @@ inline void FlatObject::finishConstruction(int flatBufferSize)
   mConstructionMask = (unsigned int)ConstructionState::Constructed; // clear other possible construction flags
 }
 
-#ifndef GPUCA_GPUCODE // code invisible on GPU
 inline void FlatObject::cloneFromObject(const FlatObject& obj, char* newFlatBufferPtr)
 {
   /// Initializes from another object, copies data to newBufferPtr

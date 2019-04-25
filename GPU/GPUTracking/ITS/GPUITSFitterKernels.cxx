@@ -101,7 +101,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
 
     GPUITSTrack temporaryTrack;
     {
-      const float ca = std::cos(cluster3.alphaTrackingFrame), sa = std::sin(cluster3.alphaTrackingFrame);
+      const float ca = CAMath::Cos(cluster3.alphaTrackingFrame), sa = CAMath::Sin(cluster3.alphaTrackingFrame);
       const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
       const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
       const float z1 = cluster1.zCoordinate;

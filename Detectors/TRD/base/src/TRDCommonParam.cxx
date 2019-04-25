@@ -24,6 +24,7 @@
 #include <FairLogger.h>
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
+#include "TRDBase/TRDSimParam.h"
 
 using namespace o2::trd;
 ClassImp(TRDCommonParam);
@@ -744,4 +745,16 @@ void TRDCommonParam::SampleTimeStruct(float vdrift)
       }
     }
   }
+}
+
+void TRDCommonParam::SetXenon()
+{
+  mGasMixture = kXenon;
+  TRDSimParam::Instance()->ReInit();
+}
+
+void TRDCommonParam::SetArgon()
+{
+  mGasMixture = kArgon;
+  TRDSimParam::Instance()->ReInit();
 }

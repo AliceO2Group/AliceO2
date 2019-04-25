@@ -15,8 +15,10 @@
 #ifndef TRACKINGITSU_INCLUDE_CACELL_H_
 #define TRACKINGITSU_INCLUDE_CACELL_H_
 
+#ifndef __OPENCL__
 #include <array>
 #include <vector>
+#endif
 
 #include "ITStracking/Definitions.h"
 #include "GPUCommonDef.h"
