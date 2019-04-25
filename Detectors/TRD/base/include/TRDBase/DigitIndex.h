@@ -11,6 +11,8 @@
 #ifndef ALICEO2_TRD_DIGITINDEX_H_
 #define ALICEO2_TRD_DIGITINDEX_H_
 
+#include <cstdint>
+
 namespace o2
 {
 namespace trd
@@ -22,7 +24,7 @@ class DigitIndex
   DigitIndex() = default;
   ~DigitIndex() = default;
   DigitIndex(const DigitIndex&) = default;
-  DigitIndex(const int det, const int row, const int pad, const int index)
+  DigitIndex(const int det, const int row, const int pad)
     : mDetector(det),
       mRow(row),
       mPad(pad) {}
@@ -36,14 +38,9 @@ class DigitIndex
   int getPad() const { return mPad; }
 
  private:
-  union {
-    unsigned int word = 0x0;
-    struct {
-      unsigned int mDetector : 10; // 10 TRD detector number, 0-539
-      unsigned int mRow : 4;       // 4 pad row, 0-15
-      unsigned int mPad : 8;       // 8 pad within pad row, 0-14
-    };
-  };
+  std::uint16_t mDetector{ 0 }; // TRD detector number, 0-539
+  std::uint8_t mRow{ 0 };       // pad row, 0-15
+  std::uint8_t mPad{ 0 };       // pad within pad row, 0-14
 };
 
 } // namespace trd
