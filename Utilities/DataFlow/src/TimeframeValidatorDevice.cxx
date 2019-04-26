@@ -20,6 +20,7 @@
 #include "TimeFrame/TimeFrame.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/DataHeader.h"
+#include "O2Device/Compatibility.h"
 
 #include <options/FairMQProgOptions.h>
 
@@ -41,7 +42,7 @@ void o2::data_flow::TimeframeValidatorDevice::InitTask()
 
 void o2::data_flow::TimeframeValidatorDevice::Run()
 {
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts timeframeParts;
     if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0)
       continue;

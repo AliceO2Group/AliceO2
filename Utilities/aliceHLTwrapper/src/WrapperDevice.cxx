@@ -27,6 +27,7 @@
 
 #include "aliceHLTwrapper/WrapperDevice.h"
 #include "aliceHLTwrapper/Component.h"
+#include "O2Device/Compatibility.h"
 #include <FairMQParts.h>
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
@@ -176,7 +177,7 @@ void WrapperDevice::Run()
 
   vector<FairMQParts> socketInputs(numInputs);
   int nReadCycles=0;
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 
     // read input messages
     if (poller) {

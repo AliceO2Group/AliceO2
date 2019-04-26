@@ -21,6 +21,8 @@
 #include "CCDB/BackendOCDB.h"
 #include "CCDB/BackendRiak.h"
 #include "CCDB/ConditionsMQClient.h"
+#include "O2Device/Compatibility.h"
+
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>
 
@@ -52,7 +54,7 @@ void ConditionsMQClient::Run()
 {
   Backend* backend;
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
     boost::posix_time::ptime startTime = boost::posix_time::microsec_clock::local_time();
