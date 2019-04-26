@@ -139,14 +139,21 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
   double signalOld[kNpad];
 
   // Get the detector wise calibration objects
-  // TRDCalROC* calVdriftROC = 0;
-  float calVdriftDetValue = 0.0;
-  // TRDCalDet* calVdriftDet = calibration->GetVdriftDet();
-  // TRDCalROC* calT0ROC = 0;
-  float calT0DetValue = 0.0;
-  // TRDCalDet* calT0Det = calibration->GetT0Det();
-  double calExBDetValue = 0.0;
-  // TRDCalDet* calExBDet = calibration->GetExBDet();
+  // const TRDCalDet* calVdriftDet = calibration->GetVdriftDet();    PLEASE FIX ME when CCDB is ready
+  // const TRDCalDet* calT0Det = calibration->GetT0Det();            PLEASE FIX ME when CCDB is ready
+  // const TRDCalDet* calExBDet = calibration->GetExBDet();          PLEASE FIX ME when CCDB is ready
+
+  // FIX ME: Default values until I have implemented the calibration objects
+  //
+  // Default values taken from Table 8 (Nuclear Inst. and Methods in Physics Research, A 881 (2018) 88-127)
+  // ExB value from
+  //
+  float calVdriftDetValue = 1.56;    // cm/microsecond     // calVdriftDet->GetValue(det); PLEASE FIX ME when CCDB is ready
+  float calT0DetValue = 0.1452;      // microseconds       // calT0Det->GetValue(det);     PLEASE FIX ME when CCDB is ready
+  double calExBDetValue = 0.5 * 700; // T * V/cm           // calExBDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
+
+  // TRDCalROC* calVdriftROC = calibration->GetVdriftROC(det); PLEASE FIX ME when CCDB is ready
+  // TRDCalROC* calT0ROC = calibration->GetT0ROC(det);         PLEASE FIX ME when CCDB is ready
 
   if (simParam->TRFOn()) {
     timeBinTRFend = ((int)(simParam->GetTRFhi() * commonParam->GetSamplingFrequency())) - 1;
@@ -174,14 +181,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
 
   // Loop over hits
   for (const auto& hit : hits) {
-    // Get the calibration objects
-    // FIX ME: They are all zeros until I have implemented the calibration objects
-    // calVdriftROC = 0;      // calibration->GetVdriftROC(det); PLEASE FIX ME when CCDB is ready
-    // calVdriftDetValue = 0; // calVdriftDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
-    // calT0ROC = 0;          // calibration->GetT0ROC(det);     PLEASE FIX ME when CCDB is ready
-    // calT0DetValue = 0;     // calT0Det->GetValue(det);        PLEASE FIX ME when CCDB is ready
-    // calExBDetValue = 0;    // calExBDet->GetValue(det);       PLEASE FIX ME when CCDB is ready
-
     pos[0] = hit.GetX();
     pos[1] = hit.GetY();
     pos[2] = hit.GetZ();
@@ -288,8 +287,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
       double colOffset = padPlane->getPadColOffset(colE, locC + offsetTilt);
 
       // Retrieve drift velocity becuase col and row may have changed
-      driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE);
-      float t0 = calT0DetValue;          // + calT0ROC->getValue(colE, rowE);
+      driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
+      float t0 = calT0DetValue;          // + calT0ROC->getValue(colE, rowE);      PLEASE FIX ME when CCDB is ready
 
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
