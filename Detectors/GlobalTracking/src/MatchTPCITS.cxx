@@ -47,6 +47,24 @@ constexpr float MatchTPCITS::XTPCOuterRef;
 constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
+
+//______________________________________________
+void MatchTPCITS::setDPLIO(bool v)
+{
+  ///< set unput type
+  assert(!mInitDone); // must be set before the init is called
+  mDPLIO = v;
+}
+
+//______________________________________________
+void MatchTPCITS::assertDPLIO(bool v)
+{
+  ///< make sure that the IO mode corresponds to requested
+  if (mDPLIO != v) {
+    LOG(FATAL) << "Requested operation is not allowed in " << (mDPLIO ? "DPL" : "Tree") << " mode";
+  }
+}
+
 //______________________________________________
 void MatchTPCITS::run()
 {
@@ -57,8 +75,11 @@ void MatchTPCITS::run()
 
   mTimerTot.Start();
 
-  prepareITSTracks();
-  prepareTPCTracks();
+  clear();
+
+  if (!prepareITSTracks() || !prepareTPCTracks()) {
+    return;
+  }
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     doMatching(sec);
@@ -100,6 +121,22 @@ void MatchTPCITS::run()
 }
 
 //______________________________________________
+void MatchTPCITS::clear()
+{
+  ///< clear results of previous TF reconstruction
+  mMatchRecordsTPC.clear();
+  mMatchRecordsITS.clear();
+  mMatchesTPC.clear();
+  mMatchesITS.clear();
+  mWinnerChi2Refit.clear();
+  mMatchedTracks.clear();
+  if (mMCTruthON) {
+    mOutITSLabels.clear();
+    mOutTPCLabels.clear();
+  }
+}
+
+//______________________________________________
 void MatchTPCITS::init()
 {
   ///< perform initizalizations, precalculate what is needed
@@ -136,23 +173,24 @@ void MatchTPCITS::init()
   mTPCClusterParam = std::make_unique<o2::gpu::GPUParam>();
   mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
 
-  attachInputTrees();
+  if (!mDPLIO) {
+    attachInputTrees();
 
-  // create output branch
-  if (mOutputTree) {
-    LOG(INFO) << "ITS-TPC Matching results will be stored in the tree " << mOutputTree->GetName();
-    mOutputTree->Branch(mOutTPCITSTracksBranchName.data(), &mMatchedTracks);
-    LOG(INFO) << "Matched tracks branch: " << mOutTPCITSTracksBranchName;
-    if (mMCTruthON) {
-      mOutputTree->Branch(mOutTPCMCTruthBranchName.data(), &mOutITSLabels);
-      LOG(INFO) << "ITS Tracks Labels branch: " << mOutITSMCTruthBranchName;
-      mOutputTree->Branch(mOutITSMCTruthBranchName.data(), &mOutTPCLabels);
-      LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
+    // create output branch
+    if (mOutputTree) {
+      LOG(INFO) << "ITS-TPC Matching results will be stored in the tree " << mOutputTree->GetName();
+      mOutputTree->Branch(mOutTPCITSTracksBranchName.data(), &mMatchedTracks);
+      LOG(INFO) << "Matched tracks branch: " << mOutTPCITSTracksBranchName;
+      if (mMCTruthON) {
+        mOutputTree->Branch(mOutTPCMCTruthBranchName.data(), &mOutITSLabels);
+        LOG(INFO) << "ITS Tracks Labels branch: " << mOutITSMCTruthBranchName;
+        mOutputTree->Branch(mOutITSMCTruthBranchName.data(), &mOutTPCLabels);
+        LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
+      }
+    } else {
+      LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
     }
-  } else {
-    LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
   }
-
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
   if (mDBGFlags) {
@@ -160,10 +198,7 @@ void MatchTPCITS::init()
   }
 #endif
 
-  mMatchRecordsTPC.clear();
-  mMatchRecordsITS.clear();
-  mMatchesTPC.clear();
-  mMatchesITS.clear();
+  clear();
 
   mInitDone = true;
 
@@ -322,6 +357,7 @@ void MatchTPCITS::attachInputTrees()
     LOG(FATAL) << "TPC clusters reader is not set";
   }
   LOG(INFO) << "Attached TPC clusters reader with " << mTPCClusterReader->getTreeSize();
+  mTPCClusterIdxStructOwn = std::make_unique<o2::TPC::ClusterNativeAccessFullTPC>();
 
   // is there MC info available ?
   if (mTreeITSTracks->GetBranch(mITSMCTruthBranchName.data())) {
@@ -342,13 +378,16 @@ bool MatchTPCITS::prepareTPCTracks()
 {
   ///< load next chunk of TPC data and prepare for matching
   mMatchRecordsTPC.clear();
+  int curTracksEntry = 0;
 
-  if (!loadTPCTracksNextChunk()) {
-    return false;
+  if (!mDPLIO) { // in the DPL IO mode the input TPC tracks must be already attached
+    if (!loadTPCTracksNextChunk()) {
+      return false;
+    }
+    curTracksEntry = mTreeTPCTracks ? mTreeTPCTracks->GetReadEntry() : 0;
   }
-  int curTracksEntry = mTreeTPCTracks ? mTreeTPCTracks->GetReadEntry() : 0;
-  int ntr = mTPCTracksArrayInp->size();
 
+  int ntr = mTPCTracksArrayInp->size();
   mMatchesTPC.reserve(mMatchesTPC.size() + ntr);
   // number of records might be actually more than N tracks!
   mMatchRecordsTPC.reserve(mMatchRecordsTPC.size() + mMaxMatchCandidates * ntr);
@@ -368,14 +407,14 @@ bool MatchTPCITS::prepareTPCTracks()
 
   for (int it = 0; it < ntr; it++) {
 
-    o2::TPC::TrackTPC& trcOrig = (*mTPCTracksArrayInp)[it];
+    const auto& trcOrig = (*mTPCTracksArrayInp)[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
     if (trcOrig.getX() > XTPCInnerRef + 0.1)
       continue; // failed propagation to inner TPC radius, cannot be matched
 
     // create working copy of track param
-    mTPCWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig), curTracksEntry, it);
+    mTPCWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig), curTracksEntry, it);
     auto& trc = mTPCWork.back();
     // propagate to matching Xref
     if (!propagateToRefX(trc)) {
@@ -463,9 +502,11 @@ bool MatchTPCITS::prepareTPCTracks()
 //_____________________________________________________
 bool MatchTPCITS::prepareITSTracks()
 {
-  // load next chunk of ITS data and prepare for matching
+  // In the standalone (tree-based) mode load next chunk of ITS data,
+  // In the DPL-driven mode the input data containers are supposed to be already assigned
+  // Do preparatory work for matching
 
-  if (mTreeITSTrackROFRec) { // for input from tree read ROFrecords vector
+  if (!mDPLIO) { // for input from tree read ROFrecords vector, in DPL IO mode the vector should be already attached
     mTreeITSTrackROFRec->GetEntry(0);
   }
   int nROFs = mITSTrackROFRec->size();
@@ -474,7 +515,7 @@ bool MatchTPCITS::prepareITSTracks()
 
   if (!nROFs) {
     LOG(INFO) << "Empty TF";
-    return true;
+    return false;
   }
 
   mITSWork.clear();
@@ -495,7 +536,7 @@ bool MatchTPCITS::prepareITSTracks()
     const auto& rofRec = (*mITSTrackROFRec)[irof];
     // in case of the input from the tree make sure needed entry is loaded
     auto rEntry = rofRec.getROFEntry().getEvent();
-    if (mTreeITSTracks && mCurrITSTracksTreeEntry != rEntry) {
+    if (!mDPLIO && mCurrITSTracksTreeEntry != rEntry) { // in DPL IO mode the input tracks must be already attached
       mTreeITSTracks->GetEntry((mCurrITSTracksTreeEntry = rEntry));
     }
     float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
@@ -512,7 +553,7 @@ bool MatchTPCITS::prepareITSTracks()
         continue; // backward refit failed
       }
       // working copy of outer track param
-      mITSWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig.getParamOut()), rEntry, it);
+      mITSWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig.getParamOut()), rEntry, it);
       auto& trc = mITSWork.back();
 
       if (!trc.rotate(o2::utils::Angle2Alpha(trc.getPhiPos()))) {
@@ -632,7 +673,7 @@ void MatchTPCITS::doMatching(int sec)
   }
 
   /// full drift time + safety margin
-  float maxTDriftSafe = (mNTPCBinsFullDrift + mITSTPCTimeBinSafeMargin + mTPCTimeEdgeTSafeMargin);
+  float maxTDriftSafe = (mNTPCBinsFullDrift + mTPCITSTimeBinSafeMargin + mTPCTimeEdgeTSafeMargin);
 
   // get min ROFrame (in TPC time-bins) of ITS tracks currently in cache
   auto minROFITS = mITSWork[cacheITS.front()].roFrame;
@@ -670,11 +711,11 @@ void MatchTPCITS::doMatching(int sec)
       }
       nCheckITSControl++;
       float chi2 = -1;
-      int rejFlag = compareITSTPCTracks(trefITS, trefTPC, chi2);
+      int rejFlag = compareTPCITSTracks(trefITS, trefTPC, chi2);
 
 #ifdef _ALLOW_DEBUG_TREES_
       if (mDBGOut && ((rejFlag == Accept && isDebugFlag(MatchTreeAccOnly)) || isDebugFlag(MatchTreeAll))) {
-        fillITSTPCmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2);
+        fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2);
       }
 #endif
 
@@ -834,7 +875,7 @@ void MatchTPCITS::registerMatchRecordITS(TrackLocITS& tITS, int matchTPCID, floa
 }
 
 //______________________________________________
-int MatchTPCITS::compareITSTPCTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const
+int MatchTPCITS::compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const
 {
   ///< compare pair of ITS and TPC tracks
   auto& trackTPC = tTPC;
@@ -1089,7 +1130,6 @@ void MatchTPCITS::print() const
 
   printf("TPC-ITS time(bins) bracketing safety margin: %6.2f\n", mTimeBinTolerance);
   printf("TPC Z->time(bins) bracketing safety margin: %6.2f\n", mTPCTimeEdgeZSafeMargin);
-  printf("Max.Number of matched tracks per output entry: %d\n", mMaxOutputTracksPerEntry);
 
 #ifdef _ALLOW_DEBUG_TREES_
 
@@ -1119,37 +1159,20 @@ void MatchTPCITS::refitWinners()
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   mCurrITSClustersTreeEntry = -1;
   for (int iITS = 0; iITS < mITSWork.size(); iITS++) {
-    if (!refitTrackITSTPC(iITS)) {
+    if (!refitTrackTPCITS(iITS)) {
       continue;
     }
     mWinnerChi2Refit[iITS] = mMatchedTracks.back().getChi2Refit();
-    if (mMatchedTracks.size() == mMaxOutputTracksPerEntry) {
-      if (mOutputTree) {
-        mTimerRefit.Stop();
-        mOutputTree->Fill();
-        mTimerRefit.Start(false);
-      }
-      mMatchedTracks.clear();
-      if (mMCTruthON) {
-        mOutITSLabels.clear();
-        mOutTPCLabels.clear();
-      }
-    }
   }
   // flush last tracks
   if (mMatchedTracks.size() && mOutputTree) {
     mOutputTree->Fill();
   }
-  mMatchedTracks.clear();
-  if (mMCTruthON) {
-    mOutITSLabels.clear();
-    mOutTPCLabels.clear();
-  }
   mTimerRefit.Stop();
 }
 
 //______________________________________________
-bool MatchTPCITS::refitTrackITSTPC(int iITS)
+bool MatchTPCITS::refitTrackTPCITS(int iITS)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
 
@@ -1165,11 +1188,12 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
   int iTPC = mTPCMatch2Track[itsMatchRec.matchID];
   const auto& tTPC = mTPCWork[iTPC];
 
-  loadITSClustersChunk(tITS.source.getEvent());
-  loadITSTracksChunk(tITS.source.getEvent());
-  loadTPCTracksChunk(tTPC.source.getEvent());
-  loadTPCClustersChunk(tTPC.source.getEvent());
-
+  if (!mDPLIO) {
+    loadITSClustersChunk(tITS.source.getEvent());
+    loadITSTracksChunk(tITS.source.getEvent());
+    loadTPCTracksChunk(tTPC.source.getEvent());
+    loadTPCClustersChunk(tTPC.source.getEvent());
+  }
   auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
   mMatchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
@@ -1247,11 +1271,12 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     std::array<float, 3> clsCov = {};
     float clsX;
 
-    const auto& cl = tpcTrOrig.getCluster(icl, mTPCClusterIdxStruct, sector, row);
+    const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
       LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+      mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
     // TODO: consider propagating in empty space till TPC entrance in large step, and then in more detailed propagation with mat. corrections
@@ -1259,6 +1284,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     // propagate to 1st cluster X
     if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., 1, &trfit.getLTIntegralOut())) {
       LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
+      mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
     //
@@ -1267,13 +1293,14 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     float chi2Out = tracOut.getPredictedChi2(clsYZ, clsCov);
     if (!tracOut.update(clsYZ, clsCov)) {
       LOG(WARNING) << "Update failed at 1st cluster, chi2 =" << chi2Out;
+      mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
     prevrow = row;
     prevsector = sector;
 
     for (; icl--;) {
-      const auto& cl = tpcTrOrig.getCluster(icl, mTPCClusterIdxStruct, sector, row);
+      const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
       if (row <= prevrow) {
         LOG(WARNING) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
                      << '/' << int(prevsector) << " TrackID: " << tTPC.source.getIndex() << " Pt:" << tracOut.getPt();
@@ -1289,6 +1316,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
         prevsector = sector;
         if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
           LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+          mMatchedTracks.pop_back(); // destroy failed track
           return false;
         }
       }
@@ -1296,11 +1324,13 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
                                           10., 0, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
+        mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
       chi2Out += tracOut.getPredictedChi2(clsYZ, clsCov);
       if (!tracOut.update(clsYZ, clsCov)) {
-        LOG(WARNING) << "Update failed at 1st cluster, chi2 =" << chi2Out;
+        LOG(WARNING) << "Update failed at cluster " << icl << ", chi2 =" << chi2Out;
+        mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
     }
@@ -1346,7 +1376,8 @@ void MatchTPCITS::loadTPCClustersChunk(int chunk)
   if (mCurrTPCClustersTreeEntry != chunk) {
     mTimerIO.Start(false);
     mTPCClusterReader->read(mCurrTPCClustersTreeEntry = chunk);
-    mTPCClusterReader->fillIndex(mTPCClusterIdxStruct);
+    mTPCClusterReader->fillIndex(*mTPCClusterIdxStructOwn.get());
+    mTPCClusterIdxStruct = mTPCClusterIdxStructOwn.get();
     mTimerIO.Stop();
   }
 }
@@ -1386,7 +1417,7 @@ void MatchTPCITS::setDebugFlag(UInt_t flag, bool on)
 }
 
 //_________________________________________________________
-void MatchTPCITS::fillITSTPCmatchTree(int itsID, int tpcID, int rejFlag, float chi2)
+void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2)
 {
   ///< fill debug tree for ITS TPC tracks matching check
 
