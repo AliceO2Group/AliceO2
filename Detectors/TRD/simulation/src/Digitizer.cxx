@@ -145,12 +145,13 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
 
   // FIX ME: Default values until I have implemented the calibration objects
   //
-  // Default values taken from Table 8 (Nuclear Inst. and Methods in Physics Research, A 881 (2018) 88-127)
-  // ExB value from
+  // See Table 8 (Nuclear Inst. and Methods in Physics Research, A 881 (2018) 88-127)
+  // Defaults values  from OCDB (AliRoot DrawTrending macro - Thanks to Y. Pachmayer)
+  // For 5 TeV pp - 27 runs from LHC15n
   //
-  float calVdriftDetValue = 1.56;    // cm/microsecond     // calVdriftDet->GetValue(det); PLEASE FIX ME when CCDB is ready
-  float calT0DetValue = 0.1452;      // microseconds       // calT0Det->GetValue(det);     PLEASE FIX ME when CCDB is ready
-  double calExBDetValue = 0.5 * 700; // T * V/cm           // calExBDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
+  float calVdriftDetValue = 1.48; // cm/microsecond         // calVdriftDet->GetValue(det); PLEASE FIX ME when CCDB is ready
+  float calT0DetValue = -1.38;    // microseconds           // calT0Det->GetValue(det);     PLEASE FIX ME when CCDB is ready
+  double calExBDetValue = 0.16;   // T * V/cm (check units) // calExBDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
 
   // TRDCalROC* calVdriftROC = calibration->GetVdriftROC(det); PLEASE FIX ME when CCDB is ready
   // TRDCalROC* calT0ROC = calibration->GetT0ROC(det);         PLEASE FIX ME when CCDB is ready
