@@ -2,7 +2,6 @@
 #include <TTree.h>
 #include <TFile.h>
 #include <TStopwatch.h>
-#include <FairLogger.h>
 #include <string>
 #include "TTree.h"
 
@@ -15,7 +14,6 @@
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSRawWorkflow/RawPixelReaderSpec.h"
-#include "/data/zhaozhong/alice/sw/SOURCES/O2/1.0.0/0/Detectors/ITSMFT/common/base/include/ITSMFTBase/Digit.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <TCanvas.h>
 
@@ -53,8 +51,9 @@ namespace o2
 
 
 			int Index = 0;
-			int IndexMax = 50;
-
+			int IndexMax = 1;
+			int Size;
+			int SizeMax = 1;
 
 			LOG(INFO) << "Index = " << Index;
 			LOG(INFO) << "IndexMax = " << IndexMax;
@@ -62,22 +61,25 @@ namespace o2
 			LOG(INFO) << "START WORKING Bro";
 
 			while (mChipData = rawReader.getNextChipData(mChips)) {
-
+				Size = 0;
 				if(Index > IndexMax) break;
 				const auto& pixels = mChipData->getData();
 				auto ChipID = mChipData->getChipID();
 
 				for (auto& pixel : pixels) {
+					if(Size > SizeMax) break;
 					auto col = pixel.getCol();
 					auto row = pixel.getRow();
 					mDigits.emplace_back(ChipID, row, col);
-
+					Size = Size + 1;
 				}
 
 				Index = Index + 1;
 			}
 			LOG(INFO) << "Raw Pixel Pushed " << mDigits.size();
 			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits);
+			mDigits.clear();
+			LOG(INFO) << "Digit Cleared";	
 			//pc.services().get<ControlService>().readyToQuit(true);
 		}
 

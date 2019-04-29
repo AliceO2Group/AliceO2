@@ -20,8 +20,6 @@
 #include <memory>
 #include "Rtypes.h"		// for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h"		// for TObject
-#include "FairTask.h"
-#include "TPaveText.h"
 #include "TGaxis.h"
 
 #include "TFile.h"
