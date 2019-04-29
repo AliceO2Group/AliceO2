@@ -68,7 +68,7 @@ class Cluster : public o2::BaseCluster<float>
   void setDeltaBC(int value) { mDeltaBC = value; };         // deltaBC
   //float  getZ()   const   {return mZ;}   // Cluster Z - already in the definition of the cluster
 
-  float getR() // Cluster Radius
+  float getR() // Cluster Radius (it is the same in sector and global frame)
   {
     if (mR == RadiusOutOfRange) {
       mR = TMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
@@ -76,7 +76,7 @@ class Cluster : public o2::BaseCluster<float>
     return mR;
   }
 
-  float getPhi() // Cluster Phi
+  float getPhi() // Cluster Phi in sector frame
   {
     if (mPhi == PhiOutOfRange) {
       mPhi = TMath::ATan2(getY(), getX());
