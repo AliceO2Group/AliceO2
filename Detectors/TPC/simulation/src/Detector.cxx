@@ -1608,7 +1608,7 @@ void Detector::ConstructTPCGeometry()
   }
   for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
-    in >> x >> z >> ang;
+    in >> ang >> x >> z;
     //
     ang = -ang;
     z -= 1102.; // changing the reference frame from the beam to the volume
