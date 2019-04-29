@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
-  GEOMETRY();//this line is the problem!
+  GEOMETRY();
   o2::mch::Digitizer digitizer;
   int trackId1 = 0;
   int trackId2 = 1;
@@ -59,11 +59,11 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   float eloss2 = 1e-6;
   float length = 0.f;
   float tof = 0.0;
-  
+
   std::vector<o2::mch::Hit> hits(2);
   hits.at(0) = o2::mch::Hit(trackId1, detElemId1, entrancePoint1, exitPoint1, eloss1, length, tof);
   hits.at(1) = o2::mch::Hit(trackId2, detElemId2, entrancePoint2, exitPoint2, eloss2, length, tof);
-  
+
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mctruthcontainer;
   std::vector<o2::mch::Digit> digits;
   o2::mch::mapping::Segmentation seg1{ detElemId1 };
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   int digitcounter1 = 0;
   int digitcounter2 = 0;
   int count = 0;
-  
+
   for (auto& digit : digits) {
 
     int padid = digit.getPadID();
@@ -132,7 +132,6 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
     BOOST_FAIL(" no digit at all from hit in station 2 ");
   if (digitcounter2 > 9)
     BOOST_FAIL(" more than 10 digits for one hit in station 2 ");
-    
 }
 
 BOOST_AUTO_TEST_CASE(mergingDigitizer)
@@ -188,8 +187,6 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
 
   BOOST_CHECK_CLOSE((float)(digits.size() - rep1 - rep2), (float)mergeddigits.size(), 0.1);
 
-
 } //testing
-
 
 BOOST_AUTO_TEST_SUITE_END()
