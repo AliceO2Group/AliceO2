@@ -103,6 +103,9 @@ class Cluster : public o2::BaseCluster<float>
     setPadInSector(newvalue % NPADSXSECTOR);
   } 
 
+  void setEntryInTree(int value) {mEntryInTree = value;}
+  int getEntryInTree() const {return mEntryInTree;}
+  
  private:
   friend class boost::serialization::access;
 
@@ -114,8 +117,9 @@ class Cluster : public o2::BaseCluster<float>
   //float  mZ;           //! z-coordinate // CZ: to be verified if it is the same in the BaseCluster class
   float mR = RadiusOutOfRange; //! radius
   float mPhi = PhiOutOfRange;  //! phi coordinate
+  int mEntryInTree;            //! index of the entry in the tree from which we read the cluster
 
-  ClassDefNV(Cluster, 2);
+  ClassDefNV(Cluster, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, Cluster& c);

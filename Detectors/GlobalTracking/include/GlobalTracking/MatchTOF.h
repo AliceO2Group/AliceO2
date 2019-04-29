@@ -63,7 +63,8 @@ class MatchTOF
 {
   using Geo = o2::tof::Geo;
   using Cluster = o2::tof::Cluster;
-
+  using evIdx = o2::dataformats::EvIndex<int, int>;
+  
  public:
   ///< perform matching for provided input
   void run();
@@ -224,14 +225,14 @@ class MatchTOF
   std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
 
   ///<array of track-TOFCluster pairs from the matching
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
+  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
+  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
   std::vector<o2::MCCompLabel> mOutTOFLabels;                                ///< TOF label of matched tracks
   std::vector<o2::MCCompLabel> mOutTPCLabels;                                ///< TPC label of matched tracks
   std::vector<o2::MCCompLabel> mOutITSLabels;                                ///< ITS label of matched tracks

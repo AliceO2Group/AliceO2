@@ -385,7 +385,7 @@ bool MatchTOF::prepareTOFClusters()
     mNumOfClusters += nClusterInCurrentChunk;
     for (int it = 0; it < nClusterInCurrentChunk; it++) {
       Cluster& clOrig = (*mTOFClustersArrayInp)[it];
-
+      clOrig.setEntryInTree(mCurrTOFClustersTreeEntry);
       // create working copy of track param
       mTOFClusWork.emplace_back(clOrig);
       auto& cl = mTOFClusWork.back();
@@ -679,7 +679,9 @@ void MatchTOF::doMatching(int sec)
         if (res < mSpaceTolerance) { // matching ok!
           LOG(DEBUG) << "MATCHING FOUND: We have a match! between track " << mTracksSectIndexCache[indices[0]][itrk] << " and TOF cluster " << mTOFClusSectIndexCache[indices[0]][itof];
           foundCluster = true;
-          mMatchedTracksPairs.emplace_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2, trkLTInt[iPropagation]))); // TODO: check if this is correct!
+	  evIdx eventIndexTOFCluster(trefTOF.getEntryInTree(), mTOFClusSectIndexCache[indices[0]][itof]);
+	  evIdx eventIndexTracks(mCurrTracksTreeEntry, mTracksSectIndexCache[indices[0]][itrk]);
+          mMatchedTracksPairs.emplace_back(std::make_pair(eventIndexTracks, o2::dataformats::MatchInfoTOF(eventIndexTOFCluster, chi2, trkLTInt[iPropagation]))); // TODO: check if this is correct!
           for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
             LOG(DEBUG) << "TOF label " << ilabel << ": trackID = " << labelsTOF[ilabel].getTrackID() << ", eventID = " << labelsTOF[ilabel].getEventID() << ", sourceID = " << labelsTOF[ilabel].getSourceID();
           }
@@ -701,18 +703,18 @@ void MatchTOF::selectBestMatches()
   ///< define the track-TOFcluster pair per sector
 
   // first, we sort according to the chi2
-  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](std::pair<int, o2::dataformats::MatchInfoTOF> a, std::pair<int, o2::dataformats::MatchInfoTOF> b) { return (a.second.getChi2() < b.second.getChi2()); });
+  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](std::pair<evIdx, o2::dataformats::MatchInfoTOF> a, std::pair<evIdx, o2::dataformats::MatchInfoTOF> b) { return (a.second.getChi2() < b.second.getChi2()); });
   int i = 0;
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const std::pair<int, o2::dataformats::MatchInfoTOF>& matchingPair : mMatchedTracksPairs) {
-    if (mMatchedTracksIndex[matchingPair.first] != -1) { // the track was already filled
+  for (const std::pair<evIdx, o2::dataformats::MatchInfoTOF>& matchingPair : mMatchedTracksPairs) {
+    if (mMatchedTracksIndex[matchingPair.first.getIndex()] != -1) { // the track was already filled
       continue;
     }
     if (mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] != -1) { // the track was already filled
       continue;
     }
-    mMatchedTracksIndex[matchingPair.first] = mMatchedTracks.size();                                      // index of the MatchInfoTOF correspoding to this track
-    mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.first]; // index of the track that was matched to this cluster
+    mMatchedTracksIndex[matchingPair.first.getIndex()] = mMatchedTracks.size();                                      // index of the MatchInfoTOF correspoding to this track
+    mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.first.getIndex()]; // index of the track that was matched to this cluster
     mMatchedTracks.push_back(matchingPair);                                                               // array of MatchInfoTOF
 
     // add also calibration infos ciao
@@ -721,9 +723,9 @@ void MatchTOF::selectBestMatches()
                                mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw() - matchingPair.second.getLTIntegralOut().getTOF(o2::track::PID::Pion),
                                mTOFClusWork[matchingPair.second.getTOFClIndex()].getTot());
 
-    const auto& labelTPC = (*mTPCLabels)[matchingPair.first];
+    const auto& labelTPC = (*mTPCLabels)[matchingPair.first.getIndex()];
     LOG(DEBUG) << "labelTPC: trackID = " << labelTPC.getTrackID() << ", eventID = " << labelTPC.getEventID() << ", sourceID = " << labelTPC.getSourceID();
-    const auto& labelITS = (*mITSLabels)[matchingPair.first];
+    const auto& labelITS = (*mITSLabels)[matchingPair.first.getIndex()];
     LOG(DEBUG) << "labelITS: trackID = " << labelITS.getTrackID() << ", eventID = " << labelITS.getEventID() << ", sourceID = " << labelITS.getSourceID();
     const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.second.getTOFClIndex());
     bool labelOk = false; // whether we have found or not the same TPC label of the track among the labels of the TOF cluster
