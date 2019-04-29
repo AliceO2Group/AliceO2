@@ -390,7 +390,7 @@ bool MatchTOF::prepareTOFClusters()
       mTOFClusWork.emplace_back(clOrig);
       auto& cl = mTOFClusWork.back();
       // cache work track index
-      mTOFClusSectIndexCache[o2::utils::Angle2Sector(cl.getPhi())].push_back(mTOFClusWork.size() - 1);
+      mTOFClusSectIndexCache[cl.getSector()].push_back(mTOFClusWork.size() - 1);
     }
   }
 

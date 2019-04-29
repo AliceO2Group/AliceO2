@@ -551,6 +551,9 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
 
 void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 {
+  if (mToBeIntit)
+    Init();
+
   Float_t xyzDummy[3] = { 0., 0., 0. };
 
   for (Int_t ii = 0; ii < 3; ii++) {
