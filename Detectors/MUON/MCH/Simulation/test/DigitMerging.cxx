@@ -101,7 +101,6 @@ std::vector<Digit> mergeDigits_sortsizeadjust(const std::vector<Digit>& inputDig
 std::vector<Digit> mergeDigits_map(const std::vector<Digit>& inputDigits, const std::vector<o2::MCCompLabel>& inputLabels)
 {
   int iter = 0;
-  int count = 0;
   int index = 0;
   std::map<int, int> padidmap;
   std::set<int> forRemoval;
@@ -109,6 +108,7 @@ std::vector<Digit> mergeDigits_map(const std::vector<Digit>& inputDigits, const 
   std::vector<o2::MCCompLabel> labels{ inputLabels };
 
   for (auto& digit : digits) {
+    int count = 0;
     int padid = digit.getPadID();
     count = padidmap.count(padid);
     if (count) {

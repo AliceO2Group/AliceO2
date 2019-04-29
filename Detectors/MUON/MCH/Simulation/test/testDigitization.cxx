@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
-  GEOMETRY();
+
   o2::mch::Digitizer digitizer;
   int trackId1 = 0;
   int trackId2 = 1;
@@ -78,7 +78,6 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   for (auto& digit : digits) {
 
     int padid = digit.getPadID();
-    int adc = digit.getADC();
     auto label = (mctruthcontainer.getLabels(count))[0];
     int trackID = label.getTrackID();
     ++count;
