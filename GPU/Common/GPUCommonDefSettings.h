@@ -30,4 +30,4 @@
 
 // clang-format on
 
-#endif //GPUCOMMONDEFSETTINGS_H
+#endif // GPUCOMMONDEFSETTINGS_H

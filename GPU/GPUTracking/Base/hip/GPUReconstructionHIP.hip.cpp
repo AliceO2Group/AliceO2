@@ -20,7 +20,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
@@ -232,7 +232,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(hipDeviceReset());
@@ -273,7 +273,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(hipFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
-#ifdef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifdef GPUCA_HIP_NO_CONSTANT_MEMORY
   GPUFailedMsgI(hipFree(mDeviceConstantMem));
 #endif
 
@@ -333,7 +333,7 @@ void GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res,
 
 void GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, hipMemcpyHostToDevice));
   } else {
@@ -342,12 +342,14 @@ void GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const voi
   if (ev && stream != -1) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
   }
+
 #else
   if (stream == -1) {
     GPUFailedMsg(hipMemcpy(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
   } else {
     GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
   }
+
 #endif
 }
 
