@@ -15,17 +15,18 @@ set (HDRS
 )
 
 set (HDRS2
+    GPUCommonAlgorithm.h
     GPUCommonDef.h
     GPUCommonDefAPI.h
     GPUCommonDefSettings.h
-    GPUDef.h
-    GPUDefGPUParameters.h
-    GPUDefConstantsAndSettings.h
-    GPUCommonMath.h
-    GPUCommonAlgorithm.h
     GPUCommonFairLogger.h
+    GPUCommonMath.h
     GPUCommonRtypes.h
     GPUCommonTransform3D.h
+    GPUDef.h
+    GPUDefConstantsAndSettings.h
+    GPUDefGPUParameters.h
+    GPUDefOpenCL12Templates.h
 )
 
 #Default cmake build script for AliRoot
