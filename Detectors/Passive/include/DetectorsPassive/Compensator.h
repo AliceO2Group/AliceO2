@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_PASSIVE_DIPOLE_H
-#define ALICEO2_PASSIVE_DIPOLE_H
+#ifndef ALICEO2_PASSIVE_COMPENSATOR_H
+#define ALICEO2_PASSIVE_COMPENSATOR_H
 
 #include "FairModule.h"
 #include "Rtypes.h"
@@ -18,27 +18,29 @@ namespace o2
 {
 namespace passive
 {
-class Dipole : public FairModule
+// The dipole compensator on the A side
+class Compensator : public FairModule
 {
  public:
-  Dipole(const char* name, const char* Title = "ALICE Dipole");
-  Dipole();
-  ~Dipole() override;
+  Compensator(const char* name, const char* Title = "ALICE Compensator");
+  Compensator();
+  ~Compensator() override;
   void ConstructGeometry() override;
 
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override;
 
  private:
-  Dipole(const Dipole& orig);
-  Dipole& operator=(const Dipole&);
+  Compensator(const Compensator& orig);
+  Compensator& operator=(const Compensator&);
 
   void createMaterials();
-  void createSpectrometerDipole();
+  void createCompensator();
+  TGeoVolume* createMagnetYoke();
 
-  ClassDefOverride(o2::passive::Dipole, 1)
+  ClassDefOverride(o2::passive::Compensator, 1)
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
-#endif // DIPOLE_H
+#endif /* ALICEO2_PASSIVE_COMPENSATOR_H */
