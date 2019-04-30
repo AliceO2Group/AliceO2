@@ -42,8 +42,8 @@ void trackleterKernelSerial(
   std::vector<Tracklet>& Tracklets,
   std::vector<int>& foundTracklets,
   const char isMc,
-  const std::vector<int> nextLayerMClabels,
-  const std::vector<int> currentLayerMClabels,
+  const std::vector<int>& nextLayerMClabels,
+  const std::vector<int>& currentLayerMClabels,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   foundTracklets.resize(clustersCurrentLayer.size(), 0);
@@ -104,9 +104,8 @@ void trackletSelectionKernelSerial(
     int validTracklets{ 0 };
     for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
-        // std::cout<<"\t>> "<<iTracklet01<<std::endl;
         const float deltaTanLambda{ MATH_ABS(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
-        if (/*deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets*/ true) {
+        if (deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
           tlv.push_back(std::array<float, 7>{ deltaTanLambda,
                                               clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].zCoordinate, clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].rCoordinate,
@@ -538,11 +537,10 @@ void VertexerTraits::processLines()
     auto line1 = mTracklets[iLine1];
     for (auto iLine2{ iLine1 + 1 }; iLine2 < mTracklets.size(); ++iLine2) {
       auto line2 = mTracklets[iLine2];
-      float dca{ Line::getDCA(line1, line2) };
       ClusterLines cluster{ -1, line1, -1, line2 };
       auto vtx = cluster.getVertex();
       if (vtx[0] * vtx[0] + vtx[1] * vtx[1] < 1.98 * 1.98) {
-        mCentroids.push_back(std::array<float, 4>{ vtx[0], vtx[1], vtx[2], dca });
+        mCentroids.push_back(std::array<float, 4>{ vtx[0], vtx[1], vtx[2], Line::getDCA(line1, line2) });
       }
     }
     mLinesData.push_back(Line::getDCAComponents(line1, std::array<float, 3>{ 0., 0., 0. }));

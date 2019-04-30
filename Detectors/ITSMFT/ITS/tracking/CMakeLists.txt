@@ -29,7 +29,6 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/Tracker.cxx
     src/TrackerTraitsCPU.cxx
     src/ClusterLines.cxx
-    src/VertexerBase.cxx
     src/Vertexer.cxx
     src/VertexerTraits.cxx
     )

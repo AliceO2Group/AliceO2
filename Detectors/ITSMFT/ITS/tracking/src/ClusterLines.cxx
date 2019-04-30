@@ -18,7 +18,7 @@ namespace ITS
 {
 
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : weightMatrix{  1., 0., 0., 1., 0., 1. } // dummy, ATM
+  : weightMatrix{ 1., 0., 0., 1., 0., 1. } // dummy, ATM
 {
   for (int index{ 0 }; index < 3; ++index) {
     originPoint[index] = firstPoint.data()[index];
