@@ -16,7 +16,18 @@
 
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#ifdef GPUCA_ALIROOT_LIB
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+struct GPUdEdxInfo {
+};
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+#else
 #include "GPUdEdxInfo.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {

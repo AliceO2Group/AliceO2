@@ -25,20 +25,33 @@ namespace gpu
 struct GPUdEdxInfo;
 struct GPUParam;
 
+#ifdef GPUCA_ALIROOT_LIB
+
 class GPUdEdx
 {
  public:
-  static constexpr int MAX_NCL = GPUCA_ROW_COUNT; // Must fit in mNClsROC (unsigned char)!
+  GPUd() void clear() {}
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl) {}
+  GPUd() void fillSubThreshold(int padRow) {}
+  GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param) {}
+};
 
+#else
+
+class GPUdEdx
+{
+ public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
   GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl);
   GPUd() void fillSubThreshold(int padRow);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
-  GPUd() void checkSubThresh(int roc);
 
  private:
   GPUd() float GetSortTruncMean(float* array, int count, int trunclow, int trunchigh);
+  GPUd() void checkSubThresh(int roc);
+
+  static constexpr int MAX_NCL = GPUCA_ROW_COUNT; // Must fit in mNClsROC (unsigned char)!
 
   float mChargeTot[MAX_NCL]; // No need for default, just some memory
   float mChargeMax[MAX_NCL]; // No need for default, just some memory
@@ -96,6 +109,8 @@ GPUdi() void GPUdEdx::fillSubThreshold(int padRow)
   checkSubThresh(roc);
   mNSubThresh++;
 }
+
+#endif // GPUCA_ALIROOT_LIB
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
