@@ -27,6 +27,7 @@
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliExternalTrackParam.h"
 #endif
+#include "GPUdEdx.h"
 #include "GPUParam.h"
 #include "GPUTPCClusterErrorStat.h"
 #ifdef GPUCA_CADEBUG_ENABLED
@@ -49,12 +50,13 @@ static constexpr float kRadLen = 29.532f; // 28.94;
 static constexpr float kDeg2Rad = M_PI / 180.f;
 static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
-GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, int& N, int& NTolerated, float& Alpha, int attempt, float maxSinPhi, GPUTPCOuterParam* outerParam)
+GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, int& N, int& NTolerated, float& Alpha, int attempt, float maxSinPhi, GPUTPCOuterParam* outerParam, GPUdEdxInfo* dEdxOut)
 {
   const GPUParam& param = merger->Param();
 
   GPUTPCClusterErrorStat errorStat(N);
 
+  GPUdEdx dEdx;
   GPUTPCGMPropagator prop;
   prop.SetMaterial(kRadLen, kRho);
   prop.SetPolynomialField(merger->pField());
@@ -169,6 +171,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           continue;
         }
       } else if (allowModification && lastRow != 255 && CAMath::Abs(clusters[ihit].row - lastRow) > 1) {
+        if (dEdxOut && iWay == nWays - 1 && clusters[ihit].row == lastRow - 2) {
+          dEdx.fillSubThreshold(lastRow - 1);
+        }
         AttachClustersPropagate(merger, clusters[ihit].slice, lastRow, clusters[ihit].row, iTrk, clusters[ihit].leg == clusters[maxN - 1].leg, prop, inFlyDirection);
       }
 
@@ -265,6 +270,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         }
+        if (iWay == nWays - 1 && dEdxOut) {
+          dEdx.fillCluster(clusters[ihit].amp, clusters[ihit].amp, clusters[ihit].row, mP[2], mP[3]);
+        }
       } else if (retVal == 2) { // cluster far away form the track
         if (allowModification) {
           MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, GPUTPCGMMergedTrackHit::flagRejectDistance);
@@ -286,6 +294,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
     return (false);
   }
 
+  if (dEdxOut) {
+    dEdx.computedEdx(*dEdxOut, param);
+  }
   Alpha = prop.GetAlpha();
   if (param.rec.TrackReferenceX <= 500) {
     for (int k = 0; k < 3; k++) // max 3 attempts
@@ -798,7 +809,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
     GPUTPCGMTrackParam t = track.Param();
     float Alpha = track.Alpha();
     CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
-    bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam());
+    bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().rec.DodEdx ? &track.dEdxInfo() : nullptr);
     CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks));
 
     if (CAMath::Abs(t.QPt()) < 1.e-4f) {

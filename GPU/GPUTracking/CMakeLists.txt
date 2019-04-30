@@ -13,7 +13,7 @@ if(OpenMP_CXX_FOUND)
     set(DEFINITIONS ${DEFINITIONS} GPUCA_HAVE_OPENMP)
 endif()
 
-include_directories(. SliceTracker Merger Base Global TRDTracking ITS ../Common ../TPCFastTransformation Standalone)
+include_directories(. SliceTracker Merger Base Global TRDTracking ITS dEdx ../Common ../TPCFastTransformation Standalone)
 
 if (ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
@@ -186,10 +186,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
         Global/GPUChainITS.cxx
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
+        dEdx/GPUdEdx.cxx
     )
     set (HDRS2 ${HDRS2}
         Interface/GPUO2InterfaceConfiguration.h
         ITS/GPUITSTrack.h
+        dEdx/GPUdEdxInfo.h
     )
 else() #Need at least the header installed, as it is part of constant memory
     set (HDRS2 ${HDRS2}

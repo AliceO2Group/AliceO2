@@ -43,16 +43,18 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_BUILD_MERGER
 #include "GPUTPCGMMergerGPU.cxx"
-
 #include "GPUTPCGMMerger.h"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"
 #include "GPUTPCGMPropagator.cxx"
 #endif
 
+#ifdef GPUCA_BUILD_DEDX
+#include "GPUdEdx.cxx"
+#endif
+
 #ifdef GPUCA_BUILD_TRD
 #include "GPUTRDTrackerGPU.cxx"
-
 #include "GPUTRDTrack.cxx"
 #include "GPUTRDTracker.cxx"
 #include "GPUTRDTrackletWord.cxx"
@@ -61,7 +63,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_BUILD_ITS
 #include "GPUITSFitterKernels.cxx"
-
 #if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
 #include "TrackerTraitsNV.cu"
 #include "Context.cu"

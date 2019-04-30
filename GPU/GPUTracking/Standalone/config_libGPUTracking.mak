@@ -54,6 +54,8 @@ GPUCA_TRD_CXXFILES			= TRDTracking/GPUTRDTrack.cxx \
 								
 GPUCA_ITS_CXXFILES			= ITS/GPUITSFitter.cxx \
 								ITS/GPUITSFitterKernels.cxx
+								
+GPUCA_DEDX_CXXFILES			= dEdx/GPUdEdx.cxx
 
 GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
 								SliceTracker/GPUTPCTracklet.cxx \
@@ -64,7 +66,8 @@ CXXFILES					+= 	Base/GPUReconstructionTimeframe.cxx \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
 								$(GPUCA_TRD_CXXFILES) \
-								$(GPUCA_ITS_CXXFILES)
+								$(GPUCA_ITS_CXXFILES) \
+								$(GPUCA_DEDX_CXXFILES)
 
 CPPFILES					+= 	utils/timer.cpp \
 								utils/qsem.cpp \

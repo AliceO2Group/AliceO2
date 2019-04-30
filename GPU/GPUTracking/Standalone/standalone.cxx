@@ -292,6 +292,9 @@ int SetupReconstruction()
   if (!configStandalone.merger) {
     rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TPCMerging, false);
   }
+  if (configStandalone.configRec.rundEdx != -1) {
+    recSet.DodEdx = configStandalone.configRec.runTRD > 0;
+  }
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;
