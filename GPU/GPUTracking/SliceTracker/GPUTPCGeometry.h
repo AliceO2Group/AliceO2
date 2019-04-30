@@ -74,10 +74,19 @@ class GPUTPCGeometry
   {
     return (mX[row]);
   }
-  //	GPUd() static float PadHeight(int row) {return(mPadHeight[GetRegion(row)]);}
-  //	GPUd() static float PadWidth(int row) {return(mPadWidth[GetRegion(row)]);}
-  GPUd() static float PadHeight(int row) { return (0); }
+#ifdef GPUCA_GPUCODE
+  GPUd() static float PadHeight(int row)
+  {
+    return (0);
+  }
   GPUd() static float PadWidth(int row) { return (0); }
+#else
+  GPUd() static float PadHeight(int row)
+  {
+    return (mPadHeight[GetRegion(row)]);
+  }
+  GPUd() static float PadWidth(int row) { return (mPadWidth[GetRegion(row)]); }
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
