@@ -36,7 +36,7 @@ class ClustererDPL : public o2::framework::Task
  private:
   int mState = 0;
   std::unique_ptr<std::ifstream> mFile = nullptr;
-  std::unique_ptr<o2::ITSMFT::Clusterer> mClusterer = nullptr;
+  std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
