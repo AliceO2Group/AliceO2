@@ -60,7 +60,6 @@ class VertexerTraitsGPU : public VertexerTraits
 
   int* mGPUindexTable0;
   int* mGPUindexTable2;
-
 };
 
 inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)

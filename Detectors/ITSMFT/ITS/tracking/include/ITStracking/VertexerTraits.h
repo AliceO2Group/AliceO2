@@ -15,7 +15,6 @@
 #ifndef O2_ITS_TRACKING_VERTEXER_TRAITS_H_
 #define O2_ITS_TRACKING_VERTEXER_TRAITS_H_
 
-
 #include <array>
 #include <vector>
 
@@ -101,7 +100,6 @@ class VertexerTraits
   o2::ITS::ROframe* mEvent;
   uint32_t mROframe;
 
-
   std::array<float, 3> mAverageClustersRadii;
   float mDeltaRadii10, mDeltaRadii21;
   float mMaxDirectorCosine3;
@@ -130,7 +128,7 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
 }
 
 inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
@@ -149,13 +147,14 @@ inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentC
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 
-inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(const int layerIndex, float phi, float dPhi) {
-  return int2{IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi - dPhi)),
-    IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi + dPhi))};
+inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(const int layerIndex, float phi, float dPhi)
+{
+  return int2{ IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi - dPhi)),
+               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi + dPhi)) };
 }
 
 inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,
-                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                               const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;

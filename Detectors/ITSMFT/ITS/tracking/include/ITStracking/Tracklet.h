@@ -51,7 +51,6 @@ inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const 
   // Nothing to do
 }
 
-
 inline void Tracklet::dump()
 {
   std::cout << "firstClusterIndex: " << firstClusterIndex << std::endl;

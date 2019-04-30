@@ -119,7 +119,6 @@ inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const
   return mClusterExternalIndices[layerId][clId];
 }
 
-
 inline std::vector<int> ROframe::getTracksId(const int layerId, const std::vector<Cluster>& cl)
 {
   std::vector<int> tracksId;

@@ -7,6 +7,7 @@
 #include <TNtuple.h>
 
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -53,7 +54,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // get clusters
-  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   //get labels
@@ -90,6 +91,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   }
   const o2::ITS::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
   o2::ITS::Vertexer vertexer(traits);
+  o2::itsmft::ROFRecord record;
   // o2::ITS::Vertexer vertexer(o2::ITS::createVertexerTraits());
   vertexer.setROframe(roFrame);
   for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
@@ -97,8 +99,10 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     std::cout << "\nEvent " << iEvent << ": \n";
     if (isContITS) {
       int nclLeft = clusters->size();
+      record.setROFEntry(o2::dataformats::EvIndex<int, int>(iEvent, iEvent));
+      record.setNROFEntries(nclLeft);
       while (nclLeft > 0) {
-        int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, frame, clusters, labels);
+        int nclUsed = o2::ITS::IOUtils::loadROFrameData(record, frame, clusters, labels);
         if (nclUsed) {
           // float total = vertexer.clustersToVertices(frame, true);
           vertexer.initialiseVertexer(&frame);
@@ -134,7 +138,6 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
           // for (auto& linedata: linesdata) {
           //   linesData.Fill(linedata.data());
           // }
-
 
           vertexer.findVertices();
           vertexer.dumpTraits();
