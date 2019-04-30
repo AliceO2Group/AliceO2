@@ -110,7 +110,7 @@ class MCHDPLDigitizerTask
         retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
-        std::vector<o2::mch::Digit> digits;                        // digits which get filled
+        std::vector<o2::mch::Digit> digits; // digits which get filled
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
         mDigitizer.process(hits, digits);
@@ -119,7 +119,7 @@ class MCHDPLDigitizerTask
         for (auto& d : digits) {
           LOG(INFO) << "ADC " << d.getADC();
           LOG(INFO) << "PAD " << d.getPadID();
-	  LOG(INFO) << "TIME " << d.getTimeStamp();
+          LOG(INFO) << "TIME " << d.getTimeStamp();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
