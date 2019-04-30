@@ -49,8 +49,8 @@ class PositionVector3D;
 template <class T>
 class Cartesian3D;
 class DefaultCoordinateSystemTag;
-}
-}
+} // namespace Math
+} // namespace ROOT
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 

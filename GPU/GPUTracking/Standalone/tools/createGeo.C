@@ -11,7 +11,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void createGeo()
 {
-  o2::Base::GeometryManager::loadGeometry();
+  o2::base::GeometryManager::loadGeometry();
   o2::trd::TRDGeometry gm;
   gm.createPadPlaneArray();
   gm.createClusterMatrixArray();

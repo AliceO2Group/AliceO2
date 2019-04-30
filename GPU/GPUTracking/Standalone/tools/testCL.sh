@@ -1,3 +1,5 @@
+#!/bin/bash
+
 COMPILER=clang++
 LLVM_SPIRV=llvm-spirv
 

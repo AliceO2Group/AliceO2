@@ -23,7 +23,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-TPCFastTransformManager::TPCFastTransformManager() : mError(), mOrigTransform(nullptr) {}
+TPCFastTransformManager::TPCFastTransformManager() : mError(), mOrigTransform(nullptr), fLastTimeBin(0) {}
 
 int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTransform* transform, Long_t TimeStamp)
 {

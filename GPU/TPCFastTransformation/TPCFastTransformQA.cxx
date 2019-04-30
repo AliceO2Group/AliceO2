@@ -58,7 +58,6 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
   }
   rec->Print();
 
-  int nSec = tpcParam->GetNSector();
   int lastTimeBin = rec->GetLastBin();
 
   // measure execution time

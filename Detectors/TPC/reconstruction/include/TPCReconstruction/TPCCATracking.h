@@ -25,8 +25,8 @@ namespace gpu
 {
 class GPUO2InterfaceConfiguration;
 class GPUTPCO2Interface;
-}
-}
+} // namespace gpu
+} // namespace o2
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
 

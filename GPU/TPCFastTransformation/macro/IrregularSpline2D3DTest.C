@@ -21,6 +21,7 @@
 #include "TGraph2D.h"
 #include "TStyle.h"
 
+#define GPUCA_NO_VC //Test without Vc, otherwise ctest fails linking
 #include "IrregularSpline2D3D.h"
 
 #ifndef IrregularSpline2D3DTest_H

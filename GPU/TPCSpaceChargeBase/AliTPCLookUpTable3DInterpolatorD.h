@@ -18,7 +18,6 @@
 #ifndef AliTPCLookUpTable3DInterpolatorD_H
 #define AliTPCLookUpTable3DInterpolatorD_H
 
-
 #include "TMatrixD.h"
 #include "AliTPC3DCylindricalInterpolator.h"
 

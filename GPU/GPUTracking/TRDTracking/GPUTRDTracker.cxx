@@ -111,7 +111,7 @@ void* GPUTRDTracker::SetPointersTracks(void* base)
 }
 
 GPUTRDTracker::GPUTRDTracker()
-  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mMinPt(0.6f), mMaxEta(0.84f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug()), mChainTracking(nullptr)
+  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mMinPt(0.6f), mMaxEta(0.84f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mMerger(nullptr), mDebug(new GPUTRDTrackerDebug()), mChainTracking(nullptr)
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -208,11 +208,11 @@ void GPUTRDTracker::Reset()
 
 void GPUTRDTracker::DoTracking()
 {
-//--------------------------------------------------------------------
-// Steering function for the tracking
-//--------------------------------------------------------------------
+  //--------------------------------------------------------------------
+  // Steering function for the tracking
+  //--------------------------------------------------------------------
 
-// sort tracklets and fill index array
+  // sort tracklets and fill index array
   CAAlgo::sort(mTracklets, mTracklets + mNTracklets);
   int trkltCounter = 0;
   for (int iDet = 0; iDet < kNChambers; ++iDet) {

@@ -33,7 +33,7 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
-#include "GPUParam.h" // Consider more universal access
+#include "GPUParam.h"       // Consider more universal access
 
 class TTree;
 

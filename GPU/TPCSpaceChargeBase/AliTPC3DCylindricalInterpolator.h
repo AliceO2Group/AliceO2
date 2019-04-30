@@ -18,7 +18,6 @@
 #ifndef AliTPC3DCylindricalInterpolator_H
 #define AliTPC3DCylindricalInterpolator_H
 
-
 #include <TMatrixD.h>
 
 class AliTPC3DCylindricalInterpolator

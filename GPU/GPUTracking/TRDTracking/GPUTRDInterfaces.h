@@ -14,9 +14,7 @@
 #ifndef GPUTRDINTERFACES_H
 #define GPUTRDINTERFACES_H
 
-/**
- * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
- */
+// This is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"

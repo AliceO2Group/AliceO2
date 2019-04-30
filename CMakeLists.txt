@@ -268,6 +268,15 @@ set(EXCLUDE_MACROS_FROM_COMPILED_TEST
   ${CMAKE_SOURCE_DIR}/macro/run_clus_tpc.C
 )
 
+# ROOT on MacOS has linking issues with Vc, disabled until fixed
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(EXCLUDE_MACROS_FROM_COMPILED_TEST
+    ${EXCLUDE_MACROS_FROM_COMPILED_TEST}
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline1DTest.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline2D3DTest.C
+  )
+endif()
+
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
 if(HAVESIMULATION)
   # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive

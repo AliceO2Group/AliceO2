@@ -27,7 +27,7 @@ namespace gpu
  * which are reconstructed by the TPCCATracker slice tracker.
  *
  * The class contains:
- * - fitted track parameters at its first row, the covariance matrix, \Chi^2, NDF (number of degrees of freedom )
+ * - fitted track parameters at its first row, the covariance matrix, chi^2, NDF (number of degrees of freedom )
  * - n of clusters assigned to the track
  * - clusters in corresponding cluster arrays
  *

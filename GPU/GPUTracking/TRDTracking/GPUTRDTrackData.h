@@ -16,7 +16,6 @@
 #ifndef GPUTRDTRACKDATA_H
 #define GPUTRDTRACKDATA_H
 
-
 struct GPUTRDTrackDataRecord {
   float mAlpha;              // azimuthal angle of reference frame
   float fX;                  // x: radial distance

@@ -17,7 +17,6 @@
 #ifndef AliTPCLookUpTable3DInterpolatorIrregularD_H
 #define AliTPCLookUpTable3DInterpolatorIrregularD_H
 
-
 #include "TMatrixD.h"
 #include "AliTPC3DCylindricalInterpolatorIrregular.h"
 

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file AliTPC3DInterpolatorIrregular.cxx
+/// \file AliTPC3DCylindricalInterpolatorIrregular.cxx
 /// \brief Irregular grid interpolator for cylindrical coordinate with r,phi,z different coordinates
 ///        RBF-based interpolation
 ///
@@ -521,10 +521,6 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 {
   Int_t indexInner;
   Int_t index;
-  TMatrixD* mat;
-  TMatrixD* matrixR;
-  TMatrixD* matrixPhi;
-  TMatrixD* matrixZ;
 
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
@@ -536,10 +532,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 
   for (Int_t m = 0; m < fNPhi; m++) {
     indexInner = m * fNR * fNZ;
-    mat = matrixRicesValue[m];
-    matrixR = matrixRicesRPoint[m];
-    matrixPhi = matrixRicesPhiPoint[m];
-    matrixZ = matrixRicesZPoint[m];
+    TMatrixD* mat = matrixRicesValue[m];
+    TMatrixD* matrixR = matrixRicesRPoint[m];
+    TMatrixD* matrixPhi = matrixRicesPhiPoint[m];
+    TMatrixD* matrixZ = matrixRicesZPoint[m];
 
     for (Int_t i = 0; i < fNR; i++) {
       index = indexInner + i * fNZ;
@@ -626,10 +622,6 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 {
   Int_t indexInner;
   Int_t index;
-  TMatrixD* mat;
-  TMatrixD* matrixR;
-  TMatrixD* matrixPhi;
-  TMatrixD* matrixZ;
 
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
@@ -642,10 +634,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 
   for (Int_t m = 0; m < fNPhi; m++) {
     indexInner = m * fNR * fNZ;
-    mat = matrixRicesValue[m];
-    matrixR = matrixRicesRPoint[m];
-    matrixPhi = matrixRicesPhiPoint[m];
-    matrixZ = matrixRicesZPoint[m];
+    TMatrixD* mat = matrixRicesValue[m];
+    TMatrixD* matrixR = matrixRicesRPoint[m];
+    TMatrixD* matrixPhi = matrixRicesPhiPoint[m];
+    TMatrixD* matrixZ = matrixRicesZPoint[m];
 
     for (Int_t i = 0; i < fNR; i++) {
       index = indexInner + i * fNZ;

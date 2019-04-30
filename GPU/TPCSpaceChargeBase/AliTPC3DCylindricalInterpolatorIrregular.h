@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file AliTPC3DInterpolatorIrregular.h
+/// \file AliTPC3DCylindricalInterpolatorIrregular.h
 /// \brief Irregular grid interpolator for cylindrical coordinate with r,phi,z different coordinates
 ///        RBF-based interpolation
 ///
@@ -17,7 +17,6 @@
 
 #ifndef AliTPC3DCylindricalInterpolatorIrregular_H
 #define AliTPC3DCylindricalInterpolatorIrregular_H
-
 
 #include "TMatrixD.h"
 
@@ -80,26 +79,26 @@ class AliTPC3DCylindricalInterpolatorIrregular
     struct KDTreeNode *left, *right;
   };
 
-  Int_t fOrder;             ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 - cubic
-  Int_t fType;              ///< 0 INVERSE WEIGHT, 1 RBF FULL, 2 RBF Half
-  Int_t fKernelType;        ///< type kernel RBF 1--5
-  Int_t fIrregularGridSize; ///< size when interpolating for irregular grid
-  Int_t fNR;                ///< Grid size in direction of R
-  Int_t fNPhi;              ///< Grid size in direction of Phi
-  Int_t fNZ;                ///< Grid size in direction of Z
-  Int_t fMinZIndex;         ///<index z minimal as lower bound
-  Int_t fStepR;             ///< step in R direction for irregular grid
-  Int_t fStepZ;             ///< step in Z direction for irregular grid
-  Int_t fStepPhi;           ///< step in Phi direction for irregular grid
-  Int_t* fRBFWeightLookUp = nullptr;  ///[numofpoints] weighted look up
+  Int_t fOrder;                      ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 - cubic
+  Int_t fType;                       ///< 0 INVERSE WEIGHT, 1 RBF FULL, 2 RBF Half
+  Int_t fKernelType;                 ///< type kernel RBF 1--5
+  Int_t fIrregularGridSize;          ///< size when interpolating for irregular grid
+  Int_t fNR;                         ///< Grid size in direction of R
+  Int_t fNPhi;                       ///< Grid size in direction of Phi
+  Int_t fNZ;                         ///< Grid size in direction of Z
+  Int_t fMinZIndex;                  ///<index z minimal as lower bound
+  Int_t fStepR;                      ///< step in R direction for irregular grid
+  Int_t fStepZ;                      ///< step in Z direction for irregular grid
+  Int_t fStepPhi;                    ///< step in Phi direction for irregular grid
+  Int_t* fRBFWeightLookUp = nullptr; ///[numofpoints] weighted look up
 
-  Double_t fRadiusRBF0;       ///< Radius RBF0
-  Double_t* fValue = nullptr;           ///< 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
-  Double_t* fRList = nullptr;           ///< coordinate in R (cm) (should be increasing) in 3D
-  Double_t* fPhiList = nullptr;         ///< coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
-  Double_t* fZList = nullptr;           ///< coordinate in z list (cm) (should be increasing) in 3D
-  Double_t* fRBFWeight = nullptr;       ///< weight for RBF
-  Bool_t fIsAllocatingLookUp; ///< is allocating memory?
+  Double_t fRadiusRBF0;           ///< Radius RBF0
+  Double_t* fValue = nullptr;     ///< 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
+  Double_t* fRList = nullptr;     ///< coordinate in R (cm) (should be increasing) in 3D
+  Double_t* fPhiList = nullptr;   ///< coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
+  Double_t* fZList = nullptr;     ///< coordinate in z list (cm) (should be increasing) in 3D
+  Double_t* fRBFWeight = nullptr; ///< weight for RBF
+  Bool_t fIsAllocatingLookUp;     ///< is allocating memory?
 
   Double_t Interpolate3DTableCylIDW(Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex,
                                     Int_t stepR, Int_t stepZ, Int_t stepPhi);

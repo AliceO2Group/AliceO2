@@ -11,7 +11,6 @@
 /// \file GPUTRDTrackletWord.cxx
 /// \author Ole Schmidt
 
-
 #include "GPUTRDTrackletWord.h"
 using namespace GPUCA_NAMESPACE::gpu;
 #ifndef __OPENCL__

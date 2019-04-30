@@ -58,6 +58,7 @@ GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int 
 #ifdef GPUCA_SORT_STARTHITS
   if (iThread == 0) {
     int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.mNRowStartHits);
+    (void)nOffset; // Suppress compiler warning
 #ifdef GPUCA_GPUCODE
     tracker.RowStartHitCountOffset()[s.mIRow] = s.mNRowStartHits;
     if (nOffset + s.mNRowStartHits >= GPUCA_MAX_TRACKLETS) {

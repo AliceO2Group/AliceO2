@@ -121,12 +121,12 @@ class AliTPCPoissonSolver : public TNamed
  private:
   AliTPCPoissonSolver(const AliTPCPoissonSolver&);            // not implemented
   AliTPCPoissonSolver& operator=(const AliTPCPoissonSolver&); // not implemented
-  StrategyType fStrategy = kMultiGrid;                                     ///< strategy used default multiGrid
-  TMatrixD** fExactSolution = nullptr;                                  ///< Pointer to exact solution
+  StrategyType fStrategy = kMultiGrid;                        ///< strategy used default multiGrid
+  TMatrixD** fExactSolution = nullptr;                        ///< Pointer to exact solution
   /// TODO: remove pointers?
-  TVectorD* fErrorConvergenceNorm2;                           ///< for storing convergence error  norm2
-  TVectorD* fErrorConvergenceNormInf;                         ///< for storing convergence error normInf
-  TVectorD* fError;                                           ///< for storing error
+  TVectorD* fErrorConvergenceNorm2;   ///< for storing convergence error  norm2
+  TVectorD* fErrorConvergenceNormInf; ///< for storing convergence error normInf
+  TVectorD* fError;                   ///< for storing error
   Double_t GetMaxExact() { return fMaxExact; };
 
   void PoissonRelaxation2D(TMatrixD& matrixV, TMatrixD& chargeDensity, Int_t nRRow, Int_t nZColumn,
@@ -208,7 +208,11 @@ class AliTPCPoissonSolver : public TNamed
   Double_t fMaxExact;
   Bool_t fExactPresent = kFALSE;
   /// \cond CLASSIMP
+#if defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE >= ROOT_VERSION(6, 0, 0)
   ClassDefOverride(AliTPCPoissonSolver, 5);
+#else
+  ClassDef(AliTPCPoissonSolver, 5);
+#endif
   /// \endcond
 };
 

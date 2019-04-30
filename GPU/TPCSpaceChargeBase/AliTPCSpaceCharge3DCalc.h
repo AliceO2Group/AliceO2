@@ -18,7 +18,6 @@
 #ifndef ALI_TPC_SPACECHARGE3D_CALC_H
 #define ALI_TPC_SPACECHARGE3D_CALC_H
 
-
 #include "TF1.h"
 #include "TH3F.h"
 #include "TMatrixD.h"
@@ -251,7 +250,7 @@ class AliTPCSpaceCharge3DCalc
   Float_t fC1 = 0.f;               ///< coefficient C1 (compare Jim Thomas's notes for definitions)
   Float_t fCorrectionFactor = 1.f; ///< Space Charge Correction factor in comparison to initialized
 
-  Bool_t fInitLookUp = kFALSE;                ///< flag to check if the Look Up table was created
+  Bool_t fInitLookUp = kFALSE;       ///< flag to check if the Look Up table was created
   Double_t* fListR;                  //[fNRRows] list of r-coordinate of grids
   Double_t* fListPhi;                //[fNPhiSlices] list of \f$ \phi\f$ -coordinate of grids
   Double_t* fListZ;                  //[fNZColumns]

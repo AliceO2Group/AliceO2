@@ -13,7 +13,6 @@
 
 /// \author Felix Rettig, Stefan Kirsch, Ole Schmidt
 
-
 #include <cstdlib>
 #include "AliLog.h"
 #include "AliHLTDataTypes.h"

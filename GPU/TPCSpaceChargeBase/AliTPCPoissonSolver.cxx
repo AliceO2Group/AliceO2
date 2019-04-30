@@ -41,9 +41,9 @@ Double_t AliTPCPoissonSolver::fgConvergenceError = 1e-3;
 ///
 AliTPCPoissonSolver::AliTPCPoissonSolver()
   : TNamed("poisson solver", "solver"),
-  fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
-  fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
-  fError{new TVectorD(fMgParameters.nMGCycle)}
+    fErrorConvergenceNorm2{ new TVectorD(fMgParameters.nMGCycle) },
+    fErrorConvergenceNormInf{ new TVectorD(fMgParameters.nMGCycle) },
+    fError{ new TVectorD(fMgParameters.nMGCycle) }
 
 {
   // default strategy
@@ -54,9 +54,9 @@ AliTPCPoissonSolver::AliTPCPoissonSolver()
 /// \param title title of the object
 AliTPCPoissonSolver::AliTPCPoissonSolver(const char* name, const char* title)
   : TNamed(name, title),
-  fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
-  fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
-  fError{new TVectorD(fMgParameters.nMGCycle)}
+    fErrorConvergenceNorm2{ new TVectorD(fMgParameters.nMGCycle) },
+    fErrorConvergenceNormInf{ new TVectorD(fMgParameters.nMGCycle) },
+    fError{ new TVectorD(fMgParameters.nMGCycle) }
 {
   /// constructor
 }

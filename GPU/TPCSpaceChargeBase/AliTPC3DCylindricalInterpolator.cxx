@@ -445,14 +445,13 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD** matricesVal)
 {
   Int_t indexVal1D;
   Int_t index1D;
-  TMatrixD* mat;
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
     fIsAllocatingLookUp = kTRUE;
   }
   for (Int_t m = 0; m < fNPhi; m++) {
     indexVal1D = m * fNR * fNZ;
-    mat = matricesVal[m];
+    TMatrixD* mat = matricesVal[m];
     for (Int_t i = 0; i < fNR; i++) {
       index1D = indexVal1D + i * fNZ;
       for (Int_t j = 0; j < fNZ; j++) {
@@ -469,14 +468,13 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD** matricesVal, Int_t iZ)
 {
   Int_t indexVal1D;
   Int_t index1D;
-  TMatrixD* mat;
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
     fIsAllocatingLookUp = kTRUE;
   }
   for (Int_t m = 0; m < fNPhi; m++) {
     indexVal1D = m * fNR * fNZ;
-    mat = matricesVal[m];
+    TMatrixD* mat = matricesVal[m];
     for (Int_t i = 0; i < fNR; i++) {
       index1D = indexVal1D + i * fNZ;
       fValue[index1D + iZ] = (*mat)(i, iZ);

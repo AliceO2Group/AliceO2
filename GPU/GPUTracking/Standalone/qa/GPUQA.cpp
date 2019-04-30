@@ -1951,7 +1951,7 @@ int GPUQA::DrawQAHistograms()
         }
       }
       if (ConfigNumInputs == 1) {
-        TH1* e = (TH1F*)mClusters[begin + CL_att_adj]->Clone();
+        TH1* e = reinterpret_cast<TH1F*>(mClusters[begin + CL_att_adj]->Clone());
         e->Add(mClusters[begin + CL_prot], -1);
         e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
         e->Draw("same");

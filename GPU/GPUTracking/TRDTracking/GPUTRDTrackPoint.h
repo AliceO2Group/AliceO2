@@ -16,7 +16,6 @@
 #ifndef GPUTRDTRACKPOINT_H
 #define GPUTRDTRACKPOINT_H
 
-
 struct GPUTRDTrackPoint {
   float fX[3];
   short fVolumeId;
