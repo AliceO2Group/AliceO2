@@ -63,6 +63,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     active.emplace_back("HALL");
     active.emplace_back("MAG");
     active.emplace_back("DIPO");
+    active.emplace_back("COMP");
     active.emplace_back("PIPE");
     active.emplace_back("ABSO");
     active.emplace_back("SHIL");
