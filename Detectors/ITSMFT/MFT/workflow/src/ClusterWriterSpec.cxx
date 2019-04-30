@@ -46,20 +46,20 @@ void ClusterWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
+  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto plabels = labels.get();
-  auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
+  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "MFTClusterWriter pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects, in "
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
-  mFile->WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "MFTClusterROF");
-  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "MFTClusterMC2ROF");
+  mFile->WriteObjectAny(&rofs, "std::vector<o2::itsmft::ROFRecord>", "MFTClusterROF");
+  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::itsmft::MC2ROFRecord>", "MFTClusterMC2ROF");
 
   TTree tree("o2sim", "Tree with MFT clusters");
   tree.Branch("MFTClusterComp", &compClusters);
