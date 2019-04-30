@@ -6,6 +6,7 @@ set(SRCS
   src/Absorber.cxx
   src/Cave.cxx
   src/Dipole.cxx
+  src/Compensator.cxx
   src/Pipe.cxx
   src/Magnet.cxx
   src/PassiveContFact.cxx
@@ -19,6 +20,7 @@ Set(HEADERS
     include/${MODULE_NAME}/Absorber.h
     include/${MODULE_NAME}/Cave.h
     include/${MODULE_NAME}/Dipole.h
+    include/${MODULE_NAME}/Compensator.h
     include/${MODULE_NAME}/Magnet.h
     include/${MODULE_NAME}/PassiveContFact.h
     include/${MODULE_NAME}/Pipe.h

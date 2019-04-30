@@ -16,6 +16,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/Magnet.h"
 #include "DetectorsPassive/Dipole.h"
+#include "DetectorsPassive/Compensator.h"
 #include "DetectorsPassive/Absorber.h"
 #include "DetectorsPassive/Shil.h"
 #include "DetectorsPassive/Hall.h"
@@ -110,6 +111,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("DIPO")) {
     auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
     run->AddModule(dipole);
+  }
+
+  // the compensator dipole
+  if (isActivated("COMP")) {
+    run->AddModule(new o2::passive::Compensator("Comp", "Alice Compensator Dipole"));
   }
 
   // beam pipe
