@@ -69,11 +69,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
+  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-  auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
+  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "MFTTracker pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects , in "
