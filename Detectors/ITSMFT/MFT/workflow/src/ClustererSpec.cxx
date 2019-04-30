@@ -41,10 +41,10 @@ void ClustererDPL::init(InitContext& ic)
   o2::MFT::GeometryTGeo* geom = o2::MFT::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 
-  mClusterer = std::make_unique<o2::ITSMFT::Clusterer>();
+  mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setGeometry(geom);
-  mClusterer->setNChips(o2::ITSMFT::ChipMappingMFT::getNChips());
-  LOG(INFO) << "MFT ClustererDPL::init total number of sensors " << o2::ITSMFT::ChipMappingMFT::getNChips() << "\n";
+  mClusterer->setNChips(o2::itsmft::ChipMappingMFT::getNChips());
+  LOG(INFO) << "MFT ClustererDPL::init total number of sensors " << o2::itsmft::ChipMappingMFT::getNChips() << "\n";
 
   //mClusterer->setMaskOverflowPixels(false);
 
@@ -78,28 +78,28 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mState > 1)
     return;
 
-  auto digits = pc.inputs().get<const std::vector<o2::ITSMFT::Digit>>("digits");
+  auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-  auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
+  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, "
             << labels->getIndexedSize() << " MC label objects, in "
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
-  o2::ITSMFT::DigitPixelReader reader;
+  o2::itsmft::DigitPixelReader reader;
   reader.setDigits(&digits);
   reader.setROFRecords(&rofs);
   reader.setMC2ROFRecords(&mc2rofs);
   reader.setDigitsMCTruth(labels.get());
   reader.init();
 
-  std::vector<o2::ITSMFT::CompClusterExt> compClusters;
-  std::vector<o2::ITSMFT::Cluster> clusters;
+  std::vector<o2::itsmft::CompClusterExt> compClusters;
+  std::vector<o2::itsmft::Cluster> clusters;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
-  std::vector<o2::ITSMFT::ROFRecord> clusterROframes;                  // To be filled in future
-  std::vector<o2::ITSMFT::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+  std::vector<o2::itsmft::ROFRecord> clusterROframes;                  // To be filled in future
+  std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
   LOG(INFO) << "BV===== mClusterer->process\n";
   mClusterer->process(reader, &clusters, &compClusters, &clusterLabels, &clusterROframes);
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF

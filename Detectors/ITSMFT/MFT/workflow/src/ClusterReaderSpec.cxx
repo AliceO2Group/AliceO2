@@ -23,7 +23,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 namespace o2
 {
@@ -53,10 +53,10 @@ void ClusterReader::run(ProcessingContext& pc)
   std::unique_ptr<std::vector<MC2ROFRecord>> mc2rofs((std::vector<MC2ROFRecord>*)mFile->Get("MFTClusterMC2ROF"));
 
   if (tree && rofs && mc2rofs) {
-    std::vector<o2::ITSMFT::Cluster> allClusters;
-    std::vector<o2::ITSMFT::CompClusterExt> allCompClusters;
-    std::vector<o2::ITSMFT::Cluster> clusters, *pclusters = &clusters;
-    std::vector<o2::ITSMFT::CompClusterExt> compClusters, *pcompClusters = &compClusters;
+    std::vector<o2::itsmft::Cluster> allClusters;
+    std::vector<o2::itsmft::CompClusterExt> allCompClusters;
+    std::vector<o2::itsmft::Cluster> clusters, *pclusters = &clusters;
+    std::vector<o2::itsmft::CompClusterExt> compClusters, *pcompClusters = &compClusters;
     tree->SetBranchAddress("MFTCluster", &pclusters);
     tree->SetBranchAddress("MFTClusterComp", &pcompClusters);
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
