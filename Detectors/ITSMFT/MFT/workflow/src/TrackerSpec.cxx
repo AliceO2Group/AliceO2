@@ -92,17 +92,16 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::uint32_t roFrame = 0;
   o2::MFT::ROframe event(0);
 
-  bool continuous = mGRP->isDetContinuousReadOut("MFT");
+  Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
   LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
 
   if (continuous) {
-    int nclLeft = clusters.size();
-    while (nclLeft > 0) {
-      int nclUsed = o2::MFT::IOUtils::loadROFrameData(roFrame, event, &clusters, labels.get());
+    for (const auto& rof : rofs) {
+      Int_t nclUsed = o2::MFT::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialise();
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters left: " << nclLeft;
+        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(mTracker->getTracks());
@@ -116,7 +115,6 @@ void TrackerDPL::run(ProcessingContext& pc)
         std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF));
         std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));
         allTrackLabels.mergeAtBack(trackLabels);
-        nclLeft -= nclUsed;
       }
       roFrame++;
     }

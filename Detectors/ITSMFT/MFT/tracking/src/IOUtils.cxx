@@ -34,7 +34,7 @@ namespace o2
 namespace MFT
 {
 
-Int_t IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -45,31 +45,31 @@ Int_t IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std:
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
   Int_t clusterId{ 0 };
-  Int_t nused = 0;
-  for (auto& c : *clusters) {
-    if (c.getROFrame() == roFrame) {
-      Int_t layer = geom->getLayer(c.getSensorID());
 
-      /// Rotate to the global frame
-      auto xyz = c.getXYZGlo(*geom);
-      auto clsPoint2D = Point2D<Float_t>(xyz.x(), xyz.y());
-      Float_t rCoord = clsPoint2D.R();
-      Float_t phiCoord = clsPoint2D.Phi();
-      o2::utils::BringTo02PiGen(phiCoord);
-      Int_t rBinIndex = Constants::IndexTable::getRBinIndex(rCoord);
-      Int_t phiBinIndex = Constants::IndexTable::getPhiBinIndex(phiCoord);
-      Int_t binIndex = Constants::IndexTable::getBinIndex(rBinIndex, phiBinIndex);
-      event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
-      event.addClusterExternalIndexToLayer(layer, clusterId);
-      nused++;
-    }
+  auto first = rof.getROFEntry().getIndex();
+  auto number = rof.getNROFEntries();
+  auto clusters_in_frame = gsl::make_span(&(*clusters)[first], number);
+  for (auto& c : clusters_in_frame) {
+    Int_t layer = geom->getLayer(c.getSensorID());
+
+    /// Rotate to the global frame
+    auto xyz = c.getXYZGlo(*geom);
+    auto clsPoint2D = Point2D<Float_t>(xyz.x(), xyz.y());
+    Float_t rCoord = clsPoint2D.R();
+    Float_t phiCoord = clsPoint2D.Phi();
+    o2::utils::BringTo02PiGen(phiCoord);
+    Int_t rBinIndex = Constants::IndexTable::getRBinIndex(rCoord);
+    Int_t phiBinIndex = Constants::IndexTable::getPhiBinIndex(phiCoord);
+    Int_t binIndex = Constants::IndexTable::getBinIndex(rBinIndex, phiBinIndex);
+    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
+    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
-  return nused;
+  return number;
 }
 
-void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {

@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "MFTTracking/ROframe.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {
@@ -33,7 +34,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -43,10 +44,9 @@ namespace MFT
 
 namespace IOUtils
 {
-Int_t loadROFrameData(std::uint32_t roFrame, ROframe& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
-                      const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-void loadEventData(ROframe& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
-                   const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+                   const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace IOUtils
 } // namespace MFT
 } // namespace o2
