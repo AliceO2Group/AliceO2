@@ -70,7 +70,7 @@ class GPUTPCGMMerger : public GPUProcessor
     return mOutputTracks;
   }
 
-  GPUhd() const GPUParam& SliceParam() const { return *mCAParam; }
+  GPUhd() const GPUParam& Param() const { return *mCAParam; }
 
   GPUd() const GPUTPCGMPolynomialField& Field() const { return mField; }
   GPUhd() const GPUTPCGMPolynomialField* pField() const { return &mField; }

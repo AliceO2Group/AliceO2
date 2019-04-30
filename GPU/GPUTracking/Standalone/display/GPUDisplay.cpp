@@ -1490,7 +1490,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       prop.SetMaxSinPhi(.999);
       prop.SetMaterial(kRadLen, kRho);
       prop.SetPolynomialField(mMerger.pField());
-      prop.SetToyMCEventsFlag(mMerger.SliceParam().ToyMCEventsFlag);
+      prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier

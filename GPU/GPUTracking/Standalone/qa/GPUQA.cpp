@@ -754,7 +754,7 @@ void GPUQA::RunQA(bool matchOnly)
     prop.SetMaxSinPhi(.999);
     prop.SetMaterial(kRadLen, kRho);
     prop.SetPolynomialField(merger.pField());
-    prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag);
+    prop.SetToyMCEventsFlag(merger.Param().ToyMCEventsFlag);
 
     for (int i = 0; i < merger.NOutputTracks(); i++) {
       if (mConfig.writeMCLabels) {
@@ -1212,7 +1212,7 @@ void GPUQA::RunQA(bool matchOnly)
         const auto& cl = mRec->mIOPtrs.clusterData[iSlice][i];
         const int cid = cl.id;
         float x, y, z;
-        merger.SliceParam().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
+        merger.Param().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
         float totalWeight = 0.f;
         if (mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC) {
           for (int j = 0; j < 3; j++) {
