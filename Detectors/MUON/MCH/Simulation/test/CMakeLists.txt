@@ -18,7 +18,7 @@ if (benchmark_FOUND)
     SOURCES benchDigitMerging.cxx DigitMerging.cxx
     BUCKET_NAME ${BUCKET_NAME}
     NO_INSTALL TRUE
-    )
+  )
 
 endif()
 
