@@ -28,7 +28,7 @@
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUTPCGMTrackParam.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCRawCluster.h"
 #include "AliRawEventHeaderBase.h"
 #include "AliRecoParam.h"
@@ -157,7 +157,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 
   int sector;
   int sectorrow;
-  if (row < GPUTPCGeometry::GetNRowLow()) {
+  if (row < AliHLTTPCGeometry::GetNRowLow()) {
     sector = slice;
     sectorrow = row;
     maxPad = param->GetNPadsLow(sectorrow);
@@ -165,7 +165,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
     padWidth = param->GetPadPitchWidth(sector);
   } else {
     sector = slice + NSLICES;
-    sectorrow = row - GPUTPCGeometry::GetNRowLow();
+    sectorrow = row - AliHLTTPCGeometry::GetNRowLow();
     maxPad = param->GetNPadsUp(sectorrow);
     // padLength = param->GetPadPitchLength(sector, sectorrow);
     padWidth = param->GetPadPitchWidth(sector);
@@ -174,7 +174,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
   padtime[0] = y * sign / padWidth + 0.5 * maxPad;
 
   float xyzGlobal[2] = { param->GetPadRowRadii(sector, sectorrow), y };
-  GPUTPCGeometry::Local2Global(xyzGlobal, slice);
+  AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
 
   float time = z * sign * 1024.f / 250.f;
   padtime[1] = (1024.f - time);
@@ -193,7 +193,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 
   int sector;
   int sectorrow;
-  if (row < GPUTPCGeometry::GetNRowLow()) {
+  if (row < AliHLTTPCGeometry::GetNRowLow()) {
     sector = slice;
     sectorrow = row;
     maxPad = param->GetNPadsLow(sectorrow);
@@ -201,7 +201,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
     padWidth = param->GetPadPitchWidth(sector);
   } else {
     sector = slice + NSLICES;
-    sectorrow = row - GPUTPCGeometry::GetNRowLow();
+    sectorrow = row - AliHLTTPCGeometry::GetNRowLow();
     maxPad = param->GetNPadsUp(sectorrow);
     // padLength = param->GetPadPitchLength(sector, sectorrow);
     padWidth = param->GetPadPitchWidth(sector);
@@ -211,7 +211,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
   xyz[1] = (pad - 0.5 * maxPad) * padWidth * sign;
 
   float xyzGlobal[2] = { xyz[0], xyz[1] };
-  GPUTPCGeometry::Local2Global(xyzGlobal, slice);
+  AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
 
   xyz[2] = sign * (1024 - time) * 250.f / 1024.f;
 }
@@ -346,9 +346,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
       AliHLTTPCTrackHelperStruct* hitIndexCache[1024];
       for (int ip = 0; ip < track->fNPoints; ip++) {
         int clusterID = track->fPointIDs[ip];
-        int slice = GPUTPCGeometry::CluID2Slice(clusterID);
-        int patch = GPUTPCGeometry::CluID2Partition(clusterID);
-        int index = GPUTPCGeometry::CluID2Index(clusterID);
+        int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
+        int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
+        int index = AliHLTTPCGeometry::CluID2Index(clusterID);
 
         if (clustersTrackIDArray[slice][patch][index].fID != -1) {
           HLTDebug("Already assigned hit %d of track %d, skipping", ip, i);
@@ -363,8 +363,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         AliHLTTPCRawCluster& cluster = clustersArray[slice][patch]->fClusters[index];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];
 
-        int padrow = GPUTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
-        float x = GPUTPCGeometry::Row2X(padrow);
+        int padrow = AliHLTTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
+        float x = AliHLTTPCGeometry::Row2X(padrow);
         float y = 0.0;
         float z = 0.0;
 
@@ -487,7 +487,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
     for (unsigned int ip = 0; ip < NPATCHES; ip++) {
       AliHLTTPCRawClusterData* clusters = clustersArray[is][ip];
       AliHLTTPCClusterXYZData* clustersTransformed = clustersTransformedArray[is][ip];
-      int firstRow = GPUTPCGeometry::GetFirstRow(ip);
+      int firstRow = AliHLTTPCGeometry::GetFirstRow(ip);
 
       if (clusters == nullptr) {
         HLTDebug("Clusters missing for slice %d patch %d\n", is, ip);
@@ -522,8 +522,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 
           /*float xyzOrig[3], xyzLocGlob[3];
                     {
-                        int sector = GPUTPCGeometry::GetNRowLow() ? is : is + NSLICES;
-                        int sectorrow = GPUTPCGeometry::GetNRowLow() ? row : row - GPUTPCGeometry::GetNRowLow();
+                        int sector = AliHLTTPCGeometry::GetNRowLow() ? is : is + NSLICES;
+                        int sectorrow = AliHLTTPCGeometry::GetNRowLow() ? row : row - AliHLTTPCGeometry::GetNRowLow();
 
                         Double_t xx[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
                         transform->Transform(xx, &sector, 0, 1);
@@ -588,9 +588,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
       const AliHLTExternalTrackParam* track = reinterpret_cast<const AliHLTExternalTrackParam*>(pCurrent);
       for (int ip = 0; ip < track->fNPoints; ip++) {
         int clusterID = track->fPointIDs[ip];
-        int slice = GPUTPCGeometry::CluID2Slice(clusterID);
-        int patch = GPUTPCGeometry::CluID2Partition(clusterID);
-        int index = GPUTPCGeometry::CluID2Index(clusterID);
+        int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
+        int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
+        int index = AliHLTTPCGeometry::CluID2Index(clusterID);
 
         AliHLTTPCRawCluster& cluster = clustersArray[slice][patch]->fClusters[index];
         AliHLTTPCClusterXYZ& clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];

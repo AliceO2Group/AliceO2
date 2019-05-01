@@ -19,7 +19,7 @@
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCDefinitions.h"
 #include "GPUTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
@@ -584,7 +584,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
             continue;
           }
 
-          const int firstRow = GPUTPCGeometry::GetFirstRow(patch);
+          const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
           for (int ic = 0; ic < clXYZ.fCount; ic++) {
             const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
             const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
@@ -594,7 +594,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
             if (c.GetX() < 1.f) {
               continue; // cluster xyz position was not calculated for whatever reason
             }
-            pCluster->id = GPUTPCGeometry::CreateClusterID(slice, patch, ic);
+            pCluster->id = AliHLTTPCGeometry::CreateClusterID(slice, patch, ic);
             pCluster->x = c.GetX();
             pCluster->y = c.GetY();
             pCluster->z = c.GetZ();

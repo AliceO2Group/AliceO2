@@ -24,12 +24,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 #endif
 
 #if !defined(GPUCA_GPUCODE)
-#include "GPUTPCGeometry.h"
 #include <cstring>
 
 void GPUParam::SetDefaults(float solenoidBz)
 {
   memset((void*)this, 0, sizeof(*this));
+  new (&tpcGeometry) GPUTPCGeometry;
   rec.SetDefaults();
 
   // clang-format off
@@ -70,10 +70,6 @@ void GPUParam::SetDefaults(float solenoidBz)
         ParamRMS0[i][j][k] = kParamRMS0[i][j][k];
       }
     }
-  }
-
-  for (int irow = 0; irow < GPUCA_ROW_COUNT; irow++) {
-    RowX[irow] = GPUTPCGeometry::Row2X(irow);
   }
 
   RMin = 83.65f;

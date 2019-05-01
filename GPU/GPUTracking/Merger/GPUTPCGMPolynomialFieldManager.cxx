@@ -217,7 +217,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPU
 #include <cmath>
 
 #include "AliTracker.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliTRDgeometry.h"
 #include "TGeoGlobalMagField.h"
 #include "AliMagF.h"
@@ -284,10 +284,10 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   const double sectorAngleShift = 10. / 180. * TMath::Pi();
   const double sectorAngle = 20. / 180. * TMath::Pi();
-  const int nRows = GPUTPCGeometry::GetNRows();
+  const int nRows = AliHLTTPCGeometry::GetNRows();
 
-  double xMin = GPUTPCGeometry::Row2X(0);
-  double xMax = GPUTPCGeometry::Row2X(nRows - 1);
+  double xMin = AliHLTTPCGeometry::Row2X(0);
+  double xMax = AliHLTTPCGeometry::Row2X(nRows - 1);
   double rMin = xMin;
   double rMax = xMax / TMath::Cos(sectorAngle / 2.);
 
@@ -301,8 +301,8 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   double dZ = 1. * step; // step in z == 1 cm
 
-  double zMin = -GPUTPCGeometry::GetZLength();
-  double zMax = GPUTPCGeometry::GetZLength();
+  double zMin = -AliHLTTPCGeometry::GetZLength();
+  double zMax = AliHLTTPCGeometry::GetZLength();
 
   double alMin = -sectorAngle / 2.;
   double alMax = sectorAngle / 2. - 0.5 * dA;
@@ -325,8 +325,8 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
     for (double al = alMin; al < alMax; al += dA) {
       std::cout << "angle " << al / TMath::Pi() * 180. << " grad " << std::endl;
       double tg = TMath::Tan(al);
-      for (int row = 0; row < GPUTPCGeometry::GetNRows(); row++) {
-        double xl = GPUTPCGeometry::Row2X(row);
+      for (int row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
+        double xl = AliHLTTPCGeometry::Row2X(row);
         double yl = xl * tg;
         double x = xl * cs - yl * ss;
         double y = xl * ss + yl * cs;
@@ -400,8 +400,8 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
     for (double al = alMin; al < alMax; al += dA) {
       std::cout << "check quality: angle " << al / TMath::Pi() * 180. << " grad " << std::endl;
       double tg = TMath::Tan(al);
-      for (int row = 0; row < GPUTPCGeometry::GetNRows(); row++) {
-        double xl = GPUTPCGeometry::Row2X(row);
+      for (int row = 0; row < AliHLTTPCGeometry::GetNRows(); row++) {
+        double xl = AliHLTTPCGeometry::Row2X(row);
         double yl = xl * tg;
         double x = xl * cs - yl * ss;
         double y = xl * ss + yl * cs;
@@ -468,7 +468,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
 
   double zMax = 751.0 / 2.;
   double zMin = -zMax;
-  double xMin = GPUTPCGeometry::Row2X(GPUTPCGeometry::GetNRows() - 1);
+  double xMin = AliHLTTPCGeometry::Row2X(AliHLTTPCGeometry::GetNRows() - 1);
   double xMax = AliTRDgeometry::GetXtrdEnd();
   double rMin = xMin;
   double rMax = xMax / TMath::Cos(sectorAngle / 2.);
@@ -646,7 +646,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   const double zITS = 24.5;
 
   double xMin = 0.5;
-  double xMax = GPUTPCGeometry::Row2X(0);
+  double xMax = AliHLTTPCGeometry::Row2X(0);
   double rMin = xMin;
   double rMax = xMax / TMath::Cos(sectorAngle / 2.);
 
@@ -661,8 +661,8 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   double dX = .5 * step; // step in local x == 0.1 cm
   double dZ = 1. * step; // step in z == 1 cm
 
-  double zMin = -GPUTPCGeometry::GetZLength();
-  double zMax = GPUTPCGeometry::GetZLength();
+  double zMin = -AliHLTTPCGeometry::GetZLength();
+  double zMax = AliHLTTPCGeometry::GetZLength();
 
   double alMin = -sectorAngle / 2.;
   double alMax = sectorAngle / 2. - 0.5 * dA;

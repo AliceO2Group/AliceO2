@@ -349,13 +349,13 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
   } else if (iBorder == 1) { // transport to the right edge of the sector and rotate horizontally
     dAlpha = -dAlpha - CAMath::Pi() / 2;
   } else if (iBorder == 2) { // transport to the middle of the sector and rotate vertically to the border on the left
-    x0 = mCAParam->RowX[63];
+    x0 = mCAParam->tpcGeometry.Row2X(63);
   } else if (iBorder == 3) { // transport to the middle of the sector and rotate vertically to the border on the right
     dAlpha = -dAlpha;
-    x0 = mCAParam->RowX[63];
+    x0 = mCAParam->tpcGeometry.Row2X(63);
   } else if (iBorder == 4) { // transport to the middle of the sßector, w/o rotation
     dAlpha = 0;
-    x0 = mCAParam->RowX[63];
+    x0 = mCAParam->tpcGeometry.Row2X(63);
   }
 
   const float maxSin = CAMath::Sin(60. / 180. * CAMath::Pi());
@@ -559,7 +559,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 
 void GPUTPCGMMerger::MergeWithingSlices()
 {
-  float x0 = mCAParam->RowX[63];
+  float x0 = mCAParam->tpcGeometry.Row2X(63);
   const float maxSin = CAMath::Sin(60. / 180. * CAMath::Pi());
 
   ClearTrackLinks(SliceTrackInfoLocalTotal());
@@ -828,7 +828,7 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
   int slice = track->Slice();
   for (int attempt = 0; attempt < 2; attempt++) {
     GPUTPCGMBorderTrack& b = attempt == 0 ? mBorder[slice][mBorderCETracks[0][slice]] : mBorder[slice][mkSlices[slice]->NTracks() - 1 - mBorderCETracks[1][slice]];
-    const float x0 = attempt == 0 ? mCAParam->RowX[63] : cls.x;
+    const float x0 = attempt == 0 ? mCAParam->tpcGeometry.Row2X(63) : cls.x;
     if (track->TransportToX(x0, mCAParam->ConstBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mOutputTracks[itr].NClusters());

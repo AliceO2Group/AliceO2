@@ -17,13 +17,13 @@
 #include "GPUDef.h"
 #include "GPUTPCGeometry.h"
 #include "GPUCommonMath.h"
+#include "GPUParam.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 struct GPUdEdxInfo;
-struct GPUParam;
 
 #ifdef GPUCA_ALIROOT_LIB
 
@@ -31,8 +31,8 @@ class GPUdEdx
 {
  public:
   GPUd() void clear() {}
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl) {}
-  GPUd() void fillSubThreshold(int padRow) {}
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param) {}
+  GPUd() void fillSubThreshold(int padRow, const GPUParam& param) {}
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param) {}
 };
 
@@ -43,8 +43,8 @@ class GPUdEdx
  public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl);
-  GPUd() void fillSubThreshold(int padRow);
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param);
+  GPUd() void fillSubThreshold(int padRow, const GPUParam& param);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
  private:
@@ -83,14 +83,14 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl)
+GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param)
 {
-  const int roc = GPUTPCGeometry::GetROC(padRow);
+  const int roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
   float factor = CAMath::Sqrt((1 - trackSnp * trackSnp) / (1 + trackTgl * trackTgl));
-  factor /= GPUTPCGeometry::PadHeight(padRow);
+  factor /= param.tpcGeometry.PadHeight(padRow);
   qtot *= factor;
-  qmax *= factor / GPUTPCGeometry::PadWidth(padRow);
+  qmax *= factor / param.tpcGeometry.PadWidth(padRow);
 
   mChargeTot[mCount] = qtot;
   mChargeMax[mCount++] = qmax;
@@ -103,9 +103,9 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
   }
 }
 
-GPUdi() void GPUdEdx::fillSubThreshold(int padRow)
+GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& param)
 {
-  const int roc = GPUTPCGeometry::GetROC(padRow);
+  const int roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
   mNSubThresh++;
 }

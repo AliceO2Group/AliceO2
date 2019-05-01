@@ -23,7 +23,7 @@
 
 #include "AliHLTTPCDefinitions.h"
 #include "GPUTPCDefinitions.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 
 #include "AliExternalTrackParam.h"
 #include "AliCDBEntry.h"
@@ -375,7 +375,7 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
     fBenchmark.AddInput(block->fSize);
 
     int slice = AliHLTTPCDefinitions::GetMinSliceNr(*block);
-    if (slice < 0 || slice >= GPUTPCGeometry::GetNSlice()) {
+    if (slice < 0 || slice >= AliHLTTPCGeometry::GetNSlice()) {
       HLTError("invalid slice number %d extracted from specification 0x%08lx,  skipping block of type %s", slice, block->fSpecification, DataType2Text(block->fDataType).c_str());
       // just remember the error, if there are other valid blocks ignore the error, return code otherwise
       iResult = -EBADF;

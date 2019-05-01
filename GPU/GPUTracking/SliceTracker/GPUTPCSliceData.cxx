@@ -122,7 +122,7 @@ void GPUTPCSliceData::InitializeRows(const GPUParam& p)
     new (&mRows[i]) GPUTPCRow;
   }
   for (int i = 0; i < GPUCA_ROW_COUNT; ++i) {
-    mRows[i].mX = p.RowX[i];
+    mRows[i].mX = p.tpcGeometry.Row2X(i);
     mRows[i].mMaxY = CAMath::Tan(p.DAlpha / 2.) * mRows[i].mX;
   }
 }

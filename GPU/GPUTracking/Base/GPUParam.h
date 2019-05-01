@@ -18,6 +18,7 @@
 #include "GPUCommonMath.h"
 #include "GPUDef.h"
 #include "GPUSettings.h"
+#include "GPUTPCGeometry.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -45,13 +46,13 @@ struct GPUParam {
   float BzkG;             // constant magnetic field value in kG
   float ConstBz;          // constant magnetic field value in kG*clight
 
-  char AssumeConstantBz;       // Assume a constant magnetic field
-  char ToyMCEventsFlag;        // events were build with home-made event generator
-  char ContinuousTracking;     // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-  char resetTimers;            // Reset benchmark timers before event processing
-  int debugLevel;              // Debug level
-  int continuousMaxTimeBin;    // Max time bin for continuous tracking
-  float RowX[GPUCA_ROW_COUNT]; // X-coordinate of rows
+  char AssumeConstantBz;      // Assume a constant magnetic field
+  char ToyMCEventsFlag;       // events were build with home-made event generator
+  char ContinuousTracking;    // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+  char resetTimers;           // Reset benchmark timers before event processing
+  int debugLevel;             // Debug level
+  int continuousMaxTimeBin;   // Max time bin for continuous tracking
+  GPUTPCGeometry tpcGeometry; // TPC Geometry
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
 #ifndef GPUCA_GPUCODE

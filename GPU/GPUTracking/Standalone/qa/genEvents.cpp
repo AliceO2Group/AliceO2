@@ -144,7 +144,7 @@ void genEvents::FinishEventGenerator()
   }
 }
 
-int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
+int genEvents::GenerateEvent(const GPUParam& param, char* filename)
 {
   mRec->ClearIOPointers();
   static int iEvent = -1;
@@ -158,8 +158,8 @@ int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
   std::vector<GPUTPCMCInfo> mcInfo(nTracks);
   memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
 
-  // double Bz = sliceParam.ConstBz();
-  // std::cout<<"Bz[kG] = "<<sliceParam.BzkG()<<std::endl;
+  // double Bz = param.ConstBz();
+  // std::cout<<"Bz[kG] = "<<param.BzkG()<<std::endl;
 
   GPUTPCGMPropagator prop;
   {
@@ -218,7 +218,7 @@ int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
 
     for (int iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
       // if( iRow>=50 ) break; //SG!!!
-      float xRow = sliceParam.RowX[iRow];
+      float xRow = param.tpcGeometry.Row2X(iRow);
       // transport to row
       int err = 0;
       for (int itry = 0; itry < 1; itry++) {
@@ -274,7 +274,7 @@ int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
       float sigmaZ = 0.5;
       const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
       t.UpdateValues();
-      sliceParam.GetClusterErrors2(rowType, t.GetZ(), t.GetSinPhi(), t.GetDzDs(), sigmaY, sigmaZ);
+      param.GetClusterErrors2(rowType, t.GetZ(), t.GetSinPhi(), t.GetDzDs(), sigmaY, sigmaZ);
       sigmaY = std::sqrt(sigmaY);
       sigmaZ = std::sqrt(sigmaZ);
       mClusterError[rowType][0]->Fill(sigmaY);

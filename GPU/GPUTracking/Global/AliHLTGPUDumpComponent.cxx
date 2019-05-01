@@ -23,7 +23,7 @@
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCClusterData.h"
 #include "AliHLTTPCRawCluster.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliRunLoader.h"
 #include "AliHeader.h"
 #include "AliStack.h"
@@ -223,7 +223,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
           continue;
         }
 
-        const int firstRow = GPUTPCGeometry::GetFirstRow(patch);
+        const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
         for (int ic = 0; ic < clXYZ.fCount; ic++) {
           const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
           const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
@@ -233,7 +233,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
           if (c.GetX() < 1.f) {
             continue; // cluster xyz position was not calculated for whatever reason
           }
-          cluster.id = GPUTPCGeometry::CreateClusterID(slice, patch, ic);
+          cluster.id = AliHLTTPCGeometry::CreateClusterID(slice, patch, ic);
           cluster.x = c.GetX();
           cluster.y = c.GetY();
           cluster.z = c.GetZ();
@@ -287,7 +287,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         }
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
         for (int ic = 0; ic < clXYZ.fCount; ic++) {
-          if (pCluster->id != GPUTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) {
+          if (pCluster->id != AliHLTTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) {
             continue;
           }
           pCluster->id = labels.size();

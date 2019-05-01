@@ -18,7 +18,7 @@
 #include "GPUCommonMath.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#include "GPUTPCGeometry.h"
+#include "AliHLTTPCGeometry.h"
 #include <cmath>
 #include "AliTracker.h"
 #include "AliMagF.h"
@@ -120,7 +120,7 @@ int GPUTPCGMOfflineFitter::CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, A
   // add the information we have
 
   Int_t sector, row;
-  GPUTPCGeometry::Slice2Sector(h.slice, h.row, sector, row);
+  AliHLTTPCGeometry::Slice2Sector(h.slice, h.row, sector, row);
   c.SetDetector(sector);
   c.SetRow(row); // ?? is it right row numbering for the TPC tracker ??
   c.SetX(h.fX);
@@ -204,7 +204,7 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
     Int_t iRow = clusters[ihit].row;
 
-    if (iRow < GPUTPCGeometry::GetNRowLow()) {
+    if (iRow < AliHLTTPCGeometry::GetNRowLow()) {
       AliTPCtracker::fSectors = AliTPCtracker::fInnerSec;
     } else {
       AliTPCtracker::fSectors = AliTPCtracker::fOuterSec;
