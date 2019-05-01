@@ -190,8 +190,8 @@ int GPUTPCSliceData::InitFromClusterData()
 
   mMaxZ = 0.f;
 
-  std::unique_ptr<float2> YZData_p(new float2[mNumberOfHits]);
-  std::unique_ptr<int> tmpHitIndex_p(new int[mNumberOfHits]);
+  std::unique_ptr<float2[]> YZData_p(new float2[mNumberOfHits]);
+  std::unique_ptr<int[]> tmpHitIndex_p(new int[mNumberOfHits]);
   float2* YZData = YZData_p.get();
   int* tmpHitIndex = tmpHitIndex_p.get();
 
