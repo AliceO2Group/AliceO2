@@ -20,12 +20,14 @@
 
 void run_CRUDataSkimming_its(std::string inpName = "rawits.bin",
                              std::string outName = "rawits_skimmed.bin",
+                             int nTriggersToCache = 1025, // number of triggers per link to cache (> N 8KB CRU pages per superpage)
                              int verbose = 0)
 {
 
   o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
   rawReader.openInput(inpName);
   rawReader.setPadding128(false);
+  rawReader.setMinTriggersToCache(nTriggersToCache);
   rawReader.setVerbosity(verbose);
 
   std::fstream outFile(outName, std::ios::out | std::ios::binary);
