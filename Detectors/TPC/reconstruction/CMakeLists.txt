@@ -49,9 +49,9 @@ set(BUCKET_NAME tpc_reconstruction_bucket)
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-  tpc-read-GBTFrames
-  tpc-read-RawData
-  tpc-rawReader-cru
+  o2-tpc-read-gbtframes
+  o2-tpc-read-rawdata
+  o2-tpc-rawreader-cru
 )
 
 

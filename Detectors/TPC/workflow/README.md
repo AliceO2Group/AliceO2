@@ -37,11 +37,11 @@ The workflow can be run starting from digits, raw clusters, or (native) clusters
 `o2-sim-digitizer-workflow`, see comment on inputs types below.
 
 ### Quickstart running the reconstruction workflow
-The workflow is implemented in the `tpc-reco-workflow` executable.
+The workflow is implemented in the `o2-tpc-reco-workflow` executable.
 
 Display all options
 ```
-tpc-reco-workflow --help
+o2-tpc-reco-workflow --help
 ```
 
 Important options for the `tpc-digit-reader` as initial publisher
@@ -69,11 +69,11 @@ Options for the `tpc-track-writer` process
 
 Examples:
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --tracker-options "cont refX=83 bz=-5.0068597793"
+o2-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
+o2-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ### Global workflow options:
