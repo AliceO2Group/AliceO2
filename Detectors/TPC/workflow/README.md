@@ -34,7 +34,7 @@ The digitizer workflow produces the file `tpcdigits.root` by default, data is st
 all sectors.
 
 The workflow can be run starting from digits, raw clusters, or (native) clusters, or directly attached to the
-`digitizer-workflow`, see comment on inputs types below.
+`o2-sim-digitizer-workflow`, see comment on inputs types below.
 
 ### Quickstart running the reconstruction workflow
 The workflow is implemented in the `tpc-reco-workflow` executable.

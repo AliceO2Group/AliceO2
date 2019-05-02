@@ -10,7 +10,7 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2-sim` executable. The second part is handled in the `digitizer-workflow`.
+The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
  
 # Documentation of `o2-sim`
 
@@ -102,4 +102,4 @@ This will produce a file `MCStepLoggerOutput.root` containing detailed informati
 
 ## Development
 
-# Documentation of `digitizer-workflow`
+# Documentation of `o2-sim-digitizer-workflow`
