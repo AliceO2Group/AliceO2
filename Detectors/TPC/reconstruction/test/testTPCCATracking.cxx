@@ -23,8 +23,10 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCReconstruction/TPCCATracking.h"
 
-#include "AliGPUCAConfiguration.h"
-#include "AliGPUReconstruction.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUReconstruction.h"
+
+using namespace o2::gpu;
 
 #include <vector>
 #include <iostream>
@@ -46,14 +48,14 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   float refX = 1000.;          //transport tracks to this x after tracking, >500 for disabling
   bool continuous = false;     //time frame data v.s. triggered events
 
-  AliGPUCAConfiguration config;
-  config.configProcessing.deviceType = AliGPUReconstruction::DeviceType::CPU;
+  GPUO2InterfaceConfiguration config;
+  config.configProcessing.deviceType = GPUReconstruction::DeviceType::CPU;
   config.configProcessing.forceDeviceType = true;
 
   config.configDeviceProcessing.nThreads = 4;           //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
   config.configDeviceProcessing.runQA = true;           //Run QA after tracking
   config.configDeviceProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
-  //config.configDeviceProcessing.eventDisplay = new AliGPUCADisplayBackendX11;
+  //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
   config.configEvent.solenoidBz = solenoidBz;
   config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; //Number of timebins in timeframe if continuous, 0 otherwise

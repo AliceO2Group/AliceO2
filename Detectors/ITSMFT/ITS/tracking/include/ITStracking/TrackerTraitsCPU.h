@@ -42,8 +42,9 @@ class TrackerTraitsCPU : public TrackerTraits
   TrackerTraitsCPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
   ~TrackerTraitsCPU() override { delete mPrimaryVertexContext; }
 
-  void computeLayerTracklets() final;
   void computeLayerCells() final;
+  void computeLayerTracklets() final;
+  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks) final;
 
  protected:
   std::vector<std::vector<Tracklet>> mTracklets;

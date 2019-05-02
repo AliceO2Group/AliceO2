@@ -132,7 +132,7 @@ void MatchTPCITS::init()
 
   std::unique_ptr<TPCTransform> fastTransform = (o2::TPC::TPCFastTransformHelperO2::instance()->create(0));
   mTPCTransform = std::move(fastTransform);
-  mTPCClusterParam = std::make_unique<AliGPUCAParam>();
+  mTPCClusterParam = std::make_unique<o2::gpu::GPUParam>();
   mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
 
   attachInputTrees();

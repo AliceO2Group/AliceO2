@@ -499,5 +499,19 @@ void TrackerTraitsNV::computeLayerCells()
   }
 }
 
+void TrackerTraitsNV::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+{
+  PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
+
+  std::array<const Cell*, 5> cells;
+  for (int iLayer = 0; iLayer < 5; iLayer++) {
+    cells[iLayer] = pvctx->getDeviceCells()[iLayer].get();
+  }
+  std::array<const Cluster*, 7> clusters;
+  for (int iLayer = 0; iLayer < 7; iLayer++) {
+    clusters[iLayer] = pvctx->getDeviceClusters()[iLayer].get();
+  }
+  mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
+}
 }
 }

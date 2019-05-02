@@ -28,7 +28,7 @@ namespace o2
 namespace TPC
 {
 
-using namespace ali_tpc_common::tpc_fast_transformation;
+using namespace o2::gpu;
 
 class TPCFastTransformHelperO2
 {

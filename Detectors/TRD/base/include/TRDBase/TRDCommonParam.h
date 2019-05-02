@@ -11,7 +11,7 @@
 #ifndef O2_TRDCOMMONPARAM_H
 #define O2_TRDCOMMONPARAM_H
 
-#include "TRDBase/TRDSimParam.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2
 {
@@ -35,16 +35,8 @@ class TRDCommonParam
 
   void SetExB(int exbOn = 1) { mExBOn = exbOn; }
   void SetSamplingFrequency(float freq) { mSamplingFrequency = freq; }
-  void SetXenon()
-  {
-    mGasMixture = kXenon;
-    TRDSimParam::Instance()->ReInit();
-  }
-  void SetArgon()
-  {
-    mGasMixture = kArgon;
-    TRDSimParam::Instance()->ReInit();
-  }
+  void SetXenon();
+  void SetArgon();
 
   bool ExBOn() const { return mExBOn; }
   bool IsXenon() const { return (mGasMixture == kXenon); }
@@ -59,8 +51,10 @@ class TRDCommonParam
  protected:
   void SampleTimeStruct(float vdrift);
 
+#ifndef GPUCA_GPUCODE_DEVICE
   static TRDCommonParam* fgInstance; //  Instance of this class (singleton implementation)
   static bool fgTerminated;          //  Defines if this class has already been terminated
+#endif
 
   int mExBOn; //  Switch for the ExB effects
 

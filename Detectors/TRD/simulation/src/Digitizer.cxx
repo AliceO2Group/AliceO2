@@ -15,6 +15,7 @@
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "TRDBase/TRDCommonParam.h" // For kNdet
+#include "TRDBase/TRDSimParam.h"
 
 #include "FairLogger.h"
 
@@ -238,16 +239,16 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
     // Loop over all created electrons
     const int nElectrons = abs(qTotal);
     for (int el = 0; el < nElectrons; ++el) {
-      /* 
+      /*
       Now the real local coordinate system of the ROC
       column direction: locC
-      row direction:    locR 
+      row direction:    locR
       time direction:   locT
       locR and locC are identical to the coordinates of the corresponding
       volumina of the drift or amplification region.
       locT is defined relative to the wire plane (i.e. middle of amplification
       region), meaning locT = 0, and is negative for hits coming from the
-      drift region. 
+      drift region.
       */
       double locC = loc[0];
       double locR = loc[1];
@@ -387,7 +388,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
           // Store the track index in the dictionary
           // Note: We store index+1 in order to allow the array to be compressed
           // Note2: Taking out the +1 in track
-          /*  
+          /*
           if (signalOld[iPad] > 0) {
             for (int dict = 0; dict < kNdict; dict++) {
               int oldTrack = dictionary[dict]->GetData(rowE, colPos, iTimeBin);

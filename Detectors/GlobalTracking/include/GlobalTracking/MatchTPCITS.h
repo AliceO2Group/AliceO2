@@ -32,7 +32,8 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
-#include "AliGPUCAParam.h" // Consider more universal access
+#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUParam.h"       // Consider more universal access
 
 class TTree;
 
@@ -142,7 +143,7 @@ struct matchRecord {
 class MatchTPCITS
 {
   using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  using TPCTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
+  using TPCTransform = o2::gpu::TPCFastTransform;
 
  public:
   static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
@@ -408,7 +409,7 @@ class MatchTPCITS
   o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
   o2::TPC::ClusterNativeAccessFullTPC mTPCClusterIdxStruct;          ///< struct holding the TPC cluster indices
   std::unique_ptr<TPCTransform> mTPCTransform;                       ///< TPC cluster transformation
-  std::unique_ptr<AliGPUCAParam> mTPCClusterParam;                   ///< TPC clusters error param
+  std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam;               ///< TPC clusters error param
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 

@@ -15,8 +15,10 @@
 #ifndef TRACKINGITSU_INCLUDE_CONSTANTS_H_
 #define TRACKINGITSU_INCLUDE_CONSTANTS_H_
 
+#ifndef __OPENCL__
 #include <climits>
 #include <vector>
+#endif
 
 #include "ITStracking/Definitions.h"
 

@@ -15,9 +15,11 @@
 #ifndef TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 #define TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 
+#ifndef __OPENCL__
 #include <array>
 #include <utility>
 #include <vector>
+#endif
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
