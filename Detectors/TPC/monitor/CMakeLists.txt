@@ -33,7 +33,7 @@ O2_GENERATE_LIBRARY()
 
 # ===| generate executables |===================================================
 Set(Exe_Names
-  tpc-monitor
+  o2-tpc-monitor
 )
 
 Set(Exe_Source

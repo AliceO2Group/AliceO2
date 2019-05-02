@@ -30,7 +30,7 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME tpc-reco-workflow
+  EXE_NAME o2-tpc-reco-workflow
 
   SOURCES
   src/tpc-reco-workflow.cxx
