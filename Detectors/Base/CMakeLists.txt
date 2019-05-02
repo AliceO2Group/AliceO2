@@ -22,7 +22,6 @@ Set(HEADERS
   include/${MODULE_NAME}/MatCell.h
   include/${MODULE_NAME}/MatLayerCyl.h
   include/${MODULE_NAME}/MatLayerCylSet.h
-  include/${MODULE_NAME}/flatObject.h
 )
 
 Set(LINKDEF src/DetectorsBaseLinkDef.h)

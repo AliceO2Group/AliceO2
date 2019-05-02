@@ -719,6 +719,8 @@ o2_define_bucket(
     root_physics_bucket
     data_format_reconstruction_bucket
     common_utils_bucket
+    GPUCommon_bucket
+    O2GPUCommon
     ReconstructionDataFormats
     DataFormatsParameters
     CommonUtils

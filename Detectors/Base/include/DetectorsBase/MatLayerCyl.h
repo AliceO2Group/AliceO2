@@ -16,13 +16,13 @@
 
 #include <cmath>
 #include <cstring>
-#include "DetectorsBase/flatObject.h"
+#include "FlatObject.h"
+#include "GPUCommonRtypes.h"
 #include "DetectorsBase/MatCell.h"
-#include "AliTPCCommonDef.h"
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 /**********************************************************************
@@ -41,7 +41,7 @@ namespace Base
  * phi slice should be accessed via mPhiBin2Slice map.                *
  *                                                                    *
  **********************************************************************/
-class MatLayerCyl : public flatObject
+class MatLayerCyl : public o2::gpu::FlatObject
 {
 
  public:
@@ -195,7 +195,7 @@ class MatLayerCyl : public flatObject
   ClassDefNV(MatLayerCyl, 1);
 };
 
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif

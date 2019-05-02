@@ -14,8 +14,8 @@
 #ifndef ALICEO2_RAY_H
 #define ALICEO2_RAY_H
 
-#include "AliTPCCommonRtypes.h"
-#include "AliTPCCommonDef.h"
+#include "GPUCommonRtypes.h"
+#include "GPUCommonDef.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "MathUtils/Utils.h"
 #include <array>
@@ -33,7 +33,7 @@
  **********************************************************************/
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 class Ray
@@ -207,7 +207,7 @@ inline void Ray::getMinMaxR2(float& rmin2, float& rmax2) const
   }
 }
 
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif

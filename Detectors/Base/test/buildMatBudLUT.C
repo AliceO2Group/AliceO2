@@ -21,7 +21,7 @@
 
 #ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 
-o2::Base::MatLayerCylSet mbLUT;
+o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(std::string lutName = "MatBud", std::string lutFile = "matbud.root");
 
@@ -49,7 +49,7 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
     gSystem->Exec("$O2_ROOT/bin/o2sim -n 0");
     geomName = "./O2geometry.root";
   }
-  o2::Base::GeometryManager::loadGeometry(geomName);
+  o2::base::GeometryManager::loadGeometry(geomName);
   configLayers();
 
   if (maxLr < 1) {
@@ -78,7 +78,7 @@ bool testMBLUT(std::string lutName, std::string lutFile)
 {
   // test reading and creation of copies
 
-  o2::Base::MatLayerCylSet* mbr = o2::Base::MatLayerCylSet::loadFromFile(lutFile, lutName);
+  o2::base::MatLayerCylSet* mbr = o2::base::MatLayerCylSet::loadFromFile(lutFile, lutName);
   if (!mbr) {
     LOG(ERROR) << "Failed to read LUT " << lutName << " from " << lutFile;
     return false;
@@ -102,7 +102,7 @@ bool testMBLUT(std::string lutName, std::string lutFile)
   }
 
   // object cloning
-  o2::Base::MatLayerCylSet* mbrC = new o2::Base::MatLayerCylSet();
+  o2::base::MatLayerCylSet* mbrC = new o2::base::MatLayerCylSet();
   mbrC->cloneFromObject(*mbr, nullptr);
 
   // check cloned object
@@ -124,7 +124,7 @@ bool testMBLUT(std::string lutName, std::string lutFile)
     auto newObj = new char[sizeof(*mbr)];
     memcpy(newObj, mbrC, sizeof(*mbrC));
     memcpy(newBuff, mbrC->getFlatBufferPtr(), mbrC->getFlatBufferSize());
-    o2::Base::MatLayerCylSet* mbrA = (o2::Base::MatLayerCylSet*)newObj; // !!! this is the object to use
+    o2::base::MatLayerCylSet* mbrA = (o2::base::MatLayerCylSet*)newObj; // !!! this is the object to use
     mbrA->setActualBufferAddress(newBuff);
     //<<< end of the lines needed to copy the object
 
@@ -148,7 +148,7 @@ bool testMBLUT(std::string lutName, std::string lutFile)
     mbrC->setFutureBufferAddress(newBuff);
     memcpy(newObj, mbrC, sizeof(*mbrC));
     memcpy(newBuff, oldBuff, mbrC->getFlatBufferSize());
-    o2::Base::MatLayerCylSet* mbrF = (o2::Base::MatLayerCylSet*)newObj; // !!! this is the object to use
+    o2::base::MatLayerCylSet* mbrF = (o2::base::MatLayerCylSet*)newObj; // !!! this is the object to use
     //<<< end of the lines needed to copy the object
 
     delete mbrC;      // delete cloned object and its buffer which are now in a

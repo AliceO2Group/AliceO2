@@ -90,12 +90,12 @@ class GeometryManager : public TObject
     ClassDefNV(MatBudgetExt, 1);
   };
 
-  static MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
-  static MatBudget meanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
+  static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+  static o2::base::MatBudget meanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
-  static MatBudget meanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  static o2::base::MatBudget meanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
@@ -115,7 +115,7 @@ class GeometryManager : public TObject
   GeometryManager();
 
   static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
-  static void accountMaterial(const TGeoMaterial* material, MatBudget& bd)
+  static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
   {
     bd.meanRho = material->GetDensity();
     bd.meanX2X0 = material->GetRadLen();

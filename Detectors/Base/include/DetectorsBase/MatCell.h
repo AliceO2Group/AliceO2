@@ -14,12 +14,12 @@
 #ifndef ALICEO2_MATCELL_H
 #define ALICEO2_MATCELL_H
 
-#include "AliTPCCommonRtypes.h"
-#include "AliTPCCommonDef.h"
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 struct MatCell {
@@ -59,7 +59,7 @@ struct MatBudget : MatCell {
   ClassDefNV(MatBudget, 1);
 };
 
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif
