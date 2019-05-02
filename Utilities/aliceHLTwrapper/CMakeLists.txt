@@ -21,9 +21,9 @@ set(BUCKET_NAME O2DeviceApplication_bucket)
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-    AliceHLTWrapperDevice
-    AliceHLTEventSamplerDevice
-    runComponent
+    o2-alicehlt-wrapper-device
+    o2-alicehlt-eventsampler-device
+    o2-alicehlt-runcomponent
     )
 
 set(Exe_Source
@@ -56,5 +56,5 @@ O2_GENERATE_TESTS(
   TEST_SRCS ${TEST_SRCS}
 )
 
-O2_GENERATE_MAN(NAME AliceHLTWrapperDevice)
+O2_GENERATE_MAN(NAME o2-alicehlt-wrapper-device)
 O2_GENERATE_MAN(NAME AliceHLTComponents)

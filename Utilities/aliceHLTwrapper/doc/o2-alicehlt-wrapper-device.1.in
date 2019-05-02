@@ -1,10 +1,10 @@
-.\" Manpage for AliceHLTWrapperDevice.
-.TH AliceO2 1 "19 May 2017" "1.0" "AliceHLTWrapperDevice man page"
+.\" Manpage for o2-alicehlt-wrapper-device.
+.TH AliceO2 1 "19 May 2017" "1.0" "o2-alicehlt-wrapper-device man page"
 .SH NAME
-AliceHLTWrapperDevice - FairRoot/ALFA device running ALICE HLT code
+o2-alicehlt-wrapper-device - FairRoot/ALFA device running ALICE HLT code
 
 .SH SYNOPSIS
-.B AliceHLTWrapperDevice
+.B o2-alicehlt-wrapper-device
 .B --id
 .I deviceid
 .B --channel-config
@@ -108,7 +108,7 @@ information is available at the input, all output blocks will be wrapped into
 Haertbeat frames.
 
 .SH EXAMPLES
-.B AliceHLTWrapperDevice
+.B o2-alicehlt-wrapper-device
 --id publisher \\
 .br
 --channel-config \\
