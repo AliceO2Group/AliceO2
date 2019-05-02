@@ -249,7 +249,7 @@ set(EXCLUDE_MACROS_FROM_TEST
   # Disabled from @mconcas: will be removed soon in any case
   ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
 
-  # This macro is used by the o2sim tests, no need to re-check. Parallel tests
+  # This macro is used by the o2-sim tests, no need to re-check. Parallel tests
   # of the same macro are also breaking it
   ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C
 )

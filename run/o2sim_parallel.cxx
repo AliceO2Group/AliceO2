@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
   if (conf.getNEvents() <= 0) {
     LOG(INFO) << "No events to be simulated; Switching to non-distributed mode";
     const int Nargs = argc + 1;
-    std::string name("o2sim_serial");
+    std::string name("o2-sim-serial");
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     for (int i = 1; i < argc; ++i) {
@@ -242,9 +242,9 @@ int main(int argc, char* argv[])
     dup2(fd, 2); // make stderr go to file - you may choose to not do this
                  // or perhaps send stderr to another file
     close(pipe_serverdriver_fd[0]);
-    close(fd);   // fd no longer needed - the dup'ed handles are sufficient
+    close(fd); // fd no longer needed - the dup'ed handles are sufficient
 
-    const std::string name("O2PrimaryServerDeviceRunner");
+    const std::string name("o2-sim-primary-server-device-runner");
     const std::string path = installpath + "/" + name;
     const std::string config = localconfig;
 
@@ -299,7 +299,7 @@ int main(int argc, char* argv[])
                    // or perhaps send stderr to another file
       close(fd);   // fd no longer needed - the dup'ed handles are sufficient
 
-      const std::string name("O2SimDeviceRunner");
+      const std::string name("o2-sim-device-runner");
       const std::string path = installpath + "/" + name;
       execl(path.c_str(), name.c_str(), "--control", "static", "--id", workerss.str().c_str(), "--config-key",
             "worker", "--mq-config", localconfig.c_str(), "--severity", "info", (char*)nullptr);
@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
     close(pipe_mergerdriver_fd[0]);
     setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
 
-    const std::string name("O2HitMergerRunner");
+    const std::string name("o2-sim-hit-merger-runner");
     const std::string path = installpath + "/" + name;
     execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
           (char*)nullptr);

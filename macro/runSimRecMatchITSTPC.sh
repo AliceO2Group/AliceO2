@@ -2,7 +2,7 @@ nEvents=10
 #To activate the continuos readout, assign a positive value to the rate 
 rate=50.e3
 
-o2sim -n $nEvents -m PIPE ITS TPC FRAME >& sim.log
+o2-sim -n $nEvents -m PIPE ITS TPC FRAME >& sim.log
 
 macroPath="$O2_ROOT/share/macro"
 preload="$macroPath"/loadExtDepLib.C

@@ -51,7 +51,7 @@ O2_GENERATE_EXECUTABLE(
 
 # check correct functioning of the logger and the MC analysis chain
 if (HAVESIMULATION)
-  add_test_wrap(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
+  add_test_wrap(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim-tpc -n 1 -e TGeant3)
   # tests if the logger was active
   set_tests_properties(mcloggertest PROPERTIES PASS_REGULAR_EXPRESSION "VolName.*COUNT")
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
