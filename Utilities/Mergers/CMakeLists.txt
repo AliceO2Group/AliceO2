@@ -42,14 +42,14 @@ set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "mergersTopologyExample"
+  EXE_NAME "o2-mergers-topology-example"
   SOURCES "src/mergersTopologyExample.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "mergersBenchmarkTopology"
+  EXE_NAME "o2-mergers-benchmark-topology"
   SOURCES "src/mergersBenchmarkTopology.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
