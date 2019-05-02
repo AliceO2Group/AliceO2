@@ -41,14 +41,14 @@ set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 Set(Exe_Names
-    FakeTimeframeGeneratorDevice
-    heartbeatSampler
-    SubframeBuilderDevice
-    TimeframeReaderDevice
-    TimeframeValidatorDevice
-    TimeframeWriterDevice
-    EPNReceiverDevice
-    FLPSenderDevice
+    o2-fake-timeframegenerator-device
+    o2-heartbeat-sampler
+    o2-subframebuilder-device
+    o2-timeframe-reader-device
+    o2-timeframe-validator-device
+    o2-timeframe-writer-device
+    o2-epn-receiver-device
+    o2-flp-sender-device
    )
 
 set(Exe_Source
@@ -78,7 +78,7 @@ EndForEach (_file RANGE 0 ${_length})
 
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME TimeframeValidationTool
+  EXE_NAME o2-timeframe-validation-tool
   SOURCES src/TimeframeValidationTool
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
@@ -95,6 +95,6 @@ O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}
   TEST_SRCS ${TEST_SRCS})
 
-O2_GENERATE_MAN(NAME TimeframeReaderDevice)
-O2_GENERATE_MAN(NAME TimeframeWriterDevice)
-O2_GENERATE_MAN(NAME SubframeBuilderDevice)
+O2_GENERATE_MAN(NAME o2-timeframe-reader-device)
+O2_GENERATE_MAN(NAME o2-timeframe-writer-device)
+O2_GENERATE_MAN(NAME o2-subframebuilder-device)

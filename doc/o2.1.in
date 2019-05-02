@@ -7,7 +7,7 @@ O2 is Alice next generation software framework to be used for RUN3.
 
 .SH DEVICES
 
-o2-alicehlt-wrapper-device(1), SubframeBuilderDevice(1)
+o2-alicehlt-wrapper-device(1), o2-subframebuilder-device(1)
 
 .\.SH TOOLS
 
