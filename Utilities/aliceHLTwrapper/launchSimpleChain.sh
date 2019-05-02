@@ -41,7 +41,7 @@ start_device () {
 }
 
 
-WrapperDeviceApplication=AliceHLTWrapperDevice
+WrapperDeviceApplication=o2-alicehlt-wrapper-device
 
 # check whether the required executables are available
 which screen > /dev/null 2>&1 || exit_with_message "This script requires the 'screen' command to be installed"
