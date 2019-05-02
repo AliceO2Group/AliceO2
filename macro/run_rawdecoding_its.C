@@ -110,10 +110,12 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
 
   const auto& MAP = rawReader.getMapping();
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
-    const auto ruStat = rawReader.getRUDecodingStatSW(ir);
-    if (ruStat && ruStat->nPackets) {
-      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
-      ruStat->print();
+    for (int il = 0; il < o2::itsmft::MaxLinksPerRU; il++) {
+      const auto ruStat = rawReader.getRUDecodingStatSW(ir, il);
+      if (ruStat && ruStat->nPackets) {
+        printf("\nStatistics for RU%3d (HWID:0x%4x) GBTLink%d\n", ir, MAP.RUSW2FEEId(ir, il), il);
+        ruStat->print();
+      }
     }
   }
   rawReader.getDecodingStat().print();
