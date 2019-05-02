@@ -20,7 +20,7 @@ O2_GENERATE_LIBRARY()
 
 # Define application
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME runO2MessageMonitor
+  EXE_NAME o2-message-monitor
   SOURCES src/runO2MessageMonitor.cxx
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
