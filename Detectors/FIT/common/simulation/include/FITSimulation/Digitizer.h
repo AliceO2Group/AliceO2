@@ -30,7 +30,7 @@ class Digitizer
   ~Digitizer() = default;
 
   //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit);
+  void process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times);
   void computeAverage(o2::t0::Digit& digit);
 
   void initParameters();
@@ -50,7 +50,7 @@ class Digitizer
   uint16_t getBC() const { return mIntRecord.bc; }
 
   void setTriggers(o2::t0::Digit* digit);
-  void smearCFDtime(o2::t0::Digit* digit);
+  void smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
 
   void init();
   void finish();
@@ -69,6 +69,12 @@ class Digitizer
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCLabels = nullptr;
+
+  static constexpr Float_t C_side_cable_cmps = 2.877; //ns
+  static constexpr Float_t A_side_cable_cmps = 11.08; //ns
+  //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
+
+  //static std::vector<double> aggregate_channels(const std::vector<o2::fit::HitType>& hits, DigitizationParameters const& parameters);
 
   ClassDefNV(Digitizer, 1);
 };

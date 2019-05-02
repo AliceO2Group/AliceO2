@@ -101,8 +101,10 @@ class FITDPLDigitizerTask
       mDigitizer.setEventTime(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
       digit.cleardigits();
+      std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
+      std::cout << " @@@@ mOrigin " << mOrigin << " mID " << mID.getName() << std::endl;
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
@@ -112,15 +114,15 @@ class FITDPLDigitizerTask
         // call actual digitization procedure
         labels.clear();
         // digits.clear();
-        mDigitizer.process(&hits, &digit);
+        mDigitizer.process(&hits, &digit, channel_times);
         const auto& data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
         labelAccum.mergeAtBack(labels);
       }
       mDigitizer.computeAverage(digit);
+      mDigitizer.smearCFDtime(&digit, channel_times);
       mDigitizer.setTriggers(&digit);
-      mDigitizer.smearCFDtime(&digit);
       digitAccum.push_back(digit); // we should move it there actually
       LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
       digit.printStream(std::cout);
@@ -161,6 +163,7 @@ class FITDPLDigitizerTask
   {
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
+    //  auto br = chains[sourceID]->GetBranch(brname);
     if (!br) {
       LOG(ERROR) << "No branch found";
       return;
@@ -207,6 +210,7 @@ o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
              { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
 
+    // I can't use VariantType::Bool as it seems to have a problem
   };
 }
 
