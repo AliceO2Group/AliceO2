@@ -14,32 +14,20 @@
 #ifndef GPUDEDXINFO_H
 #define GPUDEDXINFO_H
 
-#include "GPUDef.h"
+#ifdef HAVE_O2HEADERS
+#include "DataFormatsTPC/dEdxInfo.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+#ifdef HAVE_O2HEADERS
+using GPUdEdxInfo = o2::TPC::dEdxInfo;
+#else
 struct GPUdEdxInfo {
-  float dEdxTotIROC;
-  float dEdxTotOROC1;
-  float dEdxTotOROC2;
-  float dEdxTotOROC3;
-  float dEdxTotTPC;
-  float dEdxMaxIROC;
-  float dEdxMaxOROC1;
-  float dEdxMaxOROC2;
-  float dEdxMaxOROC3;
-  float dEdxMaxTPC;
-  unsigned char NHitsIROC;
-  unsigned char NHitsSubThresholdIROC;
-  unsigned char NHitsOROC1;
-  unsigned char NHitsSubThresholdOROC1;
-  unsigned char NHitsOROC2;
-  unsigned char NHitsSubThresholdOROC2;
-  unsigned char NHitsOROC3;
-  unsigned char NHitsSubThresholdOROC3;
 };
+#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

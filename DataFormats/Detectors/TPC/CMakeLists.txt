@@ -26,6 +26,7 @@ set(HEADERS
    include/${MODULE_NAME}/Cluster.h
    include/${MODULE_NAME}/Constants.h
    include/${MODULE_NAME}/Defs.h
+   include/${MODULE_NAME}/dEdxInfo.h
 )
 
 set(LINKDEF src/DataFormatsTPCLinkDef.h)
