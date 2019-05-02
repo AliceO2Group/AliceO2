@@ -4,13 +4,13 @@ This is a short documention for the DPL-DigitizerWorkflow example
 
 # Status/Description of implementation
 
-At present, the `digitizer-workflow` executable is a demonstrator of
+At present, the `o2-sim-digitizer-workflow` executable is a demonstrator of
 how we intend to do initiate and handle the processing of hits, coming from detector simulation.
 
-The digitizer-workflow currently demonstrates the transformation of hits into TPC digits using
+The `o2-sim-digitizer-workflow` currently demonstrates the transformation of hits into TPC digits using
 realistic bunch crossing and collision sampling. We are also able to overlay hits from background and signal hit inputs.
 
-The main components of the digitizer-workflow are
+The main components of the `o2-sim-digitizer-workflow` are
 
 * The SimReader device:
   - reading/analysing the given hit files
@@ -21,11 +21,11 @@ The main components of the digitizer-workflow are
   - producing digits in continuous time for a given sector
   - at present writes (or forwards) these digits in units of TPC drift times
 
-The digitizer-workflow executable is already somewhat configurable, both in terms of
+The `o2-sim-digitizer-workflow` executable is already somewhat configurable, both in terms of
 workflow/topology options as well as individual device options. Some help is available
 via
 ```
-digitizer-workflow --help
+o2-sim-digitizer-workflow --help
 ```
 Other features are demonstrated in he following section.
 
@@ -34,34 +34,34 @@ Other features are demonstrated in he following section.
 Let's assume we have a background hit file `o2sim_bg.root` generated
 by the O2 simulation with
 ```
-o2sim -n 20 -g SOMEBACKGROUNDEVENTGENERATOR -m [detectors] -o o2sim_bg.root
+o2-sim -n 20 -g SOMEBACKGROUNDEVENTGENERATOR -m [detectors] -o o2sim_bg.root
 ```
 
 Similar for a signal file `o2sim_sg.root`
 ```
-o2sim -n 50 -g SOMESIGNALEVENTGENERATOR -m [detectors] -o o2sim_sg.root
+o2-sim -n 50 -g SOMESIGNALEVENTGENERATOR -m [detectors] -o o2sim_sg.root
 ```
 
 1. **How can I digitize all sectors for the given background event?**
    ```
-   digitizer-workflow -b --simFile o2sim_bg.root
+   o2-sim-digitizer-workflow -b --simFile o2sim_bg.root
    ```
    This will run as many TPC digitizer processors as there are logical CPU cores on your machine in parallel.
    (Note that depending on your available memory, this might cause problems as the digitization needs lots of memory; It might be safer to start with a small number of workers as indicated under point 3.).
 
 2. **How can I only digitize sectors TPC sectors 1 + 2 for the given background event?**
    ```
-   digitizer-workflow -b --tpc-sectors=1,2 --simFile o2sim_bg.root
+   o2-sim-digitizer-workflow -b --tpc-sectors=1,2 --simFile o2sim_bg.root
    ```
 
 3. **How can I digitize sectors 1-8 using only 2 TPC digitizer devices?**
    ```
-   digitizer-workflow -b --tpc-lanes=2 --tpc-sectors=1,2,3,4,5,6,7,8 --simFile o2sim_bg.root
+   o2-sim-digitizer-workflow -b --tpc-lanes=2 --tpc-sectors=1,2,3,4,5,6,7,8 --simFile o2sim_bg.root
    ```
 
 4. **How can I digitize a total of 100 sampled collisions merging background and signal hits for TPC sector 1?**
    ```
-   digitizer-workflow -b --tpc-sectors=1 --simFile o2sim_bg.root --simFileS o2sim_sg.root -n 100
+   o2-sim-digitizer-workflow -b --tpc-sectors=1 --simFile o2sim_bg.root --simFileS o2sim_sg.root -n 100
    ```
 
 # Missing things/Improvements to come

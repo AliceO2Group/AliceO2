@@ -10,7 +10,7 @@ mcGener=boxgen
 o2sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
 
 # Digitizing in triggered readout mode...
-digitizer-workflow --configKeyValues "ITSDigitizerParam.continuous=0" >& digi.log 
+o2-sim-digitizer-workflow --configKeyValues "ITSDigitizerParam.continuous=0" >& digi.log 
 
 root.exe -b -q CheckDigits.C+ >& CheckDigits.log
 
