@@ -9,7 +9,7 @@ Also an executable is provided which can produce SVG representation
  of those segmentations.
  
 ```c++
-> mch-mapping-svg-segmentation3 --help
+> o2-mch-mapping-svg-segmentation3 --help
 Generic options:
   --help                produce help message
   --hidepads            hide pad outlines
@@ -25,7 +25,7 @@ Generic options:
 Example usage :
 
 ```c++
-> mch-mapping-svg-segmentation3 --hidepadchannels --hidepads --de 100 --prefix chamber1
+> o2-mch-mapping-svg-segmentation3 --hidepadchannels --hidepads --de 100 --prefix chamber1
 ```
 
 Will produce an HTML file showing the FEE boundaries of [one quadrant of Station 1](chamber1-100-B.html)
