@@ -48,7 +48,7 @@ constexpr int MaxLinksPerRU = 3;            // max numbet of GBT links per RU
 constexpr int MaxCablesPerRU = 28;          // max numbet of cables RU can readout
 constexpr int MaxChipsPerRU = 196;          // max number of chips the RU can readout
 constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
-constexpr int NCRUPagesPerSuperpage = 256;  // Max number of CRU pages per superpage
+constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
 
 struct RUDecodingStat {
 
@@ -607,24 +607,26 @@ class RawPixelReader : public PixelReader
           break;                    // no data to continue
         }
         ptr = buffer.getPtr();
-	rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+        rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
       }
-      if (mVerbose) {                                                                                                                                                                             
+      if (mVerbose) {
         printRDH(*rdh);
       }
       int ruIDSW = getMapping().FEEId2RUSW(rdh->feeId);
       auto& ruDecode = getCreateRUDecode(ruIDSW);
 
       bool newTrigger = true; // check if we see new trigger
-      auto link = ruDecode.links[rdh->linkID].get();
+      uint16_t lr, ruOnLr, linkIDinRU;
+      getMapping().expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+      auto link = ruDecode.links[linkIDinRU].get();
       if (link) {                                                                                                    // was there any data seen on this link before?
         const auto rdhPrev = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize); // last stored RDH
         if (isSameRUandTrigger(rdhPrev, rdh)) {
           newTrigger = false;
         }
       } else { // a new link was added
-        ruDecode.links[rdh->linkID] = std::make_unique<RULink>();
-        link = ruDecode.links[rdh->linkID].get();
+        ruDecode.links[linkIDinRU] = std::make_unique<RULink>();
+        link = ruDecode.links[linkIDinRU].get();
         mNLinks++;
       }
       // copy data to the buffer of the link and memorize its RDH pointer
@@ -635,9 +637,9 @@ class RawPixelReader : public PixelReader
 
       if (newTrigger) {
         link->nTriggers++; // acknowledge 1st trigger
-        if (link->nTriggers >= mMinTriggersToCache && !enoughTriggers[ruIDSW][rdh->linkID]) {
+        if (link->nTriggers >= mMinTriggersToCache && !enoughTriggers[ruIDSW][linkIDinRU]) {
           nLEnoughTriggers++;
-          enoughTriggers[ruIDSW][rdh->linkID] = true;
+          enoughTriggers[ruIDSW][linkIDinRU] = true;
         }
       }
 
@@ -771,7 +773,7 @@ class RawPixelReader : public PixelReader
   //_____________________________________
   bool isRDHHeuristic(const o2::header::RAWDataHeader* rdh)
   {
-    /// heuristic check if this is indeed an RDH    
+    /// heuristic check if this is indeed an RDH
     return (!rdh || rdh->headerSize != sizeof(o2::header::RAWDataHeader) || rdh->zero0 != 0 ||
             rdh->zero41 != 0 || rdh->zero42 != 0 || rdh->word5 != 0 || rdh->zero6 != 0)
              ? false
