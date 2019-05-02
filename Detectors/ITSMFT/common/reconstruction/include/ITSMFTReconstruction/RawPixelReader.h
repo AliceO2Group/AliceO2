@@ -48,7 +48,7 @@ constexpr int MaxLinksPerRU = 3;            // max numbet of GBT links per RU
 constexpr int MaxCablesPerRU = 28;          // max numbet of cables RU can readout
 constexpr int MaxChipsPerRU = 196;          // max number of chips the RU can readout
 constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
-constexpr int NCRUPagesPerSuperpage = 256;  // Number of CRU pages per superpage
+constexpr int NCRUPagesPerSuperpage = 256;  // Max number of CRU pages per superpage
 
 struct RUDecodingStat {
 
@@ -590,7 +590,7 @@ class RawPixelReader : public PixelReader
   {
     // distribute data from the single buffer among the links caches
 
-    LOG(INFO) << "Cacheding links data, currently in cache: " << mMinTriggersCached << " triggers";
+    LOG(INFO) << "Caching links data, currently in cache: " << mMinTriggersCached << " triggers";
     auto nRead = loadInput(buffer);
     if (buffer.isEmpty()) {
       return nRead;
@@ -607,8 +607,11 @@ class RawPixelReader : public PixelReader
           break;                    // no data to continue
         }
         ptr = buffer.getPtr();
+	rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
       }
-
+      if (mVerbose) {                                                                                                                                                                             
+        printRDH(*rdh);
+      }
       int ruIDSW = getMapping().FEEId2RUSW(rdh->feeId);
       auto& ruDecode = getCreateRUDecode(ruIDSW);
 
@@ -768,8 +771,8 @@ class RawPixelReader : public PixelReader
   //_____________________________________
   bool isRDHHeuristic(const o2::header::RAWDataHeader* rdh)
   {
-    /// heuristic check if this is indeed an RDH
-    return (!rdh || rdh->headerSize != sizeof(o2::header::RAWDataHeader) || rdh->zero0 != 0 || rdh->zero1 != 0 ||
+    /// heuristic check if this is indeed an RDH    
+    return (!rdh || rdh->headerSize != sizeof(o2::header::RAWDataHeader) || rdh->zero0 != 0 ||
             rdh->zero41 != 0 || rdh->zero42 != 0 || rdh->word5 != 0 || rdh->zero6 != 0)
              ? false
              : true;
