@@ -496,7 +496,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
 
 Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file.
 
-[dataSamplingPodAndRoot](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
+[o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
 
 ## Data Sampling Conditions
 
