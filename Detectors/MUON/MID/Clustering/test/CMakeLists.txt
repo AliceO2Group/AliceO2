@@ -8,7 +8,7 @@ O2_GENERATE_TESTS(
 
 if (benchmark_FOUND)
     O2_GENERATE_EXECUTABLE(
-            EXE_NAME benchClusterizer
+            EXE_NAME o2-mid-bench-clusterizer
             SOURCES bench_Clusterizer.cxx
             BUCKET_NAME ${BUCKET_NAME})
 endif ()
