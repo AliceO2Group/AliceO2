@@ -118,9 +118,9 @@ set(BUCKET_NAME CCDB_bucket)
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-  conditions-server
-  conditions-client
-  standalone-client
+  o2-ccdb-conditions-server
+  o2-ccdb-conditions-client
+  o2-ccdb-standalone-client
 )
 
 Set(Exe_Source

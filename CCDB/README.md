@@ -38,13 +38,13 @@ This will create "DET/Calib/Histo" calibration objects for a hundred runs in the
 * In one shell run the server example:
 
 ```bash
-conditions-server --id parmq-server --mq-config <installation directory>/bin/config/conditions-server.json --first-input-name local://<installation directory>/bin/config/O2CDB --first-input-type OCDB
+o2-ccdb-conditions-server --id parmq-server --mq-config <installation directory>/bin/config/conditions-server.json --first-input-name local://<installation directory>/bin/config/O2CDB --first-input-type OCDB
 ```
 
 * In a separate shell run the client example:
 
 ```bash
-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB --object-path <installation directory>/bin/config/O2CDB
+o2-ccdb-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB --object-path <installation directory>/bin/config/O2CDB
 ```
 
 * We can also query the running conditions-server using any user code as
@@ -64,7 +64,7 @@ conditions-server --id parmq-server --mq-config <installation directory>/bin/con
 * In a separate shell run the client example:
 
 ```bash
-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source Riak
+o2-ccdb-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source Riak
 ```
 
 List of optional client arguments:
