@@ -171,7 +171,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           continue;
         }
       } else if (allowModification && lastRow != 255 && CAMath::Abs(clusters[ihit].row - lastRow) > 1) {
-        if (dEdxOut && iWay == nWays - 1 && clusters[ihit].row == lastRow - 2 && clusters[ihit].leg == clusters[maxN].leg) {
+        if (dEdxOut && iWay == nWays - 1 && clusters[ihit].row == lastRow - 2 && clusters[ihit].leg == clusters[maxN - 1].leg) {
           dEdx.fillSubThreshold(lastRow - 1, param);
         }
         AttachClustersPropagate(merger, clusters[ihit].slice, lastRow, clusters[ihit].row, iTrk, clusters[ihit].leg == clusters[maxN - 1].leg, prop, inFlyDirection);
@@ -270,7 +270,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         }
-        if (dEdxOut && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN].leg) {
+        if (dEdxOut && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
           dEdx.fillCluster(clusters[ihit].amp, clusters[ihit].amp, clusters[ihit].row, mP[2], mP[3], param);
         }
       } else if (retVal == 2) { // cluster far away form the track
