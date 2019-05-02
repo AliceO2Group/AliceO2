@@ -293,7 +293,7 @@ int SetupReconstruction()
     rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TPCMerging, false);
   }
   if (configStandalone.configRec.rundEdx != -1) {
-    recSet.DodEdx = configStandalone.configRec.runTRD > 0;
+    recSet.DodEdx = configStandalone.configRec.rundEdx > 0;
   }
 
   if (configStandalone.configProc.nStreams >= 0) {

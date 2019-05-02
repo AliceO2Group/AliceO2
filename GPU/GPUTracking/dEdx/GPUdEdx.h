@@ -67,7 +67,7 @@ class GPUdEdx
 GPUdi() void GPUdEdx::checkSubThresh(int roc)
 {
   if (roc != mLastROC) {
-    if (mNSubThresh) {
+    if (mNSubThresh && mCount + mNSubThresh <= MAX_NCL) {
       for (int i = 0; i < mNSubThresh; i++) {
         mChargeTot[mCount] = mSubThreshMinTot;
         mChargeMax[mCount++] = mSubThreshMinMax;
@@ -85,6 +85,9 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
 
 GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param)
 {
+  if (mCount >= MAX_NCL) {
+    return;
+  }
   const int roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
   float factor = CAMath::Sqrt((1 - trackSnp * trackSnp) / (1 + trackTgl * trackTgl));
