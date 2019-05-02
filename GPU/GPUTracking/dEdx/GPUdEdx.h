@@ -18,13 +18,12 @@
 #include "GPUTPCGeometry.h"
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
+#include "GPUdEdxInfo.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-struct GPUdEdxInfo;
-
 #ifdef GPUCA_ALIROOT_LIB
 
 class GPUdEdx

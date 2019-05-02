@@ -16,6 +16,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/Cluster.h"
+#include "DataFormatsTPC/dEdxInfo.h"
 
 namespace o2
 {
@@ -110,6 +111,8 @@ class TrackTPC : public o2::track::TrackParCov
     uint8_t sectorIndex, rowIndex;
     return (getCluster(nCluster, clusters, sectorIndex, rowIndex));
   }
+  const dEdxInfo& getdEdx() const { return mdEdx; }
+  void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
   std::vector<Cluster> mClusterVector;
@@ -122,6 +125,7 @@ class TrackTPC : public o2::track::TrackParCov
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.
+  dEdxInfo mdEdx;                     // dEdx Information
 
   // New structure to store cluster references
   std::vector<uint32_t> mClusterReferences;

@@ -174,6 +174,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
 
       oTrack.setChi2(tracks[i].GetParam().GetChi2());
       auto& outerPar = tracks[i].OuterParam();
+      oTrack.setdEdx(tracks[i].dEdxInfo());
       oTrack.setOuterParam(o2::track::TrackParCov(
         outerPar.X, outerPar.alpha,
         { outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4] },
