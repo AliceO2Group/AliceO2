@@ -31,7 +31,7 @@ set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 Set(Exe_Names
-    DataPublisherDevice
+    o2-datapublisher-device
     )
 
 set(Exe_Source

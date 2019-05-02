@@ -12,13 +12,13 @@ NumDP = NumFLP  # in principle we could have different number of data publishers
 NumEPN = 4
 EPNStartSocket = 6000
 HeartbeatSocket = 5000
-HeartbeatBaseName = "heartbeatSampler"
+HeartbeatBaseName = "o2-heartbeat-sampler"
 EPNBaseName = "epnReceiver"
 SFBStartSocket = 5500
 FLPStartSocket = 4000
 ValidatorStartSocket = 7000
 FLPBaseName = "flpSender"
-DPBaseName = "DataPublisherDevice"
+DPBaseName = "o2-datapublisher-device"
 SFBBaseName = "subframeBuilder"
 tcpbase = "tcp://127.0.0.1:"
 detectors = ["TPC","ITS"]
@@ -160,14 +160,14 @@ def writeRunScript():
     # treat data publishers
     for i in range(0, NumDP):
         # we might need to give information about detector to DP as well
-        command = "DataPublisherDevice --id DataPublisherDevice" + str(i)
+        command = "o2-datapublisher-device --id DataPublisherDevice" + str(i)
         command += " --data-description " + datadescription[i%2]
         command += " --mq-config " + configfilename + " --in-chan-name input --out-chan-name output &"
         dumpstring.append(xtermcommand + command)
 
     # treat sfbdevices
     for i in range(0, NumFLP):
-        command = "SubframeBuilderDevice --id subframeBuilder" + str(i)
+        command = "o2-subframebuilder-device --id subframeBuilder" + str(i)
         command += " --mq-config " + configfilename + " --detector " + detectors[i%2] + " &"
         dumpstring.append(xtermcommand + command)
     # treat flpSender
@@ -184,11 +184,11 @@ def writeRunScript():
         epnCommand += " --num-flps " + str(NumFLP) + "&"
         dumpstring.append(xtermcommand + epnCommand)
     # treat timeFrameValidator
-    command = "TimeframeValidatorDevice --id timeframeValidator --mq-config " + configfilename + " customconfig.json --input-channel-name input &"
+    command = "o2-timeframe-validator-device --id timeframeValidator --mq-config " + configfilename + " customconfig.json --input-channel-name input &"
     dumpstring.append(xtermcommand + command)
 
     # treat heartbeatsampler
-    command = "heartbeatSampler --id heartbeatSampler --mq-config " + configfilename + "  --out-chan-name output &"
+    command = "o2-heartbeat-sampler --id heartbeatSampler --mq-config " + configfilename + "  --out-chan-name output &"
     dumpstring.append(xtermcommand + command)
 
     print "creating runscript " + runscriptfilename

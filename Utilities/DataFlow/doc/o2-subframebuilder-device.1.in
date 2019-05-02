@@ -1,17 +1,17 @@
-.\" Manpage for SubframeBuilderDevice.
-.TH AliceO2 1 "12 May 2017" "1.0" "SubframeBuilderDevice man page"
+.\" Manpage for o2-subframebuilder-device.
+.TH AliceO2 1 "12 May 2017" "1.0" "o2-subframebuilder-device man page"
 
 .SH NAME
 
-SubframeBuilderDevice - aggregate HBF in input as a single STF 
+o2-subframebuilder-device - aggregate HBF in input as a single STF 
 
 .SH SYNOPSIS
 
-SubframeBuilderDevice [options]
+o2-subframebuilder-device [options]
 
 .SH DESCRIPTION
 
-SubframeBuilderDevice will take in input a number of HeartBeat Frames
+o2-subframebuilder-device will take in input a number of HeartBeat Frames
 (HBF) and merge them in a single STF, with a policy defined by the
 passed options.
 
@@ -41,7 +41,7 @@ passed options.
 
 .SH SEE ALSO
 
-FLPSenderDEvice(1), EPNReceiverDevice(1), HeartbeatSampler(1), TimeframeValidator(1)
+FLPSenderDEvice(1), o2-epn-receiver-device(1), o2-heartbeat-sampler(1), TimeframeValidator(1)
 
 .SH BUGS
 
