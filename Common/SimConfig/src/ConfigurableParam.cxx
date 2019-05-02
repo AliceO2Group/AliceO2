@@ -21,6 +21,7 @@
 #include <FairLogger.h>
 #include <typeinfo>
 #include <cassert>
+#include "TDataMember.h"
 #include "TDataType.h"
 #include "TFile.h"
 
@@ -28,11 +29,11 @@ namespace o2
 {
 namespace conf
 {
-
 std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nullptr;
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<std::type_info const&, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
+EnumRegistry* ConfigurableParam::sEnumRegistry = nullptr;
 
 bool ConfigurableParam::sIsFullyInitialized = false;
 bool ConfigurableParam::sRegisterMode = true;
@@ -46,6 +47,81 @@ std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
 }
 
 // ------------------------------------------------------------------
+
+void EnumRegistry::add(const std::string& key, const TDataMember* dm)
+{
+  if (!dm->IsEnum() || this->contains(key)) {
+    return;
+  }
+
+  EnumLegalValues legalVals;
+
+  auto opts = dm->GetOptions();
+  for (int i = 0; i < opts->GetSize(); ++i) {
+    auto opt = (TOptionListItem*)opts->At(i);
+    std::pair<std::string, int> val(opt->fOptName, (int)opt->fValue);
+    legalVals.vvalues.push_back(val);
+  }
+
+  auto entry = std::pair<std::string, EnumLegalValues>(key, legalVals);
+  this->entries.insert(entry);
+}
+
+std::string EnumRegistry::toString() const
+{
+  std::string out = "";
+  for (auto& entry : entries) {
+    out.append(entry.first + " => ");
+    out.append(entry.second.toString());
+    out.append("\n");
+  }
+
+  LOG(INFO) << out;
+  return out;
+}
+
+std::string EnumLegalValues::toString() const
+{
+  std::string out = "";
+
+  for (auto& value : vvalues) {
+    out.append("[");
+    out.append(value.first);
+    out.append(" | ");
+    out.append(std::to_string(value.second));
+    out.append("] ");
+  }
+
+  return out;
+}
+
+// getIntValue takes a string value which is supposed to be
+// a legal enum value and tries to cast it to an int.
+// If it succeeds, and if the int value is legal, it is returned.
+// If it fails, and if it is a legal string enum value, we look up
+// and return the equivalent int value. In any case, if it is not
+// a legal value we return -1 to indicate this fact.
+int EnumLegalValues::getIntValue(const std::string& value) const
+{
+  try {
+    int val = boost::lexical_cast<int>(value);
+    if (isLegal(val)) {
+      return val;
+    }
+  } catch (const boost::bad_lexical_cast& e) {
+    if (isLegal(value)) {
+      for (auto& pair : vvalues) {
+        if (pair.first == value) {
+          return pair.second;
+        }
+      }
+    }
+  }
+
+  return -1;
+}
+
+// -----------------------------------------------------------------
 
 void ConfigurableParam::writeINI(std::string const& filename)
 {
@@ -131,6 +207,11 @@ ConfigurableParam::ConfigurableParam()
   if (sValueProvenanceMap == nullptr) {
     sValueProvenanceMap = new std::map<std::string, ConfigurableParam::EParamProvenance>;
   }
+
+  if (sEnumRegistry == nullptr) {
+    sEnumRegistry = new EnumRegistry();
+  }
+
   if (sRegisterMode == true) {
     sRegisteredParamClasses->push_back(this);
   }
@@ -245,6 +326,10 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
     return index;
   };
 
+  auto isEnum = [](std::string key) {
+    return sEnumRegistry->contains(key);
+  };
+
   // ---- end of helper functions --------------------
 
   // Command-line string is a ;-separated list of key=value params
@@ -261,6 +346,19 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
   for (auto& keyValue : keyValues) {
     std::string key = keyValue.first;
     std::string value = trimSpace(keyValue.second);
+
+    if (isEnum(key)) {
+      int val = (*sEnumRegistry)[key]->getIntValue(value);
+      if (val == -1) {
+        LOG(FATAL) << "Illegal value "
+                   << value << " for enum " << key
+                   << ". Legal string|int values:\n"
+                   << (*sEnumRegistry)[key]->toString() << std::endl;
+      }
+
+      setValue(key, std::to_string(val));
+      continue;
+    }
 
     if (isArray(value)) {
       // We need to check how big the array is, by increasing key[0], key[1],...
@@ -496,7 +594,7 @@ bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const&
   // check if key_exists
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
-    LOG(WARN) << "Cannot update parameter" << key << " (parameter not found) ";
+    LOG(WARN) << "Cannot update parameter " << key << " (parameter not found) ";
     return false;
   }
 
