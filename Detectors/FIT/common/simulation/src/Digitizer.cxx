@@ -14,6 +14,7 @@
 
 #include "TMath.h"
 #include "TRandom.h"
+#include <TH1F.h>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -23,15 +24,25 @@ using namespace o2::fit;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit)
+double get_time(const std::vector<double>& times, double signal_width)
+{
+  TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  auto signalForm = [](double x) {
+    return -(exp(-0.83344945 * x) - exp(-0.45458 * x));
+  };
+  for (auto time : times)
+    for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
+      if (hist.GetBinCenter(bin) > time)
+        hist.AddBinContent(bin, signalForm(hist.GetBinCenter(bin) - time));
+  double maximum{ hist.GetMaximum() };
+  int binfound{ hist.FindFirstBinAbove(maximum * 0.4) };
+  //  std::cout<<"@@@@@!!! max "<<maximum<<" binfound "<<binfound<<" return "<<hist.GetBinCenter(binfound)<<std::endl;
+  return hist.GetBinCenter(binfound);
+}
+
+void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
 {
-  //parameters constants TO DO: move to class
-
-  constexpr Float_t C_side_cable_cmps = 2.877; //ns
-  constexpr Float_t A_side_cable_cmps = 11.08; //ns
-  constexpr Float_t signal_width = 5.;         // time gate for signal, ns
-
   auto sorted_hits{ *hits };
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::t0::HitType const& a, o2::t0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
@@ -46,23 +57,24 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
     for (int i = 0; i < parameters.mMCPs; ++i)
       channel_data.emplace_back(o2::t0::ChannelData{ i, 0, 0, 0 });
   }
+  if (channel_times.size() == 0)
+    channel_times.resize(parameters.mMCPs);
   Int_t parent = -10;
   assert(digit->getChDgData().size() == parameters.mMCPs);
   for (auto& hit : sorted_hits) {
+    if (hit.GetEnergyLoss() > 0)
+      continue;
     Int_t hit_ch = hit.GetDetectorID();
-    Double_t hit_time = hit.GetTime();
-    Bool_t is_A_side = (hit_ch <= 4 * parameters.NCellsA);
+    Bool_t is_A_side = (hit_ch < 4 * parameters.NCellsA);
     Float_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
+    Double_t hit_time = hit.GetTime() - time_compensate;
 
-    Bool_t is_hit_in_signal_gate = (hit_time > time_compensate - signal_width * .5) &&
-                                   (hit_time < time_compensate + signal_width * .5);
-
-    Double_t hit_time_corr = hit_time - time_compensate /* + mBC_clk_center + mEventTime*/;
+    Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
 
     if (is_hit_in_signal_gate) {
       channel_data[hit_ch].numberOfParticles++;
-      channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss();
-      channel_data[hit_ch].CFDTime += hit_time_corr;
+      channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss(); //for FV0
+      channel_times[hit_ch].push_back(hit_time);
     }
 
     //charge particles in MCLabel
@@ -98,7 +110,7 @@ void Digitizer::computeAverage(o2::t0::Digit& digit)
 }
 
 //------------------------------------------------------------------------
-void Digitizer::smearCFDtime(o2::t0::Digit* digit)
+void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
   std::vector<o2::t0::ChannelData> mChDgDataArr;
@@ -108,7 +120,8 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit)
     Float_t amp = d.QTCAmpl;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
-      Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
+      //Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
+      double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime;
       mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }

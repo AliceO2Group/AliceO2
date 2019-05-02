@@ -27,6 +27,7 @@ struct DigitizationParameters {
   Int_t mAmpThreshold;    // number of photoelectrons
   Float_t mTimeDiffAC;
   bool mIsT0; //amplitude T0(true) or V0 (false)
+  Float_t mSignalWidth; // Gate in ns
 };
 } // namespace o2::fit
 #endif
