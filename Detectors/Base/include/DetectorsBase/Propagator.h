@@ -70,8 +70,8 @@ class Propagator
   // Bz at the origin
   float getNominalBz() const { return mBz; }
 
-  void setMatLUT(const o2::Base::MatLayerCylSet* lut) { mMatLUT = lut; }
-  const o2::Base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
+  void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
+  const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
 
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp);
   static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP");
@@ -88,7 +88,7 @@ class Propagator
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field
 
-  const o2::Base::MatLayerCylSet* mMatLUT = nullptr; // externally set LUT
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr; // externally set LUT
 
   ClassDef(Propagator, 0);
 };

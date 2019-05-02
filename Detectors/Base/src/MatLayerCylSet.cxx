@@ -23,9 +23,11 @@
 
 #endif // !GPUCA_GPUCODE
 
-using namespace o2::Base;
+using namespace o2::base;
 
 #ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+
+using flatObject = o2::gpu::FlatObject;
 
 //________________________________________________________________________________
 void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, float drphi)
@@ -38,7 +40,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
   if (!getNLayers()) {
     // book local storage
     auto sz = sizeof(MatLayerCylSetLayout);
-    resizeArray(mFlatBufferContainer, 0, sz);
+    o2::gpu::resizeArray(mFlatBufferContainer, 0, sz);
     mFlatBufferPtr = mFlatBufferContainer;
     mFlatBufferSize = sz;
     //--------------????
@@ -53,7 +55,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
     }
   }
 
-  delete[] resizeArray(get()->mLayers, getNLayers(), getNLayers() + 1);
+  delete[] o2::gpu::resizeArray(get()->mLayers, getNLayers(), getNLayers() + 1);
   get()->mLayers[getNLayers()].initSegmentation(rmin, rmax, zmax, dz, drphi);
   get()->mNLayers++;
   get()->mRMin = get()->mRMin > rmin ? rmin : get()->mRMin;
@@ -85,8 +87,8 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
   }
   // build layer search structures
   int nR2Int = 2 * (nlr + 1);
-  resizeArray(get()->mR2Intervals, 0, nR2Int);
-  resizeArray(get()->mInterval2LrID, 0, nR2Int);
+  o2::gpu::resizeArray(get()->mR2Intervals, 0, nR2Int);
+  o2::gpu::resizeArray(get()->mInterval2LrID, 0, nR2Int);
   get()->mR2Intervals[0] = get()->mRMin2;
   get()->mR2Intervals[1] = get()->mRMax2;
   get()->mInterval2LrID[0] = 0;
@@ -103,8 +105,8 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
     get()->mInterval2LrID[nRIntervals] = i;
     get()->mR2Intervals[++nRIntervals] = lr.getRMax2();
   }
-  delete[] resizeArray(get()->mInterval2LrID, nR2Int, nRIntervals); // rebook with precise size
-  delete[] resizeArray(get()->mR2Intervals, nR2Int, ++nRIntervals); // rebook with precise size
+  delete[] o2::gpu::resizeArray(get()->mInterval2LrID, nR2Int, nRIntervals); // rebook with precise size
+  delete[] o2::gpu::resizeArray(get()->mR2Intervals, nR2Int, ++nRIntervals); // rebook with precise size
   //
 }
 
@@ -276,7 +278,7 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
 #ifdef _DBG_LOC_
         printf("-- Zdiff (%3d : %3d) mode: t: %+e %+e\n", zID, zIDLast, tStartPhi, tEndPhi);
 #endif
-	
+
         if (zID != zIDLast) {
           auto stepZID = zID < zIDLast ? 1 : -1;
           bool checkMoreZ = true;
@@ -298,12 +300,13 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
 #ifdef _DBG_LOC_
             float pos0[3] = { ray.getPos(tStartZ, 0), ray.getPos(tStartZ, 1), ray.getPos(tStartZ, 2) };
             float pos1[3] = { ray.getPos(tEndZ, 0), ray.getPos(tEndZ, 1), ray.getPos(tEndZ, 2) };
-            printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
-		   "Step: %.3e StrpCor: %.3e\n",
-                   lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
-                   pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
+            printf(
+              "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
+              "Step: %.3e StrpCor: %.3e\n",
+              lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
+              pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
 #endif
-	    
+
             tStartZ = tEndZ;
             zID += stepZID;
           } while (checkMoreZ);
@@ -317,11 +320,12 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
 #ifdef _DBG_LOC_
           float pos0[3] = { ray.getPos(tStartPhi, 0), ray.getPos(tStartPhi, 1), ray.getPos(tStartPhi, 2) };
           float pos1[3] = { ray.getPos(tEndPhi, 0), ray.getPos(tEndPhi, 1), ray.getPos(tEndPhi, 2) };
-          printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
-		 "Step: %.3e StrpCor: %.3e\n",
-                 lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
-                 pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
-#endif	  
+          printf(
+            "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
+            "Step: %.3e StrpCor: %.3e\n",
+            lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
+            pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
+#endif
         }
         //
         tStartPhi = tEndPhi;
@@ -333,8 +337,8 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
   } // loop over layers
 
   if (rval.length != 0.f) {
-    rval.meanRho /= rval.length;    // average
-    float norm = (rval.length<0.f) ? -ray.getDist() : ray.getDist(); // normalize
+    rval.meanRho /= rval.length;                                       // average
+    float norm = (rval.length < 0.f) ? -ray.getDist() : ray.getDist(); // normalize
     rval.meanX2X0 *= norm;
     rval.length *= norm;
   }
@@ -401,22 +405,22 @@ void MatLayerCylSet::flatten()
 
   int sz = estimateFlatBufferSize();
   // create new internal buffer with total size and copy data
-  delete[] resizeArray(mFlatBufferContainer, mFlatBufferSize, sz);
+  delete[] o2::gpu::resizeArray(mFlatBufferContainer, mFlatBufferSize, sz);
   mFlatBufferPtr = mFlatBufferContainer;
   mFlatBufferSize = sz;
   int nLr = getNLayers();
 
   auto offs = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // account for the alignment
   // move array of layer pointers to the flat array
-  delete[] resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
+  delete[] o2::gpu::resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
   offs = alignSize(offs + nLr * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
-  delete[] resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
+  delete[] o2::gpu::resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
   offs = alignSize(offs + (nLr + 1) * sizeof(float), getBufferAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
-  delete[] resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
+  delete[] o2::gpu::resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
   offs = alignSize(offs + nLr * sizeof(int), getBufferAlignmentBytes()); // account for the alignment
 
   for (int il = 0; il < nLr; il++) {

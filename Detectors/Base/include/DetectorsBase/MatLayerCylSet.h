@@ -16,7 +16,7 @@
 
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/Ray.h"
-#include "DetectorsBase/flatObject.h"
+#include "FlatObject.h"
 
 #ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 #include "MathUtils/Cartesian3D.h"
@@ -29,7 +29,7 @@
  **********************************************************************/
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 struct MatLayerCylSetLayout {
@@ -45,7 +45,7 @@ struct MatLayerCylSetLayout {
   int* mInterval2LrID;  //[mNRIntervals] mapping from r2 interval to layer ID
 };
 
-class MatLayerCylSet : public flatObject
+class MatLayerCylSet : public o2::gpu::FlatObject
 {
 
  public:
@@ -99,8 +99,8 @@ class MatLayerCylSet : public flatObject
   void setActualBufferAddress(char* actualFlatBufferPtr);
   void setFutureBufferAddress(char* futureFlatBufferPtr);
   void cloneFromObject(const MatLayerCylSet& obj, char* newFlatBufferPtr);
-  using flatObject::adoptInternalBuffer;
-  using flatObject::releaseInternalBuffer;
+  using o2::gpu::FlatObject::adoptInternalBuffer;
+  using o2::gpu::FlatObject::releaseInternalBuffer;
 
   void fixPointers(char* newPtr = nullptr);
   void fixPointers(char* oldPtr, char* newPtr);
@@ -113,7 +113,7 @@ class MatLayerCylSet : public flatObject
   ClassDefNV(MatLayerCylSet, 1);
 };
 
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif

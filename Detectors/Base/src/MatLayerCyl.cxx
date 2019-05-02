@@ -18,7 +18,8 @@
 
 #include <FairLogger.h>
 
-using namespace o2::Base;
+using namespace o2::base;
+using flatObject = o2::gpu::FlatObject;
 
 //________________________________________________________________________________
 MatLayerCyl::MatLayerCyl() : mZHalf(0.f), mNZBins(0), mNPhiBins(0), mNPhiSlices(0), mRMin2(0.f), mRMax2(0.f), mDZ(0.f), mDZInv(0.f), mDPhi(0.f), mDPhiInv(0.f), mPhiBin2Slice(nullptr), mSliceCos(nullptr), mSliceSin(nullptr), mCells(nullptr)
@@ -78,7 +79,7 @@ void MatLayerCyl::initSegmentation(float rMin, float rMax, float zHalfSpan, int 
   //
   int offs = 0;
 
-  resizeArray(mPhiBin2Slice, 0, nphi, reinterpret_cast<short*>(mFlatBufferPtr + offs));
+  o2::gpu::resizeArray(mPhiBin2Slice, 0, nphi, reinterpret_cast<short*>(mFlatBufferPtr + offs));
   mNPhiSlices = mNPhiBins = nphi;
 
   for (int i = nphi; i--;) {
@@ -87,18 +88,18 @@ void MatLayerCyl::initSegmentation(float rMin, float rMax, float zHalfSpan, int 
 
   offs = alignSize(offs + nphi * sizeof(short), getBufferAlignmentBytes()); // account for alignment
 
-  resizeArray(mSliceCos, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
-  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());         // account for alignment
+  o2::gpu::resizeArray(mSliceCos, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
+  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());                  // account for alignment
 
-  resizeArray(mSliceSin, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
-  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());         // account for alignment
+  o2::gpu::resizeArray(mSliceSin, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
+  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());                  // account for alignment
 
   for (int i = nphi; i--;) {
     mSliceCos[i] = std::cos(getPhiBinMin(i));
     mSliceSin[i] = std::sin(getPhiBinMin(i));
   }
 
-  resizeArray(mCells, 0, getNCells(), reinterpret_cast<MatCell*>(mFlatBufferPtr + offs));
+  o2::gpu::resizeArray(mCells, 0, getNCells(), reinterpret_cast<MatCell*>(mFlatBufferPtr + offs));
 
   mConstructionMask = InProgress;
 }
@@ -131,7 +132,7 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
     float dzt = zs > 0.f ? 0.25 * dz : -0.25 * dz; // to avoid 90 degree polar angle
     for (int isp = ntrPerCell; isp--;) {
       o2::utils::sincosf(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
-      auto bud = o2::Base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
+      auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
       if (bud.length > 0.) {
         meanRho += bud.length * bud.meanRho;
         meanX2X0 += bud.meanX2X0; // we store actually not X2X0 but 1./X0
@@ -230,10 +231,10 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
   // mSliceCos pointer does not change, but sliceSin needs to be relocated
   auto offs = alignSize(newSl * sizeof(float), getBufferAlignmentBytes());
   char* dst = ((char*)mSliceCos) + offs; // account for alignment
-  resizeArray(mSliceSin, getNPhiBins(), newSl, reinterpret_cast<float*>(dst));
+  o2::gpu::resizeArray(mSliceSin, getNPhiBins(), newSl, reinterpret_cast<float*>(dst));
   // adjust mCells array
   dst = ((char*)mSliceSin) + newSl; // account for alignment
-  resizeArray(mCells, getNPhiBins() * getNZBins(), newSl * getNZBins(), reinterpret_cast<MatCell*>(dst));
+  o2::gpu::resizeArray(mCells, getNPhiBins() * getNZBins(), newSl * getNZBins(), reinterpret_cast<MatCell*>(dst));
   mFlatBufferSize = estimateFlatBufferSize();
   LOG(INFO) << "Updated Nslices = " << getNPhiSlices();
 }
@@ -278,7 +279,7 @@ void MatLayerCyl::print(bool data) const
     int ib0, ib1;
     int nb = getNPhiBinsInSlice(ip, ib0, ib1);
     printf("phi slice: %d (%d bins %d-%d %.4f:%.4f) sn:%+.4f/cs:%+.4f ... [iz/<rho>/<x/x0>] \n",
-	   ip, nb, ib0, ib1, getDPhi() * ib0, getDPhi() * (ib1 + 1),  getSliceSin(ip), getSliceCos(ip) );
+           ip, nb, ib0, ib1, getDPhi() * ib0, getDPhi() * (ib1 + 1), getSliceSin(ip), getSliceCos(ip));
     for (int iz = 0; iz < getNZBins(); iz++) {
       auto cell = getCellPhiBin(ib0, iz);
       printf("%3d/%.2e/%.2e ", iz, cell.meanRho, cell.meanX2X0);
@@ -298,7 +299,7 @@ void MatLayerCyl::flatten(char* newPtr)
   // make object flat: move all content to single internally allocated buffer
   assert(mConstructionMask == InProgress);
   fixPointers(mFlatBufferPtr, newPtr);
-  auto old = resizeArray(mFlatBufferPtr, getFlatBufferSize(), getFlatBufferSize(), newPtr);
+  auto old = o2::gpu::resizeArray(mFlatBufferPtr, getFlatBufferSize(), getFlatBufferSize(), newPtr);
   delete[] old;
   mFlatBufferContainer = nullptr;
   mConstructionMask = Constructed;

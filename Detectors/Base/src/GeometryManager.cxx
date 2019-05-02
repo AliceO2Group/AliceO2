@@ -29,8 +29,6 @@
 using namespace o2::detectors;
 using namespace o2::base;
 
-ClassImp(o2::base::GeometryManager);
-ClassImp(o2::base::GeometryManager::MatBudget);
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
@@ -224,7 +222,7 @@ bool GeometryManager::applyAlignment(TObjArray& algParArray, bool ovlpcheck, dou
   return res;
 }
 
-// ================= methods for nested MatBudget class ================
+// ================= methods for nested MatBudgetExt class ================
 
 //______________________________________________________________________
 void GeometryManager::MatBudgetExt::normalize(double step)
@@ -355,7 +353,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
 }
 
 //_____________________________________________________________________________________
-MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
+o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
 {
   //
   // Calculate mean material budget and material properties between
@@ -375,7 +373,7 @@ MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, floa
   double length, startD[3] = { x0, y0, z0 };
   double dir[3] = { x1 - x0, y1 - y0, z1 - z0 };
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
-    return MatBudget(); // return empty struct
+    return o2::base::MatBudget(); // return empty struct
   }
   length = TMath::Sqrt(length);
   double invlen = 1. / length;
@@ -387,10 +385,10 @@ MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, floa
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
-    return MatBudget(); // return empty struct
+    return o2::base::MatBudget(); // return empty struct
   }
 
-  MatBudget budTotal, budStep;
+  o2::base::MatBudget budTotal, budStep;
   accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
   budStep.length = length;
 
@@ -402,7 +400,7 @@ MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, floa
   // If no boundary within proposed length, return current step data
   if (!gGeoManager->IsOnBoundary()) {
     budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
-    return MatBudget(budStep);
+    return o2::base::MatBudget(budStep);
   }
   // Try to cross the boundary and see what is next
   Int_t nzero = 0;
@@ -419,7 +417,7 @@ MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, floa
       LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.meanRho /= stepTot;
       budTotal.length = stepTot;
-      return MatBudget(budTotal);
+      return o2::base::MatBudget(budTotal);
     }
     stepTot += step;
 
@@ -440,7 +438,7 @@ MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, floa
   }
   budTotal.meanRho /= stepTot;
   budTotal.length = stepTot;
-  return MatBudget(budTotal);
+  return o2::base::MatBudget(budTotal);
 }
 
 //_________________________________

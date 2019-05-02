@@ -13,7 +13,7 @@
 
 #include "DetectorsBase/Ray.h"
 
-using namespace o2::Base;
+using namespace o2::base;
 
 //______________________________________________________
 Ray::Ray() : mP{ 0.f }, mD{ 0.f }, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f), mCrossParams()
