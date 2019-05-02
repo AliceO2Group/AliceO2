@@ -33,7 +33,7 @@
 #pragma link C++ class o2::itsmft::GBTData + ;
 #pragma link C++ class o2::itsmft::PayLoadCont + ;
 #pragma link C++ class o2::itsmft::PayLoadSG + ;
-#pragma link C++ class o2::itsmft::RUDecodingStat + ;
+#pragma link C++ class o2::itsmft::GBTLinkDecodingStat + ;
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
 
 #pragma link C++ class std::map<unsigned long, std::pair<o2::itsmft::ClusterTopology, unsigned long>> + ;

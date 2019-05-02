@@ -82,14 +82,14 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
     uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
     if (ru.ruInfo->layer < 3) {
       for (int il = 0; il < 3; il++) { // create links
-        ru.links[il] = std::make_unique<o2::itsmft::RULink>();
+        ru.links[il] = std::make_unique<o2::itsmft::GBTLink>();
         ru.links[il]->lanes = lanes & ((0x1 << 3) - 1) << (3 * il); // each link will read 3 lanes==chips
         LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
                   << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, il)
                   << " reads lanes " << std::bitset<9>(ru.links[il]->lanes);
       }
     } else { // note: we are not obliged to do this if only 1 link per RU is used
-      ru.links[0] = std::make_unique<o2::itsmft::RULink>();
+      ru.links[0] = std::make_unique<o2::itsmft::GBTLink>();
       ru.links[0]->lanes = lanes; // single link reads all lanes
       LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
                 << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, 0)
