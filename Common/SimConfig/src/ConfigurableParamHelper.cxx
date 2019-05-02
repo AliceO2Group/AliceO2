@@ -15,6 +15,8 @@
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>
+#include <TEnum.h>
+#include <TEnumConstant.h>
 #include <TIterator.h>
 #include <TList.h>
 #include <iostream>
@@ -68,13 +70,14 @@ void loopOverMembers(TClass* cl, void* obj,
     auto dm = (TDataMember*)memberlist->At(i);
 
     auto isValidComplex = [dm]() {
-      return isString(*dm);
+      return isString(*dm) || dm->IsEnum();
     };
 
     // filter out static members for now
     if (dm->Property() & kIsStatic) {
       continue;
     }
+
     if (dm->IsaPointer()) {
       LOG(WARNING) << "Pointer types not supported in ConfigurableParams";
       continue;
@@ -83,12 +86,14 @@ void loopOverMembers(TClass* cl, void* obj,
       LOG(WARNING) << "Generic complex types not supported in ConfigurableParams";
       continue;
     }
+
     const auto dim = dm->GetArrayDim();
     // we support very simple vectored data in 1D for now
     if (dim > 1) {
       LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams";
       continue;
     }
+
     const auto size = (dim == 1) ? dm->GetMaxIndex(dim - 1) : 1; // size of array (1 if scalar)
     for (int index = 0; index < size; ++index) {
       callback(dm, index, size);
@@ -116,7 +121,21 @@ const char* asString(TDataMember const& dm, char* pointer)
   // first check if this is a basic data type, in which case
   // we let ROOT do the work
   if (auto dt = dm.GetDataType()) {
-    return dt->AsString(pointer);
+    auto val = dt->AsString(pointer);
+
+    // For enums we grab the string value of the member
+    // and use that instead if its int value
+    if (dm.IsEnum()) {
+      auto opts = dm.GetOptions();
+      for (int i = 0; i < opts->GetSize(); ++i) {
+        auto opt = (TOptionListItem*)opts->At(i);
+        if (val == std::to_string((int)opt->fValue)) {
+          return opt->fOptName;
+        }
+      }
+    }
+
+    return val;
   }
 
   // if data member is a std::string just return
@@ -224,10 +243,11 @@ std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
 // ----------------------------------------------------------------------
 
 void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj, boost::property_tree::ptree* tree,
-                                     std::map<std::string, std::pair<std::type_info const&, void*>>* keytostoragemap)
+                                     std::map<std::string, std::pair<std::type_info const&, void*>>* keytostoragemap,
+                                     EnumRegistry* enumRegistry)
 {
   boost::property_tree::ptree localtree;
-  auto fillMap = [obj, &mainkey, &localtree, &keytostoragemap](const TDataMember* dm, int index, int size) {
+  auto fillMap = [obj, &mainkey, &localtree, &keytostoragemap, &enumRegistry](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
     auto TS = dt ? dt->Size() : 0;
@@ -235,6 +255,13 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
     localtree.put(name, asString(*dm, pointer));
 
     auto key = mainkey + "." + name;
+
+    // If it's an enum, we need to store separately all the legal
+    // values so that we can map to them from the command line
+    if (dm->IsEnum()) {
+      enumRegistry->add(key, dm);
+    }
+
     using mapped_t = std::pair<std::type_info const&, void*>;
     auto& ti = nameToTypeInfo(dm->GetTrueTypeName(), dt);
     keytostoragemap->insert(std::pair<std::string, mapped_t>(key, mapped_t(ti, pointer)));

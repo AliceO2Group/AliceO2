@@ -15,11 +15,14 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <boost/property_tree/ptree.hpp>
 #include <typeinfo>
+#include <iostream>
 
 class TFile;
 class TRootIOCtor;
+class TDataMember;
 
 namespace o2
 {
@@ -80,6 +83,56 @@ namespace conf
 // The collection of all parameter keys and values can be stored to a human/machine readable
 // file
 //  - ConfigurableParameter::writeJSON("thisconfiguration.json")
+
+struct EnumLegalValues {
+  std::vector<std::pair<std::string, int>> vvalues;
+
+  bool isLegal(const std::string& value) const
+  {
+    for (auto& v : vvalues) {
+      if (v.first == value) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isLegal(int value) const
+  {
+    for (auto& v : vvalues) {
+      if (v.second == value) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  std::string toString() const;
+  int getIntValue(const std::string& value) const;
+};
+
+class EnumRegistry
+{
+ public:
+  void add(const std::string& key, const TDataMember* dm);
+
+  bool contains(const std::string& key) const
+  {
+    return entries.count(key) > 0;
+  }
+
+  std::string toString() const;
+
+  const EnumLegalValues* operator[](const std::string& key) const
+  {
+    auto iter = entries.find(key);
+    return iter != entries.end() ? &iter->second : nullptr;
+  }
+
+ private:
+  std::unordered_map<std::string, EnumLegalValues> entries;
+};
+
 class ConfigurableParam
 {
  public:
@@ -89,6 +142,7 @@ class ConfigurableParam
     kRT /* changed during runtime via API call setValue (for example command line) */
     /* can add more modes here */
   };
+
   static std::string toString(EParamProvenance p)
   {
     static std::array<std::string, 3> names = { "CODE", "CCDB", "RT" };
@@ -185,6 +239,10 @@ class ConfigurableParam
 
   // keep track of provenance of parameters and values
   static std::map<std::string, ConfigurableParam::EParamProvenance>* sValueProvenanceMap;
+
+  // A registry of enum names and their allowed values
+  // (stored as a vector of pairs <enumValueLabel, enumValueInt>)
+  static EnumRegistry* sEnumRegistry;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
 
