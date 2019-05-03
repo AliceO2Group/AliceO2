@@ -229,9 +229,6 @@ set(EXCLUDE_MACROS_FROM_TEST
   ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
   ${CMAKE_SOURCE_DIR}/macro/putCondition.C
 
-  # Disabled until AliTPCCommon is merged
-  ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
-
   # Exclude AliRoot macros from AliGPU package
   ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/checkPropagation.C
   ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C
