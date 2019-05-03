@@ -13,21 +13,18 @@
 #ifndef ALICEO2_FIT_RECPOINTS_H
 #define ALICEO2_FIT_RECPOINTS_H
 
+#include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
-#include <FITBase/Digit.h>
+#include <DataFormatsFIT/Digit.h>
 
 namespace o2
 {
 namespace t0
 {
-struct Channel {
-  Int_t index;
-  Float_t time, amp;
-  ClassDefNV(Channel, 1);
-};
+
 class RecPoints
 {
  public:
@@ -53,20 +50,27 @@ class RecPoints
   void setVertex(Float_t vertex) { mVertex = vertex; }
 
   void SetMgrEventTime(Double_t time) { mEventTime = time; }
-  void setBC(Int_t bc) { mBC = bc; }
-  void setOrbit(Int_t orbit) { mOrbit = orbit; }
 
   const std::vector<o2::fit::ChannelData>& getChDgData() const { return mTimeAmp; }
   void setChDgData(const std::vector<o2::fit::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
   void setChDgData(std::vector<o2::fit::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
+
+  void setInteractionRecord(uint16_t bc, uint32_t orbit)
+  {
+    mIntRecord.bc = bc;
+    mIntRecord.orbit = orbit;
+  }
+  const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
+  o2::InteractionRecord& getInteractionRecord() { return mIntRecord; }
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
 
  private:
   std::array<Float_t, 3> mCollisionTime;
   Float_t mVertex = 0;
   Double_t mEventTime; //event time from Fair for continuous
   std::vector<o2::fit::ChannelData> mTimeAmp;
-  Int_t mBC = 0;    // BC from digits
-  Int_t mOrbit = 0; // orbit from digits
+  o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
 
   ClassDefNV(RecPoints, 1);
 };

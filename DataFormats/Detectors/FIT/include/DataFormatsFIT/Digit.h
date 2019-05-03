@@ -11,6 +11,7 @@
 #ifndef ALICEO2_FIT_DIGIT_H
 #define ALICEO2_FIT_DIGIT_H
 
+#include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include <iosfwd>
 #include "Rtypes.h"
@@ -36,13 +37,12 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Int_t orbit, Bool_t isA,
+  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, uint16_t bc, uint32_t orbit, Bool_t isA,
         Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
   {
     setChDgData(std::move(ChDgDataArr));
     setTime(time);
-    setBC(bc);
-    setOrbit(orbit);
+    setInteractionRecord(bc, orbit);
     setTriggers(isA, isC, isCnt, isSCnt, isVrtx);
   }
 
@@ -51,10 +51,16 @@ class Digit : public DigitBase
   Double_t getTime() const { return mTime; }
   void setTime(Double_t time) { mTime = time; }
 
-  Int_t getBC() const { return mBC; }
-  void setBC(Int_t bc) { mBC = bc; }
-  Int_t getOrbit() const { return mOrbit; }
-  void setOrbit(Int_t orbit) { mOrbit = orbit; }
+  void setInteractionRecord(uint16_t bc, uint32_t orbit)
+  {
+    mIntRecord.bc = bc;
+    mIntRecord.orbit = orbit;
+  }
+  const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
+  o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
+  void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
 
   Bool_t getisA() const { return mIsA; }
   Bool_t getisC() const { return mIsC; }
@@ -84,9 +90,8 @@ class Digit : public DigitBase
   }
 
  private:
-  Double_t mTime; // time stamp
-  Int_t mBC;      // Bunch Crossing
-  Int_t mOrbit;   // orbit
+  Double_t mTime;                   // time stamp
+  o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
 
   //online triggers processed on TCM
   Bool_t mIsA, mIsC;

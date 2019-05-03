@@ -17,8 +17,8 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "FITSimulation/Digitizer.h"
 #include "T0Simulation/DigitizationParameters.h"
-#include "FITBase/Digit.h"
-#include "FITSimulation/MCLabel.h"
+#include "DataFormatsFIT/Digit.h"
+#include "DataFormatsFIT/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -99,8 +99,7 @@ class FITDPLDigitizerTask
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setEventTime(timesview[collID].timeNS);
-      mDigitizer.setOrbit(timesview[collID].orbit);
-      mDigitizer.setBC(timesview[collID].bc);
+      mDigitizer.setInteractionRecord(timesview[collID]);
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)

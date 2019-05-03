@@ -1510,15 +1510,16 @@ o2_define_bucket(
     fit_simulation_bucket
 
     DEPENDENCIES # library names
+    data_format_fit_bucket
     fit_base_bucket
     root_base_bucket
     fairroot_geom
+    DataFormatsFIT
     RIO
     Graf
     Gpad
     Matrix
     Physics
-    FITBase
     T0Base
     V0Base
     FDDBase
@@ -1527,22 +1528,20 @@ o2_define_bucket(
     SimulationDataFormat
     Core Hist # ROOT
     CommonDataFormat
-    detectors_base_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/V0/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/FDD/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
@@ -1600,17 +1599,34 @@ o2_define_bucket(
 
     DEPENDENCIES
     fit_base_bucket
-    FITBase
-    FITSimulation
+    data_format_fit_bucket
+    T0Base
+    V0Base
+    FDDBase
+    DataFormatsFIT
     DetectorsBase
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/reconstruction/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FITsimulation/include
+)
+
+o2_define_bucket(
+    NAME
+    data_format_fit_bucket
+
+    DEPENDENCIES
+    fit_base_bucket
+    T0Base
+    V0Base
+    FDDBase
+    DetectorsBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/include
 )
 
 o2_define_bucket(
@@ -1886,7 +1902,6 @@ o2_define_bucket(
     TRDSimulation
     EMCALSimulation
     TOFSimulation
-    FITSimulation
     T0Simulation
     V0Simulation
     FDDSimulation
@@ -1909,7 +1924,7 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-
+    fit_simulation_bucket
     #-- precise modules follow
     Steer
     Framework
@@ -1937,7 +1952,7 @@ o2_define_bucket(
 )
 
 o2_define_bucket(
-NAME
+    NAME
     event_visualisation_detectors_bucket
 
     DEPENDENCIES

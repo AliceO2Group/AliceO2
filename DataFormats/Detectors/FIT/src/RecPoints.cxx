@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "T0Reconstruction/RecPoints.h"
+#include "DataFormatsFIT/RecPoints.h"
 #include "T0Base/Geometry.h"
 #include <cassert>
 #include <iostream>
@@ -29,9 +29,8 @@ void RecPoints::FillFromDigits(const o2::fit::Digit& digit)
   constexpr Int_t nMCPs = nMCPsA + nMCPsC;
   Float_t sideAtime = 0, sideCtime = 0;
 
-  mBC = digit.getBC();
-  mOrbit = digit.getOrbit();
-  mEventTime = o2::InteractionRecord::bc2ns(mBC, mOrbit);
+  mIntRecord = digit.getInteractionRecord();
+  mEventTime = o2::InteractionRecord::bc2ns(mIntRecord.bc, mIntRecord.orbit);
 
   Float_t BCEventTime = 12.5;
 

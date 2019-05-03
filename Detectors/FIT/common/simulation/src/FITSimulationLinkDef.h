@@ -16,9 +16,5 @@
 
 #pragma link C++ class o2::fit::Digitizer + ;
 #pragma link C++ class o2::fit::DigitizationParameters + ;
-#pragma link C++ class o2::fit::HitType + ;
-#pragma link C++ class vector < o2::fit::HitType > +;
-#pragma link C++ class o2::fit::MCLabel + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fit::MCLabel > +;
 
 #endif

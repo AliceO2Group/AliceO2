@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FITSimulation/Digitizer.h"
-#include "FITBase/MCLabel.h"
+#include "DataFormatsFIT/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <CommonDataFormat/InteractionRecord.h>
 
@@ -38,8 +38,7 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
     return a.GetTrackID() < b.GetTrackID();
   });
   digit->setTime(mEventTime);
-  digit->setBC(mBC);
-  digit->setOrbit(mOrbit);
+  digit->setInteractionRecord(mIntRecord);
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
   std::vector<ChannelData>& channel_data = digit->getChDgData();
