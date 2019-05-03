@@ -1,6 +1,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "FITBase/Digit.h"
-#include "FITSimulation/HitType.h"
+#include "DataFormatsFIT/Digit.h"
+#include "DataFormatsFIT/HitType.h"
 #include <TH2F.h>
 #include <TTree.h>
 #include <TFile.h>

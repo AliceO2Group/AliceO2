@@ -8,32 +8,37 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// Declaration of a transient MC label class for FIT
+/// \file HitType.h
+/// \brief Definition of the FIT hits class
 
-#ifndef ALICEO2_FIT_MCLABEL_H_
-#define ALICEO2_FIT_MCLABEL_H_
+#ifndef ALICEO2_FIT_HITTYPE_H_
+#define ALICEO2_FIT_HITTYPE_H_
 
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/BaseHits.h"
+#include "SimulationDataFormat/Stack.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
 namespace fit
 {
-class MCLabel : public o2::MCCompLabel
+class HitType : public o2::BasicXYZEHit<float>
 {
- private:
-  Int_t mDetID = -1;
-
  public:
-  MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t qID)
-    : o2::MCCompLabel(trackID, eventID, srcID), mDetID(qID) {}
-
-  Int_t getDetID() const { return mDetID; }
-
-  ClassDefNV(MCLabel, 1);
+  using BasicXYZEHit<float>::BasicXYZEHit;
 };
+
 } // namespace fit
+
 } // namespace o2
 
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::fit::HitType> : public o2::utils::ShmAllocator<o2::fit::HitType>
+{
+};
+} // namespace std
+#endif
 #endif

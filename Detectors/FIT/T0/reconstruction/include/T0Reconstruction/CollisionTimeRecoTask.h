@@ -14,8 +14,8 @@
 #define ALICEO2_FIT_COLLISIONTIMERECOTASK_H
 
 #include <vector>
-#include "FITBase/Digit.h"
-#include "T0Reconstruction/RecPoints.h"
+#include "DataFormatsFIT/Digit.h"
+#include "DataFormatsFIT/RecPoints.h"
 namespace o2
 {
 namespace t0

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FITBase/Digit.h"
+#include "DataFormatsFIT/Digit.h"
 #include <iostream>
 
 using namespace o2::fit;
@@ -18,7 +18,7 @@ ClassImp(o2::fit::ChannelData);
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "FIT Digit: event time " << mTime << " BC " << mBC << " orbit " << mOrbit << std::endl;
+  stream << "FIT Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
   stream << "IS A " << mIsA << " IS C " << mIsC << " is Central " << mIsCentral
          << " is SemiCentral " << mIsSemiCentral << " is Vertex " << mIsVertex << std::endl;
 
