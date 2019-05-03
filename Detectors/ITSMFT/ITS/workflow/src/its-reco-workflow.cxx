@@ -19,7 +19,11 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{
+    "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } });
+
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
+
   workflowOptions.push_back(ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
 }
 
@@ -34,5 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
 
-  return std::move(o2::ITS::RecoWorkflow::getWorkflow());
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+
+  return std::move(o2::ITS::RecoWorkflow::getWorkflow(useMC));
 }

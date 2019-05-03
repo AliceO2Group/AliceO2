@@ -28,19 +28,20 @@ namespace ITS
 class DigitReader : public Task
 {
  public:
-  DigitReader() = default;
+  DigitReader(bool useMC) : mUseMC(useMC) {}
   ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// read simulated ITS digits from a root file
-framework::DataProcessorSpec getDigitReaderSpec();
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC);
 
 } // namespace ITS
 } // namespace o2

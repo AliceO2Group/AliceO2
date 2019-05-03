@@ -30,20 +30,21 @@ namespace ITS
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL() = default;
+  ClustererDPL(bool useMC) : mUseMC(useMC) {}
   ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
 /// run ITS cluster finder
-framework::DataProcessorSpec getClustererSpec();
+framework::DataProcessorSpec getClustererSpec(bool useMC);
 
 } // namespace ITS
 } // namespace o2
