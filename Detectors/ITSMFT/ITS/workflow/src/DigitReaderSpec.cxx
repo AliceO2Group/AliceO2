@@ -49,25 +49,29 @@ void DigitReader::run(ProcessingContext& pc)
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
   std::unique_ptr<TTree> treeROF((TTree*)mFile->Get("ITSDigitROF"));
-  std::unique_ptr<TTree> treeMC2ROF((TTree*)mFile->Get("ITSDigitMC2ROF"));
 
-  if (treeDig && treeROF && treeMC2ROF) {
+  if (treeDig && treeROF) {
 
     std::vector<o2::itsmft::Digit> allDigits;
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
-
     treeDig->SetBranchAddress("ITSDigit", &pdigits);
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    treeDig->SetBranchAddress("ITSDigitMCTruth", &plabels);
 
     std::vector<ROFRecord> rofs, *profs = &rofs;
     treeROF->SetBranchAddress("ITSDigitROF", &profs);
     treeROF->GetEntry(0);
 
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
+    std::unique_ptr<TTree> treeMC2ROF;
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
-    treeMC2ROF->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
-    treeMC2ROF->GetEntry(0);
+    if (mUseMC) {
+      treeDig->SetBranchAddress("ITSDigitMCTruth", &plabels);
+      treeMC2ROF.reset((TTree*)mFile->Get("ITSDigitMC2ROF"));
+      if (treeMC2ROF) {
+        treeMC2ROF->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
+        treeMC2ROF->GetEntry(0);
+      }
+    }
 
     int prevEntry = -1;
     int offset = 0;
@@ -93,12 +97,14 @@ void DigitReader::run(ProcessingContext& pc)
     }
 
     LOG(INFO) << "ITSDigitReader pushed " << allDigits.size() << " digits, in "
-              << profs->size() << " RO frames and "
-              << pmc2rofs->size() << " MC events";
+              << profs->size() << " RO frames";
+
     pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, allDigits);
-    pc.outputs().snapshot(Output{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe }, allLabels);
     pc.outputs().snapshot(Output{ "ITS", "ITSDigitROF", 0, Lifetime::Timeframe }, *profs);
-    pc.outputs().snapshot(Output{ "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe }, *pmc2rofs);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe }, allLabels);
+      pc.outputs().snapshot(Output{ "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe }, *pmc2rofs);
+    }
   } else {
     LOG(ERROR) << "Cannot read the ITS digits !";
     return;
@@ -107,17 +113,21 @@ void DigitReader::run(ProcessingContext& pc)
   //pc.services().get<ControlService>().readyToQuit(true);
 }
 
-DataProcessorSpec getDigitReaderSpec()
+DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ITS", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSDigitROF", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back("ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-digit-reader",
     Inputs{},
-    Outputs{
-      OutputSpec{ "ITS", "DIGITS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSDigitROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<DigitReader>() },
+    outputs,
+    AlgorithmSpec{ adaptFromTask<DigitReader>(useMC) },
     Options{
       { "its-digit-infile", VariantType::String, "itsdigits.root", { "Name of the input file" } } }
   };

@@ -72,51 +72,66 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
-  LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, "
-            << labels->getIndexedSize() << " MC label objects , in "
-            << rofs.size() << " RO frames and "
-            << mc2rofs.size() << " MC events";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  if (mUseMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  }
 
-  std::vector<o2::ITS::TrackITS> tracks;
+  LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, in "
+            << rofs.size() << " RO frames";
+
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  mTracker.setMCTruthContainers(labels.get(), &trackLabels);
+  if (mUseMC) {
+    mTracker.setMCTruthContainers(labels.get(), &trackLabels);
+  }
 
   std::vector<std::array<Double_t, 3>> vertices; //FIXME :  run an actual vertex finder !
   vertices.push_back({ 0., 0., 0. });
   mTracker.setVertices(vertices);
 
+  std::vector<o2::ITS::TrackITS> tracks;
   mTracker.process(clusters, tracks, rofs);
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
-  pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, trackLabels);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
-  pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
+
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, trackLabels);
+    pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
+  }
 
   mState = 2;
   //pc.services().get<ControlService>().readyToQuit(true);
 }
 
-DataProcessorSpec getCookedTrackerSpec()
+DataProcessorSpec getCookedTrackerSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+
+  if (useMC) {
+    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-cooked-tracker",
-    Inputs{
-      InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
-    Outputs{
-      OutputSpec{ "ITS", "TRACKS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<CookedTrackerDPL>() },
+    inputs,
+    outputs,
+    AlgorithmSpec{ adaptFromTask<CookedTrackerDPL>(useMC) },
     Options{
       { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } },
       { "nthreads", VariantType::Int, 1, { "Number of threads" } },

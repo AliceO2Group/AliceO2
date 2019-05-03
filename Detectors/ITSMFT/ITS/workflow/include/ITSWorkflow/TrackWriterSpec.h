@@ -28,19 +28,20 @@ namespace ITS
 class TrackWriter : public Task
 {
  public:
-  TrackWriter() = default;
+  TrackWriter(bool useMC) : mUseMC(useMC) {}
   ~TrackWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// write ITS tracks a root file
-framework::DataProcessorSpec getTrackWriterSpec();
+framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
 
 } // namespace ITS
 } // namespace o2

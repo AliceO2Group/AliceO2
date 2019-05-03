@@ -22,7 +22,7 @@ namespace ITS
 
 namespace RecoWorkflow
 {
-framework::WorkflowSpec getWorkflow();
+framework::WorkflowSpec getWorkflow(bool useMC);
 }
 
 } // namespace ITS

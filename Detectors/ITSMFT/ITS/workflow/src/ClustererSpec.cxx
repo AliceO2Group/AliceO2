@@ -80,62 +80,78 @@ void ClustererDPL::run(ProcessingContext& pc)
     return;
 
   auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
-  LOG(INFO) << "ITSClusterer pulled " << digits.size() << " digits, "
-            << labels->getIndexedSize() << " MC label objects, in "
-            << rofs.size() << " RO frames and "
-            << mc2rofs.size() << " MC events";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  if (mUseMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  }
+
+  LOG(INFO) << "ITSClusterer pulled " << digits.size() << " digits, in "
+            << rofs.size() << " RO frames";
 
   o2::itsmft::DigitPixelReader reader;
   reader.setDigits(&digits);
   reader.setROFRecords(&rofs);
-  reader.setMC2ROFRecords(&mc2rofs);
-  reader.setDigitsMCTruth(labels.get());
+  if (mUseMC) {
+    reader.setMC2ROFRecords(&mc2rofs);
+    reader.setDigitsMCTruth(labels.get());
+  }
   reader.init();
 
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
   std::vector<o2::itsmft::ROFRecord> clusterROframes;                  // To be filled in future
-  std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
 
-  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels, &clusterROframes);
+  std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
+  if (mUseMC) {
+    clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  }
+  mClusterer->process(reader, &clusters, &compClusters, clusterLabels.get(), &clusterROframes);
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
 
   LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
-            << clusterROframes.size() << " RO frames and "
-            << clusterMC2ROframes.size() << " MC events";
+            << clusterROframes.size() << " RO frames";
 
   pc.outputs().snapshot(Output{ "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe }, compClusters);
   pc.outputs().snapshot(Output{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
-  pc.outputs().snapshot(Output{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, clusterLabels);
   pc.outputs().snapshot(Output{ "ITS", "ITSClusterROF", 0, Lifetime::Timeframe }, clusterROframes);
-  pc.outputs().snapshot(Output{ "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe }, clusterMC2ROframes);
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, *clusterLabels.get());
+    std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+    pc.outputs().snapshot(Output{ "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe }, clusterMC2ROframes);
+  }
 
   mState = 2;
   //pc.services().get<ControlService>().readyToQuit(true);
 }
 
-DataProcessorSpec getClustererSpec()
+DataProcessorSpec getClustererSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "ITSDigitROF", 0, Lifetime::Timeframe);
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+
+  if (useMC) {
+    inputs.emplace_back("labels", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-clusterer",
-    Inputs{
-      InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "ITS", "ITSDigitROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe } },
-    Outputs{
-      OutputSpec{ "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<ClustererDPL>() },
+    inputs,
+    outputs,
+    AlgorithmSpec{ adaptFromTask<ClustererDPL>(useMC) },
     Options{
       { "its-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } },
       { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }

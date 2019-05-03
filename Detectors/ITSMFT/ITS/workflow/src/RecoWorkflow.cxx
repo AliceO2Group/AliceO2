@@ -27,16 +27,16 @@ namespace ITS
 namespace RecoWorkflow
 {
 
-framework::WorkflowSpec getWorkflow()
+framework::WorkflowSpec getWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::ITS::getDigitReaderSpec());
-  specs.emplace_back(o2::ITS::getClustererSpec());
-  specs.emplace_back(o2::ITS::getClusterWriterSpec());
+  specs.emplace_back(o2::ITS::getDigitReaderSpec(useMC));
+  specs.emplace_back(o2::ITS::getClustererSpec(useMC));
+  specs.emplace_back(o2::ITS::getClusterWriterSpec(useMC));
   //specs.emplace_back(o2::ITS::getTrackerSpec());
-  specs.emplace_back(o2::ITS::getCookedTrackerSpec());
-  specs.emplace_back(o2::ITS::getTrackWriterSpec());
+  specs.emplace_back(o2::ITS::getCookedTrackerSpec(useMC));
+  specs.emplace_back(o2::ITS::getTrackWriterSpec(useMC));
 
   return specs;
 }
