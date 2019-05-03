@@ -197,6 +197,13 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
+  /*if (GPUFailedMsgI(hipThreadSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
+     {
+      GPUError("Error setting HIP stack size");
+      GPUFailedMsgI(hipDeviceReset());
+      return(1);
+     }*/
+
   if (mDeviceMemorySize > hipDeviceProp_t.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
     GPUError("HIP Memory Allocation Error");
     GPUFailedMsgI(hipDeviceReset());
@@ -259,7 +266,8 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   ReleaseThreadContext();
-  GPUInfo("HIP Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", mDeviceId, hipDeviceProp_t.name, mThreadId, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize);
+  GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, hipDeviceProp_t.name, hipDeviceProp_t.clockRate, hipDeviceProp_t.multiProcessorCount, (long long int)mHostMemorySize,
+          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)sizeof(GPUConstantMem));
 
   return (0);
 }

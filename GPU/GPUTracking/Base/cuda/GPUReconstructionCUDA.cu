@@ -308,7 +308,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   ReleaseThreadContext();
-  GPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", mDeviceId, cudaDeviceProp.name, mThreadId, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize);
+  GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)sizeof(GPUConstantMem));
 
   return (0);
 }
