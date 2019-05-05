@@ -18,6 +18,7 @@
 
 #include "IrregularSpline2D3D.h"
 #include "FlatObject.h"
+#include "GPUCommonDef.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -106,13 +107,13 @@ class TPCDistortionIRS : public FlatObject
   void setTimeStamp(long int v) { mTimeStamp = v; }
 
   /// Gives pointer to a spline
-  const IrregularSpline2D3D& getSpline(int slice, int row) const;
+  GPUd() const IrregularSpline2D3D& getSpline(int slice, int row) const;
 
   /// Gives pointer to spline data
-  float* getSplineDataNonConst(int slice, int row);
+  GPUd() float* getSplineDataNonConst(int slice, int row);
 
   /// Gives pointer to spline data
-  const float* getSplineData(int slice, int row) const;
+  GPUd() const float* getSplineData(int slice, int row) const;
 
   /// Gives minimal alignment in bytes required for the class object
   static constexpr size_t getClassAlignmentBytes() { return 8; }
@@ -122,7 +123,7 @@ class TPCDistortionIRS : public FlatObject
 
   /// _______________ The main method: cluster distortion  _______________________
   ///
-  int getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
+  GPUd() int getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
 
   /// _______________  Utilities  _______________________________________________
 
@@ -136,10 +137,10 @@ class TPCDistortionIRS : public FlatObject
   long int getTimeStamp() const { return mTimeStamp; }
 
   /// Gives TPC row info
-  const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
+  GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
 
-  int convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const;
-  int convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const;
+  GPUd() int convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const;
+  GPUd() int convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const;
 
   /// Print method
   void Print() const;
@@ -188,7 +189,7 @@ class TPCDistortionIRS : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-inline int TPCDistortionIRS::convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const
+GPUdi() int TPCDistortionIRS::convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const
 {
   const RowInfo& rowInfo = getRowInfo(row);
   su = (u - rowInfo.U0) * rowInfo.scaleUtoSU;
@@ -200,7 +201,7 @@ inline int TPCDistortionIRS::convUVtoSUV(int slice, int row, float u, float v, f
   return 0;
 }
 
-inline int TPCDistortionIRS::convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const
+GPUdi() int TPCDistortionIRS::convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const
 {
   const RowInfo& rowInfo = getRowInfo(row);
   u = rowInfo.U0 + su * rowInfo.scaleSUtoU;
@@ -212,7 +213,7 @@ inline int TPCDistortionIRS::convSUVtoUV(int slice, int row, float su, float sv,
   return 0;
 }
 
-inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
+GPUdi() int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
 {
   const IrregularSpline2D3D& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
@@ -220,6 +221,27 @@ inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v,
   convUVtoSUV(slice, row, u, v, su, sv);
   spline.getSplineVec(splineData, su, sv, dx, du, dv);
   return 0;
+}
+
+GPUdi() const IrregularSpline2D3D& TPCDistortionIRS::getSpline(int slice, int row) const
+{
+  /// Gives pointer to spline
+  const RowInfo& rowInfo = mRowInfoPtr[row];
+  return mScenarioPtr[rowInfo.splineScenarioID];
+}
+
+GPUdi() float* TPCDistortionIRS::getSplineDataNonConst(int slice, int row)
+{
+  /// Gives pointer to spline data
+  const RowInfo& rowInfo = mRowInfoPtr[row];
+  return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
+}
+
+GPUdi() const float* TPCDistortionIRS::getSplineData(int slice, int row) const
+{
+  /// Gives pointer to spline data
+  const RowInfo& rowInfo = mRowInfoPtr[row];
+  return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
 }
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

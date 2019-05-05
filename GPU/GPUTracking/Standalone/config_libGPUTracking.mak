@@ -24,12 +24,15 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
 								Base/GPUReconstruction.cxx \
 								Base/GPUReconstructionCPU.cxx \
 								Base/GPUReconstructionDeviceBase.cxx \
-								Base/GPUReconstructionConvert.cxx \
 								Base/GPUParam.cxx \
 								Base/GPUProcessor.cxx \
 								Base/GPUMemoryResource.cxx \
 								Base/GPUSettings.cxx \
 								Base/GPUGeneralKernels.cxx \
+								Base/GPUReconstructionTimeframe.cxx \
+								Base/GPUReconstructionConvert.cxx \
+								TPCConvert/GPUTPCConvert.cxx \
+								TPCConvert/GPUTPCConvertKernel.cxx \
 								Global/GPUChain.cxx \
 								Global/GPUChainTracking.cxx \
 								Global/GPUChainITS.cxx \
@@ -61,8 +64,7 @@ GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
 								SliceTracker/GPUTPCTracklet.cxx \
 								SliceTracker/GPUTPCMCPoint.cxx
 
-CXXFILES					+= 	Base/GPUReconstructionTimeframe.cxx \
-								$(GPUCA_TRACKER_CXXFILES) \
+CXXFILES					+= 	$(GPUCA_TRACKER_CXXFILES) \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
 								$(GPUCA_TRD_CXXFILES) \

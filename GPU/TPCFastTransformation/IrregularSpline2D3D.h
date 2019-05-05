@@ -18,6 +18,7 @@
 
 #include "IrregularSpline1D.h"
 #include "FlatObject.h"
+#include "GPUCommonDef.h"
 
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 #include <Vc/Vc>
@@ -130,27 +131,27 @@ class IrregularSpline2D3D : public FlatObject
   ///
   /// \param data array of function values. It has the size of getNumberOfKnots()
   template <typename T>
-  void correctEdges(T* data) const;
+  GPUd() void correctEdges(T* data) const;
 
   /// Get interpolated value for f(u,v) using data array correctedData[getNumberOfKnots()] with corrected edges
   template <typename T>
-  void getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const;
+  GPUd() void getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const;
 
   /// Same as getSpline, but using vectorized calculation.
   /// \param correctedData should be at least 128-bit aligned
-  void getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const;
+  GPUd() void getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const;
 
   /// Get number total of knots: UxV
-  int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
+  GPUd() int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
 
   /// Get 1-D grid for U coordinate
-  const IrregularSpline1D& getGridU() const { return mGridU; }
+  GPUd() const IrregularSpline1D& getGridU() const { return mGridU; }
 
   /// Get 1-D grid for V coordinate
-  const IrregularSpline1D& getGridV() const { return mGridV; }
+  GPUd() const IrregularSpline1D& getGridV() const { return mGridV; }
 
   /// Get u,v of i-th knot
-  void getKnotUV(int iKnot, float& u, float& v) const;
+  GPUd() void getKnotUV(int iKnot, float& u, float& v) const;
 
   /// Get size of the mFlatBuffer data
   size_t getFlatBufferSize() const { return mFlatBufferSize; }
@@ -193,7 +194,7 @@ class IrregularSpline2D3D : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-inline void IrregularSpline2D3D::getKnotUV(int iKnot, float& u, float& v) const
+GPUdi() void IrregularSpline2D3D::getKnotUV(int iKnot, float& u, float& v) const
 {
   /// Get u,v of i-th knot
   const IrregularSpline1D& gridU = getGridU();
@@ -206,7 +207,7 @@ inline void IrregularSpline2D3D::getKnotUV(int iKnot, float& u, float& v) const
 }
 
 template <typename T>
-inline void IrregularSpline2D3D::correctEdges(T* data) const
+GPUd() void IrregularSpline2D3D::correctEdges(T* data) const
 {
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
@@ -279,7 +280,7 @@ inline void IrregularSpline2D3D::correctEdges(T* data) const
 }
 
 template <typename T>
-inline void IrregularSpline2D3D::getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const
+GPUdi() void IrregularSpline2D3D::getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const
 {
   // Get interpolated value for f(u,v) using data array correctedData[getNumberOfKnots()] with corrected edges
 
@@ -316,7 +317,7 @@ inline void IrregularSpline2D3D::getSpline(const T* correctedData, float u, floa
   z = res[2];
 }
 
-inline void IrregularSpline2D3D::getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const
+GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const
 {
   // Same as getSpline, but using vectorized calculation.
   // \param correctedData should be at least 128-bit aligned

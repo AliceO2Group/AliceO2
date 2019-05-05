@@ -57,6 +57,7 @@
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
   #define GPUCA_BUILD_MERGER
   #define GPUCA_BUILD_DEDX
+  #define GPUCA_BUILD_TPCCONVERT
   #if defined(HAVE_O2HEADERS)
     #define GPUCA_BUILD_TRD
     #define GPUCA_BUILD_ITS

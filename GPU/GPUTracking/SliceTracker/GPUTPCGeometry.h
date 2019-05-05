@@ -25,7 +25,7 @@ namespace gpu
 class GPUTPCGeometry
 {
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__)
-  GPUTPCGeometry(); //Fake constructor for OpenCL due to static members, does not exist!
+  GPUTPCGeometry(); // Fake constructor for OpenCL due to static members, does not exist!
 #endif
 #ifdef GPUCA_TPC_GEOMETRY_O2
   const float mX[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= { 85.225f, 85.975f, 86.725f, 87.475f, 88.225f, 88.975f, 89.725f, 90.475f, 91.225f, 91.975f, 92.725f, 93.475f, 94.225f, 94.975f, 95.725f, 96.475f, 97.225f, 97.975f, 98.725f, 99.475f, 100.225f, 100.975f,
@@ -72,14 +72,8 @@ class GPUTPCGeometry
   {
     return (mX[row]);
   }
-  GPUd() float PadHeight(int row) const
-  {
-    return (mPadHeight[GetRegion(row)]);
-  }
-  GPUd() float PadWidth(int row) const
-  {
-    return (mPadWidth[GetRegion(row)]);
-  }
+  GPUd() float PadHeight(int row) const { return (mPadHeight[GetRegion(row)]); }
+  GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

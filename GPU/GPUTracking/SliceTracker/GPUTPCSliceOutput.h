@@ -27,7 +27,6 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-
 struct GPUOutputControl;
 
 /**

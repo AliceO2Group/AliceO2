@@ -37,10 +37,11 @@ class GPUDataTypes
                               CUDA = 2,
                               HIP = 3,
                               OCL = 4 };
-  enum ENUM_CLASS RecoStep { TPCSliceTracking = 1,
-                             TPCMerging = 2,
-                             TRDTracking = 4,
-                             ITSTracking = 8,
+  enum ENUM_CLASS RecoStep { TPCConversion = 1,
+                             TPCSliceTracking = 2,
+                             TPCMerging = 4,
+                             TRDTracking = 8,
+                             ITSTracking = 16,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
 };

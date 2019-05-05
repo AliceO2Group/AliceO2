@@ -29,6 +29,10 @@ struct ClusterNativeAccessFullTPC {
   const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
 };
+struct Constants {
+  static constexpr int MAXSECTOR = GPUCA_NSLICES;
+  static constexpr int MAXGLOBALPADROW = GPUCA_ROW_COUNT;
+};
 } // namespace TPC
 } // namespace o2
 #endif

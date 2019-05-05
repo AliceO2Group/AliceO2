@@ -322,8 +322,8 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
-  if (chainTracking->mIOPtrs.clustersNative) {
-    chainTracking->ConvertNativeToClusterData();
+  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
+    chainTracking->ConvertNativeToClusterDataLegacy();
   }
   return 0;
 }

@@ -284,27 +284,6 @@ void TPCDistortionIRS::finishConstruction()
   }
 }
 
-const IrregularSpline2D3D& TPCDistortionIRS::getSpline(int slice, int row) const
-{
-  /// Gives pointer to spline
-  const RowInfo& rowInfo = mRowInfoPtr[row];
-  return mScenarioPtr[rowInfo.splineScenarioID];
-}
-
-float* TPCDistortionIRS::getSplineDataNonConst(int slice, int row)
-{
-  /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfoPtr[row];
-  return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
-}
-
-const float* TPCDistortionIRS::getSplineData(int slice, int row) const
-{
-  /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfoPtr[row];
-  return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
-}
-
 void TPCDistortionIRS::Print() const
 {
 #if !defined(GPUCA_GPUCODE)

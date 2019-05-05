@@ -112,6 +112,7 @@ int GPUReconstruction::Init()
   } else {
     omp_set_num_threads(mDeviceProcessingSettings.nThreads);
   }
+
 #else
   mDeviceProcessingSettings.nThreads = 1;
 #endif
@@ -291,7 +292,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(GPUProcessor* proc)
 void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
-  if (!res->mType & GPUMemoryResource::MEMORY_EXTERNAL) {
+  if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
     res->SetPointers(res->mPtr);
   }
   if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
