@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace fit
+namespace t0
 {
 class MCLabel : public o2::MCCompLabel
 {
@@ -33,7 +33,7 @@ class MCLabel : public o2::MCCompLabel
 
   ClassDefNV(MCLabel, 1);
 };
-} // namespace fit
+} // namespace t0
 } // namespace o2
 
 #endif

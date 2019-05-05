@@ -7,7 +7,7 @@
 #include "EMCALBase/Hit.h"
 #include "TRDSimulation/Detector.h" // For TRD Hit
 #include "T0Simulation/Detector.h"  // for Fit Hit
-#include "V0Simulation/Hit.h"
+#include "DataFormatsFITV0/Hit.h"
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
@@ -245,7 +245,7 @@ void analyzePHS(TTree* reftree)
 
 void analyzeT0(TTree* reftree)
 {
-  auto refresult = analyse<o2::fit::HitType, HitStats<o2::fit::HitType>>(reftree, "T0Hit");
+  auto refresult = analyse<o2::t0::HitType, HitStats<o2::t0::HitType>>(reftree, "T0Hit");
   std::cout << gPrefix << " T0 ";
   refresult.print();
 }

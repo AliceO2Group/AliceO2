@@ -1,24 +1,19 @@
-set(MODULE_NAME "DataFormatsFIT")
-set(MODULE_BUCKET_NAME data_format_fit_bucket)
+# **************************************************************************
+# * Copyright(c) 1998-2014, ALICE Experiment at CERN, All rights reserved. *
+# *                                                                        *
+# * Author: The ALICE Off-line Project.                                    *
+# * Contributors are mentioned in the code where appropriate.              *
+# *                                                                        *
+# * Permission to use, copy, modify and distribute this software and its   *
+# * documentation strictly for non-commercial purposes is hereby granted   *
+# * without fee, provided that the above copyright notice appears in all   *
+# * copies and that both the copyright notice and this permission notice   *
+# * appear in the supporting documentation. The authors make no claims     *
+# * about the suitability of this software for any purpose. It is          *
+# * provided "as is" without express or implied warranty.                  *
+# **************************************************************************
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Digit.cxx
-  src/RecPoints.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Digit.h
-    include/${MODULE_NAME}/RecPoints.h
-    include/${MODULE_NAME}/MCLabel.h
-    include/${MODULE_NAME}/HitType.h
-    )
-
-Set(LINKDEF src/DataFormatsFITLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-
+# Libraries
+#add_subdirectory(common)
+add_subdirectory(T0)
+add_subdirectory(V0)

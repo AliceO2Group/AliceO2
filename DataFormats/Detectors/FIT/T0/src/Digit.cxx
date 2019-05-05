@@ -8,13 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFIT/Digit.h"
+#include "DataFormatsFITT0/Digit.h"
 #include <iostream>
 
-using namespace o2::fit;
-
-ClassImp(o2::fit::Digit);
-ClassImp(o2::fit::ChannelData);
+using namespace o2::t0;
 
 void Digit::printStream(std::ostream& stream) const
 {

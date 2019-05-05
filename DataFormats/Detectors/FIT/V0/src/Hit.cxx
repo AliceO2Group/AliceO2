@@ -11,7 +11,7 @@
 /// \file Hit.cxx
 /// \brief Implementation of the Hit class
 
-#include "V0Simulation/Hit.h"
+#include "DataFormatsFITV0/Hit.h"
 
 #include <iostream>
 

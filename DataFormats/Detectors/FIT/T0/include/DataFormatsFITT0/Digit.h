@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace fit
+namespace t0
 {
 
 struct ChannelData {
@@ -105,6 +105,6 @@ class Digit : public DigitBase
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi);
-} // namespace fit
+} // namespace t0
 } // namespace o2
 #endif

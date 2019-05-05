@@ -8,18 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFIT/RecPoints.h"
+#include "DataFormatsFITT0/RecPoints.h"
 #include "T0Base/Geometry.h"
 #include <cassert>
 #include <iostream>
 #include <CommonDataFormat/InteractionRecord.h>
 
 using namespace o2::t0;
-using namespace o2::fit;
 
-ClassImp(o2::t0::RecPoints);
-
-void RecPoints::FillFromDigits(const o2::fit::Digit& digit)
+void RecPoints::FillFromDigits(const o2::t0::Digit& digit)
 {
   mCollisionTime = {};
 
