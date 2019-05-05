@@ -34,9 +34,10 @@ class GPUMemoryResource
                     MEMORY_INOUT = 15,
                     MEMORY_SCRATCH = 16,
                     MEMORY_SCRATCH_HOST = 17,
-                    MEMORY_PERMANENT = 32,
-                    MEMORY_CUSTOM = 64,
-                    MEMORY_CUSTOM_TRANSFER = 128 };
+                    MEMORY_EXTERNAL = 32,
+                    MEMORY_PERMANENT = 64,
+                    MEMORY_CUSTOM = 128,
+                    MEMORY_CUSTOM_TRANSFER = 256 };
   enum AllocationType { ALLOCATION_AUTO = 0,
                         ALLOCATION_INDIVIDUAL = 1,
                         ALLOCATION_GLOBAL = 2 };
