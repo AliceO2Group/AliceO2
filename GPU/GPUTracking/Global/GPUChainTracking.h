@@ -133,7 +133,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void DumpSettings(const char* dir = "") override;
   void ReadSettings(const char* dir = "") override;
 
-  // Converter functions
+  // Converter / loader functions
+  void SetTPCClusterDataPtrs();
   void ConvertNativeToClusterData();
 
   // Getters for external usage of tracker classes

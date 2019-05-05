@@ -638,6 +638,13 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
 
   // reconstruct the event
   fBenchmark.Start(1);
+  fChain->SetTPCClusterDataPtrs();
+  try {
+    fRec->PrepareEvent();
+  } catch (const std::bad_alloc& e) {
+    printf("Memory Allocation Error\n");
+    return ((void*)(size_t)-EINVAL);
+  }
   fChain->RunTPCTrackingSlices();
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);

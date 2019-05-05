@@ -343,6 +343,21 @@ void GPUChainTracking::ConvertNativeToClusterData()
   mIOPtrs.clustersNative = nullptr;
 }
 
+void GPUChainTracking::SetTPCClusterDataPtrs()
+{
+  bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSliceTracking;
+
+  int offset = 0;
+  for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    processors()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
+    offset += mIOPtrs.nClusterData[iSlice];
+  }
+  if (doGPU) {
+    memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
+    mRec->ResetDeviceProcessorTypes();
+  }
+}
+
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
 void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform) { mTPCFastTransform = std::move(tpcFastTransform); }
@@ -446,22 +461,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     GPUInfo("Running TPC Slice Tracker");
   }
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSliceTracking;
-
-  int offset = 0;
-  for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    processors()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
-    offset += mIOPtrs.nClusterData[iSlice];
-  }
-  if (doGPU) {
-    memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
-    mRec->ResetDeviceProcessorTypes();
-  }
-  try {
-    mRec->PrepareEvent();
-  } catch (const std::bad_alloc& e) {
-    printf("Memory Allocation Error\n");
-    return (2);
-  }
 
   bool streamInit[GPUCA_MAX_STREAMS] = { false };
   if (doGPU) {
@@ -1077,6 +1076,13 @@ int GPUChainTracking::RunStandalone()
   }
 
   timerTracking.Start();
+  SetTPCClusterDataPtrs();
+  try {
+    mRec->PrepareEvent();
+  } catch (const std::bad_alloc& e) {
+    printf("Memory Allocation Error\n");
+    return (1);
+  }
   if (RunTPCTrackingSlices()) {
     return 1;
   }

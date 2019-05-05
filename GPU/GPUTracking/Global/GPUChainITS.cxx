@@ -45,7 +45,7 @@ void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 int GPUChainITS::Init()
 {
   mRec->GetITSTraits(mITSTrackerTraits, mITSVertexerTraits);
-  mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::RunITSTrackFit);
+  mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   return 0;
 }
 
@@ -53,9 +53,14 @@ int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunStandalone() { return 0; }
 
-int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
 {
   mRec->PrepareEvent();
+  RunITSTrackFit(roads, clusters, cells, tf, tracks);
+}
+
+int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+{
   ActivateThreadContext();
   mRec->SetThreadCounts(RecoStep::ITSTracking);
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
