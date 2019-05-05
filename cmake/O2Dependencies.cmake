@@ -1518,7 +1518,8 @@ o2_define_bucket(
     fit_base_bucket
     root_base_bucket
     fairroot_geom
-    DataFormatsFIT
+    DataFormatsFITT0
+    DataFormatsFITV0
     RIO
     Graf
     Gpad
@@ -1536,6 +1537,8 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/T0/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/V0/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/base/include
@@ -1607,12 +1610,15 @@ o2_define_bucket(
     T0Base
     V0Base
     FDDBase
-    DataFormatsFIT
+    DataFormatsFITT0
+    DataFormatsFITV0
     DetectorsBase
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/T0/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/V0/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/reconstruction/include
 )
 

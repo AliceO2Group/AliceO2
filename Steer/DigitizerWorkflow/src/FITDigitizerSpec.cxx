@@ -17,8 +17,8 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "FITSimulation/Digitizer.h"
 #include "T0Simulation/DigitizationParameters.h"
-#include "DataFormatsFIT/Digit.h"
-#include "DataFormatsFIT/MCLabel.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -88,11 +88,11 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::fit::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::fit::MCLabel> labelAccum;
-    o2::dataformats::MCTruthContainer<o2::fit::MCLabel> labels;
-    o2::fit::Digit digit;
-    std::vector<o2::fit::Digit> digitAccum; // digit accumulator
+    static std::vector<o2::t0::HitType> hits;
+    o2::dataformats::MCTruthContainer<o2::t0::MCLabel> labelAccum;
+    o2::dataformats::MCTruthContainer<o2::t0::MCLabel> labels;
+    o2::t0::Digit digit;
+    std::vector<o2::t0::Digit> digitAccum; // digit accumulator
     mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
@@ -157,7 +157,7 @@ class FITDPLDigitizerTask
   void retrieveHits(std::vector<TChain*> const& chains,
                     int sourceID,
                     int entryID,
-                    std::vector<o2::fit::HitType>* hits)
+                    std::vector<o2::t0::HitType>* hits)
   {
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());

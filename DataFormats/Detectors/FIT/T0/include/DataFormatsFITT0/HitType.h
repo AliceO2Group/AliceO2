@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace fit
+namespace t0
 {
 class HitType : public o2::BasicXYZEHit<float>
 {
@@ -28,7 +28,7 @@ class HitType : public o2::BasicXYZEHit<float>
   using BasicXYZEHit<float>::BasicXYZEHit;
 };
 
-} // namespace fit
+} // namespace t0
 
 } // namespace o2
 
@@ -36,7 +36,7 @@ class HitType : public o2::BasicXYZEHit<float>
 namespace std
 {
 template <>
-class allocator<o2::fit::HitType> : public o2::utils::ShmAllocator<o2::fit::HitType>
+class allocator<o2::t0::HitType> : public o2::utils::ShmAllocator<o2::t0::HitType>
 {
 };
 } // namespace std

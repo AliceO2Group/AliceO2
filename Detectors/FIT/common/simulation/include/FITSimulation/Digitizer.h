@@ -12,8 +12,8 @@
 #define ALICEO2_FIT_DIGITIZER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsFIT/Digit.h"
-#include "DataFormatsFIT/MCLabel.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/MCLabel.h"
 #include "T0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -30,8 +30,8 @@ class Digitizer
   ~Digitizer() = default;
 
   //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::fit::HitType>* hits, Digit* digit);
-  void computeAverage(Digit& digit);
+  void process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit);
+  void computeAverage(o2::t0::Digit& digit);
 
   void initParameters();
   // void printParameters();
@@ -49,13 +49,13 @@ class Digitizer
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
 
-  void setTriggers(Digit* digit);
-  void smearCFDtime(Digit* digit);
+  void setTriggers(o2::t0::Digit* digit);
+  void smearCFDtime(o2::t0::Digit* digit);
 
   void init();
   void finish();
 
-  void setMCLabels(o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mclb) { mMCLabels = mclb; }
+  void setMCLabels(o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mclb) { mMCLabels = mclb; }
 
  private:
   // digit info
@@ -68,7 +68,7 @@ class Digitizer
 
   DigitizationParameters parameters;
 
-  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = nullptr;
+  o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCLabels = nullptr;
 
   ClassDefNV(Digitizer, 1);
 };

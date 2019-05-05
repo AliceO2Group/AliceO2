@@ -18,7 +18,7 @@
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
-#include <DataFormatsFIT/Digit.h>
+#include <DataFormatsFITT0/Digit.h>
 
 namespace o2
 {
@@ -31,7 +31,7 @@ class RecPoints
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 3>& collisiontime,
             Float_t vertex,
-            std::vector<o2::fit::ChannelData> timeamp)
+            std::vector<o2::t0::ChannelData> timeamp)
     : mCollisionTime(collisiontime),
       mVertex(vertex),
       mTimeAmp(std::move(timeamp))
@@ -39,7 +39,7 @@ class RecPoints
   }
   ~RecPoints() = default;
 
-  void FillFromDigits(const o2::fit::Digit& digit);
+  void FillFromDigits(const o2::t0::Digit& digit);
   Float_t GetCollisionTime(int side) const { return mCollisionTime[side]; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 
@@ -51,9 +51,9 @@ class RecPoints
 
   void SetMgrEventTime(Double_t time) { mEventTime = time; }
 
-  const std::vector<o2::fit::ChannelData>& getChDgData() const { return mTimeAmp; }
-  void setChDgData(const std::vector<o2::fit::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
-  void setChDgData(std::vector<o2::fit::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
+  const std::vector<o2::t0::ChannelData>& getChDgData() const { return mTimeAmp; }
+  void setChDgData(const std::vector<o2::t0::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
+  void setChDgData(std::vector<o2::t0::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
 
   void setInteractionRecord(uint16_t bc, uint32_t orbit)
   {
@@ -69,7 +69,7 @@ class RecPoints
   std::array<Float_t, 3> mCollisionTime;
   Float_t mVertex = 0;
   Double_t mEventTime; //event time from Fair for continuous
-  std::vector<o2::fit::ChannelData> mTimeAmp;
+  std::vector<o2::t0::ChannelData> mTimeAmp;
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
 
   ClassDefNV(RecPoints, 1);

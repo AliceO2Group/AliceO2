@@ -14,20 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-//// #pragma link C++ class o2::t0::Channel + ;  // RS: unused?
-
-#pragma link C++ class o2::fit::Digit + ;
-#pragma link C++ class o2::fit::ChannelData + ;
-#pragma link C++ class vector < o2::fit::ChannelData> + ;
-#pragma link C++ class vector < o2::fit::Digit> + ;
-
-#pragma link C++ class o2::t0::RecPoints + ;
-#pragma link C++ class vector < o2::t0::RecPoints> + ;
-
-#pragma link C++ class o2::fit::MCLabel + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fit::MCLabel> + ;
-
-#pragma link C++ class o2::fit::HitType + ;
-#pragma link C++ class vector < o2::fit::HitType> + ;
+#pragma link C++ class o2::v0::Hit + ;
+#pragma link C++ class vector < o2::v0::Hit> + ;
 
 #endif
