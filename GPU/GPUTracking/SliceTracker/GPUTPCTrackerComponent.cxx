@@ -638,7 +638,6 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
 
   // reconstruct the event
   fBenchmark.Start(1);
-  fChain->SetTPCClusterDataPtrs();
   try {
     fRec->PrepareEvent();
   } catch (const std::bad_alloc& e) {

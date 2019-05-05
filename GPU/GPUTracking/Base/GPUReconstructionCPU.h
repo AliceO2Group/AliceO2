@@ -31,6 +31,7 @@
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerGPU.h"
 #include "GPUITSFitterKernels.h"
+#include "GPUTPCConvertKernel.h"
 
 namespace GPUCA_NAMESPACE
 {

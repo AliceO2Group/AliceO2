@@ -18,10 +18,13 @@
 
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
+#include "GPUCommonDef.h"
 
+#ifndef __OPENCL__
 #include <cstddef>
 #include <memory>
 #include <cstring>
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -187,31 +190,31 @@ class IrregularSpline1D : public FlatObject
   ///
   /// \param data array of function values. It has the size of getNumberOfKnots()
   template <typename T>
-  void correctEdges(T* data) const;
+  GPUd() void correctEdges(T* data) const;
 
   /// Get interpolated value for f(u) using spline at knot "knot1" and function values at knots {knot_0,knot_1,knot_2,knot_3}
   template <typename T>
-  static T getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u);
+  GPUd() static T getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u);
 
   /// Get interpolated value for f(u) using data array correctedData[getNumberOfKnots()] with corrected edges
   template <typename T>
-  T getSpline(const T correctedData[], float u) const;
+  GPUd() T getSpline(const T correctedData[], float u) const;
 
   /// Get number of knots
-  int getNumberOfKnots() const { return mNumberOfKnots; }
+  GPUd() int getNumberOfKnots() const { return mNumberOfKnots; }
 
   /// Get index of associated knot for a given U coordinate.
   ///
   /// Note: U values from the first interval are mapped to the second inrerval.
   /// Values from the last interval are mapped to the previous interval.
   ///
-  int getKnotIndex(float u) const;
+  GPUd() int getKnotIndex(float u) const;
 
   /// Get i-th knot, no border check performed!
-  const IrregularSpline1D::Knot& getKnot(int i) const { return getKnots()[i]; }
+  GPUd() const IrregularSpline1D::Knot& getKnot(int i) const { return getKnots()[i]; }
 
   /// Get array of knots
-  const IrregularSpline1D::Knot* getKnots() const { return reinterpret_cast<const IrregularSpline1D::Knot*>(mFlatBufferPtr); }
+  GPUd() const IrregularSpline1D::Knot* getKnots() const { return reinterpret_cast<const IrregularSpline1D::Knot*>(mFlatBufferPtr); }
 
   /// Get minimal required alignment for the class
   static constexpr size_t getClassAlignmentBytes() { return 8; }
@@ -225,7 +228,7 @@ class IrregularSpline1D : public FlatObject
   /// technical stuff
 
   /// Get a map  (U axis bin index) -> (corresponding knot index)
-  const int* getBin2KnotMap() const { return reinterpret_cast<const int*>(mFlatBufferPtr + mBin2KnotMapOffset); }
+  GPUd() const int* getBin2KnotMap() const { return reinterpret_cast<const int*>(mFlatBufferPtr + mBin2KnotMapOffset); }
 
   /// Get number of axis bins
   int getNumberOfAxisBins() const { return mNumberOfAxisBins; }
@@ -239,7 +242,7 @@ class IrregularSpline1D : public FlatObject
   /// The coefficients ci are calculated in double precision because they are temporary
   /// and used only at the initialisation phase. So we can pay a price for the higher accuracy here.
   ///
-  static void getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3);
+  GPUd() static void getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3);
 
   /// Print method
   void Print() const;
@@ -265,7 +268,7 @@ class IrregularSpline1D : public FlatObject
 /// ====================================================
 
 template <typename T>
-inline T IrregularSpline1D::getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u)
+GPUdi() T IrregularSpline1D::getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u)
 {
   /// static method
   /// Get interpolated value for f(u) using spline at knot "knot1" and function values at knots {knot_0,knot_1,knot_2,knot_3}
@@ -296,7 +299,7 @@ inline T IrregularSpline1D::getSpline(const IrregularSpline1D::Knot& knot1, T f0
 }
 
 template <typename T>
-inline T IrregularSpline1D::getSpline(const T correctedData[], float u) const
+GPUdi() T IrregularSpline1D::getSpline(const T correctedData[], float u) const
 {
   /// Get interpolated value for f(u) using data array correctedData[getNumberOfKnots()] with corrected edges
   int iknot = getKnotIndex(u);
@@ -305,7 +308,7 @@ inline T IrregularSpline1D::getSpline(const T correctedData[], float u) const
   return getSpline(knot, f[0], f[1], f[2], f[3], u);
 }
 
-inline int IrregularSpline1D::getKnotIndex(float u) const
+GPUdi() int IrregularSpline1D::getKnotIndex(float u) const
 {
   /// get i: u is in [knot_i, knot_{i+1})
   int ibin = (int)(u * mNumberOfAxisBins);
@@ -318,7 +321,7 @@ inline int IrregularSpline1D::getKnotIndex(float u) const
   return getBin2KnotMap()[ibin];
 }
 
-inline void IrregularSpline1D::getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3)
+GPUdi() void IrregularSpline1D::getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3)
 {
   /// static method
   /// get edge  correction for f(u0):
@@ -379,7 +382,7 @@ inline void IrregularSpline1D::getEdgeCorrectionCoefficients(double u0, double u
 }
 
 template <typename T>
-inline void IrregularSpline1D::correctEdges(T* data) const
+GPUdi() void IrregularSpline1D::correctEdges(T* data) const
 {
   const IrregularSpline1D::Knot* s = getKnots();
   double c0, c1, c2, c3;

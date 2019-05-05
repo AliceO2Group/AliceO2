@@ -58,6 +58,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUdEdx.cxx"
 #endif
 
+#ifdef GPUCA_BUILD_TPCCONVERT
+#include "GPUTPCConvertKernel.cxx"
+#endif
+
 #ifdef GPUCA_BUILD_TRD
 #include "GPUTRDTrackerGPU.cxx"
 #include "GPUTRDTrack.cxx"

@@ -75,6 +75,7 @@
 #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          //Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
+#define GPUCA_MAX_CLUSTERS (1024 * 1024 * 1024)                        //Maximum number of TPC clusters
 #define GPUCA_MAX_TRACKLETS 65536                                      //Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define GPUCA_MAX_TRACKS 32768                                         //Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
 #define GPUCA_MAX_ROWSTARTHITS 20000                                   //Maximum number of start hits per row

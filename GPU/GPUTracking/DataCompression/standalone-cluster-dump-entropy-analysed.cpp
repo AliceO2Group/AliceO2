@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <iostream>
 
-const int sort_method = 1; //0 No sorting, 1 sort after pad, 2 sort after time, 3/4 mixed methods favoring pad / time
+const int sort_method = 1; // 0 No sorting, 1 sort after pad, 2 sort after time, 3/4 mixed methods favoring pad / time
 const int slice_diff = 1;
 const int row_diff = 1;
 const int pad_diff = 1;
@@ -76,12 +76,14 @@ const int sort_time_mixed_bins = 400;
 #define PAD_128 28
 #define PAD_140 29
 
-const int rr = optimized_negative_values && 0 ? 13 : 14; //We can make them all 14 for convenience, the encoding will handle it
+const int rr = optimized_negative_values && 0 ? 13 : 14; // We can make them all 14 for convenience, the encoding will handle it
 
 const unsigned int field_bits[] = { 0, 6, 0, 8, 14, 15, 8, 8, 10, 16, 2, 0, 14, 15, 16, 10, 26, 16, 8, 8, 16, 26, 8, 8, rr, rr, rr, rr, rr, 14 };
 const unsigned int significant_bits[] = { 0, 6, 0, 8, 14, 15, truncate_sigma, truncate_sigma, truncate_charge, truncate_charge, 2, 0, 14, 15, truncate_charge, truncate_charge, 26, 16, truncate_sigma, truncate_sigma, 16, 26, 8, 8, rr, rr, rr, rr, rr, 14 };
 const int nFields = sizeof(field_bits) / sizeof(field_bits[0]);
-const char* field_names[] = { "event", "slice", "patch", "row", "pad", "time", "sigmaPad", "sigmaTime", "qmax", "qtot", "flagPadTime", "trackID", "resTrackPad", "resTrackTime", "trackQTot", "trackQMax", "qmaxtot", "sigmapadtime", "diffsigmapad", "diffsigmatime", "diffsigmapadtime", "tracktotmax", "trackfirstrow", "trackrow", "pad_80", "pad_92", "pad_104", "pad_116", "pad_128", "pad_140" };
+const char* field_names[] = { "event", "slice", "patch", "row", "pad", "time", "sigmaPad", "sigmaTime", "qmax", "qtot", "flagPadTime", "trackID", "resTrackPad",
+                              "resTrackTime", "trackQTot", "trackQMax", "qmaxtot", "sigmapadtime", "diffsigmapad", "diffsigmatime", "diffsigmapadtime", "tracktotmax", "trackfirstrow", "trackrow", "pad_80", "pad_92",
+                              "pad_104", "pad_116", "pad_128", "pad_140" };
 
 union cluster_struct {
   struct
@@ -96,29 +98,13 @@ union cluster_struct {
 int fgRows[6][2] = { { 0, 30 }, { 30, 62 }, { 63, 90 }, { 90, 116 }, { 117, 139 }, { 139, 158 } };
 int fgNRows[6] = { 31, 33, 28, 27, 23, 20 };
 
-int fgNPads[159] = { 68, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 76, 76,
-                     76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86,
-                     86, 88, 88, 88, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96,
-                     96, 98, 98, 98, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106,
-                     106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80,
-                     82, 82, 82, 84, 84, 84, 86, 86, 86, 86, 88, 88, 88, 90, 90,
-                     90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98,
-                     100, 100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108,
-                     108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118,
-                     120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132,
-                     132, 134, 134, 136, 136, 138, 138, 138, 140 };
+int fgNPads[159] = { 68, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 102,
+                     102, 102, 104, 104, 104, 106, 106, 106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100,
+                     100, 100, 100, 102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108, 108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138, 138, 140 };
 
-int fgNPadsMod[159] = { 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80,
-                        80, 80, 80, 80, 80, 80, 80, 92, 92, 92, 92, 92, 92, 92, 92,
-                        92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 104, 104, 104, 104, 104,
-                        104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 116, 116,
-                        116, 116, 116, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80,
-                        92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92,
-                        92, 92, 92, 92, 92, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104,
-                        104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 116, 116, 116, 116, 116,
-                        116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 128, 128,
-                        128, 128, 128, 128, 128, 128, 128, 126, 126, 128, 128, 140, 140, 140, 140,
-                        140, 134, 134, 140, 140, 140, 140, 140, 140 };
+int fgNPadsMod[159] = { 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104,
+                        104, 104, 104, 104, 104, 116, 116, 116, 116, 116, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104,
+                        104, 104, 104, 104, 104, 104, 104, 104, 104, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 116, 128, 128, 128, 128, 128, 128, 128, 128, 128, 126, 126, 128, 128, 140, 140, 140, 140, 140, 134, 134, 140, 140, 140, 140, 140, 140 };
 
 // ---------------------------------- HUFFMAN TREE
 
@@ -461,7 +447,7 @@ int main(int argc, char** argv)
           cluster.avgmax = tmp & ((1 << field_bits[QMAX]) - 1);
         }
 
-        //Copy qmax / qtot to combined track avg... slot, to use for combine_maxtot
+        // Copy qmax / qtot to combined track avg... slot, to use for combine_maxtot
         if ((((combine_maxtot && (track_avgtot || track_diffqtot)) || track_separate_q) && track_avgmax == 0 && track_diffqmax == 0) && cluster.trackID != -1) {
           cluster.avgmax = cluster.qmax;
         }
@@ -483,7 +469,8 @@ int main(int argc, char** argv)
         lastTrack = cluster.trackID;
 
         if (print_clusters > 0 || (print_clusters < 0 && i < -print_clusters)) {
-          printf("Event %d Track %d Slice %d Patch %d Row %d Pad %d Time %d sigmaPad %d sigmaTime %d qTot %d qMax %d Flag %d resPad %d resTime %d avgTot %d avgMax %d\n", cluster.event, cluster.trackID, cluster.slice, cluster.patch, cluster.row, cluster.pad, cluster.time, cluster.sigmaPad, cluster.sigmaTime, cluster.qtot, cluster.qmax, cluster.splitPadTime, cluster.resPad, cluster.resTime, cluster.avgtot, cluster.avgmax);
+          printf("Event %u Track %d Slice %u Patch %u Row %u Pad %u Time %u sigmaPad %u sigmaTime %u qTot %u qMax %u Flag %u resPad %u resTime %u avgTot %u avgMax %u\n", cluster.event, cluster.trackID, cluster.slice, cluster.patch, cluster.row, cluster.pad, cluster.time, cluster.sigmaPad,
+                 cluster.sigmaTime, cluster.qtot, cluster.qmax, cluster.splitPadTime, cluster.resPad, cluster.resTime, cluster.avgtot, cluster.avgmax);
         }
 
         for (int j = SLICE; j < nFields; j++) {
@@ -602,13 +589,13 @@ int main(int argc, char** argv)
 
         if (counts[i]) {
           for (int j = 0; j < (1 << field_bits[i]); j++) {
-            //printf("Field %d/%s Value %d Entries %lld\n", i, field_names[i], j, histograms[i][j]);
+            // printf("Field %d/%s Value %d Entries %lld\n", i, field_names[i], j, histograms[i][j]);
 
             probabilities[i][j] = (double)histograms[i][j] / (double)counts[i];
             if (probabilities[i][j]) {
               double I = -log(probabilities[i][j]) / log2;
               double H = I * probabilities[i][j];
-              //printf("Field %d/%s Value %d I prob %f I %f H %f\n", i, field_names[i], probabilities[i][j], I, H);
+              // printf("Field %d/%s Value %d I prob %f I %f H %f\n", i, field_names[i], probabilities[i][j], I, H);
 
               entropy += H;
             }
@@ -653,16 +640,9 @@ int main(int argc, char** argv)
           continue;
         }
 
-        if (i <= FLAG_PADTIME ||
-            (combine_maxtot && i == QMAX_QTOT) ||
-            (combine_maxtot && (track_avgmax || track_avgtot || track_diffqmax || track_diffqtot || track_separate_q) && combine_maxtot && i == AVG_TOT_MAX) ||
-            (combine_sigmapadtime && i == SIGMA_PAD_TIME) ||
-            (combine_sigmapadtime && (track_diffsigma || track_separate_sigma) && i == DIFF_SIGMA_PAD_TIME) ||
-            (track_based && (i == RES_PAD || i == RES_TIME)) ||
-            ((track_avgtot || track_diffqtot || track_separate_q) && !combine_maxtot && i == AVG_TOT) ||
-            ((track_avgmax || track_diffqmax || track_separate_q) && !combine_maxtot && i == AVG_MAX) ||
-            ((track_diffsigma || track_separate_sigma) && (i == DIFF_SIGMA_PAD || i == DIFF_SIGMA_TIME)) ||
-            (track_based && row_diff && (i == ROW_TRACK || i == ROW_TRACK_FIRST)) ||
+        if (i <= FLAG_PADTIME || (combine_maxtot && i == QMAX_QTOT) || (combine_maxtot && (track_avgmax || track_avgtot || track_diffqmax || track_diffqtot || track_separate_q) && combine_maxtot && i == AVG_TOT_MAX) || (combine_sigmapadtime && i == SIGMA_PAD_TIME) ||
+            (combine_sigmapadtime && (track_diffsigma || track_separate_sigma) && i == DIFF_SIGMA_PAD_TIME) || (track_based && (i == RES_PAD || i == RES_TIME)) || ((track_avgtot || track_diffqtot || track_separate_q) && !combine_maxtot && i == AVG_TOT) ||
+            ((track_avgmax || track_diffqmax || track_separate_q) && !combine_maxtot && i == AVG_MAX) || ((track_diffsigma || track_separate_sigma) && (i == DIFF_SIGMA_PAD || i == DIFF_SIGMA_TIME)) || (track_based && row_diff && (i == ROW_TRACK || i == ROW_TRACK_FIRST)) ||
             (distinguish_rows && i >= PAD_80 && i <= PAD_140)) {
           entroTotal += entropies[i] * counts[i];
           huffmanTotal += huffmanSizes[i] * counts[i];
@@ -678,7 +658,7 @@ int main(int argc, char** argv)
         }
         printf("Field %2d/%16s (count %10lld / used %1d) rawBits %2d huffman %9.6f entropy %9.6f\n", i, field_names[i], counts[i], used[i], field_bits[i], huffmanSizes[i], entropies[i]);
       }
-      rawBits = 79; //Override incorrect calculation: Row is only 6 bit in raw format, and slice is not needed!
+      rawBits = 79; // Override incorrect calculation: Row is only 6 bit in raw format, and slice is not needed!
       printf("Raw Bits: %d - Total Size %f MB Clusters %d\n", rawBits, (double)rawBits * (double)nClustersUsed / 8. / 1.e6, nClustersUsed);
       printf("Huffman Bits: %f - Total Size %f MB\n", huffmanTotal / (double)nClustersUsed, huffmanTotal / 8. / 1.e6);
       printf("Entropy Bits: %f - Total Size %f MB\n", entroTotal / (double)nClustersUsed, entroTotal / 8. / 1.e6);

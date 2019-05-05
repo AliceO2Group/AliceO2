@@ -13,7 +13,7 @@ if(OpenMP_CXX_FOUND)
     set(DEFINITIONS ${DEFINITIONS} GPUCA_HAVE_OPENMP)
 endif()
 
-include_directories(. SliceTracker Merger Base Global TRDTracking ITS dEdx ../Common ../TPCFastTransformation Standalone)
+include_directories(. SliceTracker Merger Base Global TRDTracking ITS dEdx TPCConvert ../Common ../TPCFastTransformation Standalone)
 
 if (ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
@@ -76,14 +76,16 @@ set(SRCS
 set(SRCS_NO_CINT
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
-    Base/GPUReconstructionConvert.cxx
     Base/GPUSettings.cxx
     Base/GPUProcessor.cxx
     Base/GPUMemoryResource.cxx
     Base/GPUGeneralKernels.cxx
     Base/GPUReconstructionDeviceBase.cxx
+    Base/GPUReconstructionConvert.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
+    TPCConvert/GPUTPCConvert.cxx
+    TPCConvert/GPUTPCConvertKernel.cxx
     Standalone/utils/timer.cpp
 )
 
