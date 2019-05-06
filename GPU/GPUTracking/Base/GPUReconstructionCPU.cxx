@@ -81,7 +81,7 @@ void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int
     if (!(res.mType & GPUMemoryResource::MEMORY_GPU) || (res.mType & GPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) {
       continue;
     }
-    if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) {
+    if (!mDeviceProcessingSettings.keepAllMemory && !all && (res.mType & exc) == exc && (res.mType & inc) != inc) {
       continue;
     }
     if (toGPU) {
