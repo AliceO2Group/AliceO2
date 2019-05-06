@@ -24,12 +24,14 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
-#ifdef GPUCA_ALIROOT_LIB
-#include "AliExternalTrackParam.h"
-#endif
 #include "GPUdEdx.h"
 #include "GPUParam.h"
 #include "GPUTPCClusterErrorStat.h"
+
+#ifdef GPUCA_ALIROOT_LIB
+#include "AliExternalTrackParam.h"
+#endif
+
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "../utils/qconfig.h"
 #include "GPUChainTracking.h"

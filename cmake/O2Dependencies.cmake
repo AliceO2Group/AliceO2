@@ -2617,6 +2617,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/display
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/qa
     ${CMAKE_SOURCE_DIR}/Framework/Core/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
     ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
 )

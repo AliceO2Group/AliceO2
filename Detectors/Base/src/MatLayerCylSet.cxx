@@ -13,21 +13,21 @@
 
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "CommonConstants/MathConstants.h"
-#include <FairLogger.h>
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
+#include "GPUCommonFairLogger.h"
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
 #define _DBG_LOC_ // for local debugging only
 
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
 using namespace o2::base;
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
-
 using flatObject = o2::gpu::FlatObject;
+
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
 //________________________________________________________________________________
 void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, float drphi)
@@ -215,8 +215,9 @@ void MatLayerCylSet::print(bool data) const
          float(getFlatBufferSize()) / 1024 / 1024);
 }
 
-#endif //!GPUCA_GPUCODE
+#endif //!GPUCA_ALIGPUCODE
 
+#ifndef GPUCA_GPUCODE
 //________________________________________________________________________________
 std::size_t MatLayerCylSet::estimateFlatBufferSize() const
 {
@@ -231,9 +232,10 @@ std::size_t MatLayerCylSet::estimateFlatBufferSize() const
   }
   return sz;
 }
+#endif // ! GPUCA_GPUCODE
 
 //_________________________________________________________________________________________________
-MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const
+GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const
 {
   // get material budget traversed on the line between point0 and point1
   MatBudget rval;
@@ -347,7 +349,7 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
 }
 
 //_________________________________________________________________________________________________
-bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& lmax) const
+GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& lmax) const
 {
   // get range of layers corresponding to rmin/rmax
   //
@@ -374,7 +376,7 @@ bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& lmax) co
   return lmin <= lmax; // valid if both are not in the same gap
 }
 
-int MatLayerCylSet::searchSegment(float val, int low, int high) const
+GPUd() int MatLayerCylSet::searchSegment(float val, int low, int high) const
 {
   ///< search segment val belongs to. The val MUST be within the boundaries
   if (low < 0) {
@@ -396,7 +398,7 @@ int MatLayerCylSet::searchSegment(float val, int low, int high) const
   return mid;
 }
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
 void MatLayerCylSet::flatten()
 {
@@ -438,8 +440,9 @@ void MatLayerCylSet::moveBufferTo(char* newFlatBufferPtr)
   flatObject::moveBufferTo(newFlatBufferPtr);
   setActualBufferAddress(mFlatBufferPtr);
 }
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
+#ifndef GPUCA_GPUCODE
 //______________________________________________
 void MatLayerCylSet::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
@@ -456,7 +459,6 @@ void MatLayerCylSet::setActualBufferAddress(char* actualFlatBufferPtr)
   ///
   fixPointers(actualFlatBufferPtr);
 }
-#ifndef GPUCA_GPUCODE // code invisible on GPU
 //______________________________________________
 void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBufferPtr)
 {
@@ -464,7 +466,6 @@ void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBuf
   flatObject::cloneFromObject(obj, newFlatBufferPtr);
   fixPointers(mFlatBufferPtr);
 }
-#endif
 
 //______________________________________________
 void MatLayerCylSet::fixPointers(char* newBasePtr)
@@ -494,3 +495,4 @@ void MatLayerCylSet::fixPointers(char* oldPtr, char* newPtr)
     get()->mLayers[i].fixPointers(oldPtr, newPtr);
   }
 }
+#endif // !GPUCA_GPUCODE

@@ -39,6 +39,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef HAVE_O2HEADERS
 #include "TRDBase/TRDGeometryFlat.h"
+#include "DetectorsBase/MatLayerCylSet.h"
 #else
 namespace o2
 {

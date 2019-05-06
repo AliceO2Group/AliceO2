@@ -18,11 +18,10 @@
 #include "GPUCommonDef.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "MathUtils/Utils.h"
-#include <array>
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "MathUtils/Cartesian3D.h"
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
 /**********************************************************************
  *                                                                    *
@@ -46,40 +45,43 @@ class Ray
   static constexpr float InvalidT = -1e9;
   static constexpr float Tiny = 1e-9;
 
-  Ray();
-  ~Ray() CON_DEFAULT;
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+  GPUd() Ray() : mP{ 0.f }, mD{ 0.f }, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f), mCrossParams()
+  {
+  }
+  GPUd() ~Ray() CON_DEFAULT;
+
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   Ray(const Point3D<float> point0, const Point3D<float> point1);
-#endif // !GPUCA_GPUCODE
-  Ray(float x0, float y0, float z0, float x1, float y1, float z1);
+#endif // !GPUCA_ALIGPUCODE
+  GPUd() Ray(float x0, float y0, float z0, float x1, float y1, float z1);
 
-  int crossLayer(const MatLayerCyl& lr);
-  bool crossCircleR(float r2, CrossPar& cross) const;
+  GPUd() int crossLayer(const MatLayerCyl& lr);
+  GPUd() bool crossCircleR(float r2, CrossPar& cross) const;
 
-  float crossRadial(const MatLayerCyl& lr, int sliceID) const;
-  float crossRadial(float cs, float sn) const;
-  float crossZ(float z) const;
+  GPUd() float crossRadial(const MatLayerCyl& lr, int sliceID) const;
+  GPUd() float crossRadial(float cs, float sn) const;
+  GPUd() float crossZ(float z) const;
 
-  const CrossPar& getCrossParams(int i) const { return mCrossParams[i]; }
+  GPUd() const CrossPar& getCrossParams(int i) const { return mCrossParams[i]; }
 
-  void getMinMaxR2(float& rmin2, float& rmax2) const;
+  GPUd() void getMinMaxR2(float& rmin2, float& rmax2) const;
 
-  float getDist() const { return mDistXYZ; }
-  float getDist(float deltaT) const { return mDistXYZ * (deltaT > 0 ? deltaT : -deltaT); }
+  GPUd() float getDist() const { return mDistXYZ; }
+  GPUd() float getDist(float deltaT) const { return mDistXYZ * (deltaT > 0 ? deltaT : -deltaT); }
 
   // for debud only
   float getPos(float t, int i) const { return mP[i] + t * mD[i]; }
 
-  float getPhi(float t) const
+  GPUd() float getPhi(float t) const
   {
     float p = std::atan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
     o2::utils::BringTo02Pi(p);
     return p;
   }
 
-  float getZ(float t) const { return mP[2] + t * mD[2]; }
+  GPUd() float getZ(float t) const { return mP[2] + t * mD[2]; }
 
-  bool validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const;
+  GPUd() bool validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const;
 
  private:
   vecF3 mP;                             ///< entrance point
@@ -98,7 +100,7 @@ class Ray
 };
 
 //______________________________________________________
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
 inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
   : mP{ point0.X(), point0.Y(), point0.Z() }, mD{ point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z() }
@@ -112,10 +114,10 @@ inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
   mR02 = point0.Perp2();
   mR12 = point1.Perp2();
 }
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
 //______________________________________________________
-inline Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
+GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
   : mP{ x0, y0, z0 }, mD{ x1 - x0, y1 - y0, z1 - z0 }
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
@@ -129,7 +131,7 @@ inline Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
 }
 
 //______________________________________________________
-inline float Ray::crossRadial(float cs, float sn) const
+GPUdi() float Ray::crossRadial(float cs, float sn) const
 {
   // calculate t of crossing with radial line with inclination cosine and sine
   float den = mD[0] * sn - mD[1] * cs;
@@ -140,7 +142,7 @@ inline float Ray::crossRadial(float cs, float sn) const
 }
 
 //______________________________________________________
-inline bool Ray::crossCircleR(float r2, CrossPar& cross) const
+GPUdi() bool Ray::crossCircleR(float r2, CrossPar& cross) const
 {
   // calculate parameters t of intersection with circle of radius r^2
   // calculated as solution of equation
@@ -156,21 +158,21 @@ inline bool Ray::crossCircleR(float r2, CrossPar& cross) const
 }
 
 //______________________________________________________
-inline float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
+GPUdi() float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
 {
   // calculate t of crossing with phimin of layer's slice sliceID
   return crossRadial(lr.getSliceCos(sliceID), lr.getSliceSin(sliceID));
 }
 
 //______________________________________________________
-inline float Ray::crossZ(float z) const
+GPUdi() float Ray::crossZ(float z) const
 {
   // calculate t of crossing XY plane at Z
   return std::abs(mD[2]) > Tiny ? (z - mP[2]) / mD[2] : InvalidT;
 }
 
 //______________________________________________________
-inline bool Ray::validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const
+GPUdi() bool Ray::validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const
 {
   // make sure that estimated crossing parameters are compatible
   // with Z coverage of the layer
@@ -189,7 +191,7 @@ inline bool Ray::validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const
 }
 
 //______________________________________________________
-inline void Ray::getMinMaxR2(float& rmin2, float& rmax2) const
+GPUdi() void Ray::getMinMaxR2(float& rmin2, float& rmax2) const
 {
   // calculate min and max R2
   if (mR02 > mR12) {

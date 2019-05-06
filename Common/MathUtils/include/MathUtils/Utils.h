@@ -15,8 +15,11 @@
 #ifndef ALICEO2_COMMON_MATH_UTILS_
 #define ALICEO2_COMMON_MATH_UTILS_
 
+#ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#endif
+#include "GPUCommonDef.h"
 #include "CommonConstants/MathConstants.h"
 
 namespace o2
@@ -25,7 +28,7 @@ namespace o2
 //{
 namespace utils
 {
-inline void BringTo02Pi(float& phi)
+GPUdi() void BringTo02Pi(float& phi)
 {
   // ensure angle in [0:2pi] for the input in [-pi:pi] or [0:pi]
   if (phi < 0.f) {
@@ -70,6 +73,7 @@ inline void sincosf(float ang, float& s, float& c)
   c = cosf(ang);
 }
 
+#ifndef __OPENCL__
 inline void RotateZ(std::array<float, 3>& xy, float alpha)
 {
   // transforms vector in tracking frame alpha to global frame
@@ -78,6 +82,7 @@ inline void RotateZ(std::array<float, 3>& xy, float alpha)
   xy[0] = x * cs - xy[1] * sn;
   xy[1] = x * sn + xy[1] * cs;
 }
+#endif
 
 inline int Angle2Sector(float phi)
 {

@@ -20,6 +20,19 @@
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
 
+namespace o2
+{
+namespace base
+{
+struct MatBudget;
+class MatLayerCylSet;
+#ifndef HAVE_O2HEADERS
+struct MatBudget {
+};
+#endif
+} // namespace base
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -50,6 +63,7 @@ class GPUTPCGMPropagator
   };
 
   GPUd() void SetMaterial(float radLen, float rho);
+  GPUd() o2::base::MatBudget getMatBudget(float* p1, float* p2);
 
   GPUd() void SetPolynomialField(const GPUTPCGMPolynomialField* field) { mField = field; }
 
@@ -134,6 +148,7 @@ class GPUTPCGMPropagator
   float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
 
   GPUTPCGMOfflineStatisticalErrors mStatErrors;
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
 GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)

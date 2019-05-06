@@ -29,10 +29,10 @@ struct MatCell {
   float meanRho;                    ///< mean density, g/cm^3
   float meanX2X0;                   ///< fraction of radiaton lenght
 
-  MatCell() : meanRho(0.f), meanX2X0(0.f) {}
-  MatCell(const MatCell& src) CON_DEFAULT;
+  GPUd() MatCell() : meanRho(0.f), meanX2X0(0.f) {}
+  GPUdDefault() MatCell(const MatCell& src) CON_DEFAULT;
 
-  void scale(float scale)
+  GPUd() void scale(float scale)
   {
     meanRho *= scale;
     meanX2X0 *= scale;
@@ -47,10 +47,10 @@ struct MatBudget : MatCell {
   static constexpr int NParams = 3; // number of material parameters described
   float length;                     ///< length in material
 
-  MatBudget() : length(0.f) {}
-  MatBudget(const MatBudget& src) CON_DEFAULT;
+  GPUd() MatBudget() : length(0.f) {}
+  GPUdDefault() MatBudget(const MatBudget& src) CON_DEFAULT;
 
-  void scale(float scale)
+  GPUd() void scale(float scale)
   {
     MatCell::scale(scale);
     length *= scale;

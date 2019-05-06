@@ -14,19 +14,20 @@
 #include "DetectorsBase/MatLayerCyl.h"
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "DetectorsBase/GeometryManager.h"
-
-#include <FairLogger.h>
+#include "GPUCommonFairLogger.h"
+#endif
 
 using namespace o2::base;
 using flatObject = o2::gpu::FlatObject;
 
 //________________________________________________________________________________
-MatLayerCyl::MatLayerCyl() : mZHalf(0.f), mNZBins(0), mNPhiBins(0), mNPhiSlices(0), mRMin2(0.f), mRMax2(0.f), mDZ(0.f), mDZInv(0.f), mDPhi(0.f), mDPhiInv(0.f), mPhiBin2Slice(nullptr), mSliceCos(nullptr), mSliceSin(nullptr), mCells(nullptr)
+MatLayerCyl::MatLayerCyl() : mNZBins(0), mNPhiBins(0), mNPhiSlices(0), mZHalf(0.f), mRMin2(0.f), mRMax2(0.f), mDZ(0.f), mDZInv(0.f), mDPhi(0.f), mDPhiInv(0.f), mPhiBin2Slice(nullptr), mSliceCos(nullptr), mSliceSin(nullptr), mCells(nullptr)
 {
 }
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 //________________________________________________________________________________
 MatLayerCyl::MatLayerCyl(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin)
 {
@@ -305,8 +306,9 @@ void MatLayerCyl::flatten(char* newPtr)
   mConstructionMask = Constructed;
 }
 
-#endif // ! GPUCA_GPUCODE
+#endif // ! GPUCA_ALIGPUCODE
 
+#ifndef GPUCA_GPUCODE
 //________________________________________________________________________________
 void MatLayerCyl::fixPointers(char* oldPtr, char* newPtr)
 {
@@ -316,9 +318,10 @@ void MatLayerCyl::fixPointers(char* oldPtr, char* newPtr)
   mSliceSin = flatObject::relocatePointer(oldPtr, newPtr, mSliceSin);
   mCells = flatObject::relocatePointer(oldPtr, newPtr, mCells);
 }
+#endif // ! GPUCA_GPUCODE
 
 //________________________________________________________________________________
-int MatLayerCyl::getNPhiBinsInSlice(int iSlice, int& binMin, int& binMax) const
+GPUd() int MatLayerCyl::getNPhiBinsInSlice(int iSlice, int& binMin, int& binMax) const
 {
   // slow method to get number of phi bins for given phi slice
   int nb = 0;
