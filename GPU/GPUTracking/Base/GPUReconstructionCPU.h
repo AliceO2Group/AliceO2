@@ -156,6 +156,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   void TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { TransferMemoryResourcesHelper(proc, stream, all, false); }
   void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
   void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  virtual void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
   virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr);
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
@@ -190,7 +191,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual int HelperError(int iThread) const { return 0; }
   virtual int HelperDone(int iThread) const { return 0; }
   virtual void ResetHelperThreads(int helpers) {}
-  virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst);
+  virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
   virtual void SetThreadCounts();
 

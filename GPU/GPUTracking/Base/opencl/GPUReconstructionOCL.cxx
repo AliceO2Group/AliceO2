@@ -447,7 +447,25 @@ int GPUReconstructionOCLBackend::ExitDevice_Runtime()
   return (0);
 }
 
-void GPUReconstructionOCLBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
+void GPUReconstructionOCLBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+{
+  if (evList == nullptr) {
+    nEvents = 0;
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    stream = -1;
+  }
+  if (stream == -1) {
+    SynchronizeGPU();
+  }
+  if (toGPU) {
+    GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)dst - (char*)mDeviceMemoryBase, size, src, nEvents, (cl_event*)evList, (cl_event*)ev));
+  } else {
+    GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)src - (char*)mDeviceMemoryBase, size, dst, nEvents, (cl_event*)evList, (cl_event*)ev));
+  }
+}
+
+void GPUReconstructionOCLBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -455,23 +473,10 @@ void GPUReconstructionOCLBackend::TransferMemoryInternal(GPUMemoryResource* res,
     }
     return;
   }
-  if (evList == nullptr) {
-    nEvents = 0;
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
-    stream = -1;
-  }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
   }
-  if (stream == -1) {
-    SynchronizeGPU();
-  }
-  if (toGPU) {
-    GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)dst - (char*)mDeviceMemoryBase, res->Size(), src, nEvents, (cl_event*)evList, (cl_event*)ev));
-  } else {
-    GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)src - (char*)mDeviceMemoryBase, res->Size(), dst, nEvents, (cl_event*)evList, (cl_event*)ev));
-  }
+  GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
 void GPUReconstructionOCLBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
