@@ -956,12 +956,12 @@ int GPUChainTracking::RunTPCTrackingMerger()
     printf("\t\tMerge CE:\t%'7d us\n", (int)(times[3] * 1000000 / nCount));
     printf("\t\tCollect:\t%'7d us\n", (int)(times[4] * 1000000 / nCount));
     printf("\t\tClusters:\t%'7d us\n", (int)(times[5] * 1000000 / nCount));
-    double speed = (double)copysize / times[6] * nCount / 1e9;
+    double speed = (double)copysize / std::max(1., times[6]) * nCount / 1e9;
     if (doGPU) {
       printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int)(times[6] * 1000000 / nCount), speed);
     }
     printf("\t\tRefit:\t\t%'7d us\n", (int)(times[7] * 1000000 / nCount));
-    speed = (double)copysize / times[8] * nCount / 1e9;
+    speed = (double)copysize / std::max(1., times[8]) * nCount / 1e9;
     if (doGPU) {
       printf("\t\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int)(times[8] * 1000000 / nCount), speed);
     }
