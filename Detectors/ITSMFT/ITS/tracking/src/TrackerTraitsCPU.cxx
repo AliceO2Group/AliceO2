@@ -225,5 +225,18 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
+void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+{
+  std::array<const Cell*, 5> cells;
+  for (int iLayer = 0; iLayer < 5; iLayer++) {
+    cells[iLayer] = mPrimaryVertexContext->getCells()[iLayer].data();
+  }
+  std::array<const Cluster*, 7> clusters;
+  for (int iLayer = 0; iLayer < 7; iLayer++) {
+    clusters[iLayer] = mPrimaryVertexContext->getClusters()[iLayer].data();
+  }
+  mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
+}
+
 } // namespace ITS
 } // namespace o2

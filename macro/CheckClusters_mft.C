@@ -21,14 +21,14 @@
 #endif
 
 using namespace o2::base;
-using o2::ITSMFT::Cluster;
+using o2::itsmft::Cluster;
 
 void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3")
 {
   using namespace o2::base;
   using namespace o2::MFT;
 
-  using o2::ITSMFT::Hit;
+  using o2::itsmft::Hit;
 
   TH1F* hTrackID = new TH1F("hTrackID", "hTrackID", 1.1 * nMuons + 1, -0.5, (nMuons + 0.1 * nMuons) + 0.5);
   TH2F* hDifLocXrZc = new TH2F("hDifLocXrZc", "hDifLocXrZc", 100, -50., +50., 100, -50., +50.);

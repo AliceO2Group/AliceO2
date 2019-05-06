@@ -35,8 +35,6 @@ class Dipole : public FairModule
 
   void createMaterials();
   void createSpectrometerDipole();
-  void createCompensatorDipole();
-  TGeoVolume* createMagnetYoke();
 
   ClassDefOverride(o2::passive::Dipole, 1)
 };

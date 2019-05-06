@@ -50,18 +50,18 @@ void readITSDigits(std::string path = "./",
     return;
   }
 
-  std::vector<o2::ITSMFT::Digit>* dv = nullptr;
+  std::vector<o2::itsmft::Digit>* dv = nullptr;
   digiTree->SetBranchAddress("ITSDigit", &dv);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   digiTree->SetBranchAddress("ITSDigitMCTruth", &labels);
 
   // ROF record entries in the digit tree
-  std::vector<o2::ITSMFT::ROFRecord>* rofRecVec = nullptr;
+  std::vector<o2::itsmft::ROFRecord>* rofRecVec = nullptr;
   rofTree->SetBranchAddress("ITSDigitROF", &rofRecVec);
   rofTree->GetEntry(0);
 
   // MCEvID -> ROFrecord references
-  std::vector<o2::ITSMFT::MC2ROFRecord>* mc2rofVec = nullptr;
+  std::vector<o2::itsmft::MC2ROFRecord>* mc2rofVec = nullptr;
   mc2rofTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
   mc2rofTree->GetEntry(0);
 

@@ -19,6 +19,7 @@
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
+#include "O2Device/Compatibility.h"
 #include "TimeFrame/TimeFrame.h"
 
 #include <iomanip>
@@ -91,7 +92,7 @@ void EPNReceiverDevice::Run()
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts subtimeframeParts;
     if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
       continue;

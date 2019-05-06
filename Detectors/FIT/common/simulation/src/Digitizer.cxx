@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FITSimulation/Digitizer.h"
-#include "FITBase/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <CommonDataFormat/InteractionRecord.h>
 
@@ -24,7 +23,7 @@ using namespace o2::fit;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
+void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit)
 
 {
   //parameters constants TO DO: move to class
@@ -34,19 +33,18 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
   auto sorted_hits{ *hits };
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fit::HitType const& a, o2::fit::HitType const& b) {
+  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::t0::HitType const& a, o2::t0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
   digit->setTime(mEventTime);
-  digit->setBC(mBC);
-  digit->setOrbit(mOrbit);
+  digit->setInteractionRecord(mIntRecord);
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  std::vector<ChannelData>& channel_data = digit->getChDgData();
+  std::vector<o2::t0::ChannelData>& channel_data = digit->getChDgData();
   if (channel_data.size() == 0) {
     channel_data.reserve(parameters.mMCPs);
     for (int i = 0; i < parameters.mMCPs; ++i)
-      channel_data.emplace_back(ChannelData{ i, 0, 0, 0 });
+      channel_data.emplace_back(o2::t0::ChannelData{ i, 0, 0, 0 });
   }
   Int_t parent = -10;
   assert(digit->getChDgData().size() == parameters.mMCPs);
@@ -70,7 +68,7 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
     if (parentID != parent) {
-      o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
+      o2::t0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;
       if (mMCLabels) {
         lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
@@ -81,7 +79,7 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   }
 }
 
-void Digitizer::computeAverage(Digit& digit)
+void Digitizer::computeAverage(o2::t0::Digit& digit)
 {
   constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
   auto& channel_data = digit.getChDgData();
@@ -93,17 +91,17 @@ void Digitizer::computeAverage(Digit& digit)
       ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
   }
   channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
-                                    [this](ChannelData const& ch_data) {
+                                    [this](o2::t0::ChannelData const& ch_data) {
                                       return ch_data.QTCAmpl < parameters.mCFD_trsh_mip;
                                     }),
                      channel_data.end());
 }
 
 //------------------------------------------------------------------------
-void Digitizer::smearCFDtime(Digit* digit)
+void Digitizer::smearCFDtime(o2::t0::Digit* digit)
 {
   //smeared CFD time for 50ps
-  std::vector<ChannelData> mChDgDataArr;
+  std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     Double_t cfd = d.CFDTime;
@@ -111,14 +109,14 @@ void Digitizer::smearCFDtime(Digit* digit)
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
       Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
-      mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp, numpart });
+      mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
 }
 
 //------------------------------------------------------------------------
-void Digitizer::setTriggers(Digit* digit)
+void Digitizer::setTriggers(o2::t0::Digit* digit)
 {
   constexpr Double_t BC_clk_center = 12.5;      // clk center
   constexpr Double_t trg_central_trh = 100.;    // mip

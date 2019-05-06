@@ -18,11 +18,11 @@
 #include <cmath>
 #include <TFile.h>
 
-ClassImp(o2::ITSMFT::BuildTopologyDictionary)
+ClassImp(o2::itsmft::BuildTopologyDictionary)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
   constexpr float BuildTopologyDictionary::IgnoreVal;
 
@@ -215,8 +215,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       unsigned long provvHash = 0;
       provvHash = (((unsigned long)(index + 1)) << 32) & 0xffffffff00000000;
       GroupArray[index].mHash = provvHash;
-      GroupArray[index].mErrX = (rowBinEdge)*o2::ITSMFT::SegmentationAlpide::PitchRow / std::sqrt(12);
-      GroupArray[index].mErrZ = (colBinEdge)*o2::ITSMFT::SegmentationAlpide::PitchCol / std::sqrt(12);
+      GroupArray[index].mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
+      GroupArray[index].mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
       GroupArray[index].mXCOG = rowBinEdge / 2;
       GroupArray[index].mZCOG = colBinEdge / 2;
       GroupArray[index].mNpixels = rowBinEdge * colBinEdge;
@@ -332,5 +332,5 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     output.Close();
   }
 
-  } // namespace ITSMFT
+  } // namespace itsmft
 }

@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 template <int N>
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
@@ -51,7 +51,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 template <int N>
 DPLDigitizerParam<N> DPLDigitizerParam<N>::sInstance;
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

@@ -14,6 +14,8 @@
 #include "TRDSimulation/Digitizer.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/TRDCommonParam.h" // For kNdet
+#include "TRDBase/TRDSimParam.h"
 
 #include "FairLogger.h"
 
@@ -24,12 +26,11 @@ Digitizer::Digitizer()
   // Check if you need more initialization
   mGeom = new TRDGeometry();
   mSDigits = false;
-
 }
 
 Digitizer::~Digitizer() = default;
 
-void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
+void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& digits)
 {
   // (WIP) Implementation for digitization
 
@@ -42,10 +43,11 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
 
   // Loop over all TRD detectors
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
-  const int Ndet = 540; // Get this from TRD Geometry
+
   int totalNumberOfProcessedHits = 0;
   LOG(INFO) << "Start of processing " << hits.size() << " hits";
-  for (int det = 0; det < Ndet; ++det) {
+
+  for (int det = 0; det < kNdet; ++det) {
     // Loop over all TRD detectors
 
     // Jump to the next detector if the detector is
@@ -77,7 +79,7 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
   LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits";
 }
 
-bool Digitizer::getHitContainer(const int det, const std::vector<o2::trd::HitType>& hits, std::vector<o2::trd::HitType>& hitContainer)
+bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits, std::vector<HitType>& hitContainer)
 {
   //
   // Fills the hit vector for hits in detector number det
@@ -94,32 +96,13 @@ bool Digitizer::getHitContainer(const int det, const std::vector<o2::trd::HitTyp
   return true;
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& hits, int& arraySignal)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int& arraySignal)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
   //
 
   LOG(INFO) << "Start converting " << hits.size() << " hits for detector " << det;
-
-  // Dummy signal for now
-  arraySignal = -1;
-  // Number of pads included in the pad response
-  constexpr int kNpad = 3;
-  // Width of the amplification region
-  const float kAmWidth = TRDGeometry::amThick();
-  // Width of the drift retion
-  const float kDrWidth = TRDGeometry::drThick();
-  // Drift + Amplification region
-  const float kDrMin = -0.5 * kAmWidth;
-  const float kDrMax = kDrWidth + 0.5 * kAmWidth;
-
-  int timeBinTRFend = 0;
-
-  double pos[3];
-  double loc[3];
-  double padSignal[kNpad];
-  double signalOld[kNpad];
 
   // Number of track dictionary arrays
   // const int kNdict     = AliTRDdigitsManager::kNDict;
@@ -141,26 +124,50 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
   //   return false;
   // }
 
+  arraySignal = -1; // Dummy signal for now
+
+  const int kNpad = simParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
+  const float kAmWidth = TRDGeometry::amThick();              // Width of the amplification region
+  const float kDrWidth = TRDGeometry::drThick();              // Width of the drift retion
+  const float kDrMin = -0.5 * kAmWidth;                       // Drift + Amplification region
+  const float kDrMax = kDrWidth + 0.5 * kAmWidth;             // Drift + Amplification region
+
+  int timeBinTRFend = 0;
+
+  double pos[3];
+  double loc[3];
+  double padSignal[kNpad];
+  double signalOld[kNpad];
+
   // Get the detector wise calibration objects
-  // TRDCalROC* calVdriftROC = 0;
-  float calVdriftDetValue = 0.0;
-  // TRDCalDet* calVdriftDet = calibration->GetVdriftDet();
-  // TRDCalROC* calT0ROC = 0;
-  float calT0DetValue = 0.0;
-  // TRDCalDet* calT0Det = calibration->GetT0Det();
-  double calExBDetValue = 0.0;
-  // TRDCalDet* calExBDet = calibration->GetExBDet();
+  // const TRDCalDet* calVdriftDet = calibration->GetVdriftDet();    PLEASE FIX ME when CCDB is ready
+  // const TRDCalDet* calT0Det = calibration->GetT0Det();            PLEASE FIX ME when CCDB is ready
+  // const TRDCalDet* calExBDet = calibration->GetExBDet();          PLEASE FIX ME when CCDB is ready
+
+  // FIX ME: Default values until I have implemented the calibration objects
+  //
+  // See Table 8 (Nuclear Inst. and Methods in Physics Research, A 881 (2018) 88-127)
+  // Defaults values  from OCDB (AliRoot DrawTrending macro - Thanks to Y. Pachmayer)
+  // For 5 TeV pp - 27 runs from LHC15n
+  //
+  float calVdriftDetValue = 1.48; // cm/microsecond         // calVdriftDet->GetValue(det); PLEASE FIX ME when CCDB is ready
+  float calT0DetValue = -1.38;    // microseconds           // calT0Det->GetValue(det);     PLEASE FIX ME when CCDB is ready
+  double calExBDetValue = 0.16;   // T * V/cm (check units) // calExBDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
+
+  // TRDCalROC* calVdriftROC = calibration->GetVdriftROC(det); PLEASE FIX ME when CCDB is ready
+  // TRDCalROC* calT0ROC = calibration->GetT0ROC(det);         PLEASE FIX ME when CCDB is ready
 
   if (simParam->TRFOn()) {
     timeBinTRFend = ((int)(simParam->GetTRFhi() * commonParam->GetSamplingFrequency())) - 1;
   }
 
-  const int nTimeTotal = 0; //DigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  const int nTimeTotal = 0; // DigitsManager->GetDigitsParam()->GetNTimeBins(det);
   const float samplingRate = commonParam->GetSamplingFrequency();
   const float elAttachProp = simParam->GetElAttachProp() / 100;
 
-  const TRDPadPlane* padPlane = mGeom->getPadPlane(det); // Check if mGeom is working
+  const TRDPadPlane* padPlane = mGeom->getPadPlane(det);
   const int layer = mGeom->getLayer(det);
+  const float rowEndROC = padPlane->getRowEndROC();
   const float row0 = padPlane->getRow0ROC();
   const int nRowMax = padPlane->getNrows();
   const int nColMax = padPlane->getNcols();
@@ -179,41 +186,36 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
     pos[0] = hit.GetX();
     pos[1] = hit.GetY();
     pos[2] = hit.GetZ();
-
-    const int qTotal = hit.GetCharge();
-
     gGeoManager->SetCurrentPoint(pos);
     gGeoManager->FindNode();
-    // int inDrift = 1;
-    // if (strstr(gGeoManager->GetPath(), "/UK")) {
-    //   inDrift = 0;
-    // }
-    // Better use ternary operation and make it const
-    const int inDrift = strstr(gGeoManager->GetPath(), "/UK") ? 0 : 1; // If /UK, then not in drift region
-
-    // Get the calibration objects
-    // They are all zeros until I have implemented the calibration objects
-    // calVdriftROC = 0;      // calibration->GetVdriftROC(det);
-    // calVdriftDetValue = 0; // calVdriftDet->GetValue(det);
-    // calT0ROC = 0;          // calibration->GetT0ROC(det);
-    // calT0DetValue = 0;     // calT0Det->GetValue(det);
-    // calExBDetValue = 0;    // calExBDet->GetValue(det);
-
     // Go to the local coordinate system
     // loc [0] -  col direction in amplification or drift volume
     // loc [1] -  row direction in amplification or drift volume
     // loc [2] -  time direction in amplification or drift volume
     gGeoManager->MasterToLocal(pos, loc);
+
+    const int qTotal = hit.GetCharge();
+
+    const int inDrift = std::strstr(gGeoManager->GetPath(), "/UK") ? 0 : 1;
     if (inDrift) {
       loc[2] = loc[2] - kDrWidth / 2 - kAmWidth / 2;
     }
-    // The drift length in cm without diffusion yet!
-    const double driftLength = -1 * loc[2];
 
-    /*
-      Remember that there is a patch for TR photons
-      TR photons are not available yet
-    */
+    const double driftLength = -1 * loc[2]; // The drift length in cm without diffusion
+
+    // Patch to take care of TR photons that are absorbed
+    // outside the chamber volume. A real fix would actually need
+    // a more clever implementation of the TR hit generation
+    if (qTotal < 0) {
+      if ((loc[1] < rowEndROC) ||
+          (loc[1] > row0)) {
+        continue;
+      }
+      if ((driftLength < kDrMin) ||
+          (driftLength > kDrMax)) {
+        continue;
+      }
+    }
 
     int rowE = padPlane->getPadRowNumberROC(loc[1]);
     if (rowE < 0) {
@@ -227,34 +229,33 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
       continue;
     }
 
-    // Normalized drift length
-    // Commented out what is still not yet implemented
-    double driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE);
-    double absDriftLength = abs(driftLength);
+    // FIX ME: Commented out what is still not yet implemented
+    double absDriftLength = abs(driftLength); // Normalized drift length
     if (commonParam->ExBOn()) {
       absDriftLength /= TMath::Sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
+    double driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE); PLEASE FIX ME when CCDB is ready
 
     // Loop over all created electrons
-    const int nElectrons = (int)abs(qTotal);
+    const int nElectrons = abs(qTotal);
     for (int el = 0; el < nElectrons; ++el) {
-      /* 
+      /*
       Now the real local coordinate system of the ROC
       column direction: locC
-      row direction:    locR 
+      row direction:    locR
       time direction:   locT
       locR and locC are identical to the coordinates of the corresponding
       volumina of the drift or amplification region.
       locT is defined relative to the wire plane (i.e. middle of amplification
       region), meaning locT = 0, and is negative for hits coming from the
-      drift region. 
+      drift region.
       */
       double locC = loc[0];
       double locR = loc[1];
       double locT = loc[2];
 
       // Electron attachment
-      if (TRDSimParam::Instance()->ElAttachOn()) {
+      if (simParam->ElAttachOn()) {
         if (gRandom->Rndm() < absDriftLength * elAttachProp) {
           continue;
         }
@@ -288,8 +289,8 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
       double colOffset = padPlane->getPadColOffset(colE, locC + offsetTilt);
 
       // Retrieve drift velocity becuase col and row may have changed
-      driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE);
-      float t0 = calT0DetValue;          // + calT0ROC->getValue(colE, rowE);
+      driftVelocity = calVdriftDetValue; // * calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
+      float t0 = calT0DetValue;          // + calT0ROC->getValue(colE, rowE);      PLEASE FIX ME when CCDB is ready
 
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
@@ -387,7 +388,7 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
           // Store the track index in the dictionary
           // Note: We store index+1 in order to allow the array to be compressed
           // Note2: Taking out the +1 in track
-          /*  
+          /*
           if (signalOld[iPad] > 0) {
             for (int dict = 0; dict < kNdict; dict++) {
               int oldTrack = dictionary[dict]->GetData(rowE, colPos, iTimeBin);

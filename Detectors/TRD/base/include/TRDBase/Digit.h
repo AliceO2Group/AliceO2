@@ -11,30 +11,20 @@
 #ifndef ALICEO2_TRD_DIGIT_H_
 #define ALICEO2_TRD_DIGIT_H_
 
+#include <cstdint>
+#include <vector>
+
 namespace o2
 {
 namespace trd
 {
-class Digit
-{
- public:
-  Digit() = default;
-  ~Digit() = default;
-  int GetRow() const { return mRow; }
-  int GetCol() const { return mCol; }
-  int GetTime() const { return mTime; }
-  int GetAmp() const { return mAmp; }
-  int GetEventID() const { return mEventID; }
-  int GetSourceID() const { return mSourceID; }
 
- private:
-  int mRow = 0;  // pad row number
-  int mCol = 0;  // pad col number
-  int mTime = 0; // time stamp
-  int mAmp = 0;  // digitalized energy
-  int mEventID = 0;
-  int mSourceID = 0;
-};
+class DigitIndex;
+
+typedef std::uint16_t Digit;
+typedef std::vector<Digit> DigitContainer;
+typedef std::vector<DigitIndex> DigitIndexContainer;
+
 } // namespace trd
 } // namespace o2
 

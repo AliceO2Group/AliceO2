@@ -20,7 +20,7 @@
 #include <chrono>
 
 using namespace o2::MFT;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 Tracker::Layer Tracker::sLayers[Constants::LayersNumber];
 

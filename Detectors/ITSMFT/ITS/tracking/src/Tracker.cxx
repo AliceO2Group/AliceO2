@@ -214,6 +214,7 @@ void Tracker::findTracks(const ROframe& event)
   std::array<int, 4> refitCounters{ 0, 0, 0, 0 };
   std::array<int, 4> nonsharingCounters{ 0, 0, 0, 0 };
 #endif
+
   for (auto& road : mPrimaryVertexContext->getRoads()) {
     std::array<int, 7> clusters{ Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex };
     int lastCellLevel = Constants::ITS::UnusedIndex;
@@ -278,6 +279,7 @@ void Tracker::findTracks(const ROframe& event)
     tracks.emplace_back(temporaryTrack);
     assert(nClusters == temporaryTrack.getNumberOfClusters());
   }
+  //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITS& track1, TrackITS& track2) { return track1.isBetter(track2, 1.e6f); });

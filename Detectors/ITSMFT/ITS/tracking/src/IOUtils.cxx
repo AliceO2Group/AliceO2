@@ -89,8 +89,8 @@ std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
           const float cosAlpha = std::cos(alphaAngle);
           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
           const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
-          events.back().addTrackingFrameInfoToLayer(layerId, xTF, alphaAngle, std::array<float, 2>{ yTF, zCoordinate },
-                                                    std::array<float, 3>{ varY, 0.f, varZ });
+          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
+                                                    std::array<float, 2>{ yTF, zCoordinate }, std::array<float, 3>{ varY, 0.f, varZ });
           events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
 
           ++clusterId;
@@ -102,7 +102,7 @@ std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -118,12 +118,12 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* 
     int layer = geom->getLayer(c.getSensorID());
 
     /// Clusters are stored in the tracking frame
-    event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
+    auto xyz = c.getXYZGloRot(*geom);
+    event.addTrackingFrameInfoToLayer(layer, xyz.x(), xyz.y(), xyz.z(), c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
                                       std::array<float, 2>{ c.getY(), c.getZ() },
                                       std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
 
     /// Rotate to the global frame
-    auto xyz = c.getXYZGloRot(*geom);
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
     event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
     event.addClusterExternalIndexToLayer(layer, clusterId);
@@ -131,7 +131,7 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* 
   }
 }
 
-int IOUtils::loadROFrameData(const o2::ITSMFT::ROFRecord& rof, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
+int IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -150,12 +150,12 @@ int IOUtils::loadROFrameData(const o2::ITSMFT::ROFRecord& rof, ROframe& event, c
     int layer = geom->getLayer(c.getSensorID());
 
     /// Clusters are stored in the tracking frame
-    event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
+    auto xyz = c.getXYZGloRot(*geom);
+    event.addTrackingFrameInfoToLayer(layer, xyz.x(), xyz.y(), xyz.z(), c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
                                       std::array<float, 2>{ c.getY(), c.getZ() },
                                       std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
 
     /// Rotate to the global frame
-    auto xyz = c.getXYZGloRot(*geom);
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
     event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
     event.addClusterExternalIndexToLayer(layer, first + clusterId);

@@ -23,6 +23,7 @@
 #include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/FLPSender.h"
+#include "O2Device/Compatibility.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -71,7 +72,7 @@ void FLPSender::Run()
   // store the channel reference to avoid traversing the map on every loop iteration
   FairMQChannel& dataInChannel = fChannels.at(mInChannelName).at(0);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     // initialize f2e header
     auto* header = new f2eHeader;
     if (mTestMode > 0) {

@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 ///< single pixel datum, with possibility to set a flag of pixel being masked out

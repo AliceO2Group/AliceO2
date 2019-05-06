@@ -7,7 +7,7 @@
 #include "EMCALBase/Hit.h"
 #include "TRDSimulation/Detector.h" // For TRD Hit
 #include "T0Simulation/Detector.h"  // for Fit Hit
-#include "V0Simulation/Hit.h"
+#include "DataFormatsFITV0/Hit.h"
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
@@ -129,7 +129,7 @@ struct TRDHitStats : public HitStatsBase {
 
 struct ITSHitStats : public HitStatsBase {
   // adds a hit to the statistics
-  void addHit(o2::ITSMFT::Hit const& hit)
+  void addHit(o2::itsmft::Hit const& hit)
   {
     NHits++;
     auto x = hit.GetStartX();
@@ -205,7 +205,7 @@ TPCHitStats analyseTPC(TTree* tr)
 // do comparison for ITS
 void analyzeITS(TTree* reftree)
 {
-  auto refresult = analyse<o2::ITSMFT::Hit, ITSHitStats>(reftree, "ITSHit");
+  auto refresult = analyse<o2::itsmft::Hit, ITSHitStats>(reftree, "ITSHit");
   std::cout << gPrefix << " ITS ";
   refresult.print();
 }
@@ -245,7 +245,7 @@ void analyzePHS(TTree* reftree)
 
 void analyzeT0(TTree* reftree)
 {
-  auto refresult = analyse<o2::fit::HitType, HitStats<o2::fit::HitType>>(reftree, "T0Hit");
+  auto refresult = analyse<o2::t0::HitType, HitStats<o2::t0::HitType>>(reftree, "T0Hit");
   std::cout << gPrefix << " T0 ";
   refresult.print();
 }
@@ -259,7 +259,7 @@ void analyzeHMP(TTree* reftree)
 
 void analyzeMFT(TTree* reftree)
 {
-  auto refresult = analyse<o2::ITSMFT::Hit, ITSHitStats>(reftree, "MFTHit");
+  auto refresult = analyse<o2::itsmft::Hit, ITSHitStats>(reftree, "MFTHit");
   std::cout << gPrefix << " MFT ";
   refresult.print();
 }

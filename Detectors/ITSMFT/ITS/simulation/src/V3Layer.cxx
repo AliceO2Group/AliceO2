@@ -40,7 +40,7 @@ class TGeoMedium;
 
 using namespace TMath;
 using namespace o2::ITS;
-using AlpideChip = o2::ITSMFT::AlpideChip;
+using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;

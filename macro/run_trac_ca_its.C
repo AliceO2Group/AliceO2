@@ -33,6 +33,12 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainTracking.h"
+#include "GPUChainITS.h"
+using namespace o2::gpu;
+
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_ca_its(bool useITSVertex = false,
@@ -45,8 +51,13 @@ void run_trac_ca_its(bool useITSVertex = false,
 
   gSystem->Load("libITStracking.so");
 
-  //o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
-  o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
+  auto* chainTracking = rec->AddChain<GPUChainTracking>();
+  auto* chainITS = rec->AddChain<GPUChainITS>();
+  rec->Init();
+
+  o2::ITS::Tracker tracker(chainITS->GetITSTrackerTraits());
+  //o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {
@@ -96,7 +107,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   if (!itsClusters.GetBranch("ITSCluster")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
   }
-  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {

@@ -195,6 +195,7 @@ if (HAVESIMULATION)
    add_subdirectory(run)
 endif()
 add_subdirectory(config)
+add_subdirectory(GPU)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
@@ -233,6 +234,18 @@ set(EXCLUDE_MACROS_FROM_TEST
   ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
   ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
 
+  # Exclude AliRoot macros from AliGPU package
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/checkPropagation.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/tools/dump.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/initTPCcalibration.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/createTPCFastTransform.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/moveTPCFastTransform.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/loadlibs.C
+
   # Disabled from @mconcas: will be removed soon in any case
   ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
 
@@ -254,6 +267,15 @@ set(EXCLUDE_MACROS_FROM_COMPILED_TEST
   ${CMAKE_SOURCE_DIR}/macro/convertClusterToClusterHardware.C
   ${CMAKE_SOURCE_DIR}/macro/run_clus_tpc.C
 )
+
+# ROOT on MacOS has linking issues with Vc, disabled until fixed
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(EXCLUDE_MACROS_FROM_COMPILED_TEST
+    ${EXCLUDE_MACROS_FROM_COMPILED_TEST}
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline1DTest.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline2D3DTest.C
+  )
+endif()
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
 if(HAVESIMULATION)

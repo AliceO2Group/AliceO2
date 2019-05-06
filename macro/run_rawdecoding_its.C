@@ -30,19 +30,19 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
                          int verbose = 0)
 {
 
-  o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
   rawReader.openInput(inpName);
   rawReader.setPadding128(padding); // payload GBT words are padded to 16B
   rawReader.imposeMaxPage(page8kb); // pages are 8kB in size (no skimming)
   rawReader.setVerbosity(verbose);
 
-  o2::ITSMFT::ChipPixelData chipData;
+  o2::itsmft::ChipPixelData chipData;
   TStopwatch sw;
   sw.Start();
   uint32_t roFrame = 0;
   o2::InteractionRecord irHB, irTrig;
-  std::vector<o2::ITSMFT::Digit> digits, *digitsPtr = &digits;
-  std::vector<o2::ITSMFT::ROFRecord> rofRecVec, *rofRecVecPtr = &rofRecVec;
+  std::vector<o2::itsmft::Digit> digits, *digitsPtr = &digits;
+  std::vector<o2::itsmft::ROFRecord> rofRecVec, *rofRecVecPtr = &rofRecVec;
   std::size_t rofEntry = 0, nrofdig = 0;
   std::unique_ptr<TFile> outFileDig;
   std::unique_ptr<TTree> outTreeDig; // output tree with digits

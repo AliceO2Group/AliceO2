@@ -36,7 +36,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ITSMFTDPLDigitizerTask
@@ -76,7 +76,7 @@ class ITSMFTDPLDigitizerTask
     }
 
     // configure digitizer
-    o2::ITSMFT::GeometryTGeo* geom = nullptr;
+    o2::itsmft::GeometryTGeo* geom = nullptr;
     if (mID == o2::detectors::DetID::ITS) {
       geom = o2::ITS::GeometryTGeo::Instance();
     } else {
@@ -261,16 +261,16 @@ class ITSMFTDPLDigitizerTask
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::ITSMFT::Digitizer mDigitizer;
-  std::vector<o2::ITSMFT::Digit> mDigits;
-  std::vector<o2::ITSMFT::Digit> mDigitsAccum;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecords;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecordsAccum;
-  std::vector<o2::ITSMFT::Hit> mHits;
-  std::vector<o2::ITSMFT::Hit>* mHitsP = &mHits;
+  o2::itsmft::Digitizer mDigitizer;
+  std::vector<o2::itsmft::Digit> mDigits;
+  std::vector<o2::itsmft::Digit> mDigitsAccum;
+  std::vector<o2::itsmft::ROFRecord> mROFRecords;
+  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
+  std::vector<o2::itsmft::Hit> mHits;
+  std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::ITSMFT::MC2ROFRecord> mMC2ROFRecordsAccum;
+  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
   TChain mQEDChain = { "o2sim" };
 
@@ -297,8 +297,8 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   }
   void setDigitizationOptions() override
   {
-    auto& dopt = o2::ITSMFT::DPLDigitizerParam<DETID>::Instance();
-    auto& aopt = o2::ITSMFT::DPLAlpideParam<DETID>::Instance();
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
     digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
@@ -331,8 +331,8 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
 
   void setDigitizationOptions() override
   {
-    auto& dopt = o2::ITSMFT::DPLDigitizerParam<DETID>::Instance();
-    auto& aopt = o2::ITSMFT::DPLAlpideParam<DETID>::Instance();
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
     digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
@@ -355,10 +355,10 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
   auto detOrig = ITSDPLDigitizerTask::DETOR;
   std::stringstream parHelper;
-  parHelper << "Params as " << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
-            << "\n or " << o2::ITSMFT::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::ITSMFT::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -383,10 +383,10 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
   auto detOrig = MFTDPLDigitizerTask::DETOR;
   std::stringstream parHelper;
 
-  parHelper << "Params as " << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
-            << " or " << o2::ITSMFT::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
-            << o2::ITSMFT::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -403,5 +403,5 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } } } };
 }
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2

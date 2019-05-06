@@ -14,8 +14,8 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "FITBase/Digit.h"
-#include "FITSimulation/MCLabel.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/MCLabel.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -39,7 +39,7 @@ namespace fit
 class FITDPLDigitWriter
 {
 
-  using MCCont = o2::dataformats::MCTruthContainer<o2::fit::MCLabel>;
+  using MCCont = o2::dataformats::MCTruthContainer<o2::t0::MCLabel>;
 
  public:
   void init(framework::InitContext& ic)
@@ -69,7 +69,7 @@ class FITDPLDigitWriter
     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
     // retrieve the digits from the input
-    auto inDigits = pc.inputs().get<std::vector<o2::fit::Digit>>((detStr + "digits").c_str());
+    auto inDigits = pc.inputs().get<std::vector<o2::t0::Digit>>((detStr + "digits").c_str());
 
     auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
@@ -106,7 +106,7 @@ class FITDPLDigitWriter
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  std::vector<o2::fit::Digit> mDigits; // input digits
+  std::vector<o2::t0::Digit> mDigits; // input digits
   std::unique_ptr<TFile> mOutFile;
   std::unique_ptr<TTree> mOutTree;
 };

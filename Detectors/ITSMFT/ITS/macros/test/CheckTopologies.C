@@ -31,10 +31,10 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   using namespace o2::base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::BuildTopologyDictionary;
-  using o2::ITSMFT::Cluster;
-  using o2::ITSMFT::ClusterTopology;
-  using o2::ITSMFT::Hit;
+  using o2::itsmft::BuildTopologyDictionary;
+  using o2::itsmft::Cluster;
+  using o2::itsmft::ClusterTopology;
+  using o2::itsmft::Hit;
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");

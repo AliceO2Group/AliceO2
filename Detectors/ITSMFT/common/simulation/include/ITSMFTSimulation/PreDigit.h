@@ -21,7 +21,7 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 
 // PreDigit is a contribution to the digit from a single hit which happen

@@ -40,7 +40,7 @@ void extractMFTMapping(const std::string inputGeom = "O2geometry.root")
           "// \\brief Automatically generated MFT chip <-> module mapping\n");
 
   fprintf(srcFile, "%s\n\n", R"(#include "ITSMFTReconstruction/ChipMappingMFT.h")");
-  fprintf(srcFile, "using namespace o2::ITSMFT;\n");
+  fprintf(srcFile, "using namespace o2::itsmft;\n");
   fprintf(srcFile, "const std::array<MFTChipMappingData,ChipMappingMFT::NChips> ChipMappingMFT::ChipMappingData\n{{\n");
 
   for (Int_t iChip = 0; iChip < nChips; iChip++) {

@@ -15,9 +15,12 @@
 #ifndef TRACKINGITSU_INCLUDE_ROAD_H_
 #define TRACKINGITSU_INCLUDE_ROAD_H_
 
+#ifndef __OPENCL__
 #include <array>
+#endif
 
 #include "ITStracking/Constants.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -35,13 +38,13 @@ class Road final
   void setLabel(const int);
   bool isFakeRoad() const;
   void setFakeRoad(const bool);
-  int& operator[](const int&);
+  GPUhdni() int& operator[](const int&);
 
   void resetRoad();
   void addCell(int, int);
 
  private:
-  std::array<int, Constants::ITS::CellsPerRoad> mCellIds;
+  int mCellIds[Constants::ITS::CellsPerRoad];
   int mRoadSize;
   int mLabel;
   bool mIsFakeRoad;
@@ -53,7 +56,7 @@ inline int Road::getLabel() const { return mLabel; }
 
 inline void Road::setLabel(const int label) { mLabel = label; }
 
-inline int& Road::operator[](const int& i) { return mCellIds[i]; }
+GPUhdi() int& Road::operator[](const int& i) { return mCellIds[i]; }
 
 inline bool Road::isFakeRoad() const { return mIsFakeRoad; }
 

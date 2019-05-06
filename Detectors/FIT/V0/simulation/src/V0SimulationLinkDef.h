@@ -16,7 +16,5 @@
 
 #pragma link C++ class o2::v0::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::v0::Detector > +;
-#pragma link C++ class o2::v0::Hit + ;
-#pragma link C++ class vector<o2::v0::Hit> +;
 
 #endif

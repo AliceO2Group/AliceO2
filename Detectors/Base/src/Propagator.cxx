@@ -13,12 +13,15 @@
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
 
 using namespace o2::base;
+
+constexpr int Propagator::USEMatCorrNONE;
+constexpr int Propagator::USEMatCorrTGeo;
+constexpr int Propagator::USEMatCorrLUT;
 
 Propagator::Propagator()
 {
@@ -48,7 +51,7 @@ Propagator::Propagator()
 
 //_______________________________________________________________________
 bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr)
+                                    int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -59,6 +62,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
   // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
   const float Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
@@ -83,9 +88,9 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
       return false;
     }
-    if (matCorr) {
+    if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = GeometryManager::MeanMaterialBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
       }
@@ -106,7 +111,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 
 //_______________________________________________________________________
 bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
-                              int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr)
+                              int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -117,6 +122,8 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
   // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
   const float Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
@@ -139,9 +146,9 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
     if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
       return false;
     }
-    if (matCorr) {
+    if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = GeometryManager::MeanMaterialBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
@@ -164,7 +171,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 //_______________________________________________________________________
 bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCov& track, float bZ,
                                 float mass, float maxStep, int matCorr,
-                                o2::track::TrackLTIntegral* tofInfo, int signCorr, float maxD)
+                                o2::track::TrackLTIntegral* tofInfo, int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();

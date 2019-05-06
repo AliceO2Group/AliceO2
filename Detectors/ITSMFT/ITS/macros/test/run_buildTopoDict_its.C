@@ -42,12 +42,12 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
   using namespace o2::base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::BuildTopologyDictionary;
-  using o2::ITSMFT::Cluster;
-  using o2::ITSMFT::ClusterTopology;
-  using o2::ITSMFT::Hit;
-  using ROFRec = o2::ITSMFT::ROFRecord;
-  using MC2ROF = o2::ITSMFT::MC2ROFRecord;
+  using o2::itsmft::BuildTopologyDictionary;
+  using o2::itsmft::Cluster;
+  using o2::itsmft::ClusterTopology;
+  using o2::itsmft::Hit;
+  using ROFRec = o2::itsmft::ROFRecord;
+  using MC2ROF = o2::itsmft::MC2ROFRecord;
   using HitVec = std::vector<Hit>;
   using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
 

@@ -50,7 +50,7 @@ class TrackerTask : public FairTask
   bool mContinuousMode = true; ///< triggered or cont. mode
   Tracker mTracker;            ///< Track finder
 
-  const std::vector<o2::ITSMFT::Cluster>* mClustersArray = nullptr;               ///< Array of clusters
+  const std::vector<o2::itsmft::Cluster>* mClustersArray = nullptr;               ///< Array of clusters
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< Cluster MC labels
 
   std::vector<TrackMFT>* mTracksArray = nullptr;                            ///< Array of tracks

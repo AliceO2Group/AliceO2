@@ -9,7 +9,7 @@
 // Clusterization avoiding FairRunAna management.
 // Works both with MC digits and with "raw" data (in this case the last argument must be
 // set to true). The raw data should be prepared beforeahand from the MC digits using e.g.
-// o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingMFT> reader;
+// o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingMFT> reader;
 // reader.convertDigits2Raw("dig.raw","o2dig.root","o2sim","MFTDigit");
 //
 // Use for MC mode:

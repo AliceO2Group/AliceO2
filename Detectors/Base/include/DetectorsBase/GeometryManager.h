@@ -24,6 +24,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
+#include "DetectorsBase/MatCell.h"
 
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
@@ -71,7 +72,7 @@ class GeometryManager : public TObject
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
   static bool applyAlignment(TObjArray& alObjArray, bool ovlpcheck = false, double ovlToler = 1e-3);
 
-  struct MatBudget {
+  struct MatBudgetExt {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]
     double meanX2X0 = 0.; // equivalent rad length fraction: sum(x_i/X0_i) [adimensional]
     double meanA = 0.;    // mean A: sum(x_i*A_i)/sum(x_i) [adimensional]
@@ -81,30 +82,44 @@ class GeometryManager : public TObject
     int nCross = 0;
     ; // number of boundary crosses
 
-    MatBudget() = default;
-    ~MatBudget() = default;
-    MatBudget(const MatBudget& src) = default;
-    MatBudget& operator=(const MatBudget& src) = default;
-    void normalize(double step);
-    void accountMaterial(const TGeoMaterial* material);
-    ClassDefNV(MatBudget, 1);
+    MatBudgetExt() = default;
+    ~MatBudgetExt() = default;
+    MatBudgetExt(const MatBudgetExt& src) = default;
+    MatBudgetExt& operator=(const MatBudgetExt& src) = default;
+    void normalize(double nrm);
+    ClassDefNV(MatBudgetExt, 1);
   };
 
-  static MatBudget MeanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
-
-  static MatBudget MeanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
+  static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+  static o2::base::MatBudget meanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
   {
-    return MeanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+  }
+  static o2::base::MatBudget meanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  {
+    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
-  static MatBudget MeanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  static MatBudgetExt meanMaterialBudgetExt(float x0, float y0, float z0, float x1, float y1, float z1);
+  static MatBudgetExt meanMaterialBudgetExt(const Point3D<float>& start, const Point3D<float>& end)
   {
-    return MeanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+    return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+  }
+  static MatBudgetExt meanMaterialBudgetExt(const Point3D<double>& start, const Point3D<double>& end)
+  {
+    return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
  private:
   /// Default constructor
   GeometryManager();
+
+  static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
+  static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
+  {
+    bd.meanRho = material->GetDensity();
+    bd.meanX2X0 = material->GetRadLen();
+  }
 
   /// The method returns the global matrix for the volume identified by 'path' in the ideal
   /// detector geometry. The output global matrix is stored in 'm'.

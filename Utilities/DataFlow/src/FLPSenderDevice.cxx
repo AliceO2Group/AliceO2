@@ -18,6 +18,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
 #include "DataFlow/FLPSenderDevice.h"
+#include "O2Device/Compatibility.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -45,7 +46,7 @@ void FLPSenderDevice::Run()
   // store the channel reference to avoid traversing the map on every loop iteration
   //FairMQChannel& dataInChannel = fChannels.at(fInChannelName).at(0);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     // - Get the SubtimeframeMetadata
     // - Add the current FLP id to the SubtimeframeMetadata
     // - Forward to the EPN the whole subtimeframe

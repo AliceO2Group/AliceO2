@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 struct MFTChipMappingData {

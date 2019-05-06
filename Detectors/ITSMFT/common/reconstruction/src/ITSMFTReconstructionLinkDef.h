@@ -14,29 +14,29 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ITSMFT::Clusterer + ;
-#pragma link C++ class o2::ITSMFT::PixelReader + ;
-#pragma link C++ class o2::ITSMFT::DigitPixelReader + ;
-#pragma link C++ class o2::ITSMFT::RawPixelReader < o2::ITSMFT::ChipMappingITS > +;
-#pragma link C++ class o2::ITSMFT::RawPixelReader < o2::ITSMFT::ChipMappingMFT > +;
-#pragma link C++ class o2::ITSMFT::PixelData + ;
-#pragma link C++ class o2::ITSMFT::ChipPixelData + ;
-#pragma link C++ class o2::ITSMFT::BuildTopologyDictionary + ;
-#pragma link C++ class o2::ITSMFT::LookUp + ;
-#pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;
-#pragma link C++ class o2::ITSMFT::ChipMappingITS + ;
-#pragma link C++ class o2::ITSMFT::ChipMappingMFT + ;
-#pragma link C++ class o2::ITSMFT::AlpideCoder + ;
-#pragma link C++ class o2::ITSMFT::GBTWord + ;
-#pragma link C++ class o2::ITSMFT::GBTDataHeader + ;
-#pragma link C++ class o2::ITSMFT::GBTDataTrailer + ;
-#pragma link C++ class o2::ITSMFT::GBTData + ;
-#pragma link C++ class o2::ITSMFT::PayLoadCont + ;
-#pragma link C++ class o2::ITSMFT::PayLoadSG + ;
-#pragma link C++ class o2::ITSMFT::RUDecodingStat + ;
-#pragma link C++ class o2::ITSMFT::RawDecodingStat + ;
+#pragma link C++ class o2::itsmft::Clusterer + ;
+#pragma link C++ class o2::itsmft::PixelReader + ;
+#pragma link C++ class o2::itsmft::DigitPixelReader + ;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS > +;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT > +;
+#pragma link C++ class o2::itsmft::PixelData + ;
+#pragma link C++ class o2::itsmft::ChipPixelData + ;
+#pragma link C++ class o2::itsmft::BuildTopologyDictionary + ;
+#pragma link C++ class o2::itsmft::LookUp + ;
+#pragma link C++ class o2::itsmft::TopologyFastSimulation + ;
+#pragma link C++ class o2::itsmft::ChipMappingITS + ;
+#pragma link C++ class o2::itsmft::ChipMappingMFT + ;
+#pragma link C++ class o2::itsmft::AlpideCoder + ;
+#pragma link C++ class o2::itsmft::GBTWord + ;
+#pragma link C++ class o2::itsmft::GBTDataHeader + ;
+#pragma link C++ class o2::itsmft::GBTDataTrailer + ;
+#pragma link C++ class o2::itsmft::GBTData + ;
+#pragma link C++ class o2::itsmft::PayLoadCont + ;
+#pragma link C++ class o2::itsmft::PayLoadSG + ;
+#pragma link C++ class o2::itsmft::RUDecodingStat + ;
+#pragma link C++ class o2::itsmft::RawDecodingStat + ;
 
-#pragma link C++ class std::map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
+#pragma link C++ class std::map<unsigned long, std::pair<o2::itsmft::ClusterTopology, unsigned long>> + ;
 
 
 

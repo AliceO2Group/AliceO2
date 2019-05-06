@@ -20,11 +20,11 @@
 #include <memory>
 #include "FairLogger.h"
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 using namespace std;
 
-ClassImp(o2::ITSMFT::AlpideSimResponse);
-ClassImp(o2::ITSMFT::AlpideRespSimMat);
+ClassImp(o2::itsmft::AlpideSimResponse);
+ClassImp(o2::itsmft::AlpideRespSimMat);
 
 constexpr float micron2cm = 1e-4;
 

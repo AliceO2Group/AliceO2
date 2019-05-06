@@ -36,7 +36,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 extern TEveManager* gEve;
 
@@ -80,10 +80,10 @@ class Data
   std::vector<Digit> mDigits;
   std::vector<Cluster>* mClusterBuffer = nullptr;
   gsl::span<Cluster> mClusters;
-  std::vector<o2::ITSMFT::ROFRecord> mClustersROF;
+  std::vector<o2::itsmft::ROFRecord> mClustersROF;
   std::vector<o2::ITS::TrackITS>* mTrackBuffer = nullptr;
   gsl::span<o2::ITS::TrackITS> mTracks;
-  std::vector<o2::ITSMFT::ROFRecord> mTracksROF;
+  std::vector<o2::itsmft::ROFRecord> mTracksROF;
   void loadDigits();
   void loadDigits(int entry);
   void loadClusters(int entry);
@@ -155,7 +155,7 @@ void Data::setClusTree(TTree* tree)
 
   TTree* roft = (TTree*)gFile->Get("ITSClustersROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mClustersROF;
+    std::vector<o2::itsmft::ROFRecord>* roFrames = &mClustersROF;
     roft->SetBranchAddress("ITSClustersROF", &roFrames);
     roft->GetEntry(0);
   }
@@ -209,7 +209,7 @@ void Data::setTracTree(TTree* tree)
 
   TTree* roft = (TTree*)gFile->Get("ITSTracksROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mTracksROF;
+    std::vector<o2::itsmft::ROFRecord>* roFrames = &mTracksROF;
     roft->SetBranchAddress("ITSTracksROF", &roFrames);
     roft->GetEntry(0);
   }

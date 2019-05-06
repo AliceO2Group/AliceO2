@@ -25,9 +25,9 @@ using namespace o2::base;
 
 void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3")
 {
-  using o2::ITSMFT::SegmentationAlpide;
-  using o2::ITSMFT::Digit;
-  using o2::ITSMFT::Hit;
+  using o2::itsmft::SegmentationAlpide;
+  using o2::itsmft::Digit;
+  using o2::itsmft::Hit;
   using namespace o2::MFT;
 
   TH1F* hTrackID = new TH1F("hTrackID", "hTrackID", 1.1 * nMuons + 1, -0.5, (nMuons + 0.1 * nMuons) + 0.5);
@@ -52,7 +52,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   TFile* file0 = TFile::Open(filename);
   std::cout << " Open hits file " << filename << std::endl;
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
-  std::vector<o2::ITSMFT::Hit>* hitArray = nullptr;
+  std::vector<o2::itsmft::Hit>* hitArray = nullptr;
   hitTree->SetBranchAddress("MFTHit", &hitArray);
 
   // Digits
@@ -60,7 +60,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   TFile* file1 = TFile::Open(filename);
   std::cout << " Open digits file " << filename << std::endl;
   TTree* digTree = (TTree*)gFile->Get("o2sim");
-  std::vector<o2::ITSMFT::Digit>* digArr = nullptr;
+  std::vector<o2::itsmft::Digit>* digArr = nullptr;
   digTree->SetBranchAddress("MFTDigit", &digArr);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   digTree->SetBranchAddress("MFTDigitMCTruth", &labels);

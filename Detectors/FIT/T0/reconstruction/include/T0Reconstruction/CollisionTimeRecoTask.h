@@ -14,8 +14,8 @@
 #define ALICEO2_FIT_COLLISIONTIMERECOTASK_H
 
 #include <vector>
-#include "FITBase/Digit.h"
-#include "T0Reconstruction/RecPoints.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/RecPoints.h"
 namespace o2
 {
 namespace t0
@@ -25,7 +25,7 @@ class CollisionTimeRecoTask
  public:
   CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
-  void Process(const o2::fit::Digit& digits, RecPoints& recPoints) const;
+  void Process(const o2::t0::Digit& digits, RecPoints& recPoints) const;
   void FinishTask();
 
  private:

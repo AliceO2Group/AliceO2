@@ -41,7 +41,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 constexpr int MaxLinksPerRU = 3;            // max numbet of GBT links per RU
@@ -165,7 +165,7 @@ struct RULink {
 struct RUDecodeData {
   std::array<PayLoadCont, MaxCablesPerRU> cableData;              // cable data in compressed ALPIDE format
   std::array<uint8_t, MaxCablesPerRU> cableHWID;                  // HW ID of cable whose data is in the corresponding slot of cableData
-  std::array<o2::ITSMFT::ChipPixelData, MaxChipsPerRU> chipsData; // fully decoded data
+  std::array<o2::itsmft::ChipPixelData, MaxChipsPerRU> chipsData; // fully decoded data
   std::array<std::unique_ptr<RULink>, MaxLinksPerRU> links;       // data + counters for links of this RU
   RUDecodingStat statistics;                                      // decoding statistics
 
@@ -205,10 +205,10 @@ struct RULinks {
 /// within the module, see for example ChipMappingITS class.
 /// Similar helper class must be provided for the MFT
 
-template <class Mapping = o2::ITSMFT::ChipMappingITS>
+template <class Mapping = o2::itsmft::ChipMappingITS>
 class RawPixelReader : public PixelReader
 {
-  using Coder = o2::ITSMFT::AlpideCoder;
+  using Coder = o2::itsmft::AlpideCoder;
 
  public:
   RawPixelReader()
@@ -236,7 +236,7 @@ class RawPixelReader : public PixelReader
   void setPadding128(bool v)
   {
     mPadding128 = v;
-    mGBTWordSize = mPadding128 ? ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
+    mGBTWordSize = mPadding128 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
   }
 
   /// set min number of triggers to cache per frame
@@ -294,7 +294,7 @@ class RawPixelReader : public PixelReader
   ///================================== Encoding methods ========================
 
   ///______________________________________________________________________
-  int digits2raw(const std::vector<o2::ITSMFT::Digit>& digiVec, int from, int ndig, const o2::InteractionRecord& bcData,
+  int digits2raw(const std::vector<o2::itsmft::Digit>& digiVec, int from, int ndig, const o2::InteractionRecord& bcData,
                  uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff)
   {
     // Convert ndig digits belonging to the same trigger to raw data
@@ -367,7 +367,7 @@ class RawPixelReader : public PixelReader
   }
 
   //___________________________________________________________________________________
-  void convertChip(o2::ITSMFT::ChipPixelData& chipData)
+  void convertChip(o2::itsmft::ChipPixelData& chipData)
   {
     ///< convert digits of single chip to Alpide format.
 
@@ -406,7 +406,7 @@ class RawPixelReader : public PixelReader
   int fillRULinks()
   {
     // fill data of the RU to links buffer, return the number of pages in the link with smallest amount of pages
-    constexpr uint8_t zero16[o2::ITSMFT::GBTPaddedWordLength] = { 0 }; // to speedup padding
+    constexpr uint8_t zero16[o2::itsmft::GBTPaddedWordLength] = { 0 }; // to speedup padding
     const int dummyNPages = 0xffffff;                                  // any large number
     int minPages = dummyNPages;
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];
@@ -418,7 +418,7 @@ class RawPixelReader : public PixelReader
     rdh.detectorField = MAP.getRUDetectorField();
     rdh.blockLength = 0xffff; // ITS keeps this dummy
 
-    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / o2::ITSMFT::GBTPaddedWordLength - 2;
+    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / o2::itsmft::GBTPaddedWordLength - 2;
 
     int nGBTW[MaxLinksPerRU] = { 0 };
     for (int il = 0; il < MaxLinksPerRU; il++) {
@@ -447,8 +447,8 @@ class RawPixelReader : public PixelReader
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
       link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for current packet
       link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
-      o2::ITSMFT::GBTDataHeader gbtHeader(0, link->lanes);
-      o2::ITSMFT::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
+      o2::itsmft::GBTDataHeader gbtHeader(0, link->lanes);
+      o2::itsmft::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
       gbtHeader.setPacketID(rdh.pageCnt);
       link->data.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
@@ -496,7 +496,7 @@ class RawPixelReader : public PixelReader
           rdh.stop = nGBTWordsNeeded < maxGBTWordsPerPacket; // flag if this is the last packet of multi-packet
           rdh.blockLength = 0xffff;                          // (nGBTWordsNeeded % maxGBTWordsPerPacket + 2) * mGBTWordSize; // record payload size
           // update remaining size, using padded GBT words (as CRU writes)
-          rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::ITSMFT::GBTPaddedWordLength;
+          rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength;
           if (rdh.memorySize > MaxGBTPacketBytes) {
             rdh.memorySize = MaxGBTPacketBytes;
           }
@@ -752,7 +752,7 @@ class RawPixelReader : public PixelReader
         ptr = buffer.getPtr();
       }
       scan++;
-      ptr += o2::ITSMFT::GBTPaddedWordLength;
+      ptr += o2::itsmft::GBTPaddedWordLength;
       buffer.setPtr(ptr);
       if (!buffer.isEmpty()) {
         rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -793,7 +793,7 @@ class RawPixelReader : public PixelReader
     if (!isRDHHeuristic(rdh)) {
       LOG(ERROR) << "Page does not start with RDH";
       for (int i = 0; i < 4; i++) {
-        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw + i * 16);
+        auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw + i * 16);
         gbtD->printX(mPadding128);
       }
       raw += mGBTWordSize;
@@ -814,7 +814,7 @@ class RawPixelReader : public PixelReader
     while (1) {
       raw += rdh->headerSize;
       int nGBTWords = (rdh->memorySize - rdh->headerSize) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
-      auto gbtH = reinterpret_cast<const o2::ITSMFT::GBTDataHeader*>(raw);    // process GBT header
+      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);    // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
@@ -853,7 +853,7 @@ class RawPixelReader : public PixelReader
 #endif
       raw += mGBTWordSize;
       for (int iw = 0; iw < nGBTWords; iw++, raw += mGBTWordSize) {
-        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
+        auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw);
         // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
 
         if (mVerbose) {
@@ -880,7 +880,7 @@ class RawPixelReader : public PixelReader
 
       } // we are at the trailer, packet is over, check if there are more for the same ru
 
-      auto gbtT = reinterpret_cast<const o2::ITSMFT::GBTDataTrailer*>(raw); // process GBT trailer
+      auto gbtT = reinterpret_cast<const o2::itsmft::GBTDataTrailer*>(raw); // process GBT trailer
 #ifdef _RAW_READER_ERROR_CHECKS_
 
       if (mVerbose) {
@@ -995,7 +995,7 @@ class RawPixelReader : public PixelReader
     if (!isRDHHeuristic(rdh)) {
       LOG(ERROR) << "Page does not start with RDH";
       for (int i = 0; i < 4; i++) {
-        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw + i * 16);
+        auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw + i * 16);
         gbtD->printX(mPadding128);
       }
       aborted = true;
@@ -1026,8 +1026,8 @@ class RawPixelReader : public PixelReader
       mDecodingStat.nBytesProcessed += rdh->memorySize;
       raw += rdh->headerSize;
       // number of 128 b GBT words excluding header/trailer
-      int nGBTWords = (rdh->memorySize - rdh->headerSize) / o2::ITSMFT::GBTPaddedWordLength - 2;
-      auto gbtH = reinterpret_cast<const o2::ITSMFT::GBTDataHeader*>(raw); // process GBT header
+      int nGBTWords = (rdh->memorySize - rdh->headerSize) / o2::itsmft::GBTPaddedWordLength - 2;
+      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw); // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
@@ -1072,9 +1072,9 @@ class RawPixelReader : public PixelReader
 
       outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtH), mGBTWordSize); // save gbt header w/o 128b padding
 
-      raw += o2::ITSMFT::GBTPaddedWordLength;
-      for (int iw = 0; iw < nGBTWords; iw++, raw += o2::ITSMFT::GBTPaddedWordLength) {
-        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
+      raw += o2::itsmft::GBTPaddedWordLength;
+      for (int iw = 0; iw < nGBTWords; iw++, raw += o2::itsmft::GBTPaddedWordLength) {
+        auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw);
         // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
 
         if (mVerbose) {
@@ -1101,7 +1101,7 @@ class RawPixelReader : public PixelReader
 
       } // we are at the trailer, packet is over, check if there are more for the same ru
 
-      auto gbtT = reinterpret_cast<const o2::ITSMFT::GBTDataTrailer*>(raw); // process GBT trailer
+      auto gbtT = reinterpret_cast<const o2::itsmft::GBTDataTrailer*>(raw); // process GBT trailer
 #ifdef _RAW_READER_ERROR_CHECKS_
 
       if (mVerbose) {
@@ -1123,7 +1123,7 @@ class RawPixelReader : public PixelReader
 
       outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtT), mGBTWordSize); // save gbt trailer w/o 128b padding
 
-      raw += o2::ITSMFT::GBTPaddedWordLength;
+      raw += o2::itsmft::GBTPaddedWordLength;
 
       // we finished the GBT page, register in the stored RDH the memory size and new offset
       rdhS->memorySize = rdhS->headerSize + (2 + nGBTWords) * mGBTWordSize;
@@ -1346,7 +1346,7 @@ class RawPixelReader : public PixelReader
   int getNRUs() const { return mNRUs; }
 
   // get vector of RU decode containers for RUs seen in the data
-  const std::vector<RUDecodeData>& getRUDecodeVec() const { return mRUDecodeVec; }
+  const std::array<RUDecodeData, ChipMappingITS::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
 
   const std::array<int, ChipMappingITS::getNRUs()>& getRUEntries() const { return mRUEntry; }
 
@@ -1396,7 +1396,7 @@ class RawPixelReader : public PixelReader
   bool mPadding128 = true;                                             // is payload padded to 128 bits
   bool mImposeMaxPage = true;                                          // standard CRU data comes in 8KB pages
   // number of bytes the GBT word, including optional padding to 128 bits
-  int mGBTWordSize = mPadding128 ? o2::ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
+  int mGBTWordSize = mPadding128 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
 
   ClassDefOverride(RawPixelReader, 1);
 };
@@ -1407,7 +1407,7 @@ constexpr int RawPixelReader<Mapping>::RawBufferMargin;
 template <class Mapping>
 constexpr int RawPixelReader<Mapping>::RawBufferSize;
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_RAWPIXELREADER_H */

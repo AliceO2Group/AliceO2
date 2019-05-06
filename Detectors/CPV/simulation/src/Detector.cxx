@@ -351,6 +351,8 @@ void Detector::AddHit(int trackID, int detID, const Point3D<float>& pos, double 
   LOG(DEBUG4) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << "), time" << time << ", qdep =" << qdep << std::endl;
   mHits->emplace_back(trackID, detID, pos, time, qdep);
+  // register hit creation with MCStack
+  static_cast<o2::data::Stack*>(fMC->GetStack())->addHit(GetDetId());
 }
 
 void Detector::ConstructGeometry()

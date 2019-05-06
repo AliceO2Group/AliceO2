@@ -39,7 +39,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "AliGPUReconstruction.h"
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainITS.h"
+using namespace o2::gpu;
 
 R__LOAD_LIBRARY(libITStracking)
 // R__LOAD_LIBRARY(libTPCReconstruction)
@@ -97,7 +100,7 @@ int run_test_vert_ca_its(const int inspEvt = -1,
   if (!itsClusters.GetBranch("ITSCluster"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
 
-  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth"))
@@ -124,9 +127,10 @@ int run_test_vert_ca_its(const int inspEvt = -1,
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + 1;
   o2::ITS::ROframe frame(-123);
 
-  // o2::ITS::Vertexer vertexer(AliGPUReconstruction::CreateInstance()->GetITSVerterTraits());
-  AliGPUReconstruction* instance = AliGPUReconstruction::CreateInstance();
-  o2::ITS::VertexerTraits* traits = instance->GetITSVertexerTraits();
+  // o2::ITS::Vertexer vertexer(GPUReconstruction::CreateInstance()->GetITSVerterTraits());
+  GPUReconstruction* instance = GPUReconstruction::CreateInstance();
+  GPUChainITS* chainITS = instance->AddChain<GPUChainITS>();
+  o2::ITS::VertexerTraits* traits = chainITS->GetITSVertexerTraits();
   std::cout << "macro -> traits ptr -> " << traits << std::endl;
   // traits->dumpVertexerTraits();
 

@@ -76,7 +76,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   if (!itsClusters.GetBranch("ITSCluster")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
   }
-  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   MCLabCont* labels = nullptr;
@@ -92,7 +92,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   if (!itsClustersROF.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
   }
-  std::vector<o2::ITSMFT::ROFRecord>* rofs = nullptr;
+  std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
   itsClustersROF.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
