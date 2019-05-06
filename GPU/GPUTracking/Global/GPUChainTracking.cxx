@@ -143,6 +143,15 @@ int GPUChainTracking::Init()
   return 0;
 }
 
+int GPUChainTracking::PrepareEvent()
+{
+  if (mRec->IsGPU()) {
+    memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
+    mRec->ResetDeviceProcessorTypes();
+  }
+  return 0;
+}
+
 int GPUChainTracking::Finalize()
 {
   if (GetDeviceProcessingSettings().debugLevel >= 4) {
@@ -351,10 +360,6 @@ void GPUChainTracking::SetTPCClusterDataPtrs()
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     processors()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
     offset += mIOPtrs.nClusterData[iSlice];
-  }
-  if (doGPU) {
-    memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
-    mRec->ResetDeviceProcessorTypes();
   }
 }
 

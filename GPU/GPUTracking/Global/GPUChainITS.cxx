@@ -49,6 +49,8 @@ int GPUChainITS::Init()
   return 0;
 }
 
+int GPUChainITS::PrepareEvent() { return 0; }
+
 int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunStandalone() { return 0; }
