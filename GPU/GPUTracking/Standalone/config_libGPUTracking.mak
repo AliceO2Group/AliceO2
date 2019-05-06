@@ -105,5 +105,8 @@ CXXFILES					+= ${CONFIG_O2DIR}/DataFormats/simulation/src/MCCompLabel.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/Road.cxx \
-								${CONFIG_O2DIR}/Detectors/TRD/base/src/TRDGeometryBase.cxx
+								${CONFIG_O2DIR}/Detectors/TRD/base/src/TRDGeometryBase.cxx \
+								${CONFIG_O2DIR}/Detectors/Base/src/MatLayerCylSet.cxx \
+								${CONFIG_O2DIR}/Detectors/Base/src/MatLayerCyl.cxx \
+								${CONFIG_O2DIR}/Detectors/Base/src/Ray.cxx
 endif

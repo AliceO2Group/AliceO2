@@ -65,6 +65,7 @@ else() #if we do not build for AliRoot, for the time being we still need some du
 endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2") #We need to add src dirs of O2 to include cxx files for HIP compilation
     include_directories(${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src)
+    include_directories(${CMAKE_SOURCE_DIR}/Detectors/Base/src)
 endif()
 
 # Sources in alphabetical order

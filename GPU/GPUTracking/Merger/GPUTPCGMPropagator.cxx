@@ -16,6 +16,10 @@
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 
+#ifdef HAVE_O2HEADERS
+#include "DetectorsBase/MatLayerCylSet.h"
+#endif
+
 #ifndef __OPENCL__
 #include <cmath>
 #endif
@@ -490,7 +494,6 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
     mC43 += dLabs * mMaterial.k43;
     mC44 += dLabs * mMaterial.k44;
   }
-
   return 0;
 }
 
@@ -1078,4 +1081,13 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
   } else {
     // std::cout<<"MIRROR: DONT APPLY ENERGY LOSS!!!"<<std::endl;
   }
+}
+
+GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(float* p1, float* p2)
+{
+#ifdef HAVE_O2HEADERS
+  return mMatLUT->getMatBudget(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
+#else
+  return o2::base::MatBudget();
+#endif
 }

@@ -14,8 +14,11 @@
 #ifndef ALICEO2_MATLAYERCYL_H
 #define ALICEO2_MATLAYERCYL_H
 
+#ifndef __OPENCL__
 #include <cmath>
 #include <cstring>
+#endif
+#include "GPUCommonDef.h"
 #include "FlatObject.h"
 #include "GPUCommonRtypes.h"
 #include "DetectorsBase/MatCell.h"
@@ -53,7 +56,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   MatLayerCyl(const MatLayerCyl& src) CON_DELETE;
   ~MatLayerCyl() CON_DEFAULT;
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   MatLayerCyl(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
 
   void initSegmentation(float rMin, float rMax, float zHalfSpan, int nz, int nphi);
@@ -61,68 +64,78 @@ class MatLayerCyl : public o2::gpu::FlatObject
   void populateFromTGeo(int ntrPerCell = 10);
   void populateFromTGeo(int ip, int iz, int ntrPerCell);
   void print(bool data = false) const;
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
-  float getRMin() const
+  GPUd() float getRMin() const
   {
     return std::sqrt(getRMin2());
   }
-  float getRMax() const { return std::sqrt(getRMax2()); }
-  float getZMin() const { return -mZHalf; }
-  float getZMax() const { return mZHalf; }
+  GPUd() float getRMax() const { return std::sqrt(getRMax2()); }
+  GPUd() float getZMin() const { return -mZHalf; }
+  GPUd() float getZMax() const { return mZHalf; }
 
-  int getNZBins() const { return mNZBins; }
-  int getNPhiBins() const { return mNPhiBins; }
-  int getNPhiSlices() const { return mNPhiSlices; }
-  int getNPhiBinsInSlice(int i) const;
-  int getNPhiBinsInSlice(int iSlice, int& binMin, int& binMax) const;
+  GPUd() int getNZBins() const { return mNZBins; }
+  GPUd() int getNPhiBins() const { return mNPhiBins; }
+  GPUd() int getNPhiSlices() const { return mNPhiSlices; }
+  GPUd() int getNPhiBinsInSlice(int iSlice, int& binMin, int& binMax) const;
 
-  float getRMin2() const { return mRMin2; }
-  float getRMax2() const { return mRMax2; }
-  float getDZ() const { return mDZ; }
-  float getDPhi() const { return mDPhi; }
+  GPUd() float getRMin2() const { return mRMin2; }
+  GPUd() float getRMax2() const { return mRMax2; }
+  GPUd() float getDZ() const { return mDZ; }
+  GPUd() float getDPhi() const { return mDPhi; }
 
   // obtain material cell, cell ID must be valid
-  const MatCell& getCellPhiBin(int iphi, int iz) const { return mCells[getCellIDPhiBin(iphi, iz)]; }
-  const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
+  GPUd() const MatCell& getCellPhiBin(int iphi, int iz) const { return mCells[getCellIDPhiBin(iphi, iz)]; }
+  GPUd() const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
 
   // ---------------------- Z slice manipulation
   // convert Z to Zslice
-  RangeStatus isZOutside(float z) const { return z < getZMin() ? Below : (z > getZMax() ? Above : Within); }
-  int getZBinID(float z) const { return int((z - getZMin()) * getDZInv()); }
+  GPUd() RangeStatus isZOutside(float z) const { return z < getZMin() ? Below : (z > getZMax() ? Above : Within); }
+  GPUd() int getZBinID(float z) const { return int((z - getZMin()) * getDZInv()); }
 
   // lower boundary of Z slice
-  float getZBinMin(int id) const { return getZMin() + id * getDZ(); }
+  GPUd() float getZBinMin(int id) const { return getZMin() + id * getDZ(); }
 
   // upper boundary of Z slice
-  float getZBinMax(int id) const { return getZMin() + (id + 1) * getDZ(); }
+  GPUd() float getZBinMax(int id) const { return getZMin() + (id + 1) * getDZ(); }
 
   // ---------------------- Phi slice manipulation (0:2pi convention, no check is done)
-  int phiBin2Slice(int i) const { return mPhiBin2Slice[i]; }
-  int getPhiSliceID(float phi) const { return phiBin2Slice(getPhiBinID(phi)); }
+  GPUd() int phiBin2Slice(int i) const { return mPhiBin2Slice[i]; }
+  GPUd() int getPhiSliceID(float phi) const { return phiBin2Slice(getPhiBinID(phi)); }
 
   // lower boundary of phi slice
-  float getPhiBinMin(int id) const { return id * getDPhi(); }
+  GPUd() float getPhiBinMin(int id) const { return id * getDPhi(); }
 
   // upper boundary of phi slice
-  float getPhiBinMax(int id) const { return (id + 1) * getDPhi(); }
+  GPUd() float getPhiBinMax(int id) const { return (id + 1) * getDPhi(); }
 
   // sin and cosine of the slice lower angle
-  float getSliceCos(int i) const { return mSliceCos[i]; }
-  float getSliceSin(int i) const { return mSliceSin[i]; }
+  GPUd() float getSliceCos(int i) const { return mSliceCos[i]; }
+  GPUd() float getSliceSin(int i) const { return mSliceSin[i]; }
 
-  std::size_t estimateFlatBufferSize() const { return estimateFlatBufferSize(getNPhiBins(), getNPhiSlices(), getNZBins()); }
-
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   void getMeanRMS(MatCell& mean, MatCell& rms) const;
   bool cellsDiffer(const MatCell& cellA, const MatCell& cellB, float maxRelDiff) const;
   bool canMergePhiSlices(int i, int j, float maxRelDiff = 0.05, int maxDifferent = 1) const;
   void optimizePhiSlices(float maxRelDiff = 0.05);
   void flatten(char* newPtr);
-#endif // !GPUCA_GPUCODE
+#endif // !GPUCA_ALIGPUCODE
 
+#ifndef GPUCA_GPUCODE
+  std::size_t estimateFlatBufferSize() const
+  {
+    return estimateFlatBufferSize(getNPhiBins(), getNPhiSlices(), getNZBins());
+  }
+  static std::size_t estimateFlatBufferSize(int nPhiBins, int nPhiSlices, int nZBins)
+  {
+    size_t sz = 0;
+    sz += alignSize(sz + nPhiBins * sizeof(short), getBufferAlignmentBytes());              // mPhiBin2Slice
+    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceCos
+    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceSin
+    sz += alignSize(sz + nPhiSlices * nZBins * sizeof(MatCell), getBufferAlignmentBytes()); // mSliceSin
+    return sz;
+  }
   void fixPointers(char* oldPtr, char* newPtr);
-
   void setFlatPointer(char* ptr)
   {
     // brute force assignment of new pointers
@@ -136,22 +149,23 @@ class MatLayerCyl : public o2::gpu::FlatObject
   static constexpr size_t getClassAlignmentBytes() { return 8; }
   /// Gives minimal alignment in bytes required for the flat buffer
   static constexpr size_t getBufferAlignmentBytes() { return 8; }
+#endif
 
  protected:
-  int getNCells() const { return getNZBins() * getNPhiSlices(); }
-  float getDZInv() const { return mDZInv; }
-  float getDPhiInv() const { return mDPhiInv; }
+  GPUd() int getNCells() const { return getNZBins() * getNPhiSlices(); }
+  GPUd() float getDZInv() const { return mDZInv; }
+  GPUd() float getDPhiInv() const { return mDPhiInv; }
 
   // linearized cell ID from phi slice and z bin
-  int getCellID(int iphi, int iz) const { return iphi * getNZBins() + iz; }
+  GPUd() int getCellID(int iphi, int iz) const { return iphi * getNZBins() + iz; }
 
   // linearized cell ID from phi bin and z bin
-  int getCellIDPhiBin(int iphi, int iz) const { return getCellID(phiBin2Slice(iphi), iz); }
+  GPUd() int getCellIDPhiBin(int iphi, int iz) const { return getCellID(phiBin2Slice(iphi), iz); }
 
   // convert Phi (in 0:2pi convention) to PhiBinID
-  int getPhiBinID(float phi) const { return int(phi * getDPhiInv()); }
+  GPUd() int getPhiBinID(float phi) const { return int(phi * getDPhiInv()); }
 
-  int getEdgePhiBinOfSlice(int phiBin, int dir) const
+  GPUd() int getEdgePhiBinOfSlice(int phiBin, int dir) const
   {
     // Get edge bin (in direction dir) of the slice, to which phiBin belongs
     // No check for phiBin validity is done
@@ -159,16 +173,6 @@ class MatLayerCyl : public o2::gpu::FlatObject
     while (slice == phiBin2Slice((phiBin += dir)))
       ;
     return phiBin - dir;
-  }
-
-  static std::size_t estimateFlatBufferSize(int nPhiBins, int nPhiSlices, int nZBins)
-  {
-    size_t sz = 0;
-    sz += alignSize(sz + nPhiBins * sizeof(short), getBufferAlignmentBytes());              // mPhiBin2Slice
-    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceCos
-    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceSin
-    sz += alignSize(sz + nPhiSlices * nZBins * sizeof(MatCell), getBufferAlignmentBytes()); // mSliceSin
-    return sz;
   }
 
   //------------------------------------------------------

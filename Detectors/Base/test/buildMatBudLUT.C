@@ -19,7 +19,7 @@
 #include <TSystem.h>
 #endif
 
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
 o2::base::MatLayerCylSet mbLUT;
 

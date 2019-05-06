@@ -75,7 +75,9 @@ INCLUDEPATHS					+= O2Headers \
 								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
 								${CONFIG_O2DIR}/DataFormats/simulation/include \
-								${CONFIG_O2DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+								${CONFIG_O2DIR}/DataFormats/Detectors/ITSMFT/ITS/include \
+								${CONFIG_O2DIR}/Detectors/Base/src \
+								${CONFIG_O2DIR}/Detectors/Base/include
 endif
 
 ifeq ($(CONFIG_O2), 1)

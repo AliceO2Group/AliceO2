@@ -19,11 +19,11 @@ namespace o2
 {
 BOOST_AUTO_TEST_CASE(MatBudLUT)
 {
-#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
   BOOST_CHECK(buildMatBudLUT(2, 20)); // generate LUT
   BOOST_CHECK(testMBLUT());           // test LUT manipulations
 
-#endif //!GPUCA_GPUCODE
+#endif //!GPUCA_ALIGPUCODE
 }
 } // namespace o2
