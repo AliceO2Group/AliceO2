@@ -89,7 +89,11 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
   }
   const int roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);
-  float factor = CAMath::Sqrt((1 - trackSnp * trackSnp) / (1 + trackTgl * trackTgl));
+  float snp2 = trackSnp * trackSnp;
+  if (snp2 > GPUCA_MAX_SIN_PHI_LOW) {
+    snp2 = GPUCA_MAX_SIN_PHI_LOW;
+  }
+  float factor = CAMath::Sqrt((1 - snp2) / (1 + trackTgl * trackTgl));
   factor /= param.tpcGeometry.PadHeight(padRow);
   qtot *= factor;
   qmax *= factor / param.tpcGeometry.PadWidth(padRow);
