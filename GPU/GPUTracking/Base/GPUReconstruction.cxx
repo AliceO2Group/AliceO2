@@ -112,7 +112,6 @@ int GPUReconstruction::Init()
   } else {
     omp_set_num_threads(mDeviceProcessingSettings.nThreads);
   }
-
 #else
   mDeviceProcessingSettings.nThreads = 1;
 #endif
@@ -334,6 +333,9 @@ void GPUReconstruction::ClearAllocatedMemory()
 void GPUReconstruction::PrepareEvent()
 {
   ClearAllocatedMemory();
+  for (unsigned int i = 0; i < mChains.size(); i++) {
+    mChains[i]->PrepareEvent();
+  }
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
     if (mProcessors[i].proc->mAllocateAndInitializeLate) {
       continue;

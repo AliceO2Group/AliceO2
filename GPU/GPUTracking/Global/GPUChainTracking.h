@@ -68,6 +68,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
   int Init() override;
+  int PrepareEvent() override;
   int Finalize() override;
   int RunStandalone() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
