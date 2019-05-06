@@ -973,6 +973,23 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/workflow/include
 )
 
+
+o2_define_bucket(
+    NAME
+    fit_workflow_bucket
+
+    DEPENDENCIES
+    data_format_fit_bucket
+    fit_reconstruction_bucket
+    Framework
+    T0Reconstruction
+    DataFormatsFITT0
+    DataFormatsFITV0
+    
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/workflow/include
+)
+
 o2_define_bucket(
     NAME
     GlobalTracking_workflow_bucket
