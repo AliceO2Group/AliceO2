@@ -32,6 +32,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsFITT0/RecPoints.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
@@ -236,6 +237,13 @@ class MatchTPCITS
     mTPCTrkLabels = lbl;
   }
 
+  ///< set input FIT info received via DPL
+  void setFITInfoInp(const std::vector<o2::t0::RecPoints>* inp)
+  {
+    assertDPLIO(true);
+    mFITInfoInp = inp;
+  }
+
   // ===================== << DPL-driven input << ========================
 
   ///< set tree/chain containing ITS tracks
@@ -250,6 +258,9 @@ class MatchTPCITS
   ///< set tree/chain containing ITS clusters
   void setInputTreeITSClusters(TTree* tree) { mTreeITSClusters = tree; }
 
+  ///< set optional input for FIT info
+  void setInputTreeFITInfo(TTree* tree) { mTreeFITInfo = tree; }
+
   ///< set reader for TPC clusters
   void setInputTPCClustersReader(o2::TPC::ClusterNativeHelper::Reader* reader) { mTPCClusterReader = reader; }
 
@@ -262,6 +273,7 @@ class MatchTPCITS
   void setITSClusterBranchName(const std::string& nm) { mITSClusterBranchName = nm; }
   void setITSMCTruthBranchName(const std::string& nm) { mITSMCTruthBranchName = nm; }
   void setTPCMCTruthBranchName(const std::string& nm) { mTPCMCTruthBranchName = nm; }
+  void setFITInfoBbranchName(const std::string& nm) { mFITInfoBranchName = nm; }
   void setOutTPCITSTracksBranchName(const std::string& nm) { mOutTPCITSTracksBranchName = nm; }
   void setOutTPCMCTruthBranchName(const std::string& nm) { mOutTPCMCTruthBranchName = nm; }
   void setOutITSMCTruthBranchName(const std::string& nm) { mOutITSMCTruthBranchName = nm; }
@@ -272,6 +284,7 @@ class MatchTPCITS
   const std::string& getITSClusterBranchName() const { return mITSClusterBranchName; }
   const std::string& getITSMCTruthBranchName() const { return mITSMCTruthBranchName; }
   const std::string& getTPCMCTruthBranchName() const { return mTPCMCTruthBranchName; }
+  const std::string& getFITInfoBranchName() const { return mFITInfoBranchName; }
   const std::string& getOutTPCITSTracksBranchName() const { return mOutTPCITSTracksBranchName; }
   const std::string& getOutTPCMCTruthBranchName() const { return mOutTPCMCTruthBranchName; }
   const std::string& getOutITSMCTruthBranchName() const { return mOutITSMCTruthBranchName; }
@@ -355,6 +368,7 @@ class MatchTPCITS
   void attachInputTrees();
   bool prepareTPCTracks();
   bool prepareITSTracks();
+  bool prepareFITInfo();
   bool loadTPCTracksNextChunk();
   bool loadITSTracksNextChunk();
   void loadITSClustersChunk(int chunk);
@@ -496,6 +510,8 @@ class MatchTPCITS
   TTree* mTreeITSTrackROFRec = nullptr; ///< input tree for ITS Tracks ROFRecords vector
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
   TTree* mTreeITSClusters = nullptr; ///< input tree for ITS clusters
+  TTree* mTreeFITInfo = nullptr;     ///< input tree for FIT info
+
   o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
   std::unique_ptr<o2::TPC::ClusterNativeAccessFullTPC> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
 
@@ -510,6 +526,7 @@ class MatchTPCITS
   const std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
   const std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
+  const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
   const o2::TPC::ClusterNativeAccessFullTPC* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
@@ -562,6 +579,7 @@ class MatchTPCITS
   std::string mITSClusterBranchName = "ITSCluster";      ///< name of branch containing input ITS clusters
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels
   std::string mTPCMCTruthBranchName = "TracksMCTruth";   ///< name of branch containing input TPC tracks
+  std::string mFITInfoBranchName = "T0Cluster";          ///< name of branch containing input FIT Info
   std::string mOutTPCITSTracksBranchName = "TPCITS";     ///< name of branch containing output matched tracks
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC

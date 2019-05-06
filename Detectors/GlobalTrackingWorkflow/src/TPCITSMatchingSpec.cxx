@@ -42,7 +42,6 @@ namespace globaltracking
 
 void TPCITSMatchingDPL::init(InitContext& ic)
 {
-  mOutFileName = ic.options().get<std::string>("itstpc-tracks-outfile");
 
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry("O2geometry.root");
@@ -241,6 +240,14 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
+  const std::vector<o2::t0::RecPoints>* rpFIT = nullptr;
+  std::unique_ptr<const std::vector<o2::t0::RecPoints>> rpFITU;
+  if (mUseFIT) {
+    rpFITU = pc.inputs().get<const std::vector<o2::t0::RecPoints>*>("fitInfo");
+    rpFIT = rpFITU.get();
+    mMatching.setFITInfoInp(rpFIT);
+  }
+
   mMatching.run();
 
   /* // at the moment we don't assume need for bufferization, no nead to clear
@@ -257,7 +264,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes)
 {
 
   std::vector<InputSpec> inputs;
@@ -270,6 +277,9 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
   for (auto lane : tpcClusLanes) {
     std::string clusBind = "clusTPC" + std::to_string(lane);
     inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
+  }
+  if (useFIT) {
+    inputs.emplace_back("fitInfo", "T0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
@@ -286,9 +296,8 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<TPCITSMatchingDPL>(useMC, tpcClusLanes) },
-    Options{
-      { "itstpc-tracks-outfile", VariantType::String, "o2match_itstpc.root", { "Name of the output file" } } }
+    AlgorithmSpec{ adaptFromTask<TPCITSMatchingDPL>(useMC, useFIT, tpcClusLanes) },
+    Options{}
   };
 }
 

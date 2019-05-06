@@ -1001,7 +1001,8 @@ o2_define_bucket(
     TPCWorkflow
     ITSWorkflow
     ITSMFTWorkflow
-
+    FITWorkflow
+    
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/GlobalTrackingWorkflow/include
 )
@@ -2247,6 +2248,7 @@ o2_define_bucket(
     data_format_common_bucket
     data_format_TPC_bucket
     data_format_TOF_bucket
+    data_format_fit_bucket
     its_reconstruction_bucket
     data_format_itsmft_bucket
     common_field_bucket
@@ -2266,6 +2268,7 @@ o2_define_bucket(
     ITSReconstruction
     TPCReconstruction
     DataFormatsITSMFT
+    DataFormatsFITT0
     DetectorsBase
     DataFormatsTPC
     DataFormatsTOF
@@ -2289,6 +2292,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/FIT/T0/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
