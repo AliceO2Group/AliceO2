@@ -48,7 +48,8 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 
   void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
-  void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override;
+  void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
+  void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
   void ReleaseEvent(deviceEvent* ev) override;
   void RecordMarker(deviceEvent* ev, int stream) override;
 

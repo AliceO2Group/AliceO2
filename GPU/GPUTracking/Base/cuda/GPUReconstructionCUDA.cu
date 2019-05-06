@@ -344,7 +344,29 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
   return (0);
 }
 
-void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
+void GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+{
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    stream = -1;
+  }
+  if (stream == -1) {
+    SynchronizeGPU();
+    GPUFailedMsg(cudaMemcpy(dst, src, size, toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost));
+  } else {
+    if (evList == nullptr) {
+      nEvents = 0;
+    }
+    for (int k = 0; k < nEvents; k++) {
+      GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*)evList)[k], 0));
+    }
+    GPUFailedMsg(cudaMemcpyAsync(dst, src, size, toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
+  }
+  if (ev) {
+    GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream == -1 ? 0 : stream]));
+  }
+}
+
+void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -353,26 +375,9 @@ void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res
     return;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    stream = -1;
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
     printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
   }
-  if (stream == -1) {
-    SynchronizeGPU();
-    GPUFailedMsg(cudaMemcpy(dst, src, res->Size(), toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost));
-  } else {
-    if (evList == nullptr) {
-      nEvents = 0;
-    }
-    for (int k = 0; k < nEvents; k++) {
-      GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*)evList)[k], 0));
-    }
-    GPUFailedMsg(cudaMemcpyAsync(dst, src, res->Size(), toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
-  }
-  if (ev) {
-    GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream == -1 ? 0 : stream]));
-  }
+  GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
 void GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)

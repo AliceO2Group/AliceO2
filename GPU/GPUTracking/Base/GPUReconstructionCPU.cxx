@@ -63,7 +63,8 @@ int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlR
   return 0;
 }
 
-void GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) {}
+void GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) {}
+void GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) {}
 void GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) {}
 int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
 void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
