@@ -22,6 +22,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
                       std::string inputTracksTPC = "tpctracks.root",
                       std::string inputClustersITS = "o2clus_its.root",
                       std::string inputClustersTPC = "tpc-native-clusters.root",
+                      std::string inputFITInfo = "o2reco_t0.root", // optional FIT (T0) info
                       std::string inputGeom = "O2geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {
@@ -48,6 +49,18 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).c_str());
   matching.setInputTreeITSClusters(&itsClusters);
+
+  bool canUseFIT = false;
+  TChain fitInfo("o2sim");
+  if (!inputFITInfo.empty()) {
+    if (!gSystem->AccessPathName((path + inputFITInfo).c_str())) {
+      fitInfo.AddFile((path + inputFITInfo).c_str());
+      matching.setInputTreeFITInfo(&fitInfo);
+      canUseFIT = true;
+    } else {
+      LOG(ERROR) << "ATTENTION: FIT input " << inputFITInfo << " requested but not available";
+    }
+  }
 
   o2::TPC::ClusterNativeHelper::Reader tcpClusterReader;
   tcpClusterReader.init(inputClustersTPC.c_str());
