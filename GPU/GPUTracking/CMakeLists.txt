@@ -84,8 +84,6 @@ set(SRCS_NO_CINT
     Base/GPUReconstructionConvert.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
-    TPCConvert/GPUTPCConvert.cxx
-    TPCConvert/GPUTPCConvertKernel.cxx
     Standalone/utils/timer.cpp
 )
 
@@ -189,6 +187,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx
+        TPCConvert/GPUTPCConvert.cxx
+        TPCConvert/GPUTPCConvertKernel.cxx
     )
     set (HDRS2 ${HDRS2}
         Interface/GPUO2InterfaceConfiguration.h
@@ -200,6 +200,8 @@ else() #Need at least the header installed, as it is part of constant memory
         ITS/GPUITSFitter.h
         ITS/GPUITSFitterKernels.h
         ITS/GPUITSTrack.h
+        TPCConvert/GPUTPCConvert.h
+        TPCConvert/GPUTPCConvertKernel.h
     )
 endif()
 
