@@ -96,7 +96,7 @@ GPU_GLOBAL void trackleterKernel(
   const int* MClabelsNext = nullptr,
   const int* MClabelsCurrent = nullptr,
   const int maxTrackletsPerCluster = static_cast<int>(2e3) // also the stride
-  )
+)
 {
   for (int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < GPUclusterSize1; currentClusterIndex += blockDim.x * gridDim.x) {
     if (layerOrder == LAYER0_TO_LAYER1) {

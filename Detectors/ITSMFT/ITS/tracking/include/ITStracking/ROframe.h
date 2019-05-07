@@ -24,6 +24,7 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 
+#include "ReconstructionDataFormats/Vertex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -31,6 +32,8 @@ namespace o2
 {
 namespace ITS
 {
+
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class ROframe final
 {
@@ -40,6 +43,7 @@ class ROframe final
   const float3& getPrimaryVertex(const int) const;
   int getPrimaryVerticesNum() const;
   void addPrimaryVertex(const float, const float, const float);
+  void addPrimaryVertices(std::vector<Vertex> vertices);
   void addPrimaryReconstructedVertex(const float, const float, const float);
   void printPrimaryVertices() const;
   int getTotalClusters() const;

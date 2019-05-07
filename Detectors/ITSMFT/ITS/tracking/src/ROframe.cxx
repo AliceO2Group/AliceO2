@@ -30,6 +30,13 @@ void ROframe::addPrimaryVertex(const float xCoordinate, const float yCoordinate,
   mPrimaryVertices.emplace_back(float3{ xCoordinate, yCoordinate, zCoordinate });
 }
 
+void ROframe::addPrimaryVertices(std::vector<Vertex> vertices)
+{
+  for (Vertex& vertex : vertices) {
+    mPrimaryVertices.emplace_back(float3{ vertex.getX(), vertex.getY(), vertex.getZ() });
+  }
+}
+
 void ROframe::printPrimaryVertices() const
 {
   const int verticesNum{ static_cast<int>(mPrimaryVertices.size()) };
