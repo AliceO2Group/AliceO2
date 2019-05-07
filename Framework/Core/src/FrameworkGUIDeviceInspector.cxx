@@ -118,7 +118,7 @@ void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, Devi
       pid + "\"'";
     setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
 #else
-    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID", 0);
+    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
 #endif
     int retVal = system(getenv("O2DPLDEBUG"));
     (void)retVal;
