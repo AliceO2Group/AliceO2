@@ -39,9 +39,9 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
   }
   float detMin = mXDxPlusYDy2 - mDistXY2 * (mR02 - lr.getRMin2());
   if (detMin < 0) { // does not reach inner R -> just 1 tangential crossing
-    mCrossParams[0].first = tCross0Min > 0.f ? tCross0Min : 0.f;
-    mCrossParams[0].second = tCross0Max < 1.f ? tCross0Max : 1.f;
-    return validateZRange(mCrossParams[0], lr);
+    mCrossParams1[0] = tCross0Min > 0.f ? tCross0Min : 0.f;
+    mCrossParams2[0] = tCross0Max < 1.f ? tCross0Max : 1.f;
+    return validateZRange(mCrossParams1[0], mCrossParams2[0], lr);
   }
   int nCross = 0;
   float detMinRed = std::sqrt(detMin) * mDistXY2i;
@@ -49,17 +49,17 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
   float tCross1Min = mXDxPlusYDyRed - detMinRed;
 
   if (tCross1Max < 1.f) {
-    mCrossParams[0].first = tCross0Max < 1.f ? tCross0Max : 1.f;
-    mCrossParams[0].second = tCross1Max > 0.f ? tCross1Max : 0.f;
-    if (validateZRange(mCrossParams[nCross], lr)) {
+    mCrossParams1[0] = tCross0Max < 1.f ? tCross0Max : 1.f;
+    mCrossParams2[0] = tCross1Max > 0.f ? tCross1Max : 0.f;
+    if (validateZRange(mCrossParams1[nCross], mCrossParams2[nCross], lr)) {
       nCross++;
     }
   }
 
   if (tCross1Min > -0.f) {
-    mCrossParams[nCross].first = tCross1Min < 1.f ? tCross1Min : 1.f;
-    mCrossParams[nCross].second = tCross0Min > 0.f ? tCross0Min : 0.f;
-    if (validateZRange(mCrossParams[nCross], lr)) {
+    mCrossParams1[nCross] = tCross1Min < 1.f ? tCross1Min : 1.f;
+    mCrossParams1[nCross] = tCross0Min > 0.f ? tCross0Min : 0.f;
+    if (validateZRange(mCrossParams1[nCross], mCrossParams2[nCross], lr)) {
       nCross++;
     }
   }
