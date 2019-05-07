@@ -12,8 +12,10 @@
 /// \brief Implementation of ray between start-end points for material budget estimate
 
 #include "DetectorsBase/Ray.h"
+#include "GPUCommonMath.h"
 
 using namespace o2::base;
+using namespace o2::gpu;
 
 //______________________________________________________
 GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
@@ -26,7 +28,7 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
   float detMax = mXDxPlusYDy2 - mDistXY2 * (mR02 - lr.getRMax2());
   if (detMax < 0)
     return 0; // does not reach outer R, hence inner also
-  float detMaxRed = std::sqrt(detMax) * mDistXY2i;
+  float detMaxRed = CAMath::Sqrt(detMax) * mDistXY2i;
   float tCross0Max = mXDxPlusYDyRed + detMaxRed; // largest possible t
 
   if (tCross0Max < 0) { // max t is outside of the limiting point -> other t's also
@@ -44,7 +46,7 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
     return validateZRange(mCrossParams1[0], mCrossParams2[0], lr);
   }
   int nCross = 0;
-  float detMinRed = std::sqrt(detMin) * mDistXY2i;
+  float detMinRed = CAMath::Sqrt(detMin) * mDistXY2i;
   float tCross1Max = mXDxPlusYDyRed + detMinRed;
   float tCross1Min = mXDxPlusYDyRed - detMinRed;
 

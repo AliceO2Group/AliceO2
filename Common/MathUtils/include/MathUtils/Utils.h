@@ -20,6 +20,7 @@
 #include <cmath>
 #endif
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "CommonConstants/MathConstants.h"
 
 namespace o2
@@ -69,8 +70,8 @@ inline void BringToPMPiGen(float& phi)
 inline void sincosf(float ang, float& s, float& c)
 {
   // consider speedup for simultaneus calculation
-  s = sinf(ang);
-  c = cosf(ang);
+  s = o2::gpu::CAMath::Sin(ang);
+  c = o2::gpu::CAMath::Cos(ang);
 }
 
 #ifndef __OPENCL__

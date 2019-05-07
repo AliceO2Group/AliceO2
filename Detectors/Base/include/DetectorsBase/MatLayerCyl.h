@@ -21,6 +21,7 @@
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 #include "DetectorsBase/MatCell.h"
 
 namespace o2
@@ -68,9 +69,9 @@ class MatLayerCyl : public o2::gpu::FlatObject
 
   GPUd() float getRMin() const
   {
-    return std::sqrt(getRMin2());
+    return o2::gpu::CAMath::Sqrt(getRMin2());
   }
-  GPUd() float getRMax() const { return std::sqrt(getRMax2()); }
+  GPUd() float getRMax() const { return o2::gpu::CAMath::Sqrt(getRMax2()); }
   GPUd() float getZMin() const { return -mZHalf; }
   GPUd() float getZMax() const { return mZHalf; }
 
