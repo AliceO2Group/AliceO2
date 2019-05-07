@@ -56,6 +56,8 @@ struct GPUSettingsRec {
   char DodEdx;                          // Perform dEdx computation
   unsigned char dEdxTruncLow;           // Low truncation threshold, fraction of 128
   unsigned char dEdxTruncHigh;          // High truncation threshold, fraction of 128
+  unsigned char tpcRejectionMode;       // 0: do not reject clusters, 1: do reject identified junk, 2: reject everything but good tracks
+  float tpcRejectQPt;                   // Reject tracks below this Pt
 };
 
 // Settings describing the events / time frames

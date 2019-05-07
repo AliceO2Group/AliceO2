@@ -40,8 +40,9 @@ class GPUDataTypes
   enum ENUM_CLASS RecoStep { TPCConversion = 1,
                              TPCSliceTracking = 2,
                              TPCMerging = 4,
-                             TRDTracking = 8,
-                             ITSTracking = 16,
+                             TPCCompression = 8,
+                             TRDTracking = 16,
+                             ITSTracking = 32,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
 };

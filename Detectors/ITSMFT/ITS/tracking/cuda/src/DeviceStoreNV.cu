@@ -56,8 +56,8 @@ __device__ void fillIndexTables(GPU::DeviceStoreNV &primaryVertexContext, const 
 
     if (currentClusterIndex == nextLayerClustersNum - 1) {
 
-      for (int iBin { currentBinIndex + 1 }; iBin <= Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins;
-          iBin++) {
+      for (int iBin{ currentBinIndex + 1 }; iBin <= o2::its::constants::IndexTable::ZBins * o2::its::constants::IndexTable::PhiBins;
+           iBin++) {
 
         primaryVertexContext.getIndexTables()[layerIndex][iBin] = nextLayerClustersNum;
       }
@@ -95,12 +95,12 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV &primaryVertexContext, c
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
-  if (layerIndex < Constants::its::CellsPerRoad) {
+  if (layerIndex < o2::its::constants::its::CellsPerRoad) {
 
     fillTrackletsPerClusterTables(primaryVertexContext, layerIndex);
   }
 
-  if (layerIndex < Constants::its::CellsPerRoad - 1) {
+  if (layerIndex < o2::its::constants::its::CellsPerRoad - 1) {
 
     fillCellsPerClusterTables(primaryVertexContext, layerIndex);
   }

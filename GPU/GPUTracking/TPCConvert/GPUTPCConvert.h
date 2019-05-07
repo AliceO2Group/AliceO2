@@ -55,6 +55,10 @@ class GPUTPCConvert : public GPUProcessor
     mTransform = transform;
   }
 #endif
+  GPUd() const ClusterNativeAccessExt* getClustersNative()
+  {
+    return mClustersNative;
+  }
 
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 

@@ -297,6 +297,10 @@ int SetupReconstruction()
   if (configStandalone.configRec.rundEdx != -1) {
     recSet.DodEdx = configStandalone.configRec.rundEdx > 0;
   }
+  recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
+  if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
+    recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
+  }
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;

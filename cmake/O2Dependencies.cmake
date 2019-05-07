@@ -2626,6 +2626,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataCompression
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/display
     ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/qa

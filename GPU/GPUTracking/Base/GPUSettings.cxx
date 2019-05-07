@@ -37,6 +37,8 @@ void GPUSettingsRec::SetDefaults()
   DodEdx = false;
   dEdxTruncLow = 2;
   dEdxTruncHigh = 77;
+  tpcRejectionMode = 0;
+  tpcRejectQPt = 1.f / 0.05f;
 }
 
 void GPUSettingsEvent::SetDefaults()

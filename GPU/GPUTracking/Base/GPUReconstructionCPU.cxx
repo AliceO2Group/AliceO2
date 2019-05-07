@@ -65,12 +65,16 @@ int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlR
 
 void GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) {}
 void GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) {}
+void GPUReconstructionCPU::GPUMemCpyAlways(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+{
+  memcpy(dst, src, size);
+}
 void GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) {}
 int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
 void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
 {
-  int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT : GPUMemoryResource::MEMORY_OUTPUT;
-  int exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_INPUT;
+  int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;
+  int exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT_FLAG : GPUMemoryResource::MEMORY_INPUT_FLAG;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     GPUMemoryResource& res = mMemoryResources[i];
     if (res.mPtr == nullptr) {
@@ -82,7 +86,7 @@ void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int
     if (!(res.mType & GPUMemoryResource::MEMORY_GPU) || (res.mType & GPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) {
       continue;
     }
-    if (!mDeviceProcessingSettings.keepAllMemory && !all && (res.mType & exc) == exc && (res.mType & inc) != inc) {
+    if (!mDeviceProcessingSettings.keepAllMemory && !all && (res.mType & exc) && !(res.mType & inc)) {
       continue;
     }
     if (toGPU) {

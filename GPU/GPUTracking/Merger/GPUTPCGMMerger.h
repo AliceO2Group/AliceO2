@@ -87,6 +87,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void SetField(GPUTPCGMPolynomialField* field) { mField = *field; }
 
   GPUhd() int NClusters() const { return (mNClusters); }
+  GPUhd() int NMaxClusters() const { return (mNMaxClusters); }
   GPUhd() int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
   GPUhd() GPUTPCGMMergedTrackHit* Clusters()
@@ -158,7 +159,7 @@ class GPUTPCGMMerger : public GPUProcessor
   short mMemoryResRefit;
 
   int mMaxID;
-  int mNClusters; // Total number of incoming clusters
+  int mNClusters; // Total number of incoming clusters (from slice tracks)
   int mNOutputTracks;
   int mNOutputTrackClusters;
   GPUTPCGMMergedTrack* mOutputTracks; //* array of output merged tracks
