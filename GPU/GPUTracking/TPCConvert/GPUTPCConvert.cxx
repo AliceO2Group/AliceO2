@@ -62,9 +62,3 @@ void GPUTPCConvert::SetMaxData()
   }
   mNClustersTotal = offset;
 }
-
-void GPUTPCConvert::set(ClusterNativeAccessExt* clustersNative, const TPCFastTransform* transform)
-{
-  mClustersNative = clustersNative;
-  mTransform = transform;
-}

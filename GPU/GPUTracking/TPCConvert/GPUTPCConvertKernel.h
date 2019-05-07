@@ -24,7 +24,7 @@ class GPUTPCConvertKernel : public GPUKernelTemplate
 {
  public:
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCConversion; }
-#ifdef GPUCA_BUILD_TPCCONVERT
+#if defined(GPUCA_BUILD_TPCCONVERT) && !defined(GPUCA_ALIROOT_LIB)
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
 #endif

@@ -11,8 +11,8 @@
 /// \file dEdxInfo.h
 /// \author David Rohr
 
-#ifndef DEDXINFO_H
-#define DEDXINFO_H
+#ifndef ALICEO2_DATAFORMATSTPC_DEDXINFO_H
+#define ALICEO2_DATAFORMATSTPC_DEDXINFO_H
 
 #include "GPUCommonRtypes.h"
 

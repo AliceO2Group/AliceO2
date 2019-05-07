@@ -81,8 +81,9 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
   processors()->trdTracker.SetTrackingChain(this);
   mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+#ifndef GPUCA_ALIROOT_LIB
   mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
-
+#endif
   mRec->AddGPUEvents(mEvents);
 }
 
@@ -101,9 +102,11 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTracker, &processors()->trdTracker);
   }
+#ifndef GPUCA_ALIROOT_LIB
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
   }
+#endif
 }
 
 void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
@@ -371,6 +374,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
 
 int GPUChainTracking::ConvertNativeToClusterData()
 {
+#ifdef HAVE_O2HEADERS
   ActivateThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCConversion);
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
@@ -410,6 +414,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
   }
 
   ReleaseThreadContext();
+#endif
   return 0;
 }
 

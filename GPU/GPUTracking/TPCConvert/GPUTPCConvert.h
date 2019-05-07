@@ -49,7 +49,11 @@ class GPUTPCConvert : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersMemory(void* mem);
 
-  void set(ClusterNativeAccessExt* clusterNative, const TPCFastTransform* transform);
+  void set(ClusterNativeAccessExt* clustersNative, const TPCFastTransform* transform)
+  {
+    mClustersNative = clustersNative;
+    mTransform = transform;
+  }
 #endif
 
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
