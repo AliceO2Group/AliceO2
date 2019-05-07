@@ -67,7 +67,7 @@ void trackleterKernelSerial(
         for (int iNextLayerClusterIndex{ firstRowClusterIndex }; iNextLayerClusterIndex <= maxRowClusterIndex && iNextLayerClusterIndex < clustersNextLayer.size(); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{ clustersNextLayer[iNextLayerClusterIndex] };
           // std::cout<<nextLayerMClabels[iNextLayerClusterIndex]<<" =?= "<<currentLayerMClabels[iCurrentLayerClusterIndex]<<std::endl;
-          const char testMC{ !isMc || nextLayerMClabels[iNextLayerClusterIndex] == currentLayerMClabels[iCurrentLayerClusterIndex] && nextLayerMClabels[iNextLayerClusterIndex] != -1 };
+          const char testMC{ !isMc || (nextLayerMClabels[iNextLayerClusterIndex] == currentLayerMClabels[iCurrentLayerClusterIndex] && nextLayerMClabels[iNextLayerClusterIndex] != -1) };
           if (MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (layerOrder == LAYER0_TO_LAYER1) {
