@@ -249,8 +249,9 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
     const auto& lr = getLayer(lrID);
     int nc = ray.crossLayer(lr);
     for (int ic = nc; ic--;) {
-      auto& cross = ray.getCrossParams(ic); // tmax,tmin of crossing the layer
-      auto phi0 = ray.getPhi(cross.first), phi1 = ray.getPhi(cross.second), dPhi = phi0 - phi1;
+      float cross1, cross2;
+      ray.getCrossParams(ic, cross1, cross2); // tmax,tmin of crossing the layer
+      auto phi0 = ray.getPhi(cross1), phi1 = ray.getPhi(cross2), dPhi = phi0 - phi1;
       auto phiID = lr.getPhiSliceID(phi0), phiIDLast = lr.getPhiSliceID(phi1);
       // account for eventual wrapping around 0
       if (dPhi > 0.f) {
@@ -264,11 +265,11 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
       }
       int stepPhiID = phiID > phiIDLast ? -1 : 1;
       bool checkMorePhi = true;
-      auto tStartPhi = cross.first, tEndPhi = 0.f;
+      auto tStartPhi = cross1, tEndPhi = 0.f;
       do {
         // get the path in the current phi slice
         if (phiID == phiIDLast) {
-          tEndPhi = cross.second;
+          tEndPhi = cross2;
           checkMorePhi = false;
         } else { // last phi slice still not reached
           tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % lr.getNPhiSlices());
