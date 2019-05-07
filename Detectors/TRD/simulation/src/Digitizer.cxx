@@ -70,7 +70,7 @@ void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& di
     totalNumberOfProcessedHits += mHitContainer.size();
     int signals = 0; // dummy variable for now
     if (!convertHits(det, mHitContainer, signals)) {
-      LOG(INFO) << "TRD converstion of hits failed for detector " << det;
+      LOG(WARNING) << "TRD converstion of hits failed for detector " << det;
       signals = 0; //
     }
 
@@ -101,8 +101,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
   //
   // Convert the detector-wise sorted hits to detector signals
   //
-
-  LOG(INFO) << "Start converting " << hits.size() << " hits for detector " << det;
 
   // Number of track dictionary arrays
   // const int kNdict     = AliTRDdigitsManager::kNDict;
@@ -415,7 +413,6 @@ bool Digitizer::convertSignalsToDigits(const int det, int& arraySignal)
   // Converstion of signals to digits
   //
 
-  LOG(INFO) << "Start converting signals for detector " << det;
   if (mSDigits) {
     // Convert the signal array to s-digits
     if (!convertSignalsToSDigits(det, arraySignal)) {
@@ -448,8 +445,6 @@ bool Digitizer::convertSignalsToADC(const int det, int& signals)
   //
   // Converts the sampled electron signals to ADC values for a given chamber
   //
-
-  LOG(INFO) << "Start converting signals to ADC values for detector = " << det;
 
   // TRDcalibDB* calibration = TRDcalibDB::Instance();
   // if (!calibration) {
