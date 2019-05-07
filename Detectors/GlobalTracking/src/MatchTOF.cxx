@@ -568,7 +568,7 @@ void MatchTOF::doMatching(int sec)
           }
           nStripsCrossedInPropagation++;
         }
-        Printf("nStepsInsideSameStrip[nStripsCrossedInPropagation-1] = %d", nStepsInsideSameStrip[nStripsCrossedInPropagation - 1]);
+        //Printf("nStepsInsideSameStrip[nStripsCrossedInPropagation-1] = %d", nStepsInsideSameStrip[nStripsCrossedInPropagation - 1]);
         if (nStepsInsideSameStrip[nStripsCrossedInPropagation - 1] == 0) {
           detId[nStripsCrossedInPropagation - 1][0] = detIdTemp[0];
           detId[nStripsCrossedInPropagation - 1][1] = detIdTemp[1];
@@ -679,8 +679,8 @@ void MatchTOF::doMatching(int sec)
         if (res < mSpaceTolerance) { // matching ok!
           LOG(DEBUG) << "MATCHING FOUND: We have a match! between track " << mTracksSectIndexCache[indices[0]][itrk] << " and TOF cluster " << mTOFClusSectIndexCache[indices[0]][itof];
           foundCluster = true;
-	  evIdx eventIndexTOFCluster(trefTOF.getEntryInTree(), mTOFClusSectIndexCache[indices[0]][itof]);
-	  evIdx eventIndexTracks(mCurrTracksTreeEntry, mTracksSectIndexCache[indices[0]][itrk]);
+          evIdx eventIndexTOFCluster(trefTOF.getEntryInTree(), mTOFClusSectIndexCache[indices[0]][itof]);
+          evIdx eventIndexTracks(mCurrTracksTreeEntry, mTracksSectIndexCache[indices[0]][itrk]);
           mMatchedTracksPairs.emplace_back(std::make_pair(eventIndexTracks, o2::dataformats::MatchInfoTOF(eventIndexTOFCluster, chi2, trkLTInt[iPropagation]))); // TODO: check if this is correct!
           for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
             LOG(DEBUG) << "TOF label " << ilabel << ": trackID = " << labelsTOF[ilabel].getTrackID() << ", eventID = " << labelsTOF[ilabel].getEventID() << ", sourceID = " << labelsTOF[ilabel].getSourceID();

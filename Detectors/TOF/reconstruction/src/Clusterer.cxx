@@ -101,14 +101,15 @@ void Clusterer::addContributingDigit(Digit* dig)
   if (mNumberOfContributingDigits == 6) {
     LOG(ERROR) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
 
-    int phi,eta;
-    for(int i=0; i < mNumberOfContributingDigits; i++){
+    int phi, eta;
+    for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
       LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
-    LOG(ERROR) << "skipped digit" << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC();
+    LOG(ERROR) << "skipped digit"
+               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 
@@ -124,7 +125,7 @@ void Clusterer::addContributingDigit(Digit* dig)
 //_____________________________________________________________________
 void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 {
-  static const float inv12 = 1./12.;
+  static const float inv12 = 1. / 12.;
 
   // here we finally build the cluster from all the digits contributing to it
 
@@ -212,18 +213,18 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   float pos[3];
   Geo::getPos(det, pos);
   Geo::rotateToSector(pos, c.getSector());
-  c.setXYZ(pos[2], pos[0], pos[1]); // storing coordinates in sector frame: note that the rotation above puts z in pos[1], the radial coordinate in pos[2], and the tangent coordinate in pos[0] (this is to match the TOF residual system, where we don't use the radial component), so we swap their positions. 
+  c.setXYZ(pos[2], pos[0], pos[1]); // storing coordinates in sector frame: note that the rotation above puts z in pos[1], the radial coordinate in pos[2], and the tangent coordinate in pos[0] (this is to match the TOF residual system, where we don't use the radial component), so we swap their positions.
 
   c.setR(TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1])); // it is the R in the sector frame
   c.setPhi(TMath::ATan2(pos[1], pos[0]));
 
-  float errY2 = Geo::XPAD*Geo::XPAD*inv12;
-  float errZ2 = Geo::ZPAD*Geo::ZPAD*inv12;
+  float errY2 = Geo::XPAD * Geo::XPAD * inv12;
+  float errZ2 = Geo::ZPAD * Geo::ZPAD * inv12;
   float errYZ = 0;
 
   //if(c.getNumOfContributingChannels() > 1){
-    // set errors according to a model not yet defined!
-    // TO DO
+  // set errors according to a model not yet defined!
+  // TO DO
   //}
   c.setErrors(errY2, errZ2, errYZ);
 

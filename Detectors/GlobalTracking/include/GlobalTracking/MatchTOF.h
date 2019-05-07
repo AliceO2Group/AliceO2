@@ -64,7 +64,7 @@ class MatchTOF
   using Geo = o2::tof::Geo;
   using Cluster = o2::tof::Cluster;
   using evIdx = o2::dataformats::EvIndex<int, int>;
-  
+
  public:
   ///< perform matching for provided input
   void run();
