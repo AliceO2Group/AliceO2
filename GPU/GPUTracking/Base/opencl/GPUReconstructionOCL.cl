@@ -47,6 +47,9 @@
   #define nullptr NULL
   #define NULL (0x0)
 #endif
+#define uint32_t unsigned int
+#define uint16_t unsigned short
+#define uint8_t unsigned char
 // clang-format on
 
 // Disable assertions since they produce errors in GPU Code
