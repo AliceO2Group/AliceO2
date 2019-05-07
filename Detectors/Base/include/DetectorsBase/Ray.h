@@ -16,6 +16,7 @@
 
 #include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "MathUtils/Utils.h"
 
@@ -77,7 +78,7 @@ class Ray
 
   GPUd() float getPhi(float t) const
   {
-    float p = std::atan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
+    float p = o2::gpu::CAMath::ATan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
     o2::utils::BringTo02Pi(p);
     return p;
   }
@@ -111,7 +112,7 @@ inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
   mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
-  mDistXYZ = std::sqrt(mDistXY2 + mD[2] * mD[2]);
+  mDistXYZ = o2::gpu::CAMath::Sqrt(mDistXY2 + mD[2] * mD[2]);
   mXDxPlusYDy = point0.X() * mD[0] + point0.Y() * mD[1];
   mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
@@ -126,7 +127,7 @@ GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
   mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
-  mDistXYZ = std::sqrt(mDistXY2 + mD[2] * mD[2]);
+  mDistXYZ = o2::gpu::CAMath::Sqrt(mDistXY2 + mD[2] * mD[2]);
   mXDxPlusYDy = x0 * mD[0] + y0 * mD[1];
   mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
@@ -139,7 +140,7 @@ GPUdi() float Ray::crossRadial(float cs, float sn) const
 {
   // calculate t of crossing with radial line with inclination cosine and sine
   float den = mD[0] * sn - mD[1] * cs;
-  if (std::abs(den) < Tiny) {
+  if (o2::gpu::CAMath::Abs(den) < Tiny) {
     return InvalidT;
   }
   return (mP[1] * cs - mP[0] * sn) / den;
@@ -155,7 +156,7 @@ GPUdi() bool Ray::crossCircleR(float r2, float& cross1, float& cross2) const
   float det = mXDxPlusYDy2 - mDistXY2 * (mR02 - r2);
   if (det < 0)
     return false; // no intersection
-  float detRed = std::sqrt(det) * mDistXY2i;
+  float detRed = o2::gpu::CAMath::Sqrt(det) * mDistXY2i;
   cross1 = mXDxPlusYDyRed + detRed; // (-mXDxPlusYDy + det)*mDistXY2i;
   cross2 = mXDxPlusYDyRed - detRed; // (-mXDxPlusYDy - det)*mDistXY2i;
   return true;
@@ -172,7 +173,7 @@ GPUdi() float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
 GPUdi() float Ray::crossZ(float z) const
 {
   // calculate t of crossing XY plane at Z
-  return std::abs(mD[2]) > Tiny ? (z - mP[2]) / mD[2] : InvalidT;
+  return o2::gpu::CAMath::Abs(mD[2]) > Tiny ? (z - mP[2]) / mD[2] : InvalidT;
 }
 
 //______________________________________________________
