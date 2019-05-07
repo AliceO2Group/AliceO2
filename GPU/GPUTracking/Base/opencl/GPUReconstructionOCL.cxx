@@ -406,7 +406,8 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
     memset(mHostMemoryBase, 0, mHostMemorySize);
   }
 
-  GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long long int)mDeviceMemorySize, (long long int)mHostMemorySize, -1, (long long int)sizeof(GPUConstantMem));
+  GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long long int)mDeviceMemorySize,
+          (long long int)mHostMemorySize, -1, (long long int)sizeof(GPUConstantMem));
 
   return (0);
 }

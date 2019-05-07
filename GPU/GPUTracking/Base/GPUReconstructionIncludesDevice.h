@@ -62,6 +62,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCConvertKernel.cxx"
 #endif
 
+#ifdef GPUCA_BUILD_TPCCOMPRESSION
+#include "GPUTPCCompressionKernels.cxx"
+#endif
+
 #ifdef GPUCA_BUILD_TRD
 #include "GPUTRDTrackerGPU.cxx"
 #include "GPUTRDTrack.cxx"

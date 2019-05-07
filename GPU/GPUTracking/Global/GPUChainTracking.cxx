@@ -13,6 +13,7 @@
 
 #include "GPUChainTracking.h"
 #include "GPUTPCConvert.h"
+#include "GPUTPCCompression.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUTPCSliceOutTrack.h"
@@ -83,6 +84,7 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
 #ifdef HAVE_O2HEADERS
   mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
+  mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
 #endif
   mRec->AddGPUEvents(mEvents);
 }
@@ -102,9 +104,13 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTracker, &processors()->trdTracker);
   }
+
 #ifdef HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
+  }
+  if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
 #endif
 }
@@ -184,6 +190,7 @@ int GPUChainTracking::PrepareEvent()
       offset += mIOPtrs.nClusterData[iSlice];
     }
   }
+  processors()->tpcCompressor.mMaxClusters = offset;
 
   if (mRec->IsGPU()) {
     memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
@@ -1081,6 +1088,72 @@ int GPUChainTracking::RunTPCTrackingMerger()
   return 0;
 }
 
+int GPUChainTracking::RunTPCCompression()
+{
+#ifdef HAVE_O2HEADERS
+  bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
+  GPUTPCCompression& Compressor = processors()->tpcCompressor;
+  GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
+  ActivateThreadContext();
+  mRec->SetThreadCounts(RecoStep::TPCCompression);
+
+  Compressor.mMerger = &processors()->tpcMerger;
+  SetupGPUProcessor(&Compressor, true);
+  new (Compressor.mMemory) GPUTPCCompression::memory;
+
+  WriteToConstantMemory((char*)&processors()->tpcCompressor - (char*)processors(), &CompressorShadow, sizeof(CompressorShadow), 0);
+  TransferMemoryResourcesToGPU(&Compressor, 0);
+  runKernel<GPUMemClean16>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone, CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
+  runKernel<GPUTPCCompressionKernels, 0>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCCompressionKernels, 1>({ NSLICES * GPUCA_ROW_COUNT, ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
+  TransferMemoryResourcesToHost(&Compressor, 0);
+  SynchronizeGPU();
+  Compressor.mOutput.nTracks = Compressor.mMemory->nStoredTracks;
+  Compressor.mOutput.nAttachedClusters = Compressor.mMemory->nStoredAttachedClusters;
+  Compressor.mOutput.nUnattachedClusters = Compressor.mMemory->nStoredUnattachedClusters;
+  AllocateRegisteredMemory(Compressor.mMemoryResOutputHost);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.nSliceRowClusters, CompressorShadow.mPtrs.nSliceRowClusters, NSLICES * GPUCA_ROW_COUNT * sizeof(Compressor.mOutput.nSliceRowClusters[0]), 0, false);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.nTrackClusters, CompressorShadow.mPtrs.nTrackClusters, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.nTrackClusters[0]), 0, false);
+  SynchronizeGPU();
+  unsigned int offset = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      mRec->GPUMemCpyAlways(Compressor.mOutput.qTotU + offset, CompressorShadow.mPtrs.qTotU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.qTotU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.qMaxU + offset, CompressorShadow.mPtrs.qMaxU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.qMaxU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.flagsU + offset, CompressorShadow.mPtrs.flagsU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.flagsU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.padDiffU + offset, CompressorShadow.mPtrs.padDiffU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.padDiffU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.timeDiffU + offset, CompressorShadow.mPtrs.timeDiffU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.timeDiffU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaPadU + offset, CompressorShadow.mPtrs.sigmaPadU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.sigmaPadU[0]), 0, false);
+      mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaTimeU + offset, CompressorShadow.mPtrs.sigmaTimeU + mClusterNativeAccess->clusterOffset[i][j], Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(Compressor.mOutput.sigmaTimeU[0]), 0, false);
+      offset += Compressor.mOutput.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+    }
+  }
+  offset = 0;
+  for (unsigned int i = 0; i < Compressor.mOutput.nTracks; i++) {
+    mRec->GPUMemCpyAlways(Compressor.mOutput.qTotA + offset, CompressorShadow.mPtrs.qTotA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.qTotA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.qMaxA + offset, CompressorShadow.mPtrs.qMaxA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.qMaxA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.flagsA + offset, CompressorShadow.mPtrs.flagsA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.flagsA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaPadA + offset, CompressorShadow.mPtrs.sigmaPadA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.sigmaPadA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaTimeA + offset, CompressorShadow.mPtrs.sigmaTimeA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.sigmaTimeA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.rowDiffA + offset - i, CompressorShadow.mPtrs.rowDiffA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.rowDiffA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.sliceLegDiffA + offset - i, CompressorShadow.mPtrs.sliceLegDiffA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.sliceLegDiffA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.padResA + offset - i, CompressorShadow.mPtrs.padResA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.padResA[0]), 0, false);
+    mRec->GPUMemCpyAlways(Compressor.mOutput.timeResA + offset - i, CompressorShadow.mPtrs.timeResA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.timeResA[0]), 0, false);
+    offset += Compressor.mOutput.nTrackClusters[i];
+  }
+  mRec->GPUMemCpyAlways(Compressor.mOutput.qPtA, CompressorShadow.mPtrs.qPtA, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.qPtA[0]), 0, false);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.rowA, CompressorShadow.mPtrs.rowA, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.rowA[0]), 0, false);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.sliceA, CompressorShadow.mPtrs.sliceA, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.sliceA[0]), 0, false);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.timeA, CompressorShadow.mPtrs.timeA, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.timeA[0]), 0, false);
+  mRec->GPUMemCpyAlways(Compressor.mOutput.padA, CompressorShadow.mPtrs.padA, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.padA[0]), 0, false);
+
+  SynchronizeGPU();
+
+  ReleaseThreadContext();
+#endif
+  return 0;
+}
+
 int GPUChainTracking::RunTRDTracking()
 {
   if (!processors()->trdTracker.IsInitialized()) {
@@ -1171,13 +1244,14 @@ int GPUChainTracking::RunStandalone()
     }
     mQAInitialized = true;
   }
-  static HighResTimer timerTracking, timerMerger, timerQA, timerTransform;
+  static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression;
   static int nCount = 0;
   if (GetDeviceProcessingSettings().resetTimers) {
     timerTracking.Reset();
     timerMerger.Reset();
     timerQA.Reset();
     timerTransform.Reset();
+    timerCompression.Reset();
     nCount = 0;
   }
 
@@ -1210,6 +1284,12 @@ int GPUChainTracking::RunStandalone()
   }
   timerMerger.Stop();
 
+  if (mIOPtrs.clustersNative) {
+    timerCompression.Start();
+    RunTPCCompression();
+    timerCompression.Stop();
+  }
+
   if (needQA) {
     timerQA.Start();
     mQA->RunQA(!GetDeviceProcessingSettings().runQA);
@@ -1229,6 +1309,9 @@ int GPUChainTracking::RunStandalone()
     }
     if (mIOPtrs.clustersNative) {
       printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime() / nCount));
+    }
+    if (mIOPtrs.clustersNative) {
+      printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime() / nCount));
     }
   }
 

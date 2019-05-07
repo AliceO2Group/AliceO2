@@ -22,14 +22,13 @@
 #include "CommonConstants/MathConstants.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace o2::its::constants::its;
-using namespace o2::its;
 using namespace o2;
+using namespace o2::its;
 
 GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
 {
   for (int iLayer{ start }; iLayer != end; iLayer += step) {
-    if (track.mClusters[iLayer] == UnusedIndex) {
+    if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
       continue;
     }
     const TrackingFrameInfo& trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
@@ -66,13 +65,13 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
 
   for (int iRoad = get_global_id(0); iRoad < Fitter.NumberOfRoads(); iRoad += get_global_size(0)) {
     Road& road = Fitter.roads()[iRoad];
-    int clusters[7] = { UnusedIndex, UnusedIndex, UnusedIndex, UnusedIndex, UnusedIndex, UnusedIndex, UnusedIndex };
-    int lastCellLevel = UnusedIndex;
+    int clusters[7] = { o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex };
+    int lastCellLevel = o2::its::constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{ 0 }; iCell < CellsPerRoad; ++iCell) {
+    for (int iCell{ 0 }; iCell < o2::its::constants::its::CellsPerRoad; ++iCell) {
       const int cellIndex = road[iCell];
-      if (cellIndex == UnusedIndex) {
+      if (cellIndex == o2::its::constants::its::UnusedIndex) {
         continue;
       } else {
         clusters[iCell] = Fitter.cells()[iCell][cellIndex].getFirstClusterIndex();
@@ -85,13 +84,13 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
 
     CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
-    if (lastCellLevel == UnusedIndex) {
+    if (lastCellLevel == o2::its::constants::its::UnusedIndex) {
       continue;
     }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
     for (int iC{ 0 }; iC < 7; iC++) {
-      if (clusters[iC] != UnusedIndex) {
+      if (clusters[iC] != o2::its::constants::its::UnusedIndex) {
         clusters[iC] = Fitter.clusters()[iC][clusters[iC]].clusterId;
       }
     }
@@ -122,8 +121,8 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       const float r3 = CAMath::Sqrt(cluster3.xCoordinate * cluster3.xCoordinate + cluster3.yCoordinate * cluster3.yCoordinate);
       const float fy = 1. / (r2 - r3);
       const float& tz = fy;
-      const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + Resolution, x3, y3) - crv) / (Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-      constexpr float s2 = Resolution * Resolution;
+      const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+      constexpr float s2 = o2::its::constants::its::Resolution * o2::its::constants::its::Resolution;
 
       temporaryTrack.X() = cluster3.xTrackingFrame;
       temporaryTrack.Y() = y3;
@@ -156,13 +155,13 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     for (size_t iC = 0; iC < 7; ++iC) {
       temporaryTrack.mClusters[iC] = clusters[iC];
     }
-    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, LayersNumber - 4, -1, -1);
+    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 4, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, LayersNumber, 1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, o2::its::constants::its::LayersNumber, 1);
     if (!fitSuccess) {
       continue;
     }
@@ -176,7 +175,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     temporaryTrack.mOuterParam.X = temporaryTrack.X();
     temporaryTrack.mOuterParam.alpha = prop.GetAlpha();
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, LayersNumber - 1, -1, -1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 1, -1, -1);
     if (!fitSuccess) {
       continue;
     }

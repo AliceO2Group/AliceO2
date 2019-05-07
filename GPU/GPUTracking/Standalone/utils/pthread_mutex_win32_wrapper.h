@@ -104,26 +104,6 @@ static inline int sem_post(sem_t* sem) { return (ReleaseSemaphore(*sem, 1, nullp
 
 #ifdef CMODULES_PTHREAD_BARRIERS
 
-/*typedef struct _RTL_BARRIER {
-            DWORD Reserved1;
-            DWORD Reserved2;
-            ULONG_PTR Reserved3[2];
-            DWORD Reserved4;
-            DWORD Reserved5;
-   } RTL_BARRIER, *PRTL_BARRIER;
-
-   typedef RTL_BARRIER SYNCHRONIZATION_BARRIER;
-   typedef PRTL_BARRIER PSYNCHRONIZATION_BARRIER;
-   typedef PRTL_BARRIER LPSYNCHRONIZATION_BARRIER;
-
- #define SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY  0x01
- #define SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY 0x02
- #define SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE  0x04
-
-   BOOL WINAPI EnterSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ DWORD dwFlags);
-   BOOL WINAPI InitializeSynchronizationBarrier(_Out_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ LONG lTotalThreads, _In_ LONG lSpinCount);
-   BOOL WINAPI DeleteSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier);*/
-
 typedef SYNCHRONIZATION_BARRIER pthread_barrier_t;
 
 static inline int pthread_barrier_destroy(pthread_barrier_t* b) { return (DeleteSynchronizationBarrier(b) == 0); }

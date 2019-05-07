@@ -158,9 +158,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Processing functions
   int RunTPCTrackingSlices();
-  virtual int RunTPCTrackingMerger();
-  virtual int RunTRDTracking();
+  int RunTPCTrackingMerger();
+  int RunTRDTracking();
   int DoTRDGPUTracking();
+  int RunTPCCompression();
 
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform; }

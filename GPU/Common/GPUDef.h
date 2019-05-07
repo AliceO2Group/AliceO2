@@ -27,6 +27,7 @@
   #if defined(HAVE_O2HEADERS)
     #define GPUCA_BUILD_DEDX
     #define GPUCA_BUILD_TPCCONVERT
+    #define GPUCA_BUILD_TPCCOMPRESSION
     #define GPUCA_BUILD_TRD
     #define GPUCA_BUILD_ITS
   #endif

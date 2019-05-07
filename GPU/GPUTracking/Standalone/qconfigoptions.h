@@ -69,6 +69,8 @@ AddOption(globalTracking, bool, true, "globalTracking", 0, "Enable global tracki
 AddOption(runTRD, int, -1, "trd", 0, "Enable TRD processing")
 AddOption(rundEdx, int, 1, "dEdx", 0, "Enable dEdx processing")
 AddOption(disableRefitAttachment, int, 0, "refitAttachmentMask", 0, "Mask to disable certain attachment steps during refit")
+AddOption(tpcReject, int, 0, "tpcReject", 0, "Enable rejection of TPC clusters for compression")
+AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold to reject clusters of TPC tracks")
 AddHelp("help", 'h')
 EndConfig()
 

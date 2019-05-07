@@ -48,6 +48,10 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
   void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
   void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
+  void GPUMemCpyAlways(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override
+  {
+    GPUMemCpy(dst, src, size, stream, toGPU, ev, evList, nEvents);
+  }
   void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
 
   int StartHelperThreads() override;

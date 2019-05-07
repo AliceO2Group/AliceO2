@@ -27,17 +27,21 @@ class GPUMemoryResource
   friend class GPUReconstructionCPU;
 
  public:
-  enum MemoryType { MEMORY_HOST = 1,
-                    MEMORY_GPU = 2,
-                    MEMORY_INPUT = 7,
-                    MEMORY_OUTPUT = 11,
-                    MEMORY_INOUT = 15,
-                    MEMORY_SCRATCH = 16,
-                    MEMORY_SCRATCH_HOST = 17,
-                    MEMORY_EXTERNAL = 32,
-                    MEMORY_PERMANENT = 64,
-                    MEMORY_CUSTOM = 128,
-                    MEMORY_CUSTOM_TRANSFER = 256 };
+  enum MemoryType {
+    MEMORY_HOST = 1,
+    MEMORY_GPU = 2,
+    MEMORY_INPUT_FLAG = 4,
+    MEMORY_INPUT = 7,
+    MEMORY_OUTPUT_FLAG = 8,
+    MEMORY_OUTPUT = 11,
+    MEMORY_INOUT = 15,
+    MEMORY_SCRATCH = 16,
+    MEMORY_SCRATCH_HOST = 17,
+    MEMORY_EXTERNAL = 32,
+    MEMORY_PERMANENT = 64,
+    MEMORY_CUSTOM = 128,
+    MEMORY_CUSTOM_TRANSFER = 256
+  };
   enum AllocationType { ALLOCATION_AUTO = 0,
                         ALLOCATION_INDIVIDUAL = 1,
                         ALLOCATION_GLOBAL = 2 };
