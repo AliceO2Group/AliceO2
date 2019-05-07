@@ -100,6 +100,19 @@ void Clusterer::addContributingDigit(Digit* dig)
 
   if (mNumberOfContributingDigits == 6) {
     LOG(ERROR) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+
+    int phi,eta;
+    for(int i=0; i < mNumberOfContributingDigits; i++){
+      mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
+      LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC();
+    }
+
+    dig->getPhiAndEtaIndex(phi, eta);
+    LOG(ERROR) << "skipped digit" << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC();
+
+    dig->setIsUsedInCluster(); // flag is at used in any case
+
+    return;
   }
   mContributingDigit[mNumberOfContributingDigits] = dig;
   mNumberOfContributingDigits++;
