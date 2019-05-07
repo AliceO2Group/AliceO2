@@ -107,71 +107,71 @@ void checkTOFMatching()
       int numberOfSecondaryContributingChannels = 0;
       int secondaryContributingChannel = -1;
       if (isDown) {
-	indexCont[3]--;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[down] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
+        indexCont[3]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[down] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
       }
       if (isDownRight) {
-	indexCont[3]--;
-	indexCont[4]++;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
-	indexCont[4] = indices[4];
+        indexCont[3]--;
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
       }
       if (isDownLeft) {
-	indexCont[3]--;
-	indexCont[4]--;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
-	indexCont[4] = indices[4];
+        indexCont[3]--;
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
       }
       if (isUp) {
-	indexCont[3]++;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[up] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
+        indexCont[3]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[up] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
       }
       if (isUpRight) {
-	indexCont[3]++;
-	indexCont[4]++;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
-	indexCont[4] = indices[4];
+        indexCont[3]++;
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
       }
       if (isUpLeft) { // increase padZ
-	indexCont[3]++;
-	indexCont[4]--;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
-	indexCont[3] = indices[3];
-	indexCont[4] = indices[4];
-      }      
+        indexCont[3]++;
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
+      }
       if (isRight) { // increase padX
-	indexCont[4]++;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[right] = %d", secondaryContributingChannel);
-	indexCont[4] = indices[4];
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[right] = %d", secondaryContributingChannel);
+        indexCont[4] = indices[4];
       }
       if (isLeft) { // decrease padX
-	indexCont[4]--;
-	numberOfSecondaryContributingChannels++;
-	secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
-	Printf("secondaryContributingChannel[left] = %d", secondaryContributingChannel);
-	indexCont[4] = indices[4];
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[left] = %d", secondaryContributingChannel);
+        indexCont[4] = indices[4];
       }
       Printf("Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
-      
+
       o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(indexITSTPCtrack);
       const o2::dataformats::EvIndex<int, int>& evIdxTPC = trackITSTPC.getRefTPC();
       Printf("matched TPCtrack: eventID = %d, indexID = %d", evIdxTPC.getEvent(), evIdxTPC.getIndex());

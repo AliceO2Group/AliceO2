@@ -35,14 +35,14 @@ class Cluster : public o2::BaseCluster<float>
   static constexpr int NPADSXSECTOR = 8736;
 
  public:
-  enum { kUpLeft = 0,     // 2^0, 1st bit
-         kUp = 1,         // 2^1, 2nd bit
-         kUpRight = 2,    // 2^2, 3rd bit
-         kRight = 3,      // 2^3, 4th bit
-         kDownRight = 4,  // 2^4, 5th bit
-         kDown = 5,       // 2^5, 6th bit
-         kDownLeft = 6,   // 2^6, 7th bit
-         kLeft = 7 };     // 2^7, 8th bit
+  enum { kUpLeft = 0,    // 2^0, 1st bit
+         kUp = 1,        // 2^1, 2nd bit
+         kUpRight = 2,   // 2^2, 3rd bit
+         kRight = 3,     // 2^3, 4th bit
+         kDownRight = 4, // 2^4, 5th bit
+         kDown = 5,      // 2^5, 6th bit
+         kDownLeft = 6,  // 2^6, 7th bit
+         kLeft = 7 };    // 2^7, 8th bit
 
   Cluster() = default;
 
@@ -84,16 +84,16 @@ class Cluster : public o2::BaseCluster<float>
     return mPhi;
   }
 
-  void setR(float value){ mR = value; }
-  void setPhi(float value){ mPhi = value; }
+  void setR(float value) { mR = value; }
+  void setPhi(float value) { mPhi = value; }
 
   int getNumOfContributingChannels() const; // returns the number of hits associated to the cluster, i.e. the number of hits that built the cluster; it is the equivalente of the old AliESDTOFCluster::GetNTOFhits()
-  int getMainContributingChannel() const { return getSector()*NPADSXSECTOR + getPadInSector(); }
+  int getMainContributingChannel() const { return getSector() * NPADSXSECTOR + getPadInSector(); }
 
   void addBitInContributingChannels(int bit) { setBit(bit); }
   void resetBitInContributingChannels(int bit) { resetBit(bit); }
-  std::uint8_t getAdditionalContributingChannels() const {return getBits();}
-  void setAdditionalContributingChannels(std::uint8_t mask) {setBits(mask);}
+  std::uint8_t getAdditionalContributingChannels() const { return getBits(); }
+  void setAdditionalContributingChannels(std::uint8_t mask) { setBits(mask); }
 
   bool isAdditionalChannelSet(int bit /* e.g. o2::tof::Cluster::kUpLeft */) const { return isBitSet(bit); }
 
@@ -101,11 +101,11 @@ class Cluster : public o2::BaseCluster<float>
   {
     setSector(newvalue / NPADSXSECTOR);
     setPadInSector(newvalue % NPADSXSECTOR);
-  } 
+  }
 
-  void setEntryInTree(int value) {mEntryInTree = value;}
-  int getEntryInTree() const {return mEntryInTree;}
-  
+  void setEntryInTree(int value) { mEntryInTree = value; }
+  int getEntryInTree() const { return mEntryInTree; }
+
  private:
   friend class boost::serialization::access;
 

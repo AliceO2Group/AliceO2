@@ -131,10 +131,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   Printf("Time to run for problematics:");
   timerTot.Print();
 
-
   outFile.cd();
   calib.fillOutput();
   outTree.Write();
   outFile.Close();
-
 }
