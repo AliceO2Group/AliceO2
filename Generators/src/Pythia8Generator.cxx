@@ -159,12 +159,10 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
         Double_t px = mPythia->event[ii].px();
         Double_t py = mPythia->event[ii].py();
         Double_t t = mPythia->event[ii].tProd();
-        if (t > 0.) {
-          x *= mm2cm;
-          y *= mm2cm;
-          z *= mm2cm;
-          t *= mm2cm / clight;
-        }
+        x *= mm2cm;
+        y *= mm2cm;
+        z *= mm2cm;
+        t *= mm2cm / clight;
         cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z,
                       (Int_t)mPythia->event[ii].mother1(), wanttracking, -9e9, t);
         // cout<<"debug p8->geant4 "<< wanttracking << " "<< ii <<  " "
@@ -180,12 +178,10 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
       Double_t px = mPythia->event[ii].px();
       Double_t py = mPythia->event[ii].py();
       Double_t t = mPythia->event[ii].tProd();
-      if (t > 0.) {
-        x *= mm2cm;
-        y *= mm2cm;
-        z *= mm2cm;
-        t *= mm2cm / clight;
-      }
+      x *= mm2cm;
+      y *= mm2cm;
+      z *= mm2cm;
+      t *= mm2cm / clight;
       cpg->AddTrack((Int_t)mPythia->event[im].id(), px, py, pz, x, y, z, 0, false, -9e9, t);
       cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z, im, false, -9e9, t);
       //cout<<"debug p8->geant4 "<< 0 << " "<< ii <<  " " << fake<< " "<< mPythia->event[ii].mother1()<<endl;
