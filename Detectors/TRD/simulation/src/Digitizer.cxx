@@ -273,7 +273,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
 
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locR);
-      if (rowE) {
+      if (rowE < 1) {
         continue;
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
