@@ -312,7 +312,7 @@ kernel
 void findPeaks(
          global const charge_t *chargeMap,
          global const Digit    *digits,
-         global       int      *isPeakPredicate)
+         global       uchar    *isPeakPredicate)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];

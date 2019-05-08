@@ -48,6 +48,9 @@ public:
     private:
         friend class StreamCompaction;
 
+        cl::Kernel nativeScanUpStart;
+        size_t     scanUpStartWorkGroupSize;
+
         cl::Kernel nativeScanUp;
         size_t     scanUpWorkGroupSize;
 
