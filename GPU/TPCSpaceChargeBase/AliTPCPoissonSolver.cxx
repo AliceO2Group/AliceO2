@@ -1327,7 +1327,7 @@ Int_t AliTPCPoissonSolver::IsPowerOfTwo(Int_t i) const
 ///		 relaxation used 7 stencil in cylindrical coordinate
 ///
 /// Using the following equations
-/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  \f$
+/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  \f$
 ///
 /// \param matricesCurrentV TMatrixD** potential in 3D (matrices of matrix)
 /// \param matricesCurrentCharge TMatrixD** charge in 3D
@@ -1473,7 +1473,7 @@ void AliTPCPoissonSolver::Relax3D(TMatrixD** matricesCurrentV, TMatrixD** matric
 ///		 relaxation used 5 stencil in cylindrical coordinate
 ///
 /// Using the following equations
-/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  \f$
+/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  \f$
 ///
 /// \param matricesCurrentV TMatrixD& potential in 3D (matrices of matrix)
 /// \param matricesCurrentCharge TMatrixD& charge in 3D
@@ -1528,7 +1528,7 @@ void AliTPCPoissonSolver::Relax2D(TMatrixD& matricesCurrentV, TMatrixD& matrices
 ///		 residue used 7 stencil in cylindrical coordinate
 ///
 /// Using the following equations
-/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  \f$
+/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  \f$
 ///
 /// \param residue TMatrixD** residue in 3D (matrices of matrix)
 /// \param matricesCurrentV TMatrixD** potential in 3D (matrices of matrix)
@@ -1616,7 +1616,7 @@ void AliTPCPoissonSolver::Residue3D(TMatrixD** residue, TMatrixD** matricesCurre
 ///		 residue used 5 stencil in cylindrical coordinate
 ///
 /// Using the following equations
-/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}}) U_{i+1,j,k}  \f$
+/// \f$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  + (1 - \frac{1}{r_{i}h_{r}}) U_{i+1,j,k}  \f$
 ///
 /// \param residue TMatrixD& potential in 2D
 /// \param matricesCurrentV TMatrixD& potential in 2D
