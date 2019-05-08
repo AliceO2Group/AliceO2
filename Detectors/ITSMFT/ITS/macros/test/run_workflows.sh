@@ -1,5 +1,5 @@
 #!/bin/bash
-o2sim -n 10 -e TGeant3 -g boxgen -m PIPE ITS >& sim.log 
+o2-sim -n 10 -e TGeant3 -g boxgen -m PIPE ITS >& sim.log 
 o2-sim-digitizer-workflow >& digi.log
 #o2-sim-digitizer-workflow --configKeyValues "ITSDigitizerParam.continuous=0" >& digi.log
 o2-its-reco-workflow >& reco.log
