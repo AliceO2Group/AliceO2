@@ -29,5 +29,6 @@
 #pragma link C++ class o2::trd::TRDCalDet + ;
 #pragma link C++ class o2::trd::TRDCalROC + ;
 #pragma link C++ class o2::trd::TRDArrayADC + ;
+#pragma link C++ class o2::trd::PadResponse + ;
 
 #endif
