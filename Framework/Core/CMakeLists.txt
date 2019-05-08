@@ -228,6 +228,7 @@ O2_GENERATE_EXECUTABLE(
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_AnalysisTask.cxx
       test/test_BoostSerializedProcessing.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
