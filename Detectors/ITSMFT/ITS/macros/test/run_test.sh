@@ -7,7 +7,7 @@ mcEngine=TGeant3
 #MC event generator
 mcGener=boxgen
 
-o2sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
+o2-sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
 
 # Digitizing in triggered readout mode...
 o2-sim-digitizer-workflow --configKeyValues "ITSDigitizerParam.continuous=0" >& digi.log 
