@@ -339,7 +339,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
             CL_MEM_READ_ONLY,
             globalRowToCruBufSize);
 
-    size_t isPeakBufSize = digits.size() * sizeof(cl_int);
+    size_t isPeakBufSize = digits.size() * sizeof(cl_uchar);
     mem.isPeak = cl::Buffer(
             context, 
             CL_MEM_READ_WRITE, 

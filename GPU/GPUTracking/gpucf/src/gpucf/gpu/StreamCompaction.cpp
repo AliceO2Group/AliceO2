@@ -13,16 +13,24 @@ StreamCompaction::Worker::Worker(
         cl::Program prg, 
         cl::Device device, 
         DeviceMemory mem)
-    : nativeScanUp(prg, "nativeScanUp")
+    : nativeScanUpStart(prg, "nativeScanUpStart")
+    , nativeScanUp(prg, "nativeScanUp")
     , nativeScanTop(prg, "nativeScanTop")
     , nativeScanDown(prg, "nativeScanDown")
     , compactArr(prg, "compactArr")
     , mem(mem)
 {
+    nativeScanUpStart.getWorkGroupInfo(
+            device,
+            CL_KERNEL_WORK_GROUP_SIZE, 
+            &scanUpStartWorkGroupSize);
+
     nativeScanUp.getWorkGroupInfo(
             device,
             CL_KERNEL_WORK_GROUP_SIZE, 
             &scanUpWorkGroupSize);
+
+    ASSERT(scanUpStartWorkGroupSize == scanUpWorkGroupSize);
 
     log::Debug() << "scanUpWorkGroupSize = " << scanUpWorkGroupSize;
 
@@ -121,14 +129,14 @@ size_t StreamCompaction::Worker::run(
     size_t digitnum = range.backlog + range.items;
     size_t offset = range.start;
 
-    queue.enqueueCopyBuffer(
-            predicate,
-            mem.incrBufs.front(),
-            sizeof(cl_int) * offset,
-            sizeof(cl_int) * offset,
-            sizeof(cl_int) * digitnum,
-            nullptr,
-            addScanEvent());
+    /* queue.enqueueCopyBuffer( */
+    /*         predicate, */
+    /*         mem.incrBufs.front(), */
+    /*         sizeof(cl_int) * offset, */
+    /*         sizeof(cl_int) * offset, */
+    /*         sizeof(cl_int) * digitnum, */
+    /*         nullptr, */
+    /*         addScanEvent()); */
 
     std::vector<size_t> offsets;
     std::vector<size_t> digitnums;
@@ -136,22 +144,40 @@ size_t StreamCompaction::Worker::run(
     size_t stepnum = this->stepnum(range);
     DBG(stepnum);
     ASSERT(stepnum <= mem.incrBufs.size());
+
     for (size_t i = 1; i < stepnum; i++)
     {
         digitnums.push_back(digitnum);
         offsets.push_back(offset);
 
-        ASSERT(mem.incrBufSizes[i-1] >= digitnum);
+        if (i == 1)
+        {
+            nativeScanUpStart.setArg(0, predicate);
+            nativeScanUpStart.setArg(1, mem.incrBufs[i-1]);
+            nativeScanUpStart.setArg(2, mem.incrBufs[i]);
 
-        nativeScanUp.setArg(0, mem.incrBufs[i-1]);
-        nativeScanUp.setArg(1, mem.incrBufs[i]);
-        queue.enqueueNDRangeKernel(
-                nativeScanUp,
-                cl::NDRange(offset),
-                cl::NDRange(digitnum),
-                cl::NDRange(scanUpWorkGroupSize),
-                nullptr,
-                addScanEvent());
+            queue.enqueueNDRangeKernel(
+                    nativeScanUpStart,
+                    cl::NDRange(offset),
+                    cl::NDRange(digitnum),
+                    cl::NDRange(scanUpStartWorkGroupSize),
+                    nullptr,
+                    addScanEvent());
+        }
+        else
+        {
+            ASSERT(mem.incrBufSizes[i-1] >= digitnum);
+
+            nativeScanUp.setArg(0, mem.incrBufs[i-1]);
+            nativeScanUp.setArg(1, mem.incrBufs[i]);
+            queue.enqueueNDRangeKernel(
+                    nativeScanUp,
+                    cl::NDRange(offset),
+                    cl::NDRange(digitnum),
+                    cl::NDRange(scanUpWorkGroupSize),
+                    nullptr,
+                    addScanEvent());
+        }
 
         if (debug)
         {
