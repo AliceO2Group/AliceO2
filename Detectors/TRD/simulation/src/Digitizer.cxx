@@ -11,6 +11,7 @@
 #include <TGeoManager.h>
 #include <TRandom.h>
 
+#include "DetectorsBase/GeometryManager.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
@@ -24,7 +25,10 @@ using namespace o2::trd;
 Digitizer::Digitizer()
 {
   // Check if you need more initialization
+  o2::base::GeometryManager::loadGeometry();
   mGeom = new TRDGeometry();
+  mGeom->createPadPlaneArray();
+  mGeom->createClusterMatrixArray();
   mSDigits = false;
 }
 
@@ -273,7 +277,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, int
 
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locR);
-      if (rowE) {
+      if (rowE < 0) {
         continue;
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
