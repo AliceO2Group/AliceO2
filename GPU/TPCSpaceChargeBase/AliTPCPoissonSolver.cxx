@@ -1661,10 +1661,10 @@ void AliTPCPoissonSolver::Residue2D(TMatrixD& residue, TMatrixD& matricesCurrent
 ///    Grid transfer operator, restrict from fine -> coarse grid
 ///		 provide full-half weighting
 ///
-///		\f$ \[ \frac{1}{16}\left( \begin{array}{ccc}
-///      1 & 2 & 1
-///      2 & 4 & 2
-///      1 & 2 & 1 \end{array} \right) \]  \f$
+///		 \[ \frac{1}{16}\left( \begin{array}{ccc}
+///      1 & 2 & 1 \\
+///      2 & 4 & 2 \\
+///      1 & 2 & 1 \end{array} \right) \]
 ///
 /// \param matricesCurrentCharge TMatrixD& coarse grid (2h)
 /// \param residue TMatrixD& fine grid  (h)
