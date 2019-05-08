@@ -184,8 +184,7 @@ bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
     //
 
     // The magnetic field strength
-    o2::field::MagneticField* fld = nullptr;
-    fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     if (!fld) {
       LOG(FATAL) << "Magnetic field is not initialized!";
       return false;
