@@ -27,9 +27,7 @@ const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
 //_____________________________________________________________________________
 TRDGeometry::TRDGeometry() : TRDGeometryBase(), o2::detectors::DetMatrixCacheIndirect(sDetID)
 {
-  //
-  // TRDGeometry default constructor
-  //
+  createPadPlaneArray();
 }
 
 //_____________________________________________________________________________
@@ -264,7 +262,6 @@ void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
     LOG(FATAL) << "Geometry is not loaded";
   }
 
-  createPadPlaneArray();
   createVolumes(idtmed);
 }
 
