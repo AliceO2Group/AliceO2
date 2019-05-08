@@ -36,7 +36,7 @@ class FileStream : public arrow::io::InputStream
   {
     set_mode(arrow::io::FileMode::READ);
   }
-  ~FileStream() override {}
+  ~FileStream() override = default;
 
   // FIXME: handle return code
   arrow::Status Close() override { return arrow::Status::OK(); }

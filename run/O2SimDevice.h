@@ -24,7 +24,7 @@
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
-#include <string.h>
+#include <cstring>
 
 namespace o2
 {

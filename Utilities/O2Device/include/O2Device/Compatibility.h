@@ -29,9 +29,9 @@ class FairMQ13
  public:
   static bool IsRunning(T* device)
   {
-    if constexpr (std::is_same_v<decltype(test<T>(0)), std::true_type>) {
+    if constexpr (std::is_same_v<decltype(test<T>(nullptr)), std::true_type>) {
       return device->NewStatePending();
-    } else if constexpr (std::is_same_v<decltype(test<T>(0)), std::false_type>) {
+    } else if constexpr (std::is_same_v<decltype(test<T>(nullptr)), std::false_type>) {
       return device->CheckCurrentState(T::RUNNING);
     }
   }

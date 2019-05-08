@@ -30,7 +30,7 @@ struct MatCell {
   float meanX2X0;                   ///< fraction of radiaton lenght
 
   MatCell() : meanRho(0.f), meanX2X0(0.f) {}
-  MatCell(const MatCell& src) : meanRho(src.meanRho), meanX2X0(src.meanX2X0) {}
+  MatCell(const MatCell& src) CON_DEFAULT;
 
   void scale(float scale)
   {
@@ -48,7 +48,7 @@ struct MatBudget : MatCell {
   float length;                     ///< length in material
 
   MatBudget() : length(0.f) {}
-  MatBudget(const MatBudget& src) : MatCell(src), length(src.length) {}
+  MatBudget(const MatBudget& src) CON_DEFAULT;
 
   void scale(float scale)
   {
