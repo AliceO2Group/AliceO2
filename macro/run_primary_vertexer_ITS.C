@@ -14,7 +14,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
-#include "ITStrackingCUDA/VertexerTraitsGPU.h"
+// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
 // DEBUG
 #include "ITStracking/ClusterLines.h"
@@ -84,11 +84,11 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   o2::ITS::ROframe frame(-123);
 
   o2::ITS::VertexerTraits* traits = nullptr;
-  if (useGPU) {
-    traits = o2::ITS::createVertexerTraitsGPU();
-  } else {
-    traits = o2::ITS::createVertexerTraits();
-  }
+  // if (useGPU) {
+  //   traits = o2::ITS::createVertexerTraitsGPU();
+  // } else {
+  traits = o2::ITS::createVertexerTraits();
+  // }
   const o2::ITS::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
   o2::ITS::Vertexer vertexer(traits);
   o2::itsmft::ROFRecord record;
