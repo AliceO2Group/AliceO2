@@ -17,8 +17,10 @@ typedef struct PartialCluster_s
     charge_t timeSigma;
 } PartialCluster;
 
+typedef short delta_t;
 
-void updateCluster(PartialCluster *cluster, charge_t charge, int dp, int dt)
+
+void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t dt)
 {
     cluster->Q         += charge;
     cluster->padMean   += charge*dp;
@@ -32,8 +34,8 @@ void updateClusterOuter(
                      PartialCluster *cluster, 
                      global_pad_t    gpad,
                      timestamp       time,
-                     int             dpOut,
-                     int             dtOut)
+                     delta_t         dpOut,
+                     delta_t         dtOut)
 {
     charge_t outerCharge = CHARGE(chargeMap, gpad+dpOut, time+dtOut);
 
@@ -46,8 +48,8 @@ void addCorner(
                      PartialCluster *myCluster,
                      global_pad_t    gpad,
                      timestamp       time,
-                     int             dp,
-                     int             dt)
+                     delta_t         dp,
+                     delta_t         dt)
 {
     charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
@@ -65,8 +67,8 @@ void addLine(
                      PartialCluster *myCluster,
                      global_pad_t    gpad,
                      timestamp       time,
-                     int             dp,
-                     int             dt)
+                     delta_t         dp,
+                     delta_t         dt)
 {
     charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
