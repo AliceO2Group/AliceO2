@@ -42,7 +42,7 @@ enum class EProc { kPAIR = 0,
                    kCKOV,
                    kLABS,
                    kRAYL
-                 };
+};
 
 /// cuts available
 enum class ECut { kCUTGAM = 0,
