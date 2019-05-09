@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -14,8 +15,13 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/Stack.h"
+#include "FairMQResizableBuffer.h"
 
 #include <fairmq/FairMQDevice.h>
+
+#include <arrow/ipc/writer.h>
+#include <arrow/type.h>
+#include <arrow/io/memory.h>
 
 #include <TClonesArray.h>
 
@@ -55,8 +61,8 @@ DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
   throw std::runtime_error(str.str());
 }
 
-DataChunk
-DataAllocator::newChunk(const Output& spec, size_t size) {
+DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
+{
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto context = mContextRegistry->get<MessageContext>();
 
@@ -64,21 +70,12 @@ DataAllocator::newChunk(const Output& spec, size_t size) {
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
                                                            );
-  FairMQMessagePtr payloadMessage = context->proxy().getDevice()->NewMessageFor(channel, 0, size);
-  auto dataPtr = payloadMessage->GetData();
-  auto dataSize = payloadMessage->GetSize();
-
-  FairMQParts parts;
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  assert(parts.Size() == 2);
-  context->addPart(std::move(parts), channel);
-  assert(parts.Size() == 0);
-  return DataChunk{reinterpret_cast<char*>(dataPtr), dataSize};
+  auto& co = context->add<MessageContext::ContainerRefObject<DataChunk>>(std::move(headerMessage), channel, 0, size);
+  return co;
 }
 
-DataChunk
-DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
+void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fairmq_free_fn* freefn, void* hint = nullptr)
+{
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
@@ -88,18 +85,9 @@ DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_
                                                            size                                  //
                                                            );
 
-  FairMQParts parts;
-
   // FIXME: how do we want to use subchannels? time based parallelism?
   auto context = mContextRegistry->get<MessageContext>();
-  FairMQMessagePtr payloadMessage = context->proxy().getDevice()->NewMessageFor(channel, 0, buffer, size, freefn, hint);
-  auto dataPtr = payloadMessage->GetData();
-  LOG(DEBUG) << "New payload at " << payloadMessage->GetData();
-  auto dataSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  context->addPart(std::move(parts), channel);
-  return DataChunk{reinterpret_cast<char *>(dataPtr), dataSize};
+  context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
 }
 
 FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,                     //
@@ -129,16 +117,13 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   // RootObjectContext, see DataProcessor::doSend
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
 
-  FairMQParts parts;
-
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
   DataHeader* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  mContextRegistry->get<MessageContext>()->addPart(std::move(parts), channel);
+  auto context = mContextRegistry->get<MessageContext>();
+  context->add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, TObject* ptr)
@@ -165,13 +150,55 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
 
 void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
-  std::unique_ptr<TableBuilder> payload(tb);
   std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+
+  /// To finalise this we write the table to the buffer.
+  /// FIXME: most likely not a great idea. We should probably write to the buffer
+  ///        directly in the TableBuilder, incrementally.
+  std::shared_ptr<TableBuilder> p(tb);
+  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    auto table = payload->finalize();
+
+    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
+    auto outStatus = writer->WriteTable(*table);
+    if (outStatus.ok() == false) {
+      throw std::runtime_error("Unable to Write table");
+    }
+  };
+
   assert(context);
-  context->addTable(std::move(header), std::move(payload), channel);
-  assert(payload.get() == nullptr);
+  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
+}
+
+void DataAllocator::create(const Output& spec,
+                           std::shared_ptr<arrow::ipc::RecordBatchWriter>* writer,
+                           std::shared_ptr<arrow::Schema> schema)
+{
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
+  auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+  auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
+  auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), schema, writer);
+
+  auto finalizer = [stream](std::shared_ptr<FairMQResizableBuffer>) -> void {
+    auto s = stream->Close();
+    if (s.ok() == false) {
+      throw std::runtime_error("Error while closing stream");
+    }
+  };
+
+  assert(context);
+  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
@@ -186,7 +213,7 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
     }
   }
   throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
-  assert(false);
+  O2_BUILTIN_UNREACHABLE();
 }
 
 }

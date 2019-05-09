@@ -24,7 +24,7 @@
 #include "TGeoMatrix.h"       // for TGeoMatrix
 #include "FairLogger.h" // for LOG
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 ClassImp(AlpideChip)
 
@@ -85,7 +85,7 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   if (!medSi) {
     Int_t fieldType;
     Float_t maxField;
-    o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
+    o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
     createMaterials(0, fieldType, maxField);
     medSi = mgr->GetMedium("ALPIDE_SI$");
   }
@@ -136,7 +136,7 @@ void AlpideChip::createMaterials(Int_t id, Int_t ifield, Float_t fieldm)
 {
   // create common materials with the MFT
 
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
 
   Float_t tmaxfd = 0.1;   // Degree
   Float_t stemax = 1.0;   // cm

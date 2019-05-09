@@ -234,7 +234,7 @@ std::ostream& operator<<(std::ostream& stream, const PreClusterStruct& cluster)
 {
   stream << "{nDigits= " << cluster.nDigits;
   for (int i = 0; i < cluster.nDigits; ++i) {
-    stream << ", digit[i]= " << cluster.digits[i];
+    stream << ", digit[" << i << "]= " << cluster.digits[i];
   }
   stream << "}";
 
@@ -246,8 +246,9 @@ std::ostream& operator<<(std::ostream& stream, const PreClusterBlock& clusterBlo
 {
   stream << "{fNClusters= " << clusterBlock.getNPreClusters() << std::endl;
   const auto& clusters(clusterBlock.getPreClusters());
+  int i(0);
   for (const auto& cluster : clusters) {
-    stream << "  cluster[i]= " << cluster << std::endl;
+    stream << "  cluster[" << i++ << "]= " << cluster << std::endl;
   }
   stream << "}";
 

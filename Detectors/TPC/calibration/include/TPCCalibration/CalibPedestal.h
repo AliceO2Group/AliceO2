@@ -29,7 +29,6 @@ namespace o2
 namespace TPC
 {
 
-
 /// \brief Pedestal calibration class
 ///
 /// This class is used to produce pad wise pedestal and noise calibration data
@@ -39,75 +38,96 @@ namespace TPC
 
 class CalibPedestal : public CalibRawBase
 {
-  public:
-    using vectorType = std::vector<float>;
+ public:
+  using vectorType = std::vector<float>;
 
-    /// default constructor
-    CalibPedestal(PadSubset padSubset = PadSubset::ROC);
+  enum class StatisticsType {
+    GausFit,   ///< Use Gaus fit for pedestal and noise
+    MeanStdDev ///< Use mean and standard deviation
+  };
 
-    /// default destructor
-    ~CalibPedestal() override = default;
+  /// default constructor
+  CalibPedestal(PadSubset padSubset = PadSubset::ROC);
 
-    /// update function called once per digit
-    ///
-    /// \param roc readout chamber
-    /// \param row row in roc
-    /// \param pad pad in row
-    /// \param timeBin time bin
-    /// \param signal ADC signal
-    Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
-                    const Int_t timeBin, const Float_t signal) final;
+  /// default destructor
+  ~CalibPedestal() override = default;
 
-    /// not used
-    Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
-                    const Int_t timeBin, const Float_t signal) final { return 0;}
+  /// update function called once per digit
+  ///
+  /// \param roc readout chamber
+  /// \param row row in roc
+  /// \param pad pad in row
+  /// \param timeBin time bin
+  /// \param signal ADC signal
+  Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
+                  const Int_t timeBin, const Float_t signal) final;
 
-    /// Reset pedestal data
-    void resetData();
+  /// not used
+  Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+                  const Int_t timeBin, const Float_t signal) final { return 0; }
 
-    /// set the adc range
-    void setADCRange(int minADC, int maxADC) { mADCMin = minADC; mADCMax = maxADC; mNumberOfADCs = mADCMax-mADCMin+1;}
+  /// Reset pedestal data
+  void resetData();
 
-    /// set the time bin range to analyse
-    void setTimeBinRange(int first, int last) { mFirstTimeBin=first; mLastTimeBin=last; }
-    /// Analyse the buffered adc values and calculate noise and pedestal
-    void analyse();
+  /// set the adc range
+  void setADCRange(int minADC, int maxADC)
+  {
+    mADCMin = minADC;
+    mADCMax = maxADC;
+    mNumberOfADCs = mADCMax - mADCMin + 1;
+  }
 
-    /// Get the pedestal calibration object
-    ///
-    /// \return pedestal calibration object
-    const CalPad& getPedestal() const { return mPedestal; }
+  /// set the statistics type
+  void setStatisticsType(StatisticsType statisticsType) { mStatisticsType = statisticsType; }
 
-    /// Get the noise calibration object
-    ///
-    /// \return noise calibration object
-    const CalPad& getNoise() const { return mNoise; }
+  /// set the time bin range to analyse
+  void setTimeBinRange(int first, int last)
+  {
+    mFirstTimeBin = first;
+    mLastTimeBin = last;
+  }
+  /// Analyse the buffered adc values and calculate noise and pedestal
+  void analyse();
 
-    /// Dump the relevant data to file
-    void dumpToFile(const std::string filename) final;
+  /// Get the pedestal calibration object
+  ///
+  /// \return pedestal calibration object
+  const CalPad& getPedestal() const { return mPedestal; }
 
-    /// Dummy end event
-    void endEvent() final {};
+  /// Get the noise calibration object
+  ///
+  /// \return noise calibration object
+  const CalPad& getNoise() const { return mNoise; }
 
-  private:
-    int        mFirstTimeBin; ///< first time bin used in analysis
-    int        mLastTimeBin;  ///< first time bin used in analysis
-    int        mADCMin;       ///< minimum adc value
-    int        mADCMax;       ///< maximum adc value
-    int        mNumberOfADCs; ///< number of adc values (mADCMax-mADCMin+1)
-    CalPad     mPedestal;     ///< CalDet object with pedestal information
-    CalPad     mNoise;        ///< CalDet object with noise
+  /// Get the statistics type
+  StatisticsType getStatisticsType() const { return mStatisticsType; }
 
-    std::vector<std::unique_ptr<vectorType>> mADCdata; //!< ADC data to calculate noise and pedestal
+  /// Dump the relevant data to file
+  void dumpToFile(const std::string filename) final;
 
-    /// return the value vector for a readout chamber
-    ///
-    /// \param roc readout chamber
-    /// \param create if to create the vector if it does not exist
-    vectorType* getVector(ROC roc, bool create=kFALSE);
+  /// Dummy end event
+  void endEvent() final{};
 
-    /// dummy reset
-    void resetEvent() final {}
+ private:
+  int mFirstTimeBin;              ///< first time bin used in analysis
+  int mLastTimeBin;               ///< first time bin used in analysis
+  int mADCMin;                    ///< minimum adc value
+  int mADCMax;                    ///< maximum adc value
+  int mNumberOfADCs;              ///< number of adc values (mADCMax-mADCMin+1)
+  StatisticsType mStatisticsType; ///< statistics type to be used for pedestal and noise evaluation
+  CalPad mPedestal;               ///< CalDet object with pedestal information
+  CalPad mNoise;                  ///< CalDet object with noise
+
+  std::vector<std::unique_ptr<vectorType>> mADCdata; //!< ADC data to calculate noise and pedestal
+
+  /// return the value vector for a readout chamber
+  ///
+  /// \param roc readout chamber
+  /// \param create if to create the vector if it does not exist
+  vectorType* getVector(ROC roc, bool create = kFALSE);
+
+  /// dummy reset
+  void resetEvent() final {}
 };
 
 } // namespace TPC

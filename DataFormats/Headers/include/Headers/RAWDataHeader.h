@@ -109,7 +109,7 @@ struct RAWDataHeaderV3 {
       uint8_t linkID : 8;          /// bit 96 to 103: link id
       uint8_t packetCounter : 8;   /// bit 104 to 111: packet counter
       uint16_t cruID : 12;         /// bit 112 to 123: CRU ID
-      uint8_t zero1 : 4;           /// bit 124 to 127: zeroed
+      uint8_t endPointID : 4;      /// bit 124 to 127: DATAPATH WRAPPER ID: number used to identify one of the 2 End Points [0/1]
     };                             ///
   };                               ///
   union {                          ///

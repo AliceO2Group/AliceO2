@@ -45,7 +45,7 @@ using namespace o2::MFT;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using AlpideSegmentation = o2::ITSMFT::SegmentationAlpide;
+using AlpideSegmentation = o2::itsmft::SegmentationAlpide;
 
 ClassImp(o2::MFT::GeometryTGeo);
 
@@ -58,8 +58,10 @@ std::string GeometryTGeo::sLadderName = "MFT_L";     ///<
 std::string GeometryTGeo::sChipName = "MFT_C";       ///<
 std::string GeometryTGeo::sSensorName = "MFTSensor"; ///<
 
+GeometryTGeo::~GeometryTGeo() = default; // Instantiate explicitly to avoid missing symbol
+
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::MFT)
+GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::GeometryTGeo(DetID::MFT)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached

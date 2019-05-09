@@ -12,7 +12,7 @@
 #define O2_TRDSIMPARAM_H
 
 //Forwards to standard header with protection for GPU compilation
-#include "AliTPCCommonRtypes.h" // for ClassDef
+#include "GPUCommonRtypes.h" // for ClassDef
 
 namespace o2
 {
@@ -26,7 +26,12 @@ namespace trd
 class TRDSimParam
 {
  public:
-  enum { kNplan = 6, kNcham = 5, kNsect = 18, kNdet = 540 };
+  enum { kNplan = 6,
+         kNcham = 5,
+         kNsect = 18,
+         kNdet = 540,
+         kNPadsInPadResponse = 3 // Number of pads included in the pad response
+  };
 
   static TRDSimParam* Instance();
   static void Terminate();
@@ -78,6 +83,8 @@ class TRDSimParam
   double TimeResponse(double time) const;
   double CrossTalk(double time) const;
 
+  const int getNumberOfPadsInPadResponse() const { return kNPadsInPadResponse; }
+
   void ReInit();
 
  protected:
@@ -128,6 +135,6 @@ class TRDSimParam
 
   ClassDefNV(TRDSimParam, 1) // The TRD simulation parameters
 };
-}
-}
+} // namespace trd
+} // namespace o2
 #endif

@@ -43,6 +43,12 @@ class EvIndex
   void shiftEvent(E inc) { mEvent += inc; }
   void shiftIndex(I inc) { mIndex += inc; }
 
+  void clear()
+  {
+    mEvent = 0;
+    mIndex = 0;
+  }
+
  private:
   E mEvent = 0; ///< ID of event or chunk or message containing referred object
   I mIndex = 0; ///< index in the event

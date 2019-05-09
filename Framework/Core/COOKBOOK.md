@@ -1,3 +1,5 @@
+\page refFrameworkCoreCOOKBOOK Core COOKBOOK
+
 # Data Processing Layer Cookbook
 
 This is a work in progress entrypoint for common DPL related tasks.
@@ -53,6 +55,28 @@ or the `lldb` equivalent:
 ```bash
 attach -pid <pid>
 ```
+Note: On some systems, attaching might fail due to missing permission, and `gdb`
+has to be started with `sudo`.
+
+In case you are building the DPL with the support for the debug GUI, you can
+also attach a debugger to the running process by clicking on the
+DataProcessorSpec you want to debug, which will show the Device inspector on
+the right, and there click on the "Attach debugger" button. By default this
+will start lldb in a Terminal.app window on mac, or GDB in an xterm elsewhere.
+You can customise this behavior by setting the environment variable
+`O2DPLDEBUG` to the command you want to run for the debugger and use the
+environment variable `O2DEBUGGEDPID` to get the PID of the DataProcessor
+currently selected. You can do this multiple times for all the devices you
+wish to debug, but remember that you will need to quit the debugger if you want
+DPL to exit.
+
+On linux you might need to start the debugger with `sudo` to have the permission
+to attach, e.g. set O2DPLDEBUG to
+```bash
+export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID'
+```
+Be sure to use single quotes to avoid direct expansion of O2DEBUGGEDPID variable.
+
 
 ### Debug GUI
 

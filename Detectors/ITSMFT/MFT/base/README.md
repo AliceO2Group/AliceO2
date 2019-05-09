@@ -1,3 +1,5 @@
+\page refMFTbase MFT base
+
 # MFT base classes 
 
 Constants: static constants for the MFT

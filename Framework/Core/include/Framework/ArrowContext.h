@@ -10,13 +10,12 @@
 #ifndef FRAMEWORK_ARROWCONTEXT_H
 #define FRAMEWORK_ARROWCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/TableBuilder.h"
-#include <vector>
 #include <cassert>
-#include <string>
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 class FairMQMessage;
 
@@ -24,6 +23,8 @@ namespace o2
 {
 namespace framework
 {
+
+class FairMQResizableBuffer;
 
 /// A context which holds `std::string`s being passed around
 /// useful for debug purposes and as an illustration of
@@ -37,19 +38,25 @@ class ArrowContext
   }
 
   struct MessageRef {
+    /// The header to be associated with the message
     std::unique_ptr<FairMQMessage> header;
-    std::unique_ptr<TableBuilder> payload;
+    /// The actual buffer holding the ArrowData
+    std::shared_ptr<FairMQResizableBuffer> buffer;
+    /// The function to call to finalise the builder into the message
+    std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize;
     std::string channel;
   };
 
   using Messages = std::vector<MessageRef>;
 
-  void addTable(std::unique_ptr<FairMQMessage> header,
-                std::unique_ptr<TableBuilder> table,
-                const std::string& channel)
+  void addBuffer(std::unique_ptr<FairMQMessage> header,
+                 std::shared_ptr<FairMQResizableBuffer> buffer,
+                 std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize,
+                 const std::string& channel)
   {
     mMessages.push_back(std::move(MessageRef{ std::move(header),
-                                              std::move(table),
+                                              std::move(buffer),
+                                              std::move(finalize),
                                               channel }));
   }
 
@@ -89,22 +96,6 @@ class ArrowContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline ArrowContext*
-  ContextRegistry::get<ArrowContext>()
-{
-  return reinterpret_cast<ArrowContext*>(mContextes[3]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<ArrowContext>(ArrowContext* context)
-{
-  mContextes[3] = context;
-}
 
 } // namespace framework
 } // namespace o2

@@ -206,8 +206,8 @@ template <typename T, T _min, T _max,                                           
 class ContiguousAlphabet
 {
  public:
-  ContiguousAlphabet() {}
-  ~ContiguousAlphabet() {}
+  ContiguousAlphabet() = default;
+  ~ContiguousAlphabet() = default;
 
   using value_type = T;
   using size_type = T;
@@ -254,7 +254,7 @@ class ContiguousAlphabet
    public:
     Iterator() : mValue(_max), mIsEnd(true) {}
     Iterator(T value, bool isEnd) : mValue(value), mIsEnd(isEnd) {}
-    ~Iterator() {}
+    ~Iterator() = default;
 
     using self_type = Iterator;
     using value_type = typename _iterator_base<ValueT>::value_type;
@@ -367,7 +367,7 @@ class ProbabilityModel
   static const value_type _default1 = _default0 + 1;
 
   ProbabilityModel() : mProbabilityTable(), mTotalWeight(_default0) {}
-  ~ProbabilityModel() {}
+  ~ProbabilityModel() = default;
 
   constexpr const char* getName() const
   {

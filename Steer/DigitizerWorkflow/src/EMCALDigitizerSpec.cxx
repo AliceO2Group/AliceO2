@@ -57,11 +57,11 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   auto simChains = std::make_shared<std::vector<TChain*>>();
 
   // the instance of the actual digitizer
-  auto digitizer = std::make_shared<o2::EMCAL::Digitizer>();
+  auto digitizer = std::make_shared<o2::emcal::Digitizer>();
 
   // containers for digits and labels
-  auto digits = std::make_shared<std::vector<o2::EMCAL::Digit>>();
-  auto digitsAccum = std::make_shared<std::vector<o2::EMCAL::Digit>>(); // accumulator for all digits
+  auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
+  auto digitsAccum = std::make_shared<std::vector<o2::emcal::Digit>>(); // accumulator for all digits
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
@@ -88,7 +88,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
 
-    static std::vector<o2::EMCAL::Hit> hits;
+    static std::vector<o2::emcal::Hit> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
@@ -152,11 +152,11 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
     // run 3 geometry == run 2 geometry for EMCAL
     // to be adapted with run numbers at a later stage
-    auto geom = o2::EMCAL::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
+    auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
     // init digitizer
     digitizer->setGeometry(geom);
     digitizer->init();

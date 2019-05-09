@@ -9,6 +9,7 @@
 //#include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
+#include "FairRuntimeDb.h"
 
 #include "PHOSReconstruction/ClustererTask.h"
 #endif

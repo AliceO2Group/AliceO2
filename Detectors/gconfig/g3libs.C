@@ -6,7 +6,10 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
+#include "TSystem.h"
+#endif
 
 Bool_t isLibrary(const char* libName)
 {

@@ -20,17 +20,17 @@
 
 void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
-  using namespace o2::Base;
+  using namespace o2::base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::Cluster;
-  using o2::ITSMFT::Hit;
+  using o2::itsmft::Cluster;
+  using o2::itsmft::Hit;
 
   TFile* f = TFile::Open("CheckClusters.root", "recreate");
   TNtuple* nt = new TNtuple("ntc", "cluster ntuple", "x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");
 
   // Geometry
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
@@ -38,7 +38,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   // Hits
   TFile* file0 = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
-  std::vector<o2::ITSMFT::Hit>* hitArray = nullptr;
+  std::vector<o2::itsmft::Hit>* hitArray = nullptr;
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Clusters

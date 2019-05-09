@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/json.h"
@@ -37,7 +38,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -56,9 +57,9 @@ namespace IOUtils
 {
 void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);
-void loadEventData(ROframe& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
+void loadEventData(ROframe& events, const std::vector<itsmft::Cluster>* mClustersArray,
                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-int loadROFrameData(std::uint32_t roFrame, ROframe& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
+int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, const std::vector<itsmft::Cluster>* mClustersArray,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,

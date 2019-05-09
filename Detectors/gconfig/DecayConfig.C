@@ -6,6 +6,12 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TPythia6Decayer.h"
+#include "TPythia6.h"
+#include "TVirtualMC.h"
+#endif
+
 void DecayConfig() {
      
 	// This script uses the external decayer TPythia6Decayer in place of the

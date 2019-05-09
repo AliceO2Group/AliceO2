@@ -56,13 +56,11 @@ SystemInterface::SystemInterface()
   mEnvironment.fAllocMemoryFunc = SystemInterface::alloc;
 }
 
-SystemInterface::~SystemInterface()
-{
+SystemInterface::~SystemInterface() = default;
   /* THINK ABOUT
      make SystemInterface a singleton and release the interface here if still
      active
    */
-}
 
 const char* gInterfaceCallSignatures[] = {
   // int AliHLTAnalysisInitSystem( unsigned long version, AliHLTAnalysisEnvironment* externalEnv, unsigned long runNo, const char* runType)

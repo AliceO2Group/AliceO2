@@ -27,7 +27,7 @@ namespace o2
 namespace zdc
 {
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum ZDCMaterial {
@@ -124,7 +124,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = { 1. }; //!
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 }
@@ -133,13 +133,13 @@ class Detector : public o2::Base::DetImpl<Detector>
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::zdc::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

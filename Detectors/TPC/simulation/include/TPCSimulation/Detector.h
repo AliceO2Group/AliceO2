@@ -25,7 +25,7 @@ class FairVolume;  // lines 10-10
 namespace o2 {
 namespace TPC {
 
-class Detector: public o2::Base::DetImpl<Detector> {
+class Detector: public o2::base::DetImpl<Detector> {
 
   public:
    /** Local material/media IDs for TPC */
@@ -189,7 +189,7 @@ class Detector: public o2::Base::DetImpl<Detector> {
     Detector& operator=(const Detector&);
 
     template <typename Det>
-    friend class o2::Base::DetImpl;
+    friend class o2::base::DetImpl;
     ClassDefOverride(Detector, 1)
 };
 
@@ -211,13 +211,13 @@ T Detector::BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5){
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::TPC::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

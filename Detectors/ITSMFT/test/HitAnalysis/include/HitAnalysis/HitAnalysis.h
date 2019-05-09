@@ -32,7 +32,7 @@ namespace o2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 class TH1;
 
 namespace o2 {
-namespace ITSMFT {
+namespace itsmft {
 class Chip;
 }
 }
@@ -58,7 +58,7 @@ class HitAnalysis : public FairTask
 
   private:
     Bool_t mIsInitialized;       ///< Check whether task is initialized
-    const std::vector<o2::ITSMFT::Hit>* mHits;     ///< Array with ITS hits, filled by the FairRootManager
+    const std::vector<o2::itsmft::Hit>* mHits;     ///< Array with ITS hits, filled by the FairRootManager
     const GeometryTGeo *mGeometry;           ///<  geometry
     TH1 *mLineSegment;        ///< Histogram for line segment
     TH1 *mLocalX0;            ///< Histogram for Starting X position in local coordinates

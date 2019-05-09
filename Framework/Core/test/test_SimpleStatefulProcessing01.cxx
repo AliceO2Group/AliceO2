@@ -52,8 +52,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
             callbacks.set(CallbackService::Id::Stop, stopcb);
             callbacks.set(CallbackService::Id::Reset, resetcb);
             return adaptStateless([](DataAllocator& outputs) {
-              auto out = outputs.newChunk({ "TES", "STATEFUL", 0 }, sizeof(int));
-              auto outI = reinterpret_cast<int*>(out.data);
+              auto& out = outputs.newChunk({ "TES", "STATEFUL", 0 }, sizeof(int));
+              auto outI = reinterpret_cast<int*>(out.data());
               outI[0] = foo++;
             });
           }) //

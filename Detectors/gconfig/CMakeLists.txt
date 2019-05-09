@@ -6,10 +6,12 @@ set(SRCS
      src/G3Config.cxx
      src/G4Config.cxx
      src/SimSetup.cxx
+     src/GlobalProcessCutSimParam.cxx
    )
 
 set(HEADERS
     include/${MODULE_NAME}/SimSetup.h
+    include/${MODULE_NAME}/GlobalProcessCutSimParam.h
    )
 
 Set(LINKDEF src/GConfLinkDef.h)

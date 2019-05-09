@@ -21,7 +21,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
@@ -220,13 +220,13 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
     if (showInfo) {
       if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"
                   << "\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year";
       } else {
         LOG(INFO)
-          << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
+          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
       }
     }
 
@@ -236,13 +236,13 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
     if (showInfo) {
       if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"
                   << "\t In use <<EMCAL_COMPLETEV1>>, check run number and year";
       } else {
         LOG(INFO)
-          << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
+          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
       }
     }
     return Geometry::GetInstance("EMCAL_COMPLETEV1", mcname, mctitle);
@@ -252,12 +252,12 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
     if (showInfo) {
       if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
                   << " is not considered! \n"
                   << "\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year";
       } else {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
                      "<<EMCAL_COMPLETE12SMV1>>";
       }
     }
@@ -268,12 +268,12 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
     if (showInfo) {
       if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"
                   << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
       } else {
-        LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
                      "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
       }
     }
@@ -1043,7 +1043,7 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
 
 void Geometry::CreateListOfTrd1Modules()
 {
-  LOG(DEBUG2) << " o2::EMCAL::Geometry::CreateListOfTrd1Modules() started\n";
+  LOG(DEBUG2) << " o2::emcal::Geometry::CreateListOfTrd1Modules() started\n";
 
   if (!mShishKebabTrd1Modules.size()) {
     for (int iz = 0; iz < mNZ; iz++) {
@@ -1303,7 +1303,7 @@ Bool_t Geometry::IsInDCAL(const Point3D<double>& pnt) const
     return kFALSE;
 }
 
-o2::EMCAL::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt) const
+o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt) const
 {
   Double_t r = sqrt(pnt.X() * pnt.X() + pnt.Y() * pnt.Y());
 

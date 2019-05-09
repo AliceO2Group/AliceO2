@@ -194,14 +194,15 @@ TGeoCompositeShape* FrameStructure::createTOFRail(float y)
   char nameCV[16];
   snprintf(nameCV, 16, "CV");
   TGeoArb8* CV = new TGeoArb8(nameCV, 2.35);
-  CV->SetVertex(0, 0.89, -y);
-  CV->SetVertex(1, 0.89, y);
-  CV->SetVertex(2, 0.09, y);
-  CV->SetVertex(3, 0.09, -y);
-  CV->SetVertex(4, -0.09, -y);
-  CV->SetVertex(5, -0.09, y);
-  CV->SetVertex(6, -0.89, y);
-  CV->SetVertex(7, -0.89, -y);
+  CV->SetVertex(0, 0.09, -y);
+  CV->SetVertex(1, 0.09, y);
+  CV->SetVertex(2, 0.89, y);
+  CV->SetVertex(3, 0.89, -y);
+  CV->SetVertex(4, -0.89, -y);
+  CV->SetVertex(5, -0.89, y);
+  CV->SetVertex(6, -0.09, y);
+  CV->SetVertex(7, -0.09, -y);
+
   char nameCOB[16];
   snprintf(nameCOB, 16, "COB");
   TGeoBBox* boxCOB = new TGeoBBox(nameCOB, 2.0, y, 0.4);
@@ -222,7 +223,7 @@ TGeoCompositeShape* FrameStructure::createTOFRail(float y)
 
 void FrameStructure::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   // Creates the materials
   float epsil, stemax, tmaxfd, deemax, stmin;
 
@@ -233,7 +234,7 @@ void FrameStructure::createMaterials()
   stmin = -.8;
   int isxfld = 2; // field uniformity value as defined by Geant3
   float sxmgmx = 10.; // max field
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   float asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
   float zsteel[4] = { 26., 24., 28., 14. };

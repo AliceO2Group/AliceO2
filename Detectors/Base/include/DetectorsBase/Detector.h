@@ -39,7 +39,7 @@ class FairMQParts;
 class FairMQChannel;
 
 namespace o2 {
-namespace Base {
+namespace base {
 
 /// This is the basic class for any AliceO2 detector module, whether it is
 /// sensitive or not. Detector classes depend on this.
@@ -115,21 +115,21 @@ class Detector : public FairDetector
     // returns global material ID given a "local" material ID for this detector
     // returns -1 in case local ID not found
     int getMaterialID(int imat) const {
-      auto& mgr = o2::Base::MaterialManager::Instance();
+      auto& mgr = o2::base::MaterialManager::Instance();
       return mgr.getMaterialID(GetName(), imat);
     }
 
     // returns global medium ID given a "local" medium ID for this detector
     // returns -1 in case local ID not found
     int getMediumID(int imed) const {
-      auto& mgr = o2::Base::MaterialManager::Instance();
+      auto& mgr = o2::base::MaterialManager::Instance();
       return mgr.getMediumID(GetName(), imed);
     }
 
     // fill the medium index mapping into a standard vector
     // the vector gets sized properly and will be overridden
     void getMediumIDMappingAsVector(std::vector<int>& mapping) {
-      auto& mgr = o2::Base::MaterialManager::Instance();
+      auto& mgr = o2::base::MaterialManager::Instance();
       mgr.getMediumIDMappingAsVector(GetName(), mapping);
     }
 
@@ -275,7 +275,7 @@ struct UseShm {
 // (example: it implements the updateHitTrackIndices function and avoids
 // code duplication, while at the same time avoiding virtual function calls)
 template <typename Det>
-class DetImpl : public o2::Base::Detector
+class DetImpl : public o2::base::Detector
 {
  public:
   // offer same constructors as base
@@ -375,7 +375,7 @@ class DetImpl : public o2::Base::Detector
           }
         }
         // fill target for this event
-        auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &filladdress);
+        auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &filladdress);
         targetbr->SetAddress(&filladdress);
         targetbr->Fill();
         targetbr->ResetAddress();
@@ -427,7 +427,7 @@ class DetImpl : public o2::Base::Detector
         // for each branch name we extract/decode hits from the message parts ...
         bool* busy;
         auto hitsptr = decodeShmMessage<Hit_t>(parts, index++, busy);
-        LOG(INFO) << "GOT " << hitsptr->size() << " HITS ";
+        LOG(DEBUG2) << "GOT " << hitsptr->size() << " HITS ";
         // ... and fill the tree branch
         auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
         br->SetAddress(static_cast<void*>(&hitsptr));
@@ -461,6 +461,9 @@ class DetImpl : public o2::Base::Detector
     }
   }
 
+  // default implementation for setting hits
+  // always returns false indicating that there is no other
+  // component to assign to apart from i == 0
   template <typename Hit_t>
   bool setHits(int i, std::vector<Hit_t>* ptr)
   {

@@ -41,10 +41,7 @@ ConditionMetaData::ConditionMetaData(const char *responsible, UInt_t beamPeriod,
   mProperties.SetOwner(1);
 }
 
-ConditionMetaData::~ConditionMetaData()
-{
-  // destructor
-}
+ConditionMetaData::~ConditionMetaData() = default;
 
 void ConditionMetaData::setProperty(const char *property, TObject *object)
 {

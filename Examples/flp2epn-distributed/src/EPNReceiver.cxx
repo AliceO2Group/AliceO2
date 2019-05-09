@@ -23,12 +23,13 @@
 #include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/EPNReceiver.h"
+#include "O2Device/Compatibility.h"
 
 #include <iomanip>
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 
 struct f2eHeader {
   uint16_t timeFrameId;
@@ -110,7 +111,7 @@ void EPNReceiver::Run()
 
   FairMQChannel& ackOutChannel = fChannels.at(mAckChannelName).at(0);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts parts;
 
     if (Receive(parts, mInChannelName, 0, 100) > 0) {

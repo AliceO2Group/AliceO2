@@ -24,18 +24,14 @@ namespace framework
 
 using boost::property_tree::ptree;
 
-DataSamplingPolicy::DataSamplingPolicy()
-{
-}
+DataSamplingPolicy::DataSamplingPolicy() = default;
 
 DataSamplingPolicy::DataSamplingPolicy(const ptree& config)
 {
   configure(config);
 }
 
-DataSamplingPolicy::~DataSamplingPolicy()
-{
-}
+DataSamplingPolicy::~DataSamplingPolicy() = default;
 
 void DataSamplingPolicy::configure(const ptree& config)
 {

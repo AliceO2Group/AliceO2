@@ -30,8 +30,8 @@ class InteractionSampler
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
 
-  o2::InteractionRecord generateCollisionTime();
-  void generateCollisionTimes(std::vector<o2::InteractionRecord>& dest);
+  o2::InteractionTimeRecord generateCollisionTime();
+  void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
   void init();
 
@@ -62,7 +62,7 @@ class InteractionSampler
   float mIntRate = -1.;           ///< total interaction rate in Hz
   float mBCTimeRMS = 0.2;         ///< BC time spread in NANOSECONDS
   float mMuBC = -1.;              ///< interaction probability per BC
-  float mProbNoInteraction = 1.;  ///< probability of BC w/o interaction
+  float mProbInteraction = 1.;    ///< probability of non-0 interactions at per BC
   float mMuBCZTRed = 0;           ///< reduced mu for fast zero-truncated Poisson derivation
 
   o2::BunchFilling mBCFilling;  ///< patter of active BCs
@@ -74,7 +74,7 @@ class InteractionSampler
 };
 
 //_________________________________________________
-inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionRecord>& dest)
+inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest)
 {
   // fill vector with interaction records
   dest.clear();

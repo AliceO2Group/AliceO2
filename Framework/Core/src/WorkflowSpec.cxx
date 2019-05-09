@@ -10,6 +10,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
+#include "Framework/DataSpecUtils.h"
 
 #include <cstddef>
 #include <functional>
@@ -47,6 +48,63 @@ WorkflowSpec parallel(WorkflowSpec specs,
   }
 
   return results;
+}
+
+WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
+                              size_t nPipelines,
+                              std::function<size_t()> getNumberOfSubspecs,
+                              std::function<size_t(size_t)> getSubSpec)
+{
+  WorkflowSpec result;
+  size_t numberOfSubspecs = getNumberOfSubspecs();
+  if (numberOfSubspecs < nPipelines) {
+    // no need to create more pipelines than the number of parallel Ids, in that case
+    // each pipeline serves one id
+    nPipelines = numberOfSubspecs;
+  }
+  for (auto process : specs) {
+    size_t index = 0;
+    size_t inputMultiplicity = numberOfSubspecs / nPipelines;
+    if (numberOfSubspecs % nPipelines) {
+      inputMultiplicity += 1;
+    }
+    auto amendProcess = [numberOfSubspecs, nPipelines, &index, &inputMultiplicity, getSubSpec](DataProcessorSpec& spec, size_t pipeline) {
+      auto inputs = std::move(spec.inputs);
+      auto outputs = std::move(spec.outputs);
+      spec.inputs.reserve(inputMultiplicity);
+      spec.outputs.reserve(inputMultiplicity);
+      for (size_t inputNo = 0; inputNo < inputMultiplicity; ++inputNo) {
+        for (auto& input : inputs) {
+          spec.inputs.push_back(input);
+          spec.inputs.back().binding += std::to_string(inputNo);
+          DataSpecUtils::updateMatchingSubspec(spec.inputs.back(), getSubSpec(index + inputNo));
+        }
+        for (auto& output : outputs) {
+          spec.outputs.push_back(output);
+          spec.outputs.back().binding.value += std::to_string(inputNo);
+          spec.outputs.back().subSpec = getSubSpec(index + inputNo);
+        }
+      }
+      index += inputMultiplicity;
+      if (inputMultiplicity > numberOfSubspecs / nPipelines &&
+          ((numberOfSubspecs - index) % (nPipelines - (pipeline + 1))) == 0) {
+        // if the remaining ids can be distributed equally among the remaining pipelines
+        // we can decrease multiplicity
+        inputMultiplicity = numberOfSubspecs / nPipelines;
+      }
+    };
+
+    if (nPipelines > 1) {
+      // add multiple processes and distribute inputs among them
+      auto amendedProcessors = parallel(process, nPipelines, amendProcess);
+      result.insert(result.end(), amendedProcessors.begin(), amendedProcessors.end());
+    } else if (nPipelines == 1) {
+      // add one single process with all the inputs
+      amendProcess(process, 0);
+      result.push_back(process);
+    }
+  }
+  return result;
 }
 
 Inputs mergeInputs(InputSpec original,

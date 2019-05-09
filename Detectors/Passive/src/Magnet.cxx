@@ -57,13 +57,13 @@ Magnet& Magnet::operator=(const Magnet& rhs)
 
 void Magnet::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   //
   // Create materials for L3 magnet
   //
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
   Float_t epsil, stmin, deemax, tmaxfd, stemax;
 
   // --- Define the various materials for GEANT ---
@@ -176,7 +176,7 @@ void Magnet::ConstructGeometry()
   assert(top);
 
   // Media
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   auto medAir = matmgr.getTGeoMedium("MAG_AIR_C1");
   auto medAlu = matmgr.getTGeoMedium("MAG_ALU_C1");
   auto medAluI = matmgr.getTGeoMedium("MAG_ALU_C0");

@@ -32,9 +32,17 @@ namespace framework
 
   /// This is to be used for sources which already have an O2 Data Model /
   /// (header, payload) structure for their output. At the moment what this /
-  /// does is to add a DataProcessingHeader. In the future, it will hopefully not
-  /// be required.
+  /// does is to add a DataProcessingHeader. In the future, it will hopefully
+  /// not be required. Notice that as a requirement the tuple (origin, data
+  /// description, data subspecification) must be unique for each message in a given
+  /// multipart ensemble.
   InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step);
+
+  /// This is to be used when the input data is already formatted like DPL
+  /// expects it, i.e. with the DataProcessingHeader in the header stack and
+  /// with the tuple (origin, description, data subspecification, timestamp)
+  /// must be unique for each message.
+  InjectorFunction dplModelAdaptor(OutputSpec const& spec);
 
   /// The default connection method for the custom source
   static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST",0}, 0, 1);

@@ -10,6 +10,7 @@
 #include "Framework/TextControlService.h"
 #include "FairMQLogger.h"
 #include <string>
+#include <string_view>
 #include <regex>
 #include <iostream>
 
@@ -31,13 +32,16 @@ void TextControlService::readyToQuit(bool all) {
   }
 }
 
-bool parseControl(const std::string &s, std::smatch &match) {
+bool parseControl(std::string_view s, std::smatch& match)
+{
   const static std::regex controlRE("READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
   auto idx = s.find("CONTROL_ACTION: ");
   if (idx == std::string::npos) {
     return false;
   }
-  return std::regex_search(s.begin() + idx, s.end(), match, controlRE);
+  s.remove_prefix(idx);
+  std::string rs{ s };
+  return std::regex_search(rs, match, controlRE);
 }
 
 } // framework

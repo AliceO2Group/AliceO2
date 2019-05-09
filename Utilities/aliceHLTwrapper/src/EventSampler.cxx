@@ -26,6 +26,7 @@
 //  @brief  Sampler device for Alice HLT events in FairRoot/ALFA
 
 #include "aliceHLTwrapper/EventSampler.h"
+#include "O2Device/Compatibility.h"
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
 #include "aliceHLTwrapper/AliHLTDataTypes.h"
@@ -132,7 +133,7 @@ void EventSampler::Run()
 
   std::ofstream latencyLog(mLatencyLogFileName);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 
     // read input messages
     poller->Poll(mPollingTimeout);
@@ -230,7 +231,7 @@ void EventSampler::samplerLoop()
   int numOutputs = (fChannels.find("data-out") == fChannels.end() ? 0 : fChannels["data-out"].size());
 
   LOG(INFO) << "starting sampler loop, period " << mEventPeriod << " us";
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     msg->Rebuild(sizeof(AliHLTComponentEventData));
     evtData = reinterpret_cast<AliHLTComponentEventData*>(msg->GetData());
     memset(evtData, 0, sizeof(AliHLTComponentEventData));

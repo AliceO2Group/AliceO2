@@ -25,7 +25,7 @@
 #endif
 #include <cassert>
 
-using namespace o2::Base;
+using namespace o2::base;
 
 const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName = {
   { EProc::kPAIR, "PAIR" },
@@ -40,7 +40,9 @@ const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName =
   { EProc::kDCAY, "DCAY" },
   { EProc::kLOSS, "LOSS" },
   { EProc::kMULS, "MULS" },
-  { EProc::kCKOV, "CKOV" }
+  { EProc::kCKOV, "CKOV" },
+  { EProc::kRAYL, "RAYL" },
+  { EProc::kLABS, "LABS" }
 };
 
 const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
@@ -323,4 +325,4 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
   return med;
 }
 
-ClassImp(o2::Base::MaterialManager)
+ClassImp(o2::base::MaterialManager)

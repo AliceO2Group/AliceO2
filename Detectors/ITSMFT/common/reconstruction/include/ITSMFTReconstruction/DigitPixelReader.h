@@ -16,6 +16,7 @@
 
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTBase/Digit.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -26,7 +27,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class DigitPixelReader : public PixelReader
@@ -35,10 +36,26 @@ class DigitPixelReader : public PixelReader
   DigitPixelReader() = default;
   ~DigitPixelReader() override;
 
-  void setDigits(const std::vector<o2::ITSMFT::Digit>* a)
+  const std::vector<o2::itsmft::MC2ROFRecord>* getMC2ROFRecords() const
+  {
+    return mMC2ROFRecVec;
+  }
+
+  void setMC2ROFRecords(const std::vector<o2::itsmft::MC2ROFRecord>* a)
+  {
+    mMC2ROFRecVec = a;
+  }
+
+  void setROFRecords(const std::vector<o2::itsmft::ROFRecord>* a)
+  {
+    mROFRecVec = a;
+    mIdROF = -1;
+  }
+
+  void setDigits(const std::vector<o2::itsmft::Digit>* a)
   {
     mDigits = a;
-    mIdx = 0;
+    mIdDig = 0;
   }
 
   void setDigitsMCTruth(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* m)
@@ -57,7 +74,8 @@ class DigitPixelReader : public PixelReader
   void init() override
   {
     mLastDigit = nullptr;
-    mIdx = 0;
+    mIdDig = 0;
+    mIdROF = -1;
   }
 
   // methods for standalone reading
@@ -75,20 +93,28 @@ class DigitPixelReader : public PixelReader
 
   // pointer for input containers in the self-managed mode: due to the requirements of the
   // fairroot the externally settable pointers must be const...
-  std::vector<o2::ITSMFT::Digit>* mDigitsSelf = nullptr;
+  std::vector<o2::itsmft::Digit>* mDigitsSelf = nullptr;
+  std::vector<o2::itsmft::ROFRecord>* mROFRecVecSelf = nullptr;
+  std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
-  const std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;
+  const std::vector<o2::itsmft::Digit>* mDigits = nullptr;
+  const std::vector<o2::itsmft::ROFRecord>* mROFRecVec = nullptr;
+  const std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
+
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
   const Digit* mLastDigit = nullptr;
-  Int_t mIdx = 0;
+  Int_t mIdDig = 0; // last Digits slot read
+  Int_t mIdROF = 0; // last ROFRecord slot read
 
   std::unique_ptr<TTree> mInputTree; // input tree for digits
+  std::unique_ptr<TTree> mInputTreeROF;    // input tree for ROF references
+  std::unique_ptr<TTree> mInputTreeMC2ROF; // input tree for MC2ROF references
 
   ClassDefOverride(DigitPixelReader, 1);
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_DIGITPIXELREADER_H */

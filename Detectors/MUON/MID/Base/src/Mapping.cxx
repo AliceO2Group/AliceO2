@@ -318,6 +318,44 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighboursBP(const Mapping::MpStr
 }
 
 //______________________________________________________________________________
+Mapping::MpStripIndex Mapping::nextStrip(const MpStripIndex& stripIndex, int cathode, int deId, bool descending) const
+{
+  /// Gets the next strip in the non bending plane
+  /// @param stripIndex The indexes to identify the strip
+  /// @param cathode Bending plane (0) or Non-Bending plane (1)
+  /// @param deId The detection element ID
+  /// @param descending Move from inner to outer
+  MpStripIndex neigh = stripIndex;
+  int rpcType = getRPCType(deId);
+  int step = (descending) ? -1 : 1;
+  neigh.strip = stripIndex.strip + step;
+  int nStrips = (cathode == 0) ? 16 : mDetectionElements[rpcType].columns[neigh.column].nStripsNBP;
+  if (neigh.strip < 0 || neigh.strip >= nStrips) {
+    bool isOk = false;
+    if (cathode == 0) {
+      neigh.line += step;
+      isOk = isValidLine(neigh.line, neigh.column, rpcType);
+    } else {
+      neigh.column += step;
+      isOk = isValidColumn(neigh.column, rpcType);
+    }
+    if (isOk) {
+      if (neigh.strip < 0) {
+        if (cathode == 1) {
+          nStrips = mDetectionElements[rpcType].columns[neigh.column].nStripsNBP;
+        }
+        neigh.strip = nStrips - 1;
+      } else {
+        neigh.strip = 0;
+      }
+    } else {
+      neigh.column = 100;
+    }
+  }
+  return neigh;
+}
+
+//______________________________________________________________________________
 bool Mapping::isValid(int deId, int column, int cathode, int line, int strip) const
 {
   /// Checks if required element is valid

@@ -62,7 +62,7 @@ class DataGenerator
     : min(_min), max(_max), step(_step), nbins((max - min) / step), mGenerator(), mModel(std::forward<Args>(args)...)
   {
   }
-  ~DataGenerator() {}
+  ~DataGenerator() = default;
   DataGenerator(const DataGenerator&) = default;
   DataGenerator& operator=(const DataGenerator&) = default;
 
@@ -114,7 +114,7 @@ class DataGenerator
   {
    public:
     iterator(const ContainerT& parent, size_type count = 0) : mParent(parent), mCount(count) {}
-    ~iterator() {}
+    ~iterator() = default;
 
     using self_type = iterator;
     using value_type = typename _iterator_base::value_type;
@@ -214,7 +214,7 @@ class poisson_distribution : public _BASE
   using result_type = typename _BASE::result_type;
 
   poisson_distribution(result_type _mean) : _BASE(_mean), mean(_mean) {}
-  ~poisson_distribution(){};
+  ~poisson_distribution() = default;
 
   const result_type mean;
 

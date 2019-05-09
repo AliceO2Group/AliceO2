@@ -19,6 +19,7 @@
 #include "TPCBase/Mapper.h"
 #include <algorithm>
 #include <vector>
+#include <numeric> // std::iota
 #include "FairLogger.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -31,16 +32,21 @@ using namespace o2::TPC;
 using namespace o2;
 using namespace o2::dataformats;
 
-int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters, std::vector<ClusterNativeContainer>& outputClusters, const std::vector<MCLabelContainer>* inMCLabels, std::vector<MCLabelContainer>* outMCLabels)
+int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters,
+                                           HardwareClusterDecoder::OutputAllocator outputAllocator,
+                                           const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels,
+                                           std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels)
 {
   if (mIntegrator == nullptr) mIntegrator.reset(new DigitalCurrentClusterIntegrator);
   if (!inMCLabels) outMCLabels = nullptr;
+  std::vector<ClusterNativeBuffer*> outputBufferMap;
   int nRowClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
   int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] =  {0};
   Mapper& mapper = Mapper::instance();
   int numberOfOutputContainers = 0;
   for (int loop = 0;loop < 2;loop++)
   {
+    int nTotalClusters = 0;
     for (int i = 0;i < inputClusters.size();i++)
     {
       if (outMCLabels && inputClusters[i].second > 1)
@@ -66,7 +72,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
           {
             //Fill cluster in the respective output buffer
             const ClusterHardware& cIn = cont.clusters[k];
-            ClusterNative& cOut = outputClusters[containerRowCluster[sector][padRowGlobal]].clusters[nCls];
+            ClusterNative& cOut = outputBufferMap[containerRowCluster[sector][padRowGlobal]]->clusters[nCls];
             float pad = cIn.getPad();
             cOut.setPad(pad);
             cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.getFlags());
@@ -77,7 +83,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels)
             {
-              MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
+              auto& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
                 mcOut.addElement(nCls, element);
               }
@@ -89,62 +95,72 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             if (nCls == 0) numberOfOutputContainers++;
           }
           nCls++;
+          nTotalClusters++;
         }
       }
     }
     if (loop == 1)
     {
       //We are done with filling the buffers, sort all output buffers
-      for (int i = 0;i < outputClusters.size();i++)
-      {
+      for (int i = 0; i < outputBufferMap.size(); i++) {
         if (outMCLabels) {
-          sortClustersAndMC(outputClusters[i].clusters, (*outMCLabels)[i]);
+          sortClustersAndMC(outputBufferMap[i]->clusters, outputBufferMap[i]->nClusters, (*outMCLabels)[i]);
         } else {
-          auto& cl = outputClusters[i].clusters;
-          std::sort(cl.data(), cl.data() + cl.size(), ClusterNativeContainer::sortComparison);
+          auto* cl = outputBufferMap[i]->clusters;
+          std::sort(cl, cl + outputBufferMap[i]->nClusters);
         }
       }
     }
     else
     {
       //Now we know the size of all output buffers, allocate them
-      outputClusters.resize(numberOfOutputContainers);
       if (outMCLabels) outMCLabels->resize(numberOfOutputContainers);
+      size_t rawOutputBufferSize = numberOfOutputContainers * sizeof(ClusterNativeBuffer) + nTotalClusters * sizeof(ClusterNative);
+      char* rawOutputBuffer = outputAllocator(rawOutputBufferSize);
+      char* rawOutputBufferIterator = rawOutputBuffer;
       numberOfOutputContainers = 0;
       for (int i = 0;i < Constants::MAXSECTOR;i++)
       {
         for (int j = 0;j < Constants::MAXGLOBALPADROW;j++)
         {
           if (nRowClusters[i][j] == 0) continue;
-          outputClusters[numberOfOutputContainers].clusters.resize(nRowClusters[i][j]);
-          outputClusters[numberOfOutputContainers].sector = i;
-          outputClusters[numberOfOutputContainers].globalPadRow = j;
+          outputBufferMap.push_back(reinterpret_cast<ClusterNativeBuffer*>(rawOutputBufferIterator));
+          ClusterNativeBuffer& container = *outputBufferMap.back();
+          container.sector = i;
+          container.globalPadRow = j;
+          container.nClusters = nRowClusters[i][j];
           containerRowCluster[i][j] = numberOfOutputContainers++;
+          rawOutputBufferIterator += container.getFlatSize();
           mIntegrator->initRow(i, j);
         }
       }
+      assert(rawOutputBufferIterator == rawOutputBuffer + rawOutputBufferSize);
       memset(nRowClusters, 0, sizeof(nRowClusters));
     }
   }
   return(0);
 }
 
-void HardwareClusterDecoder::sortClustersAndMC(std::vector<ClusterNative> clusters, MCLabelContainer mcTruth)
+void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters,
+                                               o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth)
 {
-  std::vector<unsigned int> indizes(clusters.size());
-  for (int i = 0;i < indizes.size();i++) indizes[i] = i;
-  std::sort(indizes.data(), indizes.data() + indizes.size(), [&clusters](const auto a, const auto b) {
-    return ClusterNativeContainer::sortComparison(clusters[a], clusters[b]);
+  std::vector<unsigned int> indizes(nClusters);
+  std::iota(indizes.begin(), indizes.end(), 0);
+  std::sort(indizes.begin(), indizes.end(), [&clusters](const auto a, const auto b) {
+    return clusters[a] < clusters[b];
   });
-  std::vector<ClusterNative> tmpCl = std::move(clusters);
+  std::vector<unsigned int> actual = indizes;
   MCLabelContainer tmpMC = std::move(mcTruth);
-  for (int i = 0;i < clusters.size();i++)
-  {
-    clusters[i] = tmpCl[indizes[i]];
-    gsl::span<const MCCompLabel> mcArray = tmpMC.getLabels(indizes[i]);
-    for (int k = 0;k < mcArray.size();k++)
-    {
-      mcTruth.addElement(i, mcArray[k]);
+  assert(mcTruth.getIndexedSize() == 0);
+  for (int i = 0; i < nClusters; i++) {
+    ClusterNative backup = clusters[i];
+    clusters[i] = clusters[actual[indizes[i]]];
+    clusters[actual[indizes[i]]] = backup;
+    auto tmp = actual[i];
+    actual[i] = actual[indizes[i]];
+    actual[indizes[i]] = tmp;
+    for (auto const& label : tmpMC.getLabels(indizes[i])) {
+      mcTruth.addElement(i, label);
     }
   }
 }

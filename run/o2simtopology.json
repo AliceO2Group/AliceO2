@@ -12,8 +12,8 @@
                     "type": "req",
                     "method": "connect",
                     "address": "tcp://localhost:25005",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
+                    "sndBufSize": "100000",
+                    "rcvBufSize": "100000",
                     "rateLogging": "0"
                 }
 		]
@@ -44,8 +44,8 @@
 			    "type": "rep",
 			    "method": "bind",
 			    "address": "tcp://*:25005",
-			    "sndBufSize": 1000,
-			    "rcvBufSize": 1000,
+			    "sndBufSize": 100000,
+			    "rcvBufSize": 100000,
 			    "rateLogging": 0
 		        }
 		    ]

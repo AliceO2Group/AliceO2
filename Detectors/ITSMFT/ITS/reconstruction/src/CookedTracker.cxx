@@ -35,7 +35,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITS;
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 using namespace o2::constants::math;
 using namespace o2::utils;
 using o2::field::MagneticField;
@@ -478,7 +478,8 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks)
+void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+                            std::vector<o2::itsmft::ROFRecord>& rofs)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -489,35 +490,35 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
   LOG(INFO) << "CookedTracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads
             << FairLogger::endl;
 
-  int nClFrame = 0;
-  Int_t numOfClustersLeft = clusters.size(); // total number of clusters
-  if (numOfClustersLeft == 0) {
-    LOG(WARNING) << "No clusters to process !" << FairLogger::endl;
-    return;
-  }
-
   auto start = std::chrono::system_clock::now();
 
-  while (numOfClustersLeft > 0) {
-    nClFrame = loadClusters(clusters);
+  mFirstCluster = &clusters.front();
 
-    numOfClustersLeft -= nClFrame;
+  for (auto& rof : rofs) {
+    auto nClFrame = loadClusters(clusters, rof);
+
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> diff = end - start;
-    LOG(INFO) << "Loading clusters: " << nClFrame << " in single frame " << mROFrame << " : " << diff.count() << " s"
+    LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s"
               << FairLogger::endl;
 
     start = end;
 
+    int first = tracks.size();
     processFrame(tracks);
+    int number = tracks.size() - first;
+    rof.getROFEntry().setIndex(first);
+    rof.setNROFEntries(number);
+
     unloadClusters();
     end = std::chrono::system_clock::now();
     diff = end - start;
-    LOG(INFO) << "Processing time/clusters for single frame " << mROFrame << " : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
+    LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
-    if (mContinuousMode)
-      mROFrame++; // expect incremented frame in following clusters
+    if (!mContinuousMode)
+      break;    // Done, if in triggered mode
+    mROFrame++; // Increment the RO frame ID and go on, if in continuous mode
   }
 }
 
@@ -587,7 +588,7 @@ bool CookedTracker::makeBackPropParam(TrackITS& track) const
   auto backProp = track.getParamOut();
   backProp = track;
   backProp.resetCovariance();
-  auto propagator = o2::Base::Propagator::Instance();
+  auto propagator = o2::base::Propagator::Instance();
 
   Int_t noc = track.getNumberOfClusters();
   for (int ic = noc; ic--;) { // cluster indices are stored in inward direction
@@ -608,38 +609,26 @@ bool CookedTracker::makeBackPropParam(TrackITS& track) const
   return true;
 }
 
-int CookedTracker::loadClusters(const std::vector<Cluster>& clusters)
+int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  Int_t numOfClusters = clusters.size();
-  int nLoaded = 0;
-  mFirstCluster = &clusters.front();
-
-  if (mContinuousMode) { // check the ROFrame in cont. mode
-    for (auto& c : clusters) {
-      if (c.getROFrame() != mROFrame) {
-        continue;
-      }
-      nLoaded++;
-      Int_t layer = mGeom->getLayer(c.getSensorID());
-      if (!sLayers[layer].insertCluster(&c)) {
-        continue;
-      }
-    }
-  } else { // do not check the ROFrame in triggered mode
-    for (auto& c : clusters) {
-      nLoaded++;
-      Int_t layer = mGeom->getLayer(c.getSensorID());
-      if (!sLayers[layer].insertCluster(&c)) {
-        continue;
-      }
-    }
+  int first = 0;
+  int number = clusters.size();
+  if (mContinuousMode) { // Load clusters from this ROFrame only, if in continuous mode
+    first = rof.getROFEntry().getIndex();
+    number = rof.getNROFEntries();
   }
 
-  if (nLoaded) {
+  auto clusters_in_frame = gsl::make_span(&clusters[first], number);
+  for (const auto& c : clusters_in_frame) {
+    Int_t layer = mGeom->getLayer(c.getSensorID());
+    sLayers[layer].insertCluster(&c);
+  }
+
+  if (number) {
     std::vector<std::future<void>> fut;
     for (Int_t l = 0; l < kNLayers; l += mNumOfThreads) {
       for (Int_t t = 0; t < mNumOfThreads; t++) {
@@ -652,7 +641,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters)
         fut[t].wait();
     }
   }
-  return nLoaded;
+  return number;
 }
 
 void CookedTracker::unloadClusters()
@@ -702,7 +691,7 @@ void CookedTracker::Layer::init()
     BringTo02Pi(phi);
     mPhi.push_back(phi);
     Int_t s = phi * kNSectors / k2PI;
-    mSectors[s].emplace_back(i, c->getZ());
+    mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
   }
 
   if (m)

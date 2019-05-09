@@ -10,6 +10,7 @@ set(SRCS
 )
 
 set(HEADERS
+  include/${MODULE_NAME}/Cell.h
   include/${MODULE_NAME}/Constants.h
   include/${MODULE_NAME}/Digit.h
   include/${MODULE_NAME}/GeometryBase.h

@@ -11,6 +11,9 @@
 #define FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
 
 #include "Framework/ParamRetriever.h"
+#include "Framework/ConfigParamSpec.h"
+
+#include <boost/property_tree/ptree.hpp>
 
 #include <string>
 #include <vector>
@@ -24,19 +27,20 @@ namespace framework
 
 class FairOptionsRetriever : public ParamRetriever {
 public:
-  FairOptionsRetriever(const FairMQProgOptions *opts);
+ FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts);
 
-  int getInt(const char *name) const final;
-  float getFloat(const char *name) const final;
-  double getDouble(const char *name) const final;
-  bool getBool(const char *name) const final;
-  std::string getString(const char *name) const final;
-  std::vector<std::string> getVString(const char *name) const final;
+ int getInt(const char* name) const final;
+ float getFloat(const char* name) const final;
+ double getDouble(const char* name) const final;
+ bool getBool(const char* name) const final;
+ std::string getString(const char* name) const final;
+ boost::property_tree::ptree getPTree(const char* name) const final;
+
 private:
   const FairMQProgOptions *mOpts;
+  boost::property_tree::ptree mStore;
 };
 
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
-

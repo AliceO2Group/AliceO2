@@ -44,9 +44,8 @@ class CalDet
   ~CalDet() = default;
 
   CalDet(PadSubset padSusbset) : mName{ "PadCalibrationObject" }, mData{}, mPadSubset{ padSusbset } { initData(); }
-  //______________________________________________________________________________
 
-  CalDet(const std::string_view name) : mName(name), mData(), mPadSubset(PadSubset::ROC) { initData(); }
+  CalDet(const std::string_view name, const PadSubset padSusbset = PadSubset::ROC) : mName(name), mData(), mPadSubset(padSusbset) { initData(); }
 
   /// Return the pad subset type
   /// \return pad subset type
@@ -291,24 +290,28 @@ void CalDet<T>::initData()
 
   // ---| Define number of sub pad regions |------------------------------------
   size_t size = 0;
-
+  std::string frmt;
   switch (mPadSubset) {
     case PadSubset::ROC: {
       size = ROC::MaxROC;
+      frmt = "%1%_ROC_%2$02d";
       break;
     }
     case PadSubset::Partition: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPartitions();
+      frmt = "%1%_Partition_%2$02d";
       break;
     }
     case PadSubset::Region: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPadRegions();
+      frmt = "%1%_Region_%2$02d";
       break;
     }
   }
 
   for (size_t i = 0; i < size; ++i) {
     mData.push_back(CalType(mPadSubset, i));
+    mData.back().setName(boost::str(format(frmt) % mName % i));
   }
 }
 

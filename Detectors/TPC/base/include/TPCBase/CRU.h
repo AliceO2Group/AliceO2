@@ -22,7 +22,7 @@ namespace TPC {
   class CRU {
     public:
       enum { CRUperPartition=2, CRUperIROC=4, CRUperSector=10, MaxCRU=360 };
-      CRU(){}
+      CRU() = default;
       CRU(unsigned short cru):mCRU(cru%MaxCRU) {}
       CRU(const CRU& cru):mCRU(cru.mCRU) {}
       CRU(const Sector& sec, const unsigned char partitionNum) : mCRU(sec.getSector()*CRUperSector+partitionNum) {}

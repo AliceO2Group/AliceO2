@@ -13,9 +13,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "SimConfig/ConfigurableParam.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"
@@ -55,6 +57,10 @@
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
 #include "MCHDigitWriterSpec.h"
+
+// for MID
+#include "MIDDigitizerSpec.h"
+#include "MIDDigitWriterSpec.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
@@ -103,9 +109,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
 
-  std::string sectorshelp("Comma separated string of tpc sectors to treat. (Default is all)");
+  std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
+  std::string sectorDefault = "0-" + std::to_string(o2::TPC::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-sectors", VariantType::String, "all", { sectorshelp } });
+    ConfigParamSpec{ "tpc-sectors", VariantType::String, sectorDefault.c_str(), { sectorshelp } });
 
   std::string onlyhelp("Comma separated list of detectors to accept. Takes precedence over the skipDet option. (Default is none)");
   workflowOptions.push_back(
@@ -119,6 +126,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'tracks'");
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-reco-type", VariantType::String, "", { tpcrthelp } });
+
+  // option allowing to set parameters
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
 }
 
 // ------------------------------------------------------------------
@@ -170,37 +182,6 @@ void initTPC()
 
 // ------------------------------------------------------------------
 
-void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcontext)
-{
-  auto sectorsstring = configcontext.options().get<std::string>("tpc-sectors");
-  if (sectorsstring.compare("all") != 0) {
-    // we expect them to be , separated
-    std::stringstream ss(sectorsstring);
-    std::vector<std::string> stringtokens;
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      stringtokens.push_back(substr);
-    }
-    // now try to convert each token to int
-    for (auto& token : stringtokens) {
-      try {
-        auto s = std::stoi(token);
-        sectors.emplace_back(s);
-      } catch (std::invalid_argument e) {
-      }
-    }
-    return;
-  }
-
-  // all sectors otherwise by default
-  for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
-    sectors.emplace_back(s);
-  }
-}
-
-// ------------------------------------------------------------------
-
 bool wantCollisionTimePrinter()
 {
   if (const char* f = std::getenv("DPL_COLLISION_TIME_PRINTER")) {
@@ -214,7 +195,7 @@ bool wantCollisionTimePrinter()
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
   // init magnetic field
-  o2::Base::Propagator::initFieldFromGRP(inputGRP);
+  o2::base::Propagator::initFieldFromGRP(inputGRP);
 
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
@@ -309,11 +290,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
 
+  // Update the (declared) parameters if changed from the command line
+  // Note: In the future this should be done only on a dedicated processor managing
+  // the parameters and then propagated automatically to all devices
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  // write the configuration used for the digitizer workflow
+  o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
+
   // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
   const auto grp = readGRP();
   if (!grp) {
-    return specs;
+    return WorkflowSpec{};
   }
 
   // onlyDet takes precedence on skipDet
@@ -356,11 +344,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
-  auto tpcsectors = std::make_shared<std::vector<int>>();
+  std::vector<int> tpcsectors;
 
   if (isEnabled(o2::detectors::DetID::TPC)) {
-    extractTPCSectors(*tpcsectors.get(), configcontext);
-    auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
+    tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
+    auto lanes = getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
@@ -375,7 +363,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }
@@ -384,18 +372,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::ITSMFT::getITSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++));
     // connect ITS digit writer
-    specs.emplace_back(o2::ITSMFT::getITSDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec());
   }
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::ITSMFT::getMFTDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++));
     // connect MFT digit writer
-    specs.emplace_back(o2::ITSMFT::getMFTDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec());
   }
 
   // the TOF part
@@ -411,13 +399,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
   }
 
-  // the FIT part
-  if (isEnabled(o2::detectors::DetID::FIT)) {
-    detList.emplace_back(o2::detectors::DetID::FIT);
+  // the FIT T0 part
+  if (isEnabled(o2::detectors::DetID::T0)) {
+    detList.emplace_back(o2::detectors::DetID::T0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFITDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fit::getFITT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getFITDigitWriterSpec());
+    specs.emplace_back(o2::fit::getT0DigitWriterSpec());
   }
 
   // the EMCal part
@@ -454,6 +442,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++));
     //connect the MUON MCH digit writer
     specs.emplace_back(o2::mch::getMCHDigitWriterSpec());
+  }
+
+  // add MID
+  if (isEnabled(o2::detectors::DetID::MID)) {
+    detList.emplace_back(o2::detectors::DetID::MID);
+    // connect the MID digitization
+    specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++));
+    // connect the MID digit writer
+    specs.emplace_back(o2::mid::getMIDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

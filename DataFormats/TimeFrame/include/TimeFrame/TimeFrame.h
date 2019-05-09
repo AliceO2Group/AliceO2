@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace DataFormat
+namespace dataformats
 {
 
 using PartPosition = int;

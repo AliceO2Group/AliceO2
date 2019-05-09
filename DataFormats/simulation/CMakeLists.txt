@@ -23,6 +23,7 @@ Set(HEADERS
     include/${MODULE_NAME}/RunContext.h
     include/${MODULE_NAME}/LabelContainer.h
     include/${MODULE_NAME}/MCEventHeader.h
+    include/${MODULE_NAME}/MCEventStats.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)

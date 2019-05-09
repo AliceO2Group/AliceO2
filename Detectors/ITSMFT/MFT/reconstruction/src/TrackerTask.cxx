@@ -21,7 +21,7 @@
 ClassImp(o2::MFT::TrackerTask);
 
 using namespace o2::MFT;
-using namespace o2::Base;
+using namespace o2::base;
 
 //_____________________________________________________________________________
 TrackerTask::TrackerTask(Int_t n, Bool_t useMCTruth) : FairTask("MFTTrackerTask"), mTracker(n)
@@ -54,7 +54,7 @@ InitStatus TrackerTask::Init()
     return kERROR;
   }
 
-  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster>*>("MFTCluster");
+  mClustersArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Cluster>*>("MFTCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "MFT clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

@@ -21,6 +21,7 @@
 #include "CCDB/Condition.h"
 #include "CCDB/ConditionsMQServer.h"
 #include "CCDB/IdPath.h"
+#include "O2Device/Compatibility.h"
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
 
@@ -92,7 +93,7 @@ void ConditionsMQServer::Run()
   std::unique_ptr<FairMQPoller> poller(
     fTransportFactory->CreatePoller(fChannels, { "data-put", "data-get", "broker-get" }));
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 
     poller->Poll(-1);
 

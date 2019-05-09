@@ -1,3 +1,6 @@
+\page refFrameworkCore Core
+\subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
+
 # Data Processing Layer in O2 Framework
 
 ## Status quo and motivation for an O2 Data Processing Layer
@@ -425,7 +428,6 @@ There is also a few demonstrator available in particular:
 ## Interesting reads
 
 - [MillWheel: Fault-Tolerant Stream Processing at Internet Scale](https://research.google.com/pubs/pub41378.html) : paper about Google previous generation system for stream processing
-- [Concord](http://concord.io) : Similar (to the above) stream processing solution, OpenSource.
 
 ## Data Sampling
 

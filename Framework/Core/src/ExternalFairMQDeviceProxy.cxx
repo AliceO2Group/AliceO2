@@ -28,13 +28,25 @@ namespace framework
 
 using DataHeader = o2::header::DataHeader;
 
+bool isBroadcastChannel(std::string const& channel)
+{
+  if (strncmp(channel.data(), "from_", 5) != 0) {
+    return false;
+  }
+  /// FIXME: until we find a better way to avoid using fake input channels
+  if (strncmp(channel.data(), "from_internal-dpl-", 18) == 0) {
+    return false;
+  }
+  return true;
+}
+
 void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, FairMQMessagePtr &&payloadMessage, int index) {
   for (auto &channelInfo : device.fChannels) {
     auto channel = channelInfo.first;
     assert(channelInfo.second.size() == 1);
     // FIXME: I need to make sure the input channel is not used... For the moment 
     //        I rely on the convention dpl channels start with "from_".
-    if (strncmp(channel.data(), "from_", 5) != 0) {
+    if (isBroadcastChannel(channel) == false) {
       continue;
     }
 
@@ -42,6 +54,22 @@ void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, Fai
     //        really do the matchmaking between inputs and output channels.
     auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[index].Transport());
     FairMQMessagePtr headerMessage = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
+
+    FairMQParts out;
+    out.AddPart(std::move(headerMessage));
+    out.AddPart(std::move(payloadMessage));
+    device.Send(out, channel, index);
+  }
+}
+
+void broadcastDPLMessage(FairMQDevice& device, FairMQMessagePtr&& headerMessage, FairMQMessagePtr&& payloadMessage, int index)
+{
+  for (auto& channelInfo : device.fChannels) {
+    auto channel = channelInfo.first;
+    assert(channelInfo.second.size() == 1);
+    if (isBroadcastChannel(channel) == false) {
+      continue;
+    }
 
     FairMQParts out;
     out.AddPart(std::move(headerMessage));
@@ -62,6 +90,15 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, 
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i*2+1)), index);
       auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
+    }
+  };
+}
+
+InjectorFunction dplModelAdaptor(OutputSpec const& spec)
+{
+  return [](FairMQDevice& device, FairMQParts& parts, int index) {
+    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+      broadcastDPLMessage(device, std::move(parts.At(i * 2)), std::move(parts.At(i * 2 + 1)), index);
     }
   };
 }

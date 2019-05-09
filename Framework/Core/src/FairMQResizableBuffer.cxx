@@ -18,9 +18,7 @@ namespace o2
 namespace framework
 {
 
-FairMQResizableBuffer::~FairMQResizableBuffer()
-{
-}
+FairMQResizableBuffer::~FairMQResizableBuffer() = default;
 
 // Creates an empty message
 FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)

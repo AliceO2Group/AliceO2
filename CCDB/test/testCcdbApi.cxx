@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <TH1F.h>
 #include <chrono>
+#include <CommonUtils/StringUtils.h>
 
 using namespace std;
 using namespace o2::ccdb;
@@ -37,9 +38,7 @@ struct test_fixture {
     api.init("http://ccdb-test.cern.ch:8080");
   }
 
-  ~test_fixture()
-  {
-  }
+  ~test_fixture() = default;
 
   CcdbApi api;
   map<string, string> metadata;
@@ -110,25 +109,6 @@ BOOST_AUTO_TEST_CASE(delete_test)
   BOOST_CHECK(h2 == nullptr);
 }
 
-/// trim from start (in place)
-/// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void ltrim(std::string& s)
-{
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-            return !std::isspace(ch);
-          }));
-}
-
-/// trim from end (in place)
-/// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void rtrim(std::string& s)
-{
-  s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-            return !std::isspace(ch);
-          }).base(),
-          s.end());
-}
-
 void countItems(const string& s, int& countObjects, int& countSubfolders)
 {
   countObjects = 0;
@@ -137,8 +117,8 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   std::string line;
   bool subfolderMode = false;
   while (std::getline(ss, line, '\n')) {
-    ltrim(line);
-    rtrim(line);
+    o2::utils::ltrim(line);
+    o2::utils::rtrim(line);
     if (line.length() == 0) {
       continue;
     }

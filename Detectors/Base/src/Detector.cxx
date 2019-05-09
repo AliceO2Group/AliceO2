@@ -24,7 +24,7 @@ using std::fstream;
 using std::ios;
 using std::ostream;
 
-using namespace o2::Base;
+using namespace o2::base;
 using namespace o2::detectors;
 
 Float_t Detector::mDensityFactor = 1.0;
@@ -35,9 +35,7 @@ Detector::Detector(const char* name, Bool_t Active)
 {
 }
 
-Detector::Detector(const Detector& rhs) : FairDetector(rhs), mMapMaterial(rhs.mMapMaterial), mMapMedium(rhs.mMapMedium)
-{
-}
+Detector::Detector(const Detector& rhs) = default;
 
 Detector::~Detector() = default;
 
@@ -57,13 +55,13 @@ Detector& Detector::operator=(const Detector& rhs)
 void Detector::Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
                         Float_t* buf, Int_t nwbuf)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Material(GetName(), imat, name, a, z, dens, radl, absl, buf, nwbuf);
 }
 
 void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Mixture(GetName(), imat, name, a, z, dens, nlmat, wmat);
 }
 
@@ -71,7 +69,7 @@ void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, In
                       Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf,
                       Int_t nbuf)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
 }
 
@@ -153,7 +151,7 @@ void Detector::addAlignableVolumes() const
 #include <FairMQChannel.h>
 namespace o2
 {
-namespace Base
+namespace base
 {
 // this goes into the source
 void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, size_t size,
@@ -213,6 +211,6 @@ void* decodeTMessageCore(FairMQParts& dataparts, int index)
   return message.get()->ReadObjectAny(message.get()->GetClass());
 }
 
-} // namespace Base
+} // namespace base
 } // namespace o2
-ClassImp(o2::Base::Detector)
+ClassImp(o2::base::Detector);

@@ -7,15 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-
-#include <iostream>
-#include <boost/algorithm/string.hpp>
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include <chrono>
+#include <iostream>
 
 using namespace o2::framework;
 
@@ -78,7 +78,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
-  sleep(1);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
   auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);

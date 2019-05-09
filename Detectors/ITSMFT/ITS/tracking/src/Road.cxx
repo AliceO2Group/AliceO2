@@ -25,14 +25,15 @@ Road::Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
 void Road::resetRoad()
 {
-  mCellIds.fill(Constants::ITS::UnusedIndex);
+  for (int i = 0; i < Constants::ITS::CellsPerRoad; i++) {
+    mCellIds[i] = Constants::ITS::UnusedIndex;
+  }
   mRoadSize = 0;
 }
 
 void Road::addCell(int cellLayer, int cellId)
 {
   if (mCellIds[cellLayer] == Constants::ITS::UnusedIndex) {
-
     ++mRoadSize;
   }
 

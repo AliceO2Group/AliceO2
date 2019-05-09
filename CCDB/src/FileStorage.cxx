@@ -721,10 +721,7 @@ FileStorageParameters::FileStorageParameters(const char *dbPath, Bool_t readOnly
   setType("dump");
 }
 
-FileStorageParameters::~FileStorageParameters()
-{
-  // destructor
-}
+FileStorageParameters::~FileStorageParameters() = default;
 
 StorageParameters *FileStorageParameters::cloneParam() const
 {

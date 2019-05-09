@@ -1,3 +1,5 @@
+\page refTRDbase TRD base
+
 This is a short documention for the TRD base software for O2
 
 At the moment this is just a poc for doing documentation.

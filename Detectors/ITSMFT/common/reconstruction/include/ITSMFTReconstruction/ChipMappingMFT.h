@@ -16,10 +16,11 @@
 
 #include <Rtypes.h>
 #include <array>
+#include "ITSMFTReconstruction/RUInfo.h"
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 struct MFTChipMappingData {
@@ -38,8 +39,51 @@ struct MFTModuleMappingData {
 class ChipMappingMFT
 {
  public:
-  static constexpr int getNModules() { return NModules; }
+  static constexpr std::string_view getName() { return "MFT"; }
+
+  // RS placeholder for methods to implement ----------->
+
+  ///< total number of RUs
+  static constexpr int getNRUs() { return 0; }
+
+  ///< get FEEId of the RU (software id of the RU), read via given link
+  uint8_t FEEId2RUSW(uint16_t hw) const { return 0; }
+
+  ///< get HW id of the RU (software id of the RU)
+  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return 0; }
+
+  ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
+  uint16_t composeFEEId(uint16_t lr, uint16_t ruOnLr, uint16_t link) const { return 0; }
+
+  ///< decompose FEEid to layer, stave (ru) relative to layer, link, see documentation in the constructor
+  void expandFEEId(uint16_t feeID, uint16_t& lr, uint16_t& ruOnLr, uint16_t& link) const
+  {
+    lr = ruOnLr = link = 0;
+  }
+
+  ///< get info on sw RU
+  const RUInfo* getRUInfoSW(int ruSW) const { return nullptr; }
+
+  ///< get info on sw RU
+  const RUInfo* getRUInfoFEEId(int feeID) const { return nullptr; }
+
+  ///< get number of chips served by single cable on given RU type
+  uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return 0; }
+
+  ///< convert HW cable ID to SW ID for give RU type
+  uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return 0; }
+
+  ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
+  uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
+  {
+    return 0;
+  }
+
   static constexpr int getNChips() { return NChips; }
+
+  // RS placeholder for methods to implement -----------<
+
+  static constexpr int getNModules() { return NModules; }
 
   int chipID2Module(int chipID, int& chipInModule) const
   {

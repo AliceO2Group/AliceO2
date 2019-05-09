@@ -18,34 +18,35 @@
 #include <cmath>
 #include <TFile.h>
 
-ClassImp(o2::ITSMFT::BuildTopologyDictionary)
+ClassImp(o2::itsmft::BuildTopologyDictionary)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
+  constexpr float BuildTopologyDictionary::IgnoreVal;
+
   BuildTopologyDictionary::BuildTopologyDictionary() : mTotClusters{ 0 } {}
 
   void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, float dX, float dZ)
   {
     mTotClusters++;
+    bool useDf = dX < IgnoreVal / 2; // we may need to account the frequency but to not update the centroid
+    // std::pair<unordered_map<unsigned long, TopoStat>::iterator,bool> ret;
+    //       auto ret = mTopologyMap.insert(std::make_pair(cluster.getHash(), std::make_pair(cluster, 1)));
 
-    // std::pair<unordered_map<unsigned long, std::pair<ClusterTopology,unsigned long>>::iterator,bool> ret;
-    auto ret = mTopologyMap.insert(std::make_pair(cluster.getHash(), std::make_pair(cluster, 1)));
-    if (ret.second == true) {
+    auto& topoStat = mTopologyMap[cluster.getHash()];
+    topoStat.countsTotal++;
+    if (topoStat.countsTotal == 1) { // a new topology is inserted
+      topoStat.topology = cluster;
       //___________________DEFINING_TOPOLOGY_CHARACTERISTICS__________________
       TopologyInfo topInf;
       topInf.mPattern.setPattern(cluster.getPattern().data());
       int& rs = topInf.mSizeX = cluster.getRowSpan();
       int& cs = topInf.mSizeZ = cluster.getColumnSpan();
       //__________________COG_Deterrmination_____________
-      int tempyCOG = 0;
-      int tempzCOG = 0;
-      int tempFiredPixels = 0;
+      int tempyCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
       unsigned char tempChar = 0;
-      int s = 0;
-      int ic = 0;
-      int ir = 0;
       for (unsigned int i = 2; i < cluster.getUsedBytes() + 2; i++) {
         tempChar = cluster.getByte(i);
         s = 128; // 0b10000000
@@ -57,45 +58,49 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
           }
           ic++;
           s /= 2;
-          if ((ir + 1) * ic == (rs * cs))
+          if ((ir + 1) * ic == (rs * cs)) {
             break;
+          }
           if (ic == cs) {
             ic = 0;
             ir++;
           }
         }
-        if ((ir + 1) * ic == (rs * cs))
+        if ((ir + 1) * ic == (rs * cs)) {
           break;
+        }
       }
       topInf.mCOGx = 0.5 + (float)tempyCOG / (float)tempFiredPixels;
       topInf.mCOGz = 0.5 + (float)tempzCOG / (float)tempFiredPixels;
       topInf.mNpixels = tempFiredPixels;
-      topInf.mXmean = dX;
-      topInf.mXsigma2 = 0;
-      topInf.mZmean = dZ;
-      topInf.mZsigma2 = 0;
+      if (useDf) {
+        topInf.mXmean = dX;
+        topInf.mZmean = dZ;
+        topoStat.countsWithBias = 1;
+      }
       mMapInfo.insert(std::make_pair(cluster.getHash(), topInf));
+
     } else {
-      int num = (ret.first->second.second++);
-      auto ind = mMapInfo.find(cluster.getHash());
-      float tmpxMean = ind->second.mXmean;
-      float newxMean = ind->second.mXmean = ((tmpxMean)*num + dX) / (num + 1);
-      float tmpxSigma2 = ind->second.mXsigma2;
-      ind->second.mXsigma2 =
-        (num * tmpxSigma2 + (dX - tmpxMean) * (dX - newxMean)) / (num + 1); // online variance algorithm
-      float tmpzMean = ind->second.mZmean;
-      float newzMean = ind->second.mZmean = ((tmpzMean)*num + dZ) / (num + 1);
-      float tmpzSigma2 = ind->second.mZsigma2;
-      ind->second.mZsigma2 =
-        (num * tmpzSigma2 + (dZ - tmpzMean) * (dZ - newzMean)) / (num + 1); // online variance algorithm
+      if (useDf) {
+        auto num = topoStat.countsWithBias++;
+        auto ind = mMapInfo.find(cluster.getHash());
+        float tmpxMean = ind->second.mXmean;
+        float newxMean = ind->second.mXmean = ((tmpxMean)*num + dX) / (num + 1);
+        float tmpxSigma2 = ind->second.mXsigma2;
+        ind->second.mXsigma2 = (num * tmpxSigma2 + (dX - tmpxMean) * (dX - newxMean)) / (num + 1); // online variance algorithm
+        float tmpzMean = ind->second.mZmean;
+        float newzMean = ind->second.mZmean = ((tmpzMean)*num + dZ) / (num + 1);
+        float tmpzSigma2 = ind->second.mZsigma2;
+        ind->second.mZsigma2 = (num * tmpzSigma2 + (dZ - tmpzMean) * (dZ - newzMean)) / (num + 1); // online variance algorithm
+      }
     }
   }
 
   void BuildTopologyDictionary::setThreshold(double thr)
   {
     mTopologyFrequency.clear();
-    for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
+    for (auto&& p : mTopologyMap) { // p is pair<ulong,TopoStat>
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -116,8 +121,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
   void BuildTopologyDictionary::setNGroups(unsigned int ngr)
   {
     mTopologyFrequency.clear();
-    for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
+    for (auto&& p : mTopologyMap) { // p os pair<ulong,TopoStat>
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -141,8 +146,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     if (cumulative <= 0. || cumulative >= 1.)
       cumulative = 0.99;
     double totFreq = 0.;
-    for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
+    for (auto&& p : mTopologyMap) { // p os pair<ulong,TopoStat>
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -210,8 +215,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       unsigned long provvHash = 0;
       provvHash = (((unsigned long)(index + 1)) << 32) & 0xffffffff00000000;
       GroupArray[index].mHash = provvHash;
-      GroupArray[index].mErrX = (rowBinEdge)*o2::ITSMFT::SegmentationAlpide::PitchRow / std::sqrt(12);
-      GroupArray[index].mErrZ = (colBinEdge)*o2::ITSMFT::SegmentationAlpide::PitchCol / std::sqrt(12);
+      GroupArray[index].mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
+      GroupArray[index].mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
       GroupArray[index].mXCOG = rowBinEdge / 2;
       GroupArray[index].mZCOG = colBinEdge / 2;
       GroupArray[index].mNpixels = rowBinEdge * colBinEdge;
@@ -271,8 +276,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
 
     for (unsigned int j = (unsigned int)mNotInGroups; j < mTopologyFrequency.size(); j++) {
       unsigned long hash1 = mTopologyFrequency[j].second;
-      rs = mTopologyMap.find(hash1)->second.first.getRowSpan();
-      cs = mTopologyMap.find(hash1)->second.first.getColumnSpan();
+      rs = mTopologyMap.find(hash1)->second.topology.getRowSpan();
+      cs = mTopologyMap.find(hash1)->second.topology.getColumnSpan();
       index = LookUp::groupFinder(rs, cs);
       groupCounts[index] += mTopologyFrequency[j].first;
     }
@@ -297,10 +302,11 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     for (int i = 0; i < DB.mNotInGroups; i++) {
       const unsigned long& hash = DB.mTopologyFrequency[i].second;
       os << "Hash: " << hash << std::endl;
-      os << "counts: " << DB.mTopologyMap.find(hash)->second.second << std::endl;
+      os << "counts: " << DB.mTopologyMap.find(hash)->second.countsTotal;
+      os << " (with bias provided: " << DB.mTopologyMap.find(hash)->second.countsWithBias << ")" << std::endl;
       os << "sigmaX: " << std::sqrt(DB.mMapInfo.find(hash)->second.mXsigma2) << std::endl;
       os << "sigmaZ: " << std::sqrt(DB.mMapInfo.find(hash)->second.mZsigma2) << std::endl;
-      os << DB.mTopologyMap.find(hash)->second.first;
+      os << DB.mTopologyMap.find(hash)->second.topology;
     }
     return os;
   }
@@ -326,5 +332,5 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     output.Close();
   }
 
-  } // namespace ITSMFT
+  } // namespace itsmft
 }

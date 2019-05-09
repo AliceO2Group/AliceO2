@@ -1,18 +1,19 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <TSystem.h>
-  #include <TMath.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+#include "TGeoManager.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Field/MagneticField.h"
-  #include "EMCALSimulation/Detector.h"
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
+#include "EMCALSimulation/Detector.h"
 #endif
 
 extern TSystem *gSystem;
@@ -79,7 +80,7 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   o2::field::MagneticField field("field","field +5kG");
   run->SetField(&field);
 
-  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
+  o2::emcal::Detector* emcal = new o2::emcal::Detector(kTRUE);
   run->AddModule(emcal);
 
   // Create PrimaryGenerator

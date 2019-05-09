@@ -13,6 +13,6 @@
 
 #include "MathUtils/MathBase.h"
 
-using namespace o2::mathUtils::mathBase;
+using namespace o2::math_utils::math_base;
 
 

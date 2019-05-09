@@ -10,17 +10,35 @@
 #ifndef o2_framework_DataProcessingStatus_H_INCLUDED
 #define o2_framework_DataProcessingStatus_H_INCLUDED
 
+#include "Framework/Signpost.h"
+#include <cstdint>
+
 namespace o2
 {
 namespace framework
 {
 
-enum DataProcessingStatus {
-  IN_FAIRMQ = 0,
-  IN_DPL_WRAPPER = 1,
-  IN_DPL_STATEFUL_CALLBACK = 2,
-  IN_DPL_STATELESS_CALLBACK = 3,
-  IN_DPL_ERROR_CALLBACK = 4
+/// Describe the possible states for DataProcessing
+enum struct DataProcessingStatus : uint32_t {
+  ID = 0,
+  IN_DPL_OVERHEAD = O2_SIGNPOST_RED,
+  IN_DPL_USER_CALLBACK = O2_SIGNPOST_GREEN,
+  IN_DPL_ERROR_CALLBACK = O2_SIGNPOST_PURPLE
+};
+
+/// Describe the possible states for Monitoring
+enum struct MonitoringStatus : uint32_t {
+  ID = 1,
+  SEND = 0,
+  FLUSH = 1,
+};
+
+enum struct DriverStatus : uint32_t {
+  ID = 2,
+  BYTES_READ = 0,
+  BYTES_PROCESSED = 1,
+  BUFFER_OVERFLOWS = 2
+
 };
 
 } // namespace framework

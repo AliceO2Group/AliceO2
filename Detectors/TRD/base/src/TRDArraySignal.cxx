@@ -34,10 +34,7 @@ TRDArraySignal::TRDArraySignal(int nrow, int ncol, int ntime)
 }
 
 //_______________________________________________________________________
-TRDArraySignal::TRDArraySignal(const TRDArraySignal& d)
-  : mNdet(d.mNdet), mNrow(d.mNrow), mNcol(d.mNcol), mNumberOfChannels(d.mNumberOfChannels), mNtime(d.mNtime), mNdim(d.mNdim), mSignal(d.mSignal)
-{
-}
+TRDArraySignal::TRDArraySignal(const TRDArraySignal& d) = default;
 
 //_______________________________________________________________________
 TRDArraySignal::~TRDArraySignal() = default;

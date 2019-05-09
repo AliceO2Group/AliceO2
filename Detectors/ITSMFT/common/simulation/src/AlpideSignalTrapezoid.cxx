@@ -27,7 +27,7 @@
 #include <TClass.h>
 #include <cassert>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 //_________________________________________________________________
 AlpideSignalTrapezoid::AlpideSignalTrapezoid(float duration, float rise, float qRise0)

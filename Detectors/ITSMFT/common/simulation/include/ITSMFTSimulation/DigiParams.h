@@ -29,7 +29,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class AlpideSimResponse;
@@ -37,7 +37,7 @@ class AlpideSimResponse;
 class DigiParams
 {
 
-  using SignalShape = o2::ITSMFT::AlpideSignalTrapezoid;
+  using SignalShape = o2::itsmft::AlpideSignalTrapezoid;
 
  public:
   DigiParams();
@@ -74,8 +74,8 @@ class DigiParams
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-  const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-  void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse = par; }
+  const o2::itsmft::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
+  void setAlpSimResponse(const o2::itsmft::AlpideSimResponse* par) { mAlpSimResponse = par; }
 
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
@@ -89,16 +89,16 @@ class DigiParams
   float mROFrameLength = 6000.;        ///< length of RO frame in ns
   float mStrobeDelay = 6000.;          ///< strobe start (in ns) wrt ROF start
   float mStrobeLength = 100.;          ///< length of the strobe in ns (sig. over threshold checked in this window only)
-  Double_t mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
+  double mTimeOffset = -2 * infTime;   ///< time offset (in seconds!) to calculate ROFrame from hit time
 
   int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
   int mMinChargeToAccount = 15;            ///< minimum charge contribution to account
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  o2::ITSMFT::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+  o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 
-  const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+  const o2::itsmft::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
 
   // auxiliary precalculated parameters
   float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns

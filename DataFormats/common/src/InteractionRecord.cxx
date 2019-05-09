@@ -12,7 +12,13 @@
 
 namespace o2
 {
+
 void InteractionRecord::print() const
+{
+  std::cout << "BCid: " << bc << " Orbit: " << orbit << std::endl;
+}
+
+void InteractionTimeRecord::print() const
 {
   std::cout << "BCid: " << bc << " Orbit: " << orbit << " T(ns): " << timeNS << std::endl;
 }

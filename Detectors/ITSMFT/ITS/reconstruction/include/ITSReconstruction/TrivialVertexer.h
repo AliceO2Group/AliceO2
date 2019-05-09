@@ -23,7 +23,7 @@ class FairMCEventHeader;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -41,7 +41,7 @@ namespace ITS
 {
 class TrivialVertexer
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
   using Label = o2::MCCompLabel;
 
  public:

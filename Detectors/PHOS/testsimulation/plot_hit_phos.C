@@ -15,7 +15,6 @@
 
 #include "PHOSBase/Geometry.h"
 #include "PHOSSimulation/DigitizerTask.h"
-#include "PHOSSimulation/Hit.h"
 #endif
 
 void plot_hit_phos(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.phos.mc_10_event.root")

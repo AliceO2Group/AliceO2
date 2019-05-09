@@ -22,7 +22,7 @@
 namespace o2
 {
 
-namespace EMCAL
+namespace emcal
 {
 /// \class Digit
 /// \brief EMCAL digit implementation
@@ -74,6 +74,6 @@ class Digit : public DigitBase
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 #endif

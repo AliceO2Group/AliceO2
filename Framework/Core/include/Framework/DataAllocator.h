@@ -44,6 +44,16 @@
 class FairMQDevice;
 class FairMQMessage;
 
+namespace arrow
+{
+class Schema;
+
+namespace ipc
+{
+class RecordBatchWriter;
+} // namespace ipc
+} // namespace arrow
+
 namespace o2
 {
 namespace framework
@@ -68,11 +78,11 @@ class DataAllocator
                 ContextRegistry* contextes,
                 const AllowedOutputRoutes& routes);
 
-  DataChunk newChunk(const Output&, size_t);
+  DataChunk& newChunk(const Output&, size_t);
 
-  inline DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
+  inline DataChunk& newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
-  DataChunk adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
+  void adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
 
   // In case no extra argument is provided and the passed type is trivially
   // copyable and non polymorphic, the most likely wanted behavior is to create
@@ -81,19 +91,22 @@ class DataAllocator
   typename std::enable_if<is_messageable<T>::value == true, T&>::type
     make(const Output& spec)
   {
-    DataChunk chunk = newChunk(spec, sizeof(T));
-    return *reinterpret_cast<T*>(chunk.data);
+    return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
   }
 
   // In case an extra argument is provided, we consider this an array /
   // collection elements of that type
+  // FIXME: once the vector functionality with polymorphic allocator is fully in place, this might be dropped
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
+  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>&>::type
     make(const Output& spec, size_t nElements)
   {
     auto size = nElements * sizeof(T);
-    DataChunk chunk = newChunk(spec, size);
-    return gsl::span<T>(reinterpret_cast<T*>(chunk.data), nElements);
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    auto context = mContextRegistry->get<MessageContext>();
+
+    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
+    return context->add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
   }
 
   /// Use this in case you want to leave the creation
@@ -132,6 +145,17 @@ class DataAllocator
     TableBuilder* tb = new TableBuilder(args...);
     adopt(spec, tb);
     return *tb;
+  }
+
+  /// Helper to create a arrow::ipc::RecordBatchWriter, owned by the framework
+  /// which creates record batches with the given @a schema in a FairMQMessage.
+  template <typename T>
+  typename std::enable_if_t<std::is_base_of_v<arrow::ipc::RecordBatchWriter, T> == true, std::shared_ptr<T>>
+    make(const Output& spec, std::shared_ptr<arrow::Schema> schema)
+  {
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    create(spec, &writer, schema);
+    return writer;
   }
 
   /// Helper to create an byte stream buffer using boost serialization, which will be owned by the framework
@@ -449,7 +473,7 @@ class DataAllocator
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
   template <typename T, typename... Args>
-  auto make(OutputRef&& ref, Args&&... args)
+  auto& make(OutputRef&& ref, Args&&... args)
   {
     return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
@@ -491,6 +515,11 @@ class DataAllocator
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
+
+  /// Fills the passed arrow::ipc::BatchRecordWriter in the framework and
+  /// have it serialise / send data as RecordBatches to all consumers
+  /// of @a spec once done.
+  void create(const Output& spec, std::shared_ptr<arrow::ipc::RecordBatchWriter>*, std::shared_ptr<arrow::Schema>);
 };
 
 } // namespace framework

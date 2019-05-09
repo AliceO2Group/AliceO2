@@ -16,32 +16,35 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/PadSecPos.h"
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 
-class DigitPos {
-public:
-  DigitPos() {}
+class DigitPos
+{
+ public:
+  DigitPos() = default;
   DigitPos(CRU c, PadPos pad) : mCRU(c), mPadPos(pad) {}
-  const CRU&  getCRU() const { return mCRU; }
-  CRU& cru()       { return mCRU; }
-  PadPos    getPadPos()       const { return mPadPos; }
-  PadPos    getGlobalPadPos() const;
-  PadSecPos getPadSecPos()    const;
+  const CRU& getCRU() const { return mCRU; }
+  CRU& cru() { return mCRU; }
+  PadPos getPadPos() const { return mPadPos; }
+  PadPos getGlobalPadPos() const;
+  PadSecPos getPadSecPos() const;
 
-  PadPos& padPos()       { return mPadPos; }
+  PadPos& padPos() { return mPadPos; }
 
   bool isValid() const { return mPadPos.isValid(); }
 
-  bool    operator==(const DigitPos& other)  const { return (mCRU==other.mCRU) && (mPadPos==other.mPadPos); }
-  bool    operator!=(const DigitPos& other)  const { return (mCRU!=other.mCRU) || (mPadPos!=other.mPadPos); }
-  bool    operator< (const DigitPos& other)  const { return (mCRU <other.mCRU) && (mPadPos <other.mPadPos); }
+  bool operator==(const DigitPos& other) const { return (mCRU == other.mCRU) && (mPadPos == other.mPadPos); }
+  bool operator!=(const DigitPos& other) const { return (mCRU != other.mCRU) || (mPadPos != other.mPadPos); }
+  bool operator<(const DigitPos& other) const { return (mCRU < other.mCRU) && (mPadPos < other.mPadPos); }
 
-private:
+ private:
   CRU mCRU{};
-  PadPos mPadPos{};          /// Pad position in the local partition coordinates: row starts from 0 for each partition
+  PadPos mPadPos{}; /// Pad position in the local partition coordinates: row starts from 0 for each partition
 };
 
-}
-}
+} // namespace TPC
+} // namespace o2
 #endif

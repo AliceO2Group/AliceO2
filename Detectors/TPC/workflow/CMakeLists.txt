@@ -18,6 +18,8 @@ set(SRCS
    src/ClustererSpec.cxx
    src/ClusterDecoderRawSpec.cxx
    src/CATrackerSpec.cxx
+   #
+   src/TrackReaderSpec.cxx
    )
 
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again

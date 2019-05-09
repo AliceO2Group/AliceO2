@@ -71,7 +71,7 @@ class MCHDPLDigitizerTask
     }
 
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
   }
 
@@ -120,7 +120,6 @@ class MCHDPLDigitizerTask
         for (auto& d : digits) {
           LOG(INFO) << "ADC " << d.getADC();
           LOG(INFO) << "PAD " << d.getPadID();
-          LOG(INFO) << " MCLabel " << d.getLabelIndex();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);

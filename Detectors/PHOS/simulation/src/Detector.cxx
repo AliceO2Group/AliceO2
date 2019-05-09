@@ -35,7 +35,7 @@ using namespace o2::phos;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("PHS", active),
+  : o2::base::DetImpl<Detector>("PHS", active),
     mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
@@ -45,7 +45,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
@@ -396,7 +396,7 @@ void Detector::CreateMaterials()
   //  Float_t sxmgmx = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max() ;
   Int_t isxfld = 2;
   Float_t sxmgmx = 10.0;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
   if (fActive) {

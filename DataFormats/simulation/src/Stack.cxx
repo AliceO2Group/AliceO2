@@ -36,7 +36,7 @@
 using std::cout;
 using std::endl;
 using std::pair;
-using namespace o2::Data;
+using namespace o2::data;
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -330,6 +330,15 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   return &mPrimaryParticles[iPrim];
 }
 
+void Stack::updateEventStats()
+{
+  if (mMCEventStats) {
+    mMCEventStats->setNHits(mHitCounter);
+    mMCEventStats->setNTransportedTracks(mNumberOfEntriesInParticles);
+    mMCEventStats->setNKeptTracks(mTracks->size());
+  }
+}
+
 void Stack::FillTrackArray()
 {
   /// This interface is not implemented since we are filtering/filling the output array
@@ -397,7 +406,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     }
     auto iter = detList->MakeIterator();
     while (auto det = iter->Next()) {
-      auto o2det = dynamic_cast<o2::Base::Detector*>(det);
+      auto o2det = dynamic_cast<o2::base::Detector*>(det);
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {
@@ -490,6 +499,7 @@ void Stack::Reset()
   mTrackRefs->clear();
   mIndexedTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
+  mHitCounter = 0;
 }
 
 void Stack::Register()
@@ -522,6 +532,7 @@ void Stack::Print(Option_t* option) const
 void Stack::addHit(int iDet) { addHit(iDet, mParticles.size() - 1); }
 void Stack::addHit(int iDet, Int_t iTrack)
 {
+  mHitCounter++;
   auto& part = mParticles[iTrack];
   part.setHit(iDet);
 }
@@ -642,5 +653,5 @@ void Stack::fillParentIDs(std::vector<int>& parentids) const
   } while (mother != -1);
 }
 
-FairGenericStack* Stack::CloneStack() const { return new o2::Data::Stack(*this); }
-ClassImp(o2::Data::Stack)
+FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
+ClassImp(o2::data::Stack)

@@ -51,12 +51,12 @@ Absorber& Absorber::operator=(const Absorber& rhs)
 
 void Absorber::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   // Define materials for muon absorber
   //
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //
   // Air
@@ -281,7 +281,7 @@ void Absorber::ConstructGeometry()
   //
   //
 
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   Float_t z, z0, dz;
   //
   // The top volume

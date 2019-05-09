@@ -35,20 +35,28 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 struct TopologyInfo {
-  int mSizeX;
-  int mSizeZ;
-  float mCOGx;
-  float mCOGz;
-  float mXmean;
-  float mXsigma2;
-  float mZmean;
-  float mZsigma2;
-  int mNpixels;
+  int mSizeX = 0;
+  int mSizeZ = 0;
+  float mCOGx = 0.f;
+  float mCOGz = 0.f;
+  float mXmean = 0.f;
+  float mXsigma2 = 0.f;
+  float mZmean = 0.f;
+  float mZsigma2 = 0.f;
+  int mNpixels = 0;
   ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
                            ///the bits set to 1.
+};
+
+// transient structure to accumulate topology statistics
+struct TopoStat {
+  ClusterTopology topology;
+  unsigned long countsTotal = 0;    // counts for this topology
+  unsigned long countsWithBias = 0; // counts with assigned dX,dY provided
+  TopoStat() = default;
 };
 
 class BuildTopologyDictionary
@@ -59,8 +67,8 @@ class BuildTopologyDictionary
 #endif
 
   BuildTopologyDictionary();
-
-  void accountTopology(const ClusterTopology& cluster, float dX, float dZ);
+  static constexpr float IgnoreVal = 999.;
+  void accountTopology(const ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
   void setNGroups(unsigned int ngr); // set number of groups
   void setThreshold(double thr);
   void setThresholdCumulative(double cumulative); // Considering the integral
@@ -76,9 +84,8 @@ class BuildTopologyDictionary
 
  private:
   TopologyDictionary mDictionary; ///< Dictionary of topologies
-  std::map<unsigned long, std::pair<ClusterTopology, unsigned long>>
-    mTopologyMap;                                                         ///< Temporary map of type <hash,<topology,counts>>
-  std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; ///< <freq,hash>, needed to define threshold
+  std::map<unsigned long, TopoStat> mTopologyMap;                          //! Temporary map of type <hash,TopStat>
+  std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold
   int mTotClusters;
   int mNumberOfGroups;
   int mNotInGroups;
@@ -88,6 +95,6 @@ class BuildTopologyDictionary
 
   ClassDefNV(BuildTopologyDictionary, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 #endif

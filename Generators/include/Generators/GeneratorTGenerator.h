@@ -39,7 +39,7 @@ class GeneratorTGenerator : public Generator
 
   /** setters **/
   void setTGenerator(TGenerator* val) { mTGenerator = val; };
-
+  const TGenerator* getTGenerator() const { return mTGenerator; }
   /** Initialize the generator if needed **/
   Bool_t Init() override;
 

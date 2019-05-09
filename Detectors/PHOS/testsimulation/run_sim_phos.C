@@ -18,9 +18,9 @@
 #include "Field/MagneticField.h"
 #include "TGeoGlobalMagField.h"
 
-// #include "DetectorsPassive/Cave.h"
+#include "DetectorsPassive/Cave.h"
 // #include "Generators/GeneratorFromFile.h"
-// #include "TPCSimulation/Detector.h"
+#include "PHOSSimulation/Detector.h"
 #endif
 
 #define BOX_GENERATOR 1

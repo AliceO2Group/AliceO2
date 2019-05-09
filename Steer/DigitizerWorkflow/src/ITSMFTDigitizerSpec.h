@@ -15,13 +15,13 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 o2::framework::DataProcessorSpec getITSDigitizerSpec(int channel);
 o2::framework::DataProcessorSpec getMFTDigitizerSpec(int channel);
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITIZER_H_ */

@@ -31,10 +31,12 @@
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>
 #include "O2MessageMonitor/O2MessageMonitor.h"
+#include "O2Device/Compatibility.h"
 
 using namespace std;
 using namespace o2::header;
-using namespace o2::Base;
+using namespace o2::base;
+using namespace o2::compatibility;
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
@@ -60,7 +62,7 @@ void O2MessageMonitor::Run()
 
   auto dataResource = o2::pmr::getTransportAllocator(subChannels[0].Transport());
 
-  while (CheckCurrentState(RUNNING) && (--mIterations) != 0) {
+  while (FairMQ13<FairMQDevice>::IsRunning(this) && (--mIterations) != 0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));
 
     O2Message message;
@@ -76,7 +78,7 @@ void O2MessageMonitor::Run()
     // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    o2::Base::forEach(message, [&](auto header, auto data) {
+    o2::base::forEach(message, [&](auto header, auto data) {
       hexDump("headerBuffer", header.data(), header.size());
       hexDump("dataBuffer", data.data(), data.size(), mLimitOutputCharacters);
     });
@@ -84,7 +86,7 @@ void O2MessageMonitor::Run()
 
     // maybe a reply message
     if (type == "rep") {
-      o2::Base::addDataBlock(message,
+      o2::base::addDataBlock(message,
                              { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
                              NewSimpleMessageFor("data", 0, ""));
       Send(message, "data");

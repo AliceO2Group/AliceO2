@@ -15,7 +15,7 @@
 #include "MathUtils/CachingTF1.h"
 #include <TFile.h>
 
-using namespace o2::Base;
+using namespace o2::base;
 
 BOOST_AUTO_TEST_CASE(CachingTF1_test)
 {

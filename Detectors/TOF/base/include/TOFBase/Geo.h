@@ -41,7 +41,18 @@ class Geo
   static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
   static Float_t getDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
-  static  void getPadDxDyDz(const Float_t * pos,Int_t * det,Float_t * DeltaPos); 
+  static void getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos);
+  enum {
+    // DAQ characteristics
+    // cfr. TOF-TDR pag. 105 for Glossary
+    // TARODA : TOF-ALICE Read Out and Data Acquisition system
+    kNDDL = 4,    // Number of DDL (Detector Data Link) per sector
+    kNTRM = 12,   // Number of TRM ( Readout Module) per DDL
+    kNTdc = 15,   // Number of Tdc (Time to Digital Converter) per TRM
+    kNChain = 2,  // Number of chains per TRM
+    kNCrate = 72, // Number of Crates
+    kNCh = 8      // Number of channels per Tdc
+  };
 
   static constexpr Float_t BC_TIME = 25;             // bunch crossing in ns
   static constexpr Float_t BC_TIME_INV = 1./BC_TIME; // inv bunch crossing in ns
@@ -56,10 +67,13 @@ class Geo
   static constexpr Int_t NSTRIPC = 19;
   static constexpr Int_t NMAXNSTRIP = 20;
   static constexpr Int_t NSTRIPXSECTOR = NSTRIPA + 2 * NSTRIPB + 2 * NSTRIPC;
+  static constexpr Int_t NPADSXSECTOR = NSTRIPXSECTOR * NPADS;
 
   static constexpr Int_t NSECTORS = 18;
   static constexpr Int_t NSTRIPS = NSECTORS * NSTRIPXSECTOR;
   static constexpr Int_t NPLATES = 5;
+
+  static constexpr int NCHANNELS = NSTRIPS * NPADS;
 
   static constexpr Float_t MAXHZTOF = 370.6;      // Max half z-size of TOF (cm)
   static constexpr Float_t ZLENA = MAXHZTOF * 2.; // length (cm) of the A module
@@ -231,6 +245,12 @@ class Geo
   static constexpr Float_t WGLFZ = 7.;            // z dimension of GLASS Layer
   static constexpr Float_t HSENSMY = 0.0105;      // height of Sensitive Layer
 
+  static Float_t getCableLength(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return CABLELENGTH[icrate][islot - 3][ichain][itdc / 3]; }
+  static Float_t getCableTimeShift(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return getCableLength(icrate, islot, ichain, itdc) * CABLEPROPAGATIONDELAY; }
+  static Int_t getCableTimeShiftBin(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return int(getCableTimeShift(icrate, islot, ichain, itdc) * 1000 / TDCBIN); }
+  static Float_t getPropagationDelay() { return CABLEPROPAGATIONDELAY; };
+  static Int_t getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc); // return TOF channel index
+
  private:
   static void Init();
 
@@ -246,6 +266,9 @@ class Geo
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
   static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
 
+  // cable length map
+  static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513; // Propagation delay [ns/cm]
+  static Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3];
   ClassDefNV(Geo, 1);
 };
 }

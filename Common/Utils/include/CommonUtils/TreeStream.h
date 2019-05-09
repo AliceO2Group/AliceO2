@@ -210,7 +210,7 @@ Int_t TreeStream::CheckIn(T* obj)
   return 0;
 }
 
-} // namespace Base
+} // namespace base
 } // namespace o2
 
 #endif

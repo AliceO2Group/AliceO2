@@ -16,7 +16,6 @@
 #ifndef FRAMEWORK_RAWBUFFERCONTEXT_H
 #define FRAMEWORK_RAWBUFFERCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "CommonUtils/BoostSerializer.h"
 #include <vector>
@@ -39,6 +38,10 @@ class RawBufferContext
  public:
   RawBufferContext(FairMQDeviceProxy proxy)
     : mProxy{ proxy }
+  {
+  }
+  RawBufferContext(RawBufferContext&& other)
+    : mProxy{ other.mProxy }, mMessages{ std::move(other.mMessages) }
   {
   }
 
@@ -100,22 +103,6 @@ class RawBufferContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline RawBufferContext*
-  ContextRegistry::get<RawBufferContext>()
-{
-  return reinterpret_cast<RawBufferContext*>(mContextes[4]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<RawBufferContext>(RawBufferContext* context)
-{
-  mContextes[4] = context;
-}
 
 } // namespace framework
 } // namespace o2

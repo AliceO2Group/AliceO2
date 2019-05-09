@@ -1,3 +1,8 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TOFBase/Geo.h"
+#endif
+
 void checkRotation(const char *nameinput="../../../macro/geometry.root"){
   Float_t pos[3];
   Int_t indextof[5];

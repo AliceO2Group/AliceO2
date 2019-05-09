@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataProcessingHeader.h"
 #include <iostream>
@@ -131,7 +132,7 @@ DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
     mLeft = *pval5;
   } else {
     std::cerr << (other.mLeft.index() == std::variant_npos) << std::endl;
-    assert(false);
+    O2_BUILTIN_UNREACHABLE();
   }
 
   if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mRight)) {
@@ -147,7 +148,7 @@ DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&other.mRight)) {
     mRight = *pval5;
   } else {
-    assert(false);
+    O2_BUILTIN_UNREACHABLE();
   }
 }
 

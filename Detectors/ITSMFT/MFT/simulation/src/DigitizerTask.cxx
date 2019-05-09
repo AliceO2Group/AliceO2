@@ -27,7 +27,7 @@ using namespace o2::MFT;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using o2::ITSMFT::DigiParams;
+using o2::itsmft::DigiParams;
 
 //_____________________________________________________________________________
 DigitizerTask::DigitizerTask() : FairTask("MFTDigitizerTask"), mDigitizer() {}
@@ -50,7 +50,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("MFTHit");
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("MFTHit");
   if (!mHitsArray) {
     LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

@@ -1,3 +1,5 @@
+\page refdocDetectorSimulation Detector Simulation
+
 # Detector simulation documentation
 
 The present document collects information about the ALICE detector simulation executable and digitization procedure used in LHC Run3.

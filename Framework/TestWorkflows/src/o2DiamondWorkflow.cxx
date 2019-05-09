@@ -11,7 +11,10 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include <InfoLogger/InfoLogger.hxx>
+
+#include <chrono>
 #include <vector>
+
 using namespace o2::framework;
 using namespace AliceO2::InfoLogger;
 
@@ -42,7 +45,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{ adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
-      sleep((rand() % 5) + minDelay);
+      std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto bData = outputs.make<int>(OutputRef{ what }, 1);
     });
   }) };
@@ -57,7 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
         OutputSpec{ { "a2" }, "TST", "A2" } },
       AlgorithmSpec{ adaptStateless(
         [](DataAllocator& outputs, InfoLogger& logger) {
-          sleep(rand() % 2);
+          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
           auto aData = outputs.make<int>(OutputRef{ "a1" }, 1);
           auto bData = outputs.make<int>(OutputRef{ "a2" }, 1);
           logger.log("This goes to infologger");

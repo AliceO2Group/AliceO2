@@ -21,14 +21,16 @@
 #include "TimeFrame/TimeFrame.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/DataHeader.h"
+#include "O2Device/Compatibility.h"
+
 #include <options/FairMQProgOptions.h>
 #include <boost/filesystem.hpp>
 
 
 using DataHeader = o2::header::DataHeader;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 TimeframeWriterDevice::TimeframeWriterDevice()
   : O2Device{}
@@ -55,7 +57,7 @@ void TimeframeWriterDevice::Run()
   boost::filesystem::path p(mOutFileName);
   size_t streamedTimeframes = 0;
   bool needsNewFile = true;
-  while (CheckCurrentState(RUNNING) && mFileCount < mMaxFiles) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this) && mFileCount < mMaxFiles) {
     // In case we need to process more than one file,
     // the filename is split in basename and extension
     // and we call the files `<basename><count>.<extension>`.
@@ -94,4 +96,4 @@ void TimeframeWriterDevice::PostRun()
   }
 }
 
-}} // namespace o2::DataFlow
+}} // namespace o2::data_flow

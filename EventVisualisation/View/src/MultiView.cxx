@@ -90,9 +90,7 @@ MultiView::MultiView()
   sInstance = this;
 }
 
-MultiView::~MultiView()
-{
-}
+MultiView::~MultiView() = default;
 
 MultiView* MultiView::getInstance()
 {

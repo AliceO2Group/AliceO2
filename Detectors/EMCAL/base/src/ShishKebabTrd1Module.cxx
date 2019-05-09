@@ -15,7 +15,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/ShishKebabTrd1Module.h"
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 Double_t ShishKebabTrd1Module::sa = 0.;
 Double_t ShishKebabTrd1Module::sa2 = 0.;
@@ -27,17 +27,12 @@ Double_t ShishKebabTrd1Module::stanBetta = 0; //
 ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, Geometry* g)
   : mGeometry(g),
     mOK(),
-    mA(0.),
-    mB(0.),
-    mThetaA(0.),
     mTheta(theta),
     mOK1(),
     mOK2(),
     mOB(),
     mOB1(),
     mOB2(),
-    mThetaOB1(0.),
-    mThetaOB2(0.),
     mOK3X3(),
     mORB(),
     mORT()
@@ -51,24 +46,19 @@ ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, Geometry* g)
     DefineFirstModule(key);
 
   // DefineName(mTheta);
-  LOG(DEBUG4) << "o2::EMCAL::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
+  LOG(DEBUG4) << "o2::emcal::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
               << std::setprecision(4) << mTheta << " geometry " << g << FairLogger::endl;
 }
 
 ShishKebabTrd1Module::ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor)
   : mGeometry(leftNeighbor.mGeometry),
     mOK(),
-    mA(0.),
-    mB(0.),
-    mThetaA(0.),
     mTheta(0.),
     mOK1(),
     mOK2(),
     mOB(),
     mOB1(),
     mOB2(),
-    mThetaOB1(0.),
-    mThetaOB2(0.),
     mOK3X3(),
     mORB(),
     mORT()

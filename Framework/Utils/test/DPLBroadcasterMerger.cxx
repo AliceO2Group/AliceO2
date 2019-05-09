@@ -49,12 +49,12 @@ o2f::DataProcessorSpec defineGenerator(o2f::OutputSpec usrOutput)
 
                LOG(INFO) << ">>> Preparing MSG:" << msgIndex;
 
-               auto outputMsg =
+               auto& outputMsg =
                  ctx.outputs().newChunk(*usrOutput_shptr, (msgIndex + 1) * sizeof(uint32_t) / sizeof(char));
 
                LOG(INFO) << ">>> Preparing1 MSG:" << msgIndex;
 
-               auto payload = reinterpret_cast<uint32_t*>(outputMsg.data);
+               auto payload = reinterpret_cast<uint32_t*>(outputMsg.data());
 
                payload[0] = msgIndex;
 
@@ -82,8 +82,8 @@ o2f::DataProcessorSpec definePipeline(std::string devName, o2f::InputSpec usrInp
                auto inputMsg = ctx.inputs().getByPos(0);
                auto msgSize = (o2::header::get<o2::header::DataHeader*>(inputMsg.header))->payloadSize;
 
-               auto fwdMsg = ctx.outputs().newChunk((*output_sharedptr), msgSize);
-               std::memcpy(fwdMsg.data, inputMsg.payload, msgSize);
+               auto& fwdMsg = ctx.outputs().newChunk((*output_sharedptr), msgSize);
+               std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);
              };
            } } };
 }

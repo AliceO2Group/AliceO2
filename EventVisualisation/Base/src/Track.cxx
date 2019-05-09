@@ -33,24 +33,22 @@ Track::Track() : TEveTrack()
 {
 }
 
-Track::~Track()
-{
-}
-  
+Track::~Track() = default;
+
 void Track::setVertex(double v[3])
 {
   fV.Set(v);
 }
-  
+
 void Track::setMomentum(double p[3])
 {
   fP.Set(p);
 }
-  
+
 void Track::setBeta(double beta)
 {
   fBeta=beta;
 }
-  
+
 }
 }

@@ -6,6 +6,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "FairRunSim.h"
+#include "PHOSSimulation/Detector.h"
 #endif
 
 void PutPhosInTop()

@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 #include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -16,6 +15,7 @@
 
 #include "FairMQLogger.h"
 
+#include <chrono>
 #include <vector>
 
 using namespace o2::framework;
@@ -42,7 +42,7 @@ DataProcessorSpec templateProducer() {
       return [](ProcessingContext &ctx) {
           // Create a single output. 
           size_t index = ctx.services().get<ParallelContext>().index1D();
-          sleep(1);
+          std::this_thread::sleep_for(std::chrono::seconds(1));
           auto aData = ctx.outputs().make<int>(Output{ "TST", "A", index }, 1);
           ctx.services().get<ControlService>().readyToQuit(true);
         };

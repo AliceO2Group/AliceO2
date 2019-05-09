@@ -25,7 +25,7 @@ class BaseHit
 {
  public:
   BaseHit() = default;
-  BaseHit(int id) : mTrackID{id} {}
+  BaseHit(int id) : mTrackID{ id } {}
   int GetTrackID() const { return mTrackID; }
   void SetTrackID(int id) { mTrackID = id; }
 
@@ -38,21 +38,24 @@ class BaseHit
 // these are meant to be an alternative to FairMCPoint
 // which always includes the momentum and is purely based on double values
 
-// T is basic type for position, E is basic type for time and energy loss
-template <typename T, typename E=float>
-class BasicXYZEHit : public BaseHit
+// Generic class to keep position, time and hit value
+// T is basic type for position,
+// E is basic type for time,
+// V is basic type for hit value.
+template <typename T, typename E, typename V = float>
+class BasicXYZVHit : public BaseHit
 {
-  Point3D<T> mPos; // cartesian position of Hit
-  E mTime;         // time of flight
-  E mELoss;        // energy loss
+  Point3D<T> mPos;   // cartesian position of Hit
+  E mTime;           // time of flight
+  V mHitValue;       // hit value
   short mDetectorID; // the detector/sensor id
 
  public:
-  BasicXYZEHit() = default; // for ROOT IO
+  BasicXYZVHit() = default; // for ROOT IO
 
   // constructor
-  BasicXYZEHit(T x, T y, T z, E time, E e, int trackid, short did)
-    :  mPos(x, y, z), mTime(time), mELoss(e), BaseHit(trackid), mDetectorID(did)
+  BasicXYZVHit(T x, T y, T z, E time, V val, int trackid, short did)
+    : mPos(x, y, z), mTime(time), mHitValue(val), BaseHit(trackid), mDetectorID(did)
   {
   }
 
@@ -61,8 +64,8 @@ class BasicXYZEHit : public BaseHit
   T GetY() const { return mPos.Y(); }
   T GetZ() const { return mPos.Z(); }
   Point3D<T> GetPos() const { return mPos; }
-  // getting energy loss
-  E GetEnergyLoss() const { return mELoss; }
+  // getting hit value
+  V GetHitValue() const { return mHitValue; }
   // getting the time
   E GetTime() const { return mTime; }
   // get detector + track information
@@ -70,7 +73,7 @@ class BasicXYZEHit : public BaseHit
 
   // modifiers
   void SetTime(E time) { mTime = time; }
-  void SetEnergyLoss(E eLoss) { mELoss = eLoss; }
+  void SetHitValue(V val) { mHitValue = val; }
   void SetDetectorID(short detID) { mDetectorID = detID; }
   void SetX(T x) { mPos.SetX(x); }
   void SetY(T y) { mPos.SetY(y); }
@@ -81,10 +84,42 @@ class BasicXYZEHit : public BaseHit
     SetY(y);
     SetZ(z);
   }
-  void SetPos(Point3D<T> const &p) { mPos = p; }
+  void SetPos(Point3D<T> const& p) { mPos = p; }
+
+  ClassDefNV(BasicXYZVHit, 1);
+};
+
+// Class for a hit containing energy loss as hit value
+// T is basic type for position,
+// E is basic type for time (float as default),
+// V is basic type for hit value (float as default).
+template <typename T, typename E = float, typename V = float>
+class BasicXYZEHit : public BasicXYZVHit<T, E, V>
+{
+ public:
+  using BasicXYZVHit<T, E, V>::BasicXYZVHit;
+
+  V GetEnergyLoss() const { return BasicXYZVHit<T, E, V>::GetHitValue(); }
+  void SetEnergyLoss(V val) { BasicXYZVHit<T, E, V>::SetHitValue(val); }
 
   ClassDefNV(BasicXYZEHit, 1);
 };
 
-} // end namespace AliceO2
+// Class for a hit containing charge as hit value
+// T is basic type for position,
+// E is basic type for time (float as default),
+// V is basic type for hit value (int as default).
+template <typename T, typename E = float, typename V = int>
+class BasicXYZQHit : public BasicXYZVHit<T, E, V>
+{
+ public:
+  using BasicXYZVHit<T, E, V>::BasicXYZVHit;
+
+  V GetCharge() const { return BasicXYZVHit<T, E, V>::GetHitValue(); }
+  void SetCharge(V val) { BasicXYZVHit<T, E, V>::SetHitValue(val); }
+
+  ClassDefNV(BasicXYZQHit, 1);
+};
+
+} // namespace o2
 #endif

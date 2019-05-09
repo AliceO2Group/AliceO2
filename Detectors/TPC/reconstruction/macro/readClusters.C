@@ -14,6 +14,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
 #include "TTree.h"
+#include "TCanvas.h"
+#include "TH1F.h"
 
 #include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"

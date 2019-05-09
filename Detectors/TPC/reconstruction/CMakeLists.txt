@@ -1,19 +1,3 @@
-option(ENABLE_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
-option(ENABLE_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
-
-if(DEFINED ALITPCCOMMON_DIR)
-    set(ALITPCCOMMON_BUILD_TYPE "O2")
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking TPCCAGPUTracking)
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCFastTransformation TPCFastTransformation)
-    include_directories(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
-                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
-                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
-                        ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
-                    )
-else()
-    message(FATAL_ERROR "cmake variable ALITPCCOMMON_DIR is not defined")
-endif()
-
 set(MODULE_NAME "TPCReconstruction")
 
 O2_SETUP(NAME ${MODULE_NAME})
@@ -30,6 +14,7 @@ set(SRCS
    src/HalfSAMPAData.cxx
    src/HwClusterer.cxx
    src/RawReader.cxx
+   src/RawReaderCRU.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
    src/TPCCATracking.cxx
@@ -49,6 +34,7 @@ set(HEADERS
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwClusterer.h
    include/${MODULE_NAME}/RawReader.h
+   include/${MODULE_NAME}/RawReaderCRU.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TPCCATracking.h
@@ -65,12 +51,14 @@ O2_GENERATE_LIBRARY()
 Set(Exe_Names
   tpc-read-GBTFrames
   tpc-read-RawData
+  tpc-rawReader-cru
 )
 
 
 Set(Exe_Source
   run/readGBTFrames.cxx
   run/readRawData.cxx
+  run/rawReaderCRU.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

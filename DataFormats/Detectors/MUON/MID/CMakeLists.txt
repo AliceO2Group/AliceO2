@@ -3,16 +3,18 @@ set(MODULE_NAME "DataFormatsMID")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+  src/ColumnData.cxx
   src/Track.cxx
 )
 
-set(NO_DICT_HEADERS
+set(HEADERS
   include/${MODULE_NAME}/Cluster2D.h
   include/${MODULE_NAME}/Cluster3D.h
   include/${MODULE_NAME}/ColumnData.h
   include/${MODULE_NAME}/Track.h
 )
 
+set(LINKDEF src/DataFormatsMIDLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME data_format_mid_bucket)
 

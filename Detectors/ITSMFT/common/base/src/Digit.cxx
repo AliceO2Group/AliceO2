@@ -14,9 +14,9 @@
 #include "ITSMFTBase/Digit.h"
 #include <iostream>
 
-ClassImp(o2::ITSMFT::Digit)
+ClassImp(o2::itsmft::Digit)
 
-  using namespace o2::ITSMFT;
+  using namespace o2::itsmft;
 
 Digit::Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Int_t charge)
   : mChipIndex(chipindex), mRow(row), mCol(col), mROFrame(0)

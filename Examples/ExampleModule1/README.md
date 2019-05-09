@@ -1,3 +1,5 @@
+\page refExamplesExampleModule1 Example Module 1
+
 Example 1
 =========
 

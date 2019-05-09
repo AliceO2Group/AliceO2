@@ -42,7 +42,6 @@ include(O2Dependencies)
 include(FairMacros)
 include(WriteConfigFile)
 include(CTest)
-include(CheckCompiler)
 #include(CheckFortran)
 
 # check if we have a simulation environment
@@ -80,7 +79,24 @@ IF (NOT CMAKE_BUILD_TYPE)
   Message(STATUS "Set BuildType DEBUG")
   set(CMAKE_BUILD_TYPE Debug)
 ENDIF (NOT CMAKE_BUILD_TYPE)
-Check_Compiler()
+
+IF(ENABLE_CASSERT) #For the CI, we want to have <cassert> assertions enabled
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+ELSE()
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
+ENDIF()
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g")
+# make sure Debug build not optimized (does not seem to work without CACHE + FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Debug mode build flags" FORCE)
+set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
+
+message(STATUS "Using build type: ${CMAKE_BUILD_TYPE} - CXXFLAGS: ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
@@ -179,6 +195,7 @@ if (HAVESIMULATION)
    add_subdirectory(run)
 endif()
 add_subdirectory(config)
+add_subdirectory(GPU)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
@@ -199,48 +216,118 @@ configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
 O2_GENERATE_MAN(NAME o2)
 O2_GENERATE_MAN(NAME FairMQDevice)
 
-# Run macros unit tests automatically if ALIBUILD_O2_TESTS is defined
-IF($ENV{ALIBUILD_O2_TESTS})
-  SET(CHECK_ROOTMACRO_COMPILE 1)
-ENDIF()
+# Macros from this list will be excluded from tests. To be used only in exceptional cases, such as
+# when the macro uses symbols from outside the standard O2 build/runtime environment
+set(EXCLUDE_MACROS_FROM_TEST
 
-# A LIST OF MACROS TO EXCLUDE FROM THE TEST
-#  To be used only in exceptional cases, such as when the macro
-#  uses symbols from outside the standard O2 build/runtime
-#  environment.
-SET(IGNORE_MACROS
-    ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
-    # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
-    # correctly some Boost headers
-    ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
-    ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
-    ${CMAKE_SOURCE_DIR}/macro/putCondition.C
-    # End of temporarily disabled macros
+  ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
+
+  # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
+  # correctly some Boost headers
+  ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
+  ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
+  ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+
+  # Disabled until AliTPCCommon is merged
+  ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
+  ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
+  ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
+
+  # Exclude AliRoot macros from AliGPU package
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/checkPropagation.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/tools/dump.C
+  ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/initTPCcalibration.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/createTPCFastTransform.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/moveTPCFastTransform.C
+  ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/loadlibs.C
+
+  # Disabled from @mconcas: will be removed soon in any case
+  ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
+
+  # This macro is used by the o2sim tests, no need to re-check. Parallel tests
+  # of the same macro are also breaking it
+  ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C
 )
 
+# Macros from this list will have the test in compiled mode ran in a non-fatal way
+set(EXCLUDE_MACROS_FROM_COMPILED_TEST
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/macro/comparePedestalsAndNoise.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/macro/drawNoiseAndPedestal.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/monitor/macro/RunCompareMode3.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/monitor/macro/RunFindAdcError.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/dEdxRes.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/readClusters.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/macro/testTracks.C
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/macro/readMCtruth.C
+  ${CMAKE_SOURCE_DIR}/macro/convertClusterToClusterHardware.C
+  ${CMAKE_SOURCE_DIR}/macro/run_clus_tpc.C
+)
+
+# ROOT on MacOS has linking issues with Vc, disabled until fixed
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(EXCLUDE_MACROS_FROM_COMPILED_TEST
+    ${EXCLUDE_MACROS_FROM_COMPILED_TEST}
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline1DTest.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/IrregularSpline2D3DTest.C
+  )
+endif()
+
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
-if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
+if(HAVESIMULATION)
   # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive
-  FILE(GLOB_RECURSE MACRO_FILES "*.C")
+  file(GLOB_RECURSE MACRO_FILES "*.C")
   # Case sensitive filtering of .C files
-  LIST(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
-  SET(TEST_NO 0)
-  FOREACH(MACRO_FILE ${MACRO_FILES})
-    IF(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
+  list(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
+  foreach(MACRO_FILE ${MACRO_FILES})
+    if(NOT ${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_TEST)
       string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
-      MATH(EXPR TEST_NO "${TEST_NO} + 1")
+
+      # Test for "interpreted" macros
       add_test_wrap(NAME ${MACRO_FILE_LABEL}
                     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
-    ELSE()
-      MESSAGE(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
-    ENDIF()
-  ENDFOREACH()
+
+      # Test for compiled macros
+      if(${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_COMPILED_TEST)
+        set(_MACRO_NON_FATAL "NON_FATAL")
+        message(WARNING "Compiled macro test for ${MACRO_FILE} will be non-fatal")
+      else()
+        set(_MACRO_NON_FATAL "")
+      endif()
+      add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    ${_MACRO_NON_FATAL}
+                    COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
+
+      # Set environment variables
+      foreach(_TEST_NAME "${MACRO_FILE_LABEL}" "${MACRO_FILE_LABEL}_compiled")
+        set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+        if(APPLE)
+          set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+        endif()
+        set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+      endforeach()
+
+      # Cleanup
+      unset(_TEST_NAME)
+      unset(_MACRO_NON_FATAL)
+
+    else()
+      message(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
+    endif()
+  endforeach()
 endif()
+
+# Create special .rootrc for testing compiled macros
+configure_file("${CMAKE_SOURCE_DIR}/cmake/tests.rootrc.in"
+               "${CMAKE_BINARY_DIR}/.rootrc"
+               @ONLY
+               NEWLINE_STYLE UNIX)
 
 # Create tests wrapper (and make it executable)
 configure_file("${CMAKE_SOURCE_DIR}/cmake/tests-wrapper.sh.in"

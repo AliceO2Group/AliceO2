@@ -16,12 +16,12 @@
 #include <iostream>
 #include <iostream>
 
-ClassImp(o2::ITSMFT::Hit)
+ClassImp(o2::itsmft::Hit)
 
 using std::cout;
 using std::endl;
-using namespace o2::ITSMFT;
-using namespace o2; //::Base;
+using namespace o2::itsmft;
+using namespace o2; //::base;
 
 
 void Hit::Print(const Option_t *opt) const

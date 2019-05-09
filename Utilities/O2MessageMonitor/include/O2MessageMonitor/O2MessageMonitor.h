@@ -37,7 +37,7 @@
 /// it will appropriately send requests, send/receive messages or send replies.
 /// All incoming traffic is dumped on screen in the form of a hex dump for both
 /// the header block and payload block.
-class O2MessageMonitor : public o2::Base::O2Device
+class O2MessageMonitor : public o2::base::O2Device
 {
  public:
   O2MessageMonitor() = default;

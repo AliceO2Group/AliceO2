@@ -10,8 +10,6 @@
 #include "FairSystemInfo.h"
 #include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
-
-#include "ITSSimulation/DigitizerTask.h"
 #endif
 
 void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){

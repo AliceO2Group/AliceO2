@@ -37,7 +37,7 @@ namespace o2
 namespace hmpid
 {
 
-Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("HMP", active), mHits(new std::vector<HitType>) {}
+Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("HMP", active), mHits(new std::vector<HitType>) {}
 
 Detector::Detector(const Detector& other) : mSensitiveVolumes(other.mSensitiveVolumes),
                                             mHits(new std::vector<HitType>) {}
@@ -53,7 +53,7 @@ void Detector::InitializeO2Detector()
 bool Detector::ProcessHits(FairVolume* v)
 {
   TString volname = fMC->CurrentVolName();
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
 
   //Treat photons
   //photon (Ckov or feedback) hits on module PC (Hpad)
@@ -423,7 +423,7 @@ void Detector::createMaterials()
   int unsens = 0, sens = 1; // sensitive or unsensitive medium
   int itgfld;
   float maxfld;
-  o2::Base::Detector::initFieldTrackingParams(itgfld, maxfld);
+  o2::base::Detector::initFieldTrackingParams(itgfld, maxfld);
 
   float tmaxfd = -10.0; // max deflection angle due to magnetic field in one step
   float deemax = -0.2;  // max fractional energy loss in one step
@@ -485,7 +485,7 @@ TGeoVolume* Detector::createChamber(int number)
 
   TGeoVolume* hmp = new TGeoVolumeAssembly(Form("Hmp%i", number));
 
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   TGeoMedium* al = matmgr.getTGeoMedium("HMP_Al");
   TGeoMedium* ch4 = matmgr.getTGeoMedium("HMP_CH4");

@@ -19,17 +19,18 @@
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
+#include "O2Device/Compatibility.h"
 #include "TimeFrame/TimeFrame.h"
 
 #include <iomanip>
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
-using SubframeMetadata = o2::DataFlow::SubframeMetadata;
-using TPCTestPayload = o2::DataFlow::TPCTestPayload;
-using TPCTestCluster = o2::DataFlow::TPCTestCluster;
-using IndexElement = o2::DataFormat::IndexElement;
+using namespace o2::devices;
+using SubframeMetadata = o2::data_flow::SubframeMetadata;
+using TPCTestPayload = o2::data_flow::TPCTestPayload;
+using TPCTestCluster = o2::data_flow::TPCTestCluster;
+using IndexElement = o2::dataformats::IndexElement;
 
 void EPNReceiverDevice::InitTask()
 {
@@ -91,7 +92,7 @@ void EPNReceiverDevice::Run()
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts subtimeframeParts;
     if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
       continue;
@@ -101,7 +102,7 @@ void EPNReceiverDevice::Run()
     const auto* dh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
-    id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
+    id = o2::data_flow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
     auto flpId = sfm->flpIndex;
 
     if (mDiscardedSet.find(id) == mDiscardedSet.end())

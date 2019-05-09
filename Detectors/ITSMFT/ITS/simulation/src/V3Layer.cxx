@@ -40,7 +40,7 @@ class TGeoMedium;
 
 using namespace TMath;
 using namespace o2::ITS;
-using AlpideChip = o2::ITSMFT::AlpideChip;
+using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
@@ -61,7 +61,7 @@ const Double_t V3Layer::sIBFlexCableAlThick = 25.0 * sMicron;
 const Double_t V3Layer::sIBFPCAlGNDWidth = (4.1 + 11.15) * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth1 = 13.0 * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth2 = 14.7 * sMm;
-const Double_t V3Layer::sIBFlexCableKapThick = 125.0 * sMicron;
+const Double_t V3Layer::sIBFlexCableKapThick = 75.0 * sMicron;
 const Double_t V3Layer::sIBFlexCablePolyThick = 20.0 * sMicron;
 const Double_t V3Layer::sIBFlexCapacitorXWid = 0.2 * sMm;
 const Double_t V3Layer::sIBFlexCapacitorYHi = 0.2 * sMm;
@@ -287,7 +287,7 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   }
 }
 
-V3Layer::~V3Layer() {}
+V3Layer::~V3Layer() = default;
 
 void V3Layer::createLayer(TGeoVolume* motherVolume)
 {
@@ -633,6 +633,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // Adds the capacitors to the IB FPC
   //
   // Created:      13 Feb 2018  Mario Sitta
+  // Updated:      03 Apr 2019  Mario Sitta  Fix positions (180' rotation)
   //
 
   // Position of the various capacitors (A.Junique private communication
@@ -697,16 +698,16 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   xpos = xGroup1A;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[0];
-    modvol->AddNode(capacitor, 2 * j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, 2 * j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[1];
-    modvol->AddNode(capacitor, 2 * j + 2, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, 2 * j + 2, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors = 2 * sIBChipsPerRow;
   xpos = xGroup1B;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1B;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
@@ -714,13 +715,13 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // We have only 8 in these group, missing the central one
   for (Int_t j = 0; j < sIBChipsPerRow - 1; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup2;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += (sIBChipsPerRow - 1);
   xpos = xGroup3;
   zpos = zGroup3;
-  modvol->AddNode(capacitor, 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+  modvol->AddNode(capacitor, 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
 
   nCapacitors++;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
@@ -729,7 +730,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
     else
       xpos = xGroup4[0];
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup4[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
@@ -739,21 +740,21 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
     else
       xpos = xGroup5A[1];
     zpos = zGroup5A[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += nGroup5A;
   xpos = xGroup5B;
   for (Int_t j = 0; j < nGroup5B; j++) {
     zpos = zGroup5B[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   // Place the resistors
   xpos = xResist;
   for (Int_t j = 0; j < nResist; j++) {
     zpos = zResist[j];
-    modvol->AddNode(resistor, j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(resistor, j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 }
 
@@ -798,6 +799,7 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   //
   //
   // Created:      20 Oct 2017  Mario Sitta
+  // Updated:      03 Apr 2019  Mario Sitta  Fix Al position (180' rotation)
   //
 
   Double_t ytot, ypos;
@@ -812,9 +814,9 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   ytru[0] = -zcable;
   xtru[1] = sIBFPCAlAnodeWidth2 / 2;
   ytru[1] = ytru[0];
-  xtru[2] = xtru[1];
+  xtru[2] = xtru[0] + sIBFPCAlAnodeWidth1;
   ytru[2] = zcable;
-  xtru[3] = xtru[2] - sIBFPCAlAnodeWidth1;
+  xtru[3] = xtru[0];
   ytru[3] = ytru[2];
 
   TGeoXtru* aluminum = new TGeoXtru(2);
@@ -836,7 +838,7 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
 
   ypos = -coverlay->GetDY() + aluminum->GetZ(1);
   if (mBuildLevel < 1) // Aluminum
-    coverlayVol->AddNode(aluminumVol, 1, new TGeoCombiTrans(0, ypos, 0, new TGeoRotation("", 0, 90, 0)));
+    coverlayVol->AddNode(aluminumVol, 1, new TGeoCombiTrans(0, ypos, 0, new TGeoRotation("", 0, -90, 0)));
 
   return coverlayVol;
 }

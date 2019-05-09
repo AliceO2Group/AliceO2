@@ -35,5 +35,5 @@ void addCustomOptions(bpo::options_description& options)
 
 FairMQDevice* getDevice(const FairMQProgOptions& config)
 {
-  return new o2::Devices::EPNReceiverDevice();
+  return new o2::devices::EPNReceiverDevice();
 }

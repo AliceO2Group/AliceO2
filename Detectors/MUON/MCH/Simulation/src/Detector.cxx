@@ -10,6 +10,7 @@
 
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Geometry.h"
+#include "SimulationDataFormat/Stack.h"
 #include "Stepper.h"
 #include "TGeoManager.h"
 #include <sstream>
@@ -25,12 +26,12 @@ namespace mch
 {
 
 Detector::Detector(bool active)
-  : o2::Base::DetImpl<Detector>("MCH", active), mStepper{ new o2::mch::Stepper }
+  : o2::base::DetImpl<Detector>("MCH", active), mStepper{ new o2::mch::Stepper }
 {
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs), mStepper{ new o2::mch::Stepper }
+  : o2::base::DetImpl<Detector>(rhs), mStepper{ new o2::mch::Stepper }
 {
 }
 
@@ -63,6 +64,7 @@ void Detector::ConstructGeometry()
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   mStepper->process(*fMC);
+  (static_cast<o2::data::Stack*>(fMC->GetStack()))->addHit(GetDetId());
   return kTRUE;
 }
 

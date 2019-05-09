@@ -243,4 +243,25 @@ BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
   BOOST_CHECK(cont2.getLabels(100).size() == 0);
 }
 
+BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
+{
+  using TruthElement = long;
+  using Container = dataformats::MCTruthContainer<TruthElement>;
+  Container container;
+  container.addElement(0, TruthElement(1));
+  container.addElement(0, TruthElement(2));
+  container.addElement(1, TruthElement(1));
+  container.addElement(2, TruthElement(10));
+
+  Container container2 = std::move(container);
+  BOOST_CHECK(container.getIndexedSize() == 0);
+  BOOST_CHECK(container.getNElements() == 0);
+
+  std::swap(container, container2);
+  BOOST_CHECK(container2.getIndexedSize() == 0);
+  BOOST_CHECK(container2.getNElements() == 0);
+  BOOST_CHECK(container.getIndexedSize() == 3);
+  BOOST_CHECK(container.getNElements() == 4);
+}
+
 } // end namespace

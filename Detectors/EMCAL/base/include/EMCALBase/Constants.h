@@ -14,7 +14,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 enum {
   EMCAL_MODULES = 22,   ///< Number of modules, 12 for EMCal + 8 for DCAL
@@ -26,9 +26,10 @@ enum {
 
 namespace constants
 {
-constexpr Double_t EMCAL_TIMESAMPLE = 100.; ///< Width of a timebin in nanoseconds
+constexpr Double_t EMCAL_TIMESAMPLE = 100.;  ///< Width of a timebin in nanoseconds
+constexpr Double_t EMCAL_ADCENERGY = 0.0167; ///< Energy of one ADC count in GeV/c^2
 } // namespace constants
 
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 #endif

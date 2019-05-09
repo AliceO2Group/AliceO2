@@ -49,14 +49,14 @@ constexpr double kRaddeg = TMath::RadToDeg();
 
 void Hall::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   //
   // Create materials for the experimental hall
   //
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
   isxfld = 0;
 
   Float_t aconc[10] = { 1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85 };
@@ -107,7 +107,7 @@ void Hall::createMaterials()
 void Hall::SetSpecialPhysicsCuts()
 {
 
-  using namespace o2::Base;
+  using namespace o2::base;
   // MaterialManager used to set physics cuts
   auto& matmgr = MaterialManager::Instance();
 
@@ -153,7 +153,7 @@ void Hall::ConstructGeometry()
   TGeoRotation* rot001 = new TGeoRotation("rot001", 270., 0., 90., 90., 180., 0.);
 
   // Media
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   TGeoMedium* kMedCC = matmgr.getTGeoMedium("HALL_CC_C2");
   TGeoMedium* kMedST = matmgr.getTGeoMedium("HALL_STST_C2");
   TGeoMedium* kMedAir = matmgr.getTGeoMedium("HALL_AIR_C2");

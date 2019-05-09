@@ -20,9 +20,7 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
   DataSampling::CustomizeInfrastructure(policies);
 }
 
-#include <iostream>
 
-#include <boost/algorithm/string.hpp>
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
@@ -31,6 +29,11 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
+
+#include <boost/algorithm/string.hpp>
+
+#include <chrono>
+#include <iostream>
 
 struct FakeCluster {
   float x;
@@ -120,7 +123,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     },
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         // Create an histogram
         auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
         auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "foo");
@@ -209,7 +212,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
-  sleep(1);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
   auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);

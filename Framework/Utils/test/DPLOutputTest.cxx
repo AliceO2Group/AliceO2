@@ -43,12 +43,12 @@ o2f::DataProcessorSpec defineTestGenerator()
 
                LOG(INFO) << ">>> Preparing MSG:" << msgIndex;
 
-               auto outputMsg = ctx.outputs().newChunk({ "TST", "ToSink", 0, o2f::Lifetime::Timeframe },
-                                                       (31 + 1) * sizeof(uint32_t) / sizeof(char));
+               auto& outputMsg = ctx.outputs().newChunk({ "TST", "ToSink", 0, o2f::Lifetime::Timeframe },
+                                                        (31 + 1) * sizeof(uint32_t) / sizeof(char));
 
                LOG(INFO) << ">>> Preparing1 MSG:" << msgIndex;
 
-               auto payload = reinterpret_cast<uint32_t*>(outputMsg.data);
+               auto payload = reinterpret_cast<uint32_t*>(outputMsg.data());
 
                payload[0] = msgIndex;
 

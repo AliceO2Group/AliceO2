@@ -32,7 +32,7 @@ namespace o2
 {
 namespace MFT
 {
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
@@ -57,19 +57,19 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // NEVER use it, it will throw exception if the class instance was already
   // created. Use GeometryTGeo::Instance() instead
   GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans = 0
-               /*o2::Base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
+               /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
                                            o2::TransformType::T2G,
                                            o2::TransformType::L2G)*/
                );
 
   /// Default destructor
-  ~GeometryTGeo() override = default;
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo

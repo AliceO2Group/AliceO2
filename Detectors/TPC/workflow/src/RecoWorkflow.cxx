@@ -17,10 +17,10 @@
 #include "Framework/DataSpecUtils.h"
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "PublisherSpec.h"
-#include "ClustererSpec.h"
-#include "ClusterDecoderRawSpec.h"
-#include "CATrackerSpec.h"
+#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCWorkflow/ClustererSpec.h"
+#include "TPCWorkflow/ClusterDecoderRawSpec.h"
+#include "TPCWorkflow/CATrackerSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "TPCBase/Digit.h"
 #include "DataFormatsTPC/Constants.h"
@@ -56,13 +56,13 @@ const std::unordered_map<std::string, InputType> InputMap{
   { "digitizer", InputType::Digitizer },
   { "digits", InputType::Digits },
   { "raw", InputType::Raw },
-  { "decoded-clusters", InputType::DecodedClusters },
+  { "clusters", InputType::Clusters },
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   { "digits", OutputType::Digits },
   { "raw", OutputType::Raw },
-  { "decoded-clusters", OutputType::DecodedClusters },
+  { "clusters", OutputType::Clusters },
   { "tracks", OutputType::Tracks },
 };
 
@@ -89,8 +89,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (inputType == InputType::Raw && isEnabled(OutputType::Digits)) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'raw'");
   }
-  if (inputType == InputType::DecodedClusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'decoded-clusters");
+  if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'clusters'");
   }
 
   WorkflowSpec specs;
@@ -111,7 +111,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
                                                    "tpc-raw-cluster-reader",
                                                    "tpcraw",
-                                                   { "databranch", "TPCClusterHw", "Branch with raw clusters" },
+                                                   { "databranch", "TPCClusterHw", "Branch with TPC raw clusters" },
                                                    { "mcbranch", "TPCClusterHwMCTruth", "MC label branch" },
                                                    OutputSpec{ "TPC", "CLUSTERHW" },
                                                    OutputSpec{ "TPC", "CLUSTERHWMCLBL" },
@@ -119,11 +119,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    laneConfiguration,
                                                  },
                                                  propagateMC));
-  } else if (inputType == InputType::DecodedClusters) {
+  } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
-                                                   "tpc-decoded-cluster-reader",
+                                                   "tpc-native-cluster-reader",
                                                    "tpcrec",
-                                                   { "clusterbranch", "TPCClusterNative", "Branch with decoded clusters" },
+                                                   { "clusterbranch", "TPCClusterNative", "Branch with TPC native clusters" },
                                                    { "clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch" },
                                                    OutputSpec{ "TPC", "CLUSTERNATIVE" },
                                                    OutputSpec{ "TPC", "CLNATIVEMCLBL" },
@@ -135,13 +135,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   // output matrix
   bool runTracker = isEnabled(OutputType::Tracks);
-  bool runDecoder = runTracker || isEnabled(OutputType::DecodedClusters);
+  bool runDecoder = runTracker || isEnabled(OutputType::Clusters);
   bool runClusterer = runDecoder || isEnabled(OutputType::Raw);
 
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runDecoder &= runClusterer || inputType == InputType::Raw;
-  runTracker &= runDecoder || inputType == InputType::DecodedClusters;
+  runTracker &= runDecoder || inputType == InputType::Clusters;
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   //
   if (runClusterer) {
-    parallelProcessors.push_back(o2::TPC::getClustererSpec(propagateMC));
+    parallelProcessors.push_back(o2::TPC::getClustererSpec(propagateMC, inputType == InputType::Digitizer));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,54 +166,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // set up parallel TPC lanes
   //
-  WorkflowSpec lanePocessors;
-  std::swap(lanePocessors, parallelProcessors);
-  auto const& conf = laneConfiguration;
-  size_t confSize = laneConfiguration.size();
-  size_t lanes = nLanes < confSize ? nLanes : confSize;
-  for (auto laneProcess : lanePocessors) {
-    size_t confIndex = 0;
-    size_t moreInputs = confSize % nLanes;
-    size_t inputMultiplicity = confSize / lanes;
-    if (moreInputs > 0) {
-      inputMultiplicity += 1;
-    }
-    auto amendProcess = [conf, lanes, &confIndex, &inputMultiplicity, &moreInputs](DataProcessorSpec& spec, size_t) {
-      auto inputs = std::move(spec.inputs);
-      auto outputs = std::move(spec.outputs);
-      spec.inputs.reserve(inputMultiplicity);
-      spec.outputs.reserve(inputMultiplicity);
-      for (size_t inputNo = 0; inputNo < inputMultiplicity; ++inputNo) {
-        for (auto& input : inputs) {
-          spec.inputs.push_back(input);
-          spec.inputs.back().binding += std::to_string(inputNo);
-          DataSpecUtils::updateMatchingSubspec(spec.inputs.back(), conf[confIndex + inputNo]);
-        }
-        for (auto& output : outputs) {
-          spec.outputs.push_back(output);
-          spec.outputs.back().binding.value += std::to_string(inputNo);
-          spec.outputs.back().subSpec = conf[confIndex + inputNo];
-        }
-      }
-      confIndex += inputMultiplicity;
-      if (moreInputs > 0) {
-        --moreInputs;
-        if (moreInputs == 0) {
-          --inputMultiplicity;
-        }
-      }
-    };
-
-    if (nLanes > 1) {
-      // add multiple processes and distribute inputs among them
-      parallelProcessors = parallel(laneProcess, lanes, amendProcess);
-      specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
-    } else if (nLanes == 1) {
-      // add one single process with all the inputs
-      amendProcess(laneProcess, 0);
-      specs.push_back(laneProcess);
-    }
-  }
+  // the parallelPipeline helper distributes the subspec ids from the lane configuration
+  // among the pipelines. All inputs and outputs of processors of one pipeline will be
+  // cloned by the number of subspecs served by this pipeline and amended with the subspecs
+  parallelProcessors = parallelPipeline(parallelProcessors, nLanes,
+                                        [&laneConfiguration]() { return laneConfiguration.size(); },
+                                        [&laneConfiguration](size_t index) { return laneConfiguration[index]; });
+  specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
@@ -343,13 +302,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
-  // a writer process for decoded clusters
+  // a writer process for TPC native clusters
   //
-  // selected by output type 'decoded-clusters'
-  if (isEnabled(OutputType::DecodedClusters)) {
+  // selected by output type 'clusters'
+  if (isEnabled(OutputType::Clusters)) {
     using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
-    specs.push_back(makeWriterSpec("tpc-decoded-cluster-writer",
-                                   inputType == InputType::DecodedClusters ? "tpc-filtered-decoded-clusters.root" : "tpc-decoded-clusters.root",
+    specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
+                                   inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
                                    BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERNATIVE", 0 },
                                                                   "TPCClusterNative",

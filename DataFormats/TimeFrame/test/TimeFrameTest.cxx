@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace DataFormat
+namespace dataformats
 {
 BOOST_AUTO_TEST_CASE(MessageSizePair_test)
 {
@@ -110,5 +110,5 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   }
 }
 
-} // end namespace DataFlow
+} // namespace data_flow
 } // end namespace AliceO2

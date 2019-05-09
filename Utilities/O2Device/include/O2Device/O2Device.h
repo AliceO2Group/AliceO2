@@ -36,7 +36,7 @@
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,

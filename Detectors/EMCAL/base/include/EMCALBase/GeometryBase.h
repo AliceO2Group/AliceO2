@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 enum EMCALSMType {
   NOT_EXISTENT = -1,

@@ -17,15 +17,15 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::ITSMFT;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using namespace o2::itsmft;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
 //__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
 {
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
-
+  mROFRef.clear();
 #ifdef _ClusterTopology_
   LOG(INFO) << "*********************************************************************" << FairLogger::endl;
   LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN" << FairLogger::endl;
@@ -39,39 +39,53 @@ Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1
 
 //__________________________________________________
 void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
-                        std::vector<CompClusterExt>* compClus, MCTruth* labelsCl)
+                        std::vector<CompClusterExt>* compClus, MCTruth* labelsCl,
+                        std::vector<o2::itsmft::ROFRecord>* vecROFRec)
 {
 
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
 
-  UInt_t prevROF = o2::ITSMFT::PixelData::DummyROF;
   mClustersCount = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
+
+  auto& currROFIR = mROFRef.getBCData();
+  auto& currROFEntry = mROFRef.getROFEntry();
 
   while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
     // vector in the mChips and return the pointer on it
 
-    mCurrROF = mChipData->getROFrame();
-    if (prevROF != mCurrROF && prevROF != o2::ITSMFT::PixelData::DummyROF) {
-      LOG(INFO) << "ITS: clusterizing new ROFrame " << mCurrROF << FairLogger::endl;
-      if (mClusTree) { // if necessary, flush existing data
-        flushClusters(fullClus, compClus, labelsCl);
-      }
-    }
-    prevROF = mCurrROF;
+    if (!(mChipData->getInteractionRecord() == currROFIR)) { // new ROF starts
 
-    mCurrChipID = mChipData->getChipID();
-    // LOG(DEBUG) << "ITSClusterer got Chip " << mCurrChipID << " ROFrame " << mChipData->getROFrame()
+      mROFRef.setNROFEntries(mClustersCount - currROFEntry.getIndex()); // number of entries in this ROF
+
+      if (!currROFIR.isDummy()) {
+        if (mClusTree) { // if necessary, flush existing data
+          LOG(INFO) << "ITS: clusterizing new ROFrame, Orbit :" << mChipData->getInteractionRecord().orbit
+                    << " BC: " << mChipData->getInteractionRecord().bc;
+          mROFRef.getROFEntry().setEvent(mClusTree->GetEntries());
+          flushClusters(fullClus, compClus, labelsCl);
+        }
+        if (vecROFRec) {
+          vecROFRec->emplace_back(mROFRef);
+        }
+      }
+      currROFEntry.setIndex(mClustersCount);
+      currROFIR = mChipData->getInteractionRecord();
+      mROFRef.setROFrame(mChipData->getROFrame()); // TODO: outphase this
+    }
+
+    auto chipID = mChipData->getChipID();
+    // LOG(DEBUG) << "ITSClusterer got Chip " << chipID << " ROFrame " << mChipData->getROFrame()
     //            << " Nhits " << mChipData->getData().size() << FairLogger::endl;
 
-    if (mMaskOverflowPixels) { // mask pixels fired from the previous ROF
+    if (mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       if (mChipsOld.size() < mChips.size()) {
         mChipsOld.resize(mChips.size()); // expand buffer of previous ROF data
       }
-      const auto& chipInPrevROF = mChipsOld[mCurrChipID];
-      if (chipInPrevROF.getROFrame() + 1 == mCurrROF) {
-        mChipData->maskFiredInSample(mChipsOld[mCurrChipID]);
+      const auto& chipInPrevROF = mChipsOld[chipID];
+      if (std::abs(currROFIR.differenceInBC(chipInPrevROF.getInteractionRecord())) < mMaxBCSeparationToMask) {
+        mChipData->maskFiredInSample(mChipsOld[chipID]);
       }
     }
     auto validPixID = mChipData->getFirstUnmasked();
@@ -84,16 +98,22 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
       }
       finishChip(fullClus, compClus, reader.getDigitsMCTruth(), labelsCl);
     }
-    if (mMaskOverflowPixels) { // current chip data will be used in the next ROF to mask overflow pixels
-      mChipsOld[mCurrChipID].swap(*mChipData);
+    if (mMaxBCSeparationToMask > 0) { // current chip data will be used in the next ROF to mask overflow pixels
+      mChipsOld[chipID].swap(*mChipData);
     }
   }
+  mROFRef.setNROFEntries(mClustersCount - currROFEntry.getIndex()); // number of entries in this ROF
 
-  // if asked, flush last ROF
-  if (mClusTree && prevROF != o2::ITSMFT::PixelData::DummyROF) { // if necessary, flush existing data
-    flushClusters(fullClus, compClus, labelsCl);
+  // flush last ROF
+  if (!currROFIR.isDummy()) {
+    if (mClusTree) { // if necessary, flush existing data
+      mROFRef.getROFEntry().setEvent(mClusTree->GetEntries());
+      flushClusters(fullClus, compClus, labelsCl);
+    }
+    if (vecROFRec) {
+      vecROFRec->emplace_back(mROFRef); // the ROFrecords vector is stored outside, in a single entry of the tree
+    }
   }
-
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
   printf("Clusterization timing (w/o disk IO): ");
@@ -323,6 +343,7 @@ void Clusterer::clear()
   // reset
   mChipData = nullptr;
   mClusTree = nullptr;
+  mROFRef.clear();
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -331,5 +352,5 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  printf("Masking of overflow pixels: %s\n", mMaskOverflowPixels ? "ON" : "OFF");
+  printf("Mask overflow pixels in strobes separated by < %d BCs\n", mMaxBCSeparationToMask);
 }

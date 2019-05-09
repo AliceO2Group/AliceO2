@@ -24,6 +24,9 @@
 #include <FairLogger.h>
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
+#include "TRDBase/TRDSimParam.h"
+
+#include "Field/MagneticField.h"
 
 using namespace o2::trd;
 ClassImp(TRDCommonParam);
@@ -162,91 +165,71 @@ float TRDCommonParam::GetOmegaTau(float vdrift)
 //_____________________________________________________________________________
 bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
 {
-  /*
   //
   // Calculates the diffusion coefficients in longitudinal <dl> and
   // transverse <dt> direction for a given drift velocity <vdrift>
   //
 
   // Nothing to do
-  if (TMath::Abs(fDiffLastVdrift - vdrift) < 1.e-3) {
-
-    dl = fDiffusionL;
-    dt = fDiffusionT;
+  if (TMath::Abs(mDiffLastVdrift - vdrift) < 0.001) {
+    dl = mDiffusionL;
+    dt = mDiffusionT;
     return true;
-
   }
 
-  fDiffLastVdrift = vdrift;
-
-  if      (IsXenon()) {
-
+  mDiffLastVdrift = vdrift;
+  if (IsXenon()) {
     //
     // Vd and B-field dependent diffusion and Lorentz angle
     //
 
     // The magnetic field strength
-    AliMagF* fld = (AliMagF *) TGeoGlobalMagField::Instance()->GetField();
+    o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     if (!fld) {
+      LOG(FATAL) << "Magnetic field is not initialized!";
       return false;
     }
-    double field = 0.1 * fld->SolenoidField();   // kGauss -> Tesla
+    double field = 0.1 * fld->solenoidField(); // kGauss -> Tesla
 
     // DiffusionL
     const int kNbL = 5;
-    float p0L[kNbL] = {  0.007440,  0.007493,  0.007513,  0.007672,  0.007831 };
-    float p1L[kNbL] = {  0.019252,  0.018912,  0.018636,  0.018012,  0.017343 };
-    float p2L[kNbL] = { -0.005042, -0.004926, -0.004867, -0.004650, -0.004424 };
-    float p3L[kNbL] = {  0.000195,  0.000189,  0.000195,  0.000182,  0.000169 };
+    const float p0L[kNbL] = { 0.007440, 0.007493, 0.007513, 0.007672, 0.007831 };
+    const float p1L[kNbL] = { 0.019252, 0.018912, 0.018636, 0.018012, 0.017343 };
+    const float p2L[kNbL] = { -0.005042, -0.004926, -0.004867, -0.004650, -0.004424 };
+    const float p3L[kNbL] = { 0.000195, 0.000189, 0.000195, 0.000182, 0.000169 };
 
-    int ibL = ((int) (10 * (field - 0.15)));
-    ibL       = TMath::Max(     0,ibL);
-    ibL       = TMath::Min(kNbL-1,ibL);
+    int ibL = ((int)(10 * (field - 0.15)));
+    ibL = TMath::Max(0, ibL);
+    ibL = TMath::Min(kNbL - 1, ibL);
 
-    fDiffusionL = p0L[ibL]
-                + p1L[ibL] * vdrift
-                + p2L[ibL] * vdrift*vdrift
-                + p3L[ibL] * vdrift*vdrift*vdrift;
+    mDiffusionL = p0L[ibL] + p1L[ibL] * vdrift + p2L[ibL] * vdrift * vdrift + p3L[ibL] * vdrift * vdrift * vdrift;
 
     // DiffusionT
     const int kNbT = 5;
-    float p0T[kNbT] = {  0.009550,  0.009599,  0.009674,  0.009757,  0.009850 };
-    float p1T[kNbT] = {  0.006667,  0.006539,  0.006359,  0.006153,  0.005925 };
-    float p2T[kNbT] = { -0.000853, -0.000798, -0.000721, -0.000635, -0.000541 };
-    float p3T[kNbT] = {  0.000131,  0.000122,  0.000111,  0.000098,  0.000085 };
+    const float p0T[kNbT] = { 0.009550, 0.009599, 0.009674, 0.009757, 0.009850 };
+    const float p1T[kNbT] = { 0.006667, 0.006539, 0.006359, 0.006153, 0.005925 };
+    const float p2T[kNbT] = { -0.000853, -0.000798, -0.000721, -0.000635, -0.000541 };
+    const float p3T[kNbT] = { 0.000131, 0.000122, 0.000111, 0.000098, 0.000085 };
 
-    int ibT= ((int) (10 * (field - 0.15)));
-    ibT      = TMath::Max(     0,ibT);
-    ibT      = TMath::Min(kNbT-1,ibT);
+    int ibT = ((int)(10 * (field - 0.15)));
+    ibT = TMath::Max(0, ibT);
+    ibT = TMath::Min(kNbT - 1, ibT);
 
-    fDiffusionT = p0T[ibT]
-                + p1T[ibT] * vdrift
-                + p2T[ibT] * vdrift*vdrift
-                + p3T[ibT] * vdrift*vdrift*vdrift;
+    mDiffusionT = p0T[ibT] + p1T[ibT] * vdrift + p2T[ibT] * vdrift * vdrift + p3T[ibT] * vdrift * vdrift * vdrift;
 
-    dl = fDiffusionL;
-    dt = fDiffusionT;
+    dl = mDiffusionL;
+    dt = mDiffusionT;
     return true;
-
-  }
-
-  else if (IsArgon()) {
-
+  } else if (IsArgon()) {
     // Diffusion constants and Lorentz angle only for B = 0.5T
-    fDiffusionL = 0.0182;
-    fDiffusionT = 0.0159;
-    dl = fDiffusionL;
-    dt = fDiffusionT;
+    mDiffusionL = 0.0182;
+    mDiffusionT = 0.0159;
+    dl = mDiffusionL;
+    dt = mDiffusionT;
     return true;
-
-  }
-  else {
-
+  } else {
     return false;
-
   }
-  */
-  return false; // fix compiler warning
 }
 
 //_____________________________________________________________________________
@@ -744,4 +727,16 @@ void TRDCommonParam::SampleTimeStruct(float vdrift)
       }
     }
   }
+}
+
+void TRDCommonParam::SetXenon()
+{
+  mGasMixture = kXenon;
+  TRDSimParam::Instance()->ReInit();
+}
+
+void TRDCommonParam::SetArgon()
+{
+  mGasMixture = kArgon;
+  TRDSimParam::Instance()->ReInit();
 }

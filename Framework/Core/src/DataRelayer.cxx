@@ -131,14 +131,25 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
       auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
-      if (part.header == nullptr && part.payload == nullptr && expirator.checker && expirator.checker(timestamp.value)) {
-        assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
-        assert(expirator.handler);
-        expirator.handler(services, part, timestamp.value);
-        mTimesliceIndex.markAsDirty(slot, true);
-        assert(part.header != nullptr);
-        assert(part.payload != nullptr);
+      if (part.header != nullptr) {
+        continue;
       }
+      if (part.payload != nullptr) {
+        continue;
+      }
+      if (!expirator.checker) {
+        continue;
+      }
+      if (expirator.checker(timestamp.value) == false) {
+        continue;
+      }
+
+      assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
+      assert(expirator.handler);
+      expirator.handler(services, part, timestamp.value);
+      mTimesliceIndex.markAsDirty(slot, true);
+      assert(part.header != nullptr);
+      assert(part.payload != nullptr);
     }
   }
 }
@@ -232,7 +243,11 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // We need to prune the cache from the old stuff, if any. Otherwise we
   // simply store the payload in the cache and we mark relevant bit in the
   // hence the first if.
-  auto pruneCache = [&cache, &numInputTypes, &index, &metrics](TimesliceSlot slot) {
+  auto pruneCache = [&cache,
+                     &cachedStateMetrics = mCachedStateMetrics,
+                     &numInputTypes,
+                     &index,
+                     &metrics](TimesliceSlot slot) {
     assert(cache.empty() == false);
     assert(index.size() * numInputTypes == cache.size());
     // Prune old stuff from the cache, hopefully deleting it...
@@ -242,7 +257,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       cache[ai].header.reset(nullptr);
       cache[ai].payload.reset(nullptr);
-      metrics.send({ 0, sMetricsNames[ai] });
+      cachedStateMetrics[ai] = 0;
     }
   };
 
@@ -256,10 +271,15 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&header, &payload, &cache, &numInputTypes, &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
+  auto saveInSlot = [&header,
+                     &cachedStateMetrics = mCachedStateMetrics,
+                     &payload,
+                     &cache,
+                     &numInputTypes,
+                     &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
     PartRef& currentPart = cache[cacheIdx];
-    metrics.send({ 1, sMetricsNames[cacheIdx] });
+    cachedStateMetrics[cacheIdx] = 1;
     PartRef ref{std::move(header), std::move(payload)};
     currentPart = std::move(ref);
     assert(header.get() == nullptr && payload.get() == nullptr);
@@ -326,7 +346,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     LOG(DEBUG) << "Received timeslice " << timeslice.value;
     saveInSlot(timeslice, input, slot);
-    sendVariableContextMetrics(index.getVariablesForSlot(slot), slot, mMetrics, sVariablesMetricsNames);
+    index.publishSlot(slot);
     index.markAsDirty(slot, true);
     mStats.relayedMessages++;
     return WillRelay;
@@ -370,7 +390,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // cache still holds the old data, so we prune it.
   pruneCache(slot);
   saveInSlot(timeslice, input, slot);
-  sendVariableContextMetrics(pristineContext, slot, mMetrics, sVariablesMetricsNames);
+  index.publishSlot(slot);
   index.markAsDirty(slot, true);
 
   return WillRelay;
@@ -469,9 +489,11 @@ std::vector<std::unique_ptr<FairMQMessage>>
   // finished. We mark the given cache slot invalid, so that it can be reused
   // This means we can still handle old messages if there is still space in the
   // cache where to put them.
-  auto moveHeaderPayloadToOutput = [&messages, &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+  auto moveHeaderPayloadToOutput = [&messages,
+                                    &cachedStateMetrics = mCachedStateMetrics,
+                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
-    metrics.send({ 2, sMetricsNames[cacheId] });
+    cachedStateMetrics[cacheId] = 2;
     messages.emplace_back(std::move(cache[cacheId].header));
     messages.emplace_back(std::move(cache[cacheId].payload));
     index.markAsInvalid(s);
@@ -518,6 +540,7 @@ DataRelayer::setPipelineLength(size_t s) {
   mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
   mMetrics.send({ (int)mTimesliceIndex.size(), "data_relayer/w" });
   sMetricsNames.resize(mCache.size());
+  mCachedStateMetrics.resize(mCache.size());
   for (size_t i = 0; i < sMetricsNames.size(); ++i) {
     sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
   }
@@ -547,6 +570,18 @@ DataRelayer::setPipelineLength(size_t s) {
 DataRelayerStats const& DataRelayer::getStats() const
 {
   return mStats;
+}
+
+void DataRelayer::sendContextState()
+{
+  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+    auto slot = TimesliceSlot{ ci };
+    sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
+                               mMetrics, sVariablesMetricsNames);
+  }
+  for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
+    mMetrics.send({ mCachedStateMetrics[si], sMetricsNames[si] });
+  }
 }
 
 std::vector<std::string> DataRelayer::sMetricsNames;

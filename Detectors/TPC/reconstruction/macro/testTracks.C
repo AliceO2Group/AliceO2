@@ -13,6 +13,7 @@
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "TGraph2D.h"
 #include "TH1F.h"
 #include "TLine.h"
 #include "TMath.h"

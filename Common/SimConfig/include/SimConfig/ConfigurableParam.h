@@ -164,6 +164,8 @@ class ConfigurableParam
   // registering the concrete parameters
   ConfigurableParam();
 
+  friend std::ostream& operator<<(std::ostream& out, const ConfigurableParam& me);
+
   static void initPropertyTree();
   static bool updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
   static bool updateThroughStorageMapWithConversion(std::string const&, std::string const&);
@@ -172,6 +174,8 @@ class ConfigurableParam
 
   // fill property tree with the key-values from the sub-classes
   virtual void putKeyValues(boost::property_tree::ptree*) = 0;
+  virtual void output(std::ostream& out) const = 0;
+
   virtual void serializeTo(TFile*) const = 0;
   virtual void initFrom(TFile*) = 0;
 
@@ -200,6 +204,8 @@ class ConfigurableParam
 #define O2ParamDef(classname, key)               \
  public:                                         \
   classname(TRootIOCtor*) {}                     \
+  classname(classname const&) = delete;          \
+                                                 \
  private:                                        \
   static constexpr char const* const sKey = key; \
   static classname sInstance;                    \

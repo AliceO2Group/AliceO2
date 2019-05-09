@@ -45,7 +45,7 @@ using namespace o2::ITS;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
 ClassImp(o2::ITS::GeometryTGeo);
 
@@ -61,7 +61,7 @@ std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::ITS)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::ITS)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached

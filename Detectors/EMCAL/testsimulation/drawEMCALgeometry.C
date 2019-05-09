@@ -42,7 +42,7 @@ void drawEMCALgeometry()
   o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
-  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
+  o2::emcal::Detector* emcal = new o2::emcal::Detector(kTRUE);
   run->AddModule(emcal);
 
   run->Init();

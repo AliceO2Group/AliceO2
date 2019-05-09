@@ -15,23 +15,50 @@
 #ifndef ALICEO2_BASE_TRACK
 #define ALICEO2_BASE_TRACK
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
+
+#ifndef __OPENCL__
 #include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
 #include <cstring>
 #include <iosfwd>
-#include "Math/SMatrix.h"
-#include "Math/SVector.h"
+#endif
+
+#ifndef GPUCA_ALIGPUCODE //Used only by functions that are hidden on the GPU
+#include "ReconstructionDataFormats/BaseCluster.h"
+#endif
 
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
-#include "ReconstructionDataFormats/BaseCluster.h"
+
+//Forward declarations, since we cannot include the headers if we eventually want to use track.h on GPU
+namespace ROOT
+{
+namespace Math
+{
+template <class T, unsigned int D1, unsigned int D2, class R>
+class SMatrix;
+template <class T, unsigned int D>
+class MatRepSym;
+template <class T, unsigned int D1, unsigned int D2>
+class MatRepStd;
+template <class CoordSystem, class Tag>
+class PositionVector3D;
+template <class T>
+class Cartesian3D;
+class DefaultCoordinateSystemTag;
+} // namespace Math
+} // namespace ROOT
+template <typename T>
+using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
 namespace o2
 {
+template <typename T>
+class BaseCluster;
+
 namespace track
 {
 // aliases for track elements
@@ -163,9 +190,8 @@ class TrackPar
 
 class TrackParCov : public TrackPar
 { // track+error parameterization
-
   using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
-  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>;
+  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
  public:
   TrackParCov() : TrackPar{} {}
@@ -212,15 +238,11 @@ class TrackParCov : public TrackPar
     return getPredictedChi2(pyz, cov);
   }
 
-  float getPredictedChi2(const TrackParCov& rhs) const
-  {
-    MatrixDSym5 cov; // perform matrix operations in double!
-    return getPredictedChi2(rhs, cov);
-  }
-
-  float getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const;
+  float getPredictedChi2(const TrackParCov& rhs) const;
 
   void buildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5& cov) const;
+  float getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const;
+  bool update(const TrackParCov& rhs, const MatrixDSym5& covInv);
 
   bool update(const std::array<float, 2>& p, const std::array<float, 3>& cov);
 
@@ -232,7 +254,6 @@ class TrackParCov : public TrackPar
     return update(pyz, cov);
   }
 
-  bool update(const TrackParCov& rhs, const MatrixDSym5& covInv);
   bool update(const TrackParCov& rhs);
 
   bool correctForMaterial(float x2x0, float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
@@ -279,6 +300,7 @@ inline float TrackPar::getPhi() const
   return phi;
 }
 
+#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 inline Point3D<float> TrackPar::getXYZGlo() const
 {
@@ -295,6 +317,7 @@ inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
   ok = getYZAt(xk, b, y, z);
   return ok ? Rotation2D(getAlpha())(Point3D<float>(xk, y, z)) : Point3D<float>();
 }
+#endif
 
 //_______________________________________________________
 inline float TrackPar::getPhiPos() const

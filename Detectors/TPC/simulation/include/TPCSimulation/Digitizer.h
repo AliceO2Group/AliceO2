@@ -54,10 +54,13 @@ class Digitizer
 {
  public:
   /// Default constructor
-  Digitizer();
+  Digitizer() = default;
 
   /// Destructor
   ~Digitizer() = default;
+
+  Digitizer(const Digitizer&) = delete;
+  Digitizer& operator=(const Digitizer&) = delete;
 
   /// Initializer
   void init();
@@ -108,15 +111,13 @@ class Digitizer
   void enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
 
  private:
-  Digitizer(const Digitizer&);
-  Digitizer& operator=(const Digitizer&);
-
   DigitContainer mDigitContainer;                   ///< Container for the Digits
   std::unique_ptr<SpaceCharge> mSpaceChargeHandler; ///< Handler of space-charge distortions
-  Sector mSector;                                   ///< ID of the currently processed sector
-  float mEventTime;                                 ///< Time of the currently processed event
+  Sector mSector = -1;                              ///< ID of the currently processed sector
+  float mEventTime = 0.f;                           ///< Time of the currently processed event
+  // FIXME: whats the reason for hving this static?
   static bool mIsContinuous;                        ///< Switch for continuous readout
-  bool mUseSCDistortions;                           ///< Flag to switch on the use of space-charge distortions
+  bool mUseSCDistortions = false;                   ///< Flag to switch on the use of space-charge distortions
 
   ClassDefNV(Digitizer, 1);
 };

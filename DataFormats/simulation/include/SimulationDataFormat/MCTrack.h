@@ -129,16 +129,22 @@ class MCTrackT
     mProp = prop.i;
   }
   bool getStore() const { return ((PropEncoding)mProp).storage; }
-  // determine if this track has hits
+  /// determine if this track has hits
   bool hasHits() const { return ((PropEncoding)mProp).hitmask != 0; }
-  // set process property
+  /// set process property
   void setProcess(int proc)
   {
     auto prop = ((PropEncoding)mProp);
     prop.process = proc;
     mProp = prop.i;
   }
+
+  /// get the production process (id) of this track
   int getProcess() const { return ((PropEncoding)mProp).process; }
+
+  /// get the string representation of the production process
+  const char* getProdProcessAsString() const;
+
  private:
   /// Momentum components at start vertex [GeV]
   T mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ;
@@ -154,7 +160,7 @@ class MCTrackT
 
   // hitmask stored as an int
   // if bit i is set it means that this track left a trace in detector i
-  // we should have sizeof(int) < o2::Base::DetId::nDetectors
+  // we should have sizeof(int) < o2::base::DetId::nDetectors
   Int_t mProp = 0;
 
   // internal structure to allow convenient manipulation
@@ -242,6 +248,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     mStartVertexCoordinatesT(part.T() * 1e09),
     mProp(0)
 {
+  // our convention is to communicate the process as (part) of the unique ID
+  setProcess(part.GetUniqueID());
 }
 
 template <typename T>
@@ -275,7 +283,18 @@ inline Double_t MCTrackT<T>::GetRapidity() const
   return y;
 }
 
-using MCTrack = MCTrackT<float>;
+template <typename T>
+inline const char* MCTrackT<T>::getProdProcessAsString() const
+{
+  auto procID = getProcess();
+  if (procID >= 0) {
+    return TMCProcessName[procID];
+  } else {
+    return TMCProcessName[TMCProcess::kPNoProcess];
+  }
 }
+
+using MCTrack = MCTrackT<float>;
+} // end namespace o2
 
 #endif

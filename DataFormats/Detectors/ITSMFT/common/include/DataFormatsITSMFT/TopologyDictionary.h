@@ -36,7 +36,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class BuildTopologyDictionary;
 class LookUp;
@@ -53,6 +53,7 @@ struct GroupStruct {
   ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
                            ///the bits set to 1.
   double mFrequency;       ///< Frequency of the topology
+  ClassDefNV(GroupStruct, 1);
 };
 
 class TopologyDictionary
@@ -103,7 +104,7 @@ class TopologyDictionary
 
   ClassDefNV(TopologyDictionary, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

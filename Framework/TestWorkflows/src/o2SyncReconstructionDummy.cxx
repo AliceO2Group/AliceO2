@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
+
 #include <chrono>
 
 using namespace o2::framework;
@@ -66,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
           auto first = std::make_shared<bool>(true);
           return [delay, first](ProcessingContext& ctx) {
             if (*first == false) {
-              sleep(delay);
+              std::this_thread::sleep_for(std::chrono::seconds(delay));
             }
             *first = false;
             ctx.outputs().make<int>(OutputRef { "tpc-cluster" }, 1);

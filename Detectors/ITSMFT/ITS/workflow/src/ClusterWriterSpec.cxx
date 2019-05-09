@@ -46,20 +46,17 @@ void ClusterWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
+  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto plabels = labels.get();
-  auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
+  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects, in "
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
-
-  mFile->WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSClusterROF");
-  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSClusterMC2ROF");
 
   TTree tree("o2sim", "Tree with ITS clusters");
   tree.Branch("ITSClusterComp", &compClusters);
@@ -67,6 +64,21 @@ void ClusterWriter::run(ProcessingContext& pc)
   tree.Branch("ITSClusterMCTruth", &plabels);
   tree.Fill();
   tree.Write();
+
+  // write ROFrecords vector to a tree
+  TTree treeROF("ITSClustersROF", "ROF records tree");
+  auto* rofsPtr = &rofs;
+  treeROF.Branch("ITSClustersROF", &rofsPtr);
+  treeROF.Fill();
+  treeROF.Write();
+
+  // write MC2ROFrecord vector (directly inherited from digits input) to a tree
+  TTree treeMC2ROF("ITSClustersMC2ROF", "MC -> ROF records tree");
+  auto* mc2rofsPtr = &mc2rofs;
+  treeMC2ROF.Branch("ITSClustersMC2ROF", &mc2rofsPtr);
+  treeMC2ROF.Fill();
+  treeMC2ROF.Write();
+
   mFile->Close();
 
   mState = 2;

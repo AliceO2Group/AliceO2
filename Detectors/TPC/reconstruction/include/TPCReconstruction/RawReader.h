@@ -57,7 +57,7 @@ class RawReader {
       uint64_t reserved_2() { return (reserved_2_w << 32) | (reserved_2_w >> 32);}
 
       /// Default constructor
-      Header() {};
+      Header() = default;
 
       /// Copy constructor
       Header(const Header& other) = default;// : dataType(h.dataType), reserved_01(h.reserved_01),
@@ -137,15 +137,15 @@ class RawReader {
 
     /// Get the first event
     /// @return Event number of first event in data
-    uint64_t getFirstEvent() const { return mEvents.begin()->first; };
+    int64_t getFirstEvent() const { return mEvents.begin()->first; };
 
     /// Get the last event
     /// @return Event number of last event in data
-    uint64_t getLastEvent() const {  return (mEvents.size() == 0) ? mEvents.begin()->first : mEvents.rbegin()->first; };
+    int64_t getLastEvent() const { return (mEvents.size() == 0) ? mEvents.begin()->first : mEvents.rbegin()->first; };
 
     /// Get number of events
     /// @return If events are continuous, it's the number of stored events
-    int getNumberOfEvents() const { return  mEvents.size(); };
+    int64_t getNumberOfEvents() const { return mEvents.size(); };
 
     /// Get time stamp of first data
     /// @param hf half SAMPA

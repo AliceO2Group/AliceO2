@@ -87,10 +87,7 @@ ConditionId *ConditionId::makeFromString(const TString &idString)
   return id;
 }
 
-ConditionId::~ConditionId()
-{
-  // destructor
-}
+ConditionId::~ConditionId() = default;
 
 Bool_t ConditionId::isValid() const
 {

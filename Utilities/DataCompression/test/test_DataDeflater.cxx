@@ -136,7 +136,7 @@ template <int NBits>
 class ParameterModelBitMask
 {
  public:
-  ParameterModelBitMask() {}
+  ParameterModelBitMask() = default;
   ~ParameterModelBitMask() = default;
 
   static const int sBitlength = NBits;

@@ -14,10 +14,10 @@
 #include "O2Device/O2Device.h"
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 /// A validating device for time frame data (coming from EPN)
-class TimeframeValidatorDevice : public Base::O2Device
+class TimeframeValidatorDevice : public base::O2Device
 {
 public:
     static constexpr const char* OptionKeyInputChannelName = "input-channel-name";
@@ -37,7 +37,7 @@ public:
     std::string mInChannelName;
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

@@ -26,35 +26,37 @@
 #ifndef ALICEO2_TPC_PARTITIONINFO_H_
 #define ALICEO2_TPC_PARTITIONINFO_H_
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 
-class PartitionInfo {
-  public:
-    PartitionInfo() {}
+class PartitionInfo
+{
+ public:
+  PartitionInfo() = default;
 
-    PartitionInfo(const unsigned char  numberOfFECs,
-                  const unsigned char  sectorFECOffset,
-                  const unsigned char  numberOfPadRows,
-                  const unsigned char  globalRowOffset,
-                  const unsigned short numberOfPads
-                 );
+  PartitionInfo(const unsigned char numberOfFECs,
+                const unsigned char sectorFECOffset,
+                const unsigned char numberOfPadRows,
+                const unsigned char globalRowOffset,
+                const unsigned short numberOfPads);
 
-    unsigned char  getNumberOfFECs()    const { return mNumberOfFECs;    }
-    unsigned char  getSectorFECOffset() const { return mSectorFECOffset; }
-    unsigned char  getNumberOfPadRows() const { return mNumberOfPadRows; }
-    unsigned char  getGlobalRowOffset() const { return mGlobalRowOffset; }
-    unsigned short getNumberOfPads()    const { return mNumberOfPads;    }
-  private:
-    unsigned char  mNumberOfFECs   {0};
-    unsigned char  mSectorFECOffset{0};
-    unsigned char  mNumberOfPadRows{0};
-    unsigned char  mGlobalRowOffset{0};
-    unsigned short mNumberOfPads   {0};
+  unsigned char getNumberOfFECs() const { return mNumberOfFECs; }
+  unsigned char getSectorFECOffset() const { return mSectorFECOffset; }
+  unsigned char getNumberOfPadRows() const { return mNumberOfPadRows; }
+  unsigned char getGlobalRowOffset() const { return mGlobalRowOffset; }
+  unsigned short getNumberOfPads() const { return mNumberOfPads; }
 
+ private:
+  unsigned char mNumberOfFECs{ 0 };
+  unsigned char mSectorFECOffset{ 0 };
+  unsigned char mNumberOfPadRows{ 0 };
+  unsigned char mGlobalRowOffset{ 0 };
+  unsigned short mNumberOfPads{ 0 };
 };
 
 } // namespace TPC
-} // namespace AliceO2
+} // namespace o2
 
 #endif // ALICEO2_TPC_PARTITIONINFO_H_

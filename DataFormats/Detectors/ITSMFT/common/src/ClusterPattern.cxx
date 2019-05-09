@@ -15,11 +15,11 @@
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include <iostream>
 
-ClassImp(o2::ITSMFT::ClusterPattern)
+ClassImp(o2::itsmft::ClusterPattern)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
   ClusterPattern::ClusterPattern() : mBitmap{ 0 } {}
 

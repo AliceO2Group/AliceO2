@@ -10,9 +10,9 @@
 
 #include "EMCALBase/Hit.h"
 
-ClassImp(o2::EMCAL::Hit)
+ClassImp(o2::emcal::Hit)
 
-using namespace o2::EMCAL;
+using namespace o2::emcal;
 
 void Hit::PrintStream(std::ostream &stream) const {
   stream  << "EMCAL point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()

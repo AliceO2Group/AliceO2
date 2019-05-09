@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_ROOTOBJETCONTEXT_H
 #define FRAMEWORK_ROOTOBJETCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
@@ -87,23 +86,6 @@ public:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline RootObjectContext*
-  ContextRegistry::get<RootObjectContext>()
-{
-  return reinterpret_cast<RootObjectContext*>(mContextes[1]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<RootObjectContext>(RootObjectContext* context)
-{
-  mContextes[1] = context;
-}
-
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_ROOTOBJECTCONTEXT_H

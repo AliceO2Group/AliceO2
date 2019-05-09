@@ -3,6 +3,7 @@ set(MODULE_NAME "MIDBase")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+  src/ChamberEfficiency.cxx
   src/Constants.cxx
   src/GeometryTransformer.cxx
   src/HitFinder.cxx
@@ -11,6 +12,7 @@ set(SRCS
 )
 
 set(NO_DICT_HEADERS
+  include/${MODULE_NAME}/ChamberEfficiency.h
   include/${MODULE_NAME}/Constants.h
   include/${MODULE_NAME}/GeometryTransformer.h
   include/${MODULE_NAME}/HitFinder.h

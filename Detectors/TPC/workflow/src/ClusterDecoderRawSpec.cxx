@@ -13,7 +13,7 @@
 /// @since  2018-03-26
 /// @brief  Processor spec for decoder of TPC raw cluster data
 
-#include "ClusterDecoderRawSpec.h"
+#include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
@@ -145,35 +145,21 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       }
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
-      std::vector<ClusterNativeContainer> cont;
+      char* outputBuffer = nullptr;
+      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
+        outputBuffer = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, size).data();
+        return outputBuffer;
+      };
       std::vector<MCLabelContainer> mcoutList;
-      decoder->decodeClusters(inputList, cont, (mcin ? &mcinCopies : nullptr), &mcoutList);
+      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcoutList);
 
-      // The output of clusters involves a copy to flatten the list of buffers and extend the
-      // ClusterGroupAttribute struct containing sector and globalPadRow by the size of the collection.
-      // FIXME: provide allocator to decoder to do the allocation in place, create ClusterGroupHeader
-      //        directly
-      // The vector of MC label containers is simply serialized
-      size_t totalSize = 0;
-      for (const auto& coll : cont) {
-        const auto& groupAttribute = static_cast<const ClusterGroupAttribute>(coll);
-        totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
-      }
+      // TODO: reestablish the logging messages on the raw buffer
+      // if (verbosity > 1) {
+      //   LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
+      //             << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
+      //             << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
+      // }
 
-      auto* target = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, totalSize).data;
-
-      for (const auto& coll : cont) {
-        if (verbosity > 1) {
-          LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
-                    << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
-                    << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
-        }
-        ClusterGroupHeader groupHeader(coll, coll.clusters.size());
-        memcpy(target, &groupHeader, sizeof(groupHeader));
-        target += sizeof(groupHeader);
-        memcpy(target, coll.data(), coll.getFlatSize() - sizeof(ClusterGroupAttribute));
-        target += coll.getFlatSize() - sizeof(ClusterGroupAttribute);
-      }
       if (!labelKey.empty()) {
         if (verbosity > 0) {
           LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
@@ -198,6 +184,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        // loop over all inputs and associate data and mc channels by the subspecification. DPL makes sure that
+        // each origin/description/subspecification identifier is only once in the inputs, no other overwrite
+        // protection in the list of keys.
         auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
         assert(dataHeader);
         if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == DataDescription("CLUSTERHW")) {

@@ -20,13 +20,13 @@
 #include "Headers/HeartbeatFrame.h"
 #include <options/FairMQProgOptions.h>
 
-void o2::DataFlow::HeartbeatSampler::InitTask()
+void o2::data_flow::HeartbeatSampler::InitTask()
 {
   mPeriod = GetConfig()->GetValue<uint32_t>(OptionKeyPeriod);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
 }
 
-bool o2::DataFlow::HeartbeatSampler::ConditionalRun()
+bool o2::data_flow::HeartbeatSampler::ConditionalRun()
 {
   std::this_thread::sleep_for(std::chrono::nanoseconds(mPeriod));
 
@@ -48,7 +48,7 @@ bool o2::DataFlow::HeartbeatSampler::ConditionalRun()
   O2Message outgoing;
 
   // build multipart message from header and payload
-  o2::Base::addDataBlock(outgoing, { dh, specificHeader }, NewSimpleMessage(hbfPayload));
+  o2::base::addDataBlock(outgoing, { dh, specificHeader }, NewSimpleMessage(hbfPayload));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());

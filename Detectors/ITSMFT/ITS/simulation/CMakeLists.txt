@@ -7,11 +7,9 @@ set(SRCS
     src/V1Layer.cxx
     src/V3Layer.cxx
     src/Detector.cxx
-    src/DigitizerTask.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/DigitizerTask.h
     include/${MODULE_NAME}/V1Layer.h
     include/${MODULE_NAME}/V3Layer.h
     include/${MODULE_NAME}/V11Geometry.h

@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace Data
+namespace data
 {
 
 // structure describing an entity of work

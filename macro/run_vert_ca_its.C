@@ -58,8 +58,8 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
   if (!grp) {
     LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
   }
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(grp);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
     LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
@@ -91,7 +91,7 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
   if (!itsClusters.GetBranch("ITSCluster"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
 
-  std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth"))

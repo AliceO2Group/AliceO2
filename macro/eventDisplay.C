@@ -1,3 +1,14 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TString.h"
+#include "FairRunAna.h"
+#include "FairFileSource.h"
+#include "FairEventManager.h"
+#include "FairRuntimeDb.h"
+#include "FairParRootFileIo.h"
+#include "FairMCTracks.h"
+#include "FairMCPointDraw.h"
+#endif
+
 void eventDisplay()
 {
   //-----User Settings:-----------------------------------------------

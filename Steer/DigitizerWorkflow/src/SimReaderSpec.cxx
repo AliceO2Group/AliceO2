@@ -33,7 +33,7 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
+DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcsectors,
                                    std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
   // this container will contain the TPC sector assignment per subchannel per invocation
@@ -43,7 +43,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   tpcsectormessages->resize(tpcsubchannels->size());
   int tpcchannelcounter = 0;
   uint64_t activeSectors = 0;
-  for (const auto& tpcsector : *tpcsectors.get()) {
+  for (const auto& tpcsector : tpcsectors) {
     activeSectors |= (uint64_t)0x1 << tpcsector;
     auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
     LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
@@ -135,6 +135,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   auto initIt = [doit](InitContext& ctx) {
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
+
     mgr.addInputFile(ctx.options().get<std::string>("simFile").c_str());
     if (ctx.options().get<std::string>("simFileS").size() > 0) {
       mgr.addInputSignalFile(ctx.options().get<std::string>("simFileS").c_str());
@@ -149,6 +150,15 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
         LOG(FATAL) << "Could not read collision context from " << incontextstring;
       }
     } else {
+
+      auto intRate = ctx.options().get<float>("interactionRate"); // is interaction rate requested?
+      if (intRate < 1.f) {
+        intRate = 1.f;
+      }
+      LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
+      mgr.getInteractionSampler().setInteractionRate(intRate);
+      mgr.getInteractionSampler().init();
+
       // number of collisions asked?
       auto col = ctx.options().get<int>("ncollisions");
       if (col != 0) {
@@ -177,6 +187,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
     AlgorithmSpec{ initIt },
     /* OPTIONS */
     Options{
+      { "interactionRate", VariantType::Float, 50000.0f, { "Total hadronic interaction rate (Hz)" } },
       { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
       { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
       { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },

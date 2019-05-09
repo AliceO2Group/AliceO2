@@ -16,7 +16,7 @@
 #include <memory>
 #include <functional>
 
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 struct FakeTimeframeSpec {
   const char *origin;

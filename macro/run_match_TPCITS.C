@@ -10,14 +10,19 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "GlobalTracking/MatchTPCITS.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #endif
 
 void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match_itstpc.root",
-                      std::string inputTracksITS = "o2track_its.root",
-                      std::string inputTracksTPC = "tracksFromNative.root",
-                      std::string inputClustersITS = "o2clus.root", std::string inputGeom = "O2geometry.root",
+                      std::string inputTracksITS = "o2trac_its.root",
+                      std::string inputTracksTPC = "tpctracks.root",
+                      std::string inputClustersITS = "o2clus_its.root",
+                      std::string inputClustersTPC = "tpc-native-clusters.root",
+                      std::string inputGeom = "O2geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -29,21 +34,28 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
 
   //>>>---------- attach input data --------------->>>
   TChain itsTracks("o2sim");
-  itsTracks.AddFile((path + inputTracksITS).data());
+  itsTracks.AddFile((path + inputTracksITS).c_str());
   matching.setInputTreeITSTracks(&itsTracks);
 
+  TChain itsTrackROF("ITSTracksROF");
+  itsTrackROF.AddFile((path + inputTracksITS).c_str());
+  matching.setInputTreeITSTrackROFRec(&itsTrackROF);
+
   TChain tpcTracks("events");
-  tpcTracks.AddFile((path + inputTracksTPC).data());
+  tpcTracks.AddFile((path + inputTracksTPC).c_str());
   matching.setInputTreeTPCTracks(&tpcTracks);
 
   TChain itsClusters("o2sim");
-  itsClusters.AddFile((path + inputClustersITS).data());
+  itsClusters.AddFile((path + inputClustersITS).c_str());
   matching.setInputTreeITSClusters(&itsClusters);
 
+  o2::TPC::ClusterNativeHelper::Reader tcpClusterReader;
+  tcpClusterReader.init(inputClustersTPC.c_str());
+  matching.setInputTPCClustersReader(&tcpClusterReader);
   //<<<---------- attach input data ---------------<<<
 
   // create/attach output tree
-  TFile outFile((path + outputfile).data(), "recreate");
+  TFile outFile((path + outputfile).c_str(), "recreate");
   TTree outTree("matchTPCITS", "Matched TPC-ITS tracks");
   matching.setOutputTree(&outTree);
 
@@ -58,11 +70,12 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
 #endif
 
   //-------- init geometry and field --------//
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   //-------------------- settings -----------//
-  matching.setITSROFrameLengthMUS(5.0f); // ITS ROFrame duration in \mus
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+  matching.setITSROFrameLengthMUS(alpParams.roFrameLength / 1.e3); // ITS ROFrame duration in \mus
   matching.setCutMatchingChi2(100.);
   std::array<float, o2::track::kNParams> cutsAbs = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
   std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };

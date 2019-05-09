@@ -12,7 +12,16 @@
 /// \brief This macro demonstrates how to extract the MC truth information from
 /// the digits
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <vector>
+#include "TFile.h"
+#include "TTree.h"
+#include "TPCBase/Digit.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include <iostream>
+#endif
 
 void readMCtruth(std::string filename)
 {

@@ -91,6 +91,9 @@ public:
   /// @return the current stats about the data relaying process
   DataRelayerStats const& getStats() const;
 
+  /// Send metrics with the VariableContext information
+  void sendContextState();
+
  private:
   std::vector<InputRoute> const& mInputRoutes;
   std::vector<ForwardRoute> const& mForwardRoutes;
@@ -111,6 +114,7 @@ public:
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
+  std::vector<int> mCachedStateMetrics;
 
   static std::vector<std::string> sMetricsNames;
   static std::vector<std::string> sVariablesMetricsNames;

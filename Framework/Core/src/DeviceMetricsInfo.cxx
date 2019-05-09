@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <regex>
+#include <string_view>
 #include <tuple>
 #include <iostream>
 
@@ -26,7 +27,7 @@ namespace framework
 // Parses a metric in the form
 //
 // [METRIC] <name>,<type> <value> <timestamp> [<tag>,<tag>]
-bool DeviceMetricsHelper::parseMetric(const std::string& s, ParsedMetricMatch& match)
+bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatch& match)
 {
   /// Must start with "[METRIC] "
   ///                  012345678

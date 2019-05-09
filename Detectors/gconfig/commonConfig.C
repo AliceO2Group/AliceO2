@@ -1,10 +1,16 @@
 // common piece of code to setup stack and register
 // with VMC instances
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/StackParam.h"
+#endif
+
 template <typename T, typename R>
 void stackSetup(T* vmc, R* run)
 {
   // create the O2 vmc stack instance
-  auto st = new o2::Data::Stack();
+  auto st = new o2::data::Stack();
   st->setMinHits(1);
   auto& stackparam = o2::sim::StackParam::Instance();
   st->StoreSecondaries(stackparam.storeSecondaries);

@@ -29,7 +29,7 @@ struct OneShotReadBuf : public std::streambuf
     }
 };
 }
-namespace o2 { namespace DataFlow {
+namespace o2 { namespace data_flow {
 
 FakeTimeframeGeneratorDevice::FakeTimeframeGeneratorDevice()
   : O2Device{}
@@ -56,7 +56,7 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
   auto sendFn = [this](FairMQParts &parts) {this->Send(parts, this->mOutChannelName);};
   auto zeroFiller = [](char *b, size_t s) {memset(b, 0, s);};
 
-  std::vector<o2::DataFlow::FakeTimeframeSpec> specs = {
+  std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
     {
       .origin = "TPC",
       .dataDescription = "CLUSTERS",
@@ -92,4 +92,4 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
   return false;
 }
 
-}} // namespace o2::DataFlow
+}} // namespace o2::data_flow

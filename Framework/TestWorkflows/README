@@ -1,0 +1,37 @@
+## Test Workflows
+
+### FLP Qualification:
+
+Initial mockup for a generic FLP workflow
+
+This is currently just an refactoring of the o2ParalleWorkflow test,
+with a bit more comments to indicate what the various parts do.
+
+There are two layers of processing, one which is parallel in the
+subspecification (i.e. in the channels), the second one which is
+parallel in time, i.e. if the subtimeframe processing requires extra
+cores and longer latency in order to complete. The number of processor
+for the two layers can be controlled via the command line options.
+
+The connections to Readout and DataDistribution are not actually there
+yet, but they come next.
+
+Synopsis: flpQualification [options]
+
+Relevant options:
+
+* --2-layer-jobs <n> : number of data parallel workers in the first processing
+  layer
+* --3-layer-pipelining <m> : numer of time pipelined workers in the second processing
+  layer.
+* --input-type <type>: where <type> can be `readout' or `stfb'. The former will assume messages
+  do not have a O2 Data Model structure and it will enumerate each message with a custom DataHeader /
+  DataProcessingHeader. The latter will assume that the messages already come in proper (header, payload)
+  pairs and that the header already has at least a DataHeader and a DataProcessingHeader in it.
+
+Readout proxy channel configuration can be done by passing the option as it
+follows:
+
+   --readout-proxy '--channel-config "name=readout-proxy,type=pair,method=connect,transport=shmem,address=ipc:///tmp/readout-pipe-0,rateLogging=1"'
+
+These must match appropriately the configuration of `readout.exe`.

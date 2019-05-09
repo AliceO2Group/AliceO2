@@ -34,7 +34,7 @@ class TString;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Hit;
 }
@@ -61,7 +61,7 @@ namespace ITS
 {
 class V3Layer;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum Model {
@@ -103,7 +103,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced collections
-  std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -171,7 +171,7 @@ class Detector : public o2::Base::DetImpl<Detector>
                                   Double_t& tilt, Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
+  o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
                           const TVector3& startMom, double startE, double endTime, double eLoss,
                           unsigned char startStatus, unsigned char endStatus);
 
@@ -224,7 +224,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Return Chip Volume UID
   /// \param id volume id
-  Int_t chipVolUID(Int_t id) const { return o2::Base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
+  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
 
   void SetSpecialPhysicsCuts() override { ; }
   void EndOfEvent() override;
@@ -287,7 +287,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Int_t mBuildLevel[sNumberLayers];           //! Vector of Material Budget Studies
 
   /// Container for hit data
-  std::vector<o2::ITSMFT::Hit>* mHits;
+  std::vector<o2::itsmft::Hit>* mHits;
 
   /// Creates an air-filled wrapper cylindrical volume
   TGeoVolume* createWrapperVolume(const Int_t nLay);
@@ -310,7 +310,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   V3Layer* mGeometry[sNumberLayers]; //! Geometry
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -324,13 +324,13 @@ std::istream& operator>>(std::istream& os, Detector& source);
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::ITS::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

@@ -11,6 +11,7 @@ set(SRCS
     src/Digitizer.cxx
     src/AlpideSignalTrapezoid.cxx
     src/ClusterShape.cxx
+    src/DPLDigitizerParam.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Hit.h
@@ -22,6 +23,7 @@ set(HEADERS
     include/${MODULE_NAME}/AlpideChip.h
     include/${MODULE_NAME}/AlpideSignalTrapezoid.h
     include/${MODULE_NAME}/ClusterShape.h
+    include/${MODULE_NAME}/DPLDigitizerParam.h
     )
 
 Set(LINKDEF src/ITSMFTSimulationLinkDef.h)

@@ -79,17 +79,21 @@ struct ExpirationHandlerHelpers {
 
   static InputRoute::DanglingConfigurator danglingConditionConfigurator()
   {
-    // FIXME: this should really be expireAlways. However, since we do not have
-    //        a proper backend for conditions yet, I keep it behaving like it was
-    //        before.
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& matcher)
+  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
-    return [matcher](ConfigParamRegistry const&) {
-      std::string prefix = DataSpecUtils::restEndpoint(matcher);
-      return LifetimeHelpers::fetchFromCCDBCache(prefix);
+    /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw std::runtime_error("InputSpec for Conditions must be fully qualified");
+    }
+
+    return [ s = spec, matcher = *m, sourceChannel ](ConfigParamRegistry const& options)
+    {
+      auto serverUrl = options.get<std::string>("condition-backend");
+      return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, sourceChannel);
     };
   }
 
@@ -492,7 +496,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       case Lifetime::Condition:
         creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
         danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
-        expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec);
+        expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel);
         break;
       case Lifetime::QA:
         creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();

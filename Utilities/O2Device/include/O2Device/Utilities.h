@@ -36,7 +36,7 @@
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 using O2Message = FairMQParts;
@@ -122,7 +122,7 @@ auto forEach(O2Message& parts, F&& function)
   return internal::forEach(parts.begin(), parts.end(), std::forward<F>(function));
 }
 
-}; //namespace o2
-}; //namespace Base
+} // namespace base
+} // namespace o2
 
 #endif

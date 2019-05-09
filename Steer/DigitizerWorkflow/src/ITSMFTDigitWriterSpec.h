@@ -15,7 +15,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 o2::framework::DataProcessorSpec getITSDigitWriterSpec();

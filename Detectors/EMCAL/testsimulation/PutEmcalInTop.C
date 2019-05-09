@@ -34,7 +34,7 @@ void PutEmcalInTop()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::EMCAL::Detector* emcdet = new o2::EMCAL::Detector(kTRUE);
+  o2::emcal::Detector* emcdet = new o2::emcal::Detector(kTRUE);
   run->AddModule(emcdet);
 
   run->Init();

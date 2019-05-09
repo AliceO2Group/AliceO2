@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace o2
@@ -87,7 +88,7 @@ struct DeviceMetricsHelper {
   using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
-  static bool parseMetric(const std::string& s, ParsedMetricMatch& results);
+  static bool parseMetric(std::string_view const s, ParsedMetricMatch& results);
 
   /// Processes a parsed metric and stores in the backend store.
   ///

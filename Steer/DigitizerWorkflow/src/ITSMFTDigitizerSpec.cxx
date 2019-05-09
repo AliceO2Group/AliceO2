@@ -22,6 +22,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
+#include "ITSMFTSimulation/DPLDigitizerParam.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
 #include <TGeoManager.h>
@@ -34,7 +36,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ITSMFTDPLDigitizerTask
@@ -59,25 +61,22 @@ class ITSMFTDPLDigitizerTask
       mQEDChain.AddFile(qedfilename.c_str());
       LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries() << FairLogger::endl;
     }
-    std::string roString = mID.getName();
-    auto triggeredMode = (ic.options().get<bool>((roString + "triggered").c_str()));
-    if (!triggeredMode) {
-      mROMode = o2::parameters::GRPObject::CONTINUOUS;
-    }
+
+    setDigitizationOptions(); // set options provided via configKeyValues mechanism
+    auto& digipar = mDigitizer.getParams();
+
+    mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
     LOG(INFO) << mID.getName() << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
 
-    auto noise = ic.options().get<float>("noise");
-    LOG(INFO) << "Noise generation (per pixel) " << noise;
-
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
 
     // configure digitizer
-    o2::ITSMFT::GeometryTGeo* geom = nullptr;
+    o2::itsmft::GeometryTGeo* geom = nullptr;
     if (mID == o2::detectors::DetID::ITS) {
       geom = o2::ITS::GeometryTGeo::Instance();
     } else {
@@ -86,18 +85,11 @@ class ITSMFTDPLDigitizerTask
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
-    // defaults (TODO we need a way to pass particular configuration parameters)
-    mDigitizer.getParams().setContinuous(!triggeredMode);
-    mDigitizer.getParams().setROFrameLength(6000); // RO frame in ns
-    mDigitizer.getParams().setStrobeDelay(6000);   // Strobe delay wrt beginning of the RO frame, in ns
-    mDigitizer.getParams().setStrobeLength(100);   // Strobe length in ns
-    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-    mDigitizer.getParams().getSignalShape().setParameters(7500., 1100., 450.);
-    mDigitizer.getParams().setChargeThreshold(150); // charge threshold in electrons
-    mDigitizer.getParams().setNoisePerPixel(noise); // noise level
     // init digitizer
     mDigitizer.init();
   }
+
+  virtual void setDigitizationOptions() = 0;
 
   void run(framework::ProcessingContext& pc)
   {
@@ -177,7 +169,7 @@ class ITSMFTDPLDigitizerTask
   }
 
  protected:
-  ITSMFTDPLDigitizerTask() {}
+  ITSMFTDPLDigitizerTask() = default;
 
   void processQED(double tMax)
   {
@@ -269,16 +261,16 @@ class ITSMFTDPLDigitizerTask
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::ITSMFT::Digitizer mDigitizer;
-  std::vector<o2::ITSMFT::Digit> mDigits;
-  std::vector<o2::ITSMFT::Digit> mDigitsAccum;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecords;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecordsAccum;
-  std::vector<o2::ITSMFT::Hit> mHits;
-  std::vector<o2::ITSMFT::Hit>* mHitsP = &mHits;
+  o2::itsmft::Digitizer mDigitizer;
+  std::vector<o2::itsmft::Digit> mDigits;
+  std::vector<o2::itsmft::Digit> mDigitsAccum;
+  std::vector<o2::itsmft::ROFRecord> mROFRecords;
+  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
+  std::vector<o2::itsmft::Hit> mHits;
+  std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::ITSMFT::MC2ROFRecord> mMC2ROFRecordsAccum;
+  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
   TChain mQEDChain = { "o2sim" };
 
@@ -303,6 +295,22 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
   }
+  void setDigitizationOptions() override
+  {
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(dopt.continuous);
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
+    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+    digipar.setTimeOffset(dopt.timeOffset);
+    digipar.setNSimSteps(dopt.nSimSteps);
+  }
 };
 
 constexpr o2::detectors::DetID::ID ITSDPLDigitizerTask::DETID;
@@ -320,6 +328,23 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
   }
+
+  void setDigitizationOptions() override
+  {
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(dopt.continuous);
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
+    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+    digipar.setTimeOffset(dopt.timeOffset);
+    digipar.setNSimSteps(dopt.nSimSteps);
+  }
 };
 
 constexpr o2::detectors::DetID::ID MFTDPLDigitizerTask::DETID;
@@ -329,6 +354,11 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
 {
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
   auto detOrig = ITSDPLDigitizerTask::DETOR;
+  std::stringstream parHelper;
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -343,14 +373,20 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
-                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
+                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
+                            } };
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel)
 {
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::DETID);
   auto detOrig = MFTDPLDigitizerTask::DETOR;
+  std::stringstream parHelper;
+
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -364,10 +400,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                             Options{
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
-                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
+                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } } } };
 }
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2

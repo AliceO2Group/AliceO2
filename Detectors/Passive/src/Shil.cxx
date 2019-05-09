@@ -117,7 +117,7 @@ void Shil::ConstructGeometry()
   //
   // Media
   //
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedNiW = matmgr.getTGeoMedium("SHIL_Ni/W0");
   auto kMedNiWsh = matmgr.getTGeoMedium("SHIL_Ni/W3");
   //
@@ -1357,14 +1357,14 @@ void Shil::ConstructGeometry()
 
 void Shil::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   //
   // Defines materials for the muon shield
   //
   Int_t isxfld1 = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld1, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld1, sxmgmx);
   Int_t isxfld2 = 2.; // ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
 
   // Steel

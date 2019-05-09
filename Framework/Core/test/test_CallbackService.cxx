@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include <iostream>
 #include <boost/algorithm/string.hpp>
 
 #include "Framework/InputSpec.h"
@@ -18,6 +17,9 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/DebugGUI.h"
 #include "DebugGUI/imgui.h"
+
+#include <chrono>
+#include <iostream>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -32,7 +34,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          sleep(1);
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
           auto out = ctx.outputs().make<int>(OutputRef{ "test", 0 });
         } } },
     { "dest",

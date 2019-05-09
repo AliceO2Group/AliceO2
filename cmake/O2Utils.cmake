@@ -565,7 +565,7 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set(OUTPUT_FILES ${OUTPUT_FILES} ${Int_PCMFILE} ${Int_ROOTMAPFILE})
   set(EXTRA_DICT_PARAMETERS ${EXTRA_DICT_PARAMETERS}
       -inlineInputHeader -rmf ${Int_ROOTMAPFILE}
-      -rml ${Int_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+      -rml lib${Int_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
   set_source_files_properties(${OUTPUT_FILES} PROPERTIES GENERATED TRUE)
   if (CMAKE_SYSTEM_NAME MATCHES Linux)
     # Note : ROOT_CINT_EXECUTABLE is ok with ROOT6 (rootcint == rootcling)

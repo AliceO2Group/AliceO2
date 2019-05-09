@@ -28,28 +28,30 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/PadPos.h"
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 class PadSecPos
 {
-  public:
-    PadSecPos() {};
+ public:
+  PadSecPos() = default;
 
-    PadSecPos(const int sector, const int rowInSector, const int padInRow) : mSector(sector), mPadPos(PadPos(rowInSector, padInRow)) {}
-    PadSecPos(const Sector &sec, const PadPos &padPosition) : mSector(sec), mPadPos(padPosition) {}
+  PadSecPos(const int sector, const int rowInSector, const int padInRow) : mSector(sector), mPadPos(PadPos(rowInSector, padInRow)) {}
+  PadSecPos(const Sector& sec, const PadPos& padPosition) : mSector(sec), mPadPos(padPosition) {}
 
-    Sector getSector() const { return mSector; }
+  Sector getSector() const { return mSector; }
 
-    Sector &getSector() { return mSector; }
+  Sector& getSector() { return mSector; }
 
-    const PadPos& getPadPos() const { return mPadPos; }
+  const PadPos& getPadPos() const { return mPadPos; }
 
-    PadPos& getPadPos() { return mPadPos; }
+  PadPos& getPadPos() { return mPadPos; }
 
-  private:
-    Sector mSector{};
-    PadPos mPadPos{};
+ private:
+  Sector mSector{};
+  PadPos mPadPos{};
 };
-}
-}
+} // namespace TPC
+} // namespace o2
 #endif

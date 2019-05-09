@@ -87,16 +87,20 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     }
   }
 
-  DataProcessorSpec spec;
-  spec.name = dispatcher.getName();
-  spec.inputs = dispatcher.getInputSpecs();
-  spec.outputs = dispatcher.getOutputSpecs();
-  spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
-  spec.maxInputTimeslices = threads;
-  spec.labels = { { "DataSampling" }, { "Dispatcher" } };
-  spec.options = options;
+  if (dispatcher.getInputSpecs().size() > 0) {
+    DataProcessorSpec spec;
+    spec.name = dispatcher.getName();
+    spec.inputs = dispatcher.getInputSpecs();
+    spec.outputs = dispatcher.getOutputSpecs();
+    spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
+    spec.maxInputTimeslices = threads;
+    spec.labels = { { "DataSampling" }, { "Dispatcher" } };
+    spec.options = options;
 
-  workflow.emplace_back(std::move(spec));
+    workflow.emplace_back(std::move(spec));
+  } else {
+    LOG(DEBUG) << "No input to this dispatcher, it won't be added to the workflow.";
+  }
 }
 
 void DataSampling::CustomizeInfrastructure(std::vector<CompletionPolicy>& policies)

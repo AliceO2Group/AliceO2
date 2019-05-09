@@ -18,6 +18,7 @@
 #include <chrono>
 #include <TMessage.h>
 #include <sstream>
+#include <CommonUtils/StringUtils.h>
 
 namespace o2
 {
@@ -75,7 +76,9 @@ void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string,
   struct curl_slist* headerlist = nullptr;
   static const char buf[] = "Expect:";
   // todo : what is the correct file name ?
-  string tmpFileName = string(rootObject->GetName()) + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
+  string objectName = string(rootObject->GetName());
+  utils::trim(objectName);
+  string tmpFileName = objectName + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "send",

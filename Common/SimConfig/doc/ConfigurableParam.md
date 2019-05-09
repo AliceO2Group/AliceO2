@@ -1,3 +1,5 @@
+\page refCommonSimConfig SimConfig
+
 # Configurable Parameters
 
 This is a short README for configurable parameters as offered by 

@@ -25,10 +25,10 @@ class GeometryParams : public TNamed
 {
  public:
   /// Default constructor
-  GeometryParams() {}
+  GeometryParams() = default;
 
   /// Destructor
-  ~GeometryParams() final {}
+  ~GeometryParams() final = default;
 
   /// Get singleton (create if necessary)
   static GeometryParams* GetInstance(const std::string_view name = "Run2")

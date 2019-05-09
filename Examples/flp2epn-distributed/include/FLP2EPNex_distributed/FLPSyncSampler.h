@@ -28,7 +28,7 @@
 #include <FairMQDevice.h>
 
 namespace o2 {
-namespace Devices {
+namespace devices {
 
 /// Stores measurment for roundtrip time of a timeframe
 
@@ -78,7 +78,7 @@ class FLPSyncSampler : public FairMQDevice
     std::string mOutChannelName;
 };
 
-} // namespace Devices
+} // namespace devices
 } // namespace AliceO2
 
 #endif

@@ -15,6 +15,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
+#include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -122,16 +124,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(false);
-    return [](ProcessingContext&) {
+    return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
-      std::this_thread::sleep_for(std::chrono::seconds(2));
+      pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
     };
   } };
 
-  DataProcessorSpec ccdbBackend{ "internal-dpl-ccdb-backend",
-                                 {},
-                                 {},
-                                 fakeCallback };
+  DataProcessorSpec ccdbBackend{
+    "internal-dpl-ccdb-backend",
+    {},
+    {},
+    fakeCallback,
+  };
   DataProcessorSpec transientStore{ "internal-dpl-transient-store",
                                     {},
                                     {},
@@ -167,8 +171,26 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
   };
 
+  DataProcessorSpec run2Converter{
+    "internal-dpl-esd-reader",
+    { InputSpec{ "enumeration",
+                 "DPL",
+                 "ENUM",
+                 static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration } },
+    {},
+    readers::AODReaderHelpers::run2ESDConverterCallback(),
+    { ConfigParamSpec{ "esd-file", VariantType::String, "AliESDs.root", { "Input ESD file" } },
+      ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } },
+      ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } },
+      ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
+  };
+
   std::vector<ConcreteDataMatcher> requestedAODs;
   std::vector<ConcreteDataMatcher> providedAODs;
+  std::vector<ConcreteDataMatcher> requestedRUN2s;
+  std::vector<ConcreteDataMatcher> providedRUN2s;
+  std::vector<ConcreteDataMatcher> requestedCCDBs;
+  std::vector<ConcreteDataMatcher> providedCCDBs;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -179,18 +201,35 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       processor.options.push_back(ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } });
       processor.options.push_back(ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } });
     }
+    bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
       auto& input = processor.inputs[ii];
       switch (input.lifetime) {
         case Lifetime::Timer: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+          bool hasOption = false;
+          for (auto& option : processor.options) {
+            if (option.name == "period-" + input.binding) {
+              hasOption = true;
+            }
+          }
+          if (hasOption == false) {
+            processor.options.push_back(ConfigParamSpec{ "period-" + input.binding, VariantType::Int, 1000, { "period of the timer" } });
+          }
           timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer });
         } break;
         case Lifetime::Enumeration: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
         } break;
-        case Lifetime::Condition:
+        case Lifetime::Condition: {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+          if (hasConditionOption == false) {
+            processor.options.emplace_back(ConfigParamSpec{ "condition-backend", VariantType::String, "http://localhost:8080", { "Url for CCDB" } }),
+              hasConditionOption = true;
+          }
+          requestedCCDBs.emplace_back(concrete);
+        } break;
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
@@ -201,6 +240,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
       if (concrete.origin == header::DataOrigin{ "AOD" }) {
         requestedAODs.emplace_back(concrete);
+      } else if (concrete.origin == header::DataOrigin{ "RN2" }) {
+        requestedRUN2s.emplace_back(concrete);
       }
     }
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
@@ -209,11 +250,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       if (concrete.origin == header::DataOrigin{ "AOD" }) {
         providedAODs.emplace_back(concrete);
       }
+      if (output.lifetime == Lifetime::Condition) {
+        providedCCDBs.push_back(concrete);
+      }
     }
   }
 
-  auto last = std::unique(requestedAODs.begin(), requestedAODs.end());
-  requestedAODs.erase(last, requestedAODs.end());
+  auto lastAOD = std::unique(requestedAODs.begin(), requestedAODs.end());
+  requestedAODs.erase(lastAOD, requestedAODs.end());
   for (auto concrete : requestedAODs) {
     if (std::find(providedAODs.begin(), providedAODs.end(), concrete) != providedAODs.end()) {
       continue;
@@ -223,6 +267,30 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
                        concrete.subSpec,
                        Lifetime::Timeframe };
     aodReader.outputs.emplace_back(output);
+  }
+
+  auto lastRUN2 = std::unique(requestedRUN2s.begin(), requestedRUN2s.end());
+  requestedRUN2s.erase(lastRUN2, requestedRUN2s.end());
+  for (auto concrete : requestedRUN2s) {
+    if (std::find(providedRUN2s.begin(), providedRUN2s.end(), concrete) != providedRUN2s.end()) {
+      continue;
+    }
+    OutputSpec output{ concrete.origin,
+                       concrete.description,
+                       concrete.subSpec,
+                       Lifetime::Timeframe };
+    run2Converter.outputs.emplace_back(output);
+  }
+
+  for (auto concrete : requestedCCDBs) {
+    if (std::find(providedCCDBs.begin(), providedCCDBs.end(), concrete) != providedCCDBs.end()) {
+      continue;
+    }
+    OutputSpec output{ concrete.origin,
+                       concrete.description,
+                       concrete.subSpec,
+                       Lifetime::Condition };
+    ccdbBackend.outputs.emplace_back(output);
   }
 
   if (ccdbBackend.outputs.empty() == false) {
@@ -239,6 +307,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
   }
+  if (run2Converter.outputs.empty() == false) {
+    workflow.push_back(run2Converter);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(run2Converter.inputs[0]);
+    timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
+  }
+
   if (timer.outputs.empty() == false) {
     workflow.push_back(timer);
   }

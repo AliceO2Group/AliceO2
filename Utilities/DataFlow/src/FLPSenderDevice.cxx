@@ -18,11 +18,12 @@
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
 #include "DataFlow/FLPSenderDevice.h"
+#include "O2Device/Compatibility.h"
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
-using SubframeMetadata = o2::DataFlow::SubframeMetadata;
+using namespace o2::devices;
+using SubframeMetadata = o2::data_flow::SubframeMetadata;
 
 void FLPSenderDevice::InitTask()
 {
@@ -45,7 +46,7 @@ void FLPSenderDevice::Run()
   // store the channel reference to avoid traversing the map on every loop iteration
   //FairMQChannel& dataInChannel = fChannels.at(fInChannelName).at(0);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     // - Get the SubtimeframeMetadata
     // - Add the current FLP id to the SubtimeframeMetadata
     // - Forward to the EPN the whole subtimeframe
@@ -82,7 +83,7 @@ void FLPSenderDevice::Run()
 inline void FLPSenderDevice::sendFrontData()
 {
   SubframeMetadata *sfm = static_cast<SubframeMetadata*>(mSTFBuffer.front().At(1)->GetData());
-  uint16_t currentTimeframeId = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
+  uint16_t currentTimeframeId = o2::data_flow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
   if (mLastTimeframeId != -1) {
     if (currentTimeframeId == mLastTimeframeId) {
       LOG(ERROR) << "Sent same consecutive timeframe ids\n";

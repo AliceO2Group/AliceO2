@@ -28,7 +28,7 @@ namespace dataformats
   class MCTruthContainer;
 }
 
-namespace ITSMFT {
+namespace itsmft {
   class Digit;
 }
  
@@ -36,8 +36,8 @@ namespace ITS
 {
 class TrivialClustererTask : public FairTask
 {
-  using Digit = o2::ITSMFT::Digit;
-  using Cluster = o2::ITSMFT::Cluster;
+  using Digit = o2::itsmft::Digit;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
   TrivialClustererTask(Bool_t useMCTruth=kTRUE);
@@ -47,7 +47,7 @@ class TrivialClustererTask : public FairTask
   void Exec(Option_t* option) override;
   
  private:
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
   TrivialClusterer mTrivialClusterer;   ///< Cluster finder
 
   const std::vector<Digit>* mDigitsArray = nullptr;   ///< Array of digits

@@ -1407,10 +1407,7 @@ GridStorageParameters::GridStorageParameters(const char *gridUrl, const char *us
   setUri(uri.Data());
 }
 
-GridStorageParameters::~GridStorageParameters()
-{
-  // destructor
-}
+GridStorageParameters::~GridStorageParameters() = default;
 
 StorageParameters *GridStorageParameters::cloneParam() const
 {

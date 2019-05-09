@@ -43,7 +43,7 @@ if (HAVESIMULATION)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
     MAX_ATTEMPTS 2
-    TIMEOUT 220
+    TIMEOUT 400
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant4 -o o2simG4)
   set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            FIXTURES_SETUP G4)
@@ -54,7 +54,7 @@ if (HAVESIMULATION)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
     MAX_ATTEMPTS 2
-    TIMEOUT 220
+    TIMEOUT 400
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 1 -e TGeant4 --isMT on -o o2simG4MT)
   set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 

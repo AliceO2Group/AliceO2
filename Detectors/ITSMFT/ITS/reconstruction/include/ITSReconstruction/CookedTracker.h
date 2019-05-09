@@ -24,6 +24,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {
@@ -34,7 +35,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -43,7 +44,7 @@ namespace ITS
 {
 class CookedTracker
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
   CookedTracker(Int_t nThreads = 1);
@@ -68,7 +69,8 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+               std::vector<o2::itsmft::ROFRecord>& rofs);
   void processFrame(std::vector<TrackITS>& tracks);
   // Int_t propagateBack(std::vector<TrackITS> *event);
   // Int_t RefitInward(std::vector<TrackITS> *event);
@@ -92,7 +94,7 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
-  int loadClusters(const std::vector<Cluster>& clusters);
+  int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
 
   std::vector<TrackITS> trackInThread(Int_t first, Int_t last);

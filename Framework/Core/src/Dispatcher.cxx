@@ -36,9 +36,7 @@ Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource
 {
 }
 
-Dispatcher::~Dispatcher()
-{
-}
+Dispatcher::~Dispatcher() = default;
 
 void Dispatcher::init(InitContext& ctx)
 {
@@ -86,8 +84,8 @@ void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, co
     dataAllocator.adopt(output, DataRefUtils::as<TObject>(inputData).release());
   } else { // POD
     // todo: do it non-copy, when API is available
-    auto outputMessage = dataAllocator.newChunk(output, inputHeader->payloadSize);
-    memcpy(outputMessage.data, inputData.payload, inputHeader->payloadSize);
+    auto& outputMessage = dataAllocator.newChunk(output, inputHeader->payloadSize);
+    memcpy(outputMessage.data(), inputData.payload, inputHeader->payloadSize);
   }
 }
 

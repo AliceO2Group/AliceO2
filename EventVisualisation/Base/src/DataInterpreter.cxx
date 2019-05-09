@@ -21,9 +21,7 @@ using namespace std;
 namespace o2  {
 namespace EventVisualisation {
   
-DataInterpreter::DataInterpreter()
-{
-}
+DataInterpreter::DataInterpreter() = default;
 
 DataInterpreter::~DataInterpreter()
 {

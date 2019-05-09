@@ -1,3 +1,5 @@
+\page refUtilitiesTools Tools
+
 # Using the Code checker / fixer
 
 You can run the code checker and have it fix the errors it reports

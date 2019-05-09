@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace o2 {
-namespace DataFlow {
+namespace data_flow {
 
 struct SubframeMetadata
 {
@@ -60,7 +60,7 @@ struct ITSRawData {
 };
 
 
-} // end namespace DataFlow
+} // namespace data_flow
 } // end namespace AliceO2
 
 

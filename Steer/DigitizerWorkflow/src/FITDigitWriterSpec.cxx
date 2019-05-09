@@ -8,19 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @brief  Processor spec for a ROOT file writer for TOF digits
+/// @brief  Processor spec for a ROOT file writer for FIT T0&V0 digits
 
 #include "FITDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
-#include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
-#include "TTree.h"
-#include "TBranch.h"
-#include "TFile.h"
-#include "FITBase/Digit.h"
+#include "Framework/Task.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/MCLabel.h"
+#include "Headers/DataHeader.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include <TTree.h>
+#include <TBranch.h>
+#include <TFile.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
+#include <string>
+#include <algorithm>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -30,88 +36,123 @@ namespace o2
 namespace fit
 {
 
-template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
+class FITDPLDigitWriter
 {
-  if (auto br = tree.GetBranch(brname.c_str())) {
-    br->SetAddress(static_cast<void*>(&ptr));
-    return br;
-  }
-  // otherwise make it
-  return tree.Branch(brname.c_str(), ptr);
-}
 
-/// create the processor spec
-/// TODO: replace by generic processor once this is working
-DataProcessorSpec getFITDigitWriterSpec()
-{
-  auto initFunction = [](InitContext& ic) {
-    // get the option from the init context
-    auto filename = ic.options().get<std::string>("fit-digit-outfile");
+  using MCCont = o2::dataformats::MCTruthContainer<o2::t0::MCLabel>;
+
+ public:
+  void init(framework::InitContext& ic)
+  {
+    std::string detStrL = mID.getName();
+    std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
+
+    auto filename = ic.options().get<std::string>((detStrL + "-digit-outfile").c_str());
     auto treename = ic.options().get<std::string>("treename");
 
-    auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
-    auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
+    mOutFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
+    if (!mOutFile || mOutFile->IsZombie()) {
+      LOG(ERROR) << "Failed to open " << filename << " output file";
+    } else {
+      LOG(INFO) << "Opened " << filename << " output file";
+    }
+    mOutTree = std::make_unique<TTree>(treename.c_str(), treename.c_str());
+  }
 
-    // container for incoming digits
-    auto digits = std::make_shared<std::vector<o2::fit::Digit>>();
+  void run(framework::ProcessingContext& pc)
+  {
+    if (mFinished) {
+      return;
+    }
+    std::string detStr = mID.getName();
+    std::string detStrL = mID.getName();
+    std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
-    // the callback to be set as hook at stop of processing for the framework
-    auto finishWriting = [outputfile, outputtree]() {
-      outputtree->SetEntries(1);
-      outputtree->Write();
-      outputfile->Close();
-    };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
+    // retrieve the digits from the input
+    auto inDigits = pc.inputs().get<std::vector<o2::t0::Digit>>((detStr + "digits").c_str());
 
-    // setup the processing function
-    // using by-copy capture of the worker instance shared pointer
-    // the shared pointer makes sure to clean up the instance when the processing
-    // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
-        // avoid being executed again when marked as finished;
-        return;
-      }
+    auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
+    LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
-      // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<o2::fit::Digit>>("fitdigits");
-      LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
-      *digits.get() = std::move(indata);
+    auto digitsP = &inDigits;
+    auto labelsRaw = inLabels.get();
+    // connect this to a particular branch
 
-      // connect this to a particular branch
-      auto br = getOrMakeBranch(*outputtree.get(), "FITDigit", digits.get());
-      br->Fill();
+    auto brDig = getOrMakeBranch(*mOutTree.get(), (detStr + "Digit").c_str(), &digitsP);
+    auto brLbl = getOrMakeBranch(*mOutTree.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
+    mOutTree->Fill();
 
-      // retrieve labels from the input
-      //auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofdigitlabels");
-      //LOG(INFO) << "TOF GOT " << labeldata->getNElements() << " LABELS ";
-      //auto labeldataraw = labeldata.get();
-      // connect this to a particular branch
-      //auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
-      //labelbr->Fill();
+    mOutFile->cd();
+    mOutTree->Write();
+    mOutTree.reset(); // delete the tree before closing the file
+    mOutFile->Close();
+    mFinished = true;
+    pc.services().get<ControlService>().readyToQuit(false);
+  }
 
-      finished = true;
-      pc.services().get<ControlService>().readyToQuit(false);
-    };
+ protected:
+  FITDPLDigitWriter() = default;
+  template <typename T>
+  TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
+  {
+    if (auto br = tree.GetBranch(brname.c_str())) {
+      br->SetAddress(static_cast<void*>(ptr));
+      return br;
+    }
+    // otherwise make it
+    return tree.Branch(brname.c_str(), ptr);
+  }
 
-    // return the actual processing function as a lambda function using variables
-    // of the init function
-    return processingFct;
-  };
+  bool mFinished = false;
+  o2::detectors::DetID mID;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  std::vector<o2::t0::Digit> mDigits; // input digits
+  std::unique_ptr<TFile> mOutFile;
+  std::unique_ptr<TTree> mOutTree;
+};
+
+//_______________________________________________
+class T0DPLDigitWriter : public FITDPLDigitWriter
+{
+ public:
+  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
+  T0DPLDigitWriter()
+  {
+    mID = DETID;
+    mOrigin = DETOR;
+  }
+};
+
+constexpr o2::detectors::DetID::ID T0DPLDigitWriter::DETID;
+constexpr o2::header::DataOrigin T0DPLDigitWriter::DETOR;
+
+//_______________________________________________
+/// create the processor spec
+/// describing a processor receiving digits for ITS/MFT and writing them to file
+DataProcessorSpec getT0DigitWriterSpec()
+{
+  std::string detStr = o2::detectors::DetID::getName(T0DPLDigitWriter::DETID);
+  std::string detStrL = detStr;
+  std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
+  auto detOrig = T0DPLDigitWriter::DETOR;
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{ (detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe });
 
   return DataProcessorSpec{
-    "FITDigitWriter",
-    Inputs{ InputSpec{ "fitdigits", "FIT", "DIGITS", 0, Lifetime::Timeframe },
-            /* InputSpec{ "tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } */ },
+    (detStr + "DigitWriter").c_str(),
+    inputs,
     {}, // no output
-    AlgorithmSpec(initFunction),
+    AlgorithmSpec(adaptFromTask<T0DPLDigitWriter>()),
     Options{
-      { "fit-digit-outfile", VariantType::String, "fitdigits.root", { "Name of the input file" } },
+      { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
       { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
     }
   };
 }
+
 } // end namespace fit
 } // end namespace o2

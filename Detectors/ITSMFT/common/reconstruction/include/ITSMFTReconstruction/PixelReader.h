@@ -18,12 +18,13 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 /// \class PixelReader
 /// \brief PixelReader class for the ITSMFT
@@ -45,14 +46,29 @@ class PixelReader
   {
     return nullptr;
   }
-
+  const o2::InteractionRecord& getInteractionRecordHB() const
+  {
+    return mInteractionRecordHB;
+  }
+  const o2::InteractionRecord& getInteractionRecord() const
+  {
+    return mInteractionRecord;
+  }
+  uint32_t getTrigger() const
+  {
+    return mTrigger;
+  }
   //
  protected:
   //
+  o2::InteractionRecord mInteractionRecordHB = {}; // interation record for the HB
+  o2::InteractionRecord mInteractionRecord = {};   // interation record for the trigger
+  uint32_t mTrigger = 0;
+
   ClassDef(PixelReader, 1);
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_PIXELREADER_H */

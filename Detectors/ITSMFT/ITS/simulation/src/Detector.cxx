@@ -47,12 +47,12 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::ITSMFT::Hit;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using o2::itsmft::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::ITS;
 
 Detector::Detector()
-  : o2::Base::DetImpl<Detector>("ITS", kTRUE),
+  : o2::base::DetImpl<Detector>("ITS", kTRUE),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -63,7 +63,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -86,11 +86,18 @@ static void configITS(Detector* its)
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
-  enum { kRmn, kRmd, kRmx, kNModPerStave, kPhi0, kNStave, kNPar };
+  enum { kRmn,
+         kRmd,
+         kRmx,
+         kNModPerStave,
+         kPhi0,
+         kNStave,
+         kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
     { 2.24, 2.34, 2.67, 9., 16.42, 12 }, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    { 3.01, 3.15, 3.46, 9., 12.18, 16 }, { 3.78, 3.93, 4.21, 9., 9.55, 20 },
+    { 3.01, 3.15, 3.46, 9., 12.18, 16 },
+    { 3.78, 3.93, 4.21, 9., 9.55, 20 },
     { -1, 19.6, -1, 4., 0., 24 },  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
     { -1, 24.55, -1, 4., 0., 30 }, // 30 was 61
     { -1, 34.39, -1, 7., 0., 42 }, // 42 was 88
@@ -126,7 +133,7 @@ static void configITS(Detector* its)
       its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, kSiThickOB, Segmentation::SensorThickness,
                        kSensTypeID, kBuildLevel);
     } else {
-      turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
+      turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
       its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
                             kSiThickIB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     }
@@ -134,7 +141,7 @@ static void configITS(Detector* its)
 }
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("ITS", active),
+  : o2::base::DetImpl<Detector>("ITS", active),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -145,7 +152,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -178,7 +185,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -191,7 +198,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {
@@ -225,7 +232,7 @@ Detector& Detector::operator=(const Detector& rhs)
   }
 
   // base class assignment
-  Base::Detector::operator=(rhs);
+  base::Detector::operator=(rhs);
 
   mNumberOfDetectors = rhs.mNumberOfDetectors;
 
@@ -276,7 +283,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
@@ -353,7 +360,7 @@ void Detector::createMaterials()
 {
   Int_t ifield = 2;
   Float_t fieldm = 10.0;
-  o2::Base::Detector::initFieldTrackingParams(ifield, fieldm);
+  o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
   ////////////
 
   Float_t tmaxfd = 0.1;   // 1.0; // Degree
@@ -422,74 +429,74 @@ void Detector::createMaterials()
   Float_t wCeramic[3] = { 1, 1, 3 };   // Molecular composition
   Float_t dCeramic = 6.02;
 
-  o2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
-  o2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
+  o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
+  o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
-  o2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
+  o2::base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
-  o2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
-  o2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
+  o2::base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01, 0.14300E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01, 0.14300E+01, 0.99900E+03);
+  o2::base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // needed for STAVE , Carbon, kapton, Epoxy, flexcable
 
   // AliceO2::Base::Detector::Material(6,"CARBON$",12.0107,6,2.210,999,999);
-  o2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
-  o2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
+  o2::base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
-  o2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
-  o2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // values below modified as compared to source AliITSv11 !
 
   // BEOL (Metal interconnection stack in Si sensors)
-  o2::Base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
-  o2::Base::Detector::Medium(29, "METALSTACK$", 29, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
+  o2::base::Detector::Medium(29, "METALSTACK$", 29, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Glue between IB chip and FPC: density reduced to take into account
   // empty spaces (160 glue spots/chip , diam. 1 spot = 1 mm)
-  o2::Base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05 * 0.3, 999, 999);
-  o2::Base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05 * 0.3, 999, 999);
+  o2::base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Ceramic for IB capacitors (nmat < 0 => wmat contains number of atoms)
-  o2::Base::Detector::Mixture(31, "CERAMIC$", aCeramic, zCeramic, dCeramic, -3, wCeramic);
-  o2::Base::Detector::Medium(31, "CERAMIC$", 31, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(31, "CERAMIC$", aCeramic, zCeramic, dCeramic, -3, wCeramic);
+  o2::base::Detector::Medium(31, "CERAMIC$", 31, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // All types of carbon
   // Unidirectional prepreg
-  o2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
-  o2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
-  o2::Base::Detector::Material(17, "K13D2U120$", 12.0107, 6, 1.583, 999, 999);
-  o2::Base::Detector::Medium(17, "K13D2U120$", 17, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
+  o2::base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(17, "K13D2U120$", 12.0107, 6, 1.583, 999, 999);
+  o2::base::Detector::Medium(17, "K13D2U120$", 17, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon prepreg woven
-  o2::Base::Detector::Material(18, "F6151B05M$", 12.0107, 6, 2.133, 999, 999);
-  o2::Base::Detector::Medium(18, "F6151B05M$", 18, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(18, "F6151B05M$", 12.0107, 6, 2.133, 999, 999);
+  o2::base::Detector::Medium(18, "F6151B05M$", 18, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  o2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
-  o2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
+  o2::base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  o2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
-  o2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
+  o2::base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Fabric(0/90)
-  o2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
-  o2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
+  o2::base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // AMEC Thermasol
-  o2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
-  o2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
+  o2::base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon fleece
-  o2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  o2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
+  o2::base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
+  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
                              stminSi);
 
   // PEEK CF30
-  o2::Base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
-  o2::Base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
+  o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Flex cable
   Float_t aFCm[5] = { 12.0107, 1.00794, 14.0067, 15.9994, 26.981538 };
@@ -499,27 +506,27 @@ void Detector::createMaterials()
   // Float_t dFCm = 2.55;   // conform with STAR
   Float_t dFCm = 2.595; // conform with Corrado
 
-  o2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
-  o2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
+  o2::base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // AliceO2::Base::Detector::Material(7,"GLUE$",0.12011E+02,0.60000E+01,0.1930E+01/2.015,999,999);
   // // original
-  o2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999, 999); // conform with ATLAS, Corrado, Stefan
-  o2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999, 999); // conform with ATLAS, Corrado, Stefan
+  o2::base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01, 0.89000E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01, 0.89000E+01, 0.99900E+03);
+  o2::base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Mixture(20, "TUNGCARB$", aWC, zWC, dWC, 2, wWC);
-  o2::Base::Detector::Medium(20, "TUNGCARB$", 20, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(20, "TUNGCARB$", aWC, zWC, dWC, 2, wWC);
+  o2::base::Detector::Medium(20, "TUNGCARB$", 20, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
 
   wInox304[3] = 1. - wInox304[0] - wInox304[1] - wInox304[2];
-  o2::Base::Detector::Mixture(21, "INOX304$", aInox304, zInox304, dInox304, 4, wInox304);
-  o2::Base::Detector::Medium(21, "INOX304$", 21, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(21, "INOX304$", aInox304, zInox304, dInox304, 4, wInox304);
+  o2::base::Detector::Medium(21, "INOX304$", 21, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
 
   // Tungsten (for gamma converter rods)
-  o2::Base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
-  o2::Base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
+  o2::base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::EndOfEvent() { Reset(); }

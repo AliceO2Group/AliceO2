@@ -38,7 +38,7 @@ namespace eventgen
 {
 
 // -----   Default constructor   ------------------------------------------
-Pythia6Generator::Pythia6Generator() {}
+Pythia6Generator::Pythia6Generator() = default;
 // ------------------------------------------------------------------------
 
 

@@ -18,7 +18,6 @@
 #pragma link C++ class o2::ITS::V1Layer+;
 #pragma link C++ class o2::ITS::V3Layer+;
 #pragma link C++ class o2::ITS::Detector+;
-#pragma link C++ class o2::Base::DetImpl<o2::ITS::Detector>+;
-#pragma link C++ class o2::ITS::DigitizerTask+;
+#pragma link C++ class o2::base::DetImpl<o2::ITS::Detector>+;
 
 #endif

@@ -16,11 +16,11 @@
 #include "ITSMFTReconstruction/TopologyFastSimulation.h"
 #include <algorithm>
 
-ClassImp(o2::ITSMFT::TopologyFastSimulation)
+ClassImp(o2::itsmft::TopologyFastSimulation)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
   TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
   {
@@ -36,5 +36,5 @@ ClassImp(o2::ITSMFT::TopologyFastSimulation)
                                 [](const double& comp1, const GroupStruct& comp2) { return comp1 < comp2.mFrequency; });
     return std::distance(mDictionary.mVectorOfGroupIDs.begin(), ind);
   }
-  } // namespace ITSMFT
+  } // namespace itsmft
 }

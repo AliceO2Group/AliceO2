@@ -137,7 +137,7 @@ DataProcessorSpec sim_tpc() {
                     run->Run(nEvents);
                     once = true;
                   } else {
-                    sleep(1);
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
                   }
                  // FIXME: After we run we should readback events
                  // and push them as messages, for the next stage of
