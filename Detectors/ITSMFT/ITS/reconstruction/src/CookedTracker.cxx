@@ -137,7 +137,7 @@ void CookedTracker::setExternalIndices(TrackITS& t) const
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    Int_t idx = c - mFirstCluster - mROFrame; // Index of this cluster in event
+    Int_t idx = c - mFirstCluster - mFirstInFrame; // Index of this cluster in event
     t.setExternalClusterIndex(i, idx);
   }
 }
@@ -613,7 +613,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::
   auto first = rof.getROFEntry().getIndex();
   auto number = rof.getNROFEntries();
 
-  mROFrame = first;
+  mFirstInFrame = first;
 
   auto clusters_in_frame = gsl::make_span(&clusters[first], number);
   for (const auto& c : clusters_in_frame) {
