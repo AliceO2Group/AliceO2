@@ -11,6 +11,8 @@
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
+#include "FDDSimulation/Hit.h"
+
 #endif
 
 TString gPrefix("");
@@ -264,6 +266,20 @@ void analyzeMFT(TTree* reftree)
   refresult.print();
 }
 
+void analyzeFDD(TTree* reftree)
+{
+  auto refresult = analyse<o2::fdd::Hit, HitStats<o2::fdd::Hit>>(reftree, "FDDHit");
+  std::cout << gPrefix << " FDD ";
+  refresult.print();
+}
+
+void analyzeV0(TTree* reftree)
+{
+  auto refresult = analyse<o2::v0::Hit, HitStats<o2::v0::Hit>>(reftree, "V0Hit");
+  std::cout << gPrefix << " V0 ";
+  refresult.print();
+}
+
 void analyzeTPC(TTree* reftree)
 {
   // need to loop over sectors
@@ -293,5 +309,7 @@ void analyzeHits(const char* filename = "o2sim.root", const char* prefix = "")
   analyzeTRD(reftree);
   analyzePHS(reftree);
   analyzeT0(reftree);
+  analyzeV0(reftree);
+  analyzeFDD(reftree);
   analyzeHMP(reftree);
 }
