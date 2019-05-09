@@ -11,6 +11,7 @@
 #include <DetectorsBase/Detector.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <DetectorsPassive/Compensator.h>
+#include <DetectorsPassive/HallSimParam.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
@@ -82,7 +83,7 @@ void Compensator::createMaterials()
   matmgr.Material("COMP", 10, "IRON0", 55.85, 26., 7.87, 1.76, 17.1);
   matmgr.Medium("COMP", 10, "FE_C0", 10, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Material("COMP", 30, "IRON1", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("COMP", 30, "FE_C1", 30, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("COMP", 30, "FE_C1", 30, 0, 1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Material("COMP", 50, "IRON2", 55.85, 26., 7.87, 1.76, 17.1);
   matmgr.Medium("COMP", 50, "FE_C2", 50, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
@@ -109,6 +110,53 @@ void Compensator::createCompensator()
   top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1075.));
 }
 
+void Compensator::SetSpecialPhysicsCuts()
+{
+  auto& param = o2::passive::HallSimParam::Instance();
+  if (!param.fastYoke) {
+    return;
+  }
+
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  using namespace o2::base; // to have enum values of EProc and ECut available
+
+  // NOTE: This is a test setting trying to disable physics
+  // processes in a tracking medium; Work in progress
+
+  // need to call method from matmgr
+  // 30 == COMP_IRON_C1
+  matmgr.SpecialProcesses("COMP", 30, { { EProc::kPAIR, 0 },
+                                        { EProc::kCOMP, 0 },
+                                        { EProc::kPHOT, 0 },
+                                        { EProc::kPFIS, 0 },
+                                        { EProc::kDRAY, 0 },
+                                        { EProc::kANNI, 0 },
+                                        { EProc::kBREM, 0 },
+                                        { EProc::kHADR, 0 },
+                                        { EProc::kMUNU, 0 },
+                                        { EProc::kDCAY, 0 },
+                                        { EProc::kLOSS, 0 },
+                                        { EProc::kMULS, 0 },
+								       { EProc::kRAYL, 0 },
+								       { EProc::kLABS, 0 }
+  });
+
+  // cut settings for the magnet yoke (fast) medium
+  const double cut1 = 1;
+  const double cutTofmax = 1e10;
+  matmgr.SpecialCuts("COMP", 30, { { ECut::kCUTGAM, cut1 },
+                               { ECut::kCUTELE, cut1 },
+                               { ECut::kCUTNEU, cut1 },
+                               { ECut::kCUTHAD, cut1 },
+                               { ECut::kCUTMUO, cut1 },
+                               { ECut::kBCUTE, cut1 },
+                               { ECut::kBCUTM, cut1 },
+                               { ECut::kDCUTE, cut1 },
+                               { ECut::kDCUTM, cut1 },
+                               { ECut::kPPCUTM, cut1 },
+                               { ECut::kTOFMAX, cutTofmax } });
+}
+
 TGeoVolume* Compensator::createMagnetYoke()
 {
   TGeoVolumeAssembly* voMagnet = new TGeoVolumeAssembly("DCM0");
@@ -119,18 +167,51 @@ TGeoVolume* Compensator::createMagnetYoke()
   auto kMedCooper = matmgr.getTGeoMedium("COMP_Cu_C0");
   auto kMedIron = matmgr.getTGeoMedium("COMP_FE_C0");
 
-  new TGeoBBox("shMagnetYokeOuter", 116.4 / 2.0, 90.2 / 2.0, 250.0 / 2.0);
-  new TGeoBBox("shMagnetYokeInnerUp", 8.0 / 2.0, 32.2 / 2.0, 250.0 / 1.0);
-  new TGeoBBox("shMagnetYokeInnerDw", 46.0 / 2.0, 23.0 / 2.0, 250.0 / 1.0);
+  // we use a special optimized tracking medium for the inner part
+  // of the YOKE (FE_C1 instead of FE_C2)
+  auto kMedIronInner = matmgr.getTGeoMedium("COMP_FE_C1");
+
+  const double innerUpLx = 8.;
+  const double innerUpLy = 32.2;
+  const double innerDwLx = 46.;
+  const double innerDwLy = 23.;
+  const double outerLx = 116.4;
+  const double outerLy = 90.2;
+  const double Lz = 250.;
+
+  new TGeoBBox("shMagnetYokeOuter", outerLx / 2.0, outerLy / 2.0, Lz / 2.0);
+  new TGeoBBox("shMagnetYokeInnerUp", innerUpLx / 2.0, innerUpLy / 2.0, Lz / 1.0);
+  new TGeoBBox("shMagnetYokeInnerDw", innerDwLx / 2.0, innerDwLy / 2.0, Lz / 1.0);
   (new TGeoTranslation("trMagnetYokeOuter", 0.0, -29.1, 0.0))->RegisterYourself();
   (new TGeoTranslation("trMagnetYokeInnerUp", 0.0, 0.0, 0.0))->RegisterYourself();
   (new TGeoTranslation("trMagnetYokeInnerDw", 0.0, -27.5, 0.0))->RegisterYourself();
 
   TGeoCompositeShape* shMagnetYoke =
-    new TGeoCompositeShape("shMagnet",
+    new TGeoCompositeShape("shMagnetBulk",
                            "shMagnetYokeOuter:trMagnetYokeOuter-(shMagnetYokeInnerUp:trMagnetYokeInnerUp+"
                            "shMagnetYokeInnerDw:trMagnetYokeInnerDw)");
   TGeoVolume* voMagnetYoke = new TGeoVolume("voMagnetYoke", shMagnetYoke, kMedIron);
+
+  // make a second version of volume which is smaller than the first and which can be embedded
+  // into the first for the purpose of defining a "fast physics" region
+  // introduce a thin layer dimension "delta" in which we treat physics correctly
+  // and which we can tune
+  auto& param = o2::passive::HallSimParam::Instance();
+  const double delta = param.yokeDelta;
+
+  new TGeoBBox("shMagnetYokeOuterFast", (outerLx - delta) / 2.0, (outerLy - delta) / 2.0, (Lz - delta) / 2.0);
+  new TGeoBBox("shMagnetYokeInnerUpFast", (innerUpLx + delta) / 2.0, (innerUpLy + delta) / 2.0, Lz / 1.0);
+  new TGeoBBox("shMagnetYokeInnerDwFast", (innerDwLx + delta) / 2.0, (innerDwLy + delta) / 2.0, Lz / 1.0);
+
+  TGeoCompositeShape* shMagnetYokeFast =
+    new TGeoCompositeShape("shMagnetInner",
+                           "shMagnetYokeOuterFast:trMagnetYokeOuter-(shMagnetYokeInnerUpFast:trMagnetYokeInnerUp+"
+                           "shMagnetYokeInnerDwFast:trMagnetYokeInnerDw)");
+
+  TGeoVolume* voMagnetYokeInner = new TGeoVolume("voMagnetYokeInner", shMagnetYokeFast, kMedIronInner);
+  if (delta >= 0.) {
+    voMagnetYoke->AddNode(voMagnetYokeInner, 1, new TGeoTranslation(0., 0., 0.0));
+  }
 
   // Make the coils:
   TGeoVolume* voCoilH = gGeoManager->MakeBox("voCoilH", kMedCooper, 12.64 / 2.0, 21.46 / 2.0, 310.5 / 2.0);
