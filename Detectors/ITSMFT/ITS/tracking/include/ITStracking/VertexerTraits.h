@@ -47,7 +47,7 @@ struct lightVertex {
   int mTimeStamp;
 };
 
-inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX(x), mY(y), mZ(z), mRMS2(rms2), mContributors(cont), mAvgDistance2(avgdis2), mTimeStamp(stamp)
+inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX(x), mY(y), mZ(z), mRMS2(rms2), mAvgDistance2(avgdis2), mContributors(cont), mTimeStamp(stamp)
 {
 }
 
