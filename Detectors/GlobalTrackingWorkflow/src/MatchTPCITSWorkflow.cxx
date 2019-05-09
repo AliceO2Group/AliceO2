@@ -14,6 +14,7 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/PublisherSpec.h"
+#include "FITWorkflow/T0RecPointReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
@@ -25,7 +26,7 @@ namespace o2
 namespace globaltracking
 {
 
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
+framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
 {
   framework::WorkflowSpec specs;
 
@@ -50,8 +51,12 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
                                                  tpcClusLanes },
                                                useMC));
 
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, useFIT, tpcClusLanes));
   specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
+
+  if (useFIT) {
+    specs.emplace_back(o2::t0::getT0RecPointReaderSpec(useMC));
+  }
 
   return specs;
 }

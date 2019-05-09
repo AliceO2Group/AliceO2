@@ -77,7 +77,7 @@ void MatchTPCITS::run()
 
   clear();
 
-  if (!prepareITSTracks() || !prepareTPCTracks()) {
+  if (!prepareITSTracks() || !prepareTPCTracks() || !prepareFITInfo()) {
     return;
   }
 
@@ -157,7 +157,7 @@ void MatchTPCITS::init()
   mTPCVDrift0 = gasParam.getVdrift();
   mTPCZMax = detParam.getTPClength();
 
-  assert(mITSROFrameLengthMUS > 0.f);
+  assert(mITSROFrameLengthMUS > 0.0f);
   mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
   mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
   mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
@@ -358,6 +358,14 @@ void MatchTPCITS::attachInputTrees()
   }
   LOG(INFO) << "Attached TPC clusters reader with " << mTPCClusterReader->getTreeSize();
   mTPCClusterIdxStructOwn = std::make_unique<o2::TPC::ClusterNativeAccessFullTPC>();
+
+  // is there FIT Info available?
+  if (mTreeFITInfo) {
+    mTreeFITInfo->SetBranchAddress(mFITInfoBranchName.data(), &mFITInfoInp);
+    LOG(INFO) << "Attached FIT info " << mFITInfoBranchName << " branch with " << mTreeFITInfo->GetEntries() << " entries";
+  } else {
+    LOG(INFO) << "FIT info is not available";
+  }
 
   // is there MC info available ?
   if (mTreeITSTracks->GetBranch(mITSMCTruthBranchName.data())) {
@@ -634,6 +642,21 @@ bool MatchTPCITS::prepareITSTracks()
   } // loop over tracks of single sector
   mMatchesITS.reserve(mITSWork.size());
   mMatchRecordsITS.reserve(mITSWork.size() * mMaxMatchCandidates);
+
+  return true;
+}
+
+//_____________________________________________________
+bool MatchTPCITS::prepareFITInfo()
+{
+  // If available, read FIT Info
+
+  if (mFITInfoInp) { // for input from tree read ROFrecords vector, in DPL IO mode the vector should be already attached
+    if (!mDPLIO) {
+      mTreeFITInfo->GetEntry(0);
+    }
+    LOG(INFO) << "Loaded FIT Info with " << mFITInfoInp->size() << " entries";
+  }
 
   return true;
 }

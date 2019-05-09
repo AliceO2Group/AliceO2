@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
+#include "FITWorkflow/RecoWorkflow.h"
 #include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -21,9 +21,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{
     "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } });
-
-  workflowOptions.push_back(ConfigParamSpec{
-    "use-FIT", o2::framework::VariantType::Bool, false, { "use FIT info for matching" } });
 
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
@@ -41,6 +38,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto useFIT = configcontext.options().get<bool>("use-FIT");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC, useFIT));
+
+  return std::move(o2::fit::getRecoWorkflow(useMC));
 }

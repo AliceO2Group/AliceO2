@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MATCHT_TPCITS_WORKFLOW_H
-#define O2_MATCHT_TPCITS_WORKFLOW_H
+#ifndef O2_FIT_RECOWORKFLOW_H
+#define O2_FIT_RECOWORKFLOW_H
 
 /// @file   RecoWorkflow.h
 
@@ -17,11 +17,9 @@
 
 namespace o2
 {
-namespace globaltracking
+namespace fit
 {
-
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT);
-
-} // namespace globaltracking
+framework::WorkflowSpec getRecoWorkflow(bool useMC);
+} // namespace fit
 } // namespace o2
 #endif

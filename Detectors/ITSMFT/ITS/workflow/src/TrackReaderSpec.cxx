@@ -118,6 +118,9 @@ void TrackReader::accumulate()
       ntrAcc += rof.getNROFEntries();
     }
   }
+  delete trTree;
+  delete rofTree;
+  trFile.Close();
 }
 
 DataProcessorSpec getITSTrackReaderSpec(bool useMC)
