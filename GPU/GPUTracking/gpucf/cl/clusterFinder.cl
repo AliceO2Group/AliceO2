@@ -30,13 +30,12 @@ void updateCluster(PartialCluster *cluster, charge_t charge, int dp, int dt)
 void updateClusterOuter(
         global const charge_t       *chargeMap,
                      PartialCluster *cluster, 
-                     row_t           row,
-                     pad_t           pad,
+                     global_pad_t    gpad,
                      timestamp       time,
                      int             dpOut,
                      int             dtOut)
 {
-    charge_t outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
+    charge_t outerCharge = CHARGE(chargeMap, gpad+dpOut, time+dtOut);
 
     outerCharge = (outerCharge > OUTER_CHARGE_THRESHOLD) ? outerCharge : 0;
     updateCluster(cluster, outerCharge, dpOut, dtOut);
@@ -45,53 +44,64 @@ void updateClusterOuter(
 void addCorner(
         global const charge_t       *chargeMap,
                      PartialCluster *myCluster,
-                     row_t           row,
-                     pad_t           pad,
+                     global_pad_t    gpad,
                      timestamp       time,
                      int             dp,
                      int             dt)
 {
-    charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+    charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
     
     if (innerCharge > CHARGE_THRESHOLD)
     {
-        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp,   dt);
-        updateClusterOuter(chargeMap, myCluster, row, pad, time,   dp, 2*dt);
-        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp, 2*dt);
+        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp,   dt);
+        updateClusterOuter(chargeMap, myCluster, gpad, time,   dp, 2*dt);
+        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp, 2*dt);
     }
 }
 
 void addLine(
         global const charge_t       *chargeMap,
                      PartialCluster *myCluster,
-                     row_t           row,
-                     pad_t           pad,
+                     global_pad_t    gpad,
                      timestamp       time,
                      int             dp,
                      int             dt)
 {
-    charge_t innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
+    charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
 
     if (innerCharge > CHARGE_THRESHOLD)
     {
-        updateClusterOuter(chargeMap, myCluster, row, pad, time, 2*dp, 2*dt);
+        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp, 2*dt);
     }
 }
 
-void buildCluster(
+void reset(PartialCluster *clus)
+{
+    clus->Q = 0.f;
+    clus->padMean = 0.f;
+    clus->timeMean = 0.f;
+    clus->padSigma = 0.f;
+    clus->timeSigma = 0.f;
+}
+
+
+void buildClusterTT()
+{
+}
+
+void buildClusterScratchPad()
+{
+}
+
+void buildClusterNaive(
         global const charge_t       *chargeMap,
                      PartialCluster *myCluster,
-                     row_t           row,
-                     pad_t           pad,
+                     global_pad_t    gpad,
                      timestamp       time)
 {
-    myCluster->Q = 0.f;
-    myCluster->padMean = 0.f;
-    myCluster->timeMean = 0.f;
-    myCluster->padSigma = 0.f;
-    myCluster->timeSigma = 0.f;
+    reset(myCluster);
 
     // Add charges in top left corner:
     // O O o o o
@@ -99,7 +109,7 @@ void buildCluster(
     // o i c i o
     // o i i i o
     // o o o o o
-    addCorner(chargeMap, myCluster, row, pad, time, -1, -1);
+    addCorner(chargeMap, myCluster, gpad, time, -1, -1);
 
     // Add upper charges
     // o o O o o
@@ -107,7 +117,7 @@ void buildCluster(
     // o i c i o
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, row, pad, time,  0, -1);
+    addLine(chargeMap, myCluster, gpad, time,  0, -1);
 
     // Add charges in top right corner:
     // o o o O O
@@ -115,7 +125,7 @@ void buildCluster(
     // o i c i o
     // o i i i o
     // o o o o o
-    addCorner(chargeMap, myCluster, row, pad, time, 1, -1);
+    addCorner(chargeMap, myCluster, gpad, time, 1, -1);
 
 
     // Add left charges
@@ -124,7 +134,7 @@ void buildCluster(
     // O I c i o
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, row, pad, time, -1,  0);
+    addLine(chargeMap, myCluster, gpad, time, -1,  0);
 
     // Add right charges
     // o o o o o
@@ -132,7 +142,7 @@ void buildCluster(
     // o i c I O
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, row, pad, time,  1,  0);
+    addLine(chargeMap, myCluster, gpad, time,  1,  0);
 
 
     // Add charges in bottom left corner:
@@ -141,7 +151,7 @@ void buildCluster(
     // o i c i o
     // O I i i o
     // O O o o o
-    addCorner(chargeMap, myCluster, row, pad, time, -1, 1);
+    addCorner(chargeMap, myCluster, gpad, time, -1, 1);
 
     // Add bottom charges
     // o o o o o
@@ -149,7 +159,7 @@ void buildCluster(
     // o i c i o
     // o i I i o
     // o o O o o
-    addLine(chargeMap, myCluster, row, pad, time,  0,  1);
+    addLine(chargeMap, myCluster, gpad, time,  0,  1);
 
     // Add charges in bottom right corner:
     // o o o o o
@@ -157,7 +167,7 @@ void buildCluster(
     // o i c i o
     // o i i I O
     // o o o O O
-    addCorner(chargeMap, myCluster, row, pad, time, 1, 1);
+    addCorner(chargeMap, myCluster, gpad, time, 1, 1);
 }
 
 
@@ -185,16 +195,18 @@ bool isPeak(
         global const charge_t *chargeMap)
 {
     const charge_t myCharge = digit->charge;
-    short time = digit->time;
-    uchar row = digit->row;
-    uchar pad = digit->pad;
+    const timestamp time = digit->time;
+    const row_t row = digit->row;
+    const pad_t pad = digit->pad;
+
+    const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
 
     bool peak = true;
 
 #define CMP_NEIGHBOR(dp, dt, cmpOp) \
     do \
     { \
-        const charge_t otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt); \
+        const charge_t otherCharge = CHARGE(chargeMap, gpad+dp, time+dt); \
         peak &= (otherCharge cmpOp myCharge); \
     } \
     while (false)
@@ -292,7 +304,9 @@ void fillChargeMap(
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
-    DIGIT_CHARGE(chargeMap, myDigit) = myDigit.charge;
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    CHARGE(chargeMap, gpad, myDigit.time) = myDigit.charge;
 }
 
 
@@ -304,7 +318,9 @@ void resetChargeMap(
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
-    DIGIT_CHARGE(chargeMap, myDigit) = 0.0f;
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    CHARGE(chargeMap, gpad, myDigit.time) = 0.f;
 }
 
 
@@ -336,7 +352,8 @@ void computeClusters(
     Digit myDigit = digits[idx];
 
     PartialCluster pc;
-    buildCluster(chargeMap, &pc, myDigit.row, myDigit.pad, myDigit.time);
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
 
     Cluster myCluster;
     finalizeCluster(
