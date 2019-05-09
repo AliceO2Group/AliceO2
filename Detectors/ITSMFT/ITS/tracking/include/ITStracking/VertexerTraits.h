@@ -55,7 +55,7 @@ class VertexerTraits
 {
  public:
   VertexerTraits();
-  virtual ~VertexerTraits();
+  virtual ~VertexerTraits() = default;
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
   GPU_HOST_DEVICE static const int4 getBinsRect2(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
@@ -106,10 +106,10 @@ class VertexerTraits
   std::vector<ClusterLines> mTrackletClusters;
 };
 
-inline VertexerTraits::~VertexerTraits()
-{
-  // nothing
-}
+// inline VertexerTraits::~VertexerTraits()
+// {
+//   // nothing
+// }
 
 inline void VertexerTraits::initialise(ROframe* event)
 {
