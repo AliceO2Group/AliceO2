@@ -25,8 +25,10 @@ typedef FloatCluster Cluster;
 #endif
 
 
-inline size_t chargemapIdx(row_t row, pad_t pad, timestamp time)
+inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 {
+    time += PADDING;
+
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT) \
     || defined(CHARGEMAP_4x8_TILING_LAYOUT) \
     || defined(CHARGEMAP_8x4_TILING_LAYOUT)
@@ -50,12 +52,10 @@ inline size_t chargemapIdx(row_t row, pad_t pad, timestamp time)
     const size_t tileH = TILE_HEIGHT;
     const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
 
-    const size_t globPad = tpcGlobalPadIdx(row, pad);
-
-    const size_t tilePad  = globPad / tileW;
+    const size_t tilePad  = gpad / tileW;
     const size_t tileTime = time / tileH;
 
-    const size_t inTilePad = globPad % tileW;
+    const size_t inTilePad = gpad % tileW;
     const size_t inTileTime = time % tileH;
 
     return (tileTime * widthInTiles + tilePad) * (tileW * tileH)
@@ -66,27 +66,16 @@ inline size_t chargemapIdx(row_t row, pad_t pad, timestamp time)
 
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 
-    return TPC_MAX_TIME_PADDED * tpcGlobalPadIdx(row, pad) + time;
+    return TPC_MAX_TIME_PADDED * gpad + time;
 
 #else // Use row time-major layout
 
-    return TPC_NUM_OF_PADS * time + tpcGlobalPadIdx(row, pad);
+    return TPC_NUM_OF_PADS * time + gpad;
 
 #endif
 }
 
-
-#if defined(CHARGEMAP_IDX_MACRO)
-  #define CHARGEMAP_IDX(row, pad, time) \
-      (TPC_NUM_OF_PADS * (time + PADDING) + TPC_PADS_PER_ROW_PADDED * row + pad + PADDING)
-#else
-  #define CHARGEMAP_IDX(row, pad, time) \
-            chargemapIdx(row, (pad)+PADDING, (time)+PADDING)
-#endif
-
-#define CHARGE(map, row, pad, time) map[CHARGEMAP_IDX(row, pad, time)]
-
-#define DIGIT_CHARGE(map, digit) CHARGE(map, digit.row, digit.pad, digit.time)
+#define CHARGE(map, gpad, time) map[chargemapIdx(gpad, time)]
 
 #endif //!defined(CONFIG_H)
 

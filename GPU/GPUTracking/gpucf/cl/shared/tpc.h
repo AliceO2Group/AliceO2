@@ -15,15 +15,16 @@
 
 typedef SHARED_USHORT timestamp;
 typedef SHARED_UCHAR pad_t;
+typedef SHARED_USHORT global_pad_t;
 typedef SHARED_UCHAR row_t;
 typedef SHARED_UCHAR cru_t;
 
 
 // Maps the position of a pad given as row and index in that row to a unique
 // index between 0 and TPC_NUM_OF_PADS.
-inline size_t tpcGlobalPadIdx(row_t row, pad_t pad)
+inline global_pad_t tpcGlobalPadIdx(row_t row, pad_t pad)
 {
-    return TPC_PADS_PER_ROW_PADDED * row + pad;
+    return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING;
 }
 
 #endif //!defined(SHARED_TPC_H)
