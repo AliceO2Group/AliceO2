@@ -40,7 +40,9 @@ const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName =
   { EProc::kDCAY, "DCAY" },
   { EProc::kLOSS, "LOSS" },
   { EProc::kMULS, "MULS" },
-  { EProc::kCKOV, "CKOV" }
+  { EProc::kCKOV, "CKOV" },
+  { EProc::kRAYL, "RAYL" },
+  { EProc::kLABS, "LABS" }
 };
 
 const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
