@@ -65,6 +65,25 @@ GPUClusterFinder::Worker::Worker(
 }
 
 template<class DigitT>
+void GPUClusterFinder::Worker::runAndCatch(
+        const Fragment &range,
+        nonstd::span<const DigitT> digits,
+        nonstd::span<Cluster> clusters)
+{
+    try 
+    {
+        run(range, digits, clusters);
+    }
+    catch(const cl::Error &err)
+    {
+        log::Error() << "Caught cl::Error: " << err.what() 
+                     << "(" << log::clErrToStr(err.err()) << ")";
+        throw err;
+    }
+
+}
+
+template<class DigitT>
 void GPUClusterFinder::Worker::run(
         const Fragment &range,
         nonstd::span<const DigitT> digits,
@@ -259,7 +278,7 @@ void GPUClusterFinder::Worker::dispatch(
 {
     myThread = std::thread(
             std::bind(
-                &GPUClusterFinder::Worker::run<DigitT>, 
+                &GPUClusterFinder::Worker::runAndCatch<DigitT>, 
                 this, 
                 fragment, 
                 digits, 
