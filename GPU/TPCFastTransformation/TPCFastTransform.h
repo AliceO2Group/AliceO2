@@ -301,7 +301,7 @@ inline int TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, floa
   float y = sideC ? -u : u; // pads are mirrorred on C-side
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
 
-  v = (time - maxTimeBin) * (mVdrift + mVdriftCorrY * yLab); // drift length cm
+  v = (time - mT0 - maxTimeBin) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
 
   if (sideC) {
     v += mTPCzLengthC;
