@@ -96,6 +96,8 @@ class ChipMappingMFT
     return ChipMappingData[chipID].module;
   }
 
+  int getCablesOnRUType(int ruType) const { return 0; }
+
   int getNChipsInModule(int modID) const
   {
     return ModuleMappingData[modID].nChips;
@@ -115,6 +117,9 @@ class ChipMappingMFT
   {
     return ModuleMappingData[ChipMappingData[chipID].module].layer;
   }
+
+  ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
+  void imposeFEEId2RUSW(uint16_t, uint16_t) {}
 
  private:
   int invalid() const;

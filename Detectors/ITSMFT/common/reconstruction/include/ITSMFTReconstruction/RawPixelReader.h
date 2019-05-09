@@ -64,6 +64,7 @@ struct GBTLinkDecodingStat {
     ErrNoDataForActiveLane,      // no data was seen for lane (which was not in timeout)
     ErrIBChipLaneMismatch,       // chipID (on module) was different from the lane ID on the IB stave
     ErrCableDataHeadWrong,       // cable data does not start with chip header or empty chip
+    ErrInvalidActiveLanes,       // active lanes pattern conflicts with expected for given RU type
     NErrorsDefined
   };
   uint32_t ruLinkID = 0;      // Link ID within RU
@@ -117,7 +118,8 @@ struct GBTLinkDecodingStat {
     "Data was received for stopped lane",                                // ErrDataForStoppedLane
     "No data was seen for lane (which was not in timeout)",              // ErrNoDataForActiveLane
     "ChipID (on module) was different from the lane ID on the IB stave", // ErrIBChipLaneMismatch
-    "Cable data does not start with chip header or empty chip"           // ErrCableDataHeadWrong
+    "Cable data does not start with chip header or empty chip",          // ErrCableDataHeadWrong
+    "Active lanes pattern conflicts with expected for given RU type"     // ErrInvalidActiveLanes
   };
 
   ClassDefNV(GBTLinkDecodingStat, 1);
@@ -126,12 +128,18 @@ struct GBTLinkDecodingStat {
 constexpr std::array<std::string_view, GBTLinkDecodingStat::NErrorsDefined> GBTLinkDecodingStat::ErrNames;
 
 struct RawDecodingStat {
+  enum DecErrors : int {
+    ErrInvalidFEEId, // RDH provided invalid FEEId
+    NErrorsDefined
+  };
+
   using ULL = unsigned long long;
   uint64_t nPagesProcessed = 0; // total number of pages processed
   uint64_t nRUsProcessed = 0;   // total number of RUs processed (1 RU may take a few pages)
   uint64_t nBytesProcessed = 0; // total number of bytes (rdh->memorySize) processed
   uint64_t nNonEmptyChips = 0;  // number of non-empty chips found
   uint64_t nHitsDecoded = 0;    // number of hits found
+  std::array<int, NErrorsDefined> errorCounts = {}; // error counters
 
   RawDecodingStat() = default;
 
@@ -142,14 +150,29 @@ struct RawDecodingStat {
     nBytesProcessed = 0;
     nNonEmptyChips = 0;
     nHitsDecoded = 0;
+    errorCounts.fill(0);
   }
 
-  void print() const
+  void print(bool skipEmpty = true) const
   {
     printf("\nDecoding statistics\n");
     printf("%llu bytes for %llu RUs processed in %llu pages\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed, (ULL)nPagesProcessed);
     printf("%llu hits found in %llu non-empty chips\n", (ULL)nHitsDecoded, (ULL)nNonEmptyChips);
+    int nErr = 0;
+    for (int i = NErrorsDefined; i--;) {
+      nErr += errorCounts[i];
+    }
+    printf("Decoding errors: %d\n", nErr);
+    for (int i = 0; i < NErrorsDefined; i++) {
+      if (!skipEmpty || errorCounts[i]) {
+        printf("%-70s: %d\n", ErrNames[i].data(), errorCounts[i]);
+      }
+    }
   }
+
+  static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
+    "RDH cointains invalid FEEID" // ErrInvalidFEEId
+  };
 
   ClassDefNV(RawDecodingStat, 1);
 };
@@ -317,7 +340,7 @@ class RawPixelReader : public PixelReader
     ChipInfo chInfo;
     UShort_t curChipID = 0xffff; // currently processed SW chip id
     mInteractionRecord = bcData;
-    ruSWMax = (ruSWMax < uint8_t(MAP.getNRUs())) ? ruSWMax : MAP.getNRUs() - 1;
+    ruSWMax = (ruSWMax < uint8_t(mMAP.getNRUs())) ? ruSWMax : mMAP.getNRUs() - 1;
 
     if (mNRUs < int(ruSWMax) - ruSWMin) { // book containers if needed
       for (uint8_t ru = ruSWMin; ru <= ruSWMax; ru++) {
@@ -330,7 +353,7 @@ class RawPixelReader : public PixelReader
         if (!nLinks) {
           LOG(INFO) << "Imposing single link readout for RU " << int(ru);
           ruData.links[0] = std::make_unique<GBTLink>();
-          ruData.links[0]->lanes = MAP.getCablesOnRUType(ruData.ruInfo->ruType);
+          ruData.links[0]->lanes = mMAP.getCablesOnRUType(ruData.ruInfo->ruType);
           mNLinks++;
         }
       }
@@ -340,7 +363,7 @@ class RawPixelReader : public PixelReader
     for (int id = from; id < last; id++) {
       const auto& dig = digiVec[id];
       if (curChipID != dig.getChipIndex()) {
-        MAP.getChipInfoSW(dig.getChipIndex(), chInfo);
+        mMAP.getChipInfoSW(dig.getChipIndex(), chInfo);
         if (chInfo.ru < ruSWMin || chInfo.ru > ruSWMax) { // ignore this chip?
           continue;
         }
@@ -356,7 +379,7 @@ class RawPixelReader : public PixelReader
     int minPages = 0xffffff;
     for (mCurRUDecodeID = ruSWMin; mCurRUDecodeID <= int(ruSWMax); mCurRUDecodeID++) {
       curRUDecode = &mRUDecodeVec[mCurRUDecodeID];
-      uint16_t next2Proc = 0, nchTot = MAP.getNChipsOnRUType(curRUDecode->ruInfo->ruType);
+      uint16_t next2Proc = 0, nchTot = mMAP.getNChipsOnRUType(curRUDecode->ruInfo->ruType);
       for (int ich = 0; ich < curRUDecode->nChipsFired; ich++) {
         auto& chipData = curRUDecode->chipsData[ich];
         convertEmptyChips(next2Proc, chipData.getChipID()); // if needed store EmptyChip flags
@@ -381,7 +404,7 @@ class RawPixelReader : public PixelReader
 
     auto& ruData = mRUDecodeVec[mCurRUDecodeID]; // current RU container
     // fetch info of the chip with chipData->getChipID() ID within the RU
-    const auto& chip = *MAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipData.getChipID());
+    const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipData.getChipID());
     ruData.cableHWID[chip.cableSW] = chip.cableHW;                    // register the cable HW ID
 
     auto& pixels = chipData.getData();
@@ -403,7 +426,7 @@ class RawPixelReader : public PixelReader
     // add empty chip words to respective cable's buffers for all chips of the current RU container
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];                     // current RU container
     for (int chipIDSW = fromChip; chipIDSW < uptoChip; chipIDSW++) { // flag chips w/o data
-      const auto& chip = *MAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipIDSW);
+      const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipIDSW);
       ruData.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
       ruData.cableData[chip.cableSW].ensureFreeCapacity(100);
       mCoder.addEmptyChip(ruData.cableData[chip.cableSW], chip.chipOnModuleHW, mInteractionRecord.bc);
@@ -423,7 +446,7 @@ class RawPixelReader : public PixelReader
     rdh.triggerOrbit = rdh.heartbeatOrbit = mInteractionRecord.orbit;
     rdh.triggerBC = rdh.heartbeatBC = mInteractionRecord.bc;
     rdh.triggerType = o2::trigger::PhT; // ??
-    rdh.detectorField = MAP.getRUDetectorField();
+    rdh.detectorField = mMAP.getRUDetectorField();
     rdh.blockLength = 0xffff; // ITS keeps this dummy
 
     int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / o2::itsmft::GBTPaddedWordLength - 2;
@@ -442,7 +465,7 @@ class RawPixelReader : public PixelReader
         }
       }
       // move data in padded GBT words from cable buffers to link buffers
-      rdh.feeId = MAP.RUSW2FEEId(ruData.ruInfo->idSW, il); // write on link 0 always
+      rdh.feeId = mMAP.RUSW2FEEId(ruData.ruInfo->idSW, il); // write on link 0 always
       rdh.linkID = il;
       rdh.pageCnt = 0;
       rdh.stop = 0;
@@ -482,7 +505,7 @@ class RawPixelReader : public PixelReader
             int gbtWordStart = link->data.getSize();                                                              // beginning of the current GBT word in the link
             link->data.addFast(cableData.getPtr(), nb);                                                           // fill payload of cable
             link->data.addFast(zero16, mGBTWordSize - nb);                                                        // fill the rest of the GBT word by 0
-            link->data[gbtWordStart + 9] = MAP.getGBTHeaderRUType(ruData.ruInfo->ruType, ruData.cableHWID[icab]); // set cable flag
+            link->data[gbtWordStart + 9] = mMAP.getGBTHeaderRUType(ruData.ruInfo->ruType, ruData.cableHWID[icab]); // set cable flag
             cableData.setPtr(cableData.getPtr() + nb);
             nGBTWordsNeeded--;
             if (mVerbose) {
@@ -549,7 +572,7 @@ class RawPixelReader : public PixelReader
     // return total number of pages flushed
 
     int totPages = 0;
-    for (int ru = 0; ru < MAP.getNRUs(); ru++) {
+    for (int ru = 0; ru < mMAP.getNRUs(); ru++) {
       auto* ruData = getRUDecode(ru);
       if (!ruData) {
         continue;
@@ -620,12 +643,30 @@ class RawPixelReader : public PixelReader
       if (mVerbose) {
         printRDH(*rdh);
       }
-      int ruIDSW = getMapping().FEEId2RUSW(rdh->feeId);
+      int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+      if (ruIDSW >= mMAP.getNRUs()) {
+        mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
+        LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId] << " : " << rdh->feeId << ", skipping CRU page";
+        mDecodingStat.nBytesProcessed += rdh->memorySize;
+        mDecodingStat.nPagesProcessed++;
+
+        ptr += rdh->offsetToNext;
+        buffer.setPtr(ptr);
+        if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
+          nRead += loadInput(buffer); // update
+          ptr = buffer.getPtr();      // pointer might have been changed
+        }
+        continue;
+      }
+#endif
+
       auto& ruDecode = getCreateRUDecode(ruIDSW);
 
       bool newTrigger = true; // check if we see new trigger
       uint16_t lr, ruOnLr, linkIDinRU;
-      getMapping().expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+      mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
       auto link = ruDecode.links[linkIDinRU].get();
       if (link) {                                                                                                    // was there any data seen on this link before?
         const auto rdhPrev = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize); // last stored RDH
@@ -816,13 +857,22 @@ class RawPixelReader : public PixelReader
     }
 #endif
 
-    int ruIDSW = MAP.FEEId2RUSW(rdh->feeId);
-    if (ruIDSW != ruDecData.ruInfo->idSW) {
-      LOG(ERROR) << "RDG RU IDSW " << ruIDSW << " differs from expected " << ruDecData.ruInfo->idSW;
+    int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
+#ifdef _RAW_READER_ERROR_CHECKS_
+    if (ruIDSW >= mMAP.getNRUs()) {
+      mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
+      LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId] << " : " << rdh->feeId << ", skipping CRU page";
+      raw += rdh->offsetToNext;
+      return raw;
     }
 
+    if (ruIDSW != ruDecData.ruInfo->idSW) { // should not happen with cached data
+      LOG(ERROR) << "RDG RU IDSW " << ruIDSW << " differs from expected " << ruDecData.ruInfo->idSW;
+    }
+#endif
+
     uint16_t lr, ruOnLr, linkIDinRU;
-    getMapping().expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+    mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
     auto& ruStat = ruDecData.links[linkIDinRU]->statistics;
     ruStat.nPackets++;
 
@@ -861,6 +911,15 @@ class RawPixelReader : public PixelReader
 
       ruStat.lanesActive = gbtH->getLanes(); // TODO do we need to update this for every page?
 
+      if (~(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)) & ruStat.lanesActive) { // are there wrong lanes?
+        std::bitset<32> expectL(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)), gotL(ruStat.lanesActive);
+        LOG(ERROR) << "FEE#0x" << std::hex << rdh->feeId << std::dec
+                   << " Active lanes pattern " << gotL << " conflicts with expected " << expectL << " for given RU type, skip page";
+        ruStat.errorCounts[GBTLinkDecodingStat::ErrInvalidActiveLanes]++;
+        raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet
+        return raw;
+      }
+
       if (!rdh->pageCnt) { // reset flags
         ruStat.lanesStop = 0;
         ruStat.lanesWithData = 0;
@@ -882,7 +941,7 @@ class RawPixelReader : public PixelReader
         }
 
         int cableHW = gbtD->getCableID();
-        int cableSW = MAP.cableHW2SW(ruDecData.ruInfo->ruType, cableHW);
+        int cableSW = mMAP.cableHW2SW(ruDecData.ruInfo->ruType, cableHW);
         ruDecData.cableData[cableSW].add(gbtD->getW8(), 9);
         ruDecData.cableHWID[cableSW] = cableHW;
 
@@ -1023,12 +1082,21 @@ class RawPixelReader : public PixelReader
       aborted = true;
       return raw;
     }
+    int ruIDSWD = mMAP.FEEId2RUSW(rdh->feeId);
+    if (ruIDSWD >= mMAP.getNRUs()) {
+      mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
+      LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId] << " : " << rdh->feeId << ", skipping CRU page";
+      mDecodingStat.nBytesProcessed += rdh->memorySize;
+      mDecodingStat.nPagesProcessed++;
+      raw += rdh->offsetToNext;
+      return raw;
+    }
 #endif
     uint16_t lr, ruOnLr, linkIDinRU;
-    getMapping().expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
-    int ruIDSW = MAP.FEEId2RUSW(rdh->feeId);
+    mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+    int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
     auto& ruDecode = getCreateRUDecode(ruIDSW);
-    auto ruInfo = MAP.getRUInfoSW(ruIDSW);
+    auto ruInfo = mMAP.getRUInfoSW(ruIDSW);
 
     if (!ruDecode.links[linkIDinRU].get()) {
       ruDecode.links[linkIDinRU] = std::make_unique<GBTLink>();
@@ -1116,7 +1184,7 @@ class RawPixelReader : public PixelReader
         }
 
         int cableHW = gbtD->getCableID();
-        int cableSW = MAP.cableHW2SW(ruInfo->ruType, cableHW);
+        int cableSW = mMAP.cableHW2SW(ruInfo->ruType, cableHW);
 
         outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtD), mGBTWordSize); // save gbt word w/o 128b padding
 
@@ -1246,7 +1314,8 @@ class RawPixelReader : public PixelReader
       // make sure the lane data starts with chip header or empty chip
       uint8_t h;
       if (cableData.current(h) && !mCoder.isChipHeaderOrEmpty(h)) {
-        LOG(ERROR) << "FEE#" << decData.ruInfo->idHW << " cable " << icab << " data does not start with ChipHeader or ChipEmpty";
+        LOG(ERROR) << "FEE#0x" << std::hex << decData.ruInfo->idHW << std::dec << " cable " << icab
+                   << " data does not start with ChipHeader or ChipEmpty";
         ruStat.errorCounts[GBTLinkDecodingStat::ErrCableDataHeadWrong]++;
       }
 #endif
@@ -1263,7 +1332,7 @@ class RawPixelReader : public PixelReader
           }
 #endif
           // convert HW chip id within the module to absolute chip id
-          chipData->setChipID(MAP.getGlobalChipID(chipData->getChipID(), decData.cableHWID[icab], *decData.ruInfo));
+          chipData->setChipID(mMAP.getGlobalChipID(chipData->getChipID(), decData.cableHWID[icab], *decData.ruInfo));
           chipData->setInteractionRecord(mInteractionRecord);
           chipData->setTrigger(mTrigger);
           mDecodingStat.nNonEmptyChips++;
@@ -1359,7 +1428,7 @@ class RawPixelReader : public PixelReader
   // get statics of FEE with given HW id
   const GBTLinkDecodingStat* getGBTLinkDecodingStatHW(uint16_t idHW, int ruLink) const
   {
-    int idsw = MAP.FEEId2RUSW(idHW);
+    int idsw = mMAP.FEEId2RUSW(idHW);
     assert(idsw != 0xffff);
     return getGBTLinkDecodingStatSW(idsw, ruLink);
   }
@@ -1374,7 +1443,7 @@ class RawPixelReader : public PixelReader
   void setVerbosity(int v) { mVerbose = v; }
   int getVerbosity() const { return mVerbose; }
 
-  Mapping& getMapping() { return MAP; }
+  Mapping& getMapping() { return mMAP; }
 
   // get currently processed RU container
   const RUDecodeData* getCurrRUDecodeData() const { return mCurRUDecodeID < 0 ? nullptr : &mRUDecodeVec[mCurRUDecodeID]; }
@@ -1401,10 +1470,10 @@ class RawPixelReader : public PixelReader
   // get RU decode container for RU with given SW ID, if does not exist, create it
   RUDecodeData& getCreateRUDecode(int ruSW)
   {
-    assert(ruSW < MAP.getNRUs());
+    assert(ruSW < mMAP.getNRUs());
     if (mRUEntry[ruSW] < 0) {
       mRUEntry[ruSW] = mNRUs++;
-      mRUDecodeVec[mRUEntry[ruSW]].ruInfo = MAP.getRUInfoSW(ruSW); // info on the stave/RU
+      mRUDecodeVec[mRUEntry[ruSW]].ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
       LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
     }
     return mRUDecodeVec[mRUEntry[ruSW]];
@@ -1413,7 +1482,7 @@ class RawPixelReader : public PixelReader
  private:
   std::ifstream mIOFile;
   Coder mCoder;
-  Mapping MAP;
+  Mapping mMAP;
   int mVerbose = 0;            //! verbosity level
   int mCurRUDecodeID = -1;     //! index of currently processed RUDecode container
 

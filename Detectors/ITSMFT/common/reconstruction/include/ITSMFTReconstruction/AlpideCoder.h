@@ -18,7 +18,7 @@
 #include <string>
 #include <cstdint>
 #include <FairLogger.h>
-
+#include <iostream>
 #include "PayLoadCont.h"
 
 #include "ITSMFTReconstruction/PixelData.h"
@@ -230,7 +230,9 @@ class AlpideCoder
         buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
         break;
       }
-      return unexpectedEOF("Unknown word"); // either error
+      std::stringstream stream;
+      stream << "Unknown word 0x" << std::hex << int(dataC) << " [mode = 0x" << int(expectInp) << "]";
+      return unexpectedEOF(stream.str().c_str()); // error
     }
 
     return chipData.getData().size();
