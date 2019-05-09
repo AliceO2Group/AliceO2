@@ -74,8 +74,8 @@ class TPCFastTransformHelperO2
   /// initialization
   void init();
 
-  static TPCFastTransformHelperO2* sInstance; ///< singleton instance
-  bool mIsInitialized = 0;                    ///< initialization flag
+  static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
+  bool mIsInitialized = 0;                                                                     ///< initialization flag
   std::function<void(const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
 
   ClassDefNV(TPCFastTransformHelperO2, 2);
