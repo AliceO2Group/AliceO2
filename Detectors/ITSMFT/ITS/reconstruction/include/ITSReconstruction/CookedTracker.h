@@ -112,7 +112,7 @@ class CookedTracker
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       /// Track MC labels
 
-  std::uint32_t mROFrame = 0; ///< last frame processed
+  std::uint32_t mFirstInFrame = 0; ///< Index of the 1st cluster of a frame (within the loaded vector of clusters)
 
   Int_t mNumOfThreads; ///< Number of tracking threads
 
