@@ -12,7 +12,7 @@
   Load the macro:
   gSystem->Load("libO2TPCFastTransformation");
   gSystem->Load("libTPCReconstruction");
-  .x getTPCTransformationExample.C
+  .x getTPCTransformationExample.C++
 */
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
@@ -22,10 +22,8 @@
 
 #endif
 
-using namespace o2;
-using namespace TPC;
-using namespace ali_tpc_common;
-using namespace tpc_fast_transformation;
+using namespace o2::TPC;
+using namespace o2::gpu;
 
 void spaceChargeCorrection(const double XYZ[3], double dXdYdZ[3])
 {
@@ -37,7 +35,7 @@ void spaceChargeCorrection(const double XYZ[3], double dXdYdZ[3])
 void getTPCTransformationExample()
 {
 
-  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(spaceChargeCorrection);
+  o2::TPC::TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(spaceChargeCorrection);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -59,11 +57,11 @@ void getTPCTransformationExample()
         for (float time = 0; time < 1000; time += 30) {
 
           fastTransform->setApplyDistortionFlag(0);
-          float x0, y0, z0;
+          float x0=0., y0=0., z0=0.;
           int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
           fastTransform->setApplyDistortionFlag(1);
-          float x1, y1, z1;
+          float x1=0., y1=0., z1=0.;
           int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           if (err0 != 0 || err1 != 0) {
