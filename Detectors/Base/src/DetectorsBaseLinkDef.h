@@ -18,7 +18,7 @@
 #pragma link C++ class o2::base::Propagator + ;
 
 #pragma link C++ class o2::base::GeometryManager + ;
-#pragma link C++ class o2::base::GeometryManager::MatBudget + ;
+#pragma link C++ class o2::base::GeometryManager::MatBudgetExt + ;
 #pragma link C++ class o2::base::MaterialManager + ;
 
 #pragma link C++ class o2::base::Ray + ;
