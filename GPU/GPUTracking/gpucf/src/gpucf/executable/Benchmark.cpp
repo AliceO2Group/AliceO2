@@ -92,19 +92,19 @@ void Benchmark::registerExperiments()
                         baseDir));
     }
 
-    {
-        GPUClusterFinder::Config multipleChunks;
-        multipleChunks.usePackedDigits = true;
-        multipleChunks.chunks = 4;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Parallel cluster finder", 
-                        "parallelClusterFinder.json",
-                        multipleChunks,
-                        digits, 
-                        iterations->Get(), 
-                        baseDir));
-    }
+    /* { */
+    /*     GPUClusterFinder::Config multipleChunks; */
+    /*     multipleChunks.usePackedDigits = true; */
+    /*     multipleChunks.chunks = 4; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Parallel cluster finder", */ 
+    /*                     "parallelClusterFinder.json", */
+    /*                     multipleChunks, */
+    /*                     digits, */ 
+    /*                     iterations->Get(), */ 
+    /*                     baseDir)); */
+    /* } */
 
     {
         GPUClusterFinder::Config tilingLayout;

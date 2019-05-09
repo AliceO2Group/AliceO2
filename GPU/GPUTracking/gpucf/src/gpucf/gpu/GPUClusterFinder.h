@@ -137,6 +137,12 @@ private:
                 nonstd::span<Cluster>);
 
         template<class DigitT>
+        void runAndCatch(
+                const Fragment &, 
+                nonstd::span<const DigitT>, 
+                nonstd::span<Cluster>);
+
+        template<class DigitT>
         void dispatch(
                 const Fragment &,
                 nonstd::span<const DigitT>,

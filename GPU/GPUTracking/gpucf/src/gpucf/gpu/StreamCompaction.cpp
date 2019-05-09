@@ -47,6 +47,15 @@ StreamCompaction::Worker::Worker(
 
     ASSERT(scanDownWorkGroupSize == scanUpWorkGroupSize);
 
+    size_t compactArrWorkGroupSize;
+    compactArr.getWorkGroupInfo(
+            device,
+            CL_KERNEL_WORK_GROUP_SIZE,
+            &compactArrWorkGroupSize);
+
+    ASSERT(compactArrWorkGroupSize == scanDownWorkGroupSize);
+    
+
     log::Debug() << "scanTopWorkGroupSize = " << scanTopWorkGroupSize;
 }
 
@@ -86,6 +95,7 @@ void StreamCompaction::setDigitNum(size_t digitnum, size_t workernum)
         DeviceMemory mem;
 
         size_t d = digitNum;
+        DBG(d);
         for (; d > scanTopWorkGroupSize; 
                d = std::ceil(d / float(scanUpWorkGroupSize)) )
         {
@@ -143,7 +153,10 @@ size_t StreamCompaction::Worker::run(
 
     size_t stepnum = this->stepnum(range);
     DBG(stepnum);
+    DBG(mem.incrBufs.size());
     ASSERT(stepnum <= mem.incrBufs.size());
+
+    DBG(offset);
 
     for (size_t i = 1; i < stepnum; i++)
     {
@@ -211,7 +224,7 @@ size_t StreamCompaction::Worker::run(
 
     ASSERT(digitnums.size() == stepnum-1);
     ASSERT(offsets.size() == stepnum-1);
-    for (size_t i = stepnum-1; i > 0; i--)
+    for (size_t i = stepnum-1; i > 1; i--)
     {
         offset = offsets[i-1];
         digitnum = digitnums[i-1];
@@ -240,12 +253,13 @@ size_t StreamCompaction::Worker::run(
     compactArr.setArg(0, digits);
     compactArr.setArg(1, digitsOut);
     compactArr.setArg(2, predicate);
-    compactArr.setArg(3, mem.incrBufs.front());
+    compactArr.setArg(3, mem.incrBufs[0]);
+    compactArr.setArg(4, mem.incrBufs[1]);
     queue.enqueueNDRangeKernel(
             compactArr,
             cl::NDRange(offset),
             cl::NDRange(digitnum),
-            cl::NullRange,
+            cl::NDRange(scanUpWorkGroupSize),
             nullptr,
             compactArrEv.get());
 

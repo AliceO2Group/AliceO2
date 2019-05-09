@@ -27,7 +27,7 @@ void nativeScanUpStart(
     int idx = get_global_id(0);
     int scanRes = work_group_scan_inclusive_add(predicate[idx]);
 
-    sums[idx] = scanRes;
+    /* sums[idx] = scanRes; */
 
     int lid = get_local_id(0);
     int lastItem = get_local_size(0) - 1;
@@ -94,12 +94,34 @@ void compactArr(
         global const Digit *digits,
         global       Digit *digitsOut,
         global const uchar *predicate, 
-        global const int   *newIdx)
+        global       int   *newIdx,
+        global const int   *incr)
 {
+    int gid = get_group_id(0) - 1;
     int idx = get_global_id(0);
 
-    if (predicate[idx])
+    int lastItem = get_global_size(0) - 1;
+
+    uchar pred = predicate[idx];
+    int scanRes = work_group_scan_inclusive_add(pred);
+
+    if (pred || idx == lastItem)
     {
-        digitsOut[newIdx[idx]-1] = digits[idx];
+        int compIdx = scanRes + incr[gid];
+
+        if (pred)
+        {
+            digitsOut[compIdx-1] = digits[idx];
+        }
+
+        if (idx == lastItem)
+        {
+            /* DBGPR_2("compact: groups = %d, gid = %d", groups, gid); */
+            /* DBGPR_2("compact: global = %d, local = %d", globalsize, localsize); */
+            /* DBGPR_3("compact: idx = %d, newIdx = %d, incr = %d", idx, newIdx[idx], incr[gid]); */
+            newIdx[idx] = compIdx;
+        }
+
     }
+
 }
