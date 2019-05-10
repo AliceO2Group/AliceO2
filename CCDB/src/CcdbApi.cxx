@@ -123,7 +123,7 @@ string CcdbApi::getFullUrlForStorage(const string& path, const map<string, strin
   string fullUrl = mUrl + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
   // Add metadata
   for (auto& kv : metadata) {
-    fullUrl += kv.first + "=" + kv.second + "&";
+    fullUrl += kv.first + "=" + kv.second + "/";
   }
   return fullUrl;
 }
