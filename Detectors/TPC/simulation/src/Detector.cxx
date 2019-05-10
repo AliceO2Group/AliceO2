@@ -1564,7 +1564,7 @@ void Detector::ConstructTPCGeometry()
   Double_t xmin, xmax;
   // 1
   xmin = 9.65 * tga + 12.3742;
-  xmax = 10.5 * tga + 12.3742;
+  xmax = 10.05 * tga + 12.3742;
   //
   auto* ib1 = new TGeoTrd1(xmin, xmax, 2.06, 0.2);
   auto* ib1v = new TGeoVolume("TPC_IRB1", ib1, m3);
