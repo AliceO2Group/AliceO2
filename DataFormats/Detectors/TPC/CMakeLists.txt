@@ -18,10 +18,16 @@
 
 o2_add_library(
   DataFormatsTPC
-  SOURCES src/Helpers.cxx src/TrackTPC.cxx src/TPCSectorHeader.cxx
+  SOURCES src/Helpers.cxx
+          src/TrackTPC.cxx
+          src/LaserTrack.cxx
+          src/TPCSectorHeader.cxx
           src/ClusterNativeHelper.cxx
-  PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::SimulationDataFormat
-                        O2::CommonDataFormat O2::Headers O2::Algorithm)
+  PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                        O2::SimulationDataFormat
+                        O2::CommonDataFormat
+                        O2::Headers
+                        O2::Algorithm)
 
 o2_target_root_dictionary(
   DataFormatsTPC
@@ -31,6 +37,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/ClusterHardware.h
           include/DataFormatsTPC/Helpers.h
           include/DataFormatsTPC/TrackTPC.h
+          include/DataFormatsTPC/LaserTrack.h
           include/DataFormatsTPC/Constants.h
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
