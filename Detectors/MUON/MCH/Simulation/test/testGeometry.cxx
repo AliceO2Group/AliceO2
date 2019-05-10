@@ -11,7 +11,7 @@
 ///
 /// @author  Laurent Aphecetche
 
-#define BOOST_TEST_MODULE Test MCHSimulation Geometry
+#define BOOST_TEST_MODULE Test MCHSimulation GeoDigiRes
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 

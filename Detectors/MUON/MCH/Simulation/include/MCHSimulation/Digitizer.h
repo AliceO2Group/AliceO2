@@ -17,7 +17,6 @@
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
 
 #include "MCHSimulation/Digit.h"
-#include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,13 +36,14 @@ class Digitizer
 
   void init();
 
-  void setEventTime(double timeNS) { mEventTime = timeNS; }
-
   //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
+  void mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> trackLabels);
 
-  void fillOutputContainer(std::vector<Digit>& digits);
+  void fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels);
+
+  void setEventTime(double timeNS) { mEventTime = timeNS; }
 
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
@@ -54,9 +54,12 @@ class Digitizer
   void setEventID(int v);
   int getEventID() const { return mEventID; }
 
+  //for debugging
+  std::vector<Digit> getDigits() { return mDigits; }
+  std::vector<o2::MCCompLabel> getTrackLabels() { return mTrackLabels; }
+
  private:
   double mEventTime;
-  int mReadoutWindowCurrent{ 0 };
   int mEventID = 0;
   int mSrcID = 0;
 
@@ -68,7 +71,7 @@ class Digitizer
   std::vector<Digit> mDigits;
 
   //MCLabel container (transient)
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackLabels;
+  std::vector<o2::MCCompLabel> mTrackLabels;
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
