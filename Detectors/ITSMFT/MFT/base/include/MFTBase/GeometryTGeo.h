@@ -30,7 +30,7 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
@@ -173,7 +173,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sSensorName; ///<
 
  private:
-  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance; ///< singleton instance
+  static std::unique_ptr<o2::mft::GeometryTGeo> sInstance; ///< singleton instance
 
   ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };

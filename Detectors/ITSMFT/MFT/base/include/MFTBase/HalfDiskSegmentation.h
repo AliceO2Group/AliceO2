@@ -25,7 +25,7 @@ class TClonesArray;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class HalfDiskSegmentation : public VSegmentation

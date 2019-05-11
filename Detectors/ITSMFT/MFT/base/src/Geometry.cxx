@@ -24,9 +24,9 @@
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Geometry);
+ClassImp(o2::mft::Geometry);
 
 const Double_t Geometry::sSensorInterspace = 0.01; //[cm]  Offset between two adjacent chip on a ladder
 const Double_t Geometry::sSensorSideOffset = 0.04; // [cm] Side Offset between the ladder edge and the chip edge

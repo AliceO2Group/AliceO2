@@ -32,7 +32,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace MFT
+namespace mft
 {
 class TrackerTask : public FairTask
 {

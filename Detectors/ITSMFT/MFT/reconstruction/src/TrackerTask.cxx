@@ -18,9 +18,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-ClassImp(o2::MFT::TrackerTask);
+ClassImp(o2::mft::TrackerTask);
 
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::base;
 
 //_____________________________________________________________________________

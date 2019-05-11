@@ -51,8 +51,8 @@ void run_digi_mft(float rate = 50e3,
   rtdb->setFirstInput(parInput1);
 
   // Setup digitizer
-  // Call o2::MFT::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-  o2::MFT::DigitizerTask* digi = new o2::MFT::DigitizerTask();
+  // Call o2::mft::DigitizerTask(kTRUE) to activate the ALPIDE simulation
+  o2::mft::DigitizerTask* digi = new o2::mft::DigitizerTask();
   //
   // This is an example of setting the digitization parameters manually
   // ====>>

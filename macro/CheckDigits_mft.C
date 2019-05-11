@@ -28,7 +28,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   using o2::itsmft::SegmentationAlpide;
   using o2::itsmft::Digit;
   using o2::itsmft::Hit;
-  using namespace o2::MFT;
+  using namespace o2::mft;
 
   TH1F* hTrackID = new TH1F("hTrackID", "hTrackID", 1.1 * nMuons + 1, -0.5, (nMuons + 0.1 * nMuons) + 0.5);
 
@@ -42,7 +42,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   TFile* file = TFile::Open(filename);
   gFile->Get("FairGeoParSet");
 
-  auto* gman = o2::MFT::GeometryTGeo::Instance();
+  auto* gman = o2::mft::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 
   SegmentationAlpide seg;

@@ -26,9 +26,9 @@
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Geometry.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::HeatExchanger);
+ClassImp(o2::mft::HeatExchanger);
 
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger()

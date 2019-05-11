@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 namespace Constants
 {
@@ -39,7 +39,7 @@ inline const Double_t layerZPosition(Int_t id)
   return (id >= 0 && id < LayersNumber) ? LayerZPosition[id] + (-(id % 2) * 2 - 1) * 0.0025 : 0.;
 }
 } // namespace Constants
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif

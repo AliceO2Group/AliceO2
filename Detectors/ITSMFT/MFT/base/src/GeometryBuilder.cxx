@@ -25,9 +25,9 @@
 
 #include "FairLogger.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::GeometryBuilder);
+ClassImp(o2::mft::GeometryBuilder);
 
 //_____________________________________________________________________________
 GeometryBuilder::GeometryBuilder() : TNamed()

@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class HalfDiskSegmentation;
 }
@@ -32,7 +32,7 @@ class HalfDiskSegmentation;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class HalfSegmentation : public VSegmentation

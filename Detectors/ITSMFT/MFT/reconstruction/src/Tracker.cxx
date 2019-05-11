@@ -19,7 +19,7 @@
 #include <future>
 #include <chrono>
 
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::itsmft;
 
 Tracker::Layer Tracker::sLayers[Constants::LayersNumber];
@@ -113,7 +113,7 @@ std::vector<TrackMFT> Tracker::trackInThread(Int_t first, Int_t last)
 }
 
 //_____________________________________________________________________________
-void Tracker::setGeometry(o2::MFT::GeometryTGeo* geom)
+void Tracker::setGeometry(o2::mft::GeometryTGeo* geom)
 {
 
   /// attach geometry interface

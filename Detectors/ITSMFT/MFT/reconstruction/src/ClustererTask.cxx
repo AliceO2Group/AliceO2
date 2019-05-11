@@ -21,7 +21,7 @@
 #include <TFile.h>
 #include <TTree.h>
 
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::base;
 using namespace o2::utils;
 

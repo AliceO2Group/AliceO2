@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class HalfSegmentation;
 }
@@ -29,7 +29,7 @@ class HalfSegmentation;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Segmentation : public TNamed

@@ -474,7 +474,7 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::MFT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::MFT::Detector>());
+      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>());
       counter++;
     }
     if (i == DetID::TRD) {

@@ -80,7 +80,7 @@ class ITSMFTDPLDigitizerTask
     if (mID == o2::detectors::DetID::ITS) {
       geom = o2::its::GeometryTGeo::Instance();
     } else {
-      geom = o2::MFT::GeometryTGeo::Instance();
+      geom = o2::mft::GeometryTGeo::Instance();
     }
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
