@@ -30,9 +30,9 @@
 
 #include "MFTBase/HalfCone.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::HalfCone);
+ClassImp(o2::mft::HalfCone);
 
 //_____________________________________________________________________________
 HalfCone::HalfCone() : TNamed(), mHalfCone(nullptr)

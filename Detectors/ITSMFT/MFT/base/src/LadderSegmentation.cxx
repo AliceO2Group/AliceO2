@@ -19,7 +19,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
 ClassImp(LadderSegmentation);
 
@@ -56,7 +56,7 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder)
   if (ladder.mChips)
     mChips = new TClonesArray(*(ladder.mChips));
   else
-    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
+    mChips = new TClonesArray("o2::mft::ChipSegmentation", mNSensors);
 
   mChips->SetOwner(kTRUE);
 }
@@ -68,7 +68,7 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
 {
 
   if (!mChips) {
-    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
+    mChips = new TClonesArray("o2::mft::ChipSegmentation", mNSensors);
     mChips->SetOwner(kTRUE);
   }
 

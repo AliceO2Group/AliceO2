@@ -26,7 +26,7 @@ using o2::itsmft::Cluster;
 void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3")
 {
   using namespace o2::base;
-  using namespace o2::MFT;
+  using namespace o2::mft;
 
   using o2::itsmft::Hit;
 
@@ -43,7 +43,7 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
   TFile* file = TFile::Open(filename);
   gFile->Get("FairGeoParSet");
 
-  auto gman = o2::MFT::GeometryTGeo::Instance();
+  auto gman = o2::mft::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2G,
                                             o2::TransformType::L2G)); // request cached transforms
 

@@ -34,9 +34,9 @@
 #include "FairRootManager.h"
 
 using o2::itsmft::Hit;
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Detector);
+ClassImp(o2::mft::Detector);
 
 //_____________________________________________________________________________
 Detector::Detector()

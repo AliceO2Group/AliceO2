@@ -15,7 +15,7 @@ void extractMFTMapping(const std::string inputGeom = "O2geometry.root")
 {
 
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto gm = o2::MFT::GeometryTGeo::Instance(); // geometry manager for mapping
+  auto gm = o2::mft::GeometryTGeo::Instance(); // geometry manager for mapping
 
   // ladder (MFT) = module (ITS)
   Int_t chip, ladder, layer, disk, half, ladderP = -1, layerP = -1, halfP = -1;

@@ -34,7 +34,7 @@ void run_clus_mftSA(std::string outputfile, // output file name
   // Setup clusterizer
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
   Bool_t entryPerROF = kTRUE; // write single tree entry for every ROF. If false, just 1 entry will be saved
-  o2::MFT::ClustererTask* clus = new o2::MFT::ClustererTask(useMCTruth, raw);
+  o2::mft::ClustererTask* clus = new o2::mft::ClustererTask(useMCTruth, raw);
 
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)

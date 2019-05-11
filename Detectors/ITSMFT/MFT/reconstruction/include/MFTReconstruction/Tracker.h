@@ -37,7 +37,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace MFT
+namespace mft
 {
 class Tracker
 {
@@ -56,7 +56,7 @@ class Tracker
   void process(const std::vector<Cluster>& clusters, std::vector<TrackMFT>& tracks);
   void processFrame(std::vector<TrackMFT>& tracks);
   const Cluster* getCluster(Int_t index) const;
-  void setGeometry(o2::MFT::GeometryTGeo* geom);
+  void setGeometry(o2::mft::GeometryTGeo* geom);
   void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels,
                             o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabels)
   {
@@ -76,7 +76,7 @@ class Tracker
 
  private:
   Bool_t mContinuousMode = true;                                                  ///< triggered or cont. mode
-  const o2::MFT::GeometryTGeo* mGeom = nullptr;                                   ///< interface to geometry
+  const o2::mft::GeometryTGeo* mGeom = nullptr;                                   ///< interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       ///< Track MC labels
   std::uint32_t mROFrame = 0;                                                     ///< last frame processed
@@ -94,11 +94,11 @@ class Tracker::Layer
   Bool_t insertCluster(const Cluster* c);
   void unloadClusters();
   const Cluster* getCluster(Int_t i) const { return mClusters[i]; }
-  void setGeometry(o2::MFT::GeometryTGeo* geom) { mGeom = geom; }
+  void setGeometry(o2::mft::GeometryTGeo* geom) { mGeom = geom; }
   Int_t getNumberOfClusters() const { return mClusters.size(); }
 
  protected:
-  const o2::MFT::GeometryTGeo* mGeom = nullptr;
+  const o2::mft::GeometryTGeo* mGeom = nullptr;
   std::vector<const Cluster*> mClusters;
 };
 }

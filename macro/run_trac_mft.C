@@ -57,7 +57,7 @@ void run_trac_mft(float rate, std::string outputfile, std::string inputfile, std
   // Setup tracker
   Int_t n = 1;            // Number of threads
   Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
-  o2::MFT::TrackerTask* trac = new o2::MFT::TrackerTask(n, mcTruth);
+  o2::mft::TrackerTask* trac = new o2::mft::TrackerTask(n, mcTruth);
   trac->setContinuousMode(rate > 0.);
 
   fRun->AddTask(trac);

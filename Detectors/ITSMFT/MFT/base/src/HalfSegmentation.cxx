@@ -22,7 +22,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
 ClassImp(HalfSegmentation);
 
@@ -56,7 +56,7 @@ HalfSegmentation::HalfSegmentation(const Char_t* nameGeomFile, const Short_t id)
   SetUniqueID(halfUniqueID);
   SetName(Form("%s_%d", GeometryTGeo::getMFTHalfPattern(), id));
 
-  mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::DisksNumber);
+  mHalfDisks = new TClonesArray("o2::mft::HalfDiskSegmentation", Constants::DisksNumber);
   mHalfDisks->SetOwner(kTRUE);
 
   // Create XML engine

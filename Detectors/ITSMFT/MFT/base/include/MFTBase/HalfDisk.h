@@ -22,21 +22,21 @@ class TGeoVolumeAssembly;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class HalfDiskSegmentation;
 }
 }
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class Support;
 }
 }
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class HeatExchanger;
 }
@@ -44,7 +44,7 @@ class HeatExchanger;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class HalfDisk : public TNamed

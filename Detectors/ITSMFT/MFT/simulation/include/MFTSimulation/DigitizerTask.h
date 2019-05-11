@@ -31,7 +31,7 @@ class TBranch;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class DigitizerTask : public FairTask
 {

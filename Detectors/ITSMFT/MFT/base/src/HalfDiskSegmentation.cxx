@@ -21,7 +21,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::itsmft;
 
 ClassImp(HalfDiskSegmentation);
@@ -48,7 +48,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID) : VSegmentation(), m
   SetName(Form("%s_%d_%d", GeometryTGeo::getMFTDiskPattern(), mftGeom->getHalfID(GetUniqueID()),
                mftGeom->getDiskID(GetUniqueID())));
 
-  mLadders = new TClonesArray("o2::MFT::LadderSegmentation");
+  mLadders = new TClonesArray("o2::mft::LadderSegmentation");
   mLadders->SetOwner(kTRUE);
 }
 
@@ -63,7 +63,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input)
   if (input.mLadders)
     mLadders = new TClonesArray(*(input.mLadders));
   else
-    mLadders = new TClonesArray("o2::MFT::LadderSegmentation");
+    mLadders = new TClonesArray("o2::mft::LadderSegmentation");
   mLadders->SetOwner(kTRUE);
 }
 

@@ -168,7 +168,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("MFT")) {
     // mft
-    auto mft = new o2::MFT::Detector();
+    auto mft = new o2::mft::Detector();
     run->AddModule(mft);
   }
 

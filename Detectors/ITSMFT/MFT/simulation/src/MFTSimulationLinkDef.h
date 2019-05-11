@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::MFT::Detector+;
-#pragma link C++ class o2::base::DetImpl<o2::MFT::Detector>+;
-#pragma link C++ class o2::MFT::DigitizerTask+;
+#pragma link C++ class o2::mft::Detector+;
+#pragma link C++ class o2::base::DetImpl<o2::mft::Detector>+;
+#pragma link C++ class o2::mft::DigitizerTask+;
 
 #endif

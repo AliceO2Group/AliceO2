@@ -21,9 +21,9 @@
 
 #include "MFTBase/Support.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Support);
+ClassImp(o2::mft::Support);
 
 //_____________________________________________________________________________
 Support::Support()

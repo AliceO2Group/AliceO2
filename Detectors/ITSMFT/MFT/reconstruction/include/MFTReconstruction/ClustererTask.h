@@ -38,7 +38,7 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace MFT
+namespace mft
 {
 
 class ClustererTask
