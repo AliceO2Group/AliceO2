@@ -18,7 +18,7 @@ class FairParSet;
 class FairContainer;
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 
 
@@ -30,7 +30,7 @@ class ContainerFactory : public FairContFact
     ContainerFactory();
     ~ContainerFactory() override = default;
     FairParSet* createContainer(FairContainer*) override;
-    ClassDefOverride( o2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
+    ClassDefOverride( o2::tpc::ContainerFactory,0) // Factory for all tpc parameter containers
 };
 }
 }

@@ -23,7 +23,7 @@
 #include <iomanip>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
   /// @brief Test 1 basic class IO tests
   BOOST_AUTO_TEST_CASE(AdcClockMonitor_test1)

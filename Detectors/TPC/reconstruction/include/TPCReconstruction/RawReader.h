@@ -26,7 +26,7 @@
 #include "TPCReconstruction/RawReaderEventSync.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class RawReader
 /// \brief Reader for RAW TPC data

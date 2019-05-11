@@ -66,7 +66,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
     }
   }
 
-  o2::TPC::ClusterNativeHelper::Reader tcpClusterReader;
+  o2::tpc::ClusterNativeHelper::Reader tcpClusterReader;
   tcpClusterReader.init(inputClustersTPC.c_str());
   matching.setInputTPCClustersReader(&tcpClusterReader);
   //<<<---------- attach input data ---------------<<<

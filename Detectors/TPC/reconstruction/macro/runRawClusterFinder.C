@@ -10,7 +10,7 @@
 
 #include "RawClusterFinder.C"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void runRawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, RawClusterFinder::ClustererType clustererType=RawClusterFinder::ClustererType::HW)
 {

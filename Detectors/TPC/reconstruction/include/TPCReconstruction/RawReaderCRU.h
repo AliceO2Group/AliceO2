@@ -33,7 +33,7 @@
 //#include "git_info.hpp"
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class RawReaderCRU
@@ -537,6 +537,6 @@ inline void RawReaderCRU::GBTFrame::getAdcValues(ADCRawData& rawData)
   };
   // std::cout << std::endl;
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

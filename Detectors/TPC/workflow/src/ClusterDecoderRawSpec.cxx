@@ -36,7 +36,7 @@ using namespace o2::header;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -69,9 +69,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // FIXME make one function
       o2::header::Stack rawHeaderStack;
       o2::header::Stack mcHeaderStack;
-      o2::TPC::TPCSectorHeader const* sectorHeaderMC = nullptr;
+      o2::tpc::TPCSectorHeader const* sectorHeaderMC = nullptr;
       if (!labelKey.empty()) {
-        sectorHeaderMC = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(labelKey.c_str()));
+        sectorHeaderMC = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(labelKey.c_str()));
         if (sectorHeaderMC) {
           o2::header::Stack actual{ *sectorHeaderMC };
           std::swap(mcHeaderStack, actual);
@@ -80,7 +80,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           }
         }
       }
-      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(inputKey.c_str()));
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputKey.c_str()));
       if (sectorHeader) {
         o2::header::Stack actual{ *sectorHeader };
         std::swap(rawHeaderStack, actual);
@@ -244,5 +244,5 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
                             AlgorithmSpec(initFunction) };
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

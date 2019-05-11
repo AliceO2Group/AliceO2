@@ -204,7 +204,7 @@ class MatchTOF
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
-  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
   std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels

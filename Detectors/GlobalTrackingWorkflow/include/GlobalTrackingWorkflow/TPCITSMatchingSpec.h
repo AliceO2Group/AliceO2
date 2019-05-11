@@ -42,7 +42,7 @@ class TPCITSMatchingDPL : public Task
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
 
   std::vector<int> mTPCClusLanes;
-  std::array<std::vector<char>, o2::TPC::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
+  std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
 
   bool mUseFIT = false;
 

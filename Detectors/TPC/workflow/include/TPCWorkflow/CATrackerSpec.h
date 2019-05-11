@@ -17,12 +17,12 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
 framework::DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds);
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

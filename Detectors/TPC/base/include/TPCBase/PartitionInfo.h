@@ -28,7 +28,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class PartitionInfo
@@ -56,7 +56,7 @@ class PartitionInfo
   unsigned short mNumberOfPads{ 0 };
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_PARTITIONINFO_H_

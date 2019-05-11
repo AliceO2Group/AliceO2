@@ -22,7 +22,7 @@
 
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using namespace o2::gpu;
 
 void spaceChargeCorrection(const double XYZ[3], double dXdYdZ[3])
@@ -35,7 +35,7 @@ void spaceChargeCorrection(const double XYZ[3], double dXdYdZ[3])
 void getTPCTransformationExample()
 {
 
-  o2::TPC::TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(spaceChargeCorrection);
+  o2::tpc::TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(spaceChargeCorrection);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 

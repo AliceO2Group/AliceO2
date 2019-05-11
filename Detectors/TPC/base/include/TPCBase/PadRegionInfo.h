@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class PadRegionInfo
@@ -161,6 +161,6 @@ class PadRegionInfo
   std::vector<unsigned char> mPadsPerRow; ///< number of pad in each row
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

@@ -14,10 +14,10 @@
 #include "DataFormatsTPC/Cluster.h"
 #include <iostream>
 
-ClassImp(o2::TPC::ClusterTimeStamp);
-ClassImp(o2::TPC::Cluster);
+ClassImp(o2::tpc::ClusterTimeStamp);
+ClassImp(o2::tpc::Cluster);
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //________________________________________________________________________
 std::ostream& Cluster::print(std::ostream& out) const

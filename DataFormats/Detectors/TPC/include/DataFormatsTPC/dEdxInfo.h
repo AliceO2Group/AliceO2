@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct dEdxInfo {
   float dEdxTotIROC;
@@ -41,7 +41,7 @@ struct dEdxInfo {
   unsigned char NHitsSubThresholdOROC3;
   ClassDefNV(dEdxInfo, 1);
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

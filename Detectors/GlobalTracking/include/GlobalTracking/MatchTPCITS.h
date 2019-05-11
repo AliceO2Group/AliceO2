@@ -59,7 +59,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace TPC
+namespace tpc
 {
 class TrackTPC;
 }
@@ -217,14 +217,14 @@ class MatchTPCITS
   }
 
   ///< set input TPC tracks received via DPL
-  void setTPCTracksInp(const std::vector<o2::TPC::TrackTPC>* inp)
+  void setTPCTracksInp(const std::vector<o2::tpc::TrackTPC>* inp)
   {
     assertDPLIO(true);
     mTPCTracksArrayInp = inp;
   }
 
   ///< set input TPC clusters received via DPL
-  void setTPCClustersInp(const o2::TPC::ClusterNativeAccessFullTPC* inp)
+  void setTPCClustersInp(const o2::tpc::ClusterNativeAccessFullTPC* inp)
   {
     assertDPLIO(true);
     mTPCClusterIdxStruct = inp;
@@ -272,7 +272,7 @@ class MatchTPCITS
   void setInputTreeFITInfo(TTree* tree) { mTreeFITInfo = tree; }
 
   ///< set reader for TPC clusters
-  void setInputTPCClustersReader(o2::TPC::ClusterNativeHelper::Reader* reader) { mTPCClusterReader = reader; }
+  void setInputTPCClustersReader(o2::tpc::ClusterNativeHelper::Reader* reader) { mTPCClusterReader = reader; }
 
   ///< set output tree to write matched tracks
   void setOutputTree(TTree* tr) { mOutputTree = tr; }
@@ -523,8 +523,8 @@ class MatchTPCITS
   TTree* mTreeITSClusterROFRec = nullptr; ///< input tree for ITS Clusters ROFRecords vector
   TTree* mTreeFITInfo = nullptr;     ///< input tree for FIT info
 
-  o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
-  std::unique_ptr<o2::TPC::ClusterNativeAccessFullTPC> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
+  o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
+  std::unique_ptr<o2::tpc::ClusterNativeAccessFullTPC> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
 
   std::unique_ptr<TPCTransform> mTPCTransform;                       ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam;               ///< TPC clusters error param
@@ -535,11 +535,11 @@ class MatchTPCITS
   //           since this info is provided by external device
   const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;       ///< input ITS tracks ROFRecord
   const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
-  const std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
+  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
   const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
-  const o2::TPC::ClusterNativeAccessFullTPC* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  const o2::tpc::ClusterNativeAccessFullTPC* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTPCTrkLabels = nullptr; ///< input TPC Track MC labels

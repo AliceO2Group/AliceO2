@@ -23,7 +23,7 @@
 #include <iomanip>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
   struct result {
     int value;

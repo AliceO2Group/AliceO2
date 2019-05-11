@@ -25,7 +25,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Digit;
@@ -111,7 +111,7 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
   mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitContainer_H_

@@ -32,7 +32,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 //   enum RocType {ISector=0, OSector=1};
 

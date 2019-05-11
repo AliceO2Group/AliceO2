@@ -14,7 +14,7 @@
 
 #include "DataFormatsTPC/TrackTPC.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows, int* nclPID) const
 {

@@ -31,7 +31,7 @@ class MCTruthContainer;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 template <unsigned int size>
 class ClusterHardwareContainerFixedSize

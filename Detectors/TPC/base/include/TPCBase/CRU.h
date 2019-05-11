@@ -16,7 +16,7 @@
 #include "TPCBase/ROC.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 //   enum RocType {ICRU=0, OCRU=1};
 
   class CRU {

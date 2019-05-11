@@ -17,12 +17,12 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
 framework::DataProcessorSpec getClusterDecoderRawSpec(bool sendMC = false);
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

@@ -22,7 +22,7 @@
 
 #include "TPCBase/Mapper.h"
 namespace o2 {
-namespace TPC {
+namespace tpc {
   constexpr std::array<double, SECTORSPERSIDE> Mapper::SinsPerSector/*{{
     0,
     0.3420201433256687129080830800376133993268,

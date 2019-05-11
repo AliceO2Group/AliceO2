@@ -31,11 +31,11 @@
 #include "GPUTPCGMMergedTrackHit.h"
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -58,7 +58,7 @@ class GPUTPCO2Interface
   int Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans);
   void Deinitialize();
 
-  int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
+  int RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
   void Cleanup();
 
   bool GetParamContinuous() { return (mContinuous); }

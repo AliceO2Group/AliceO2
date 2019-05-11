@@ -16,7 +16,7 @@
 
 void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0)
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   CalibPedestal ped; //(PadSubset::Region);
   ped.setADCRange(adcMin, adcMax);
   ped.setupContainers(fileInfo, verbosity, debugLevel);

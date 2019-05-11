@@ -29,7 +29,7 @@
 #include <memory>
 
 namespace o2 {
-namespace TPC{
+namespace tpc{
 
 class ClustererTask : public FairTask{
 

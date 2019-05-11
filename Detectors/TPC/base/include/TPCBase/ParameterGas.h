@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class ParameterGas

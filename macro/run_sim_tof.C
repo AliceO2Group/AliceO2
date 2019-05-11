@@ -78,7 +78,7 @@ void run_sim_tof(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->AddModule(frame);
 
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
+  o2::tpc::Detector* tpc = new o2::tpc::Detector(kTRUE);
   tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

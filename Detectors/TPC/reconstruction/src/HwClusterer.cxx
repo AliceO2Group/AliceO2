@@ -23,7 +23,7 @@
 #include <cassert>
 #include <limits>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
@@ -129,7 +129,7 @@ HwClusterer::HwClusterer(
 }
 
 //______________________________________________________________________________
-void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   if (clearContainerFirst) {
     if (mClusterArray)
@@ -268,7 +268,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 }
 
 //______________________________________________________________________________
-void HwClusterer::finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   // Process the last digits (if there are any)
   process(digits, mcDigitTruth, clearContainerFirst);

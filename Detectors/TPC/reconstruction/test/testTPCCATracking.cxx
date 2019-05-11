@@ -36,7 +36,7 @@ using namespace o2::dataformats;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// @brief Test 1 basic class IO tests

@@ -22,7 +22,7 @@
 #include "TPCBase/ParameterGas.h"
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Trivial test of the default initialization of Parameter Detector
@@ -248,5 +248,5 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
     BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(i), i, 1e-12);
   }
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

@@ -87,7 +87,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
         // do this only one
         for (const auto& channel : *tpcsubchannels.get()) {
           // -1 is marker for end of work
-          o2::TPC::TPCSectorHeader header{ -1 };
+          o2::tpc::TPCSectorHeader header{ -1 };
           header.activeSectors = activeSectors;
           pc.outputs().snapshot(
             OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(channel), { header } },
@@ -105,7 +105,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
       if (counter < sectors.size()) {
         auto sector = sectors[counter];
         // send the sectorassign as header with the collision context data
-        o2::TPC::TPCSectorHeader header{ sector };
+        o2::tpc::TPCSectorHeader header{ sector };
         header.activeSectors = activeSectors;
         pc.outputs().snapshot(
           OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(tpcchannel), { header } },

@@ -20,7 +20,7 @@
 #include <array>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class SyncPatternMonitor
 /// \brief Class to monitor the data stream and detect synchronization patterns

@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class DigitGlobalPad
@@ -170,7 +170,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
     }
   }
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitGlobalPad_H_

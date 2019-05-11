@@ -26,7 +26,7 @@
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //______________________________________________________________________________
 const CalPad& CDBInterface::getPedestals()

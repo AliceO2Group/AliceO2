@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Test of the full GEM amplification
@@ -166,5 +166,5 @@ BOOST_AUTO_TEST_CASE(GEMamplification_losses_test)
   /// -# case the probability is explicitly handled for each electron
   BOOST_CHECK_CLOSE(hTest2.GetMean(), 2, 0.5);
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

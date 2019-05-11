@@ -28,7 +28,7 @@ using namespace o2::gpu;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 TPCFastTransformHelperO2* TPCFastTransformHelperO2::sInstance = nullptr;
@@ -368,5 +368,5 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransform& fastTransfor
                << " max Dx " << maxDx << " max Dy " << maxDy << std::endl;
   }
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

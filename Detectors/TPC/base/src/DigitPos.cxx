@@ -12,7 +12,7 @@
 #include "TPCBase/Mapper.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 
 PadPos    DigitPos::getGlobalPadPos() const

@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class DigitMCMetaData
@@ -76,7 +76,7 @@ inline DigitMCMetaData::DigitMCMetaData(float ADC, float commonMode, float pedes
 {
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitMCMetaData_H_

@@ -25,13 +25,13 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccessExt
   unsigned int offset = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     unsigned int nClSlice = 0;
-    for (int j = 0; j < o2::TPC::Constants::MAXGLOBALPADROW; j++) {
+    for (int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
       nClSlice += native->nClusters[i][j];
     }
     nClusters[i] = nClSlice;
     clusters[i].reset(new GPUTPCClusterData[nClSlice]);
     nClSlice = 0;
-    for (int j = 0; j < o2::TPC::Constants::MAXGLOBALPADROW; j++) {
+    for (int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
       for (unsigned int k = 0; k < native->nClusters[i][j]; k++) {
         const auto& cin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;

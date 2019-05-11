@@ -38,7 +38,7 @@ using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 template <typename T>
@@ -156,7 +156,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
       // extracts the sector from header of an input
       auto extractSector = [&pc](const char* inputname) {
-        auto sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(inputname));
+        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputname));
         if (!sectorHeader) {
           LOG(FATAL) << "Missing sector header in TPC data";
         }
@@ -191,7 +191,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           } else {
             // have to do work ...
             // the digits
-            auto digiData = pc.inputs().get<std::vector<o2::TPC::Digit>>(dname.c_str());
+            auto digiData = pc.inputs().get<std::vector<o2::tpc::Digit>>(dname.c_str());
             LOG(INFO) << "DIGIT SIZE " << digiData.size();
             const auto& trigS = (*trigP2Sect.get())[sector];
             if (!trigS.size()) {
@@ -212,7 +212,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
                 br->Fill();
                 br->ResetAddress();
               } else {                                // triggered mode (>1 entrie will be written)
-                std::vector<o2::TPC::Digit> digGroup; // group of digits related to single trigger
+                std::vector<o2::tpc::Digit> digGroup; // group of digits related to single trigger
                 auto digGroupPtr = &digGroup;
                 auto br = getOrMakeBranch(*outputtree.get(), "TPCDigit", sector, digGroupPtr);
                 for (auto grp : trigS) {
@@ -317,5 +317,5 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     }
   };
 }
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

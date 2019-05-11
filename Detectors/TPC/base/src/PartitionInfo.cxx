@@ -11,7 +11,7 @@
 #include "TPCBase/PartitionInfo.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 PartitionInfo::PartitionInfo(const unsigned char  numberOfFECs,
                              const unsigned char  sectorFECOffset,
@@ -27,5 +27,5 @@ PartitionInfo::PartitionInfo(const unsigned char  numberOfFECs,
 {
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace AliceO2

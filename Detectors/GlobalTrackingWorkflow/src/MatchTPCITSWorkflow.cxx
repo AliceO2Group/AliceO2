@@ -36,11 +36,11 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
   specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
   specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters));
 
-  specs.emplace_back(o2::TPC::getTPCTrackReaderSpec(useMC));
+  specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
 
   std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
   std::vector<int> tpcClusLanes = tpcClusSectors;
-  specs.emplace_back(o2::TPC::getPublisherSpec(o2::TPC::PublisherConf{
+  specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                  "tpc-native-cluster-reader",
                                                  "tpcrec",
                                                  { "clusterbranch", "TPCClusterNative", "Branch with TPC native clusters" },

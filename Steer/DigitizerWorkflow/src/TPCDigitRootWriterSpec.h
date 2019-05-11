@@ -15,7 +15,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 // numberofsourcedevices is the number of devices we receive digits from
 o2::framework::DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices = 1);

@@ -13,7 +13,7 @@
 #include "FairRuntimeDb.h"  // for FairRuntimeDb
 
 class FairParSet;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 ClassImp(ContainerFactory)
 

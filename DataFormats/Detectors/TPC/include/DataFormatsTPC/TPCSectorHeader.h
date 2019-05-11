@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// @struct TPCSectorHeader
@@ -31,7 +31,7 @@ struct TPCSectorHeader : public o2::header::BaseHeader {
   {
   }
 
-  static constexpr int NSectors = o2::TPC::Constants::MAXSECTOR;
+  static constexpr int NSectors = o2::tpc::Constants::MAXSECTOR;
   int sector;
   union {
     uint64_t activeSectorsFlags = 0;
@@ -42,7 +42,7 @@ struct TPCSectorHeader : public o2::header::BaseHeader {
     };
   };
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // O2_TPCSECTORHEADER_H

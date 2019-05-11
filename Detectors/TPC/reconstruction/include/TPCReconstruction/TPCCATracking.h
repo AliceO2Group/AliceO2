@@ -32,7 +32,7 @@ namespace o2 { class MCCompLabel; namespace dataformats { template <class T> cla
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class TPCCATracking
@@ -48,7 +48,7 @@ public:
   void deinitialize();
 
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
-  int runTracking(const o2::TPC::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
+  int runTracking(const o2::tpc::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr);
 
   float getPseudoVDrift();                                            //Return artificial VDrift used to convert time to Z

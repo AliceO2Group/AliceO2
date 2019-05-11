@@ -34,7 +34,7 @@
 #pragma cling load("libDataFormatsTPC")
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 

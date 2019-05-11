@@ -27,9 +27,9 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCSimulation/SpaceCharge.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
-const float o2::TPC::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
+const float o2::tpc::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
 
 SpaceCharge::SpaceCharge()
   : mNZSlices(MaxZSlices),

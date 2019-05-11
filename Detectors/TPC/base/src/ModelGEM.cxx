@@ -16,7 +16,7 @@
 
 #include "TPCBase/ModelGEM.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 ModelGEM::ModelGEM() :
 

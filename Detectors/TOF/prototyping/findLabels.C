@@ -25,7 +25,7 @@ void findLabels(int itrk, int ientry)
   // getting the TPC tracks
   TFile* ftracksTPC = new TFile("tpctracks.root");
   TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
-  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::TPC::TrackTPC>;
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
   tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTPC = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   tpcTree->SetBranchAddress("TPCTracksMCTruth", &mcTPC);

@@ -19,7 +19,7 @@
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ModelGEM.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 ParameterGEM::ParameterGEM()
   : mGeometry(), mDistance(), mPotential(), mElectricField(), mAbsoluteGain(), mCollectionEfficiency(), mExtractionEfficiency(), mTotalGainStack(1644.f), mKappaStack(1.2295f), mEfficiencyStack(0.473805f), mAmplificationMode(AmplificationMode::EffectiveMode)

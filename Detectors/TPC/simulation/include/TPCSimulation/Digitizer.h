@@ -32,7 +32,7 @@ class TH3;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class DigitContainer;
@@ -69,14 +69,14 @@ class Digitizer
   /// \param hits Container with TPC hit groups
   /// \param eventID ID of the event to be processed
   /// \param sourceID ID of the source to be processed
-  void process(const std::vector<o2::TPC::HitGroup>& hits, const int eventID,
+  void process(const std::vector<o2::tpc::HitGroup>& hits, const int eventID,
                const int sourceID = 0);
 
   /// Flush the data
   /// \param digits Container for the digits
   /// \param labels Container for the MC labels
   /// \param finalFlush Flag whether the whole container is dumped
-  void flush(std::vector<o2::TPC::Digit>& digits,
+  void flush(std::vector<o2::tpc::Digit>& digits,
              o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush = false);
 
   /// Set the sector to be processed
@@ -121,7 +121,7 @@ class Digitizer
 
   ClassDefNV(Digitizer, 1);
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_Digitizer_H_

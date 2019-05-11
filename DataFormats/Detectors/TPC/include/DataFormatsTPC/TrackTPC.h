@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// \class TrackTPC
 /// This is the definition of the TPC Track Object
@@ -46,7 +46,7 @@ class TrackTPC : public o2::track::TrackParCov
   /// Add a single cluster to the track
   void addCluster(const Cluster& c);
 
-  /// Add an array/vector of clusters to the track; ClusterType needs to inherit from o2::TPC::Cluster
+  /// Add an array/vector of clusters to the track; ClusterType needs to inherit from o2::tpc::Cluster
   template <typename ClusterType>
   void addClusterArray(std::vector<ClusterType>* arr);
 
@@ -99,14 +99,14 @@ class TrackTPC : public o2::track::TrackParCov
     sectorIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster];
     rowIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[5 * mNClusters + nCluster];
   }
-  const o2::TPC::ClusterNative& getCluster(int nCluster, const o2::TPC::ClusterNativeAccessFullTPC& clusters,
+  const o2::tpc::ClusterNative& getCluster(int nCluster, const o2::tpc::ClusterNativeAccessFullTPC& clusters,
                                            uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     uint32_t clusterIndex;
     getClusterReference(nCluster, sectorIndex, rowIndex, clusterIndex);
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
-  const o2::TPC::ClusterNative& getCluster(int nCluster, const o2::TPC::ClusterNativeAccessFullTPC& clusters) const
+  const o2::tpc::ClusterNative& getCluster(int nCluster, const o2::tpc::ClusterNativeAccessFullTPC& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
     return (getCluster(nCluster, clusters, sectorIndex, rowIndex));
@@ -137,8 +137,8 @@ inline void TrackTPC::addCluster(const Cluster& c) { mClusterVector.push_back(c)
 template <typename ClusterType>
 inline void TrackTPC::addClusterArray(std::vector<ClusterType>* arr)
 {
-  static_assert(std::is_base_of<o2::TPC::Cluster, ClusterType>::value,
-                "ClusterType needs to inherit from o2::TPC::Cluster");
+  static_assert(std::is_base_of<o2::tpc::Cluster, ClusterType>::value,
+                "ClusterType needs to inherit from o2::tpc::Cluster");
   for (auto clusterObject : *arr) {
     addCluster(clusterObject);
   }

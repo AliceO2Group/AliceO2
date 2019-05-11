@@ -23,7 +23,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 #ifdef HAVE_O2HEADERS
-using GPUdEdxInfo = o2::TPC::dEdxInfo;
+using GPUdEdxInfo = o2::tpc::dEdxInfo;
 #else
 struct GPUdEdxInfo {
 };

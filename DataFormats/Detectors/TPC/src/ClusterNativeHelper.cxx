@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, const char* toTreeName)
 {
@@ -159,7 +159,7 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, st
   }
 
   auto mcIterator = mcinput.begin();
-  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
+  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   ClusterGroupParser parser;
   size_t numberOfClusters = 0;
   parser.parse(buffer, size,
@@ -207,7 +207,7 @@ void ClusterNativeHelper::TreeWriter::init(const char* filename, const char* tre
   }
 
   mTree->Branch("event", &mEvent, "Event/I");
-  mTree->Branch("NativeClusters", "std::vector<o2::TPC::ClusterNativeHelper::TreeWriter::BranchData>", &mStore);
+  mTree->Branch("NativeClusters", "std::vector<o2::tpc::ClusterNativeHelper::TreeWriter::BranchData>", &mStore);
   mEvent = 0;
   mStoreClusters.clear();
 }
@@ -218,8 +218,8 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccessFullTPC const& 
     return -1;
   }
   int result = 0;
-  for (size_t sector = 0; sector < o2::TPC::Constants::MAXSECTOR; ++sector) {
-    for (size_t padrow = 0; padrow < o2::TPC::Constants::MAXGLOBALPADROW; ++padrow) {
+  for (size_t sector = 0; sector < o2::tpc::Constants::MAXSECTOR; ++sector) {
+    for (size_t padrow = 0; padrow < o2::tpc::Constants::MAXGLOBALPADROW; ++padrow) {
       int locres = fillFrom(sector, padrow, clusterIndex.clusters[sector][padrow], clusterIndex.nClusters[sector][padrow]);
       if (result >= 0 && locres >= 0) {
         result += locres;
@@ -257,5 +257,5 @@ void ClusterNativeHelper::TreeWriter::close()
   mFile.reset();
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

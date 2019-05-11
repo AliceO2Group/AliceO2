@@ -57,17 +57,17 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::ios_base;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;
   }
 }
 
 // forward default constructor
-Detector::Detector() : o2::TPC::Detector(kTRUE) {}
+Detector::Detector() : o2::tpc::Detector(kTRUE) {}
 
 Detector::Detector(const Detector& rhs)
   : o2::base::DetImpl<Detector>(rhs),
@@ -77,7 +77,7 @@ Detector::Detector(const Detector& rhs)
     mGeoFileName(rhs.mGeoFileName)
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;new std::vector<o2::tpc::HitGroup>;
   }
 }
 
@@ -147,7 +147,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "tpc::ProcessHits" << FairLogger::endl;
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -239,7 +239,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     numberOfElectrons += nel_step;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "Eloss: "
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
   //<< numberOfElectrons << FairLogger::endl;
 
@@ -271,7 +271,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     groupCounter = 0;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
@@ -3116,4 +3116,4 @@ std::string Detector::getHitBranchNames(int probe) const
   return std::string();
 }
 
-ClassImp(o2::TPC::Detector)
+ClassImp(o2::tpc::Detector)

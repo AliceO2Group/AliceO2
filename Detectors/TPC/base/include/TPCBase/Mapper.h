@@ -27,12 +27,12 @@
 #include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
-// using o2::TPC::PadRegionInfo;
-// using o2::TPC::PartitionInfo;
+// using o2::tpc::PadRegionInfo;
+// using o2::tpc::PartitionInfo;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Mapper
@@ -585,7 +585,7 @@ inline bool Mapper::isOutOfSector(GlobalPosition3D posEle, const Sector& sector,
   return false;
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

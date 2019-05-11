@@ -99,10 +99,10 @@
 #include "TError.h"   // for R__ASSERT()
 
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //________________________________________________________________________
-BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster>* output,
+BoxClusterer::BoxClusterer(std::vector<o2::tpc::Cluster>* output,
                            int rowsMax, int padsMax, int timeBinsMax, int minQMax,
                            bool requirePositiveCharge, bool requireNeighbouringPad)
   : Clusterer(),
@@ -145,7 +145,7 @@ BoxClusterer::~BoxClusterer()
 }
 
 //________________________________________________________________________
-void BoxClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
+void BoxClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
 {
   mClusterArray->clear(); // check this
 

@@ -34,7 +34,7 @@
 #endif
 
 using namespace o2;
-using namespace o2::TPC;
+using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 
@@ -53,7 +53,7 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "")
 
   TChain c("o2sim");
   c.AddFile(infile);
-  std::vector<o2::TPC::Cluster>* inClusters = nullptr;
+  std::vector<o2::tpc::Cluster>* inClusters = nullptr;
   c.SetBranchAddress("TPCClusterHW", &inClusters);
   MCLabelContainer* inMCLabels = nullptr;
   c.SetBranchAddress("TPCClusterHWMCTruth", &inMCLabels);

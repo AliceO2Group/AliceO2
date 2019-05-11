@@ -466,7 +466,7 @@ void O2HitMerger::initDetInstances()
   int counter = 0;
   for (int i = DetID::First; i <= DetID::Last; ++i) {
     if (i == DetID::TPC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::TPC::Detector>(true));
+      mDetectorInstances[i] = std::move(std::make_unique<o2::tpc::Detector>(true));
       counter++;
     }
     if (i == DetID::ITS) {

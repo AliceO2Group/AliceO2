@@ -69,7 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     laneConfiguration = tpcSectors;
   }
 
-  return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    // sector configuration
+  return o2::tpc::RecoWorkflow::getWorkflow(tpcSectors,                                    // sector configuration
                                             laneConfiguration,                             // lane configuration
                                             not cfgc.options().get<bool>("disable-mc"),    //
                                             nLanes,                                        //

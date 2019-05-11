@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 enum class AmplificationMode : char {
@@ -303,7 +303,7 @@ inline void ParameterGEM::setExtractionEfficiency(float extrEff1, float extrEff2
 {
   mExtractionEfficiency = { { extrEff1, extrEff2, extrEff3, extrEff4 } };
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_ParameterGEM_H_

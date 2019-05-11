@@ -18,7 +18,7 @@
 #include <CommonUtils/ShmAllocator.h>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 // a minimal and plain TPC hit class
 class ElementalHit {
@@ -47,14 +47,14 @@ class ElementalHit {
   ClassDefNV(ElementalHit,1);
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #ifdef USESHM
 namespace std
 {
 template <>
-class allocator<o2::TPC::ElementalHit> : public o2::utils::ShmAllocator<o2::TPC::ElementalHit>
+class allocator<o2::tpc::ElementalHit> : public o2::utils::ShmAllocator<o2::tpc::ElementalHit>
 {
 };
 } // namespace std
@@ -62,7 +62,7 @@ class allocator<o2::TPC::ElementalHit> : public o2::utils::ShmAllocator<o2::TPC:
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 // an index to uniquely identify a single hit group of TPC
@@ -164,7 +164,7 @@ public:
   // (such as done in a similar form in AliRoot)
 public:
 #ifdef HIT_AOS
-  std::vector<o2::TPC::ElementalHit> mHits; // the hits for this group
+  std::vector<o2::tpc::ElementalHit> mHits; // the hits for this group
 #else
  using vec_t = std::vector<float, o2::utils::ShmAllocator<float>>;
  vec_t mHitsXVctr;
@@ -204,7 +204,7 @@ class Point : public o2::BasicXYZEHit<float>
     Point(const Point& point);
     Point operator=(const Point& point);
 
-  ClassDefNV(o2::TPC::Point,1)
+  ClassDefNV(o2::tpc::Point,1)
 };
 
 inline
@@ -212,14 +212,14 @@ Point::Point(float x, float y, float z, float time, float nElectrons, float trac
   : BasicXYZEHit<float>(x, y, z, time, nElectrons, trackID, detID)
 {}
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #ifdef USESHM
 namespace std
 {
 template <>
-class allocator<o2::TPC::HitGroup> : public o2::utils::ShmAllocator<o2::TPC::HitGroup>
+class allocator<o2::tpc::HitGroup> : public o2::utils::ShmAllocator<o2::tpc::HitGroup>
 {
 };
 } // namespace std

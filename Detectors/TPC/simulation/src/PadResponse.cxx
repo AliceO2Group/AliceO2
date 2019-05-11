@@ -23,7 +23,7 @@
 #include <cmath>
 #include "FairLogger.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 PadResponse::PadResponse()
   : mIROC(),
@@ -50,7 +50,7 @@ bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF)
   int i=0;
   std::ifstream prfFile(inputDir+file, std::ifstream::in);
   if(!prfFile) {
-    LOG(FATAL) << "TPC::PadResponse - Input file '" << inputDir+file << "' does not exist! No PRF loaded!" << FairLogger::endl;
+    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir+file << "' does not exist! No PRF loaded!" << FairLogger::endl;
     return false;
   }
   for (std::string line; std::getline(prfFile, line); ) {

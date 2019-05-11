@@ -24,7 +24,7 @@
 #include "TPCBase/CalArray.h"
 #include "TPCBase/Painter.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 template <class T>
 void Painter::draw(const CalDet<T>& calDet)

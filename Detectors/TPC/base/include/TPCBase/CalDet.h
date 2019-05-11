@@ -30,7 +30,7 @@ using boost::format;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// Class to hold calibration data on a pad level
 ///

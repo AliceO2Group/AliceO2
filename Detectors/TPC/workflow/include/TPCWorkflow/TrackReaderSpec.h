@@ -26,7 +26,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 ///< DPL device to read and send the TPC tracks (+MC) info
 
@@ -41,7 +41,7 @@ class TrackReader : public Task
  private:
   void accumulate();
 
-  std::vector<o2::TPC::TrackTPC>*mTracksInp = nullptr, mTracksOut;
+  std::vector<o2::tpc::TrackTPC>*mTracksInp = nullptr, mTracksOut;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 
   bool mFinished = false;
@@ -57,7 +57,7 @@ class TrackReader : public Task
 /// read TPC track data from a root file
 framework::DataProcessorSpec getTPCTrackReaderSpec(bool useMC = true);
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif /* O2_TPC_TRACKREADER */
