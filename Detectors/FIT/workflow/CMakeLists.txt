@@ -27,7 +27,7 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "fit-reco-workflow"
+  EXE_NAME "o2-fit-reco-workflow"
 
   SOURCES
   src/fit-reco-workflow.cxx

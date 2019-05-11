@@ -337,3 +337,12 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/tests-wrapper.sh.in"
 file(COPY "${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tests-wrapper.sh"
     DESTINATION "${CMAKE_BINARY_DIR}"
     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+# Create test for executable naming convention
+configure_file("${CMAKE_SOURCE_DIR}/cmake/ensure-executable-naming-convention.sh.in"
+               "${CMAKE_BINARY_DIR}/ensure-executable-naming-convention.sh"
+               @ONLY
+               NEWLINE_STYLE UNIX)
+
+add_test(NAME "ensure-executable-naming-convention" 
+        COMMAND "ensure-executable-naming-convention.sh")

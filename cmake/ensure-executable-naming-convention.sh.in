@@ -1,0 +1,54 @@
+#
+# Ensure (part of) our executable naming convention
+# (see https://github.com/AliceO2Group/CodingGuidelines)
+#
+# what we test here is that all the names of the executables
+# in @CMAKE_INSTALL_PREFIX@/bin/ :
+# - are all lowercases
+# - contain no special character other than "-"
+# - start with o2- (or test)
+# - (unless it's a test) is of the form o2-xxx
+# where xxx is in a list of known sub-systems for the AliceO2 repository
+#
+
+rc=0
+
+error_msg() {
+        echo "ERROR: executable name $1 does not follow naming convention : $2"
+        rc=1
+}
+
+warning_unknown_subsystem() {
+        echo "WARNING: in $1 the subsystem $2 is not in the list of know subsystem"
+}
+
+re_is_test="^test"
+re_start_with_o2_or_test="^o2-"
+re_only_lower_case_or_dash="^([a-z,0-9]|-)+$"
+re_subsystem="(o2)-([a-z,0-9]+)+" # o2-subsystem
+
+known_groups="alicehlt \
+analysis aod d0 simple \
+data datapublisher datasampling \
+ccdb \
+sim \
+eve \
+fake dummy diamond parallel \
+fit its mch mid tpc \
+tpcits \
+flp heartbeat message epn \
+mergers \
+subframebuilder sync timeframe"
+
+for f in $(ls @CMAKE_INSTALL_PREFIX@/bin); do
+        [[ -x $f ]] && continue
+        [[ $f =~ $re_is_test ]] && continue # convention for tests is yet to come
+        [[ ! $f =~ $re_start_with_o2_or_test ]] && error_msg $f "does not start with o2-"
+        [[ ! $f =~ $re_only_lower_case_or_dash ]] && error_msg $f "should only contains lowercase letters, numbers, or dashes"
+        [[ $f =~ $re_subsystem ]] && subsystem=${BASH_REMATCH[2]}
+        [[ ! " $known_groups " =~  .*\ $subsystem\ .* ]] && warning_unknown_subsystem $f $subsystem
+done
+
+exit $rc
+
+
