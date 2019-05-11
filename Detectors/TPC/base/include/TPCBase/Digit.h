@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// \class Digit
 /// This is the definition of the common Digit object, which is the final entity after Digitization
@@ -82,7 +82,7 @@ inline Digit::Digit(int cru, float charge, int row, int pad, int time)
 {
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DIGIT_H_

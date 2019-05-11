@@ -154,7 +154,7 @@ struct ITSHitStats : public HitStatsBase {
 
 struct TPCHitStats : public HitStatsBase {
   // adds a hit to the statistics
-  void addHit(o2::TPC::HitGroup const& hitgroup)
+  void addHit(o2::tpc::HitGroup const& hitgroup)
   {
     for (int i = 0; i < hitgroup.getSize(); ++i) {
       auto hit = hitgroup.getHit(i);
@@ -190,7 +190,7 @@ TPCHitStats analyseTPC(TTree* tr)
       return prop;
     }
     auto entries = br->GetEntries();
-    std::vector<o2::TPC::HitGroup>* hitvector = nullptr;
+    std::vector<o2::tpc::HitGroup>* hitvector = nullptr;
     br->SetAddress(&hitvector);
 
     for (int i = 0; i < entries; ++i) {

@@ -14,5 +14,5 @@
 #include "FairLogger.h"
 #include <cassert>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 

@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 // check function for different versions of the cluster type, versions
 // can differ by internal members and scaling factors
@@ -83,5 +83,5 @@ bool checkClusterType()
 }
 
 BOOST_AUTO_TEST_CASE(test_tpc_clusternative) { checkClusterType<ClusterNative>(); }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

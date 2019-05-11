@@ -53,13 +53,13 @@ void retrieveHits(std::vector<TChain*> const& chains,
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 std::string getBranchNameLeft(int sector)
 {
   std::stringstream branchnamestreamleft;
-  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
+  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(sector)));
   return branchnamestreamleft.str();
 }
 
@@ -84,7 +84,7 @@ class TPCDPLDigitizerTask
     LOG(INFO) << "Initializing TPC digitization";
 
     /// For the time being use the defaults for the CDB
-    auto& cdb = o2::TPC::CDBInterface::instance();
+    auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults();
 
     auto useDistortions = ic.options().get<int>("distortionType");
@@ -107,7 +107,7 @@ class TPCDPLDigitizerTask
       inputHisto.push_back(substr);
     }
     if (useDistortions > 0) {
-      o2::TPC::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsConstant;
+      o2::tpc::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant;
       std::unique_ptr<TH3> hisSCDensity;
       if (TString(inputHisto[0].data()).EndsWith(".root") && inputHisto[1].size() != 0) {
         auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
@@ -189,17 +189,17 @@ class TPCDPLDigitizerTask
     activeSectors = sectorHeader->activeSectors;
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
-    auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::TPC::Digit> const& digits) {
-      o2::TPC::TPCSectorHeader header{ sector };
+    auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::tpc::Digit> const& digits) {
+      o2::tpc::TPCSectorHeader header{ sector };
       header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
       pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
                                     header },
-                            const_cast<std::vector<o2::TPC::Digit>&>(digits));
+                            const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
-      o2::TPC::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{ sector };
       header.activeSectors = activeSectors;
       pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
                                     Lifetime::Timeframe, header },
@@ -207,7 +207,7 @@ class TPCDPLDigitizerTask
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
     auto snapshotEvents = [this, sector, &pc, activeSectors](const std::vector<DigiGroupRef>& events) {
-      o2::TPC::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{ sector };
       header.activeSectors = activeSectors;
       LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << mChannel << " | size " << events.size();
       pc.outputs().snapshot(Output{ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
@@ -215,7 +215,7 @@ class TPCDPLDigitizerTask
                             const_cast<std::vector<DigiGroupRef>&>(events));
     };
 
-    std::vector<o2::TPC::Digit> digitsAccum;                       // accumulator for digits
+    std::vector<o2::tpc::Digit> digitsAccum;                       // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     std::vector<DigiGroupRef> eventAccum;
 
@@ -276,8 +276,8 @@ class TPCDPLDigitizerTask
         const int sourceID = part.sourceID;
 
         // get the hits for this event and this source
-        std::vector<o2::TPC::HitGroup> hitsLeft;
-        std::vector<o2::TPC::HitGroup> hitsRight;
+        std::vector<o2::tpc::HitGroup> hitsLeft;
+        std::vector<o2::tpc::HitGroup> hitsRight;
         retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
         retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
         LOG(DEBUG) << "TPC: Found " << hitsLeft.size() << " hit groups left and " << hitsRight.size() << " hit groups right in collision " << collID << " eventID " << part.entryID;
@@ -310,9 +310,9 @@ class TPCDPLDigitizerTask
   }
 
  private:
-  o2::TPC::Digitizer mDigitizer;
+  o2::tpc::Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  std::vector<o2::TPC::Digit> mDigits;
+  std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   bool mWriteGRP;
   int mChannel;
@@ -351,5 +351,5 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
   };
 }
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

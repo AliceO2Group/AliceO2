@@ -20,7 +20,7 @@
 
 std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pedestalFile, int roc)
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   TFile f(pedestalFile);
   gROOT->cd();
 

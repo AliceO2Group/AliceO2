@@ -30,11 +30,11 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 // some helper functions / struct
 struct sortTime {
-  inline bool operator()(const o2::TPC::Digit& d1, const o2::TPC::Digit& d2)
+  inline bool operator()(const o2::tpc::Digit& d1, const o2::tpc::Digit& d2)
   {
     return (d1.getTimeStamp() < d2.getTimeStamp());
   }
@@ -187,19 +187,19 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 2, finding single pad clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
 
   // create a lot of single pad clusters, one in every pad, well separated in time
   // which should result in one cluster
   // Digit(int cru, float charge, int row, int pad, int time)
-  o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
+  o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
   std::vector<unsigned> clusterPerRegionGenerated(10, 0);
   int globalRow = 0;
   for (int region = 0; region < 10; ++region) {
@@ -261,14 +261,14 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 3, computing cluster properties." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
 
   // Digit(int cru, float charge, int row, int pad, int time)
   // Create digits for different clusters
@@ -364,14 +364,14 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 4, rejecting single pad clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   // single pad and time cluster
   std::array<std::array<int, 25>, 4> clusters;
@@ -583,14 +583,14 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test5)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 5, rejecting peaks in subsequent." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   // two peaks, with the greater one afterwards
   std::array<std::array<int, 25>, 2> clusters;
@@ -651,14 +651,14 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 6, split charge among nearby clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   std::array<std::array<int, 100>, 6> clusters;
   // Just a single cluster

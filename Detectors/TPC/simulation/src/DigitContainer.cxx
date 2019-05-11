@@ -18,7 +18,7 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
                                          dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)

@@ -25,7 +25,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// TPC readout sidE

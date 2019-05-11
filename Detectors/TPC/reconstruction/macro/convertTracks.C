@@ -25,7 +25,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using namespace o2::track;
 
 struct OutputTrack {
@@ -54,7 +54,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
   float cherenkovValue = 0.;
   int runNumber = 0;
 
-  std::vector<o2::TPC::Cluster>* clusters = nullptr;
+  std::vector<o2::tpc::Cluster>* clusters = nullptr;
   c.SetBranchAddress("TPCClusterHW", &clusters);
   // c.SetBranchAddress("TPC_Cluster", &clusters);
   c.SetBranchAddress("cherenkovValue", &cherenkovValue);

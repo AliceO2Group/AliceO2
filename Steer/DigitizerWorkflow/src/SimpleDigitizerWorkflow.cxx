@@ -114,7 +114,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
 
   std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
-  std::string sectorDefault = "0-" + std::to_string(o2::TPC::Sector::MAXSECTOR - 1);
+  std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-sectors", VariantType::String, sectorDefault.c_str(), { sectorshelp } });
 
@@ -177,11 +177,11 @@ void initTPC()
   LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
   setenv(streamthis.str().c_str(), "ON", 1);
 
-  auto& cdb = o2::TPC::CDBInterface::instance();
+  auto& cdb = o2::tpc::CDBInterface::instance();
   cdb.setUseDefaults();
   // by invoking this constructor we make sure that a common file will be created
   // in future we should take this from OCDB and just forward per message
-  const static auto& ampl = o2::TPC::GEMAmplification::instance();
+  const static auto& ampl = o2::tpc::GEMAmplification::instance();
 }
 
 // ------------------------------------------------------------------
@@ -356,7 +356,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
-      specs.emplace_back(o2::TPC::getTPCDigitizerSpec(fanoutsize, (l == 0)));
+      specs.emplace_back(o2::tpc::getTPCDigitizerSpec(fanoutsize, (l == 0)));
       tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
       fanoutsize++;
     }
@@ -364,10 +364,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(lanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::tpc::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }

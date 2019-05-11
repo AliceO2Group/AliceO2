@@ -54,7 +54,7 @@ void GPUTPCConvert::SetMaxData()
   unsigned int offset = 0;
   if (mClustersNative) {
     for (unsigned int i = 0; i < NSLICES; i++) {
-      for (unsigned int j = 0; j < o2::TPC::Constants::MAXGLOBALPADROW; j++) {
+      for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
         mClustersNative->clusterOffset[i][j] = offset;
         offset += mClustersNative->nClusters[i][j];
       }

@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Pedestal calibration class
@@ -130,7 +130,7 @@ class CalibPedestal : public CalibRawBase
   void resetEvent() final {}
 };
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif

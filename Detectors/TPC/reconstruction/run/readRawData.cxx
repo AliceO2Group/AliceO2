@@ -28,7 +28,7 @@
 #include "FairLogger.h"
 
 namespace bpo = boost::program_options;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 int main(int argc, char *argv[])
 {

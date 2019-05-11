@@ -32,7 +32,7 @@ class MCTruthContainer;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /**
  * \struct ClusterNative
@@ -118,10 +118,10 @@ struct ClusterNative {
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccessFullTPC {
-  const ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
-  unsigned int nClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::TPC::Constants::MAXSECTOR]
-                                                                     [o2::TPC::Constants::MAXGLOBALPADROW];
+  const ClusterNative* clusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  unsigned int nClusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::tpc::Constants::MAXSECTOR]
+                                                                     [o2::tpc::Constants::MAXGLOBALPADROW];
 };
 }
 }

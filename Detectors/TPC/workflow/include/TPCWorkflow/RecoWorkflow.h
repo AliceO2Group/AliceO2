@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 namespace RecoWorkflow
@@ -71,6 +71,6 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1
 }
 
 } // end namespace RecoWorkflow
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2
 #endif //O2_TPC_RECOWORKFLOW_H

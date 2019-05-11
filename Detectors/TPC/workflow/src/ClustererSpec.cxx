@@ -34,7 +34,7 @@ using namespace o2::header;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -45,11 +45,11 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
 {
   std::string processorName = "tpc-clusterer";
 
-  constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   struct ProcessAttributes {
-    std::vector<o2::TPC::ClusterHardwareContainer8kb> clusterArray;
+    std::vector<o2::tpc::ClusterHardwareContainer8kb> clusterArray;
     MCLabelContainer mctruthArray;
-    std::array<std::shared_ptr<o2::TPC::HwClusterer>, NSectors> clusterers;
+    std::array<std::shared_ptr<o2::tpc::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
     bool finished = false;
   };
@@ -67,7 +67,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       auto& clusterers = processAttributes->clusterers;
       auto& verbosity = processAttributes->verbosity;
       auto dataref = pc.inputs().get(inputKey);
-      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(dataref);
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(dataref);
       if (sectorHeader == nullptr) {
         LOG(ERROR) << "sector header missing on header stack";
         return false;
@@ -79,7 +79,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (sector < 0) {
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
-        o2::TPC::TPCSectorHeader header{ sector };
+        o2::tpc::TPCSectorHeader header{ sector };
         pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
         if (!labelKey.empty()) {
           pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
@@ -90,7 +90,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (!labelKey.empty()) {
         inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(labelKey.c_str()));
       }
-      auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>(inputKey.c_str());
+      auto inDigits = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputKey.c_str());
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects";
@@ -99,7 +99,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
         // create the clusterer for this sector, take the same target arrays for all clusterers
         // as they are not invoked in parallel
         // the cost of creating the clusterer should be small so we do it in the processing
-        clusterers[sector] = std::make_shared<o2::TPC::HwClusterer>(&clusterArray, sector, &mctruthArray);
+        clusterers[sector] = std::make_shared<o2::tpc::HwClusterer>(&clusterArray, sector, &mctruthArray);
       }
       auto& clusterer = clusterers[sector];
 
@@ -112,7 +112,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       // cluster counter unchanged and leads to an inconsistency between cluster container and
       // MC label container (the latter just grows with every call).
       clusterer->process(inDigits, inMCLabels.get(), true /* clear output containers and cluster counter */);
-      const std::vector<o2::TPC::Digit> emptyDigits;
+      const std::vector<o2::tpc::Digit> emptyDigits;
       clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced "
@@ -202,5 +202,5 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
                             AlgorithmSpec(initFunction) };
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

@@ -156,7 +156,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TPC")) {
     // tpc
-    auto tpc = new o2::TPC::Detector(true);
+    auto tpc = new o2::tpc::Detector(true);
     run->AddModule(tpc);
   }
 

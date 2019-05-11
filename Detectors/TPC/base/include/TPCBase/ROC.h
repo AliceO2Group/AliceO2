@@ -35,7 +35,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 //   enum RocType {IROC=0, OROC=1};
 

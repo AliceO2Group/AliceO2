@@ -15,7 +15,7 @@
 #include <bitset>
 #include <iostream>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 GBTFrameContainer::GBTFrameContainer() : GBTFrameContainer(0, 0) {}
 GBTFrameContainer::GBTFrameContainer(int cru, int link) : GBTFrameContainer(0, cru, link, -1) {}

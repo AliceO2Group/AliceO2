@@ -31,7 +31,7 @@ void addFECInfo();
 /// FEC information to the title
 void drawNoiseAndPedestal(TString pedestalFile)
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   TFile f(pedestalFile);
   gROOT->cd();
 
@@ -122,7 +122,7 @@ TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy)
 
 void addFECInfo()
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   const int event = gPad->GetEvent();
   if (event != 51) {
     return;

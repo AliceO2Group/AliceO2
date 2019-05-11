@@ -174,7 +174,7 @@ void GPUTPCO2Interface::Deinitialize()
   mInitialized = false;
 }
 
-int GPUTPCO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters)
+int GPUTPCO2Interface::RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters)
 {
   if (!mInitialized) {
     return (1);

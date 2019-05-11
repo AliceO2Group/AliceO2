@@ -16,7 +16,7 @@
 #include "TPCReconstruction/GBTFrameContainer.h"
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 void testRawRead(std::string filename)
 {
   TH1F *hDigits = new TH1F("hDigits","digits", 1000, 0., 1000.);

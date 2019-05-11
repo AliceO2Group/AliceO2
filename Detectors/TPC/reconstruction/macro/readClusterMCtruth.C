@@ -28,7 +28,7 @@ void readClusterMCtruth(std::string filename)
   TFile *clusterFile = TFile::Open(filename.data());
   TTree *clusterTree = (TTree*)clusterFile->Get("o2sim");
 
-  std::vector<o2::TPC::Cluster>* clusters = nullptr;
+  std::vector<o2::tpc::Cluster>* clusters = nullptr;
   clusterTree->SetBranchAddress("TPCClusterHW",&clusters);
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;

@@ -24,7 +24,7 @@ class TTree;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 // forward declarations
@@ -93,7 +93,7 @@ class CalibTreeDump {
       }
 
 };
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif

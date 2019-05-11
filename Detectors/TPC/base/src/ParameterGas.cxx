@@ -14,7 +14,7 @@
 
 #include "TPCBase/ParameterGas.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 ParameterGas::ParameterGas()
   : mWion(37.3e-9f),

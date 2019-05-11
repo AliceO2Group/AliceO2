@@ -29,11 +29,11 @@
 
 #include "FairLogger.h"
 
-ClassImp(o2::TPC::Digitizer)
+ClassImp(o2::tpc::Digitizer)
 
-  using namespace o2::TPC;
+  using namespace o2::tpc;
 
-bool o2::TPC::Digitizer::mIsContinuous = true;
+bool o2::tpc::Digitizer::mIsContinuous = true;
 
 void Digitizer::init()
 {
@@ -43,7 +43,7 @@ void Digitizer::init()
   }
 }
 
-void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
+void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
                         const int eventID, const int sourceID)
 {
   const static Mapper& mapper = Mapper::instance();
@@ -146,7 +146,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   }
 }
 
-void Digitizer::flush(std::vector<o2::TPC::Digit>& digits,
+void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
                       o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
 {
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();

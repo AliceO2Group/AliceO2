@@ -14,9 +14,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::CalibRawBase;
-#pragma link C++ class o2::TPC::CalibPedestal;
-#pragma link C++ class o2::TPC::CalibPulser;
-#pragma link C++ class o2::TPC::CalibTreeDump;
+#pragma link C++ class o2::tpc::CalibRawBase;
+#pragma link C++ class o2::tpc::CalibPedestal;
+#pragma link C++ class o2::tpc::CalibPulser;
+#pragma link C++ class o2::tpc::CalibTreeDump;
 
 #endif

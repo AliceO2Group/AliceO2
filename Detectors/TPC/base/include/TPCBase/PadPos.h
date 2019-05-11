@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 class PadPos
 {
@@ -94,7 +94,7 @@ class PadPos
   unsigned char mRow{ 0 }; ///< row number
   unsigned char mPad{ 0 }; ///< pad number in row
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

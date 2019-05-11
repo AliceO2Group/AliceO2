@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using namespace o2::gpu;
@@ -80,6 +80,6 @@ class TPCFastTransformHelperO2
 
   ClassDefNV(TPCFastTransformHelperO2, 2);
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

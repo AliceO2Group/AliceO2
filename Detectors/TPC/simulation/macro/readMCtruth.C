@@ -28,7 +28,7 @@ void readMCtruth(std::string filename)
   TFile* digitFile = TFile::Open(filename.data());
   TTree* digitTree = (TTree*)digitFile->Get("o2sim");
 
-  std::vector<o2::TPC::Digit>* digits = nullptr;
+  std::vector<o2::tpc::Digit>* digits = nullptr;
   digitTree->SetBranchAddress("TPCDigit", &digits);
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;

@@ -24,7 +24,7 @@
 
 #include "FairLogger.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 RawReader::RawReader(int region, int link, int run, int sampaVersion)
   : mUseRawInMode3(true),

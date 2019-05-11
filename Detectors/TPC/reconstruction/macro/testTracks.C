@@ -26,7 +26,7 @@
 #include "TTree.h"
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void drawSectorBoundaries();
 void testTracks(
@@ -44,7 +44,7 @@ void testTracks(
   TFile* clusFile = TFile::Open(clusterFile.data());
   TTree* clusterTree = (TTree*)gDirectory->Get("cbmsim");
 
-  std::vector<o2::TPC::Cluster>* clusters = nullptr;
+  std::vector<o2::tpc::Cluster>* clusters = nullptr;
   clusterTree->SetBranchAddress("TPCClusterHW", &clusters);
 
   TGraph* grClusters = new TGraph();

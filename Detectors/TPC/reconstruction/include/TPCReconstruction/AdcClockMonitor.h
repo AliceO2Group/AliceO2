@@ -19,7 +19,7 @@
 #include <iomanip>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class AdcClockMonitor
 /// \brief Class to monitor the ADC smapling clock contained in the GBT frame

@@ -21,7 +21,7 @@
 #include <string>
 #include "FairLogger.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing()
 {

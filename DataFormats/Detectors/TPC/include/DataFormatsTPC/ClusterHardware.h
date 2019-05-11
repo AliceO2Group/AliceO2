@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
   // padPre: word 0, bits 0 - 19 (20 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the pad.

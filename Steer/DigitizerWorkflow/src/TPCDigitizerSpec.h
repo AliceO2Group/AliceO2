@@ -15,12 +15,12 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP);
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_SRC_TPCDIGITIZERSPEC_H_ */

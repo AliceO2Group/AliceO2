@@ -35,7 +35,7 @@ TH2F* hAdcError = nullptr;
 bool run_parallel = true;
 
 using namespace std;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 struct Result {
   int mRun;
@@ -151,7 +151,7 @@ void RunFindAdcError(int run_min, int run_max)
   hAdcError = new TH2F("hAdcError","occurrence of ADC errors",36,0,36,20,0,20);
   hAdcError->GetXaxis()->SetTitle("SampaID");
   hAdcError->GetYaxis()->SetTitle("Timebin");
-  o2::TPC::PadPos padPos;
+  o2::tpc::PadPos padPos;
   std::cout << RawReaders.size() << std::endl;
   for (int i=0; i<results.size(); ++i){
     if (results[i].size() == 0) continue;

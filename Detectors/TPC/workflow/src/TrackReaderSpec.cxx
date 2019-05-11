@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 TrackReader::TrackReader(bool useMC)
@@ -116,5 +116,5 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
   };
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

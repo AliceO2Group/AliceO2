@@ -26,7 +26,7 @@ class access;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 using ClusterTimeStamp = o2::dataformats::TimeStampWithError<float, float>;
 
@@ -125,7 +125,7 @@ inline void Cluster::setParameters(short cru, short row, float q, float qmax, fl
   setTimeStampError(timesigma);
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif /* ALICEO2_TPC_CLUSTER_H */

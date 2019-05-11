@@ -15,7 +15,7 @@
 using std::cout;
 using std::endl;
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void Point::Print(const Option_t* opt) const
 {

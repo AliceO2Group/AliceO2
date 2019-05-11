@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 namespace param
 {
@@ -51,7 +51,7 @@ static constexpr float RowX[NPadRows] = {
 };
 #else  // not defined TPC_RUN2
 /// TPC geometric constants for Run 3+
-static constexpr int NPadRows = o2::TPC::Constants::MAXGLOBALPADROW;
+static constexpr int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
 static constexpr int NROCTypes = 4;
 static constexpr int NRowsPerROC[NROCTypes] = { 63, 34, 30, 25 };
 static constexpr int NRowsAccumulated[NROCTypes] = { 63, 97, 127, 152 };
@@ -74,6 +74,6 @@ static constexpr float RowX[NPadRows] = {
 };
 #endif // defined TPC_RUN2
 } // namespace param
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

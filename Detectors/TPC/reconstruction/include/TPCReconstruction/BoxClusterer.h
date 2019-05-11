@@ -25,7 +25,7 @@
 
 namespace o2{
 
-namespace TPC
+namespace tpc
 {
 
 class ClusterContainer;
@@ -44,7 +44,7 @@ class BoxClusterer : public Clusterer
   /// \param minQMax Minimum peak charge for cluster
   /// \param requirePositiveCharge Positive charge is required
   /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
-  BoxClusterer(std::vector<o2::TPC::Cluster>* output,
+  BoxClusterer(std::vector<o2::tpc::Cluster>* output,
                int rowsMax = 18,
                int padsMax = 138,
                int timeBinsMax = 1024,
@@ -58,8 +58,8 @@ class BoxClusterer : public Clusterer
   /// Steer conversion of points to digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
-  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override{};
+  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override{};
 
   void setRowsMax(int val) { mRowsMax = val; };
   void setPadsMax(int val) { mPadsMax = val; };
@@ -107,7 +107,7 @@ class BoxClusterer : public Clusterer
   Int_t** mAllSigBins; //!<! Array of pointers to the indexes over threshold
   Int_t* mAllNSigBins; //!<! Array with number of signals in each row
 
-  std::vector<o2::TPC::Cluster>* mClusterArray; ///< Internal cluster storage
+  std::vector<o2::tpc::Cluster>* mClusterArray; ///< Internal cluster storage
 };
 }
 }

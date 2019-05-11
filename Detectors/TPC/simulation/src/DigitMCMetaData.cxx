@@ -14,5 +14,5 @@
 
 #include "TPCSimulation/DigitMCMetaData.h"
 
-ClassImp(o2::TPC::DigitMCMetaData)
+ClassImp(o2::tpc::DigitMCMetaData)
 

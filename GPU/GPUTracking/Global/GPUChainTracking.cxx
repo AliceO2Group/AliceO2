@@ -156,7 +156,7 @@ int GPUChainTracking::PrepareEvent()
 {
   int offset = 0;
   if (mIOPtrs.clustersNative) {
-    o2::TPC::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
+    o2::tpc::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
     if (tmp != mIOPtrs.clustersNative) {
       *tmp = *mIOPtrs.clustersNative;
     }
@@ -165,7 +165,7 @@ int GPUChainTracking::PrepareEvent()
 
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       int nCl = 0;
-      for (unsigned int k = 0; k < o2::TPC::Constants::MAXGLOBALPADROW; k++) {
+      for (unsigned int k = 0; k < o2::tpc::Constants::MAXGLOBALPADROW; k++) {
         nCl += mIOPtrs.clustersNative->nClusters[iSlice][k];
       }
       processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, nCl, offset);
@@ -331,7 +331,7 @@ int GPUChainTracking::ReadData(const char* filename)
     }
   }
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
-  mIOPtrs.clustersNative = ReadData<o2::TPC::ClusterNative>(fp, (const o2::TPC::ClusterNative**)&mClusterNativeAccess->clusters[0][0], &mClusterNativeAccess->nClusters[0][0], mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE) ? mClusterNativeAccess.get() : nullptr;
+  mIOPtrs.clustersNative = ReadData<o2::tpc::ClusterNative>(fp, (const o2::tpc::ClusterNative**)&mClusterNativeAccess->clusters[0][0], &mClusterNativeAccess->nClusters[0][0], mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE) ? mClusterNativeAccess.get() : nullptr;
   ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
   ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -389,8 +389,8 @@ int GPUChainTracking::ConvertNativeToClusterData()
     *convert.mClustersNativeBuffer = *mClusterNativeAccess.get();
     for (unsigned int i = 0; i < NSLICES; i++) {
       convert.mMemory->clusters[i] = convertShadow.mClusters + tmpExt->clusterOffset[i][0];
-      for (unsigned int j = 0; j < o2::TPC::Constants::MAXGLOBALPADROW; j++) {
-        o2::TPC::ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
+      for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
+        o2::tpc::ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
         convert.mClustersNativeBuffer->clusters[i][j] = ptr;
         mRec->GPUMemCpy(ptr, mClusterNativeAccess->clusters[i][j], sizeof(mClusterNativeAccess->clusters[i][j][0]) * mClusterNativeAccess->nClusters[i][j], 0, true);
       }
@@ -420,7 +420,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
 
 void GPUChainTracking::ConvertNativeToClusterDataLegacy()
 {
-  o2::TPC::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
+  o2::tpc::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
   if (tmp != mIOPtrs.clustersNative) {
     *tmp = *mIOPtrs.clustersNative;
   }

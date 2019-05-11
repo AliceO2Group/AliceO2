@@ -14,7 +14,7 @@
 #include "TPCReconstruction/HalfSAMPAData.h"
 #include "FairLogger.h" 
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 HalfSAMPAData::HalfSAMPAData()
   : HalfSAMPAData(-1,true)

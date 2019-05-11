@@ -44,7 +44,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 
@@ -91,7 +91,7 @@ class RawClusterFinder : public CalibRawBase
                     const Int_t timeBin, const Float_t signal) final;
 
 
-    void TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::TPC::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks);
+    void TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::tpc::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks);
     static void GetFit(TGraph *trackGraph, float& slope, float& offset, float& slopeError, float& offsetError, float& chi2);
 
     void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
@@ -145,8 +145,8 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
 
   // ===| output file and container |===========================================
-  auto arrCluster = std::make_unique<std::vector<o2::TPC::Cluster>>();
-  std::vector<o2::TPC::Cluster> *arrClusterBox = nullptr;
+  auto arrCluster = std::make_unique<std::vector<o2::tpc::Cluster>>();
+  std::vector<o2::tpc::Cluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
 
@@ -244,7 +244,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   foutTracks.Close();
 }
 
-void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::TPC::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks)
+void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::tpc::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks)
 {
 
   int loopcounter = 0;
@@ -548,13 +548,13 @@ void RawClusterFinder::GetFit(TGraph *trackGraph, float& slope, float& offset, f
 }
 
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif
 
-void RawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="cherenkov.txt", o2::TPC::RawClusterFinder::ClustererType clustererType=o2::TPC::RawClusterFinder::ClustererType::HW)
+void RawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="cherenkov.txt", o2::tpc::RawClusterFinder::ClustererType clustererType=o2::tpc::RawClusterFinder::ClustererType::HW)
 {
-   using namespace o2::TPC;
+   using namespace o2::tpc;
    RawClusterFinder::processEvents(fileInfo, pedestalFile, outputFileName, maxEvents, cherenkovFile, clustererType);
 }

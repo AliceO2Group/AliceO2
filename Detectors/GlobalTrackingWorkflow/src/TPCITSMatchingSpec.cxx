@@ -74,18 +74,18 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   auto tracksITSROF = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("trackITSROF");
   auto clusITS = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusITS");
   auto clusITSROF = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("clusITSROF");
-  auto tracksTPC = pc.inputs().get<const std::vector<o2::TPC::TrackTPC>>("trackTPC");
+  auto tracksTPC = pc.inputs().get<const std::vector<o2::tpc::TrackTPC>>("trackTPC");
 
   //---------------------------->> TPC Clusters loading >>------------------------------------------
   int operation = 0;
   uint64_t activeSectors = 0;
-  std::bitset<o2::TPC::Constants::MAXSECTOR> validSectors = 0;
+  std::bitset<o2::tpc::Constants::MAXSECTOR> validSectors = 0;
   std::map<int, DataRef> datarefs;
   for (auto const& lane : mTPCClusLanes) {
     std::string inputLabel = "clusTPC" + std::to_string(lane);
     LOG(INFO) << "Reading lane " << lane << " " << inputLabel;
     auto ref = pc.inputs().get(inputLabel);
-    auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+    auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
     if (sectorHeader == nullptr) {
       // FIXME: think about error policy
       LOG(ERROR) << "sector header missing on header stack";
@@ -127,7 +127,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
               << std::endl                                                                   //
               << "  input status:   " << validSectors                                        //
               << std::endl                                                                   //
-              << "  active sectors: " << std::bitset<o2::TPC::Constants::MAXSECTOR>(activeSectors);
+              << "  active sectors: " << std::bitset<o2::tpc::Constants::MAXSECTOR>(activeSectors);
   };
 
   if (activeSectors == 0 || (activeSectors & validSectors.to_ulong()) != activeSectors) {
@@ -151,8 +151,8 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   }
 
   //------------------------------------------------------------------------------
-  std::array<std::vector<MCLabelContainer>, o2::TPC::Constants::MAXSECTOR> mcInputs; // DUMMY
-  std::array<gsl::span<const char>, o2::TPC::Constants::MAXSECTOR> clustersTPC;
+  std::array<std::vector<MCLabelContainer>, o2::tpc::Constants::MAXSECTOR> mcInputs; // DUMMY
+  std::array<gsl::span<const char>, o2::tpc::Constants::MAXSECTOR> clustersTPC;
   auto sectorStatus = validSectors;
 
   for (auto const& refentry : datarefs) {
@@ -210,9 +210,9 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     LOG(INFO) << "running matching for sector(s) " << bitInfo;
   }
 
-  o2::TPC::ClusterNativeAccessFullTPC clusterIndex;
+  o2::tpc::ClusterNativeAccessFullTPC clusterIndex;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  o2::TPC::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
+  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
 
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 

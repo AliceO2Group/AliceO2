@@ -36,7 +36,7 @@ using namespace o2::gpu;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// @brief Test 1 basic class IO tests
@@ -159,5 +159,5 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-4, "test of distortion map failed, average difference " << statDiff << " cm is too large");
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

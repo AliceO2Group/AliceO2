@@ -287,7 +287,7 @@ bool MatchTOF::prepareTracks()
     // create working copy of track param
     mTracksWork.emplace_back(trcOrig); //, mCurrTracksTreeEntry, it);
     // make a copy of the TPC track that we have to propagate
-    //o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig); // this would take the TPCout track
+    //o2::tpc::TrackTPC* trc = new o2::tpc::TrackTPC(trcTPCOrig); // this would take the TPCout track
     //auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     auto& trc = mTracksWork.back().getParamOut();        // with this we take the TPCITS track propagated to the vertex
     auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation

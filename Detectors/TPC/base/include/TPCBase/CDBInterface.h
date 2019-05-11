@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 // forward declarations
 class ParameterDetector;
@@ -170,7 +170,7 @@ inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
   return *object;
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

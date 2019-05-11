@@ -24,7 +24,7 @@
 #include "TPCBase/Mapper.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
   /// \brief Test the mapping
   /// Complex test, in which the pad plane mapping is read in and compared to the outcome of the filtering of the pad

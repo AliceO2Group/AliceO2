@@ -24,7 +24,7 @@
 #include "TPCReconstruction/GBTFrameContainer.h"
 #endif
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void setupContainers(TString fileInfo);
 
@@ -43,7 +43,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int mTimeBinsPerCall=500;
 
   // ===| output file and container |===========================================
-  auto arrCluster = std::make_unique<std::vector<o2::TPC::Cluster>>();
+  auto arrCluster = std::make_unique<std::vector<o2::tpc::Cluster>>();
   TFile fout(outputFileName,"recreate");
   TTree t("clusters","clusters");
   t.Branch("cl", arrCluster.get());

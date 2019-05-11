@@ -31,11 +31,11 @@ class TRDGeometryFlat;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -82,7 +82,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     unsigned int nClusterData[NSLICES] = { 0 };
     const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
     unsigned int nRawClusters[NSLICES] = { 0 };
-    const o2::TPC::ClusterNativeAccessFullTPC* clustersNative = nullptr;
+    const o2::tpc::ClusterNativeAccessFullTPC* clustersNative = nullptr;
     const GPUTPCSliceOutTrack* sliceOutTracks[NSLICES] = { nullptr };
     unsigned int nSliceOutTracks[NSLICES] = { 0 };
     const GPUTPCSliceOutCluster* sliceOutClusters[NSLICES] = { nullptr };
@@ -112,7 +112,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
-    std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
+    std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
     std::unique_ptr<GPUTPCSliceOutTrack[]> sliceOutTracks[NSLICES];
     std::unique_ptr<GPUTPCSliceOutCluster[]> sliceOutClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;

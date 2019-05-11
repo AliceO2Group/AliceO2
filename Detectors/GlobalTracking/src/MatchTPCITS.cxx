@@ -150,9 +150,9 @@ void MatchTPCITS::init()
 
   mSectEdgeMargin2 = mCrudeAbsDiffCut[o2::track::kY] * mCrudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
 
-  const auto& gasParam = o2::TPC::ParameterGas::defaultInstance();
-  const auto& elParam = o2::TPC::ParameterElectronics::defaultInstance();
-  const auto& detParam = o2::TPC::ParameterDetector::defaultInstance();
+  const auto& gasParam = o2::tpc::ParameterGas::defaultInstance();
+  const auto& elParam = o2::tpc::ParameterElectronics::defaultInstance();
+  const auto& detParam = o2::tpc::ParameterDetector::defaultInstance();
   mTPCTBinMUS = elParam.getZBinWidth();
   mTPCVDrift0 = gasParam.getVdrift();
   mTPCZMax = detParam.getTPClength();
@@ -168,7 +168,7 @@ void MatchTPCITS::init()
 
   mTPCTimeEdgeTSafeMargin = z2TPCBin(mTPCTimeEdgeZSafeMargin);
 
-  std::unique_ptr<TPCTransform> fastTransform = (o2::TPC::TPCFastTransformHelperO2::instance()->create(0));
+  std::unique_ptr<TPCTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mTPCTransform = std::move(fastTransform);
   mTPCClusterParam = std::make_unique<o2::gpu::GPUParam>();
   mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
@@ -357,7 +357,7 @@ void MatchTPCITS::attachInputTrees()
     LOG(FATAL) << "TPC clusters reader is not set";
   }
   LOG(INFO) << "Attached TPC clusters reader with " << mTPCClusterReader->getTreeSize();
-  mTPCClusterIdxStructOwn = std::make_unique<o2::TPC::ClusterNativeAccessFullTPC>();
+  mTPCClusterIdxStructOwn = std::make_unique<o2::tpc::ClusterNativeAccessFullTPC>();
 
   // is there FIT Info available?
   if (mTreeFITInfo) {

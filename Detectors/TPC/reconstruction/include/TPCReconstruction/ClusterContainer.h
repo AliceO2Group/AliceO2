@@ -18,7 +18,7 @@
 #include <Rtypes.h> // for Float_t etc
 
 namespace o2 {
-  namespace TPC{
+  namespace tpc{
 
     /// \class ClusterContainer
     /// \brief Container class for TPC clusters
@@ -26,7 +26,7 @@ namespace o2 {
     public:
       // Initialize the clones array
       // @param clusterType Possibility to store different types of clusters
-      // void InitArray(const Char_t* clusterType="o2::TPC::Cluster");
+      // void InitArray(const Char_t* clusterType="o2::tpc::Cluster");
 
       /// Add cluster to array
       /// @param output, the vector to append to

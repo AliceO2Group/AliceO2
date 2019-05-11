@@ -40,15 +40,15 @@ using namespace o2::header;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds)
 {
-  constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
-  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
     // the input comes in individual calls and we need to buffer until
     // data set is complete, have to think about a DPL feature to take
@@ -58,7 +58,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<o2::TPC::TPCCATracking> tracker;
+    std::unique_ptr<o2::tpc::TPCCATracking> tracker;
     int verbosity = 1;
     std::vector<int> inputIds;
     bool readyToQuit = false;
@@ -73,7 +73,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<o2::TPC::TPCCATracking>();
+      tracker = std::make_unique<o2::tpc::TPCCATracking>();
       if (tracker->initialize(options.c_str()) != 0) {
         throw std::invalid_argument("TPCCATracking initialization failed");
       }
@@ -98,7 +98,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         for (auto const& inputId : processAttributes->inputIds) {
           std::string inputLabel = "mclblin" + std::to_string(inputId);
           auto ref = pc.inputs().get(inputLabel);
-          auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+          auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
             // FIXME: think about error policy
             LOG(ERROR) << "sector header missing on header stack";
@@ -134,7 +134,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       for (auto const& inputId : processAttributes->inputIds) {
         std::string inputLabel = "input" + std::to_string(inputId);
         auto ref = pc.inputs().get(inputLabel);
-        auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+        auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
           // FIXME: think about error policy
           LOG(ERROR) << "sector header missing on header stack";
@@ -167,7 +167,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
       if (operation == -1) {
         // EOD is transmitted in the sectorHeader with sector number equal to -1
-        o2::TPC::TPCSectorHeader sh{ -1 };
+        o2::tpc::TPCSectorHeader sh{ -1 };
         sh.activeSectors = activeSectors;
         pc.outputs().snapshot(OutputRef{ "output", 0, { sh } }, -1);
         if (processMC) {
@@ -331,5 +331,5 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
                             } };
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

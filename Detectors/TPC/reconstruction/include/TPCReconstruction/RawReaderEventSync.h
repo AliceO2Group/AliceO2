@@ -18,7 +18,7 @@
 #include <utility>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class RawReaderEventSync.h
 /// \brief Class for time synchronization of RawReader instances.

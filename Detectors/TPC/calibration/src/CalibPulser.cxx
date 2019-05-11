@@ -22,7 +22,7 @@
 #include "MathUtils/MathBase.h"
 #include "TPCCalibration/CalibPulser.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using o2::math_utils::math_base::StatisticsData;
 using o2::math_utils::math_base::getStatisticsData;
 

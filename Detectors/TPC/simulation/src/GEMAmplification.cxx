@@ -20,7 +20,7 @@
 #include <fstream>
 #include "FairLogger.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using boost::format;
 
 GEMAmplification::GEMAmplification()

@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 BOOST_AUTO_TEST_CASE(ClusterHardware_test1)
 {

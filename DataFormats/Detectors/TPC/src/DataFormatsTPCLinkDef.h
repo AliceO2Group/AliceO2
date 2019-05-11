@@ -14,26 +14,26 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::ClusterHardware + ;
-#pragma link C++ class o2::TPC::ClusterHardwareContainer + ;
-#pragma link C++ class o2::TPC::ClusterNative + ;
-#pragma link C++ class o2::TPC::ClusterHardwareContainer8kb + ;
-#pragma link C++ class o2::TPC::ClusterHardwareContainerFixedSize < 8192 > +;
-#pragma link C++ class o2::TPC::ClusterNativeContainer + ;
-#pragma link C++ class std::vector < o2::TPC::ClusterNative > +;
-#pragma link C++ class std::vector < o2::TPC::ClusterNativeContainer > +;
-#pragma link C++ class std::vector < o2::TPC::ClusterHardware > +;
-#pragma link C++ class std::vector < o2::TPC::ClusterHardwareContainerFixedSize < 8192 >> +;
-#pragma link C++ class std::vector < o2::TPC::ClusterHardwareContainer8kb > +;
-#pragma link C++ class o2::TPC::TrackTPC + ;
-#pragma link C++ class o2::TPC::Cluster + ;
-#pragma link C++ class std::vector < o2::TPC::Cluster > +;
-#pragma link C++ class std::vector < o2::TPC::TrackTPC > +;
-#pragma link C++ class o2::TPC::ClusterNativeHelper + ;
-#pragma link C++ class o2::TPC::ClusterNativeHelper::Reader + ;
-#pragma link C++ class o2::TPC::ClusterNativeHelper::TreeWriter + ;
-#pragma link C++ class o2::TPC::ClusterNativeHelper::TreeWriter::BranchData + ;
-#pragma link C++ class std::vector < o2::TPC::ClusterNativeHelper::TreeWriter::BranchData > +;
-#pragma link C++ class o2::TPC::dEdxInfo + ;
+#pragma link C++ class o2::tpc::ClusterHardware + ;
+#pragma link C++ class o2::tpc::ClusterHardwareContainer + ;
+#pragma link C++ class o2::tpc::ClusterNative + ;
+#pragma link C++ class o2::tpc::ClusterHardwareContainer8kb + ;
+#pragma link C++ class o2::tpc::ClusterHardwareContainerFixedSize < 8192 > +;
+#pragma link C++ class o2::tpc::ClusterNativeContainer + ;
+#pragma link C++ class std::vector < o2::tpc::ClusterNative > +;
+#pragma link C++ class std::vector < o2::tpc::ClusterNativeContainer > +;
+#pragma link C++ class std::vector < o2::tpc::ClusterHardware > +;
+#pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainerFixedSize < 8192 >> +;
+#pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainer8kb > +;
+#pragma link C++ class o2::tpc::TrackTPC + ;
+#pragma link C++ class o2::tpc::Cluster + ;
+#pragma link C++ class std::vector < o2::tpc::Cluster > +;
+#pragma link C++ class std::vector < o2::tpc::TrackTPC > +;
+#pragma link C++ class o2::tpc::ClusterNativeHelper + ;
+#pragma link C++ class o2::tpc::ClusterNativeHelper::Reader + ;
+#pragma link C++ class o2::tpc::ClusterNativeHelper::TreeWriter + ;
+#pragma link C++ class o2::tpc::ClusterNativeHelper::TreeWriter::BranchData + ;
+#pragma link C++ class std::vector < o2::tpc::ClusterNativeHelper::TreeWriter::BranchData > +;
+#pragma link C++ class o2::tpc::dEdxInfo + ;
 
 #endif

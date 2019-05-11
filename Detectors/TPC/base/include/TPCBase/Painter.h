@@ -23,7 +23,7 @@ class TH2;
 
 namespace o2
 {
-namespace TPC 
+namespace tpc 
 {
 
 template <class T>
@@ -69,7 +69,7 @@ namespace Painter
 
 } // namespace Painter
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace AliceO2
 

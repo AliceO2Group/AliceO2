@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Test of the DigitContainer

@@ -113,7 +113,7 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, float 
     }
   }
 
-  mShiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::TPC::ClusterNativeAccessFullTPC());
+  mShiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::tpc::ClusterNativeAccessFullTPC());
   return nClusters;
 }
 

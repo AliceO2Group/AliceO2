@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using OutputSpec = framework::OutputSpec;
@@ -46,5 +46,5 @@ struct PublisherConf {
 /// read data from multiple tree branches from ROOT file and publish
 framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true);
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

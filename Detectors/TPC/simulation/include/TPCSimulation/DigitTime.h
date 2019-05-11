@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Digit;
@@ -127,7 +127,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     ++globalPad;
   }
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitTime_H_

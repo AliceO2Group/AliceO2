@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 template <class T>
 void writeObject(T& obj, const std::string_view type, const std::string_view name, const int run)

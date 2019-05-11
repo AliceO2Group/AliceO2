@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class GEMAmplification
@@ -124,7 +124,7 @@ inline int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos&
   }
   return nElectrons;
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_GEMAmplification_H_
