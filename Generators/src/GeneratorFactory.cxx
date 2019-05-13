@@ -81,12 +81,16 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   } else if (genconfig.compare("zdcgen") == 0) {
     // a simple "box" generator for forward neutrons
     LOG(INFO) << "Init box forward zdc generator";
-    auto boxGen = new FairBoxGenerator(2212, 1000); /* neutrons */
-    boxGen->SetEtaRange(-8.0, -9999);
-    boxGen->SetPRange(10, 500);
-    boxGen->SetPhiRange(0., 360.);
-    boxGen->SetDebug(kTRUE);
-    primGen->AddGenerator(boxGen);
+    auto boxGenC = new FairBoxGenerator(2212, 500); /* neutrons */
+    boxGenC->SetEtaRange(-8.0, -9999);
+    boxGenC->SetPRange(10, 500);
+    boxGenC->SetPhiRange(0., 360.);
+    auto boxGenA = new FairBoxGenerator(2212, 500); /* neutrons */
+    boxGenA->SetEtaRange(8.0, 9999);
+    boxGenA->SetPRange(10, 500);
+    boxGenA->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGenC);
+    primGen->AddGenerator(boxGenA);
   } else if (genconfig.compare("fddgen") == 0) {
     LOG(INFO) << "Init box FDD generator";
     auto boxGenFDC = new FairBoxGenerator(13, 1000);
