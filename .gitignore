@@ -52,3 +52,7 @@ cmake_install.cmake
 .project
 .idea
 .settings
+.vscode
+
+# Ignore compile commands
+compile_commands.json
