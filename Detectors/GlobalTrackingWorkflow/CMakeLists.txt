@@ -25,7 +25,7 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME tpcits-match-workflow
+  EXE_NAME o2-tpcits-match-workflow
   
   SOURCES
   src/tpcits-match-workflow.cxx
