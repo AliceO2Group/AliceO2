@@ -177,6 +177,9 @@ function(O2_TARGET_LINK_BUCKET)
   GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs RESULT_systeminc_dirs) # RESULT_lib_dirs)
 #  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
 #  message(STATUS "All inc_dirs of the bucket ${PARSED_ARGS_BUCKET} : ${RESULT_inc_dirs}")
+  list(REMOVE_DUPLICATES RESULT_libs)
+  list(REMOVE_DUPLICATES RESULT_inc_dirs)
+  list(REMOVE_DUPLICATES RESULT_systeminc_dirs)
 
   # for each dependency in the bucket invoke target_link_library
   #  set(DEPENDENCIES ${bucket_map_libs_${PARSED_ARGS_BUCKET}})
@@ -547,6 +550,10 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set(Int_INC "")
   set(Int_SYSTEMINC "")
   GET_BUCKET_CONTENT(${BUCKET_NAME} RESULT_libs Int_INC Int_SYSTEMINC)
+  list(REMOVE_DUPLICATES RESULT_libs)
+  list(REMOVE_DUPLICATES Int_INC)
+  list(REMOVE_DUPLICATES Int_SYSTEMINC)
+
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR}/src) # internal headers
   set(Int_INC ${Int_INC} ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES})
