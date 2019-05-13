@@ -11,7 +11,13 @@
 #ifndef ALICEO2_TRD_DIGITIZER_H_
 #define ALICEO2_TRD_DIGITIZER_H_
 
+#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
+#include "TRDBase/TRDSimParam.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/TRDArraySignal.h"
+#include "TRDBase/PadResponse.h"
+
 #include "TRDSimulation/Detector.h"
 
 namespace o2
@@ -24,15 +30,19 @@ class Digitizer
  public:
   //
   Digitizer();
-  ~Digitizer();
-  void process(std::vector<o2::trd::HitType> const&,
-               std::vector<o2::trd::Digit>&);
+  ~Digitizer() = default;
+  void process(std::vector<HitType> const&, std::vector<Digit>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
 
  private:
-  TRDGeometry* mGeom = nullptr;
+  // TRDCalibDB *mCalib = nullptr;
+  TRDGeometry* mGeo = nullptr;
+  PadResponse* mPRF = nullptr;
+
+  TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
+  TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
 
   double mTime = 0.;
   int mEventID = 0;
@@ -40,15 +50,15 @@ class Digitizer
 
   bool mSDigits; // true: convert signals to summable digits, false by default
 
-  std::vector<o2::trd::HitType> mHitContainer; // The container of hits in a given detector
+  std::vector<HitType> mHitContainer; // The container of hits in a given detector
 
-  bool getHitContainer(const int, const std::vector<o2::trd::HitType>&, std::vector<o2::trd::HitType>&); // True if there are hits in the detector
+  bool getHitContainer(const int, const std::vector<HitType>&, std::vector<HitType>&); // True if there are hits in the detector
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<o2::trd::HitType>&, int&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, int&);                            // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, int&);                           // True if singal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, int&);                               // True if signal-to-ADC conversion is successful
-  bool diffusion(float, double, double, double&, double&, double&);        // True if diffusion is applied successfully
+  bool convertHits(const int, const std::vector<HitType>&, TRDArraySignal&); // True if hit-to-signal conversion is successful
+  bool convertSignalsToDigits(const int, int&);                              // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(const int, int&);                             // True if singal-to-sdigit conversion is successful
+  bool convertSignalsToADC(const int, int&);                                 // True if signal-to-ADC conversion is successful
+  bool diffusion(float, double, double, double&, double&, double&);          // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2
