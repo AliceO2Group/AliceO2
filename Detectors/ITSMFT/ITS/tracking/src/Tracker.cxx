@@ -444,6 +444,9 @@ void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerI
 void Tracker::computeRoadsMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
+  if (!event.hasMCinformation()) {
+    return;
+  }
 
   int roadsNum{ static_cast<int>(mPrimaryVertexContext->getRoads().size()) };
 
@@ -519,6 +522,9 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
 void Tracker::computeTracksMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
+  if (!event.hasMCinformation()) {
+    return;
+  }
 
   int tracksNum{ static_cast<int>(mTracks.size()) };
 
