@@ -59,7 +59,7 @@ class TrackerTraits
 
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
-  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks){};
+  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
