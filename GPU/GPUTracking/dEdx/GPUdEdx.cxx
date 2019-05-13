@@ -59,8 +59,8 @@ GPUd() float GPUdEdx::GetSortTruncMean(float* array, int count, int trunclow, in
   }
   CAAlgo::sort(array, array + count);
   float mean = 0;
-  for (int i = trunclow; i < count - trunchigh; i++) {
+  for (int i = trunclow; i < trunchigh; i++) {
     mean += array[i];
   }
-  return (mean / (count - trunclow - trunchigh));
+  return (mean / (trunchigh - trunclow));
 }
