@@ -31,6 +31,6 @@
 #pragma link C++ class o2::TPC::ClustererTask+;
 #pragma link C++ class o2::TPC::HwClusterer+;
 
-#pragma link C++ class o2::TPC::TPCFastTransformHelperO2 + ;
+#pragma link C++ class o2::TPC::TPCFastTransformHelperO2+;
 
 #endif

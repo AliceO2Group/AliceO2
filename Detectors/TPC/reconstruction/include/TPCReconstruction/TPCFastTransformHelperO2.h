@@ -22,6 +22,7 @@
 
 #include "TPCFastTransform.h"
 #include "Rtypes.h"
+#include <functional>
 
 namespace o2
 {
@@ -36,7 +37,7 @@ class TPCFastTransformHelperO2
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor
-  TPCFastTransformHelperO2();
+  TPCFastTransformHelperO2() = default;
 
   /// Copy constructor: disabled
   TPCFastTransformHelperO2(const TPCFastTransformHelperO2&) = delete;
@@ -52,6 +53,13 @@ class TPCFastTransformHelperO2
 
   /// _______________  Main functionality  ________________________
 
+  /// set an external space charge correction in the global coordinates
+  template <typename F>
+  void setSpaceChargeCorrection(F&& spaceChargeCorrection)
+  {
+    mSpaceChargeCorrection = spaceChargeCorrection;
+  };
+
   /// creates TPCFastTransform object
   std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp);
 
@@ -66,10 +74,11 @@ class TPCFastTransformHelperO2
   /// initialization
   void init();
 
-  static TPCFastTransformHelperO2* sInstance; // singleton instance
-  bool mIsInitialized;                        ///< initialization flag
+  static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
+  bool mIsInitialized = 0;                                                                     ///< initialization flag
+  std::function<void(const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
 
-  ClassDefNV(TPCFastTransformHelperO2, 1);
+  ClassDefNV(TPCFastTransformHelperO2, 2);
 };
 } // namespace TPC
 } // namespace o2

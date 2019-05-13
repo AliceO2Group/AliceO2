@@ -43,12 +43,6 @@ TPCFastTransformHelperO2* TPCFastTransformHelperO2::instance()
   return sInstance;
 }
 
-TPCFastTransformHelperO2::TPCFastTransformHelperO2()
-  : mIsInitialized(0)
-{
-  // default constructor
-}
-
 void TPCFastTransformHelperO2::init()
 {
   // do nothing at the moment
@@ -63,6 +57,12 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   TPCFastTransform& fastTransform = *fastTransformPtr;
 
+  // tell the transformation to apply the space charge distortions
+
+  // FIXME: this is the awful initialization flag
+  constexpr int fastTransformFlag = 1;
+  fastTransform.setApplyDistortionFlag(fastTransformFlag);
+
   if (!mIsInitialized) {
     init();
   }
@@ -74,7 +74,6 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift()); // cm/timebin
 
   // find last calibrated time bin
-
   const double lastTimeBin = detParam.getTPClength() / vDrift + 1;
 
   const Mapper& mapper = Mapper::instance();
@@ -231,23 +230,83 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
 
-  // switch TOF correction off for a while
+  // for the future: switch TOF correction off for a while
 
   for (int slice = 0; slice < distortion.getNumberOfSlices(); slice++) {
+    const TPCFastTransform::SliceInfo& sliceInfo = fastTransform.getSliceInfo(slice);
+
     for (int row = 0; row < distortion.getNumberOfRows(); row++) {
-      //const TPCFastTransform::RowInfo &rowInfo = fastTransform.getRowInfo( row );
+      const TPCFastTransform::RowInfo& rowInfo = fastTransform.getRowInfo(row);
+
       const IrregularSpline2D3D& spline = distortion.getSpline(slice, row);
       float* data = distortion.getSplineDataNonConst(slice, row);
+
       for (int knot = 0; knot < spline.getNumberOfKnots(); knot++) {
-        data[3 * knot + 0] = 0.f;
-        data[3 * knot + 1] = 0.f;
-        data[3 * knot + 2] = 0.f;
+
+        if (!mSpaceChargeCorrection) {
+          data[3 * knot + 0] = 0.f;
+          data[3 * knot + 1] = 0.f;
+          data[3 * knot + 2] = 0.f;
+          continue;
+        }
+
+        // x cordinate of the knot
+        float x = rowInfo.x;
+
+        // spline (su,sv) cordinates of the knot.  (su,sv) are in (0,1)x(0,1) area
+
+        float su = 0, sv = 0;
+        spline.getKnotUV(knot, su, sv);
+
+        // x, u, v cordinates of the knot (local cartesian coord. of slice towards central electrode )
+        float u = 0, v = 0;
+        distortion.convSUVtoUV(slice, row, su, sv, u, v);
+
+        // nominal x,y,z coordinates of the knot (without distortions and time-of-flight correction)
+        float y = 0, z = 0;
+        fastTransform.convUVtoYZ(slice, row, x, u, v, y, z);
+
+        // global coordinates of the knot
+        // TODO: add a method to the fast transform
+        //fastTransform.convLocalToGlobal( slice, x, y, z, x, y, z );
+
+        float gx = x * sliceInfo.cosAlpha - y * sliceInfo.sinAlpha;
+        float gy = x * sliceInfo.sinAlpha + y * sliceInfo.cosAlpha;
+        float gz = z;
+
+        float gx1 = gx, gy1 = gy, gz1 = gz;
+
+        {
+          double xyz[3] = { gx, gy, gz };
+          double dxyz[3] = { 0., 0., 0. };
+          mSpaceChargeCorrection(xyz, dxyz);
+          gx1 += dxyz[0];
+          gy1 += dxyz[1];
+          gz1 += dxyz[2];
+        }
+
+        // corrections in the local coordinates
+        // TODO: add a method to the fast transform
+        // fastTransform.convGlobalToLocal( slice, dx, dy, dz, dx, dy, dz );
+
+        float x1 = gx1 * sliceInfo.cosAlpha + gy1 * sliceInfo.sinAlpha;
+        float y1 = -gx1 * sliceInfo.sinAlpha + gy1 * sliceInfo.cosAlpha;
+        float z1 = gz1;
+
+        // distortion corrections in u,v
+        float u1 = 0, v1 = 0;
+        fastTransform.convYZtoUV(slice, row, x1, y1, z1, u1, v1);
+
+        data[3 * knot + 0] = x1 - x;
+        data[3 * knot + 1] = u1 - u;
+        data[3 * knot + 2] = v1 - v;
+
       } // knots
       spline.correctEdges(data);
     } // row
   }   // slice
 
-  // set back the time-of-flight correction
+  // for the future: set back the time-of-flight correction
 
   return 0;
 }
