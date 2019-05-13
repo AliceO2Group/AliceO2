@@ -69,6 +69,7 @@ set(SRCS
     src/TableBuilder.cxx
     src/TableConsumer.cxx
     src/WorkflowHelpers.cxx
+    src/WorkflowSerializationHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
     src/Task.cxx
@@ -280,6 +281,7 @@ set(TEST_SRCS
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
+      test/test_WorkflowSerialization.cxx
       test/test_DeviceSpecHelpers.cxx
       test/test_ParallelPipeline.cxx
    )

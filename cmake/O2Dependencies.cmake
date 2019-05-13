@@ -336,6 +336,7 @@ o2_define_bucket(
     InfoLogger_bucket
     AliceO2::Common
     CURL::libcurl
+    RapidJSON
 
     SYSTEMINCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
