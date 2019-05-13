@@ -100,18 +100,18 @@ class Tracker
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
 
-void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)
+inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)
 {
   mMemParams = memPars;
   mTrkParams = trkPars;
 }
 
-float Tracker::getBz() const
+inline float Tracker::getBz() const
 {
   return mBz;
 }
 
-void Tracker::setBz(float bz)
+inline void Tracker::setBz(float bz)
 {
   mBz = bz;
 }

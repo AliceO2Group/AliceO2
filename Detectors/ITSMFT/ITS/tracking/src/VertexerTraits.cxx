@@ -390,9 +390,10 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
   std::vector<int> foundTracklets01;
   std::vector<int> foundTracklets12;
 
-  std::vector<int> labelsMC0 = getMClabelsLayer(0);
-  std::vector<int> labelsMC1 = getMClabelsLayer(1);
-  std::vector<int> labelsMC2 = getMClabelsLayer(2);
+  ///TODO: Ugly hack!! The labels should be optionals in the trackleter kernel
+  std::vector<int> labelsMC0 = useMCLabel ? getMClabelsLayer(0) : std::vector<int>();
+  std::vector<int> labelsMC1 = useMCLabel ? getMClabelsLayer(1) : std::vector<int>();
+  std::vector<int> labelsMC2 = useMCLabel ? getMClabelsLayer(2) : std::vector<int>();
 
   trackleterKernelSerial(
     mClusters[0],

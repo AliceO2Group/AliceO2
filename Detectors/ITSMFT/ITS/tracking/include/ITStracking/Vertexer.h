@@ -100,17 +100,17 @@ void Vertexer::findTracklets(T&&... args)
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
 
-void Vertexer::findTrivialMCTracklets()
+inline void Vertexer::findTrivialMCTracklets()
 {
   mTraits->computeTrackletsPureMontecarlo();
 }
 
-void Vertexer::dumpTraits()
+inline void Vertexer::dumpTraits()
 {
   mTraits->dumpVertexerTraits();
 }
 
-std::vector<Vertex> Vertexer::exportVertices()
+inline std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {

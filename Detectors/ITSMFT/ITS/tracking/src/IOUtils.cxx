@@ -125,7 +125,9 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    }
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
   }
@@ -157,7 +159,9 @@ int IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, c
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
