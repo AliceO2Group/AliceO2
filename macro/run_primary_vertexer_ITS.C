@@ -9,6 +9,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "ITSBase/GeometryTGeo.h"
@@ -29,7 +30,8 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const int numEvents = 1,
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
-                             const std::string paramfilename = "o2sim_par.root")
+                             const std::string simfilename = "o2sim.root",
+                             const std::string paramfilename = "O2geometry.root")
 {
   const std::string path = "./";
 
@@ -48,14 +50,33 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
   // Setup Runtime DB
   TFile paramFile(paramfilename.data());
-  paramFile.Get("FairGeoParSet");
+  paramFile.Get("FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
+  // Get event header
+  TChain mcHeaderTree("o2sim");
+  mcHeaderTree.AddFile(simfilename.data());
+  o2::dataformats::MCEventHeader* mcHeader = nullptr;
+  if (!mcHeaderTree.GetBranch("MCEventHeader.")) {
+    LOG(FATAL) << "Did not find MC event header in the input header file." << FairLogger::endl;
+  }
+  mcHeaderTree.SetBranchAddress("MCEventHeader.", &mcHeader);
+
   // get clusters
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
+
+  TChain itsClustersROF("ITSClustersROF");
+  itsClustersROF.AddFile((path + inputClustersITS).data());
+
+  if (!itsClustersROF.GetBranch("ITSClustersROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
+  }
+  std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
+  itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
+  itsClustersROF.GetEntry(0);
 
   //get labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
@@ -91,67 +112,53 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // }
   const o2::ITS::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
   o2::ITS::Vertexer vertexer(traits);
-  o2::itsmft::ROFRecord record;
-  // o2::ITS::Vertexer vertexer(o2::ITS::createVertexerTraits());
-  vertexer.setROframe(roFrame);
-  for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
-    itsClusters.GetEntry(iEvent);
-    std::cout << "\nEvent " << iEvent << ": \n";
-    if (isContITS) {
-      int nclLeft = clusters->size();
-      record.setROFEntry(o2::dataformats::EvIndex<int, int>(iEvent, iEvent));
-      record.setNROFEntries(nclLeft);
-      while (nclLeft > 0) {
-        int nclUsed = o2::ITS::IOUtils::loadROFrameData(record, frame, clusters, labels);
-        if (nclUsed) {
-          // float total = vertexer.clustersToVertices(frame, true);
-          vertexer.initialiseVertexer(&frame);
-          vertexer.findTracklets(useMCcheck);
-          // vertexer.findTrivialMCTracklets();
-          vertexer.processLines();
-          std::vector<std::array<float, 6>> linesdata = vertexer.getLinesData();
-          std::vector<std::array<float, 4>> centroidsData = vertexer.getCentroids();
-          std::vector<o2::ITS::Line> lines = vertexer.getLines();
-          std::vector<o2::ITS::Tracklet> c01 = vertexer.getTracklets01();
-          std::vector<o2::ITS::Tracklet> c12 = vertexer.getTracklets12();
-          std::array<std::vector<o2::ITS::Cluster>, 3> clusters = vertexer.getClusters();
-          std::vector<std::array<float, 7>> dtlambdas = vertexer.getDeltaTanLambdas();
 
-          for (auto& line : lines)
-            tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2],
-                           o2::ITS::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::ITS::Line::getDCA(line, zAxis));
-          for (int i{ 0 }; i < static_cast<int>(c01.size()); ++i) {
-            comb01.Fill(c01[i].tanLambda, c01[i].phiCoordinate);
-            clusPhi01.Fill(clusters[0][c01[i].firstClusterIndex].phiCoordinate, clusters[1][c01[i].secondClusterIndex].phiCoordinate);
-          }
-          for (int i{ 0 }; i < static_cast<int>(c12.size()); ++i) {
-            comb12.Fill(c12[i].tanLambda, c12[i].phiCoordinate);
-            clusPhi12.Fill(clusters[1][c12[i].firstClusterIndex].phiCoordinate, clusters[2][c12[i].secondClusterIndex].phiCoordinate);
-          }
-          for (auto& delta : dtlambdas) {
-            trackdeltaTanLambdas.Fill(delta.data());
-          }
-          for (auto& centroid : centroidsData) {
-            auto cdata = centroid.data();
-            centroids.Fill(roFrame, cdata[0], cdata[1], cdata[2], cdata[3]);
-          }
-          // for (auto& linedata: linesdata) {
-          //   linesData.Fill(linedata.data());
-          // }
+  for (auto& rof : *rofs) {
+    itsClusters.GetEntry(rof.getROFEntry().getEvent());
+    mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
+    int nclUsed = o2::ITS::IOUtils::loadROFrameData(rof, frame, clusters, labels);
+    // float total = vertexer.clustersToVertices(frame, true);
+    vertexer.initialiseVertexer(&frame);
+    vertexer.findTracklets(useMCcheck);
+    // vertexer.findTrivialMCTracklets();
+    vertexer.processLines();
+    std::vector<std::array<float, 6>> linesdata = vertexer.getLinesData();
+    std::vector<std::array<float, 4>> centroidsData = vertexer.getCentroids();
+    std::vector<o2::ITS::Line> lines = vertexer.getLines();
+    std::vector<o2::ITS::Tracklet> c01 = vertexer.getTracklets01();
+    std::vector<o2::ITS::Tracklet> c12 = vertexer.getTracklets12();
+    std::array<std::vector<o2::ITS::Cluster>, 3> clusters = vertexer.getClusters();
+    std::vector<std::array<float, 7>> dtlambdas = vertexer.getDeltaTanLambdas();
 
-          vertexer.findVertices();
-          vertexer.dumpTraits();
-          // std::cout << " - TOTAL elapsed time: " << total << "ms." << std::endl;
-          std::vector<Vertex> vertITS = vertexer.exportVertices();
-          verticesITS->swap(vertITS);
-          outTree.Fill();
-          nclLeft -= nclUsed;
-        }
-        roFrame++;
-      }
-    } else {
-      o2::ITS::IOUtils::loadEventData(frame, clusters, labels);
+    for (auto& line : lines)
+      tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2],
+                     o2::ITS::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::ITS::Line::getDCA(line, zAxis));
+    for (int i{ 0 }; i < static_cast<int>(c01.size()); ++i) {
+      comb01.Fill(c01[i].tanLambda, c01[i].phiCoordinate);
+      clusPhi01.Fill(clusters[0][c01[i].firstClusterIndex].phiCoordinate, clusters[1][c01[i].secondClusterIndex].phiCoordinate);
     }
+    for (int i{ 0 }; i < static_cast<int>(c12.size()); ++i) {
+      comb12.Fill(c12[i].tanLambda, c12[i].phiCoordinate);
+      clusPhi12.Fill(clusters[1][c12[i].firstClusterIndex].phiCoordinate, clusters[2][c12[i].secondClusterIndex].phiCoordinate);
+    }
+    for (auto& delta : dtlambdas) {
+      trackdeltaTanLambdas.Fill(delta.data());
+    }
+    for (auto& centroid : centroidsData) {
+      auto cdata = centroid.data();
+      centroids.Fill(roFrame, cdata[0], cdata[1], cdata[2], cdata[3]);
+    }
+    for (auto& linedata : linesdata) {
+      linesData.Fill(linedata.data());
+    }
+
+    vertexer.findVertices();
+    vertexer.dumpTraits();
+    // std::cout << " - TOTAL elapsed time: " << total << "ms." << std::endl;
+    std::vector<Vertex> vertITS = vertexer.exportVertices();
+    verticesITS->swap(vertITS);
+    // std::array<float,3> trueVertex{mcHeader->GetX(),mcHeader->GetY(),mcHeader->GetZ()}; // UNCOMMENT TO GET THE MC VERTEX POS FOR CURRENT ROFRAME
+    outTree.Fill();
   }
 
   outTree.Write();

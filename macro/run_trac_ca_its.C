@@ -10,7 +10,8 @@
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
 #include <FairLogger.h>
-#include <FairMCEventHeader.h>
+
+#include "SimulationDataFormat/MCEventHeader.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -26,7 +27,7 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/TrackerTraitsCPU.h"
-#include "ITStracking/VertexerBase.h"
+#include "ITStracking/Vertexer.h"
 
 #include "MathUtils/Utils.h"
 
@@ -93,7 +94,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   // Get event header
   TChain mcHeaderTree("o2sim");
   mcHeaderTree.AddFile(simfilename.data());
-  FairMCEventHeader* mcHeader = nullptr;
+  o2::dataformats::MCEventHeader* mcHeader = nullptr;
   if (!mcHeaderTree.GetBranch("MCEventHeader.")) {
     LOG(FATAL) << "Did not find MC event header in the input header file." << FairLogger::endl;
   }
@@ -126,75 +127,49 @@ void run_trac_ca_its(bool useITSVertex = false,
   outTree.Branch("ITSTrack", &tracksITS);
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
 
-  //-------------------- settings -----------//
-  std::uint32_t roFrame = 0;
-  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
-    itsClusters.GetEntry(iEvent);
-    mcHeaderTree.GetEntry(iEvent);
+  TChain itsClustersROF("ITSClustersROF");
+  itsClustersROF.AddFile((path + inputClustersITS).data());
 
-    if (isContITS) {
-      int nclLeft = clusters->size();
-      while (nclLeft > 0) {
-        int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
-        if (nclUsed) {
-          cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
-          // Attention: in the continuous mode cluster entry ID does not give the physics event ID
-          // so until we use real vertexer, we have to work with vertex at origin
-          if (useITSVertex) {
-            o2::ITS::VertexerBase vertexer(event);
-            vertexer.setROFrame(roFrame);
-            vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
-            // set to true to use MC check
-            vertexer.findTracklets(false);
-            vertexer.findVertices();
-            std::vector<Vertex> vertITS = vertexer.getVertices();
-            if (!vertITS.empty()) {
-              // Using only the first vertex in the list
-              cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-              event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
-            } else {
-              cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
-              ;
-            }
-          } else {
-            event.addPrimaryVertex(0.f, 0.f, 0.f);
-          }
-          tracker.setROFrame(roFrame);
-          tracker.clustersToTracks(event);
-          tracksITS->swap(tracker.getTracks());
-          *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-          outTree.Fill();
-          nclLeft -= nclUsed;
-        }
-        roFrame++;
-      }
-    } else { // triggered mode
-      cout << "Event " << iEvent << std::endl;
-      o2::ITS::IOUtils::loadEventData(event, clusters, labels);
-      if (useITSVertex) {
-        o2::ITS::VertexerBase vertexer(event);
-        vertexer.setROFrame(roFrame);
-        vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
-        // set to true to use MC check
-        vertexer.findTracklets(false);
-        vertexer.findVertices();
-        std::vector<Vertex> vertITS = vertexer.getVertices();
-        // Using only the first vertex in the list
-        if (!vertITS.empty()) {
-          cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-          event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
-        } else {
-          cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
-        }
-      } else {
-        event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
-      }
-      tracker.clustersToTracks(event);
-      tracksITS->swap(tracker.getTracks());
-      *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-      outTree.Fill();
-    }
+  if (!itsClustersROF.GetBranch("ITSClustersROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
   }
+  std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
+  itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
+  itsClustersROF.GetEntry(0);
+
+  o2::ITS::VertexerTraits* traits = o2::ITS::createVertexerTraits();
+  o2::ITS::Vertexer vertexer(traits);
+
+  int roFrameCounter{ 0 };
+  for (auto& rof : *rofs) {
+    itsClusters.GetEntry(rof.getROFEntry().getEvent());
+    mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
+    o2::ITS::IOUtils::loadROFrameData(rof, event, clusters, labels);
+    if (useITSVertex) {
+      vertexer.initialiseVertexer(&event);
+
+      // set to true to use MC check
+      vertexer.findTracklets(false);
+      vertexer.findVertices();
+      std::vector<Vertex> vertITS = vertexer.exportVertices();
+      if (!vertITS.empty()) {
+        // Using only the first vertex in the list
+        cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+        event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
+      } else {
+        cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+      }
+    } else {
+      std::cout << Form("MC Vertex for roFrame %i: %f %f %f", roFrameCounter, mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ()) << std::endl;
+      event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
+    }
+    tracker.clustersToTracks(event);
+    tracksITS->swap(tracker.getTracks());
+    *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    outTree.Fill();
+    roFrameCounter++;
+  }
+
   outFile.cd();
   outTree.Write();
   outFile.Close();
