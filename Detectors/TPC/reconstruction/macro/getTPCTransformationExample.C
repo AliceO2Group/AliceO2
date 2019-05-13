@@ -57,11 +57,11 @@ void getTPCTransformationExample()
         for (float time = 0; time < 1000; time += 30) {
 
           fastTransform->setApplyDistortionFlag(0);
-          float x0=0., y0=0., z0=0.;
+          float x0 = 0., y0 = 0., z0 = 0.;
           int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
           fastTransform->setApplyDistortionFlag(1);
-          float x1=0., y1=0., z1=0.;
+          float x1 = 0., y1 = 0., z1 = 0.;
           int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           if (err0 != 0 || err1 != 0) {
