@@ -649,8 +649,6 @@ class RawPixelReader : public PixelReader
       if (ruIDSW >= mMAP.getNRUs()) {
         mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
         LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId] << " : " << rdh->feeId << ", skipping CRU page";
-        mDecodingStat.nBytesProcessed += rdh->memorySize;
-        mDecodingStat.nPagesProcessed++;
 
         ptr += rdh->offsetToNext;
         buffer.setPtr(ptr);
@@ -693,8 +691,6 @@ class RawPixelReader : public PixelReader
         }
       }
 
-      mDecodingStat.nBytesProcessed += rdh->memorySize;
-      mDecodingStat.nPagesProcessed++;
       ptr += rdh->offsetToNext;
       buffer.setPtr(ptr);
       if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
@@ -878,6 +874,8 @@ class RawPixelReader : public PixelReader
 
     ruDecData.nCables = ruDecData.ruInfo->nCables;
     while (1) {
+      mDecodingStat.nBytesProcessed += rdh->memorySize;
+      mDecodingStat.nPagesProcessed++;
       raw += rdh->headerSize;
       int nGBTWords = (rdh->memorySize - rdh->headerSize) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
       auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);    // process GBT header
@@ -1043,7 +1041,7 @@ class RawPixelReader : public PixelReader
       bool aborted = false;
 
       auto ptr = skimPaddedRUData(mRawBuffer.getPtr(), outBuffer, aborted);
-
+      mDecodingStat.nRUsProcessed++;
       if (!aborted) {
         mRawBuffer.setPtr(ptr);
         res = 1; // success
@@ -1086,8 +1084,6 @@ class RawPixelReader : public PixelReader
     if (ruIDSWD >= mMAP.getNRUs()) {
       mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
       LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId] << " : " << rdh->feeId << ", skipping CRU page";
-      mDecodingStat.nBytesProcessed += rdh->memorySize;
-      mDecodingStat.nPagesProcessed++;
       raw += rdh->offsetToNext;
       return raw;
     }
@@ -1114,7 +1110,6 @@ class RawPixelReader : public PixelReader
 
     auto& ruStat = ruDecode.links[linkIDinRU]->statistics;
     ruStat.nPackets++;
-    mDecodingStat.nRUsProcessed++;
 
     int sizeAtEntry = outBuffer.getSize(); // save the size of outbuffer size at entry, in case of severe error we will need to rewind to it.
 
@@ -1410,7 +1405,6 @@ class RawPixelReader : public PixelReader
       return mIOFile.gcount(); // fread( ptr, sizeof(uint8_t), n, mIOFile);
     };
     auto nread = buffer.append(readFromFile);
-    mDecodingStat.nBytesProcessed += nread;
     mSWIO.Stop();
     return nread;
   }
