@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FRAMEWORKGUIDEBUGGER_H
-#define FRAMEWORK_FRAMEWORKGUIDEBUGGER_H
+#ifndef FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
+#define FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
 
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceInfo.h"

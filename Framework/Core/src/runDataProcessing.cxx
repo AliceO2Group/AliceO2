@@ -67,15 +67,16 @@
 #include <string>
 #include <type_traits>
 #include <chrono>
+#include <netinet/ip.h>
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <netinet/ip.h>
 
 using namespace o2::monitoring;
 using namespace AliceO2::InfoLogger;
@@ -87,6 +88,8 @@ using DeviceSpecs = std::vector<DeviceSpec>;
 using DeviceInfos = std::vector<DeviceInfo>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
+
+template class std::vector<DeviceSpec>;
 
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 
@@ -297,7 +300,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
     exit(1);
   }
 
-  std::cout << "Starting " << spec.id << " on pid " << id << "\n";
+  LOG(INFO) << "Starting " << spec.id << " on pid " << id << "\n";
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -677,6 +680,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
+  DriverState previous;
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
@@ -711,6 +715,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       driverInfo.states.push_back(DriverState::GUI);
     }
     if (driverInfo.states.empty() == false) {
+      previous = current;
       current = driverInfo.states.back();
     } else {
       current = DriverState::UNKNOWN;
@@ -747,6 +752,9 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
           return 1;
+        } catch (...) {
+          std::cerr << "Unknown error while materialising workflow";
+          return 1;
         }
         break;
       case DriverState::DO_CHILD:
@@ -755,7 +763,20 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
             return doChild(driverInfo.argc, driverInfo.argv, spec);
           }
         }
-        LOG(ERROR) << "Unable to find component with id " << frameworkId;
+        {
+          std::ostringstream ss;
+          for (auto& processor : workflow) {
+            ss << " - " << processor.name << "\n";
+          }
+          for (auto& spec : deviceSpecs) {
+            ss << " - " << spec.name << "(" << spec.id << ")"
+               << "\n";
+          }
+          LOG(ERROR) << "Unable to find component with id "
+                     << frameworkId << ". Available options:\n"
+                     << ss.str();
+          driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
+        }
         break;
       case DriverState::REDEPLOY_GUI:
         // The callback for the GUI needs to be recalculated every time
@@ -767,7 +788,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
           debugGUICallback = gui::getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl);
         }
         break;
-      case DriverState::SCHEDULE:
+      case DriverState::SCHEDULE: {
         // FIXME: for the moment modifying the topology means we rebuild completely
         //        all the devices and we restart them. This is also what DDS does at
         //        a larger scale. In principle one could try to do a delta and only
@@ -786,7 +807,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         driverInfo.maxFd += 1;
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
-        break;
+      } break;
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI

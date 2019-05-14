@@ -427,6 +427,7 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   BOOST_CHECK_EQUAL(workflow.size(), 1);
+
   WorkflowHelpers::injectServiceDevices(workflow);
   // The added devices are the one which should connect to
   // the condition DB and the sink for the dangling outputs.

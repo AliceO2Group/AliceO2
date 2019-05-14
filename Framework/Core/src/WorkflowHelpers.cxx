@@ -442,14 +442,21 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
                            doForward});
   };
 
-  auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
+  auto errorDueToMissingOutputFor = [&workflow, &constOutputs](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
     str << "No matching output found for "
-        << DataSpecUtils::describe(input) << "\n";
+        << DataSpecUtils::describe(input) << ". Candidates:\n";
+
+    for (auto& output : constOutputs) {
+      str << " - " << output.origin.str << "/"
+          << output.description.str << "/"
+          << output.subSpec
+          << "\n";
+    }
+
     throw std::runtime_error(str.str());
   };
-
 
   // Whenever we have a set of forwards, we need to append it
   // the the global list of outputs, so that they can be matched

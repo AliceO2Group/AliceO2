@@ -54,6 +54,7 @@ struct DataSpecUtils {
   /// of the InputSpec API, because there is no unique way a description should
   /// be done, so we keep this outside.
   static std::string describe(InputSpec const& spec);
+
   /// Provide a unique label for the input spec. Again this is outside because there
   /// is no standard way of doing it, so better not to pollute the API.
   static std::string label(InputSpec const& spec);

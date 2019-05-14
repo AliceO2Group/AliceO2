@@ -722,7 +722,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
   guiState.bottomPaneSize = 300;
-  guiState.leftPaneSize = 100;
+  guiState.leftPaneSize = 200;
   guiState.rightPaneSize = 300;
 
   // Show all the panes by default.
