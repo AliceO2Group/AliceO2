@@ -230,9 +230,7 @@ set(EXCLUDE_MACROS_FROM_TEST
   ${CMAKE_SOURCE_DIR}/macro/putCondition.C
 
   # Disabled until AliTPCCommon is merged
-  ${CMAKE_SOURCE_DIR}/macro/run_test_vert_ca_its.C
   ${CMAKE_SOURCE_DIR}/macro/run_trac_ca_its.C
-  ${CMAKE_SOURCE_DIR}/macro/run_rec_ca.C
 
   # Exclude AliRoot macros from AliGPU package
   ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/checkPropagation.C
@@ -245,9 +243,6 @@ set(EXCLUDE_MACROS_FROM_TEST
   ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/createTPCFastTransform.C
   ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/moveTPCFastTransform.C
   ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/loadlibs.C
-
-  # Disabled from @mconcas: will be removed soon in any case
-  ${CMAKE_SOURCE_DIR}/macro/run_vert_ca_its.C
 
   # This macro is used by the o2-sim tests, no need to re-check. Parallel tests
   # of the same macro are also breaking it
