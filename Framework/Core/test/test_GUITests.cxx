@@ -118,12 +118,18 @@ BOOST_AUTO_TEST_CASE(DeviceInspector)
   DeviceInfo info;
   DeviceControl control;
   DeviceMetricsInfo metrics;
+  DataProcessorInfo metadata = DataProcessorInfo{
+    "foo",
+    "bar",
+    {},
+    {}
+  };
 
   for (int n = 0; n < 50; n++) {
     io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
-    gui::displayDeviceInspector(spec, info, metrics, control);
+    gui::displayDeviceInspector(spec, info, metrics, metadata, control);
     ImGui::Render();
   }
   ImGui::DestroyContext();
@@ -178,6 +184,14 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       false,
       Metric2DViewIndex{}});
 
+  std::vector<DataProcessorInfo> metadata;
+  metadata.emplace_back(
+    DataProcessorInfo{
+      "foo",
+      "bar",
+      {},
+      {} });
+
   std::vector<DeviceControl> controls;
   controls.push_back(
     DeviceControl{});
@@ -187,7 +201,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
     io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
-    gui::showTopologyNodeGraph(state, infos, specs, controls, metrics);
+    gui::showTopologyNodeGraph(state, infos, specs, metadata, controls, metrics);
     ImGui::Render();
   }
   ImGui::DestroyContext();

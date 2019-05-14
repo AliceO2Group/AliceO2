@@ -21,6 +21,7 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
+#include "DataProcessorInfo.h"
 
 namespace o2
 {
@@ -67,6 +68,7 @@ enum struct DriverState {
   UNKNOWN,
   PERFORM_CALLBACKS,
   MATERIALISE_WORKFLOW,
+  IMPORT_CURRENT_WORKFLOW,
   DO_CHILD,
   LAST
 };
@@ -116,8 +118,9 @@ struct DriverInfo {
   unsigned short startPort;
   /// The size of the port range to consider allocated
   unsigned short portRange;
-  /// The current set of workflow options 
-  std::vector<ConfigParamSpec> workflowOptions;
+  /// The current set of metadata associated to each DataProcessor being
+  /// executed.
+  std::vector<DataProcessorInfo> processorInfo;
   /// The config context. We use a bare pointer because std::observer_ptr is not a thing, yet.
   ConfigContext const* configContext;
   /// The names for all the metrics which have been collected by this driver.

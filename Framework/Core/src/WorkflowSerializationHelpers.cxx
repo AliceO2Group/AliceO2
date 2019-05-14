@@ -387,23 +387,15 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_INPUT_ORIGIN)) {
-      char buf[4] = { 0, 0, 0, 0 };
-      memcpy(buf, s.c_str(), std::min(s.size(), 4UL));
-      origin = header::DataOrigin{ buf };
+      origin.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
     } else if (in(State::IN_INPUT_DESCRIPTION)) {
-      char buf[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-      memcpy(buf, s.c_str(), std::min(s.size(), 16UL));
-      description = header::DataDescription{ buf };
+      description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
     } else if (in(State::IN_OUTPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_OUTPUT_ORIGIN)) {
-      char buf[4] = { 0, 0, 0, 0 };
-      memcpy(buf, s.c_str(), std::min(s.size(), 4UL));
-      origin = header::DataOrigin{ buf };
+      origin.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
     } else if (in(State::IN_OUTPUT_DESCRIPTION)) {
-      char buf[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-      memcpy(buf, s.c_str(), std::min(s.size(), 16UL));
-      description = header::DataDescription{ buf };
+      description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
     } else if (in(State::IN_OPTION_NAME)) {
       optionName = s;
     } else if (in(State::IN_OPTION_TYPE)) {
@@ -572,9 +564,9 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       w.Key("binding");
       w.String(input.binding.c_str());
       w.Key("origin");
-      w.String(concrete.origin.str);
+      w.String(concrete.origin.str, strnlen(concrete.origin.str, 4));
       w.Key("description");
-      w.String(concrete.description.str);
+      w.String(concrete.description.str, strnlen(concrete.description.str, 16));
       w.Key("subspec");
       w.Uint64(concrete.subSpec);
       w.Key("lifetime");
@@ -595,9 +587,9 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
         w.String(output.binding.value.c_str());
       }
       w.Key("origin");
-      w.String(output.origin.str);
+      w.String(output.origin.str, strnlen(output.origin.str, 4));
       w.Key("description");
-      w.String(output.description.str);
+      w.String(output.description.str, strnlen(output.description.str, 16));
       w.Key("subspec");
       w.Uint64(output.subSpec);
       w.Key("lifetime");

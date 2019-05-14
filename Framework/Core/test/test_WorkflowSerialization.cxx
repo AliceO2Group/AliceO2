@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   using namespace o2::framework;
   WorkflowSpec w0{
     DataProcessorSpec{ "A",
-                       { InputSpec{ "foo", "A", "B", 1, Lifetime::Condition } },
+                       { InputSpec{ "foo", "A", "COLLISIONCONTEXT", 1, Lifetime::Condition } },
                        { OutputSpec{ { "bar" }, "C", "D", 2, Lifetime::Timeframe } },
                        AlgorithmSpec{ [](ProcessingContext& ctx) {} },
                        { ConfigParamSpec{ "aInt", VariantType::Int, 0, { "An Int" } },

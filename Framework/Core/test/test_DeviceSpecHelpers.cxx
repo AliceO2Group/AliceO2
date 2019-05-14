@@ -59,19 +59,25 @@ void check(const std::vector<std::string>& arguments,
            CheckMatrix& matrix)
 {
   std::stringstream output;
-  std::vector<char*> argv;
-  argv.push_back(strdup("executable-name"));
   for (auto const& arg : arguments) {
     output << " " << arg;
-    argv.push_back(strdup(arg.c_str()));
   }
   std::cout << "checking for arguments: " << output.str() << std::endl;
 
   std::vector<DeviceExecution> deviceExecutions(deviceSpecs.size());
   std::vector<DeviceControl> deviceControls(deviceSpecs.size());
-  DeviceSpecHelpers::prepareArguments(argv.size(), argv.data(), true, true,
+  std::vector<DataProcessorInfo> dataProcessorInfos;
+  for (auto& [name, _] : matrix) {
+    dataProcessorInfos.push_back(DataProcessorInfo{
+      name,
+      "executable-name",
+      arguments,
+      workflowOptions,
+    });
+  }
+  DeviceSpecHelpers::prepareArguments(true, true,
+                                      dataProcessorInfos,
                                       deviceSpecs,
-                                      workflowOptions,
                                       deviceExecutions,
                                       deviceControls);
 
@@ -94,9 +100,6 @@ void check(const std::vector<std::string>& arguments,
       BOOST_TEST_INFO(std::string("can not find option: ") + testCase.first + " " + testCase.second);
       BOOST_CHECK(search(deviceExecution, testCase.first, testCase.second));
     }
-  }
-  for (auto arg : argv) {
-    free(arg);
   }
 }
 

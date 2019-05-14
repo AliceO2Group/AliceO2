@@ -392,6 +392,25 @@ void customize(...)
 
 free function which takes as argument the group of policies to be applied to customise the behavior.
 
+## Managing multiple workflows.
+
+In general a DPL workflow consists of a C++ executable which defines an
+implicit workflow, as previously discribed. However it is sometimes handy
+to be able to split workflow in parts, e.g. to be able to run two detectors
+independently or to have a basic workflow with is then decorated with extra
+processing like data sampling if / when requested.
+
+DPL allows merging workflows by simply piping one into the other. So if `workflow-a`
+and `workflow-b` are two separate workflows, one can run the union of the two by doing:
+
+```bash
+workflow-a | workflow-b
+```
+
+Because the merging happens at the level of the implicit representation, this
+allows having dangling inputs and outputs which are potentially satisfied only
+when a separate workflow is merged.
+
 # Forward looking statements:
 
 ## Support for analysis
