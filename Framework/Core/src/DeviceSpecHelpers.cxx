@@ -657,8 +657,8 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     // FIXME: add some checksum in framework id. We could use this
     //        to avoid redeploys when only a portion of the workflow is changed.
     // FIXME: this should probably be done in one go with char *, but I am lazy.
-    std::vector<std::string> tmpArgs = { argv[0],       "--id",  spec.id.c_str(), "--control", "static",
-                                         "--log-color", "false", "--color",       "false" };
+    std::vector<std::string> tmpArgs = { argv[0], "--id", spec.id.c_str(), "--control", "static",
+                                         "--log-color", "false", "--color", "false" };
 
     // do the filtering of options:
     // 1) forward options belonging to this specific DeviceSpec
@@ -667,9 +667,9 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     const char* name = spec.name.c_str();
     bpo::options_description od;     // option descriptions per process
     bpo::options_description foDesc; // forwarded options for all processes
-    ConfigParamsHelper::prepareOptionsDescription(spec.options, od);
+    ConfigParamsHelper::dpl2BoostOptions(spec.options, od);
     od.add_options()(name, bpo::value<std::string>());
-    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, foDesc);
+    ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
     foDesc.add(getForwardedDeviceOptions());
 
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;

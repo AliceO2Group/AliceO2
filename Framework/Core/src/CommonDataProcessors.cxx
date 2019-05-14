@@ -101,7 +101,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
                std::back_inserter(unmatched), noTimeframe);
 
   DataProcessorSpec spec{
-    "dpl-global-binary-file-sink",
+    "internal-dpl-global-binary-file-sink",
     validBinaryInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
@@ -115,7 +115,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
 {
   return DataProcessorSpec{
-    "dpl-dummy-sink",
+    "internal-dpl-dummy-sink",
     danglingOutputInputs,
     Outputs{},
   };

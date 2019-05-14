@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace bpo = boost::program_options;
 
@@ -63,15 +64,23 @@ void ConfigParamsHelper::populateBoostProgramOptions(
 
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
-bool ConfigParamsHelper::prepareOptionsDescription(const std::vector<ConfigParamSpec>& spec,
-                                                   boost::program_options::options_description& options,
-                                                   boost::program_options::options_description vetos)
+bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,
+                                          boost::program_options::options_description& options,
+                                          boost::program_options::options_description vetos)
 {
   bool haveOption = false;
   for (const auto& configSpec : spec) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(configSpec.name, false))
-      continue;
+    try {
+      if (vetos.find_nothrow(configSpec.name, false))
+        continue;
+    } catch (boost::program_options::ambiguous_option& e) {
+      for (auto& alternative : e.alternatives()) {
+        std::cerr << alternative << std::endl;
+      }
+      throw;
+    }
+
     haveOption = true;
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;
