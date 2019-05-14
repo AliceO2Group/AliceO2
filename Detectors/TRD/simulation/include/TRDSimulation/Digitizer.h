@@ -11,19 +11,20 @@
 #ifndef ALICEO2_TRD_DIGITIZER_H_
 #define ALICEO2_TRD_DIGITIZER_H_
 
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
-#include "TRDBase/TRDSimParam.h"
-#include "TRDBase/Digit.h"
-#include "TRDBase/TRDArraySignal.h"
-#include "TRDBase/PadResponse.h"
-
 #include "TRDSimulation/Detector.h"
+#include "TRDBase/Digit.h"
 
 namespace o2
 {
 namespace trd
 {
+
+class TRDGeometry;
+class TRDCommonParam;
+class TRDSimParam;
+class TRDPadPlane;
+class TRDArraySignal;
+class PadResponse;
 
 class Digitizer
 {

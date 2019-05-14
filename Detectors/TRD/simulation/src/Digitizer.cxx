@@ -11,13 +11,18 @@
 #include <TGeoManager.h>
 #include <TRandom.h>
 
-#include "DetectorsBase/GeometryManager.h"
-#include "TRDSimulation/Digitizer.h"
-#include "TRDBase/TRDPadPlane.h"
-
-#include "TRDBase/TRDArraySignal.h"
-
 #include "FairLogger.h"
+#include "DetectorsBase/GeometryManager.h"
+
+#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
+#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/TRDArraySignal.h"
+#include "TRDBase/PadResponse.h"
+
+#include "TRDSimulation/Digitizer.h"
+
 
 using namespace o2::trd;
 
