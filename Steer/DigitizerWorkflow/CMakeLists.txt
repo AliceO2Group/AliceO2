@@ -40,6 +40,7 @@ O2_GENERATE_EXECUTABLE(
   src/HMPIDDigitizerSpec.cxx
   src/MCHDigitizerSpec.cxx
   src/TRDDigitizerSpec.cxx
+  src/ZDCDigitizerSpec.cxx
   src/GRPUpdaterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}

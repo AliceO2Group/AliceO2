@@ -2021,6 +2021,7 @@ o2_define_bucket(
     TRDBase
     TRDSimulation
     MIDSimulation
+    ZDCSimulation
 )
 
 o2_define_bucket(

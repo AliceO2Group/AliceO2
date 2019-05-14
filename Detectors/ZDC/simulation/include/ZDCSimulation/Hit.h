@@ -52,10 +52,10 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   void setPMQLightYield(float val) { mNphePMQ = val; }
   void setNoNumContributingSteps(int val) { mNoContributingSteps = val; }
 
-  int getSector() { return mSectorID; }
-  float getPMCLightYield() { return mNphePMC; }
-  float getPMQLightYield() { return mNphePMQ; }
-  int getNumContributingSteps() { return mNoContributingSteps; }
+  int getSector() const { return mSectorID; }
+  float getPMCLightYield() const { return mNphePMC; }
+  float getPMQLightYield() const { return mNphePMQ; }
+  int getNumContributingSteps() const { return mNoContributingSteps; }
 
  private:
   Int_t mParentID;
