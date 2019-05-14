@@ -439,10 +439,13 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
 
 void displayDeviceHistograms(gui::WorkspaceGUIState& state,
                              DriverInfo const& driverInfo,
-                             const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                             std::vector<DeviceControl>& controls, const std::vector<DeviceMetricsInfo>& metricsInfos)
+                             std::vector<DeviceInfo> const& infos,
+                             std::vector<DeviceSpec> const& devices,
+                             std::vector<DataProcessorInfo> const& metadata,
+                             std::vector<DeviceControl>& controls,
+                             std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
-  showTopologyNodeGraph(state, infos, devices, controls, metricsInfos);
+  showTopologyNodeGraph(state, infos, devices, metadata, controls, metricsInfos);
   if (state.bottomPaneVisible == false) {
     return;
   }
@@ -658,34 +661,6 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   }
 
   auto& registry = driverInfo.configContext->options();
-  ImGui::TextUnformatted("Workflow options:");
-  ImGui::Columns(2);
-  for (auto& option : driverInfo.workflowOptions) {
-    ImGui::TextUnformatted(option.name.c_str());
-    ImGui::NextColumn();
-    switch (option.type) {
-      case ConfigParamSpec::ParamType::Int64:
-      case ConfigParamSpec::ParamType::Int:
-        ImGui::Text("%d", registry.get<int>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::Float:
-        ImGui::Text("%f", registry.get<float>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::Double:
-        ImGui::Text("%f", registry.get<double>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::String:
-        ImGui::Text("%s", registry.get<std::string>(option.name.c_str()).c_str());
-        break;
-      case ConfigParamSpec::ParamType::Bool:
-        ImGui::TextUnformatted(registry.get<bool>(option.name.c_str()) ? "true" : "false");
-        break;
-      case ConfigParamSpec::ParamType::Empty:
-      case ConfigParamSpec::ParamType::Unknown:
-        break;
-    }
-    ImGui::NextColumn();
-  }
   ImGui::Columns();
 
   ImGui::Text("Frame cost (latency): %.1f(%.1f)ms", driverInfo.frameCost, driverInfo.frameLatency);
@@ -705,9 +680,12 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
 // FIXME: return empty function in case we were not built
 // with GLFW support.
 ///
-std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
-                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
+                                         std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessorInfo> const& metadata,
+                                         std::vector<DeviceMetricsInfo> const& metricsInfos,
+                                         DriverInfo const& driverInfo,
+                                         std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl)
 {
   static gui::WorkspaceGUIState globalGUIState;
@@ -730,14 +708,14 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
   guiState.leftPaneVisible = true;
   guiState.rightPaneVisible = true;
 
-  return [&guiState, &infos, &devices, &controls, &metricsInfos, &driverInfo, &driverControl]() {
+  return [&guiState, &infos, &devices, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl]() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 0.;
     style.WindowRounding = 0.;
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
 
-    displayDeviceHistograms(guiState, driverInfo, infos, devices, controls, metricsInfos);
+    displayDeviceHistograms(guiState, driverInfo, infos, devices, metadata, controls, metricsInfos);
     displayDriverInfo(driverInfo, driverControl);
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();

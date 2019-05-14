@@ -7,9 +7,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "DataProcessorInfo.h"
+#include "Framework/FrameworkGUIDebugger.h"
+
 #include <algorithm>
 #include <vector>
-#include "Framework/FrameworkGUIDebugger.h"
 
 namespace o2
 {
@@ -18,9 +20,12 @@ namespace framework
 namespace gui
 {
 // Dummy function in case we want to build without debugger.
-std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
-                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
+                                         std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessorInfo> const& metadata,
+                                         std::vector<DeviceMetricsInfo> const& metricsInfos,
+                                         DriverInfo const& driverInfo,
+                                         std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl)
 {
   return []() {};

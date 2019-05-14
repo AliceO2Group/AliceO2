@@ -22,6 +22,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
 #include "ComputingResource.h"
+#include "DataProcessorInfo.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
 
@@ -48,14 +49,12 @@ struct DeviceSpecHelpers {
   /// Helper to prepare the arguments which will be used to 
   /// start the various devices.
   static void prepareArguments(
-      int argc,
-      char **argv,
-      bool defaultQuiet,
-      bool defaultStopped,
-      const std::vector<DeviceSpec> &deviceSpecs,
-      const std::vector<ConfigParamSpec> &workflowOptions,
-      std::vector<DeviceExecution> &deviceExecutions,
-      std::vector<DeviceControl> &deviceControls);
+    bool defaultQuiet,
+    bool defaultStopped,
+    std::vector<DataProcessorInfo> const& processorInfos,
+    std::vector<DeviceSpec> const& deviceSpecs,
+    std::vector<DeviceExecution>& deviceExecutions,
+    std::vector<DeviceControl>& deviceControls);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related 
