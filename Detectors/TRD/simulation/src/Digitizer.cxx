@@ -23,7 +23,6 @@
 
 #include "TRDSimulation/Digitizer.h"
 
-
 using namespace o2::trd;
 
 Digitizer::Digitizer()
