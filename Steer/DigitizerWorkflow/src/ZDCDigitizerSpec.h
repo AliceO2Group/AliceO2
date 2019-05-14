@@ -8,17 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_SRC_ZDCDIGITIZERSPEC_H_
+#define STEER_DIGITIZERWORKFLOW_SRC_ZDCDIGITIZERSPEC_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::zdc::Hit+;
-#pragma link C++ class o2::zdc::Detector+;
-#pragma link C++ class o2::base::DetImpl<o2::zdc::Detector>+;
+namespace o2
+{
+namespace zdc
+{
 
-#pragma link C++ class o2::zdc::Digit + ;
-#pragma link C++ class o2::zdc::Digitizer + ;
+o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel);
 
-#endif
+} // end namespace zdc
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_SRC_ZDCDIGITIZERSPEC_H_ */

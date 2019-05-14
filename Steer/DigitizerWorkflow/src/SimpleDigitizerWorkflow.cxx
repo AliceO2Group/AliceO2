@@ -62,6 +62,10 @@
 #include "MIDDigitizerSpec.h"
 #include "MIDDigitWriterSpec.h"
 
+// for ZDC
+#include "ZDCDigitizerSpec.h"
+#include "ZDCDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -424,6 +428,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++));
     // connect the HMP digit writer
     specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec());
+  }
+
+  // add ZDC
+  if (isEnabled(o2::detectors::DetID::ZDC)) {
+    detList.emplace_back(o2::detectors::DetID::ZDC);
+    // connect the ZDC digitization
+    specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++));
+    // connect the ZDC digit writer
+    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec());
   }
 
   // add TRD
