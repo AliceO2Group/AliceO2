@@ -15,7 +15,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "boost/format.hpp"
+#include <boost/format.hpp>
 #include "MCHMappingInterface/CathodeSegmentation.h"
 #include "MCHMappingSegContour/CathodeSegmentationContours.h"
 #include "MCHMappingSegContour/CathodeSegmentationSVGWriter.h"
