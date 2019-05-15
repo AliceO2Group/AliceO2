@@ -19,7 +19,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#if defined(GPUCA_BUILD_TPCCONVERT) && !defined(GPUCA_ALIROOT_LIB)
+#if defined(GPUCA_BUILD_TPCCONVERT) && !defined(GPUCA_ALIROOT_LIB) && defined(HAVE_O2HEADERS)
 template <>
 GPUd() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
 {
