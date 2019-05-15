@@ -24,8 +24,8 @@
 #include <TGeoVolume.h>
 #include <TMath.h>
 
-#include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
+#include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
 
 #include <iostream>
 #include <string>
