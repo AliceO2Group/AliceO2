@@ -67,7 +67,7 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
-#if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC_)) // clang-format off
+#if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
     #define CHOICE(c1, c2, c3) c2
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
     #define CHOICE(c1, c2, c3) c3
@@ -193,7 +193,7 @@ GPUdi() unsigned int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(unsigned
   return ::atomic_exchange(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_xchg((GPUglobal() volatile GPUAtomic(unsigned int)*)addr, val);
-#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
 #else
   unsigned int old;
@@ -214,7 +214,7 @@ GPUdi() unsigned int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(unsigned 
   return ::atomic_fetch_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_add((GPUglobal() volatile GPUAtomic(unsigned int)*)addr, val);
-#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicAdd(addr, val);
 #else
   unsigned int old;
@@ -235,7 +235,7 @@ GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * a
   ::atomic_fetch_max(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   ::atomic_max((GPUglobal() volatile GPUAtomic(unsigned int)*)addr, val);
-#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMax(addr, val);
 #else
 #ifdef GPUCA_HAVE_OPENMP
@@ -254,7 +254,7 @@ GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * a
   ::atomic_fetch_min(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
   ::atomic_min((GPUglobal() volatile GPUAtomic(unsigned int)*)addr, val);
-#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC_))
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMin(addr, val);
 #else
 #ifdef GPUCA_HAVE_OPENMP
