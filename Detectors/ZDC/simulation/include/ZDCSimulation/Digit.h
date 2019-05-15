@@ -14,33 +14,54 @@
 #ifndef ALICEO2_ZDC_DIGIT_H_
 #define ALICEO2_ZDC_DIGIT_H_
 
-#include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "ZDCBase/Constants.h"
+#include <array>
 
 namespace o2
 {
 namespace zdc
 {
-using DigitBase = o2::dataformats::TimeStamp<double>;
-class Digit : public DigitBase
+
+struct ChannelBCData {
+  std::array<uint16_t, NTimeBinsPerBC> data = { 0 };
+};
+
+struct ChannelData {
+  std::array<ChannelBCData, NBCReadOut> data = {};
+};
+
+class Digit
 {
  public:
   Digit() = default;
 
-  void add(short adc) { mADC += adc; }
-  void setDetInfo(char detID, char sectorID)
-  {
-    mDetID = detID;
-    mSecID = sectorID;
-  }
-  short getADC() const { return mADC; }
-  short getDetID() const { return mDetID; }
-  short getSector() const { return mSecID; }
+  const ChannelBCData& getChannel(int ch, int bc) const { return mChannels[ch].data[bc]; }
+  ChannelBCData& getChannel(int ch, int bc) { return mChannels[ch].data[bc]; }
+
+  const ChannelBCData& getZNA(int twr, int bc) const { return mChannels[toChannel(ZNA, twr)].data[bc]; }
+  ChannelBCData& getZNA(int twr, int bc) { return mChannels[toChannel(ZNA, twr)].data[bc]; }
+
+  const ChannelBCData& getZPA(int twr, int bc) const { return mChannels[toChannel(ZPA, twr)].data[bc]; }
+  ChannelBCData& getZPA(int twr, int bc) { return mChannels[toChannel(ZPA, twr)].data[bc]; }
+
+  const ChannelBCData& getZNC(int twr, int bc) const { return mChannels[toChannel(ZNC, twr)].data[bc]; }
+  ChannelBCData& getZNC(int twr, int bc) { return mChannels[toChannel(ZNC, twr)].data[bc]; }
+
+  const ChannelBCData& getZPC(int twr, int bc) const { return mChannels[toChannel(ZPC, twr)].data[bc]; }
+  ChannelBCData& getZPC(int twr, int bc) { return mChannels[toChannel(ZPC, twr)].data[bc]; }
+
+  const ChannelBCData& getZEM(int twr, int bc) const { return mChannels[toChannel(ZEM, twr)].data[bc]; }
+  ChannelBCData& getZEM(int twr, int bc) { return mChannels[toChannel(ZEM, twr)].data[bc]; }
+
+  const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
+  o2::InteractionRecord& getInteractionRecord() { return mIntRecord; }
+
+  void print() const;
 
  private:
-  short mADC = 0; // adc amplitude value ~ charge
-                  // potentially generalize to have complete signal shape
-  char mDetID = -1;
-  char mSecID = -1; // sector x channel information where this digit is recorded ((0 to 4) x (0 to 5))
+  std::array<ChannelData, NChannels> mChannels = {};
+  o2::InteractionRecord mIntRecord;
 
   ClassDefNV(Digit, 1);
 };

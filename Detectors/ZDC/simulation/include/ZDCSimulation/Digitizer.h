@@ -13,9 +13,11 @@
 
 #include "ZDCSimulation/Digit.h"
 #include "ZDCSimulation/Hit.h" // for the hit
+#include "ZDCSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
+#include <deque>
 
 namespace o2
 {
@@ -25,46 +27,41 @@ namespace zdc
 class Digitizer
 {
  public:
+  struct ChannelBCDataF { // float (accumulable) version of the ChannelBCData
+    std::array<float, NTimeBinsPerBC> data = { 0.f };
+  };
+  struct ChannelDataF { //  float (accumulable) version of the ChannelData
+    std::array<ChannelBCDataF, NBCReadOut> data = {};
+  };
+  struct BCCache {
+    std::array<ChannelBCDataF, NChannels> bcdata;
+    std::vector<o2::zdc::MCLabel> labels;
+    o2::InteractionRecord intRecord;
+  };
+
   // set event time
-  void setEventTime(double timeNS) { mEventTime = timeNS; }
   void setEventID(int eventID) { mEventID = eventID; }
   void setSrcID(int sID) { mSrcID = sID; }
+  void setInteractionRecord(const o2::InteractionTimeRecord& ir) { mIR = ir; }
 
-  // user can pass a label container to be filled ... this activates the label mechanism
-  // the passed label container can be readout after call to process
-  void setLabelContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels)
-  {
-    mRegisteredLabelContainer = labels;
-  }
+  void process(const std::vector<o2::zdc::Hit>& hits,
+               std::vector<o2::zdc::Digit>& digits,
+               o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels);
 
-  short fromPhotoelectronsToACD(int nphotoelectrons) const { return nphotoelectrons * (-0.0333333); } // TODO: implement real conversion method
-
-  int toChannel(char detID, char secID) const { return detID * 5 + secID; }
-
-  // this will process hits and fill the digit vector with digits which are finalized
-  void process(std::vector<o2::zdc::Hit> const&, std::vector<o2::zdc::Digit>& digit);
-
-  void zeroSuppress(std::vector<o2::zdc::Digit> const& digits, std::vector<o2::zdc::Digit>& newdigits,
-                    o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels,
-                    o2::dataformats::MCTruthContainer<o2::MCCompLabel>* newlabels);
-
-  // flush accumulated digits into the given container
-  void flush(std::vector<o2::zdc::Digit>& digit);
-  // reset internal data structures
-  void reset();
+  void flush(std::vector<o2::zdc::Digit>& digits, o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels);
 
  private:
-  double mEventTime = 0;
+  void phe2Sample(int nphe, double timeInSample, ChannelBCDataF& sample) const;
+  int createDigit(std::vector<o2::zdc::Digit>& digits, o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels, int cachedID);
+  BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
+
+  bool NeedToTrigger(const BCCache& bc) const; // TODO
+
   int mEventID = 0;
   int mSrcID = 0;
+  o2::InteractionTimeRecord mIR;
 
-  std::vector<o2::zdc::Digit> mDigits; // internal store for digits
-
-  // other stuff needed for digitization
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTmpLabelContainer;                   // temp label container as workspace
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mRegisteredLabelContainer = nullptr; // label container to be filled
-
-  float getThreshold(o2::zdc::Digit const& digiti) const;
+  std::deque<BCCache> mCache; // cached BCs data
 
   ClassDefNV(Digitizer, 1);
 };

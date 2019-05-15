@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/Detector.cxx
     src/Digitizer.cxx
+    src/Digit.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Hit.h

@@ -15,6 +15,7 @@
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "ZDCSimulation/Digit.h"
+#include "ZDCSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -35,7 +36,7 @@ o2::framework::DataProcessorSpec getZDCDigitWriterSpec()
                                 "o2sim",
                                 1,
                                 BranchDefinition<std::vector<o2::zdc::Digit>>{ InputSpec{ "digitinput", "ZDC", "DIGITS" }, "ZDCDigit" },
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{ InputSpec{ "labelinput", "ZDC", "DIGITLBL" }, "ZDCDigitLabels" })();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{ InputSpec{ "labelinput", "ZDC", "DIGITLBL" }, "ZDCDigitLabels" })();
 }
 
 } // end namespace zdc
