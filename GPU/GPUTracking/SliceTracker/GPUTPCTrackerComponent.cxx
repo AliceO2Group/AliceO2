@@ -617,7 +617,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
       }
       nClusters[slice] = pCluster - clusterData[slice];
       nClustersTotal += nClusters[slice];
-      HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, clusterData[slice].NumberOfClusters(), slice);
+      HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, nClusters[slice], slice);
     }
   }
 

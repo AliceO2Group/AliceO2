@@ -258,7 +258,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         }
       }
     }
-    HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, (int)clusterData.size(), slice);
+    HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, (int)clusterData[slice].size(), slice);
   }
 
   if (nClustersTotal < 100) {
