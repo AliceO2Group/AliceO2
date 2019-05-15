@@ -21,7 +21,7 @@
 #include "FairLogger.h"   // for LOG
 
 using o2::itsmft::SegmentationAlpide;
-using namespace o2::ITS;
+using namespace o2::its;
 using namespace o2::itsmft;
 
 using Point3Df = Point3D<float>;

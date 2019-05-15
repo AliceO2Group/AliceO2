@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Line final {
@@ -104,6 +104,6 @@ class ClusterLines final
   std::array<float, 3> mVertex;          // cluster centroid position
 };
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif /* O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_ */

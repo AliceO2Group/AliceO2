@@ -65,7 +65,7 @@
 #include "ITStrackingCUDA/Array.h"
 
 template <typename T, std::size_t Size>
-using GPUArray = o2::ITS::GPU::Array<T, Size>;
+using GPUArray = o2::its::GPU::Array<T, Size>;
 
 typedef cudaStream_t GPUStream;
 

@@ -43,7 +43,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace ITS
+namespace its
 {
 
 void to_json(nlohmann::json& j, const TrackingParameters& par);
@@ -66,7 +66,7 @@ std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::str
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
                       const std::unordered_map<int, Label>&);
 } // namespace IOUtils
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_EVENTLOADER_H_ */

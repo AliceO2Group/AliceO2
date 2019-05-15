@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 namespace GPU
 {

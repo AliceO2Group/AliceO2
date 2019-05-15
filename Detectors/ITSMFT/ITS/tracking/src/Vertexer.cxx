@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 Vertexer::Vertexer(VertexerTraits* traits)
@@ -45,5 +45,5 @@ void Vertexer::findVertices()
   mTraits->computeVertices();
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

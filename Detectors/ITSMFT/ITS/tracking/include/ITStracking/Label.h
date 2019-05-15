@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Label final {
@@ -34,7 +34,7 @@ struct Label final {
 
   friend std::ostream& operator<<(std::ostream&, const Label&);
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_LABEL_H_ */

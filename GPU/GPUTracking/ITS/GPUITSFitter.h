@@ -19,13 +19,13 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class Road;
 struct TrackingFrameInfo;
 struct Cluster;
 class Cell;
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -47,7 +47,7 @@ class GPUITSFitter : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
-  GPUd() o2::ITS::Road* roads()
+  GPUd() o2::its::Road* roads()
   {
     return mRoads;
   }
@@ -62,15 +62,15 @@ class GPUITSFitter : public GPUProcessor
     return mMemory->mNumberOfTracks;
   }
   GPUd() void SetNumberTF(int i, int v) { mNTF[i] = v; }
-  GPUd() o2::ITS::TrackingFrameInfo** trackingFrame()
+  GPUd() o2::its::TrackingFrameInfo** trackingFrame()
   {
     return mTF;
   }
-  GPUd() const o2::ITS::Cluster** clusters()
+  GPUd() const o2::its::Cluster** clusters()
   {
     return mClusterPtrs;
   }
-  GPUd() const o2::ITS::Cell** cells()
+  GPUd() const o2::its::Cell** cells()
   {
     return mCellPtrs;
   }
@@ -86,12 +86,12 @@ class GPUITSFitter : public GPUProcessor
   int mNMaxTracks = 0;
   int mNTF[7] = {};
   Memory* mMemory = nullptr;
-  o2::ITS::Road* mRoads = nullptr;
-  o2::ITS::TrackingFrameInfo* mTF[7] = {};
+  o2::its::Road* mRoads = nullptr;
+  o2::its::TrackingFrameInfo* mTF[7] = {};
   GPUITSTrack* mTracks = nullptr;
 
-  const o2::ITS::Cluster* mClusterPtrs[7];
-  const o2::ITS::Cell* mCellPtrs[5];
+  const o2::its::Cluster* mClusterPtrs[7];
+  const o2::its::Cell* mCellPtrs[5];
 
   short mMemoryResInput = -1;
   short mMemoryResTracks = -1;

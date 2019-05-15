@@ -14,7 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ITS::HitAnalysis+;
+#pragma link C++ class o2::its::HitAnalysis+;
 
 #endif
 

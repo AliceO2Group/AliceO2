@@ -31,7 +31,7 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.
@@ -344,7 +344,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
  private:
-  static std::unique_ptr<o2::ITS::GeometryTGeo> sInstance; ///< singletone instance
+  static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };

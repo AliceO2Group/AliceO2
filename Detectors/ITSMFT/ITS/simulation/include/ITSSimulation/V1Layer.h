@@ -28,7 +28,7 @@ class TGeoCombiTrans;
 class TGeoVolume;  // lines 15-15
 
 namespace o2 {
-namespace ITS {
+namespace its {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
 /// to study different configurations during the development of the new ITS structure
@@ -197,7 +197,7 @@ class V1Layer : public V11Geometry
       mBuildLevel = buildLevel;
     }
 
-    void setStaveModel(o2::ITS::Detector::Model model)
+    void setStaveModel(o2::its::Detector::Model model)
     {
       mStaveModel = model;
     }

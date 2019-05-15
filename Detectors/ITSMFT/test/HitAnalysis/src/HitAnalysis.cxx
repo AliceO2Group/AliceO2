@@ -33,7 +33,7 @@
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using o2::itsmft::Hit;
 
-using namespace o2::ITS;
+using namespace o2::its;
 using namespace o2::base;
 using namespace o2::utils;
 

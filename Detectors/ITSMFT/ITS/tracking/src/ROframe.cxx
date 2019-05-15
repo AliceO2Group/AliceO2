@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 ROframe::ROframe(const int ROframeId) : mROframeId{ ROframeId }
@@ -55,5 +55,5 @@ int ROframe::getTotalClusters() const
     totalClusters += clusters.size();
   return int(totalClusters);
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

@@ -17,7 +17,7 @@
 #include "GPUGeneralKernels.h"
 namespace o2
 {
-namespace ITS
+namespace its
 {
 struct TrackingFrameInfo;
 }

@@ -78,7 +78,7 @@ class ITSMFTDPLDigitizerTask
     // configure digitizer
     o2::itsmft::GeometryTGeo* geom = nullptr;
     if (mID == o2::detectors::DetID::ITS) {
-      geom = o2::ITS::GeometryTGeo::Instance();
+      geom = o2::its::GeometryTGeo::Instance();
     } else {
       geom = o2::MFT::GeometryTGeo::Instance();
     }

@@ -42,14 +42,14 @@ class Hit;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class GeometryTGeo;
 }
 }
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class V3Layer;
 }
@@ -57,7 +57,7 @@ class V3Layer;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class V3Layer;
 
@@ -327,7 +327,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::ITS::Detector> {
+struct UseShm<o2::its::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

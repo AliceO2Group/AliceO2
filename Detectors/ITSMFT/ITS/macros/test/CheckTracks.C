@@ -24,7 +24,7 @@
 void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
 {
   using namespace o2::itsmft;
-  using namespace o2::ITS;
+  using namespace o2::its;
 
   TFile* f = TFile::Open("CheckTracks.root", "recreate");
   TNtuple* nt = new TNtuple("ntt", "track ntuple",

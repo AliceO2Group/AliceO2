@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 namespace IndexTableUtils
@@ -42,12 +42,12 @@ GPU_HOST_DEVICE int countRowSelectedBins(
 
 inline float getInverseZCoordinate(const int layerIndex)
 {
-  return 0.5f * Constants::IndexTable::ZBins / Constants::ITS::LayersZCoordinate()[layerIndex];
+  return 0.5f * Constants::IndexTable::ZBins / Constants::its::LayersZCoordinate()[layerIndex];
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::getZBinIndex(const int layerIndex, const float zCoordinate)
 {
-  return (zCoordinate + Constants::ITS::LayersZCoordinate()[layerIndex]) *
+  return (zCoordinate + Constants::its::LayersZCoordinate()[layerIndex]) *
          Constants::IndexTable::InverseZBinSize()[layerIndex];
 }
 
@@ -71,7 +71,7 @@ GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(
 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_ */

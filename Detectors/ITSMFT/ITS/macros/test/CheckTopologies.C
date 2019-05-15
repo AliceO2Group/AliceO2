@@ -29,7 +29,7 @@
 void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::base;
-  using namespace o2::ITS;
+  using namespace o2::its;
 
   using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::Cluster;
@@ -38,7 +38,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 

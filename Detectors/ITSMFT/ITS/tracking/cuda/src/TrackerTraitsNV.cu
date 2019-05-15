@@ -34,7 +34,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 namespace GPU
 {
@@ -52,7 +52,7 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     Vector<Cluster> nextLayerClusters { devStore.getClusters()[layerIndex + 1].getWeakCopy() };
     const Cluster currentCluster { devStore.getClusters()[layerIndex][currentClusterIndex] };
 
-    /*if (mUsedClustersTable[currentCluster.clusterId] != Constants::ITS::UnusedIndex) {
+    /*if (mUsedClustersTable[currentCluster.clusterId] != Constants::its::UnusedIndex) {
 
      continue;
      }*/
@@ -60,7 +60,7 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     const float tanLambda { (currentCluster.zCoordinate - devStore.getPrimaryVertex().z)
         / currentCluster.rCoordinate };
     const float directionZIntersection { tanLambda
-        * ((Constants::ITS::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate)
+        * ((Constants::its::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate)
         + currentCluster.zCoordinate };
 
     const int4 selectedBinsRect { TrackerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection,
@@ -300,11 +300,11 @@ void TrackerTraitsNV::computeLayerTracklets()
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
-  std::array<size_t, Constants::ITS::CellsPerRoad> tempSize;
-  std::array<int, Constants::ITS::CellsPerRoad> trackletsNum;
-  std::array<GPU::Stream, Constants::ITS::TrackletsPerRoad> streamArray;
+  std::array<size_t, Constants::its::CellsPerRoad> tempSize;
+  std::array<int, Constants::its::CellsPerRoad> trackletsNum;
+  std::array<GPU::Stream, Constants::its::TrackletsPerRoad> streamArray;
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
 
     tempSize[iLayer] = 0;
     primaryVertexContext->getTempTrackletArray()[iLayer].reset(
@@ -320,7 +320,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::TrackletsPerRoad; ++iLayer) {
 
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int clustersNum { static_cast<int>(primaryVertexContext->getClusters()[iLayer].size()) };
@@ -352,7 +352,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
 
     trackletsNum[iLayer] = primaryVertexContext->getTempTrackletArray()[iLayer].getSizeFromDevice();
     if (trackletsNum[iLayer] == 0) {
@@ -389,12 +389,12 @@ void TrackerTraitsNV::computeLayerCells()
 {
 
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
-  std::array<size_t, Constants::ITS::CellsPerRoad - 1> tempSize;
-  std::array<int, Constants::ITS::CellsPerRoad - 1> trackletsNum;
-  std::array<int, Constants::ITS::CellsPerRoad - 1> cellsNum;
-  std::array<GPU::Stream, Constants::ITS::CellsPerRoad> streamArray;
+  std::array<size_t, Constants::its::CellsPerRoad - 1> tempSize;
+  std::array<int, Constants::its::CellsPerRoad - 1> trackletsNum;
+  std::array<int, Constants::its::CellsPerRoad - 1> cellsNum;
+  std::array<GPU::Stream, Constants::its::CellsPerRoad> streamArray;
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad - 1; ++iLayer) {
 
     tempSize[iLayer] = 0;
     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
@@ -412,7 +412,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
     if (trackletsSize == 0) {
@@ -446,7 +446,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad - 1; ++iLayer) {
     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
     if (cellsNum[iLayer] == 0) {
       continue;
@@ -478,7 +478,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
+  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
 
     int cellsSize = 0;
     if (iLayer == 0) {

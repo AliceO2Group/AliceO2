@@ -25,7 +25,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class Cell final
@@ -86,6 +86,6 @@ inline float Cell::getCurvature() const { return mCurvature; }
 inline const float3& Cell::getNormalVectorCoordinates() const { return mNormalVectorCoordinates; }
 
 inline void Cell::setLevel(const int level) { mLevel = level; }
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif /* TRACKINGITSU_INCLUDE_CACELL_H_ */

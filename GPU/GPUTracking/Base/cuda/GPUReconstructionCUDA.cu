@@ -42,12 +42,12 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #else
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class TrackerTraitsNV : public TrackerTraits
 {
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif
 
@@ -108,10 +108,10 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 
 GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCUDA(cfg); }
 
-void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits)
+void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits)
 {
-  trackerTraits.reset(new o2::ITS::TrackerTraitsNV);
-  vertexerTraits.reset(new o2::ITS::VertexerTraits);
+  trackerTraits.reset(new o2::its::TrackerTraitsNV);
+  vertexerTraits.reset(new o2::its::VertexerTraits);
 }
 
 int GPUReconstructionCUDABackend::InitDevice_Runtime()

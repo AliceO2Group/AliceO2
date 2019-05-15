@@ -39,9 +39,9 @@ using std::endl;
 using std::cout;
 using std::cin;
 
-using namespace o2::ITS;
+using namespace o2::its;
 
-ClassImp(o2::ITS::V11Geometry)
+ClassImp(o2::its::V11Geometry)
 
 const Double_t V11Geometry::sMicron = 1.0E-4;
 const Double_t V11Geometry::sMm = 0.10;

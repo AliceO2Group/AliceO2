@@ -60,7 +60,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
 
   o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
   o2::base::Propagator::initFieldFromGRP(grp);
@@ -103,7 +103,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("o2sim", "Cooked ITS Tracks");
-  std::vector<o2::ITS::TrackITS>* tracksITS = new std::vector<o2::ITS::TrackITS>;
+  std::vector<o2::its::TrackITS>* tracksITS = new std::vector<o2::its::TrackITS>;
   MCLabCont* trackLabels = new MCLabCont();
   outTree.Branch("ITSTrack", &tracksITS);
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
@@ -115,7 +115,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //=================== INIT ==================
   Int_t n = 1;            // Number of threads
   Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
-  o2::ITS::CookedTracker tracker(n);
+  o2::its::CookedTracker tracker(n);
   tracker.setContinuousMode(isContITS);
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);

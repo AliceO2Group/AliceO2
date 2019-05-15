@@ -17,7 +17,7 @@
 #include <algorithm>
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace o2::ITS;
+using namespace o2::its;
 
 GPUChainITS::~GPUChainITS()
 {

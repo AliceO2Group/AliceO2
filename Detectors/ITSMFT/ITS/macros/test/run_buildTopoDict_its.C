@@ -40,7 +40,7 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
   using namespace o2::base;
-  using namespace o2::ITS;
+  using namespace o2::its;
 
   using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::Cluster;
@@ -59,7 +59,7 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 

@@ -17,14 +17,14 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 /// create a processor spec
 /// run ITS CA tracker
 framework::DataProcessorSpec getTrackerSpec();
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_TRACKERDPL */

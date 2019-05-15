@@ -18,11 +18,11 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
-using namespace o2::ITS;
+using namespace o2::its;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 TrackReader::TrackReader(bool useMC)
@@ -142,5 +142,5 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

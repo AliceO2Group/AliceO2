@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 using MathUtils::calculatePhiCoordinate;
@@ -72,5 +72,5 @@ TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float
 {
   // Nothing to do
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

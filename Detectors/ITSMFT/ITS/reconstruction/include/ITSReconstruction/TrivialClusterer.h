@@ -31,7 +31,7 @@ namespace dataformats
   template<typename T>
   class MCTruthContainer;
 }
-namespace ITS
+namespace its
 {
   class TrivialClusterer
 {

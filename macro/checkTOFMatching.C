@@ -36,7 +36,7 @@ void checkTOFMatching()
   // getting the ITS tracks
   TFile* ftracksITS = new TFile("o2trac_its.root");
   TTree* itsTree = (TTree*)ftracksITS->Get("o2sim");
-  std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = new std::vector<o2::ITS::TrackITS>;
+  std::vector<o2::its::TrackITS>* mITSTracksArrayInp = new std::vector<o2::its::TrackITS>;
   itsTree->SetBranchAddress("ITSTrack", &mITSTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcITS = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   itsTree->SetBranchAddress("ITSTrackMCTruth", &mcITS);

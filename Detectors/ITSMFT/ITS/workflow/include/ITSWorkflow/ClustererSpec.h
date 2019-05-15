@@ -24,7 +24,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class ClustererDPL : public Task
@@ -46,7 +46,7 @@ class ClustererDPL : public Task
 /// run ITS cluster finder
 framework::DataProcessorSpec getClustererSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERERDPL */

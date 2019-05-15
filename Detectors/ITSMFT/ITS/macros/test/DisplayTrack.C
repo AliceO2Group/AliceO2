@@ -29,7 +29,7 @@
 void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::base;
-  using namespace o2::ITS;
+  using namespace o2::its;
 
   using o2::itsmft::Cluster;
   using o2::itsmft::Hit;
@@ -142,7 +142,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
 
 found:
   std::cout << "MC event " << event << " found in the Time Frame #" << tf << std::endl;
-  o2::ITS::GeometryTGeo* gman = GeometryTGeo::Instance();
+  o2::its::GeometryTGeo* gman = GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
   nc = clusArr->size();

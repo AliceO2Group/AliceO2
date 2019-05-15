@@ -34,7 +34,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
@@ -188,6 +188,6 @@ inline void Vertexer::processLines()
   mTraits->processLines();
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif
