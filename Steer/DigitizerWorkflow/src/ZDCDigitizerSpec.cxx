@@ -17,13 +17,13 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
-#include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ZDCSimulation/Digit.h"
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/Detector.h"
+#include "ZDCSimulation/MCLabel.h"
 #include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::framework;
@@ -73,8 +73,7 @@ class ZDCDPLDigitizerTask
 
   void run(framework::ProcessingContext& pc)
   {
-    static bool finished = false;
-    if (finished) {
+    if (mFinished) {
       return;
     }
     LOG(INFO) << "Doing ZDC digitization";
@@ -89,72 +88,50 @@ class ZDCDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
 
-    std::vector<o2::zdc::Digit> digitsAccum;                       // accumulator for digits
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
-
-    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum]() {
-      // flush previous buffer
-      // mDigits.clear();
-      mLabels.clear();
-      // mDigitizer.flush(mDigits);
-      LOG(INFO) << "ZDC flushed " << mDigits.size() << " digits at this time ";
-      LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
-      labelAccum.mergeAtBack(mLabels);
-    };
-
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
+    std::vector<o2::zdc::Hit> hits;
+
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
 
-      mDigits.clear();
-      mDigits.resize(25); // initialize
+      const auto& irec = irecords[collID];
+      mDigitizer.setInteractionRecord(irec);
 
-      auto withinactivetime = true; // mDigitizer.setEventTime(irecords[collID].timeNS);
-      if (withinactivetime) {
-        // for each collision, loop over the constituents event and source IDs
-        // (background signal merging is basically taking place here)
-        for (auto& part : eventParts[collID]) {
-          mDigitizer.setEventID(part.entryID);
-          mDigitizer.setSrcID(part.sourceID);
+      for (auto& part : eventParts[collID]) {
 
-          // get the hits for this event and this source
-          std::vector<o2::zdc::Hit> hits;
-          retrieveHits(mSimChains, "ZDCHit", part.sourceID, part.entryID, &hits);
-          LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found ZDC " << hits.size() << " hits ";
+        retrieveHits(mSimChains, "ZDCHit", part.sourceID, part.entryID, &hits);
+        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found ZDC " << hits.size() << " hits ";
 
-          mDigitizer.setLabelContainer(&mLabels);
-          mLabels.clear();
+        mDigitizer.setEventID(part.entryID);
+        mDigitizer.setSrcID(part.sourceID);
 
-          mDigitizer.process(hits, mDigits);
-        }
-
-      } else {
-        LOG(INFO) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
+        mDigitizer.process(hits, mDigits, mLabels);
       }
-      flushDigitsAndLabels();
     }
-    // final flushing step; getting everything not yet written out
-    // flushDigitsAndLabels();
+
+    o2::InteractionTimeRecord terminateIR;
+    terminateIR.orbit = 0xffffffff; // supply IR in the infinite future to flush all cached BC
+    mDigitizer.setInteractionRecord(terminateIR);
+    mDigitizer.flush(mDigits, mLabels);
 
     // send out to next stage
-    pc.outputs().snapshot(Output{ "ZDC", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
-    pc.outputs().snapshot(Output{ "ZDC", "DIGITLBL", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{ "ZDC", "DIGITS", 0, Lifetime::Timeframe }, mDigits);
+    pc.outputs().snapshot(Output{ "ZDC", "DIGITLBL", 0, Lifetime::Timeframe }, mLabels);
 
     LOG(INFO) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "ZDC", "ROMode", 0, Lifetime::Timeframe }, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
-    finished = true;
+    mFinished = true;
   }
 
  private:
+  bool mFinished = false;
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   std::vector<o2::zdc::Digit> mDigits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
+  o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> mLabels; // labels which get filled
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
