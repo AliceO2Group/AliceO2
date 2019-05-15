@@ -26,7 +26,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace ITS
+namespace its
 {
 class TrackITS : public o2::track::TrackParCov
 {

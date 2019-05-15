@@ -51,7 +51,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // Setup Runtime DB
   TFile paramFile((path + paramfilename).data());
   paramFile.Get("FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
@@ -102,21 +102,21 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   std::uint32_t roFrame = 0;
 
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + numEvents;
-  o2::ITS::ROframe frame(-123);
+  o2::its::ROframe frame(-123);
 
-  o2::ITS::VertexerTraits* traits = nullptr;
+  o2::its::VertexerTraits* traits = nullptr;
   // if (useGPU) {
-  //   traits = o2::ITS::createVertexerTraitsGPU();
+  //   traits = o2::its::createVertexerTraitsGPU();
   // } else {
-  traits = o2::ITS::createVertexerTraits();
+  traits = o2::its::createVertexerTraits();
   // }
-  const o2::ITS::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
-  o2::ITS::Vertexer vertexer(traits);
+  const o2::its::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
+  o2::its::Vertexer vertexer(traits);
 
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
-    int nclUsed = o2::ITS::IOUtils::loadROFrameData(rof, frame, clusters, labels);
+    int nclUsed = o2::its::IOUtils::loadROFrameData(rof, frame, clusters, labels);
     // float total = vertexer.clustersToVertices(frame, true);
     vertexer.initialiseVertexer(&frame);
     vertexer.findTracklets(useMCcheck);
@@ -124,15 +124,15 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     //     vertexer.processLines();
     //     std::vector<std::array<float, 6>> linesdata = vertexer.getLinesData();
     //     std::vector<std::array<float, 4>> centroidsData = vertexer.getCentroids();
-    //     std::vector<o2::ITS::Line> lines = vertexer.getLines();
-    //     std::vector<o2::ITS::Tracklet> c01 = vertexer.getTracklets01();
-    //     std::vector<o2::ITS::Tracklet> c12 = vertexer.getTracklets12();
-    //     std::array<std::vector<o2::ITS::Cluster>, 3> clusters = vertexer.getClusters();
+    //     std::vector<o2::its::Line> lines = vertexer.getLines();
+    //     std::vector<o2::its::Tracklet> c01 = vertexer.getTracklets01();
+    //     std::vector<o2::its::Tracklet> c12 = vertexer.getTracklets12();
+    //     std::array<std::vector<o2::its::Cluster>, 3> clusters = vertexer.getClusters();
     //     std::vector<std::array<float, 7>> dtlambdas = vertexer.getDeltaTanLambdas();
     //
     //     for (auto& line : lines)
     //       tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2],
-    //                      o2::ITS::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::ITS::Line::getDCA(line, zAxis));
+    //                      o2::its::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::its::Line::getDCA(line, zAxis));
     //     for (int i{ 0 }; i < static_cast<int>(c01.size()); ++i) {
     //       comb01.Fill(c01[i].tanLambda, c01[i].phiCoordinate);
     //       clusPhi01.Fill(clusters[0][c01[i].firstClusterIndex].phiCoordinate, clusters[1][c01[i].secondClusterIndex].phiCoordinate);

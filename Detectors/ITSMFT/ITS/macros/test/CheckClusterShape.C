@@ -21,7 +21,7 @@
 
 using o2::itsmft::Digit;
 using o2::itsmft::SegmentationAlpide;
-using namespace o2::ITS;
+using namespace o2::its;
 
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -227,7 +227,7 @@ void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inp
 {
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto* gman = o2::ITS::GeometryTGeo::Instance();
+  auto* gman = o2::its::GeometryTGeo::Instance();
 
   // Digits
   TFile* file1 = TFile::Open(digifile.data());

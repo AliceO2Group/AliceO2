@@ -27,7 +27,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class TrackReader : public Task
@@ -42,7 +42,7 @@ class TrackReader : public Task
   void accumulate();
 
   std::vector<o2::itsmft::ROFRecord>*mROFRecInp = nullptr, mROFRecOut;
-  std::vector<o2::ITS::TrackITS>*mTracksInp = nullptr, mTracksOut;
+  std::vector<o2::its::TrackITS>*mTracksInp = nullptr, mTracksOut;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
@@ -61,7 +61,7 @@ class TrackReader : public Task
 /// read ITS track data from a root file
 framework::DataProcessorSpec getITSTrackReaderSpec(bool useMC = true);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_TRACKREADER */

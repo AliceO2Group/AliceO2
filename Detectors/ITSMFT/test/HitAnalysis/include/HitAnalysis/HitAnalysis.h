@@ -26,7 +26,7 @@
 #include <vector>
 
 class TH1;  // lines 16-16
-namespace o2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
+namespace o2 { namespace its { class GeometryTGeo; }}  // lines 23-23
 
 
 class TH1;
@@ -38,7 +38,7 @@ class Chip;
 }
 
 namespace o2 {
-namespace ITS {
+namespace its {
 
 class HitAnalysis : public FairTask
 {

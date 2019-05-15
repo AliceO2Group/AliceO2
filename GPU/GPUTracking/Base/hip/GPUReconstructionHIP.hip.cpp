@@ -33,12 +33,12 @@ __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4)
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class TrackerTraitsHIP : public TrackerTraits
 {
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #include "GPUReconstructionIncludesDevice.h"

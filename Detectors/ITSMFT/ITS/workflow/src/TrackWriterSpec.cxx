@@ -25,7 +25,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void TrackWriter::init(InitContext& ic)
@@ -45,7 +45,7 @@ void TrackWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto tracks = pc.inputs().get<const std::vector<o2::ITS::TrackITS>>("tracks");
+  auto tracks = pc.inputs().get<const std::vector<o2::its::TrackITS>>("tracks");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
@@ -107,5 +107,5 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

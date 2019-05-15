@@ -39,7 +39,7 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace o2::ITS;
+using namespace o2::its;
 using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters

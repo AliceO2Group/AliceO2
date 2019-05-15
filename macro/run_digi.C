@@ -42,7 +42,7 @@ void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){
       //  TGeoManager::Import("geofile_full.root");
 
         // Setup digitizer
-        //o2::ITS::DigitizerTask *digi = new o2::ITS::DigitizerTask;
+        //o2::its::DigitizerTask *digi = new o2::its::DigitizerTask;
         //fRun->AddTask(digi);
 
         fRun->Init();

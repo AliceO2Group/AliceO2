@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 namespace CA
 {
@@ -46,7 +46,7 @@ constexpr std::array<T, N> ArrayUtils::fillArray(Initializer initializer)
   return ArrayUtils::fillArray<T>(initializer, std::make_index_sequence<N>{});
 }
 } // namespace CA
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_ARRAYUTILS_H_ */

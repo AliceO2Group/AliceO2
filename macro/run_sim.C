@@ -88,7 +88,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   run->SetField(&field);
 
   // ===| Add ITS |============================================================
-  o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
+  o2::its::Detector* its = new o2::its::Detector(kTRUE);
   run->AddModule(its);
 
   // ===| Add TPC |============================================================

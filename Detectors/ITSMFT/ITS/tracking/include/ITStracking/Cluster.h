@@ -25,7 +25,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Cluster final {
@@ -54,7 +54,7 @@ struct TrackingFrameInfo {
   std::array<float, 2> positionTrackingFrame;
   std::array<float, 3> covarianceTrackingFrame;
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CACLUSTER_H_ */

@@ -26,7 +26,7 @@ using namespace o2::itsmft;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void DigitReader::init(InitContext& ic)
@@ -133,5 +133,5 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

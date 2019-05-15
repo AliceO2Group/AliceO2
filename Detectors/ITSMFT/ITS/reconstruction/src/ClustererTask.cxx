@@ -19,7 +19,7 @@
 #include <TFile.h>
 #include <TTree.h>
 
-using namespace o2::ITS;
+using namespace o2::its;
 using namespace o2::base;
 using namespace o2::utils;
 

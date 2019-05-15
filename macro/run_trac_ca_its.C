@@ -57,9 +57,9 @@ void run_trac_ca_its(bool useITSVertex = false,
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 
-  o2::ITS::Tracker tracker(chainITS->GetITSTrackerTraits());
-  //o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
-  o2::ITS::ROframe event(0);
+  o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
+  //o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
+  o2::its::ROframe event(0);
 
   if (path.back() != '/') {
     path += '/';
@@ -87,7 +87,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
 
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
@@ -120,7 +120,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("o2sim", "CA ITS Tracks");
-  std::vector<o2::ITS::TrackITS>* tracksITS = new std::vector<o2::ITS::TrackITS>;
+  std::vector<o2::its::TrackITS>* tracksITS = new std::vector<o2::its::TrackITS>;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trackLabels =
     new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   //  outTree.Branch("EventHeader.", &header);
@@ -137,14 +137,14 @@ void run_trac_ca_its(bool useITSVertex = false,
   itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
   itsClustersROF.GetEntry(0);
 
-  o2::ITS::VertexerTraits* traits = o2::ITS::createVertexerTraits();
-  o2::ITS::Vertexer vertexer(traits);
+  o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
+  o2::its::Vertexer vertexer(traits);
 
   int roFrameCounter{ 0 };
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
-    o2::ITS::IOUtils::loadROFrameData(rof, event, clusters, labels);
+    o2::its::IOUtils::loadROFrameData(rof, event, clusters, labels);
     if (useITSVertex) {
       vertexer.initialiseVertexer(&event);
 

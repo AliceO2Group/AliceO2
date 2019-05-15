@@ -26,7 +26,7 @@ class TGeoTube;  // lines 13-13
 class TGeoTubeSeg;  // lines 14-14
 
 namespace o2 {
-namespace ITS {
+namespace its {
 
 /// This class is a base class for the ITS geometry version 11. It contains common/standard
 /// functions used in many places in defining the ITS geometry, version 11. Large posions of

@@ -27,7 +27,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class ROframe;
 
@@ -73,6 +73,6 @@ inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Clust
 
 extern "C" VertexerTraits* createVertexerTraitsGPU();
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif /* O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_ */

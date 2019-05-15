@@ -40,7 +40,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace ITS
+namespace its
 {
 class CookedTracker
 {
@@ -77,7 +77,7 @@ class CookedTracker
   // Bool_t refitAt(Double_t x, TrackITS *seed, const TrackITS *t);
   const Cluster* getCluster(Int_t index) const;
 
-  void setGeometry(o2::ITS::GeometryTGeo* geom);
+  void setGeometry(o2::its::GeometryTGeo* geom);
   void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels,
                             o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabels)
   {
@@ -108,7 +108,7 @@ class CookedTracker
 
  private:
   bool mContinuousMode = true;                                                    ///< triggered or cont. mode
-  const o2::ITS::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
+  const o2::its::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       /// Track MC labels
 
@@ -153,18 +153,18 @@ class CookedTracker::Layer
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
   Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
   Int_t getNumberOfClusters() const { return mClusters.size(); }
-  void setGeometry(o2::ITS::GeometryTGeo* geom) { mGeom = geom; }
+  void setGeometry(o2::its::GeometryTGeo* geom) { mGeom = geom; }
 
  protected:
   enum { kNSectors = 21 };
 
   Float_t mR;                                   ///< mean radius of this layer
-  const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
+  const o2::its::GeometryTGeo* mGeom = nullptr; /// interface to geometry
   std::vector<const Cluster*> mClusters;        ///< All clusters
   std::vector<Float_t> mAlphaRef;               ///< alpha of the reference plane
   std::vector<Float_t> mPhi;                    ///< cluster phi
   std::vector<std::pair<int, float>> mSectors[kNSectors]; ///< Cluster indices sector-by-sector
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif /* ALICEO2_ITS_COOKEDTRACKER_H */

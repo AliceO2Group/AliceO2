@@ -14,7 +14,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
@@ -296,5 +296,5 @@ float ClusterLines::getAvgDistance2() const
   return dist / mLines.size();
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

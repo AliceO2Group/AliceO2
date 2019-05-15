@@ -27,14 +27,14 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   using o2::itsmft::Digit;
   using o2::itsmft::Hit;
   using o2::itsmft::SegmentationAlpide;
-  using namespace o2::ITS;
+  using namespace o2::its;
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto* gman = o2::ITS::GeometryTGeo::Instance();
+  auto* gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 
   SegmentationAlpide seg;

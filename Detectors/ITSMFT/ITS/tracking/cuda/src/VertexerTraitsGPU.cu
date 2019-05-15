@@ -34,13 +34,13 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 using Constants::IndexTable::PhiBins;
 using Constants::IndexTable::ZBins;
-using Constants::ITS::LayersRCoordinate;
-using Constants::ITS::LayersZCoordinate;
+using Constants::its::LayersRCoordinate;
+using Constants::its::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getPhiBinIndex;
 using IndexTableUtils::getZBinIndex;
@@ -377,5 +377,5 @@ VertexerTraits* createVertexerTraitsGPU()
   return new VertexerTraitsGPU;
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

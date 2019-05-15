@@ -26,7 +26,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void ClusterWriter::init(InitContext& ic)
@@ -111,5 +111,5 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

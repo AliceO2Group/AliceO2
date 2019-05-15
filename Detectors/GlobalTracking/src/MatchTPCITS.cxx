@@ -146,7 +146,7 @@ void MatchTPCITS::init()
   }
 
   // make sure T2GRot matrices are loaded into ITS geometry helper
-  o2::ITS::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
+  o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
 
   mSectEdgeMargin2 = mCrudeAbsDiffCut[o2::track::kY] * mCrudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
 
@@ -1232,7 +1232,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
   // refit TPC track inward into the ITS
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
   float chi2 = 0.f;
-  auto geom = o2::ITS::GeometryTGeo::Instance();
+  auto geom = o2::its::GeometryTGeo::Instance();
   auto propagator = o2::base::Propagator::Instance();
   for (int icl = 0; icl < ncl; icl++) {
     const auto& clus = (*mITSClustersArrayInp)[itsTrOrig.getClusterIndex(icl)];

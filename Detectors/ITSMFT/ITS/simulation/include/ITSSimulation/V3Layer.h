@@ -29,7 +29,7 @@ class TGeoVolume; // lines 15-15
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -128,7 +128,7 @@ class V3Layer : public V11Geometry
 
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
-  void setStaveModel(o2::ITS::Detector::Model model) { mStaveModel = model; }
+  void setStaveModel(o2::its::Detector::Model model) { mStaveModel = model; }
 
   /// Adds the Gamma Conversion Rods to the geometry
   /// \param diam the diameter of each rod

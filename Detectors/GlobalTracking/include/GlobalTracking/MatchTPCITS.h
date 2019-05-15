@@ -49,7 +49,7 @@ template <typename TruthElement>
 class MCTruthContainer;
 }
 
-namespace ITS
+namespace its
 {
 class TrackITS;
 }
@@ -189,7 +189,7 @@ class MatchTPCITS
   }
 
   ///< set input ITS tracks received via DPL
-  void setITSTracksInp(const std::vector<o2::ITS::TrackITS>* inp)
+  void setITSTracksInp(const std::vector<o2::its::TrackITS>* inp)
   {
     assertDPLIO(true);
     mITSTracksArrayInp = inp;
@@ -523,7 +523,7 @@ class MatchTPCITS
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;       ///< input ITS tracks ROFRecord
-  const std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
+  const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
   const std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
   const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info

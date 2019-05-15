@@ -49,7 +49,7 @@ using std::endl;
 
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
-using namespace o2::ITS;
+using namespace o2::its;
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("ITS", kTRUE),
@@ -110,8 +110,8 @@ static void configITS(Detector* its)
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
-  its->setStaveModelOB(o2::ITS::Detector::kOBModel2);
+  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+  its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
@@ -1125,4 +1125,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::ITS::Detector)
+ClassImp(o2::its::Detector)

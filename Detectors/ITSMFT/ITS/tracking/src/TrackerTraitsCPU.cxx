@@ -26,13 +26,13 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void TrackerTraitsCPU::computeLayerTracklets()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::its::TrackletsPerRoad; ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
       return;
     }
@@ -44,7 +44,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
       const Cluster& currentCluster{ primaryVertexContext->getClusters()[iLayer][iCluster] };
 
       const float tanLambda{ (currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate };
-      const float directionZIntersection{ tanLambda * (Constants::ITS::LayersRCoordinate()[iLayer + 1] -
+      const float directionZIntersection{ tanLambda * (Constants::its::LayersRCoordinate()[iLayer + 1] -
                                                        currentCluster.rCoordinate) +
                                           currentCluster.zCoordinate };
 
@@ -86,7 +86,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
                MATH_ABS(deltaPhi - Constants::Math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
 
             if (iLayer > 0 &&
-                primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == Constants::ITS::UnusedIndex) {
+                primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == Constants::its::UnusedIndex) {
 
               primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] =
                 primaryVertexContext->getTracklets()[iLayer].size();
@@ -104,7 +104,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 void TrackerTraitsCPU::computeLayerCells()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
 
     if (primaryVertexContext->getTracklets()[iLayer + 1].empty() ||
         primaryVertexContext->getTracklets()[iLayer].empty()) {
@@ -123,7 +123,7 @@ void TrackerTraitsCPU::computeLayerCells()
         primaryVertexContext->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]
       };
 
-      if (nextLayerFirstTrackletIndex == Constants::ITS::UnusedIndex) {
+      if (nextLayerFirstTrackletIndex == Constants::its::UnusedIndex) {
 
         continue;
       }
@@ -209,7 +209,7 @@ void TrackerTraitsCPU::computeLayerCells()
 
             const float cellTrajectoryCurvature{ 1.0f / cellTrajectoryRadius };
             if (iLayer > 0 &&
-                primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] == Constants::ITS::UnusedIndex) {
+                primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] == Constants::its::UnusedIndex) {
 
               primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] =
                 primaryVertexContext->getCells()[iLayer].size();
@@ -238,5 +238,5 @@ void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInf
   mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

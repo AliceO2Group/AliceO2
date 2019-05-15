@@ -162,7 +162,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("ITS")) {
     // its
-    auto its = new o2::ITS::Detector(true);
+    auto its = new o2::its::Detector(true);
     run->AddModule(its);
   }
 

@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Tracklet final {
@@ -59,7 +59,7 @@ inline void Tracklet::dump()
   std::cout << "phiCoordinate: " << phiCoordinate << std::endl;
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKLET_H_ */

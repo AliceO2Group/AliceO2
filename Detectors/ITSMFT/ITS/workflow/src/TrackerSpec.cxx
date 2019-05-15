@@ -41,7 +41,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class TrackerDPL : public Task
@@ -54,11 +54,11 @@ class TrackerDPL : public Task
 
  private:
   int mState = 0;
-  o2::ITS::TrackerTraitsCPU mTrackerTraits;
-  o2::ITS::VertexerTraits mVertexerTraits;
+  o2::its::TrackerTraitsCPU mTrackerTraits;
+  o2::its::VertexerTraits mVertexerTraits;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
-  std::unique_ptr<o2::ITS::Tracker> mTracker = nullptr;
-  std::unique_ptr<o2::ITS::Vertexer> mVertexer = nullptr;
+  std::unique_ptr<o2::its::Tracker> mTracker = nullptr;
+  std::unique_ptr<o2::its::Vertexer> mVertexer = nullptr;
 };
 
 void TrackerDPL::init(InitContext& ic)
@@ -71,12 +71,12 @@ void TrackerDPL::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     o2::base::GeometryManager::loadGeometry();
-    o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                               o2::TransformType::T2G));
 
-    mTracker = std::make_unique<o2::ITS::Tracker>(&mTrackerTraits);
-    mVertexer = std::make_unique<o2::ITS::Vertexer>(&mVertexerTraits);
+    mTracker = std::make_unique<o2::its::Tracker>(&mTrackerTraits);
+    mVertexer = std::make_unique<o2::its::Vertexer>(&mVertexerTraits);
     double origD[3] = { 0., 0., 0. };
     mTracker->setBz(field->getBz(origD));
   } else {
@@ -102,20 +102,20 @@ void TrackerDPL::run(ProcessingContext& pc)
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
-  std::vector<o2::ITS::TrackITS> tracks;
+  std::vector<o2::its::TrackITS> tracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  std::vector<o2::ITS::TrackITS> allTracks;
+  std::vector<o2::its::TrackITS> allTracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
 
   std::uint32_t roFrame = 0;
-  o2::ITS::ROframe event(0);
+  o2::its::ROframe event(0);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      int nclUsed = o2::ITS::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
+      int nclUsed = o2::its::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mVertexer->clustersToVertices(event);
@@ -135,7 +135,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   } else {
-    o2::ITS::IOUtils::loadEventData(event, &clusters, labels.get());
+    o2::its::IOUtils::loadEventData(event, &clusters, labels.get());
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
     allTracks.swap(mTracker->getTracks());
@@ -174,5 +174,5 @@ DataProcessorSpec getTrackerSpec()
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

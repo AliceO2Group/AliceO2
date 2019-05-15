@@ -32,7 +32,7 @@ namespace itsmft {
   class Digit;
 }
  
-namespace ITS
+namespace its
 {
 class TrivialClustererTask : public FairTask
 {

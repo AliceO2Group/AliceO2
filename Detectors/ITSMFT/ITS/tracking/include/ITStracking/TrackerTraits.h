@@ -37,7 +37,7 @@ namespace gpu
 {
 class GPUChainITS;
 }
-namespace ITS
+namespace its
 {
 
 class TrackITS;
@@ -85,8 +85,8 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
   const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
-  if (zRangeMax < -Constants::ITS::LayersZCoordinate()[layerIndex + 1] ||
-      zRangeMin > Constants::ITS::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+  if (zRangeMax < -Constants::its::LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > Constants::its::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
 
     return getEmptyBinsRect();
   }

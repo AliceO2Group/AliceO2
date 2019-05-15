@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class Road final
@@ -44,7 +44,7 @@ class Road final
   void addCell(int, int);
 
  private:
-  int mCellIds[Constants::ITS::CellsPerRoad];
+  int mCellIds[Constants::its::CellsPerRoad];
   int mRoadSize;
   int mLabel;
   bool mIsFakeRoad;
@@ -61,7 +61,7 @@ GPUhdi() int& Road::operator[](const int& i) { return mCellIds[i]; }
 inline bool Road::isFakeRoad() const { return mIsFakeRoad; }
 
 inline void Road::setFakeRoad(const bool isFakeRoad) { mIsFakeRoad = isFakeRoad; }
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_ROAD_H_ */

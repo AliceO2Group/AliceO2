@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 namespace RecoWorkflow
@@ -25,6 +25,6 @@ namespace RecoWorkflow
 framework::WorkflowSpec getWorkflow(bool useMC);
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif

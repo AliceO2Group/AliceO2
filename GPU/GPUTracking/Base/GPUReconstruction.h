@@ -34,11 +34,11 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class TrackerTraits;
 class VertexerTraits;
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -127,7 +127,7 @@ class GPUReconstruction
   void PrepareEvent();
 
   // Helpers to fetch processors from other shared libraries
-  virtual void GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits);
+  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits);
 
   // Getters / setters for parameters
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }

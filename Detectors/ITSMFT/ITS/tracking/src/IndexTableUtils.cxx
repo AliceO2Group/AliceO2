@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
@@ -44,5 +44,5 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
 
   return filteredBins;
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

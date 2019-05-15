@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 namespace MathUtils
@@ -88,7 +88,7 @@ GPUhdi() float MathUtils::computeTanDipAngle(float x1, float y1, float x2, float
   return (z1 - z2) / o2::gpu::CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CAUTILS_H_ */

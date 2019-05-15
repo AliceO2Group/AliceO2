@@ -22,7 +22,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class DigitReader : public Task
@@ -43,7 +43,7 @@ class DigitReader : public Task
 /// read simulated ITS digits from a root file
 framework::DataProcessorSpec getDigitReaderSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_DIGITREADER */

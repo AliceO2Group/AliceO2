@@ -32,7 +32,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void CookedTrackerDPL::init(InitContext& ic)
@@ -47,7 +47,7 @@ void CookedTrackerDPL::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     o2::base::GeometryManager::loadGeometry();
-    o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                               o2::TransformType::T2G));
     mTracker.setGeometry(geom);
@@ -93,7 +93,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   vertices.push_back({ 0., 0., 0. });
   mTracker.setVertices(vertices);
 
-  std::vector<o2::ITS::TrackITS> tracks;
+  std::vector<o2::its::TrackITS> tracks;
   mTracker.process(clusters, tracks, rofs);
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
@@ -139,5 +139,5 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
   };
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

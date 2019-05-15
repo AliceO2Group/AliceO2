@@ -70,7 +70,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     return;
   }
 
-  auto tracksITS = pc.inputs().get<const std::vector<o2::ITS::TrackITS>>("trackITS");
+  auto tracksITS = pc.inputs().get<const std::vector<o2::its::TrackITS>>("trackITS");
   auto tracksITSROF = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("trackITSROF");
   auto clusITS = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusITS");
   auto clusITSROF = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("clusITSROF");

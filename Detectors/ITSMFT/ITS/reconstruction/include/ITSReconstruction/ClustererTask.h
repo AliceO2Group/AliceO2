@@ -36,7 +36,7 @@ namespace dataformats
   class MCTruthContainer;
 }
 
-namespace ITS
+namespace its
 {
 
 class ClustererTask

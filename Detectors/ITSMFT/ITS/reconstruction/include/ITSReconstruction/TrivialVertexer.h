@@ -37,7 +37,7 @@ namespace dataformats
 template <typename T>
 class MCTruthContainer;
 }
-namespace ITS
+namespace its
 {
 class TrivialVertexer
 {
@@ -63,7 +63,7 @@ class TrivialVertexer
   TTree* mTree = nullptr;
   FairMCEventHeader* mHeader = nullptr;
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALVERTEXER_H */

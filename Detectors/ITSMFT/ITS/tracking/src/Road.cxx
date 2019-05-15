@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 Road::Road() : mCellIds{}, mRoadSize{}, mIsFakeRoad{} { resetRoad(); }
@@ -25,19 +25,19 @@ Road::Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
 void Road::resetRoad()
 {
-  for (int i = 0; i < Constants::ITS::CellsPerRoad; i++) {
-    mCellIds[i] = Constants::ITS::UnusedIndex;
+  for (int i = 0; i < Constants::its::CellsPerRoad; i++) {
+    mCellIds[i] = Constants::its::UnusedIndex;
   }
   mRoadSize = 0;
 }
 
 void Road::addCell(int cellLayer, int cellId)
 {
-  if (mCellIds[cellLayer] == Constants::ITS::UnusedIndex) {
+  if (mCellIds[cellLayer] == Constants::its::UnusedIndex) {
     ++mRoadSize;
   }
 
   mCellIds[cellLayer] = cellId;
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

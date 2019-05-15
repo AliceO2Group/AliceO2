@@ -34,7 +34,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::ITS;
+using namespace o2::its;
 using namespace o2::itsmft;
 using namespace o2::constants::math;
 using namespace o2::utils;
@@ -793,7 +793,7 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITS& 
   return kTRUE;
 }
 
-void CookedTracker::setGeometry(o2::ITS::GeometryTGeo* geom)
+void CookedTracker::setGeometry(o2::its::GeometryTGeo* geom)
 {
   /// attach geometry interface
   mGeom = geom;

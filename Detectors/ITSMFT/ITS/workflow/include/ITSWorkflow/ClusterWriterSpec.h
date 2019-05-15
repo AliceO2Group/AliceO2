@@ -22,7 +22,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class ClusterWriter : public Task
@@ -43,7 +43,7 @@ class ClusterWriter : public Task
 /// write ITS clusters a root file
 framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERWRITER */

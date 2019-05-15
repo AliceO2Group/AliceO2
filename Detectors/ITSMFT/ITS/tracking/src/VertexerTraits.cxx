@@ -23,13 +23,13 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 using Constants::IndexTable::PhiBins;
 using Constants::IndexTable::ZBins;
-using Constants::ITS::LayersRCoordinate;
-using Constants::ITS::LayersZCoordinate;
+using Constants::its::LayersRCoordinate;
+using Constants::its::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
@@ -137,7 +137,7 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{ std::array<float, 3>{ 
 
 void VertexerTraits::reset()
 {
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::its::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].clear();
     mIndexTables[iLayer].fill(0);
   }
@@ -162,7 +162,7 @@ std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 void VertexerTraits::arrangeClusters(ROframe* event)
 {
   mEvent = event;
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::its::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{ event->getClustersOnLayer(iLayer) };
     const size_t clustersNum{ currentLayer.size() };
     if (clustersNum > 0) {
@@ -546,5 +546,5 @@ void VertexerTraits::processLines()
   }
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

@@ -40,7 +40,7 @@ namespace gpu
 {
 class GPUChainITS;
 }
-namespace ITS
+namespace its
 {
 
 class PrimaryVertexContext;
@@ -158,7 +158,7 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
   return diff;
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKER_H_ */

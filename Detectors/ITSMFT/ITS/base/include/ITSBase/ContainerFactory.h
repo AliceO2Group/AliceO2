@@ -23,7 +23,7 @@ class FairContainer;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class ContainerFactory : public FairContFact
 {

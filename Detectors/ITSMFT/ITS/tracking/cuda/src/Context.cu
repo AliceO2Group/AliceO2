@@ -74,7 +74,7 @@ inline int getMaxThreadsPerSM(const int major, const int minor)
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 namespace GPU
 {
