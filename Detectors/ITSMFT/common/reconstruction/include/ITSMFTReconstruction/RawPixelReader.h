@@ -185,13 +185,15 @@ struct GBTLink {
   uint32_t lanes = 0;   // lanes served by this link
   GBTLinkDecodingStat statistics; // decoding statistics
 
-  void clear()
+  void clear(bool resetStat = true)
   {
     data.clear();
     lastPageSize = 0;
     nTriggers = 0;
     lanes = 0;
-    statistics.clear();
+    if (resetStat) {
+      statistics.clear();
+    }
   }
 };
 
@@ -210,13 +212,14 @@ struct RUDecodeData {
   RUDecodeData() = default;
   //  RUDecodeData(const RUDecodeData& src) {}; // dummy?
 
-  void clear()
+  void clear(bool resetStat = true)
   {
     clearTrigger();
+    nChipsFired = 0;
     for (int i = 0; i < MaxLinksPerRU; i++) {
       auto* link = links[i].get();
       if (link) {
-        link->clear();
+        link->clear(resetStat);
       }
     }
   }
@@ -310,14 +313,17 @@ class RawPixelReader : public PixelReader
   void init() override{};
 
   ///______________________________________________________________________
-  void clear()
+  void clear(bool resetStat = true)
   {
-    mDecodingStat.clear();
-    for (auto& rudec : mRUDecodeVec) {
-      rudec.clear();
+    LOG(INFO) << "Cleaning decoded, reset_statistics_flag " << resetStat;
+    if (resetStat) {
+      mDecodingStat.clear();
     }
-    mNLinks = 0;
-    mNRUs = 0;
+    for (auto& rudec : mRUDecodeVec) {
+      rudec.clear(resetStat);
+    }
+    mMinTriggersCached = 0;
+    mCurRUDecodeID = -1;
     mIOFile.close();
     mRawBuffer.clear();
   }
@@ -659,7 +665,6 @@ class RawPixelReader : public PixelReader
         continue;
       }
 #endif
-
       auto& ruDecode = getCreateRUDecode(ruIDSW);
 
       bool newTrigger = true; // check if we see new trigger
@@ -1377,7 +1382,8 @@ class RawPixelReader : public PixelReader
     // open input for raw data decoding from file
     mSWIO.Stop();
     mSWIO.Start();
-    LOG(INFO) << "opening raw data input file " << filename << FairLogger::endl;
+    clear(false); // do not reset statistics
+    LOG(INFO) << "opening raw data input file " << filename;
     mIOFile.open(filename.c_str(), std::ifstream::binary);
     assert(mIOFile.good());
     mRawBuffer.clear();
