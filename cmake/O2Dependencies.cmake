@@ -229,6 +229,14 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    rapidjson_bucket
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${RAPIDJSON_INCLUDE_DIRS}
+  )
+
+o2_define_bucket(
+    NAME
     arrow_bucket
 
     DEPENDENCIES
@@ -336,7 +344,7 @@ o2_define_bucket(
     InfoLogger_bucket
     AliceO2::Common
     CURL::libcurl
-    RapidJSON
+    rapidjson_bucket
 
     SYSTEMINCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
@@ -800,12 +808,11 @@ o2_define_bucket(
     common_boost_bucket
     Boost::unit_test_framework
     ${FairLogger_DEP}
-    RapidJSON
+    rapidjson_bucket
 
     INCLUDE_DIRECTORIES
     ${FairLogger_INCDIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
@@ -2168,7 +2175,7 @@ o2_define_bucket(
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
-    RapidJSON
+    rapidjson_bucket
     mch_mapping_interface_bucket
     mch_mapping_impl3_bucket
     MCHMappingImpl3
@@ -2177,7 +2184,6 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-    ${RAPIDJSON_INCLUDEDIR}/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -2378,10 +2384,7 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
-  RapidJSON
-
-  INCLUDE_DIRECTORIES
-  ${RAPIDJSON_INCLUDEDIR}/include
+  rapidjson_bucket
 )
 
 o2_define_bucket(
@@ -2414,8 +2417,8 @@ o2_define_bucket(
     mid_base_test_bucket
 
     DEPENDENCIES
+    rapidjson_bucket
     Boost::unit_test_framework
-    RapidJSON
     mid_base_bucket
     MIDBase
 )
@@ -2448,7 +2451,7 @@ o2_define_bucket(
     DEPENDENCIES
     Boost::unit_test_framework
     $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
-    RapidJSON
+    rapidjson_bucket
     MIDBase
     MIDSimulation
     MIDClustering
