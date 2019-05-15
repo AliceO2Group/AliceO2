@@ -81,7 +81,7 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
   processors()->trdTracker.SetTrackingChain(this);
   mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
-#ifndef GPUCA_ALIROOT_LIB
+#ifdef HAVE_O2HEADERS
   mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
 #endif
   mRec->AddGPUEvents(mEvents);
@@ -102,7 +102,7 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTracker, &processors()->trdTracker);
   }
-#ifndef GPUCA_ALIROOT_LIB
+#ifdef HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
   }
@@ -132,7 +132,7 @@ int GPUChainTracking::Init()
       mFlatObjectsShadow.mTpcTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
       mFlatObjectsShadow.mTpcTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
     }
-#ifndef GPUCA_ALIROOT_LIB
+#ifdef HAVE_O2HEADERS
     if (mTRDGeometry) {
       memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry.get(), sizeof(*mTRDGeometry));
       mFlatObjectsShadow.mTrdGeometry->clearInternalBufferPtr();

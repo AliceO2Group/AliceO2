@@ -15,7 +15,6 @@
 #include "GPUReconstruction.h"
 #include "GPUReconstructionTimeframe.h"
 #include "GPUChainTracking.h"
-#include "GPUChainITS.h"
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
@@ -54,6 +53,7 @@
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterHardware.h"
+#include "GPUChainITS.h"
 #endif
 
 #ifdef BUILD_EVENT_DISPLAY
@@ -72,7 +72,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUReconstruction* rec;
 GPUChainTracking* chainTracking;
+#ifdef HAVE_O2HEADERS
 GPUChainITS* chainITS;
+#endif
 std::unique_ptr<char[]> outputmemory;
 std::unique_ptr<GPUDisplayBackend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
@@ -345,7 +347,9 @@ int main(int argc, char** argv)
     return (1);
   }
   chainTracking = rec->AddChain<GPUChainTracking>();
+#ifdef HAVE_O2HEADERS
   chainITS = rec->AddChain<GPUChainITS>();
+#endif
 
   if (SetupReconstruction()) {
     return (1);

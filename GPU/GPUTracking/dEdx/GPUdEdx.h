@@ -24,7 +24,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#ifdef GPUCA_ALIROOT_LIB
+#ifndef HAVE_O2HEADERS
 
 class GPUdEdx
 {
@@ -116,7 +116,7 @@ GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& param)
   mNSubThresh++;
 }
 
-#endif // GPUCA_ALIROOT_LIB
+#endif // !HAVE_O2HEADERS
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
