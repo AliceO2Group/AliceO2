@@ -1078,6 +1078,7 @@ o2_define_bucket(
     common_vc_bucket
     common_math_bucket
     data_format_TPC_bucket
+    data_format_common_bucket
     ParBase
     MathUtils
     CCDB
@@ -1214,6 +1215,7 @@ o2_define_bucket(
     TPCBase
     TPCCalibration
     TPCReconstruction
+    tpc_base_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
@@ -1423,6 +1425,7 @@ o2_define_bucket(
     Geom
     SimulationDataFormat
     CommonDataFormat
+    data_format_common_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1638,6 +1641,7 @@ o2_define_bucket(
     SimulationDataFormat
     CommonDataFormat
     CommonUtils
+    data_format_common_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -2148,6 +2152,7 @@ o2_define_bucket(
     data_format_common_bucket
 
     DEPENDENCIES
+    GPUCommon_bucket
     fairroot_base_bucket
     Core RIO
 
@@ -2155,6 +2160,7 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
+    ${CMAKE_SOURCE_DIR}/GPU/Common
 )
 
 o2_define_bucket(

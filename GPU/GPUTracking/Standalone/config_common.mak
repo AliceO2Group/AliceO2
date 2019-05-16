@@ -63,21 +63,21 @@ endif
 ifneq (${CONFIG_O2DIR}, )
 DEFINES						+= HAVE_O2HEADERS
 INCLUDEPATHS					+= O2Headers \
+								${CONFIG_O2DIR}/Common/Constants/include \
+								${CONFIG_O2DIR}/Common/MathUtils/include \
+								${CONFIG_O2DIR}/DataFormats/common/include \
 								${CONFIG_O2DIR}/Detectors/TPC/base/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
 								${CONFIG_O2DIR}/Detectors/TRD/base/include \
 								${CONFIG_O2DIR}/Detectors/TRD/base/src \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/include \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include \
-								${CONFIG_O2DIR}/Common/Constants/include \
-								${CONFIG_O2DIR}/DataFormats/Reconstruction/include \
-								${CONFIG_O2DIR}/Common/MathUtils/include \
-								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include \
-								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
-								${CONFIG_O2DIR}/DataFormats/simulation/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/ITSMFT/ITS/include \
+								${CONFIG_O2DIR}/DataFormats/Reconstruction/include \
+								${CONFIG_O2DIR}/DataFormats/simulation/include \
 								${CONFIG_O2DIR}/Detectors/Base/src \
-								${CONFIG_O2DIR}/Detectors/Base/include
+								${CONFIG_O2DIR}/Detectors/Base/include \
+								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include
 endif
 
 ifeq ($(CONFIG_O2), 1)
