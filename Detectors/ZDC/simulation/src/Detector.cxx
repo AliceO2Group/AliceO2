@@ -276,16 +276,15 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         charge = TMath::Abs(pdgCode / 10000 - 100000);
       //look into the light tables
       if (mZDCdetectorID == 1 || mZDCdetectorID == 4) {
-        if (iradius > Geometry::ZNFIBREDIAMETER)
-          iradius = Geometry::ZNFIBREDIAMETER;
-        lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
+        iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
+        lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
       } else {
-        if (iradius > Geometry::ZPFIBREDIAMETER)
-          iradius = Geometry::ZPFIBREDIAMETER;
-        lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
+        iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
+        lightoutput = charge * charge * mLightTableZP[ibeta][iradius][iangle];
       }
-      if (lightoutput > 0)
+      if (lightoutput > 0) {
         nphe = gRandom->Poisson(lightoutput);
+      }
     }
   }
 
