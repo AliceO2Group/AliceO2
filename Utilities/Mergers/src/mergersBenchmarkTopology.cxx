@@ -74,18 +74,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   {
     Inputs mergersInputs;
     for (size_t p = 0; p < objectsProducers; p++) {
-      mergersInputs.push_back({ "mo", "TST", "HISTO", p + 1, Lifetime::Timeframe });
+      mergersInputs.push_back({ "mo",               "TST",
+                                "HISTO",            static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                Lifetime::Timeframe });
       DataProcessorSpec producer{
-        "producer-histo" + std::to_string(p),
-        Inputs{},
-        Outputs{
-          {{ "mo" }, "TST", "HISTO", p + 1, Lifetime::Timeframe }
-        },
+        "producer-histo" + std::to_string(p), Inputs{},
+        Outputs{ { { "mo" },
+                   "TST",
+                   "HISTO",
+                   static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                   Lifetime::Timeframe } },
         AlgorithmSpec{
-          (AlgorithmSpec::ProcessCallback) [p, periodus = int(1000000 / objectsRate), objectsBins, objectsProducers](
-            ProcessingContext& processingContext) mutable {
-
-            static auto lastTime = steady_clock::now();
+          (AlgorithmSpec::ProcessCallback)[ p, periodus = int(1000000 / objectsRate), objectsBins, objectsProducers ](
+            ProcessingContext& processingContext) mutable { static auto lastTime = steady_clock::now();
             auto now = steady_clock::now();
 
             if (duration_cast<microseconds>(now - lastTime).count() > periodus) {
@@ -95,7 +96,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               TH1F* histo = new TH1F("gauss", "gauss", objectsBins, -3, 3);
               histo->FillRandom("gaus", 1000);
 
-              processingContext.outputs().adopt(Output{ "TST", "HISTO", p + 1 }, histo);
+              processingContext.outputs().adopt(
+                Output{ "TST", "HISTO", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
             }
           }
         }

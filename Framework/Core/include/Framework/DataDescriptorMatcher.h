@@ -47,7 +47,7 @@ struct ContextRef {
 /// We do not have any float in the value, because AFAICT there is no need for
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
-  using Value = std::variant<uint64_t, std::string, None>;
+  using Value = std::variant<uint32_t, uint64_t, std::string, None>;
   std::string label;    /// The name of the variable contained in this element.
   Value value = None{}; /// The actual contents of the element.
 };
@@ -137,7 +137,7 @@ class DescriptionValueMatcher : public ValueHolder<std::string>
 };
 
 /// Something which can be matched against a header::SubSpecificationType
-class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
+class SubSpecificationTypeValueMatcher : public ValueHolder<header::DataHeader::SubSpecificationType>
 {
  public:
   inline SubSpecificationTypeValueMatcher(ContextRef variableId);
@@ -147,7 +147,7 @@ class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
   inline SubSpecificationTypeValueMatcher(std::string const& s);
 
   /// This means that the matcher is looking for a constant.
-  inline SubSpecificationTypeValueMatcher(uint64_t v);
+  inline SubSpecificationTypeValueMatcher(header::DataHeader::SubSpecificationType v);
 
   bool match(header::DataHeader const& header, VariableContext& context) const;
 };

@@ -103,12 +103,12 @@ inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(Contex
 }
 
 inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(std::string const& s)
-  : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) }
+  : ValueHolder<header::DataHeader::SubSpecificationType>{ o2::header::strtoui<header::DataHeader::SubSpecificationType>(s.c_str(),nullptr,10) }
 {
 }
 
-inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(uint64_t v)
-  : ValueHolder<uint64_t>{ v }
+inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(header::DataHeader::SubSpecificationType v)
+  : ValueHolder<header::DataHeader::SubSpecificationType>{ v }
 {
 }
 

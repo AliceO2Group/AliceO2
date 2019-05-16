@@ -29,26 +29,22 @@ void customize(std::vector<ConfigParamSpec> &options) {
 using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProducer() {
-  return DataProcessorSpec{
-    "some-producer",
-    Inputs{},
-    {
-      OutputSpec{"TST", "A", 0, Lifetime::Timeframe},
-    },
-    // The producer is stateful, we use a static for the state in this
-    // particular case, but a Singleton or a captured new object would
-    // work as well.
-    AlgorithmSpec{[](InitContext &setup) {
-      return [](ProcessingContext &ctx) {
-          // Create a single output. 
-          size_t index = ctx.services().get<ParallelContext>().index1D();
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-          auto aData = ctx.outputs().make<int>(Output{ "TST", "A", index }, 1);
-          ctx.services().get<ControlService>().readyToQuit(true);
-        };
-      }
-    }
-  };
+  return DataProcessorSpec{ "some-producer", Inputs{}, {
+                                                         OutputSpec{ "TST", "A", 0, Lifetime::Timeframe },
+                                                       },
+                            // The producer is stateful, we use a static for the state in this
+                            // particular case, but a Singleton or a captured new object would
+                            // work as well.
+                            AlgorithmSpec{ [](InitContext& setup) {
+                              return [](ProcessingContext& ctx) {
+                                // Create a single output.
+                                size_t index = ctx.services().get<ParallelContext>().index1D();
+                                std::this_thread::sleep_for(std::chrono::seconds(1));
+                                auto aData = ctx.outputs().make<int>(
+                                  Output{ "TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
+                                ctx.services().get<ControlService>().readyToQuit(true);
+                              };
+                            } } };
 }
 
 // This is a simple consumer / producer workflow where both are

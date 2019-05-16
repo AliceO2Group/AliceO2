@@ -53,29 +53,27 @@ o2::header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 
 //__________________________________________________________________________________________________
 o2::header::DataHeader::DataHeader()
-  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
-  , dataDescription(gDataDescriptionInvalid)
-  , dataOrigin(gDataOriginInvalid)
-  , reserved(gInvalidToken32)
-  , payloadSerializationMethod(gSerializationMethodInvalid)
-  , subSpecification(0)
-  , payloadSize(0)
+  : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+    dataDescription(gDataDescriptionInvalid),
+    dataOrigin(gDataOriginInvalid),
+    splitPayloadParts(gInvalidToken32),
+    payloadSerializationMethod(gSerializationMethodInvalid),
+    subSpecification(0),
+    splitPayloadIndex(0),
+    payloadSize(0)
 {
 }
 
 //__________________________________________________________________________________________________
-o2::header::DataHeader::DataHeader(DataDescription desc,
-                                   DataOrigin origin,
-                                   SubSpecificationType subspec,
-                                   uint64_t size
-                                   )
-  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
-  , dataDescription(desc)
-  , dataOrigin(origin)
-  , reserved(gInvalidToken32)
-  , payloadSerializationMethod(gSerializationMethodInvalid)
-  , subSpecification(subspec)
-  , payloadSize(size)
+o2::header::DataHeader::DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size)
+  : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+    dataDescription(desc),
+    dataOrigin(origin),
+    splitPayloadParts(gInvalidToken32),
+    payloadSerializationMethod(gSerializationMethodInvalid),
+    subSpecification(subspec),
+    splitPayloadIndex(0),
+    payloadSize(size)
 {
 }
 
