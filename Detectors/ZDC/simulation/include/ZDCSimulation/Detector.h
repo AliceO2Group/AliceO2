@@ -74,7 +74,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void addAlignableVolumes() const override {}
 
   o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
-                       Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Double_t energyloss,
+                       Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss,
                        Int_t nphePMC, Int_t nphePMQ);
 
  private:
@@ -85,6 +85,10 @@ class Detector : public o2::base::DetImpl<Detector>
   void createCsideBeamLine();
   void createMagnets();
   void createDetectors();
+
+  // determine detector; sector/tower and impact coordinates given volumename and position
+  void getDetIDandSecID(TString const& volname, Vector3D<float> const& x,
+                        Vector3D<float>& xDet, int& detector, int& sector) const;
 
   // Define sensitive volumes
   void defineSensitiveVolumes();
@@ -99,7 +103,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Float_t mTrackEta;
   Bool_t mSecondaryFlag;
   Float_t mPrimaryEnergy;
-  Float_t mXImpact[3];
+  Vector3D<float> mXImpact;
   Float_t mTrackTOF;
   Float_t mTotDepEnergy;
   Float_t mTotLightPMC;

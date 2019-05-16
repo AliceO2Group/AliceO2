@@ -41,11 +41,9 @@ Detector::Detector(Bool_t active)
     mCurrentTrackID(-1),
     mCurrentHit(nullptr),
     mZDCdetectorID(0),
-    mZDCsectorID(-1)
+    mZDCsectorID(-1),
+    mXImpact(-999, -999, -999)
 {
-  for (Int_t i = 0; i < 2; i++) {
-    mXImpact[i] = -999.;
-  }
   mSecondaryFlag = kFALSE;
   mPrimaryEnergy = 0;
   mTrackTOF = 0;
@@ -136,40 +134,96 @@ void Detector::defineSensitiveVolumes()
   LOG(INFO) << "defining sensitive for ZDC";
   auto vol = gGeoManager->GetVolume("ZNEU");
   if (vol) {
-    AddSensitiveVolume(vol);
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNTX"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNSL"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNST"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZN1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNG1"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNG2"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNG3"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNG4"));
   } else {
     LOG(FATAL) << "can't find volume ZNEU";
   }
   vol = gGeoManager->GetVolume("ZPRO");
   if (vol) {
-    AddSensitiveVolume(vol);
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPTX"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPSL"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPST"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZP1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF2"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF3"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF4"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPG1"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPG2"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPG3"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPG4"));
   } else {
     LOG(FATAL) << "can't find volume ZPRO";
   }
+  // em calorimeter
+  vol = gGeoManager->GetVolume("ZEM ");
+  if (vol) {
+    AddSensitiveVolume(gGeoManager->GetVolume("ZEMF"));
+  } else {
+    LOG(FATAL) << "can't find volume ZEM";
+  }
+}
+
+// determines detectorID and sectorID from volume and coordinates
+void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x,
+                                Vector3D<float>& xDet, int& detector, int& sector) const
+{
+  if (volname.BeginsWith("ZN")) {
+    // for the neutron calorimeter
+
+    if (x.Z() > 0) {
+      detector = 1; //ZNA
+      xDet = x - Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
+
+    } else if (x.Z() < 0) {
+      detector = 4; //ZNC
+      xDet = x - Vector3D<float>(Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
+    }
+    // now determine sector/tower
+    if (xDet.X() <= 0.) {
+      if (xDet.Y() <= 0.) {
+        sector = 1;
+      } else
+        sector = 3;
+    } else {
+      if (xDet.Y() <= 0.) {
+        sector = 2;
+      } else {
+        sector = 4;
+      }
+    }
+    return;
+
+  } else if (volname.BeginsWith("ZP")) {
+    // proton calorimeter
+    if (x.Z() > 0) {
+      detector = 2; //ZPA (NB -> DIFFERENT FROM AliRoot!!!)
+      xDet = x - Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
+    } else if (x.Z() < 0) {
+      detector = 5; //ZPC (NB -> DIFFERENT FROM AliRoot!!!)
+      xDet = x - Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
+    }
+
+    // determine sector/tower
+    if (xDet.X() >= Geometry::ZPDIMENSION[0]) {
+      xDet.SetX(Geometry::ZPDIMENSION[0] - 0.01);
+    } else if (xDet.X() <= -Geometry::ZPDIMENSION[0]) {
+      xDet.SetX(-Geometry::ZPDIMENSION[0] + 0.01);
+    }
+
+    float xTow = 2. * xDet.X() / (Geometry::ZPDIMENSION[0]);
+    for (int i = 1; i <= 4; i++) {
+      if (xTow >= (i - 3) && xTow < (i - 2)) {
+        sector = i;
+        break;
+      }
+    }
+    return;
+
+  } else if (volname.BeginsWith("ZE")) {
+    // electromagnetic calorimeter
+    detector = 3;
+    xDet = x - Vector3D<float>(Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]);
+    sector = (x.X() > 0.) ? 1 : 2;
+    return;
+  }
+
+  assert(false);
 }
 
 //_____________________________________________________________________________
@@ -177,84 +231,19 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
-  Float_t x[3] = { 0., 0., 0. }, xDet[3] = { 0., 0., 0. }, p[3] = { 0., 0., 0. }, energy = 0.;
+  Float_t x[3] = { 0., 0., 0. };
   fMC->TrackPosition(x[0], x[1], x[2]);
+
+  // determine detectorID and sectorID
+  int detector = -1;
+  int sector = -1;
+  Vector3D<float> xImp;
+  getDetIDandSecID(volname, Vector3D<float>(x[0], x[1], x[2]),
+                   xImp, detector, sector);
+
+  Float_t p[3] = { 0., 0., 0. };
+  Float_t energy = 0.;
   fMC->TrackMomentum(p[0], p[1], p[2], energy);
-
-  // determine detector and tower
-  Int_t cZDCdetID[2];
-  if (volname.Contains("ZN")) {
-    if (x[2] > 0)
-      cZDCdetID[0] = 1; //ZNA (NB -> DIFFERENT FROM AliRoot!!!)
-    else if (x[2] < 0)
-      cZDCdetID[0] = 4; //ZNC (NB -> DIFFERENT FROM AliRoot!!!)
-    if (cZDCdetID[0] == 1) {
-      for (int i = 0; i < 3; i++)
-        xDet[i] = x[i] - Geometry::ZNAPOSITION[i];
-      if (xDet[0] <= 0.) {
-        if (xDet[1] <= 0.)
-          cZDCdetID[1] = 1;
-        else
-          cZDCdetID[1] = 3;
-      } else {
-        if (xDet[1] <= 0.)
-          cZDCdetID[1] = 2;
-        else
-          cZDCdetID[1] = 4;
-      }
-    } else if (cZDCdetID[0] == 4) {
-      for (int i = 0; i < 3; i++)
-        xDet[i] = x[i] - Geometry::ZNCPOSITION[i];
-      if (xDet[0] <= 0.) {
-        if (xDet[1] <= 0.)
-          cZDCdetID[1] = 1;
-        else
-          cZDCdetID[1] = 3;
-      } else {
-        if (xDet[1] <= 0.)
-          cZDCdetID[1] = 2;
-        else
-          cZDCdetID[1] = 4;
-      }
-    }
-  } else if (volname.Contains("ZP")) {
-    if (x[2] > 0)
-      cZDCdetID[0] = 2; //ZPA (NB -> DIFFERENT FROM AliRoot!!!)
-    else if (x[2] < 0)
-      cZDCdetID[0] = 5; //ZPC (NB -> DIFFERENT FROM AliRoot!!!)
-                        //
-    if (cZDCdetID[0] == 2) {
-      for (int i = 0; i < 3; i++)
-        xDet[i] = x[i] - Geometry::ZPAPOSITION[i];
-      float xTow = xDet[0] / (Geometry::ZPDIMENSION[0] / 2.);
-      for (int i = 1; i <= 4; i++) {
-        if (xTow >= (i - 3) && xTow < (i - 2)) {
-          cZDCdetID[1] = i;
-          break;
-        }
-      }
-    } else if (cZDCdetID[0] == 5) {
-      for (int i = 0; i < 3; i++)
-        xDet[i] = x[i] - Geometry::ZPCPOSITION[i];
-      float xTow = xDet[0] / (Geometry::ZPDIMENSION[0] / 2.);
-      for (int i = 1; i <= 4; i++) {
-        if (xTow >= (i - 3) && xTow < (i - 2)) {
-          cZDCdetID[1] = i;
-          break;
-        }
-      }
-    }
-  } else if (volname.Contains("ZEM")) {
-    cZDCdetID[0] = 3;
-    for (int i = 0; i < 3; i++)
-      xDet[i] = x[i] - Geometry::ZEMPOSITION[i];
-    if (x[0] > 0.)
-      cZDCdetID[1] = 1;
-    else
-      cZDCdetID[1] = 2;
-  }
-
-  Vector3D<float> xImp(xDet[0], xDet[1], xDet[2]);
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
@@ -262,11 +251,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   const bool isDaughterOfSeenTrack = stack->isTrackDaughterOf(trackn, mCurrentTrackID);
 
   Bool_t kIsTrackInsideSameSector = kFALSE;
-  if (cZDCdetID[0] == mZDCdetectorID && cZDCdetID[1] == mZDCsectorID)
+  if (detector == mZDCdetectorID && sector == mZDCsectorID) {
     kIsTrackInsideSameSector = kTRUE;
+  }
 
-  mZDCdetectorID = cZDCdetID[0];
-  mZDCsectorID = cZDCdetID[1];
+  mZDCdetectorID = detector;
+  mZDCsectorID = detector;
 
   Float_t eDep = fMC->Edep();
 
@@ -321,18 +311,17 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     Vector3D<float> pos(x[0], x[1], x[2]);
     Vector3D<float> mom(p[0], p[1], p[2]);
     mCurrentHit = addHit(trackn, trackparent, mSecondaryFlag, energy, mZDCdetectorID, mZDCsectorID,
-                         pos, mom, mTrackTOF, xDet, mTotDepEnergy, mTotLightPMC, mTotLightPMQ);
+                         pos, mom, mTrackTOF, xImp, mTotDepEnergy, mTotLightPMC, mTotLightPMQ);
     stack->addHit(GetDetId());
 
     mCurrentTrackID = trackn;
-    for (int i = 0; i < 3; i++)
-      mXImpact[i] = xDet[i];
+    mXImpact = xImp;
     mPrimaryEnergy = energy;
 
     return true;
 
   } else {
-    // summing varibles that needs to be updated (Eloss and light yield)
+    // summing variables that needs to be updated (Eloss and light yield)
     mCurrentHit->setNoNumContributingSteps(mCurrentHit->getNumContributingSteps() + 1);
     mTotDepEnergy += eDep;
     if (currentMediumid == mMediumPMCid) {
@@ -350,7 +339,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
@@ -465,18 +454,18 @@ void Detector::createMaterials()
   Mixture(9, "Air$", aAir, zAir, dAir, 4, wAir);
 
   // ******** MEDIUM DEFINITION ********
-  Medium(kWalloy, "Walloy$", 0, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
-  Medium(kCuZn, "CuZn$", 1, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kWalloy, "Walloy$", 0, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kCuZn, "CuZn$", 1, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kSiO2pmc, "quartzPMC$", 2, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kSiO2pmq, "quartzPMQ$", 2, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
-  Medium(kPb, "Lead$", 3, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kPb, "Lead$", 3, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kCu, "Copper$", 4, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kFe, "Iron$", 5, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kAl, "Aluminum$", 6, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kGraphite, "Graphite$", 7, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kVoidNoField, "VoidNoField$", 8, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kVoidwField, "VoidwField$", 8, notactiveMed, ifld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
-  Medium(kAir, "Air$", 9, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kAir, "Air$", 9, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
 }
 
 //_____________________________________________________________________________
