@@ -53,17 +53,6 @@
 //API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
 
-//Definitions steering enabling of GPU processing components
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
-  #define GPUCA_BUILD_MERGER
-  #if defined(HAVE_O2HEADERS)
-    #define GPUCA_BUILD_DEDX
-    #define GPUCA_BUILD_TPCCONVERT
-    #define GPUCA_BUILD_TRD
-    #define GPUCA_BUILD_ITS
-  #endif
-#endif
-
 // clang-format on
 
 #endif
