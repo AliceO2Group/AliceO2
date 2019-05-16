@@ -22,6 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
+__global__ void gGPUConstantMemBuffer_dummy(uint4* p) { p[0] = gGPUConstantMemBuffer[0]; }
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
@@ -240,7 +241,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   void* devPtrConstantMem;
 #ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
-  if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
+  if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, HIP_SYMBOL(gGPUConstantMemBuffer)))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(hipDeviceReset());
     return 1;
