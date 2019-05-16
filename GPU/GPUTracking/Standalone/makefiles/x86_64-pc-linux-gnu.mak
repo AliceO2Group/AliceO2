@@ -133,7 +133,7 @@ LIBSUSE							+= $(OPENCLLIB)
 endif
 
 ifeq ($(CONFIG_HIP), 1)
-LIBPATHSUSE						+= -L$(HIP_PATH)/lib/
+LIBPATHSUSE						+= -L$(HIP_PATH)/lib/ -L$(HSA_PATH)/lib/
 LIBSUSE							+= -lhip_hcc -lhsa-runtime64
 endif
 
