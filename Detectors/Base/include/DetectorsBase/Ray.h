@@ -48,7 +48,7 @@ class Ray
   GPUd() Ray() : mP{ 0.f }, mD{ 0.f }, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f)
   {
   }
-  GPUd() ~Ray() CON_DEFAULT;
+  GPUdDefault() ~Ray() CON_DEFAULT;
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   Ray(const Point3D<float> point0, const Point3D<float> point1);
