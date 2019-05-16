@@ -198,7 +198,7 @@ int ReadConfiguration(int argc, char** argv)
     outputmemory.reset(new char[configStandalone.outputcontrolmem]);
   }
 
-#if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL))
+#if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL) || defined(BUILD_HIP))
   if (configStandalone.runGPU) {
     printf("GPU disables at build time!\n");
     printf("Press a key to exit!\n");
