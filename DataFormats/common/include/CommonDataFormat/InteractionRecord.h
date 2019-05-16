@@ -104,6 +104,8 @@ struct InteractionRecord {
 
   void print() const;
 
+  friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
+
   ClassDefNV(InteractionRecord, 3);
 };
 
@@ -130,6 +132,8 @@ struct InteractionTimeRecord : public InteractionRecord {
   }
 
   void print() const;
+
+  friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
 
   ClassDefNV(InteractionTimeRecord, 1);
 };
