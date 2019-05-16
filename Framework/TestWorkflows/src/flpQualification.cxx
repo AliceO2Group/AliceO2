@@ -44,27 +44,25 @@ using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProcessor()
 {
-  return DataProcessorSpec{
-    "some-processor",
-    {
-      InputSpec{ "x", "ITS", "RAWDATA", 0, Lifetime::Timeframe },
-    },
-    {
-      OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
-    },
-    // The processor is stateful. We want to call srand only
-    // once, and then return the callback to be invoked for every message.
-    AlgorithmSpec{ [](InitContext& setup) {
-      srand(setup.services().get<ParallelContext>().index1D());
-      return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
-        auto values = inputs.get("x");
-        // Create a single output.
-        size_t index = parallelInfo.index1D();
-        LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
-        auto aData = outputs.make<int>(Output{ "TST", "P", index }, 1);
-      });
-    } }
-  };
+  return DataProcessorSpec{ "some-processor", {
+                                                InputSpec{ "x", "ITS", "RAWDATA", 0, Lifetime::Timeframe },
+                                              },
+                            {
+                              OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
+                            },
+                            // The processor is stateful. We want to call srand only
+                            // once, and then return the callback to be invoked for every message.
+                            AlgorithmSpec{ [](InitContext& setup) {
+                              srand(setup.services().get<ParallelContext>().index1D());
+                              return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
+                                auto values = inputs.get("x");
+                                // Create a single output.
+                                size_t index = parallelInfo.index1D();
+                                LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
+                                auto aData =
+                                  outputs.make<int>(Output{ "TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
+                              });
+                            } } };
 }
 
 /// This creates a workflow with 4 layers:

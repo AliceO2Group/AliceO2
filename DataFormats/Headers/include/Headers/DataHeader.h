@@ -37,8 +37,10 @@
 #include <algorithm> // std::min
 #include <stdexcept>
 #include <string>
+#include <climits>
 // FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
 #include "MemoryResources/Types.h"
+#include <cerrno>
 
 namespace o2 {
 namespace header {
@@ -486,6 +488,58 @@ auto get(const void* buffer, size_t len = 0)
 }
 
 //__________________________________________________________________________________________________
+// utilities for converting strings to ints - tries to mimick the stadard API, but the result is
+// strongly typed - can be used for fixed width and short unsigned integer types unlike the standard
+// utilities.
+template <typename T>
+T strtoui(const char* str, char** str_end, int base) noexcept
+{
+  static_assert(std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed,
+                "Target must be an unsigned integer type");
+  // standard lib gives us 2 specializations of strtouX, so let's use them both where appropriate
+  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
+    unsigned long res = strtoul(str, str_end, base);
+    if (res > std::numeric_limits<T>::max()) {
+      errno = ERANGE;
+      return std::numeric_limits<T>::max();
+    } else {
+      return static_cast<T>(res);
+    };
+  } else {
+    unsigned long long res = strtoull(str, str_end, base);
+    if (res > std::numeric_limits<T>::max()) {
+      errno = ERANGE;
+      return std::numeric_limits<T>::max();
+    } else {
+      return static_cast<T>(res);
+    };
+  }
+};
+
+template <typename T>
+T stoui(const std::string& str, size_t* pos = nullptr, int base = 10)
+{
+  static_assert(std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed,
+                "Target must be an unsigned integer type");
+  // standard lib gives us 2 specializations of stouX, so let's use them both where appropriate
+  if constexpr (sizeof(T) <= sizeof(uint32_t)) {
+    unsigned long res = std::stoul(str, pos, base);
+    if (res > std::numeric_limits<T>::max()) {
+      throw std::out_of_range("result does not fit in target type");
+    } else {
+      return static_cast<T>(res);
+    };
+  } else {
+    unsigned long long res = std::stoull(str, pos, base);
+    if (res > std::numeric_limits<T>::max()) {
+      throw std::out_of_range("result does not fit in target type");
+    } else {
+      return static_cast<T>(res);
+    };
+  }
+};
+
+//__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
 struct printDataDescription {
   void operator()(const char* str) const;
@@ -515,7 +569,10 @@ using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 struct DataHeader : public BaseHeader
 {
   // allows DataHeader::SubSpecificationType to be used as generic type in the code
-  using SubSpecificationType = uint64_t;
+  using SubSpecificationType = uint32_t;
+  using SplitPayloadIndexType = uint32_t;
+  using SplitPayloadPartsType = uint32_t;
+  using PayloadSizeType = uint64_t;
 
   //static data for this header type/version
   static const uint32_t sVersion;
@@ -533,10 +590,9 @@ struct DataHeader : public BaseHeader
   DataOrigin dataOrigin;
 
   ///
-  /// need something for alignment, is there another field needed?
-  /// how about a hash?
+  /// How many split payloads in total
   ///
-  uint32_t reserved = 0;
+  SplitPayloadPartsType splitPayloadParts;
 
   ///
   /// serialization method
@@ -549,9 +605,14 @@ struct DataHeader : public BaseHeader
   SubSpecificationType subSpecification;
 
   ///
-  /// size of the associated data
+  /// index of the split payload
   ///
-  uint64_t    payloadSize;
+  SplitPayloadIndexType splitPayloadIndex;
+
+  ///
+  /// size of the associated data buffer
+  ///
+  PayloadSizeType payloadSize;
 
   //___NEVER MODIFY THE ABOVE
   //___NEW STUFF GOES BELOW

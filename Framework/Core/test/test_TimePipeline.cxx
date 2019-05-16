@@ -77,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
+  uint32_t index = ctx.services().get<ParallelContext>().index1D();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
@@ -97,7 +97,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
 
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
+  uint32_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 

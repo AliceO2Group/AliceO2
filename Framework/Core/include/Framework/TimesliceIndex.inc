@@ -66,7 +66,7 @@ inline void TimesliceIndex::publishSlot(TimesliceSlot slot)
 inline void TimesliceIndex::associate(TimesliceId timestamp, TimesliceSlot slot)
 {
   assert(mVariables.size() > slot.index);
-  mVariables[slot.index].put({0, timestamp.value});
+  mVariables[slot.index].put({0, static_cast<uint64_t>(timestamp.value)});
   mVariables[slot.index].commit();
   mDirty[slot.index] = true;
 }

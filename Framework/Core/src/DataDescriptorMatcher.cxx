@@ -84,12 +84,12 @@ bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, V
 {
   if (auto ref = std::get_if<ContextRef>(&mValue)) {
     auto& variable = context.get(ref->index);
-    if (auto value = std::get_if<uint64_t>(&variable)) {
+    if (auto value = std::get_if<header::DataHeader::SubSpecificationType>(&variable)) {
       return header.subSpecification == *value;
     }
     context.put({ ref->index, header.subSpecification });
     return true;
-  } else if (auto v = std::get_if<uint64_t>(&mValue)) {
+  } else if (auto v = std::get_if<header::DataHeader::SubSpecificationType>(&mValue)) {
     return header.subSpecification == *v;
   }
   throw std::runtime_error("Mismatching type for variable");
