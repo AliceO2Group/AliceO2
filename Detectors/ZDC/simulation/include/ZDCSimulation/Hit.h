@@ -45,7 +45,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   /// \param nphePMC light output on common PMT
   /// \param nphePMQ light output on sector PMT
   Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-      Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Float_t energyloss, Int_t nphePMC,
+      Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Float_t energyloss, Int_t nphePMC,
       Int_t nphePMQ);
 
   void setPMCLightYield(float val) { mNphePMC = val; }
@@ -72,7 +72,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
 };
 
 inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-                Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Float_t energyloss,
+                Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Float_t energyloss,
                 Int_t nphePMC, Int_t nphePMQ)
   : BasicXYZEHit(pos.X(), pos.Y(), pos.Z(), tof, energyloss, trackID, detID),
     mParentID(parent),
@@ -80,7 +80,7 @@ inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, In
     mPrimaryEnergy(primaryEnergy),
     mSectorID(sectorID),
     mMomentum(mom.X(), mom.Y(), mom.Z()),
-    mXImpact(xImpact[0], xImpact[1], xImpact[2]),
+    mXImpact(xImpact),
     mNphePMC(nphePMC),
     mNphePMQ(nphePMQ)
 {
