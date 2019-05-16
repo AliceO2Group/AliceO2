@@ -24,13 +24,12 @@ std::ostream& operator<<(std::ostream& stream, o2::InteractionTimeRecord const& 
   stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit << " T(ns): " << ir.timeNS;
   return stream;
 }
-  
+
 void InteractionRecord::print() const
 {
   std::cout << (*this) << std::endl;
 }
 
-  
 void InteractionTimeRecord::print() const
 {
   std::cout << (*this) << std::endl;
