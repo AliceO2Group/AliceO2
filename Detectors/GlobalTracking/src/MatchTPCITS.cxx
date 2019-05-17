@@ -353,6 +353,13 @@ void MatchTPCITS::attachInputTrees()
   LOG(INFO) << "Attached ITS clusters " << mITSClusterBranchName << " branch with " << mTreeITSClusters->GetEntries()
             << " entries";
 
+  if (!mTreeITSClusterROFRec->GetBranch(mITSClusterROFRecBranchName.data())) {
+    LOG(FATAL) << "Did not find ITS clusters ROFRecords branch " << mITSClusterROFRecBranchName << " in the input tree";
+  }
+  mTreeITSClusterROFRec->SetBranchAddress(mITSClusterROFRecBranchName.data(), &mITSClusterROFRec);
+  LOG(INFO) << "Attached ITS clusters ROFRec " << mITSClusterROFRecBranchName << " branch with "
+            << mTreeITSClusterROFRec->GetEntries() << " entries";
+
   if (!mTPCClusterReader) {
     LOG(FATAL) << "TPC clusters reader is not set";
   }
@@ -516,6 +523,7 @@ bool MatchTPCITS::prepareITSTracks()
 
   if (!mDPLIO) { // for input from tree read ROFrecords vector, in DPL IO mode the vector should be already attached
     mTreeITSTrackROFRec->GetEntry(0);
+    mTreeITSClusterROFRec->GetEntry(0); // keep clusters ROFRecs ready
   }
   int nROFs = mITSTrackROFRec->size();
 
@@ -560,6 +568,7 @@ bool MatchTPCITS::prepareITSTracks()
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
       }
+      int nWorkTracks = mITSWork.size();
       // working copy of outer track param
       mITSWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig.getParamOut()), rEntry, it);
       auto& trc = mITSWork.back();
@@ -580,7 +589,7 @@ bool MatchTPCITS::prepareITSTracks()
 
       // cache work track index
       int sector = o2::utils::Angle2Sector(trc.getAlpha());
-      mITSSectIndexCache[sector].push_back(mITSWork.size() - 1);
+      mITSSectIndexCache[sector].push_back(nWorkTracks);
 
       // If the ITS track is very close to the sector edge, it may match also to a TPC track in the neighb. sector.
       // For a track with Yr and Phir at Xr the distance^2 between the poisition of this track in the neighb. sector
@@ -1234,8 +1243,11 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
   float chi2 = 0.f;
   auto geom = o2::its::GeometryTGeo::Instance();
   auto propagator = o2::base::Propagator::Instance();
+  // NOTE: the ITS cluster index is stored wrt 1st cluster of relevant ROF, while here we extract clusters from the
+  // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
+  int clusIndOffs = (*mITSClusterROFRec)[tITS.roFrame].getROFEntry().getIndex();
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = (*mITSClustersArrayInp)[itsTrOrig.getClusterIndex(icl)];
+    const auto& clus = (*mITSClustersArrayInp)[clusIndOffs + itsTrOrig.getClusterIndex(icl)];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)

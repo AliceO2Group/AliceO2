@@ -209,6 +209,13 @@ class MatchTPCITS
     mITSClustersArrayInp = inp;
   }
 
+  ///< set input ITS clusters ROF records received via DPL
+  void setITSClusterROFRecInp(const std::vector<o2::itsmft::ROFRecord>* inp)
+  {
+    assertDPLIO(true);
+    mITSClusterROFRec = inp;
+  }
+
   ///< set input TPC tracks received via DPL
   void setTPCTracksInp(const std::vector<o2::TPC::TrackTPC>* inp)
   {
@@ -257,6 +264,9 @@ class MatchTPCITS
 
   ///< set tree/chain containing ITS clusters
   void setInputTreeITSClusters(TTree* tree) { mTreeITSClusters = tree; }
+
+  ///< set tree/chain containing ITS cluster ROF records
+  void setInputTreeITSClusterROFRec(TTree* tree) { mTreeITSClusterROFRec = tree; }
 
   ///< set optional input for FIT info
   void setInputTreeFITInfo(TTree* tree) { mTreeFITInfo = tree; }
@@ -510,6 +520,7 @@ class MatchTPCITS
   TTree* mTreeITSTrackROFRec = nullptr; ///< input tree for ITS Tracks ROFRecords vector
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
   TTree* mTreeITSClusters = nullptr; ///< input tree for ITS clusters
+  TTree* mTreeITSClusterROFRec = nullptr; ///< input tree for ITS Clusters ROFRecords vector
   TTree* mTreeFITInfo = nullptr;     ///< input tree for FIT info
 
   o2::TPC::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
@@ -526,6 +537,7 @@ class MatchTPCITS
   const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
   const std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
+  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
   const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
   const o2::TPC::ClusterNativeAccessFullTPC* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
@@ -577,6 +589,7 @@ class MatchTPCITS
   std::string mITSTrackROFRecBranchName = "ITSTracksROF"; ///< name of branch containing input ITS tracks ROFRecords
   std::string mTPCTrackBranchName = "Tracks";            ///< name of branch containing input TPC tracks
   std::string mITSClusterBranchName = "ITSCluster";      ///< name of branch containing input ITS clusters
+  std::string mITSClusterROFRecBranchName = "ITSClustersROF"; ///< name of branch containing input ITS clusters ROFRecords
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels
   std::string mTPCMCTruthBranchName = "TracksMCTruth";   ///< name of branch containing input TPC tracks
   std::string mFITInfoBranchName = "T0Cluster";          ///< name of branch containing input FIT Info
