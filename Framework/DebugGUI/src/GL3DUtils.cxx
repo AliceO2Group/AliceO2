@@ -37,7 +37,7 @@ GLuint compileShaders(const char* VertexSourcePointer, const char* FragmentSourc
   int InfoLogLength;
 
   // Compile Vertex Shader
-  glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
+  glShaderSource(VertexShaderID, 1, &VertexSourcePointer, nullptr);
   glCompileShader(VertexShaderID);
 
   // Check Vertex Shader
@@ -51,7 +51,7 @@ GLuint compileShaders(const char* VertexSourcePointer, const char* FragmentSourc
   }
 
   // Compile Fragment Shader
-  glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
+  glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, nullptr);
   glCompileShader(FragmentShaderID);
 
   // Check Fragment Shader
@@ -145,7 +145,7 @@ void render3D()
   glBindBuffer(GL_ARRAY_BUFFER, vboID);
 
   glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(GLfloat), vert, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
   glEnableVertexAttribArray(0);
   glEnable(GL_PROGRAM_POINT_SIZE);
 

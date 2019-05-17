@@ -163,7 +163,7 @@ void addPlotWidget(ImGuiWindow* window, const char* label, FrameLayout& result, 
   ImGuiContext& g = *GImGui;
   const ImGuiStyle& style = g.Style;
 
-  const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+  const ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, true);
   if (graph_size.x == 0.0f)
     graph_size.x = CalcItemWidth();
   if (graph_size.y == 0.0f)
