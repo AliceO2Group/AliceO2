@@ -3,7 +3,7 @@
 
 #include "DebugGUI/imgui.h"
 #include "../src/imgui_impl_glfw_gl3.h"
-#include <stdio.h>
+#include <cstdio>
 #include "../src/GL/gl3w.h"    // This example is using gl3w to access OpenGL functions (because it is small). You may use glew/glad/glLoadGen/etc. whatever already works for you.
 #include <GLFW/glfw3.h>
 
@@ -24,7 +24,7 @@ int main(int, char**)
 #if __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui OpenGL3 example", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui OpenGL3 example", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     gl3wInit();
 
