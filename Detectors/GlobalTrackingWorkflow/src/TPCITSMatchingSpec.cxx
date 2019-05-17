@@ -232,6 +232,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   mMatching.setITSTracksInp(&tracksITS);
   mMatching.setITSTrackROFRecInp(&tracksITSROF);
   mMatching.setITSClustersInp(&clusITS);
+  mMatching.setITSClusterROFRecInp(&clusITSROF);
   mMatching.setTPCTracksInp(&tracksTPC);
   mMatching.setTPCClustersInp(&clusterIndex);
 
