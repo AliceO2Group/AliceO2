@@ -27,7 +27,7 @@
 #include <climits>         // INT_MIN, INT_MAX
 #include <cmath>           // sqrtf, powf, cosf, sinf, floorf, ceilf
 #include <cstdio>          // vsnprintf, sscanf, printf
-#include <cstdlib>         // NULL, malloc, free, atoi
+#include <cstdlib>         // nullptr, malloc, free, atoi
 #if defined(_MSC_VER) && _MSC_VER <= 1500 // MSVC 2008 or earlier
 #include <stddef.h>         // intptr_t
 #else
@@ -3068,7 +3068,7 @@ struct ExampleAppLog
             const char* line = buf_begin;
             for (int line_no = 0; line != nullptr; line_no++)
             {
-                const char* line_end = (line_no < LineOffsets.Size) ? buf_begin + LineOffsets[line_no] : NULL;
+                const char* line_end = (line_no < LineOffsets.Size) ? buf_begin + LineOffsets[line_no] : nullptr;
                 if (Filter.PassFilter(line, line_end))
                     ImGui::TextUnformatted(line, line_end);
                 line = line_end && line_end[1] ? line_end + 1 : nullptr;
