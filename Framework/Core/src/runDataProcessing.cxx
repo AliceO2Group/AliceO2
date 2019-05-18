@@ -77,6 +77,7 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <tuple>
 #include <chrono>
 #include <utility>
 
@@ -1355,6 +1356,41 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  // Sort the merged workflows:
+  // * If there is a dependency between the two, we respect it.
+  // * If there is no dependency:
+  //    * First we keep have all the DataProcessors without inputs (sources)
+  //    * Then we have dataprocessors with inputs and outputs
+  //    * Finally those which do not have any output (sinks)
+  //    * Inside each category we keep workflows separated, using always
+  //   the same workflow order.
+  std::stable_sort(physicalWorkflow.begin(), physicalWorkflow.end(), [&rankIndex](DataProcessorSpec const& a, DataProcessorSpec const& b) {
+    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
+      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
+        try {
+          if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
+            return false;
+          }
+        } catch (...) {
+          continue;
+        }
+      }
+    }
+    for (size_t ii = 0; ii < b.inputs.size(); ++ii) {
+      for (size_t oi = 0; oi < a.outputs.size(); ++oi) {
+        try {
+          if (DataSpecUtils::match(b.inputs[ii], a.outputs[oi])) {
+            return true;
+          }
+        } catch (...) {
+          continue;
+        }
+      }
+    }
+    auto aRank = std::make_tuple(a.inputs.empty() ? 0 : 1, a.outputs.empty() ? 1 : 0, rankIndex[a.name]);
+    auto bRank = std::make_tuple(b.inputs.empty() ? 0 : 1, b.outputs.empty() ? 1 : 0, rankIndex[b.name]);
+    return aRank < bRank;
+  });
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
 
   // Use the hidden options as veto, all config specs matching a definition
