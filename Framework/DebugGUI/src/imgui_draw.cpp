@@ -370,7 +370,7 @@ ImDrawList* ImDrawList::CloneOutput() const
 
 // Using macros because C++ is a terrible language, we want guaranteed inline, no code in header, and no overhead in Debug builds
 #define GetCurrentClipRect()    (_ClipRectStack.Size ? _ClipRectStack.Data[_ClipRectStack.Size-1]  : _Data->ClipRectFullscreen)
-#define GetCurrentTextureId()   (_TextureIdStack.Size ? _TextureIdStack.Data[_TextureIdStack.Size-1] : NULL)
+#define GetCurrentTextureId()   (_TextureIdStack.Size ? _TextureIdStack.Data[_TextureIdStack.Size-1] : nullptr)
 
 void ImDrawList::AddDrawCmd()
 {
@@ -384,7 +384,7 @@ void ImDrawList::AddDrawCmd()
 
 void ImDrawList::AddCallback(ImDrawCallback callback, void* callback_data)
 {
-    ImDrawCmd* current_cmd = CmdBuffer.Size ? &CmdBuffer.back() : NULL;
+    ImDrawCmd* current_cmd = CmdBuffer.Size ? &CmdBuffer.back() : nullptr;
     if (!current_cmd || current_cmd->ElemCount != 0 || current_cmd->UserCallback != nullptr)
     {
         AddDrawCmd();
@@ -402,16 +402,16 @@ void ImDrawList::UpdateClipRect()
 {
     // If current command is used with different settings we need to add a new command
     const ImVec4 curr_clip_rect = GetCurrentClipRect();
-    ImDrawCmd* curr_cmd = CmdBuffer.Size > 0 ? &CmdBuffer.Data[CmdBuffer.Size-1] : NULL;
-    if (!curr_cmd || (curr_cmd->ElemCount != 0 && memcmp(&curr_cmd->ClipRect, &curr_clip_rect, sizeof(ImVec4)) != 0) || curr_cmd->UserCallback != NULL)
+    ImDrawCmd* curr_cmd = CmdBuffer.Size > 0 ? &CmdBuffer.Data[CmdBuffer.Size-1] : nullptr;
+    if (!curr_cmd || (curr_cmd->ElemCount != 0 && memcmp(&curr_cmd->ClipRect, &curr_clip_rect, sizeof(ImVec4)) != 0) || curr_cmd->UserCallback != nullptr)
     {
         AddDrawCmd();
         return;
     }
 
     // Try to merge with previous command if it matches, else use current command
-    ImDrawCmd* prev_cmd = CmdBuffer.Size > 1 ? curr_cmd - 1 : NULL;
-    if (curr_cmd->ElemCount == 0 && prev_cmd && memcmp(&prev_cmd->ClipRect, &curr_clip_rect, sizeof(ImVec4)) == 0 && prev_cmd->TextureId == GetCurrentTextureId() && prev_cmd->UserCallback == NULL)
+    ImDrawCmd* prev_cmd = CmdBuffer.Size > 1 ? curr_cmd - 1 : nullptr;
+    if (curr_cmd->ElemCount == 0 && prev_cmd && memcmp(&prev_cmd->ClipRect, &curr_clip_rect, sizeof(ImVec4)) == 0 && prev_cmd->TextureId == GetCurrentTextureId() && prev_cmd->UserCallback == nullptr)
         CmdBuffer.pop_back();
     else
         curr_cmd->ClipRect = curr_clip_rect;
@@ -421,7 +421,7 @@ void ImDrawList::UpdateTextureID()
 {
     // If current command is used with different settings we need to add a new command
     const ImTextureID curr_texture_id = GetCurrentTextureId();
-    ImDrawCmd* curr_cmd = CmdBuffer.Size ? &CmdBuffer.back() : NULL;
+    ImDrawCmd* curr_cmd = CmdBuffer.Size ? &CmdBuffer.back() : nullptr;
     if (!curr_cmd || (curr_cmd->ElemCount != 0 && curr_cmd->TextureId != curr_texture_id) || curr_cmd->UserCallback != nullptr)
     {
         AddDrawCmd();
@@ -429,8 +429,8 @@ void ImDrawList::UpdateTextureID()
     }
 
     // Try to merge with previous command if it matches, else use current command
-    ImDrawCmd* prev_cmd = CmdBuffer.Size > 1 ? curr_cmd - 1 : NULL;
-    if (curr_cmd->ElemCount == 0 && prev_cmd && prev_cmd->TextureId == curr_texture_id && memcmp(&prev_cmd->ClipRect, &GetCurrentClipRect(), sizeof(ImVec4)) == 0 && prev_cmd->UserCallback == NULL)
+    ImDrawCmd* prev_cmd = CmdBuffer.Size > 1 ? curr_cmd - 1 : nullptr;
+    if (curr_cmd->ElemCount == 0 && prev_cmd && prev_cmd->TextureId == curr_texture_id && memcmp(&prev_cmd->ClipRect, &GetCurrentClipRect(), sizeof(ImVec4)) == 0 && prev_cmd->UserCallback == nullptr)
         CmdBuffer.pop_back();
     else
         curr_cmd->TextureId = curr_texture_id;
@@ -1121,7 +1121,7 @@ void ImDrawList::AddText(const ImFont* font, float font_size, const ImVec2& pos,
     if ((col & IM_COL32_A_MASK) == 0)
         return;
 
-    if (text_end == NULL)
+    if (text_end == nullptr)
         text_end = text_begin + strlen(text_begin);
     if (text_begin == text_end)
         return;
@@ -1408,14 +1408,14 @@ void    ImFontAtlas::ClearInputData()
         if (ConfigData[i].FontData && ConfigData[i].FontDataOwnedByAtlas)
         {
             ImGui::MemFree(ConfigData[i].FontData);
-            ConfigData[i].FontData = NULL;
+            ConfigData[i].FontData = nullptr;
         }
 
     // When clearing this we lose access to the font name and other information used to build the font.
     for (int i = 0; i < Fonts.Size; i++)
         if (Fonts[i]->ConfigData >= ConfigData.Data && Fonts[i]->ConfigData < ConfigData.Data + ConfigData.Size)
         {
-            Fonts[i]->ConfigData = NULL;
+            Fonts[i]->ConfigData = nullptr;
             Fonts[i]->ConfigDataCount = 0;
         }
     ConfigData.clear();
@@ -1490,7 +1490,7 @@ void    ImFontAtlas::GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_wid
 
 ImFont* ImFontAtlas::AddFont(const ImFontConfig* font_cfg)
 {
-    IM_ASSERT(font_cfg->FontData != NULL && font_cfg->FontDataSize > 0);
+    IM_ASSERT(font_cfg->FontData != nullptr && font_cfg->FontDataSize > 0);
     IM_ASSERT(font_cfg->SizePixels > 0.0f);
 
     // Create new font
@@ -1573,7 +1573,7 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
 ImFont* ImFontAtlas::AddFontFromMemoryTTF(void* ttf_data, int ttf_size, float size_pixels, const ImFontConfig* font_cfg_template, const ImWchar* glyph_ranges)
 {
     ImFontConfig font_cfg = font_cfg_template ? *font_cfg_template : ImFontConfig();
-    IM_ASSERT(font_cfg.FontData == NULL);
+    IM_ASSERT(font_cfg.FontData == nullptr);
     font_cfg.FontData = ttf_data;
     font_cfg.FontDataSize = ttf_size;
     font_cfg.SizePixels = size_pixels;
@@ -1589,7 +1589,7 @@ ImFont* ImFontAtlas::AddFontFromMemoryCompressedTTF(const void* compressed_ttf_d
     stb_decompress(buf_decompressed_data, (const unsigned char*)compressed_ttf_data, (unsigned int)compressed_ttf_size);
 
     ImFontConfig font_cfg = font_cfg_template ? *font_cfg_template : ImFontConfig();
-    IM_ASSERT(font_cfg.FontData == NULL);
+    IM_ASSERT(font_cfg.FontData == nullptr);
     font_cfg.FontDataOwnedByAtlas = true;
     return AddFontFromMemoryTTF(buf_decompressed_data, (int)buf_decompressed_size, size_pixels, &font_cfg, glyph_ranges);
 }
@@ -1619,7 +1619,7 @@ int ImFontAtlas::AddCustomRectRegular(unsigned int id, int width, int height)
 
 int ImFontAtlas::AddCustomRectFontGlyph(ImFont* font, ImWchar id, int width, int height, float advance_x, const ImVec2& offset)
 {
-    IM_ASSERT(font != NULL);
+    IM_ASSERT(font != nullptr);
     IM_ASSERT(width > 0 && width <= 0xFFFF);
     IM_ASSERT(height > 0 && height <= 0xFFFF);
     CustomRect r;
@@ -1840,7 +1840,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
                 if (r->was_packed)
                     ImFontAtlasBuildMultiplyRectAlpha8(multiply_table, spc.pixels, r->x, r->y, r->w, r->h, spc.stride_in_bytes);
         }
-        tmp.Rects = NULL;
+        tmp.Rects = nullptr;
     }
 
     // End packing
@@ -1951,7 +1951,7 @@ void ImFontAtlasBuildPackCustomRects(ImFontAtlas* atlas, void* pack_context_opaq
 static void ImFontAtlasBuildRenderDefaultTexData(ImFontAtlas* atlas)
 {
     IM_ASSERT(atlas->CustomRectIds[0] >= 0);
-    IM_ASSERT(atlas->TexPixelsAlpha8 != NULL);
+    IM_ASSERT(atlas->TexPixelsAlpha8 != nullptr);
     ImFontAtlas::CustomRect& r = atlas->CustomRects[atlas->CustomRectIds[0]];
     IM_ASSERT(r.ID == FONT_ATLAS_DEFAULT_TEX_DATA_ID);
     IM_ASSERT(r.IsPacked());
@@ -1988,7 +1988,7 @@ void ImFontAtlasBuildFinish(ImFontAtlas* atlas)
     for (int i = 0; i < atlas->CustomRects.Size; i++)
     {
         const ImFontAtlas::CustomRect& r = atlas->CustomRects[i];
-        if (r.Font == NULL || r.ID > 0x10000)
+        if (r.Font == nullptr || r.ID > 0x10000)
             continue;
 
         IM_ASSERT(r.Font->ContainerAtlas == atlas);
@@ -2188,7 +2188,7 @@ ImFont::~ImFont()
     /*
     ImGuiContext& g = *GImGui;
     if (g.Font == this)
-        g.Font = NULL;
+        g.Font = nullptr;
     */
     ClearOutputData();
 }

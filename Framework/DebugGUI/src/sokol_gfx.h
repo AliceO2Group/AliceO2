@@ -4588,15 +4588,15 @@ _SOKOL_PRIVATE bool _sg_query_feature(sg_feature f) {
 
 _SOKOL_PRIVATE void _sg_d3d11_clear_state() {
     /* clear all the device context state, so that resource refs don't keep stuck in the d3d device context */
-    ID3D11DeviceContext_OMSetRenderTargets(_sg_d3d11.ctx, SG_MAX_COLOR_ATTACHMENTS, _sg_d3d11.zero_rtvs, NULL);
-    ID3D11DeviceContext_RSSetState(_sg_d3d11.ctx, NULL);
-    ID3D11DeviceContext_OMSetDepthStencilState(_sg_d3d11.ctx, NULL, 0);
-    ID3D11DeviceContext_OMSetBlendState(_sg_d3d11.ctx, NULL, NULL, 0xFFFFFFFF);
+    ID3D11DeviceContext_OMSetRenderTargets(_sg_d3d11.ctx, SG_MAX_COLOR_ATTACHMENTS, _sg_d3d11.zero_rtvs, nullptr);
+    ID3D11DeviceContext_RSSetState(_sg_d3d11.ctx, nullptr);
+    ID3D11DeviceContext_OMSetDepthStencilState(_sg_d3d11.ctx, nullptr, 0);
+    ID3D11DeviceContext_OMSetBlendState(_sg_d3d11.ctx, nullptr, nullptr, 0xFFFFFFFF);
     ID3D11DeviceContext_IASetVertexBuffers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_BUFFERS, _sg_d3d11.zero_vbs, _sg_d3d11.zero_vb_strides, _sg_d3d11.zero_vb_offsets);
-    ID3D11DeviceContext_IASetIndexBuffer(_sg_d3d11.ctx, NULL, DXGI_FORMAT_UNKNOWN, 0);
-    ID3D11DeviceContext_IASetInputLayout(_sg_d3d11.ctx, NULL);
-    ID3D11DeviceContext_VSSetShader(_sg_d3d11.ctx, NULL, NULL, 0);
-    ID3D11DeviceContext_PSSetShader(_sg_d3d11.ctx, NULL, NULL, 0);
+    ID3D11DeviceContext_IASetIndexBuffer(_sg_d3d11.ctx, nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    ID3D11DeviceContext_IASetInputLayout(_sg_d3d11.ctx, nullptr);
+    ID3D11DeviceContext_VSSetShader(_sg_d3d11.ctx, nullptr, nullptr, 0);
+    ID3D11DeviceContext_PSSetShader(_sg_d3d11.ctx, nullptr, nullptr, 0);
     ID3D11DeviceContext_VSSetConstantBuffers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_UBS, _sg_d3d11.zero_cbs);
     ID3D11DeviceContext_PSSetConstantBuffers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_UBS, _sg_d3d11.zero_cbs);
     ID3D11DeviceContext_VSSetShaderResources(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_IMAGES, _sg_d3d11.zero_srvs);
@@ -4745,7 +4745,7 @@ _SOKOL_PRIVATE void _sg_create_image(_sg_image* img, const sg_image_desc* desc) 
         d3d11_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
         d3d11_desc.SampleDesc.Count = img->sample_count;
         d3d11_desc.SampleDesc.Quality = (img->sample_count > 1) ? D3D11_STANDARD_MULTISAMPLE_PATTERN : 0;
-        hr = ID3D11Device_CreateTexture2D(_sg_d3d11.dev, &d3d11_desc, NULL, &img->d3d11_texds);
+        hr = ID3D11Device_CreateTexture2D(_sg_d3d11.dev, &d3d11_desc, nullptr, &img->d3d11_texds);
         SOKOL_ASSERT(SUCCEEDED(hr) && img->d3d11_texds);
     }
     else {
@@ -4809,7 +4809,7 @@ _SOKOL_PRIVATE void _sg_create_image(_sg_image* img, const sg_image_desc* desc) 
                 d3d11_tex_desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
                 d3d11_tex_desc.SampleDesc.Count = img->sample_count;
                 d3d11_tex_desc.SampleDesc.Quality = (UINT)D3D11_STANDARD_MULTISAMPLE_PATTERN;
-                hr = ID3D11Device_CreateTexture2D(_sg_d3d11.dev, &d3d11_tex_desc, NULL, &img->d3d11_texmsaa);
+                hr = ID3D11Device_CreateTexture2D(_sg_d3d11.dev, &d3d11_tex_desc, nullptr, &img->d3d11_texmsaa);
                 SOKOL_ASSERT(SUCCEEDED(hr) && img->d3d11_texmsaa);
             }
 
@@ -4926,14 +4926,14 @@ _SOKOL_PRIVATE void _sg_destroy_image(_sg_image* img) {
 
 #if defined(SOKOL_D3D11_SHADER_COMPILER)
 _SOKOL_PRIVATE ID3DBlob* _sg_d3d11_compile_shader(const sg_shader_stage_desc* stage_desc, const char* target) {
-    ID3DBlob* output = NULL;
-    ID3DBlob* errors = NULL;
+    ID3DBlob* output = nullptr;
+    ID3DBlob* errors = nullptr;
     D3DCompile(
         stage_desc->source,             /* pSrcData */
         strlen(stage_desc->source),     /* SrcDataSize */
-        NULL,                           /* pSourceName */
-        NULL,                           /* pDefines */
-        NULL,                           /* pInclude */
+        nullptr,                           /* pSourceName */
+        nullptr,                           /* pDefines */
+        nullptr,                           /* pInclude */
         stage_desc->entry ? stage_desc->entry : "main",     /* pEntryPoint */
         target,     /* pTarget (vs_5_0 or ps_5_0) */
         D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR | D3DCOMPILE_OPTIMIZATION_LEVEL3,   /* Flags1 */
@@ -4942,7 +4942,7 @@ _SOKOL_PRIVATE ID3DBlob* _sg_d3d11_compile_shader(const sg_shader_stage_desc* st
         &errors);   /* ppErrorMsgs */
     if (errors) {
         SOKOL_LOG((LPCSTR)ID3D10Blob_GetBufferPointer(errors));
-        ID3D10Blob_Release(errors); errors = NULL;
+        ID3D10Blob_Release(errors); errors = nullptr;
     }
     return output;
 }
@@ -4976,7 +4976,7 @@ _SOKOL_PRIVATE void _sg_create_shader(_sg_shader* shd, const sg_shader_desc* des
             cb_desc.ByteWidth = _sg_d3d11_roundup(ub->size, 16);
             cb_desc.Usage = D3D11_USAGE_DEFAULT;
             cb_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-            hr = ID3D11Device_CreateBuffer(_sg_d3d11.dev, &cb_desc, NULL, &stage->d3d11_cbs[ub_index]);
+            hr = ID3D11Device_CreateBuffer(_sg_d3d11.dev, &cb_desc, nullptr, &stage->d3d11_cbs[ub_index]);
             SOKOL_ASSERT(SUCCEEDED(hr) && stage->d3d11_cbs[ub_index]);
 
             stage->num_uniform_blocks++;
@@ -5019,9 +5019,9 @@ _SOKOL_PRIVATE void _sg_create_shader(_sg_shader* shd, const sg_shader_desc* des
     }
     if (vs_ptr && fs_ptr && (vs_length > 0) && (fs_length > 0)) {
         /* create the D3D vertex- and pixel-shader objects */
-        hr = ID3D11Device_CreateVertexShader(_sg_d3d11.dev, vs_ptr, vs_length, NULL, &shd->d3d11_vs);
+        hr = ID3D11Device_CreateVertexShader(_sg_d3d11.dev, vs_ptr, vs_length, nullptr, &shd->d3d11_vs);
         SOKOL_ASSERT(SUCCEEDED(hr) && shd->d3d11_vs);
-        hr = ID3D11Device_CreatePixelShader(_sg_d3d11.dev, fs_ptr, fs_length, NULL, &shd->d3d11_fs);
+        hr = ID3D11Device_CreatePixelShader(_sg_d3d11.dev, fs_ptr, fs_length, nullptr, &shd->d3d11_fs);
         SOKOL_ASSERT(SUCCEEDED(hr) && shd->d3d11_fs);
 
         /* need to store the vertex shader byte code, this is needed later in sg_create_pipeline */
@@ -5538,12 +5538,12 @@ _SOKOL_PRIVATE void _sg_apply_draw_state(
     ID3D11DeviceContext_IASetIndexBuffer(_sg_d3d11.ctx, d3d11_ib, pip->d3d11_index_format, ib_offset);
     ID3D11DeviceContext_IASetInputLayout(_sg_d3d11.ctx, pip->d3d11_il);
 
-    ID3D11DeviceContext_VSSetShader(_sg_d3d11.ctx, pip->shader->d3d11_vs, NULL, 0);
+    ID3D11DeviceContext_VSSetShader(_sg_d3d11.ctx, pip->shader->d3d11_vs, nullptr, 0);
     ID3D11DeviceContext_VSSetConstantBuffers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_UBS, pip->shader->stage[SG_SHADERSTAGE_VS].d3d11_cbs);
     ID3D11DeviceContext_VSSetShaderResources(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_IMAGES, d3d11_vs_srvs);
     ID3D11DeviceContext_VSSetSamplers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_IMAGES, d3d11_vs_smps);
 
-    ID3D11DeviceContext_PSSetShader(_sg_d3d11.ctx, pip->shader->d3d11_fs, NULL, 0);
+    ID3D11DeviceContext_PSSetShader(_sg_d3d11.ctx, pip->shader->d3d11_fs, nullptr, 0);
     ID3D11DeviceContext_PSSetConstantBuffers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_UBS, pip->shader->stage[SG_SHADERSTAGE_FS].d3d11_cbs);
     ID3D11DeviceContext_PSSetShaderResources(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_IMAGES, d3d11_fs_srvs);
     ID3D11DeviceContext_PSSetSamplers(_sg_d3d11.ctx, 0, SG_MAX_SHADERSTAGE_IMAGES, d3d11_fs_smps);
@@ -5561,7 +5561,7 @@ _SOKOL_PRIVATE void _sg_apply_uniform_block(sg_shader_stage stage_index, int ub_
     SOKOL_ASSERT(num_bytes == _sg_d3d11.cur_pipeline->shader->stage[stage_index].uniform_blocks[ub_index].size);
     ID3D11Buffer* cb = _sg_d3d11.cur_pipeline->shader->stage[stage_index].d3d11_cbs[ub_index];
     SOKOL_ASSERT(cb);
-    ID3D11DeviceContext_UpdateSubresource(_sg_d3d11.ctx, (ID3D11Resource*)cb, 0, NULL, data, 0, 0);
+    ID3D11DeviceContext_UpdateSubresource(_sg_d3d11.ctx, (ID3D11Resource*)cb, 0, nullptr, data, 0, 0);
 }
 
 _SOKOL_PRIVATE void _sg_draw(int base_element, int num_elements, int num_instances) {
@@ -6689,7 +6689,7 @@ _SOKOL_PRIVATE void _sg_destroy_image(_sg_image* img) {
 }
 
 _SOKOL_PRIVATE id<MTLLibrary> _sg_mtl_compile_library(const char* src) {
-    NSError* err = NULL;
+    NSError* err = nullptr;
     id<MTLLibrary> lib = [_sg_mtl_device
         newLibraryWithSource:[NSString stringWithUTF8String:src]
         options:nil
@@ -6702,8 +6702,8 @@ _SOKOL_PRIVATE id<MTLLibrary> _sg_mtl_compile_library(const char* src) {
 }
 
 _SOKOL_PRIVATE id<MTLLibrary> _sg_mtl_library_from_bytecode(const uint8_t* ptr, int num_bytes) {
-    NSError* err = NULL;
-    dispatch_data_t lib_data = dispatch_data_create(ptr, num_bytes, NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    NSError* err = nullptr;
+    dispatch_data_t lib_data = dispatch_data_create(ptr, num_bytes, nullptr, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
     id<MTLLibrary> lib = [_sg_mtl_device newLibraryWithData:lib_data error:&err];
     if (err) {
         SOKOL_LOG([err.localizedDescription UTF8String]);
@@ -6903,7 +6903,7 @@ _SOKOL_PRIVATE void _sg_create_pipeline(_sg_pipeline* pip, _sg_shader* shd, cons
         rp_desc.colorAttachments[i].sourceAlphaBlendFactor = _sg_mtl_blend_factor(_sg_def(desc->blend.src_factor_alpha, SG_BLENDFACTOR_ONE));
         rp_desc.colorAttachments[i].sourceRGBBlendFactor = _sg_mtl_blend_factor(_sg_def(desc->blend.src_factor_rgb, SG_BLENDFACTOR_ONE));
     }
-    NSError* err = NULL;
+    NSError* err = nullptr;
     id<MTLRenderPipelineState> mtl_rps = [_sg_mtl_device newRenderPipelineStateWithDescriptor:rp_desc error:&err];
     if (nil == mtl_rps) {
         SOKOL_ASSERT(err);

@@ -46,7 +46,7 @@ GLuint compileShaders(const char* VertexSourcePointer, const char* FragmentSourc
 
   if (InfoLogLength > 0) {
     std::vector<char> VertexShaderErrorMessage(InfoLogLength + 1);
-    glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+    glGetShaderInfoLog(VertexShaderID, InfoLogLength, nullptr, &VertexShaderErrorMessage[0]);
     throw std::runtime_error(&VertexShaderErrorMessage[0]);
   }
 
@@ -59,7 +59,7 @@ GLuint compileShaders(const char* VertexSourcePointer, const char* FragmentSourc
   glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
   if (InfoLogLength > 0) {
     std::vector<char> FragmentShaderErrorMessage(InfoLogLength + 1);
-    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, nullptr, &FragmentShaderErrorMessage[0]);
     throw std::runtime_error(&FragmentShaderErrorMessage[0]);
   }
 
@@ -74,7 +74,7 @@ GLuint compileShaders(const char* VertexSourcePointer, const char* FragmentSourc
   glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
   if (InfoLogLength > 0) {
     std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
-    glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+    glGetProgramInfoLog(ProgramID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
     throw std::runtime_error(&ProgramErrorMessage[0]);
   }
 
