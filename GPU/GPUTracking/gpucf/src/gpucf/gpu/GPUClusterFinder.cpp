@@ -25,10 +25,12 @@ GPUClusterFinder::Worker::Worker(
         cl::Device  device,
         cl::Program program,
         DeviceMemory mem,
+        Config config,
         StreamCompaction::Worker streamCompaction,
         Worker *prev)
     : mem(mem)
     , streamCompaction(streamCompaction)
+    , config(config)
 {
 
     log::Debug() << "create clustering queue.";
@@ -193,6 +195,18 @@ void GPUClusterFinder::Worker::run(
 
     if (clusternum > 0)
     {
+
+        bool useScratchPad = 
+            (config.clusterbuilder == ClusterBuilder::ScratchPad);
+
+        cl::NDRange worksize = 
+            (useScratchPad) ? cl::NDRange(clusternum / 8, 8) 
+                            : cl::NDRange(clusternum);
+
+        cl::NDRange offset =
+            (useScratchPad) ? cl::NDRange(range.start, 0)
+                            : cl::NDRange(range.start);
+
         computeClusters.setArg(0, mem.chargeMap);
         computeClusters.setArg(1, mem.peaks);
         computeClusters.setArg(2, mem.globalToLocalRow);
@@ -200,9 +214,9 @@ void GPUClusterFinder::Worker::run(
         computeClusters.setArg(4, mem.cluster);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
-                cl::NDRange(range.start),
-                cl::NDRange(clusternum),
-                local,
+                offset,
+                worksize,
+                (useScratchPad) ? cl::NDRange(8, 8) : local,
                 nullptr,
                 computingClusters.get());
     }
@@ -396,6 +410,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
                 device,
                 cfprg,
                 mem,
+                config,
                 streamCompaction.worker(),
                 (i == 0) ? nullptr : &workers.back());
     }
@@ -581,8 +596,15 @@ void GPUClusterFinder::addDefines(ClEnv &env)
     case ChargemapLayout::Tiling8x4:
         env.addDefine("CHARGEMAP_8x4_TILING_LAYOUT");
         break;
-    default:
-        log::Fail() << "Unknown Layout";
+    }
+
+    switch (config.clusterbuilder)
+    {
+    case ClusterBuilder::Naive:
+        break;
+    case ClusterBuilder::ScratchPad:
+        env.addDefine("BUILD_CLUSTER_SCRATCH_PAD");
+        break;
     }
 
     if (config.usePackedDigits)
