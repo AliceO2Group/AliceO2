@@ -126,13 +126,20 @@ int GPUChainTracking::Init()
 
   if (mRec->IsGPU()) {
     if (mTPCFastTransform) {
-      memcpy((void*)mFlatObjectsShadow.mTpcTransform, (const void*)mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
+      memcpy((void*)mFlatObjectsShadow.mTpcTransform, (const void*)mTPCFastTransform, sizeof(*mTPCFastTransform));
       memcpy((void*)mFlatObjectsShadow.mTpcTransformBuffer, (const void*)mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
       mFlatObjectsShadow.mTpcTransform->clearInternalBufferPtr();
       mFlatObjectsShadow.mTpcTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
       mFlatObjectsShadow.mTpcTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
     }
 #ifdef HAVE_O2HEADERS
+    if (mMatLUT) {
+      memcpy((void*)mFlatObjectsShadow.mMatLUT, (const void*)mMatLUT, sizeof(*mMatLUT));
+      memcpy((void*)mFlatObjectsShadow.mMatLUTBuffer, (const void*)mMatLUT->getFlatBufferPtr(), mMatLUT->getFlatBufferSize());
+      mFlatObjectsShadow.mMatLUT->clearInternalBufferPtr();
+      mFlatObjectsShadow.mMatLUT->setActualBufferAddress(mFlatObjectsShadow.mMatLUTBuffer);
+      mFlatObjectsShadow.mMatLUT->setFutureBufferAddress(mFlatObjectsDevice.mMatLUTBuffer);
+    }
     if (mTRDGeometry) {
       memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry.get(), sizeof(*mTRDGeometry));
       mFlatObjectsShadow.mTrdGeometry->clearInternalBufferPtr();
@@ -198,6 +205,10 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetTPCTransform()) {
     computePointerWithAlignment(mem, mTpcTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
+  }
+  if (mChainTracking->GetMatLUT()) {
+    computePointerWithAlignment(mem, mMatLUT, 1);
+    computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
   }
   if (mChainTracking->GetTRDGeometry()) {
     computePointerWithAlignment(mem, mTrdGeometry, 1);
@@ -352,7 +363,12 @@ void GPUChainTracking::DumpSettings(const char* dir)
   f = dir;
   f += "tpctransform.dump";
   if (mTPCFastTransform != nullptr) {
-    DumpFlatObjectToFile(mTPCFastTransform.get(), f.c_str());
+    DumpFlatObjectToFile(mTPCFastTransform, f.c_str());
+  }
+  f = dir;
+  f += "matlut.dump";
+  if (mMatLUT != nullptr) {
+    DumpFlatObjectToFile(mMatLUT, f.c_str());
   }
   f = dir;
   f += "trdgeometry.dump";
@@ -366,7 +382,12 @@ void GPUChainTracking::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "tpctransform.dump";
-  mTPCFastTransform = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  mTPCFastTransform = mTPCFastTransformU.get();
+  f = dir;
+  f += "matlut.dump";
+  mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());
+  mMatLUT = mMatLUTU.get();
   f = dir;
   f += "trdgeometry.dump";
   mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
@@ -382,7 +403,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
   GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
   ClusterNativeAccessExt* tmpExt = mClusterNativeAccess.get();
-  convert.set(tmpExt, mTPCFastTransform.get());
+  convert.set(tmpExt, mTPCFastTransform);
   SetupGPUProcessor(&convert, false);
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     convertShadow.set(convertShadow.mClustersNativeBuffer, mFlatObjectsDevice.mTpcTransform);
@@ -424,7 +445,7 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
   if (tmp != mIOPtrs.clustersNative) {
     *tmp = *mIOPtrs.clustersNative;
   }
-  GPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform.get(), param().continuousMaxTimeBin);
+  GPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform, param().continuousMaxTimeBin);
   for (unsigned int i = 0; i < NSLICES; i++) {
     mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
   }
@@ -433,7 +454,17 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform) { mTPCFastTransform = std::move(tpcFastTransform); }
+void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
+{
+  mTPCFastTransformU = std::move(tpcFastTransform);
+  mTPCFastTransform = mTPCFastTransformU.get();
+}
+
+void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet> lut)
+{
+  mMatLUTU = std::move(lut);
+  mMatLUT = mMatLUTU.get();
+}
 
 void GPUChainTracking::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo) { mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo)); }
 
@@ -971,6 +1002,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
     nCount = 0;
   }
 
+  Merger.SetMatLUT(mMatLUT);
   SetupGPUProcessor(&Merger, true);
 
   timer.ResetStart();
@@ -998,6 +1030,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (doGPU) {
     SetupGPUProcessor(&Merger, false);
     MergerShadow.OverrideSliceTracker(processorsDevice()->tpcTrackers);
+    MergerShadow.SetMatLUT(mFlatObjectsShadow.mMatLUT);
   }
 
   WriteToConstantMemory((char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);

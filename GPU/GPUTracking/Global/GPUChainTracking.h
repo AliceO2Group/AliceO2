@@ -38,6 +38,14 @@ struct ClusterNative;
 } // namespace TPC
 } // namespace o2
 
+namespace o2
+{
+namespace base
+{
+class MatLayerCylSet;
+} // namespace base
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -155,10 +163,14 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int DoTRDGPUTracking();
 
   // Getters / setters for parameters
-  const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform.get(); }
+  const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform; }
+  const o2::base::MatLayerCylSet* GetMatLUT() const { return mMatLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)mTRDGeometry.get(); }
   const ClusterNativeAccessExt* GetClusterNativeAccessExt() const { return mClusterNativeAccess.get(); }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
+  void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet> lut);
+  void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { mTPCFastTransform = tpcFastTransform; }
+  void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
   void LoadClusterErrors();
 
@@ -170,6 +182,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     GPUChainTracking* mChainTracking = nullptr;
     TPCFastTransform* mTpcTransform = nullptr;
     char* mTpcTransformBuffer = nullptr;
+    o2::base::MatLayerCylSet* mMatLUT = nullptr;
+    char* mMatLUTBuffer = nullptr;
     o2::trd::TRDGeometryFlat* mTrdGeometry = nullptr;
     void* SetPointersFlatObjects(void* mem);
     short mMemoryResFlat = -1;
@@ -204,7 +218,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Ptr to reconstruction detecto objects
   std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess; // Internal memory for clusterNativeAccess
-  std::unique_ptr<TPCFastTransform> mTPCFastTransform;          // Global TPC fast transformation object
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;         // Global TPC fast transformation object
+  const TPCFastTransform* mTPCFastTransform;                    //
+  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;           // Material Lookup Table
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;            //
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;       // TRD Geometry
 
   HighResTimer timerTPCtracking[NSLICES][10];
