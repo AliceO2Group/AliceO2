@@ -6,6 +6,7 @@
 #include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
 #include <gpucf/gpu/ChargemapLayout.h>
+#include <gpucf/gpu/ClusterBuilder.h>
 #include <gpucf/gpu/StreamCompaction.h>
 
 #include <nonstd/optional.hpp>
@@ -36,6 +37,8 @@ public:
         bool halfPrecisionCharges = false;
 
         ChargemapLayout layout = ChargemapLayout::TimeMajor;
+
+        ClusterBuilder clusterbuilder = ClusterBuilder::Naive;
 
         bool useChargemapMacro = false; //< Hunting ghosts with this option...
     };
@@ -121,12 +124,15 @@ private:
 
         size_t clusterend;
 
+        Config config;
+
 
         Worker(
                 cl::Context, 
                 cl::Device, 
                 cl::Program, 
                 DeviceMemory, 
+                Config,
                 StreamCompaction::Worker,
                 Worker *);
 

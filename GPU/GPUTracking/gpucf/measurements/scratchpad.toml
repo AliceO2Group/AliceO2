@@ -1,0 +1,10 @@
+input = [
+    { file = "in/scratchpad.json", label = "scratchpad" }
+    { file = "in/halfs.json", label = "time major layout" }
+]
+
+type   = "bar"
+out    = "out/scratchpad.pdf"
+ylabel = "time [ms]"
+showLegend = true
+stepBlacklist = ["digitsToDevice", "clusterToHost"]

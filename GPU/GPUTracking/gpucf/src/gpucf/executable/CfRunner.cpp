@@ -43,13 +43,6 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             optional,
             "Cluster finder config");
 
-    chargemapIdxMacro = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use macro for chargemap Idx",
-            {"idxMacro"});
-
     tiling4x4 = INIT_FLAG(
             args::Flag,
             *cfconfig,
@@ -70,6 +63,13 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "",
             "Use 8x4 tiling layout",
             {"tiling8x4"});
+
+    scratchpad = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Load charges into scratchpad before building cluster.",
+            {"scratchpad"});
 
     padMajor = INIT_FLAG(
             args::Flag,
@@ -97,11 +97,6 @@ int CfRunner::mainImpl()
 
     GPUClusterFinder::Config config;
 
-    if (*chargemapIdxMacro) 
-    {
-        config.useChargemapMacro = true;
-    } 
-
     if (*padMajor)
     {
         config.layout = ChargemapLayout::PadMajor;
@@ -120,6 +115,11 @@ int CfRunner::mainImpl()
     if (*tiling8x4)
     {
         config.layout = ChargemapLayout::Tiling8x4;
+    }
+
+    if (*scratchpad)
+    {
+        config.clusterbuilder = ClusterBuilder::ScratchPad;
     }
 
     if (*halfs)
