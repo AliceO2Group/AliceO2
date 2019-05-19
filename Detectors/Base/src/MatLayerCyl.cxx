@@ -234,7 +234,7 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
   char* dst = ((char*)mSliceCos) + offs; // account for alignment
   o2::gpu::resizeArray(mSliceSin, getNPhiBins(), newSl, reinterpret_cast<float*>(dst));
   // adjust mCells array
-  dst = ((char*)mSliceSin) + newSl; // account for alignment
+  dst = ((char*)mSliceSin) + offs; // account for alignment
   o2::gpu::resizeArray(mCells, getNPhiBins() * getNZBins(), newSl * getNZBins(), reinterpret_cast<MatCell*>(dst));
   mFlatBufferSize = estimateFlatBufferSize();
   LOG(INFO) << "Updated Nslices = " << getNPhiSlices();
