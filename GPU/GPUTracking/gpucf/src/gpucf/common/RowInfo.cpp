@@ -45,6 +45,16 @@ int RowInfo::globalToLocal(int row) const
 
 int RowInfo::localToGlobal(int cru, int row) const
 {
+    if (size_t(cru) > localToGlobalMap.size())
+    {
+        return -1;
+    }
+
+    if (size_t(row) > localToGlobalMap.at(cru).size())
+    {
+        return -1;
+    }
+
     return localToGlobalMap.at(cru).at(row);
 }
 

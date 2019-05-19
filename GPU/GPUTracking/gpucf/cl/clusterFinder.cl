@@ -1,8 +1,10 @@
 #include "config.h"
+#include "debug.h"
 
 #include "shared/tpc.h"
 
-
+#define IF_DBG_INST if (get_global_linear_id() == 0)
+#define IF_DBG_GROUP if (get_group_id(0) == 0)
 
 constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
@@ -18,6 +20,15 @@ typedef struct PartialCluster_s
 } PartialCluster;
 
 typedef short delta_t;
+typedef short2 delta2_t;
+
+typedef struct ChargePos_s
+{
+    global_pad_t gpad;
+    timestamp    time;
+} ChargePos;
+
+typedef short2 local_id;
 
 
 void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t dt)
@@ -88,20 +99,228 @@ void reset(PartialCluster *clus)
     clus->timeSigma = 0.f;
 }
 
-
-void buildClusterTT()
+constant delta2_t INNER_NEIGHBORS[8] =
 {
+    // inner 8 neighbors
+    (delta2_t)(-1, -1), 
+    (delta2_t)(-1, 0), 
+    (delta2_t)(-1, 1),
+    (delta2_t)(0, -1),
+    (delta2_t)(0, 1),
+    (delta2_t)(1, -1),
+    (delta2_t)(1, 0), 
+    (delta2_t)(1, 1),
+};
+
+constant delta2_t OUTER_NEIGHBORS[16] = 
+{
+    // outer 16 neighbors
+    (delta2_t)(-2, -1),
+    (delta2_t)(-2, -2),
+    (delta2_t)(-1, -2),
+
+    (delta2_t)(-2,  0),
+
+    (delta2_t)(-2,  1),
+    (delta2_t)(-2,  2),
+    (delta2_t)(-1,  2),
+
+    (delta2_t)( 0, -2),
+
+    (delta2_t)( 0,  2),
+
+    (delta2_t)( 2, -1),
+    (delta2_t)( 2, -2),
+    (delta2_t)( 1, -2),
+
+    (delta2_t)( 2,  0),
+
+    (delta2_t)( 2,  1),
+    (delta2_t)( 2,  2),
+    (delta2_t)( 1,  2)
+};
+
+constant uchar OUTER_TO_INNER[16] = 
+{
+    0, 0, 0,
+
+    1,
+
+    2, 2, 2,
+
+    3,
+
+    4,
+
+    5, 5, 5,
+
+    6,
+
+    7, 7, 7
+};
+
+void fillScratchPad(
+        global   const charge_t  *chargeMap,
+                       uint       wgSize,
+                       local_id   lid,
+                       ChargePos  pos,
+                       uint       offset,
+                       uint       N,
+        constant       delta2_t  *neighbors,
+        local          ChargePos *posBcast,
+        local          charge_t  *buf)
+{
+    for (int i = 0; i < wgSize / N; i++)
+    {
+        /* IF_DBG_GROUP DBGPR_1("y = %d", lid.y); */
+        if (lid.y == i)
+        {
+            IF_DBG_GROUP DBGPR_3("y = %d, pos = (%d, %d)", lid.y, pos.gpad, pos.time);
+            posBcast[lid.x] = pos;
+        }
+        work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+        ChargePos readFrom = posBcast[lid.x];
+        IF_DBG_INST DBGPR_2("readFrom = (%d, %d)", readFrom.gpad, readFrom.time);
+
+        work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+        delta2_t d = neighbors[lid.x + offset];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+
+        IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt);
+        
+        uint writeTo = N * (i * N + lid.y) + lid.x;
+
+        IF_DBG_INST DBGPR_1("writeTo = %d", writeTo);
+
+        buf[writeTo] = CHARGE(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
+    }
+
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
 }
 
-void buildClusterScratchPad()
+void updateClusterScratchpadInner(
+                    uint            lid,
+                    uint            N,
+        local const charge_t       *buf,
+                    PartialCluster *cluster,
+        local       uchar          *innerAboveThreshold)
 {
+    uchar aboveThreshold = 0;
+
+    for (int i = 0; i < N; i++)
+    {
+        delta2_t d = INNER_NEIGHBORS[i];
+
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+        charge_t q = buf[N * lid + i];
+
+        updateCluster(cluster, q, dp, dt);
+
+        aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
+    }
+
+    innerAboveThreshold[lid] = aboveThreshold;
+
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
 }
+
+
+bool innerAboveThreshold(uchar aboveThresholdSet, uint outerIdx)
+{
+    return aboveThresholdSet & (1 << OUTER_TO_INNER[outerIdx]);
+}
+
+void updateClusterScratchpadOuter(
+                    uint            lid,
+                    uint            N,
+                    uint            offset,
+        local const charge_t       *buf,
+        local const uchar          *innerAboveThresholdSet,
+                    PartialCluster *cluster)
+{
+    uchar aboveThreshold = innerAboveThresholdSet[lid];
+
+    for (int i = 0; i < N; i++)
+    {
+        charge_t q = buf[N * lid + i];
+
+        bool contributes = (q > OUTER_CHARGE_THRESHOLD 
+                && innerAboveThreshold(aboveThreshold, i+offset));
+
+        q = (contributes) ? q : 0.f;
+
+        delta2_t d = OUTER_NEIGHBORS[i+offset];
+
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+        updateCluster(cluster, q, dp, dt);
+    }
+}
+
+
+#define SCRATCH_PAD_WORK_GROUP_SIZE 64
+void buildClusterScratchPad(
+            global const charge_t       *chargeMap,
+                         ChargePos       pos,
+                         uint            N,
+            local        ChargePos      *posBcast,
+            local        charge_t       *buf,
+            local        uchar          *innerAboveThreshold,
+                         PartialCluster *myCluster)
+{
+    reset(myCluster);
+
+    local_id lid = {get_local_id(0), get_local_id(1)};
+    IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y);
+    fillScratchPad(
+            chargeMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            lid,
+            pos,
+            0,
+            N,
+            INNER_NEIGHBORS,
+            posBcast,
+            buf);
+
+    uint ll = get_local_linear_id();
+    updateClusterScratchpadInner(ll, N, buf, myCluster, innerAboveThreshold);
+
+    fillScratchPad(
+            chargeMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE, 
+            lid, 
+            pos, 
+            0, 
+            N, 
+            OUTER_NEIGHBORS,
+            posBcast, 
+            buf);
+    updateClusterScratchpadOuter(ll, N, 0, buf, innerAboveThreshold, myCluster);
+
+    fillScratchPad(
+            chargeMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            lid,
+            pos,
+            8,
+            N,
+            OUTER_NEIGHBORS,
+            posBcast,
+            buf);
+    updateClusterScratchpadOuter(ll, N, 8, buf, innerAboveThreshold, myCluster);
+}
+
 
 void buildClusterNaive(
         global const charge_t       *chargeMap,
-                     PartialCluster *myCluster,
-                     global_pad_t    gpad,
-                     timestamp       time)
+        PartialCluster *myCluster,
+        global_pad_t    gpad,
+        timestamp       time)
 {
     reset(myCluster);
 
@@ -173,27 +392,8 @@ void buildClusterNaive(
 }
 
 
-#define HALF_NEIGHBORS_NUM 4
-
-constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
-{
-    (int2)(-1, -1), 
-    (int2)(-1, 0), 
-    (int2)(-1, 1),
-    (int2)(0, -1)
-};
-constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = 
-{
-    (int2)(0, 1),
-    (int2)(1, -1),
-    (int2)(1, 0), 
-    (int2)(1, 1)
-};
-
-
-
 bool isPeak(
-               const Digit    *digit,
+        const Digit    *digit,
         global const charge_t *chargeMap)
 {
     const charge_t myCharge = digit->charge;
@@ -261,11 +461,11 @@ bool isPeak(
 
 
 void finalizeCluster(
-               const PartialCluster *pc,
-               const Digit          *myDigit, 
+        const PartialCluster *pc,
+        const Digit          *myDigit, 
         global const int            *globalToLocalRow,
         global const int            *globalRowToCru,
-                     Cluster        *outCluster)
+        Cluster        *outCluster)
 {
     charge_t totalCharge = pc->Q + myDigit->charge;
     charge_t padMean     = pc->padMean;
@@ -277,7 +477,7 @@ void finalizeCluster(
     timeMean  /= totalCharge;
     padSigma  /= totalCharge;
     timeSigma /= totalCharge;
-    
+
     padSigma  = sqrt(padSigma  - padMean*padMean);
 
     timeSigma = sqrt(timeSigma - timeMean*timeMean);
@@ -300,8 +500,8 @@ void finalizeCluster(
 
 kernel
 void fillChargeMap(
-       global const Digit    *digits,
-       global       charge_t *chargeMap)
+        global const Digit    *digits,
+        global       charge_t *chargeMap)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -328,9 +528,9 @@ void resetChargeMap(
 
 kernel
 void findPeaks(
-         global const charge_t *chargeMap,
-         global const Digit    *digits,
-         global       uchar    *isPeakPredicate)
+        global const charge_t *chargeMap,
+        global const Digit    *digits,
+        global       uchar    *isPeakPredicate)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -345,17 +545,37 @@ kernel
 void computeClusters(
         global const charge_t *chargeMap,
         global const Digit    *digits,
-        global const int  *globalToLocalRow,
-        global const int  *globalRowToCru,
+        global const int      *globalToLocalRow,
+        global const int      *globalRowToCru,
         global       Cluster  *clusters)
 {
-    size_t idx = get_global_id(0);
+    size_t idx = get_global_linear_id();
 
     Digit myDigit = digits[idx];
 
-    PartialCluster pc;
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    IF_DBG_INST DBGPR_2("lsize = (%d, %d)", get_local_size(0), get_local_size(1));
+
+    PartialCluster pc;
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+
+    const int N = 8;
+    local ChargePos posBcast[N];
+    local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
+    local uchar     innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
+
+    buildClusterScratchPad(
+            chargeMap, 
+            (ChargePos){gpad, myDigit.time}, 
+            N, 
+            posBcast, 
+            buf,
+            innerAboveThreshold,
+            &pc);
+#else
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
+#endif
 
     Cluster myCluster;
     finalizeCluster(

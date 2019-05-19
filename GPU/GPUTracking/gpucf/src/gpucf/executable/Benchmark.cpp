@@ -187,7 +187,21 @@ void Benchmark::registerExperiments()
                         digits,
                         iterations->Get(),
                         baseDir));
-        
+    }
+
+    {
+        GPUClusterFinder::Config scratchpad;
+        scratchpad.halfPrecisionCharges = true;
+        scratchpad.layout = ChargemapLayout::Tiling8x4;
+        scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Load charges into scratchpad",
+                        "scratchpad.json",
+                        scratchpad,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
     }
 
 }
