@@ -28,6 +28,14 @@
 #include <iostream>
 #endif // GPUCA_GPUCODE
 
+namespace o2
+{
+namespace base
+{
+class MatLayerCylSet;
+} // namespace base
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -71,6 +79,8 @@ class GPUTPCGMMerger : public GPUProcessor
   }
 
   GPUhd() const GPUParam& Param() const { return *mCAParam; }
+  GPUhd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
+  GPUhd() const o2::base::MatLayerCylSet* MatLUT() const { return mMatLUT; }
 
   GPUd() const GPUTPCGMPolynomialField& Field() const { return mField; }
   GPUhd() const GPUTPCGMPolynomialField* pField() const { return &mField; }
@@ -167,6 +177,7 @@ class GPUTPCGMMerger : public GPUProcessor
   int mBorderCETracks[2][NSLICES];
 
   const GPUTPCTracker* mSliceTrackers;
+  const o2::base::MatLayerCylSet* mMatLUT;
   GPUChainTracking* mChainTracking; // Tracking chain with access to input data / parameters
 };
 } // namespace gpu
