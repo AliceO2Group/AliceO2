@@ -19,7 +19,7 @@
 #include "GPUCommonFairLogger.h"
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
-#define _DBG_LOC_ // for local debugging only
+//#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
 
@@ -345,7 +345,9 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
     rval.meanX2X0 *= norm;
     rval.length *= norm;
   }
+#ifdef _DBG_LOC_
   printf("<rho> = %e, x2X0 = %e  | step = %e\n", rval.meanRho, rval.meanX2X0, rval.length);
+#endif
   return rval;
 }
 
