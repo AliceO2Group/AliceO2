@@ -24,10 +24,10 @@ private:
     OptStringFlag peakFile;
 
     std::unique_ptr<args::Group> cfconfig;
-    OptFlag chargemapIdxMacro;
     OptFlag tiling4x4;
     OptFlag tiling4x8;
     OptFlag tiling8x4;
+    OptFlag scratchpad;
     OptFlag padMajor;
     OptFlag halfs;
 };
