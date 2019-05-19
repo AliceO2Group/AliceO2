@@ -104,7 +104,7 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   using o2::gpu::FlatObject::releaseInternalBuffer;
 
   void fixPointers(char* newPtr = nullptr);
-  void fixPointers(char* oldPtr, char* newPtr);
+  void fixPointers(char* oldPtr, char* newPtr, bool newPtrValid = true);
 
   /// Gives minimal alignment in bytes required for the class object
   static constexpr size_t getClassAlignmentBytes() { return 8; }
