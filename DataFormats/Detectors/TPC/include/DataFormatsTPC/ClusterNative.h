@@ -62,6 +62,12 @@ struct ClusterNative {
   uint16_t qMax;            //< QMax of the cluster
   uint16_t qTot;            //< Total charge of the cluster
 
+  GPUdDefault() ClusterNative() CON_DEFAULT;
+  GPUd() ClusterNative(uint32_t time, uint8_t flags, uint16_t pad, uint8_t sigmaTime, uint8_t sigmaPad, uint16_t qmax, uint16_t qtot) : padPacked(pad), sigmaTimePacked(sigmaTime), sigmaPadPacked(sigmaPad), qMax(qmax), qTot(qtot)
+  {
+    setTimePackedFlags(time, flags);
+  }
+
   GPUd() uint8_t getFlags() const { return timeFlagsPacked >> 24; }
   GPUd() uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
   GPUd() void setTimePackedFlags(uint32_t timePacked, uint8_t flags)

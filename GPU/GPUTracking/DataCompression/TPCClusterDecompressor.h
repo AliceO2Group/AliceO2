@@ -15,6 +15,16 @@
 #define TPCCLUSTERDECOMPRESSOR_H
 
 #include "GPUTPCCompression.h"
+#include <vector>
+
+namespace o2
+{
+namespace TPC
+{
+struct ClusterNativeAccessFullTPC;
+struct ClusterNative;
+} // namespace TPC
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -26,6 +36,9 @@ struct ClusterNativeAccessExt;
 class TPCClusterDecompressor
 {
  public:
+  static constexpr unsigned int NSLICES = GPUCA_NSLICES;
+  int decompress(const CompressedClusters* clustersCompressed, o2::TPC::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::TPC::ClusterNative>& clusterBuffer);
+
  protected:
 };
 } // namespace gpu
