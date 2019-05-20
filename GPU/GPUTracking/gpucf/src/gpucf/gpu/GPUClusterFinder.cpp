@@ -195,28 +195,23 @@ void GPUClusterFinder::Worker::run(
 
     if (clusternum > 0)
     {
-
-        bool useScratchPad = 
-            (config.clusterbuilder == ClusterBuilder::ScratchPad);
-
-        cl::NDRange worksize = 
-            (useScratchPad) ? cl::NDRange(clusternum / 8, 8) 
-                            : cl::NDRange(clusternum);
-
-        cl::NDRange offset =
-            (useScratchPad) ? cl::NDRange(range.start, 0)
-                            : cl::NDRange(range.start);
+        bool scratchpad = (config.clusterbuilder == ClusterBuilder::ScratchPad);
+        size_t dummyItems = (scratchpad) ?  64 - (clusternum % 64) : 0;
+                    
+        cl::NDRange worksize = cl::NDRange(clusternum + dummyItems);
+        cl::NDRange offset = cl::NDRange(range.start);
 
         computeClusters.setArg(0, mem.chargeMap);
         computeClusters.setArg(1, mem.peaks);
         computeClusters.setArg(2, mem.globalToLocalRow);
         computeClusters.setArg(3, mem.globalRowToCru);
-        computeClusters.setArg(4, mem.cluster);
+        computeClusters.setArg(4, cl_uint(clusternum));
+        computeClusters.setArg(5, mem.cluster);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
                 offset,
                 worksize,
-                (useScratchPad) ? cl::NDRange(8, 8) : local,
+                local,
                 nullptr,
                 computingClusters.get());
     }
