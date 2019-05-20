@@ -6,6 +6,8 @@
 #define IF_DBG_INST if (get_global_linear_id() == 0)
 #define IF_DBG_GROUP if (get_group_id(0) == 0)
 
+#define SCRATCH_PAD_WORK_GROUP_SIZE 64
+
 constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
@@ -101,7 +103,6 @@ void reset(PartialCluster *clus)
 
 constant delta2_t INNER_NEIGHBORS[8] =
 {
-    // inner 8 neighbors
     (delta2_t)(-1, -1), 
     (delta2_t)(-1, 0), 
     (delta2_t)(-1, 1),
@@ -114,7 +115,6 @@ constant delta2_t INNER_NEIGHBORS[8] =
 
 constant delta2_t OUTER_NEIGHBORS[16] = 
 {
-    // outer 16 neighbors
     (delta2_t)(-2, -1),
     (delta2_t)(-2, -2),
     (delta2_t)(-1, -2),
@@ -170,18 +170,18 @@ void fillScratchPad(
         local          ChargePos *posBcast,
         local          charge_t  *buf)
 {
-    for (int i = 0; i < wgSize / N; i++)
+    for (int i = 0; i < wgSize / (wgSize / N); i++)
     {
         /* IF_DBG_GROUP DBGPR_1("y = %d", lid.y); */
         if (lid.y == i)
         {
-            IF_DBG_GROUP DBGPR_3("y = %d, pos = (%d, %d)", lid.y, pos.gpad, pos.time);
+            /* IF_DBG_GROUP DBGPR_3("y = %d, pos = (%d, %d)", lid.y, pos.gpad, pos.time); */
             posBcast[lid.x] = pos;
         }
         work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
-        ChargePos readFrom = posBcast[lid.x];
-        IF_DBG_INST DBGPR_2("readFrom = (%d, %d)", readFrom.gpad, readFrom.time);
+        ChargePos readFrom = posBcast[lid.y];
+        /* IF_DBG_INST DBGPR_2("readFrom = (%d, %d)", readFrom.gpad, readFrom.time); */
 
         work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -189,11 +189,11 @@ void fillScratchPad(
         delta_t dp = d.x;
         delta_t dt = d.y;
 
-        IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt);
+        /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */
         
         uint writeTo = N * (i * N + lid.y) + lid.x;
 
-        IF_DBG_INST DBGPR_1("writeTo = %d", writeTo);
+        /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */
 
         buf[writeTo] = CHARGE(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
     }
@@ -216,12 +216,17 @@ void updateClusterScratchpadInner(
 
         delta_t dp = d.x;
         delta_t dt = d.y;
+
         charge_t q = buf[N * lid + i];
+
+        IF_DBG_INST DBGPR_3("q = %f, dp = %d, dt = %d", q, dp, dt);
 
         updateCluster(cluster, q, dp, dt);
 
         aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
     }
+
+    IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 
     innerAboveThreshold[lid] = aboveThreshold;
 
@@ -229,9 +234,9 @@ void updateClusterScratchpadInner(
 }
 
 
-bool innerAboveThreshold(uchar aboveThresholdSet, uint outerIdx)
+bool innerAboveThreshold(uchar aboveThreshold, uint outerIdx)
 {
-    return aboveThresholdSet & (1 << OUTER_TO_INNER[outerIdx]);
+    return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
 }
 
 void updateClusterScratchpadOuter(
@@ -244,25 +249,31 @@ void updateClusterScratchpadOuter(
 {
     uchar aboveThreshold = innerAboveThresholdSet[lid];
 
+    IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
+
     for (int i = 0; i < N; i++)
     {
         charge_t q = buf[N * lid + i];
+        uint outerIdx = i + offset;
 
         bool contributes = (q > OUTER_CHARGE_THRESHOLD 
-                && innerAboveThreshold(aboveThreshold, i+offset));
+                && innerAboveThreshold(aboveThreshold, outerIdx));
+
+        IF_DBG_INST DBGPR_1("q = %f", q);
 
         q = (contributes) ? q : 0.f;
 
-        delta2_t d = OUTER_NEIGHBORS[i+offset];
+
+        delta2_t d = OUTER_NEIGHBORS[outerIdx];
 
         delta_t dp = d.x;
         delta_t dt = d.y;
+        IF_DBG_INST DBGPR_3("q = %f, dp = %d, dt = %d", q, dp, dt);
         updateCluster(cluster, q, dp, dt);
     }
 }
 
 
-#define SCRATCH_PAD_WORK_GROUP_SIZE 64
 void buildClusterScratchPad(
             global const charge_t       *chargeMap,
                          ChargePos       pos,
@@ -274,8 +285,9 @@ void buildClusterScratchPad(
 {
     reset(myCluster);
 
-    local_id lid = {get_local_id(0), get_local_id(1)};
-    IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y);
+    uint ll = get_local_linear_id();
+    local_id lid = {ll % N, ll / N};
+    /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
     fillScratchPad(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -287,7 +299,6 @@ void buildClusterScratchPad(
             posBcast,
             buf);
 
-    uint ll = get_local_linear_id();
     updateClusterScratchpadInner(ll, N, buf, myCluster, innerAboveThreshold);
 
     fillScratchPad(
@@ -393,7 +404,7 @@ void buildClusterNaive(
 
 
 bool isPeak(
-        const Digit    *digit,
+               const Digit    *digit,
         global const charge_t *chargeMap)
 {
     const charge_t myCharge = digit->charge;
@@ -547,15 +558,17 @@ void computeClusters(
         global const Digit    *digits,
         global const int      *globalToLocalRow,
         global const int      *globalRowToCru,
+                     uint      clusternum,
         global       Cluster  *clusters)
 {
-    size_t idx = get_global_linear_id();
+    uint idx = get_global_linear_id();
 
-    Digit myDigit = digits[idx];
+    // For certain configurations dummy work items are added, so the total 
+    // number of work items is dividable by 64.
+    // These dummy items also compute the last cluster but discard the result.
+    Digit myDigit = digits[min(idx, clusternum-1)];
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-    IF_DBG_INST DBGPR_2("lsize = (%d, %d)", get_local_size(0), get_local_size(1));
 
     PartialCluster pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
@@ -566,16 +579,23 @@ void computeClusters(
     local uchar     innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 
     buildClusterScratchPad(
-            chargeMap, 
-            (ChargePos){gpad, myDigit.time}, 
-            N, 
-            posBcast, 
+            chargeMap,
+            (ChargePos){gpad, myDigit.time},
+            N,
+            posBcast,
             buf,
             innerAboveThreshold,
             &pc);
 #else
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
 #endif
+
+    // Exit early if dummy. See comment above.
+    bool iamDummy = (idx >= clusternum);
+    if (iamDummy)
+    {
+        return;
+    }
 
     Cluster myCluster;
     finalizeCluster(
