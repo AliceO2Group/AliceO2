@@ -116,8 +116,9 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
                                         ServiceRegistry& services)
 {
   // Create any slot for the time based fields
+  std::vector<TimesliceSlot> slotsCreatedByHandlers(expirationHandlers.size());
   for (size_t hi = 0; hi < expirationHandlers.size(); ++hi) {
-    expirationHandlers[hi].creator(mTimesliceIndex);
+    slotsCreatedByHandlers[hi] = expirationHandlers[hi].creator(mTimesliceIndex);
   }
   // Expire the records as needed.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
@@ -138,6 +139,9 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
         continue;
       }
       if (!expirator.checker) {
+        continue;
+      }
+      if (slotsCreatedByHandlers[mDistinctRoutesIndex[ri]].index != slot.index) {
         continue;
       }
       if (expirator.checker(timestamp.value) == false) {
