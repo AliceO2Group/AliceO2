@@ -134,6 +134,7 @@ AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to tr
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
 AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")
 AddOption(printSettings, bool, false, "printSettings", 0, "Print all settings")
+AddOption(compressionStat, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)

@@ -15,18 +15,22 @@
 #define GPUTPCCLUSTERSTATISTICS_H
 
 #include "GPUTPCCompression.h"
+#include "TPCClusterDecompressor.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-using CompressedClusters = o2::TPC::CompressedClusters;
 struct ClusterNativeAccessExt;
 
 class GPUTPCClusterStatistics
 {
  public:
+  static constexpr unsigned int NSLICES = GPUCA_NSLICES;
+  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed);
+
  protected:
+  TPCClusterDecompressor mDecoder;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

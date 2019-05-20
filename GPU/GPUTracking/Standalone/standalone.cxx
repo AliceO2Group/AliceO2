@@ -261,6 +261,7 @@ int SetupReconstruction()
   devProc.deviceNum = configStandalone.cudaDevice;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.runQA = configStandalone.qa;
+  devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
 #ifdef BUILD_EVENT_DISPLAY
 #ifdef _WIN32
