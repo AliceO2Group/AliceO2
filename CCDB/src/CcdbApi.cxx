@@ -57,8 +57,8 @@ std::string sanitizeObjectName(const std::string& objectName)
 {
   string tmpObjectName = objectName;
   tmpObjectName.erase(std::remove_if(tmpObjectName.begin(), tmpObjectName.end(),
-                                   []( auto const& c ) -> bool {return (!std::isalnum(c) && c!='_' && c!='/'); } ),
-                                       tmpObjectName.end());
+                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/'); }),
+                      tmpObjectName.end());
   return tmpObjectName;
 }
 
