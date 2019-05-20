@@ -8,8 +8,6 @@
 
 #define SCRATCH_PAD_WORK_GROUP_SIZE 64
 
-constant charge_t CHARGE_THRESHOLD = 2;
-constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
 
 typedef struct PartialCluster_s
@@ -31,6 +29,74 @@ typedef struct ChargePos_s
 } ChargePos;
 
 typedef short2 local_id;
+
+constant charge_t CHARGE_THRESHOLD = 2;
+constant charge_t OUTER_CHARGE_THRESHOLD = 0;
+
+constant delta2_t INNER_NEIGHBORS[8] =
+{
+    (delta2_t)(-1, -1), 
+    (delta2_t)(-1, 0), 
+    (delta2_t)(-1, 1),
+    (delta2_t)(0, -1),
+    (delta2_t)(0, 1),
+    (delta2_t)(1, -1),
+    (delta2_t)(1, 0), 
+    (delta2_t)(1, 1),
+};
+
+constant bool INNER_TEST_EQ[8] =
+{
+    true,  true,  true,  true,
+    false, false, false, false
+}; 
+
+constant delta2_t OUTER_NEIGHBORS[16] = 
+{
+    (delta2_t)(-2, -1),
+    (delta2_t)(-2, -2),
+    (delta2_t)(-1, -2),
+
+    (delta2_t)(-2,  0),
+
+    (delta2_t)(-2,  1),
+    (delta2_t)(-2,  2),
+    (delta2_t)(-1,  2),
+
+    (delta2_t)( 0, -2),
+
+    (delta2_t)( 0,  2),
+
+    (delta2_t)( 2, -1),
+    (delta2_t)( 2, -2),
+    (delta2_t)( 1, -2),
+
+    (delta2_t)( 2,  0),
+
+    (delta2_t)( 2,  1),
+    (delta2_t)( 2,  2),
+    (delta2_t)( 1,  2)
+};
+
+constant uchar OUTER_TO_INNER[16] = 
+{
+    0, 0, 0,
+
+    1,
+
+    2, 2, 2,
+
+    3,
+
+    4,
+
+    5, 5, 5,
+
+    6,
+
+    7, 7, 7
+};
+
 
 
 void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t dt)
@@ -101,63 +167,6 @@ void reset(PartialCluster *clus)
     clus->timeSigma = 0.f;
 }
 
-constant delta2_t INNER_NEIGHBORS[8] =
-{
-    (delta2_t)(-1, -1), 
-    (delta2_t)(-1, 0), 
-    (delta2_t)(-1, 1),
-    (delta2_t)(0, -1),
-    (delta2_t)(0, 1),
-    (delta2_t)(1, -1),
-    (delta2_t)(1, 0), 
-    (delta2_t)(1, 1),
-};
-
-constant delta2_t OUTER_NEIGHBORS[16] = 
-{
-    (delta2_t)(-2, -1),
-    (delta2_t)(-2, -2),
-    (delta2_t)(-1, -2),
-
-    (delta2_t)(-2,  0),
-
-    (delta2_t)(-2,  1),
-    (delta2_t)(-2,  2),
-    (delta2_t)(-1,  2),
-
-    (delta2_t)( 0, -2),
-
-    (delta2_t)( 0,  2),
-
-    (delta2_t)( 2, -1),
-    (delta2_t)( 2, -2),
-    (delta2_t)( 1, -2),
-
-    (delta2_t)( 2,  0),
-
-    (delta2_t)( 2,  1),
-    (delta2_t)( 2,  2),
-    (delta2_t)( 1,  2)
-};
-
-constant uchar OUTER_TO_INNER[16] = 
-{
-    0, 0, 0,
-
-    1,
-
-    2, 2, 2,
-
-    3,
-
-    4,
-
-    5, 5, 5,
-
-    6,
-
-    7, 7, 7
-};
 
 void fillScratchPad(
         global   const charge_t  *chargeMap,
@@ -402,6 +411,49 @@ void buildClusterNaive(
     addCorner(chargeMap, myCluster, gpad, time, 1, 1);
 }
 
+bool isPeakScratchPad(
+               const Digit     *digit,
+                     uint       N,
+        global const charge_t  *chargeMap,
+        local        ChargePos *posBcast,
+        local        charge_t  *buf)
+{
+    uint ll = get_local_linear_id();
+    local_id lid = {ll % N, ll / N};
+
+    const timestamp time = digit->time;
+    const row_t row = digit->row;
+    const pad_t pad = digit->pad;
+
+    const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
+    ChargePos pos = {gpad, time};
+
+    fillScratchPad(
+            chargeMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            lid,
+            pos,
+            0,
+            N,
+            INNER_NEIGHBORS,
+            posBcast,
+            buf);
+
+    bool peak = true;
+
+    for (int i = 0; i < N; i++)
+    {
+        charge_t q = buf[N * ll + i];
+        peak &= (digit->charge > q) 
+             || (INNER_TEST_EQ[i] && digit->charge == q);
+    }
+
+    peak &= (digit->charge > CHARGE_THRESHOLD);
+
+    return peak;
+}
+
+
 
 bool isPeak(
                const Digit    *digit,
@@ -541,12 +593,32 @@ kernel
 void findPeaks(
         global const charge_t *chargeMap,
         global const Digit    *digits,
+                     uint      digitnum,
         global       uchar    *isPeakPredicate)
 {
-    size_t idx = get_global_id(0);
-    Digit myDigit = digits[idx];
+    size_t idx = get_global_linear_id();
 
-    bool peak = isPeak(&myDigit, chargeMap);
+    // For certain configurations dummy work items are added, so the total 
+    // number of work items is dividable by 64.
+    // These dummy items also compute the last digit but discard the result.
+    Digit myDigit = digits[min(idx, (size_t)(digitnum-1) )];
+
+    bool peak;
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+    const int N = 8;
+    local ChargePos posBcast[N];
+    local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
+    peak = isPeakScratchPad(&myDigit, N, chargeMap, posBcast, buf);
+#else
+    peak = isPeak(&myDigit, chargeMap);
+#endif
+
+    // Exit early if dummy. See comment above.
+    bool iamDummy = (idx >= digitnum);
+    if (iamDummy)
+    {
+        return;
+    }
 
     isPeakPredicate[idx] = peak;
 }
@@ -590,12 +662,6 @@ void computeClusters(
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
 #endif
 
-    // Exit early if dummy. See comment above.
-    bool iamDummy = (idx >= clusternum);
-    if (iamDummy)
-    {
-        return;
-    }
 
     Cluster myCluster;
     finalizeCluster(
