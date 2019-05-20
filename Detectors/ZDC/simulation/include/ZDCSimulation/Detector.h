@@ -68,6 +68,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void Reset() final;
   void EndOfEvent() final;
+  void FinishPrimary() final;
 
   void ConstructGeometry() final;
   void createMaterials();
@@ -96,21 +97,16 @@ class Detector : public o2::base::DetImpl<Detector>
   // Methods to calculate the light outpu
   void calculateTableIndexes(int& ibeta, int& iangle, int& iradius);
 
-  Int_t mZDCdetectorID; //detector in ZDC
-  Int_t mZDCsectorID;   //tower in ZDC
-  Int_t mPcMother;      // track mother 0
-  Int_t mCurrentTrackID;
+  void resetHitIndices();
+
   Float_t mTrackEta;
-  Bool_t mSecondaryFlag;
   Float_t mPrimaryEnergy;
   Vector3D<float> mXImpact;
-  Float_t mTrackTOF;
-  Float_t mTotDepEnergy;
   Float_t mTotLightPMC;
   Float_t mTotLightPMQ;
   Int_t mMediumPMCid;
   Int_t mMediumPMQid;
-  o2::zdc::Hit* mCurrentHit;
+
   //
   /// Container for hit data
   std::vector<o2::zdc::Hit>* mHits;
@@ -119,6 +115,22 @@ class Detector : public o2::base::DetImpl<Detector>
   Float_t mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
   Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
   Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+
+  int mZNENVVolID = -1; // the volume id for the neutron det envelope volume
+  int mZPENVVolID = -1; // the volume id for the proton det envelope volume
+  int mZEMVolID = -1;   // the volume id for the e-m envelope volume
+
+  // last principal track entered for each of the 5 detectors
+  // this is the main trackID causing showering/response in the detectors
+  int mLastPrincipalTrackEntered = -1;
+
+  static constexpr int NUMDETS = 5; // number of detectors
+  static constexpr int NUMSECS = 4; // number of (max) possible sectors
+
+  // current hits per detector and per sector FOR THE CURRENT track first entering a detector
+  // (as given by mLastPrincipalTrackEntered)
+  // This is given as index where to find in mHits container
+  int mCurrentHitsIndices[NUMDETS][NUMSECS] = { -1 };
 
   static constexpr int ZNRADIUSBINS = 18;
   static constexpr int ZPRADIUSBINS = 28;
