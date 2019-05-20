@@ -162,13 +162,20 @@ void GPUClusterFinder::Worker::run(
     DBG(range.start) 
     DBG(range.backlog + range.items);
 
+    size_t maybePeaksNum = range.backlog + range.items;
+    bool scratchpad = (config.clusterbuilder == ClusterBuilder::ScratchPad);
+    size_t dummyItems = (scratchpad) ? 64 - (maybePeaksNum % 64) : 0;
+
+    size_t peakfinderWorkitems = maybePeaksNum + dummyItems;
+
     findPeaks.setArg(0, mem.chargeMap);
     findPeaks.setArg(1, mem.digits);
-    findPeaks.setArg(2, mem.isPeak);
+    findPeaks.setArg(2, static_cast<cl_uint>(maybePeaksNum));
+    findPeaks.setArg(3, mem.isPeak);
     clustering.enqueueNDRangeKernel(
             findPeaks,
             cl::NDRange(range.start),
-            cl::NDRange(range.backlog + range.items),
+            cl::NDRange(peakfinderWorkitems),
             local,
             nullptr,
             findingPeaks.get());
@@ -195,7 +202,6 @@ void GPUClusterFinder::Worker::run(
 
     if (clusternum > 0)
     {
-        bool scratchpad = (config.clusterbuilder == ClusterBuilder::ScratchPad);
         size_t dummyItems = (scratchpad) ?  64 - (clusternum % 64) : 0;
                     
         cl::NDRange worksize = cl::NDRange(clusternum + dummyItems);
