@@ -23,9 +23,10 @@ namespace framework
 struct PartRef;
 struct ServiceRegistry;
 struct TimesliceIndex;
+struct TimesliceSlot;
 
 struct ExpirationHandler {
-  using Creator = std::function<void(TimesliceIndex&)>;
+  using Creator = std::function<TimesliceSlot(TimesliceIndex&)>;
   using Checker = std::function<bool(uint64_t timestamp)>;
   using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp)>;
 
