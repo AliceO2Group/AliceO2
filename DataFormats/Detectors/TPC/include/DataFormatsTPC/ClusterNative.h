@@ -115,8 +115,18 @@ struct ClusterNative {
   {
     if (this->getTimePacked() != rhs.getTimePacked()) {
       return (this->getTimePacked() < rhs.getTimePacked());
-    } else {
+    } else if (this->padPacked != rhs.padPacked) {
       return (this->padPacked < rhs.padPacked);
+    } else if (this->sigmaTimePacked != rhs.sigmaTimePacked) {
+      return (this->sigmaTimePacked < rhs.sigmaTimePacked);
+    } else if (this->sigmaPadPacked != rhs.sigmaPadPacked) {
+      return (this->sigmaPadPacked < rhs.sigmaPadPacked);
+    } else if (this->qMax != rhs.qMax) {
+      return (this->qMax < rhs.qMax);
+    } else if (this->qTot != rhs.qTot) {
+      return (this->qTot < rhs.qTot);
+    } else {
+      return (this->getFlags() < rhs.getFlags());
     }
   }
 };

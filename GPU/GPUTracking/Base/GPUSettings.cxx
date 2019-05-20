@@ -69,6 +69,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   resetTimers = 1;
   eventDisplay = nullptr;
   runQA = false;
+  runCompressionStatistics = false;
   stuckProtection = 0;
   memoryAllocationStrategy = 0;
   keepAllMemory = false;

@@ -64,6 +64,7 @@ struct ClusterNativeAccessExt;
 struct GPUTRDTrackletLabels;
 class GPUDisplay;
 class GPUQA;
+class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class TPCFastTransform;
 
@@ -215,6 +216,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUDisplay> mEventDisplay;
   bool mDisplayRunning = false;
   std::unique_ptr<GPUQA> mQA;
+  std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
   bool mQAInitialized = false;
 
   // Ptr to reconstruction detecto objects

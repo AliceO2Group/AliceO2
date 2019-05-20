@@ -30,6 +30,7 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUDisplay.h"
 #include "GPUQA.h"
+#include "GPUTPCClusterStatistics.h"
 #include "GPULogging.h"
 #include "GPUReconstructionConvert.h"
 
@@ -112,6 +113,7 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
+
 #endif
 }
 
@@ -1135,6 +1137,8 @@ int GPUChainTracking::RunTPCCompression()
     mRec->GPUMemCpyAlways(Compressor.mOutput.flagsA + offset, CompressorShadow.mPtrs.flagsA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.flagsA[0]), 0, false);
     mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaPadA + offset, CompressorShadow.mPtrs.sigmaPadA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.sigmaPadA[0]), 0, false);
     mRec->GPUMemCpyAlways(Compressor.mOutput.sigmaTimeA + offset, CompressorShadow.mPtrs.sigmaTimeA + Compressor.mAttachedClusterFirstIndex[i], Compressor.mOutput.nTrackClusters[i] * sizeof(Compressor.mOutput.sigmaTimeA[0]), 0, false);
+
+    // First index stored with track
     mRec->GPUMemCpyAlways(Compressor.mOutput.rowDiffA + offset - i, CompressorShadow.mPtrs.rowDiffA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.rowDiffA[0]), 0, false);
     mRec->GPUMemCpyAlways(Compressor.mOutput.sliceLegDiffA + offset - i, CompressorShadow.mPtrs.sliceLegDiffA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.sliceLegDiffA[0]), 0, false);
     mRec->GPUMemCpyAlways(Compressor.mOutput.padResA + offset - i, CompressorShadow.mPtrs.padResA + Compressor.mAttachedClusterFirstIndex[i] + 1, (Compressor.mOutput.nTrackClusters[i] - 1) * sizeof(Compressor.mOutput.padResA[0]), 0, false);
@@ -1237,6 +1241,9 @@ int GPUChainTracking::DoTRDGPUTracking()
 
 int GPUChainTracking::RunStandalone()
 {
+  if (GetDeviceProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
+    mCompressionStatistics.reset(new GPUTPCClusterStatistics);
+  }
   const bool needQA = GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || (GetDeviceProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mQAInitialized == false) {
     if (mQA->InitQA()) {
@@ -1287,6 +1294,9 @@ int GPUChainTracking::RunStandalone()
   if (mIOPtrs.clustersNative) {
     timerCompression.Start();
     RunTPCCompression();
+    if (GetDeviceProcessingSettings().runCompressionStatistics) {
+      mCompressionStatistics->RunStatistics(mClusterNativeAccess.get(), &processors()->tpcCompressor.mOutput);
+    }
     timerCompression.Stop();
   }
 
