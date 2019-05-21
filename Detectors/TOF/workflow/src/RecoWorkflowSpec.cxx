@@ -14,6 +14,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
+#include "Framework/SerializationMethods.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "GlobalTracking/MatchTOF.h"
@@ -30,6 +31,7 @@ namespace tof
 class TOFDPLRecoWorkflowTask
 {
   using evIdx = o2::dataformats::EvIndex<int, int>;
+  using MatchOutputType = std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>>;
 
  public:
   void init(framework::InitContext& ic)
@@ -82,7 +84,7 @@ class TOFDPLRecoWorkflowTask
 
 
     // send matching-info
-    pc.outputs().snapshot(Output{ "TOF", "MATCHINFOS", 0, Lifetime::Timeframe }, mMatchedTracks);
+    pc.outputs().snapshot(Output{ "TOF", "MATCHINFOS", 0, Lifetime::Timeframe }, o2::framework::ROOTSerialized<MatchOutputType>(mMatchedTracks));
     pc.outputs().snapshot(Output{ "TOF", "CALIBINFOS", 0, Lifetime::Timeframe }, mCalibInfoTOF);
 
     // declare done
