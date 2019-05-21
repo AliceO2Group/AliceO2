@@ -14,7 +14,7 @@
 #ifndef GPUCOMMONALGORITHM_H
 #define GPUCOMMONALGORITHM_H
 
-#include "GPUCommonDef.h"
+#include "GPUDef.h"
 
 #if !defined(GPUCA_GPUCODE_DEVICE)
 #include <algorithm>
@@ -29,8 +29,15 @@ class GPUCommonAlgorithm
  public:
   template <class T>
   GPUd() static void sort(T* begin, T* end);
+  template <class T>
+  GPUd() static void sortInBlock(T* begin, T* end);
+  template <class T, class S>
+  GPUd() static void sort(T* begin, T* end, const S& comp);
+  template <class T, class S>
+  GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
 
  private:
+  //Quicksort implementation
   template <class T>
   GPUd() static void SortSwap(T* v1, T* v2);
   template <class T>
@@ -38,8 +45,19 @@ class GPUCommonAlgorithm
   template <class T>
   GPUd() static void Quicksort(T* left, T* right);
 
+  //Quicksort impkementation with comparison object
+  template <class T, class S>
+  GPUd() static T* QuicksortPartition(T* left, T* right, const S& comp);
+  template <class T, class S>
+  GPUd() static void Quicksort(T* left, T* right, const S& comp);
+
+  //Insertionsort implementation
   template <class T>
   GPUd() static void Insertionsort(T* left, T* right);
+
+  //Insertionsort implementation with comparison object
+  template <class T, class S>
+  GPUd() static void Insertionsort(T* left, T* right, const S& comp);
 };
 
 template <class T>
@@ -73,6 +91,29 @@ GPUdi() T* GPUCommonAlgorithm::QuicksortPartition(T* left, T* right)
   return i - 1;
 }
 
+template <class T, class S>
+GPUdi() T* GPUCommonAlgorithm::QuicksortPartition(T* left, T* right, const S& comp)
+{
+  T* mid = left + ((right - left) / 2);
+  SortSwap(mid, right);
+  T* pivot = right;
+  T* i = left;
+  T* j = right - 1;
+  while (i <= j) {
+    while (i <= j && !comp(*j, *pivot)) {
+      j--;
+    }
+    while (i <= j && comp(*i, *pivot)) {
+      i++;
+    }
+    if (i < j) {
+      SortSwap(i, j);
+    }
+  }
+  SortSwap(j + 1, right);
+  return j + 1;
+}
+
 template <class T>
 GPUdi() void GPUCommonAlgorithm::Quicksort(T* left, T* right)
 {
@@ -89,16 +130,20 @@ GPUdi() void GPUCommonAlgorithm::Quicksort(T* left, T* right)
   Quicksort(part + 1, right);
 }
 
-template <class T>
-GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
+template <class T, class S>
+GPUdi() void GPUCommonAlgorithm::Quicksort(T* left, T* right, const S& comp)
 {
-#ifndef GPUCA_GPUCODE_DEVICE
-  std::sort(begin, end);
-#elif defined(__CUDACC__)
-  Quicksort(begin, end - 1);
-#else
-  Insertionsort(begin, end - 1);
-#endif
+  if (left >= right) {
+    return;
+  }
+  if (right - left <= 4) {
+    Insertionsort(left, right, comp);
+    return;
+  }
+  T* part = QuicksortPartition(left, right, comp);
+
+  Quicksort(left, part - 1, comp);
+  Quicksort(part + 1, right, comp);
 }
 
 template <class T>
@@ -119,6 +164,76 @@ GPUdi() void GPUCommonAlgorithm::Insertionsort(T* left, T* right)
     }
     left++;
   }
+}
+
+template <class T, class S>
+GPUdi() void GPUCommonAlgorithm::Insertionsort(T* left, T* right, const S& comp)
+{
+  if (left >= right) {
+    return;
+  }
+  while (left < right) {
+    T* min = left;
+    for (T* test = left + 1; test <= right; test++) {
+      if (comp(*test, *min)) {
+        min = test;
+      }
+    }
+    if (min != left) {
+      SortSwap(left, min);
+    }
+    left++;
+  }
+}
+
+template <class T>
+GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  std::sort(begin, end);
+#elif defined(__CUDACC__)
+  Quicksort(begin, end - 1);
+#else
+  Insertionsort(begin, end - 1);
+#endif
+}
+
+template <class T, class S>
+GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  std::sort(begin, end, comp);
+#elif defined(__CUDACC__)
+  Quicksort(begin, end - 1, comp);
+#else
+  Insertionsort(begin, end - 1, comp);
+#endif
+}
+
+template <class T>
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUCommonAlgorithm::sort(begin, end);
+#else
+  if (get_local_id(0) == 0) {
+    GPUCommonAlgorithm::sort(begin, end);
+  }
+  GPUbarrier();
+#endif
+}
+
+template <class T, class S>
+GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUCommonAlgorithm::sort(begin, end, comp);
+#else
+  if (get_local_id(0) == 0) {
+    GPUCommonAlgorithm::sort(begin, end, comp);
+  }
+  GPUbarrier();
+#endif
 }
 
 typedef GPUCommonAlgorithm CAAlgo;
