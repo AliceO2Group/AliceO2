@@ -27,10 +27,44 @@ constexpr Float_t Geo::ROOF2PARAMETERS[3];
 Bool_t Geo::mToBeIntit = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
 Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
 
 void Geo::Init()
 {
   LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
+
+  if (!gGeoManager) {
+    LOG(WARNING) << " no TGeo! Loading it";
+    o2::base::GeometryManager::loadGeometry();
+  }
+
+  int det[5];
+  Char_t path[200];
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    det[0] = isector;
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      det[1] = iplate;
+      for (Int_t istrip = 0; istrip < NMAXNSTRIP; istrip++) {
+	det[2] = istrip;
+	if (getAngles(iplate, istrip) > 0.) {
+	  for (Int_t ipadz = 0; ipadz < NPADZ; ipadz++) {
+	    det[3] = ipadz;
+	    for (Int_t ipadx = 0; ipadx < NPADX; ipadx++) {
+	      det[4] = ipadx;
+	      getVolumePath(det, path);
+	      gGeoManager->cd(path);
+	      TGeoHMatrix global;
+	      global = *gGeoManager->GetCurrentMatrix();
+	      const Double_t* tr = global.GetTranslation();
+	      mPadPosition[isector][iplate][istrip][ipadz][ipadz][0] = tr[0];
+	      mPadPosition[isector][iplate][istrip][ipadz][ipadz][1] = tr[1];
+	      mPadPosition[isector][iplate][istrip][ipadz][ipadz][2] = tr[2];
+	    }
+	  }
+	}
+      }
+    }
+  }
 
   Double_t rotationAngles[6] =
     { 90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/ };
@@ -153,25 +187,14 @@ void Geo::getPos(Int_t* det, Float_t* pos)
 {
   //
   // Returns space point coor (x,y,z) (cm)  for Detector
-  // Indices  (iSect,iPlate,iStrip,iPadX,iPadZ)
+  // Indices  (iSect,iPlate,iStrip,iPadZ,iPadX)
   //
-  Char_t path[200];
-  getVolumePath(det, path);
-  if (!gGeoManager) {
-    LOG(WARNING) << " no TGeo! Loading it";
-    o2::base::GeometryManager::loadGeometry();
-  }
-  FILE* fOutTXT = fopen("TOF_geo.txt", "w");
-  fprintf(fOutTXT, "path = %s, gGeoManager = %p", path, gGeoManager);
-  fclose(fOutTXT);
-  gGeoManager->cd(path);
-  TGeoHMatrix global;
-  global = *gGeoManager->GetCurrentMatrix();
-  const Double_t* tr = global.GetTranslation();
+  if (mToBeIntit)
+    Init();
 
-  pos[0] = tr[0];
-  pos[1] = tr[1];
-  pos[2] = tr[2];
+  pos[0] =mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0];
+  pos[1] =mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1];
+  pos[2] =mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2];
 }
 
 void Geo::getDetID(Float_t* pos, Int_t* det)
