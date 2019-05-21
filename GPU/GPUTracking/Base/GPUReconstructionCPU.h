@@ -166,7 +166,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   void SetThreadCounts(RecoStep step);
   void ResetDeviceProcessorTypes();
   template <class T>
-  void AddGPUEvents(T& events);
+  void AddGPUEvents(T*& events);
 
   int RunStandalone() override;
 
@@ -223,16 +223,17 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int mNStreams = 1;
 
   GPUConstantMem* mDeviceConstantMem = nullptr;
-  std::vector<std::pair<deviceEvent*, size_t>> mEvents;
+  std::vector<std::vector<deviceEvent*>> mEvents;
 
  private:
   void TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
 };
 
 template <class T>
-inline void GPUReconstructionCPU::AddGPUEvents(T& events)
+inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 {
-  mEvents.emplace_back((void*)&events, sizeof(T) / sizeof(deviceEvent*));
+  mEvents.emplace_back(std::vector<deviceEvent*>(sizeof(T) / sizeof(deviceEvent*)));
+  events = (T*)mEvents.back().data();
 }
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

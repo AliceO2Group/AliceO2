@@ -614,7 +614,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
 
     WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), mRec->NStreams() - 1);
-    WriteToConstantMemory((char*)processors()->tpcTrackers - (char*)processors(), processorsShadow()->tpcTrackers, sizeof(GPUTPCTracker) * NSLICES, mRec->NStreams() - 1, &mEvents.init);
+    WriteToConstantMemory((char*)processors()->tpcTrackers - (char*)processors(), processorsShadow()->tpcTrackers, sizeof(GPUTPCTracker) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
 
     for (int i = 0; i < mRec->NStreams() - 1; i++) {
       streamInit[i] = false;
@@ -688,7 +688,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
     timerTPCtracking[iSlice][0].Stop();
 
-    runKernel<GPUTPCNeighboursFinder>({ GPUCA_ROW_COUNT, FinderThreadCount(), useStream }, &timerTPCtracking[iSlice][1], { iSlice }, { nullptr, streamInit[useStream] ? nullptr : &mEvents.init });
+    runKernel<GPUTPCNeighboursFinder>({ GPUCA_ROW_COUNT, FinderThreadCount(), useStream }, &timerTPCtracking[iSlice][1], { iSlice }, { nullptr, streamInit[useStream] ? nullptr : &mEvents->init });
     streamInit[useStream] = true;
 
     if (GetDeviceProcessingSettings().keepAllMemory) {
@@ -750,7 +750,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
     if (!doGPU || GetDeviceProcessingSettings().trackletSelectorInPipeline) {
       runKernel<GPUTPCTrackletSelector>({ SelectorBlockCount(), SelectorThreadCount(), useStream }, &timerTPCtracking[iSlice][7], { iSlice });
-      TransferMemoryResourceLinkToHost(trk.MemoryResCommon(), useStream, &mEvents.selector[iSlice]);
+      TransferMemoryResourceLinkToHost(trk.MemoryResCommon(), useStream, &mEvents->selector[iSlice]);
       streamMap[iSlice] = useStream;
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         printf("Slice %u, Number of tracks: %d\n", iSlice, *trk.NTracks());
@@ -773,7 +773,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   }
 
   if (doGPU) {
-    ReleaseEvent(&mEvents.init);
+    ReleaseEvent(&mEvents->init);
     WaitForHelperThreads();
 
     if (!GetDeviceProcessingSettings().trackletSelectorInPipeline) {
@@ -781,14 +781,14 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         SynchronizeGPU();
       } else {
         for (int i = 0; i < mRec->NStreams(); i++) {
-          RecordMarker(&mEvents.stream[i], i);
+          RecordMarker(&mEvents->stream[i], i);
         }
-        runKernel<GPUTPCTrackletConstructor, 1>({ ConstructorBlockCount(), ConstructorThreadCount(), 0 }, &timerTPCtracking[0][6], krnlRunRangeNone, { &mEvents.constructor, mEvents.stream, mRec->NStreams() });
+        runKernel<GPUTPCTrackletConstructor, 1>({ ConstructorBlockCount(), ConstructorThreadCount(), 0 }, &timerTPCtracking[0][6], krnlRunRangeNone, { &mEvents->constructor, mEvents->stream, mRec->NStreams() });
         for (int i = 0; i < mRec->NStreams(); i++) {
-          ReleaseEvent(&mEvents.stream[i]);
+          ReleaseEvent(&mEvents->stream[i]);
         }
-        SynchronizeEvents(&mEvents.constructor);
-        ReleaseEvent(&mEvents.constructor);
+        SynchronizeEvents(&mEvents->constructor);
+        ReleaseEvent(&mEvents->constructor);
       }
 
       if (GetDeviceProcessingSettings().debugLevel >= 4) {
@@ -817,7 +817,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         }
         runKernel<GPUTPCTrackletSelector>({ SelectorBlockCount(), SelectorThreadCount(), useStream }, &timerTPCtracking[iSlice][7], { iSlice, (int)runSlices });
         for (unsigned int k = iSlice; k < iSlice + runSlices; k++) {
-          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents.selector[k]);
+          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents->selector[k]);
           streamMap[k] = useStream;
         }
         useStream++;
@@ -846,13 +846,13 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
 
       if (tmpSlice == iSlice) {
-        SynchronizeEvents(&mEvents.selector[iSlice]);
+        SynchronizeEvents(&mEvents->selector[iSlice]);
       }
-      while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents.selector[tmpSlice]))) {
-        ReleaseEvent(&mEvents.selector[tmpSlice]);
+      while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents->selector[tmpSlice]))) {
+        ReleaseEvent(&mEvents->selector[tmpSlice]);
         if (*processors()->tpcTrackers[tmpSlice].NTracks() > 0) {
           TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResTracks(), streamMap[tmpSlice]);
-          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResTrackHits(), streamMap[tmpSlice], &mEvents.selector[tmpSlice]);
+          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResTrackHits(), streamMap[tmpSlice], &mEvents->selector[tmpSlice]);
         } else {
           transferRunning[tmpSlice] = false;
         }
@@ -870,7 +870,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
 
       if (transferRunning[iSlice]) {
-        SynchronizeEvents(&mEvents.selector[iSlice]);
+        SynchronizeEvents(&mEvents->selector[iSlice]);
       }
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         GPUInfo("Tracks Transfered: %d / %d", *processors()->tpcTrackers[iSlice].NTracks(), *processors()->tpcTrackers[iSlice].NTrackHits());
@@ -927,7 +927,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (transferRunning[iSlice]) {
-        ReleaseEvent(&mEvents.selector[iSlice]);
+        ReleaseEvent(&mEvents->selector[iSlice]);
       }
     }
 
