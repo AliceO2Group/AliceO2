@@ -26,6 +26,8 @@ namespace TPC
 {
 struct CompressedClusters {
 };
+struct CompressedClustersPtrsOnly {
+};
 } // namespace TPC
 } // namespace o2
 #endif
@@ -34,7 +36,6 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-using CompressedClusters = o2::TPC::CompressedClusters;
 struct ClusterNativeAccessExt;
 class GPUTPCGMMerger;
 
@@ -53,7 +54,6 @@ class GPUTPCCompression : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersScratch(void* mem);
   void* SetPointersMemory(void* mem);
-  void SetPointersCompressedClusters(void*& mem, CompressedClusters& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
 #endif
 
   struct memory {
@@ -64,8 +64,8 @@ class GPUTPCCompression : public GPUProcessor
 
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
-  CompressedClusters mPtrs;
-  CompressedClusters mOutput;
+  o2::TPC::CompressedClustersPtrsOnly mPtrs;
+  o2::TPC::CompressedClusters mOutput;
   const GPUTPCGMMerger* mMerger = nullptr;
 
   memory* mMemory = nullptr;
@@ -78,6 +78,9 @@ class GPUTPCCompression : public GPUProcessor
   unsigned int mMaxTrackClusters = 0;
 
  protected:
+  template <class T>
+  void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
+
   short mMemoryResOutput = -1;
   short mMemoryResOutputHost = -1;
   short mMemoryResMemory = -1;

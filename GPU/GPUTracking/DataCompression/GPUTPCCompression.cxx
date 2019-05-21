@@ -38,7 +38,8 @@ void* GPUTPCCompression::SetPointersOutput(void* mem)
   return mem;
 }
 
-void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, CompressedClusters& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
+template <class T>
+void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
 {
   computePointerWithAlignment(mem, c.qTotU, nClU);
   computePointerWithAlignment(mem, c.qMaxU, nClU);

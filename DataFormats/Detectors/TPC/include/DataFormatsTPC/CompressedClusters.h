@@ -21,38 +21,54 @@ namespace o2
 {
 namespace TPC
 {
-struct CompressedClusters {
+struct CompressedClustersCounters {
   unsigned int nTracks = 0;
   unsigned int nAttachedClusters = 0;
   unsigned int nUnattachedClusters = 0;
-
-  unsigned short* qTotA = nullptr;
-  unsigned short* qMaxA = nullptr;
-  unsigned char* flagsA = nullptr;
-  unsigned char* rowDiffA = nullptr;
-  unsigned char* sliceLegDiffA = nullptr;
-  unsigned short* padResA = nullptr;
-  unsigned int* timeResA = nullptr;
-  unsigned char* sigmaPadA = nullptr;
-  unsigned char* sigmaTimeA = nullptr;
-
-  char* qPtA = nullptr;
-  unsigned char* rowA = nullptr;
-  unsigned char* sliceA = nullptr;
-  unsigned int* timeA = nullptr;
-  unsigned short* padA = nullptr;
-
-  unsigned short* qTotU = nullptr;
-  unsigned short* qMaxU = nullptr;
-  unsigned char* flagsU = nullptr;
-  unsigned short* padDiffU = nullptr;
-  unsigned int* timeDiffU = nullptr;
-  unsigned char* sigmaPadU = nullptr;
-  unsigned char* sigmaTimeU = nullptr;
-
-  unsigned short* nTrackClusters = nullptr;
-  unsigned int* nSliceRowClusters = nullptr;
+  unsigned int nAttachedClustersReduced = 0;
+  unsigned int nSliceRows = 36 * 152;
+  ClassDefNV(CompressedClustersCounters, 1);
 };
+
+template <class T>
+struct CompressedClustersPtrs_helper : public T {
+  unsigned short* qTotA = nullptr;        //[nAttachedClusters]
+  unsigned short* qMaxA = nullptr;        //[nAttachedClusters]
+  unsigned char* flagsA = nullptr;        //[nAttachedClusters]
+  unsigned char* rowDiffA = nullptr;      //[nAttachedClustersReduced]
+  unsigned char* sliceLegDiffA = nullptr; //[nAttachedClustersReduced]
+  unsigned short* padResA = nullptr;      //[nAttachedClustersReduced]
+  unsigned int* timeResA = nullptr;       //[nAttachedClustersReduced]
+  unsigned char* sigmaPadA = nullptr;     //[nAttachedClusters]
+  unsigned char* sigmaTimeA = nullptr;    //[nAttachedClusters]
+
+  char* qPtA = nullptr;            //[nTracks]
+  unsigned char* rowA = nullptr;   //[nTracks]
+  unsigned char* sliceA = nullptr; //[nTracks]
+  unsigned int* timeA = nullptr;   //[nTracks]
+  unsigned short* padA = nullptr;  //[nTracks]
+
+  unsigned short* qTotU = nullptr;     //[nUnattachedClusters]
+  unsigned short* qMaxU = nullptr;     //[nUnattachedClusters]
+  unsigned char* flagsU = nullptr;     //[nUnattachedClusters]
+  unsigned short* padDiffU = nullptr;  //[nUnattachedClusters]
+  unsigned int* timeDiffU = nullptr;   //[nUnattachedClusters]
+  unsigned char* sigmaPadU = nullptr;  //[nUnattachedClusters]
+  unsigned char* sigmaTimeU = nullptr; //[nUnattachedClusters]
+
+  unsigned short* nTrackClusters = nullptr;  //[nTracks]
+  unsigned int* nSliceRowClusters = nullptr; //[nSliceRows]
+
+  ClassDefNV(CompressedClustersPtrs_helper, 1);
+};
+
+struct CompressedClustersDummy_helper {
+};
+
+//Version with valid ROOT streamers for storage
+using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
+//Slightly smaller version with pointers only for GPU constant cache
+using CompressedClustersPtrsOnly = CompressedClustersPtrs_helper<CompressedClustersDummy_helper>;
 } // namespace TPC
 } // namespace o2
 
