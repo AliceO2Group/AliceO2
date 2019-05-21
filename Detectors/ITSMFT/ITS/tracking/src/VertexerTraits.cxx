@@ -26,11 +26,11 @@ namespace o2
 namespace its
 {
 
-using Constants::IndexTable::PhiBins;
-using Constants::IndexTable::ZBins;
-using Constants::its::LayersRCoordinate;
-using Constants::its::LayersZCoordinate;
-using Constants::Math::TwoPi;
+using constants::IndexTable::PhiBins;
+using constants::IndexTable::ZBins;
+using constants::its::LayersRCoordinate;
+using constants::its::LayersZCoordinate;
+using constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
 void trackleterKernelSerial(
@@ -129,15 +129,15 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{ std::array<float, 3>{ 
                                    mMaxDirectorCosine3{ 0.f }
 {
   // CUDA does not allow for dynamic initialization -> no constructor for VertexingParams
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(Constants::IndexTable::PhiBins * mVrtParams.phiCut /
-                                                  Constants::Math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * Constants::IndexTable::InverseZBinSize()[0]));
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::IndexTable::PhiBins * mVrtParams.phiCut /
+                                                  constants::Math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::IndexTable::InverseZBinSize()[0]));
   setIsGPU(false);
 }
 
 void VertexerTraits::reset()
 {
-  for (int iLayer{ 0 }; iLayer < Constants::its::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].clear();
     mIndexTables[iLayer].fill(0);
   }
@@ -162,7 +162,7 @@ std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 void VertexerTraits::arrangeClusters(ROframe* event)
 {
   mEvent = event;
-  for (int iLayer{ 0 }; iLayer < Constants::its::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{ event->getClustersOnLayer(iLayer) };
     const size_t clustersNum{ currentLayer.size() };
     if (clustersNum > 0) {

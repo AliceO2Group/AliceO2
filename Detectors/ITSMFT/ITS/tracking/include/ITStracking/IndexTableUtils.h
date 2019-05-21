@@ -36,34 +36,34 @@ GPU_HOST_DEVICE int getZBinIndex(const int, const float);
 GPU_HOST_DEVICE int getPhiBinIndex(const float);
 GPU_HOST_DEVICE int getBinIndex(const int, const int);
 GPU_HOST_DEVICE int countRowSelectedBins(
-  const GPUArray<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>&, const int, const int,
+  const GPUArray<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>&, const int, const int,
   const int);
 } // namespace IndexTableUtils
 
 inline float getInverseZCoordinate(const int layerIndex)
 {
-  return 0.5f * Constants::IndexTable::ZBins / Constants::its::LayersZCoordinate()[layerIndex];
+  return 0.5f * constants::IndexTable::ZBins / constants::its::LayersZCoordinate()[layerIndex];
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::getZBinIndex(const int layerIndex, const float zCoordinate)
 {
-  return (zCoordinate + Constants::its::LayersZCoordinate()[layerIndex]) *
-         Constants::IndexTable::InverseZBinSize()[layerIndex];
+  return (zCoordinate + constants::its::LayersZCoordinate()[layerIndex]) *
+         constants::IndexTable::InverseZBinSize()[layerIndex];
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::getPhiBinIndex(const float currentPhi)
 {
-  return (currentPhi * Constants::IndexTable::InversePhiBinSize);
+  return (currentPhi * constants::IndexTable::InversePhiBinSize);
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex)
 {
-  return MATH_MIN(phiIndex * Constants::IndexTable::PhiBins + zIndex,
-                  Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins);
+  return MATH_MIN(phiIndex * constants::IndexTable::PhiBins + zIndex,
+                  constants::IndexTable::ZBins * constants::IndexTable::PhiBins);
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(
-  const GPUArray<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
+  const GPUArray<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>& indexTable,
   const int phiBinIndex, const int minZBinIndex, const int maxZBinIndex)
 {
   const int firstBinIndex{ getBinIndex(minZBinIndex, phiBinIndex) };

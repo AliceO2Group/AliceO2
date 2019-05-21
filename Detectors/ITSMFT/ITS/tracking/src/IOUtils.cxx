@@ -193,7 +193,7 @@ std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int events
 
         if (inputStringStream >> transverseMomentum >> phiCoordinate >> pseudorapidity >> pdgCode >> numberOfClusters) {
 
-          if (std::abs(pdgCode) == Constants::PDGCodes::PionCode && numberOfClusters == 7) {
+          if (std::abs(pdgCode) == constants::PDGCodes::PionCode && numberOfClusters == 7) {
 
             currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
                                           std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
@@ -258,15 +258,15 @@ void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
 
 void to_json(nlohmann::json& j, const TrackingParameters& par)
 {
-  std::array<float, Constants::its::TrackletsPerRoad> tmpTrackletMaxDeltaZ;
+  std::array<float, constants::its::TrackletsPerRoad> tmpTrackletMaxDeltaZ;
   std::copy(par.TrackletMaxDeltaZ, par.TrackletMaxDeltaZ + tmpTrackletMaxDeltaZ.size(), tmpTrackletMaxDeltaZ.begin());
-  std::array<float, Constants::its::CellsPerRoad> tmpCellMaxDCA;
+  std::array<float, constants::its::CellsPerRoad> tmpCellMaxDCA;
   std::copy(par.CellMaxDCA, par.CellMaxDCA + tmpCellMaxDCA.size(), tmpCellMaxDCA.begin());
-  std::array<float, Constants::its::CellsPerRoad> tmpCellMaxDeltaZ;
+  std::array<float, constants::its::CellsPerRoad> tmpCellMaxDeltaZ;
   std::copy(par.CellMaxDeltaZ, par.CellMaxDeltaZ + tmpCellMaxDeltaZ.size(), tmpCellMaxDeltaZ.begin());
-  std::array<float, Constants::its::CellsPerRoad - 1> tmpNeighbourMaxDeltaCurvature;
+  std::array<float, constants::its::CellsPerRoad - 1> tmpNeighbourMaxDeltaCurvature;
   std::copy(par.NeighbourMaxDeltaCurvature, par.NeighbourMaxDeltaCurvature + tmpNeighbourMaxDeltaCurvature.size(), tmpNeighbourMaxDeltaCurvature.begin());
-  std::array<float, Constants::its::CellsPerRoad - 1> tmpNeighbourMaxDeltaN;
+  std::array<float, constants::its::CellsPerRoad - 1> tmpNeighbourMaxDeltaN;
   std::copy(par.NeighbourMaxDeltaN, par.NeighbourMaxDeltaN + tmpNeighbourMaxDeltaN.size(), tmpNeighbourMaxDeltaN.begin());
   j = nlohmann::json{
     { "ClusterSharing", par.ClusterSharing },
@@ -289,23 +289,23 @@ void from_json(const nlohmann::json& j, TrackingParameters& par)
   par.TrackletMaxDeltaPhi = j.at("TrackletMaxDeltaPhi").get<float>();
   par.CellMaxDeltaTanLambda = j.at("CellMaxDeltaTanLambda").get<float>();
   par.CellMaxDeltaPhi = j.at("CellMaxDeltaPhi").get<float>();
-  auto tmpTrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::array<float, Constants::its::TrackletsPerRoad>>();
+  auto tmpTrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::array<float, constants::its::TrackletsPerRoad>>();
   std::copy(tmpTrackletMaxDeltaZ.begin(), tmpTrackletMaxDeltaZ.end(), par.TrackletMaxDeltaZ);
-  auto tmpCellMaxDCA = j.at("CellMaxDCA").get<std::array<float, Constants::its::CellsPerRoad>>();
+  auto tmpCellMaxDCA = j.at("CellMaxDCA").get<std::array<float, constants::its::CellsPerRoad>>();
   std::copy(tmpCellMaxDCA.begin(), tmpCellMaxDCA.end(), par.CellMaxDCA);
-  auto tmpCellMaxDeltaZ = j.at("CellMaxDeltaZ").get<std::array<float, Constants::its::CellsPerRoad>>();
+  auto tmpCellMaxDeltaZ = j.at("CellMaxDeltaZ").get<std::array<float, constants::its::CellsPerRoad>>();
   std::copy(tmpCellMaxDCA.begin(), tmpCellMaxDeltaZ.end(), par.CellMaxDeltaZ);
-  auto tmpNeighbourMaxDeltaCurvature = j.at("NeighbourMaxDeltaCurvature").get<std::array<float, Constants::its::CellsPerRoad - 1>>();
+  auto tmpNeighbourMaxDeltaCurvature = j.at("NeighbourMaxDeltaCurvature").get<std::array<float, constants::its::CellsPerRoad - 1>>();
   std::copy(tmpNeighbourMaxDeltaCurvature.begin(), tmpNeighbourMaxDeltaCurvature.end(), par.NeighbourMaxDeltaCurvature);
-  auto tmpNeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::array<float, Constants::its::CellsPerRoad - 1>>();
+  auto tmpNeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::array<float, constants::its::CellsPerRoad - 1>>();
   std::copy(tmpNeighbourMaxDeltaN.begin(), tmpNeighbourMaxDeltaN.end(), par.NeighbourMaxDeltaN);
 }
 
 void to_json(nlohmann::json& j, const MemoryParameters& par)
 {
-  std::array<float, Constants::its::CellsPerRoad> tmpCellsMemoryCoefficients;
+  std::array<float, constants::its::CellsPerRoad> tmpCellsMemoryCoefficients;
   std::copy(par.CellsMemoryCoefficients, par.CellsMemoryCoefficients + tmpCellsMemoryCoefficients.size(), tmpCellsMemoryCoefficients.begin());
-  std::array<float, Constants::its::TrackletsPerRoad> tmpTrackletsMemoryCoefficients;
+  std::array<float, constants::its::TrackletsPerRoad> tmpTrackletsMemoryCoefficients;
   std::copy(par.TrackletsMemoryCoefficients, par.TrackletsMemoryCoefficients + tmpTrackletsMemoryCoefficients.size(), tmpTrackletsMemoryCoefficients.begin());
   j = nlohmann::json{
     { "MemoryOffset", par.MemoryOffset },
@@ -317,9 +317,9 @@ void to_json(nlohmann::json& j, const MemoryParameters& par)
 void from_json(const nlohmann::json& j, MemoryParameters& par)
 {
   par.MemoryOffset = j.at("MemoryOffset").get<int>();
-  auto tmpCellsMemoryCoefficients = j.at("CellsMemoryCoefficients").get<std::array<float, Constants::its::CellsPerRoad>>();
+  auto tmpCellsMemoryCoefficients = j.at("CellsMemoryCoefficients").get<std::array<float, constants::its::CellsPerRoad>>();
   std::copy(tmpCellsMemoryCoefficients.begin(), tmpCellsMemoryCoefficients.end(), par.CellsMemoryCoefficients);
-  auto tmpTrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::array<float, Constants::its::TrackletsPerRoad>>();
+  auto tmpTrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::array<float, constants::its::TrackletsPerRoad>>();
   std::copy(tmpTrackletsMemoryCoefficients.begin(), tmpTrackletsMemoryCoefficients.end(), par.TrackletsMemoryCoefficients);
 }
 
