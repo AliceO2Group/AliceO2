@@ -192,7 +192,6 @@ void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy)
   };
 
   shmcontext* info = (shmcontext*)rawmessage->GetData();
-  LOG(DEBUG) << " GOT SHMID " << info->id;
 
   busy = info->busy_ptr;
   return info->object_ptr;
