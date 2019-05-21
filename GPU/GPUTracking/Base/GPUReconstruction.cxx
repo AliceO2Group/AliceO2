@@ -149,6 +149,10 @@ int GPUReconstruction::Init()
 
 int GPUReconstruction::Finalize()
 {
+  for (unsigned int i = 0; i < mChains.size(); i++) {
+    mChains[i]->Finalize();
+  }
+
   ExitDevice();
   mInitialized = false;
   return 0;
