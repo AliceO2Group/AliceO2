@@ -17,6 +17,7 @@ set(SRCS
     src/PDG.cxx	
     src/PrimaryGenerator.cxx
     src/InteractionDiamondParam.cxx
+    src/BoxGunParam.cxx
    )
 set(HEADERS
     include/${MODULE_NAME}/Generator.h
@@ -26,7 +27,8 @@ set(HEADERS
     include/${MODULE_NAME}/PDG.h
     include/${MODULE_NAME}/PrimaryGenerator.h
     include/${MODULE_NAME}/InteractionDiamondParam.h
-   )
+    include/${MODULE_NAME}/BoxGunParam.h
+       )
 if (HAVESIMULATION)
   set(HEADERS ${HEADERS}
       include/${MODULE_NAME}/GeneratorFactory.h

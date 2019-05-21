@@ -18,6 +18,7 @@
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
+#include <Generators/BoxGunParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TGlobal.h"
@@ -38,13 +39,16 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   }
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
-    // a simple "box" generator
-    LOG(INFO) << "Init box generator";
-    auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
-    boxGen->SetEtaRange(-0.9, 0.9);
-    boxGen->SetPRange(0.1, 5);
-    boxGen->SetPhiRange(0., 360.);
-    boxGen->SetDebug(kTRUE);
+    // a simple "box" generator configurable via BoxGunparam
+    auto& boxparam = BoxGunParam::Instance();
+    LOG(INFO) << "Init box generator with following parameters";
+    LOG(INFO) << boxparam;
+    auto boxGen = new FairBoxGenerator(boxparam.pdg, boxparam.number);
+    boxGen->SetEtaRange(boxparam.eta[0], boxparam.eta[1]);
+    boxGen->SetPRange(boxparam.prange[0], boxparam.prange[1]);
+    boxGen->SetPhiRange(boxparam.phirange[0], boxparam.phirange[1]);
+    boxGen->SetDebug(boxparam.debug);
+
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
