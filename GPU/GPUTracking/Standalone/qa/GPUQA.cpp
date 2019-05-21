@@ -112,8 +112,15 @@ using namespace GPUCA_NAMESPACE::gpu;
     physics = true;                                             \
   }
 
-#define CHECK_CLUSTER_STATE() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_COUNT()
-#define CHECK_CLUSTER_STATE_NOCOUNT() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_NOCOUNT()
+// clang-format off
+#define CHECK_CLUSTER_STATE() \
+  CHECK_CLUSTER_STATE_INIT() \
+  CHECK_CLUSTER_STATE_CHK_COUNT() //Fill state variables, increase counters
+
+#define CHECK_CLUSTER_STATE_NOCOUNT() \
+  CHECK_CLUSTER_STATE_INIT() \
+  CHECK_CLUSTER_STATE_CHK_NOCOUNT() //Fill state variables, do not increase counters
+// clang-format on
 
 static const GPUQA::configQA& GPUQA_GetConfig(GPUChainTracking* rec)
 {

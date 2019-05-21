@@ -33,7 +33,7 @@ namespace o2
 namespace base
 {
 class MatLayerCylSet;
-} // namespace base
+}
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
