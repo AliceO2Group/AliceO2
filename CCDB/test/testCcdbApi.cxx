@@ -36,7 +36,8 @@ struct test_fixture {
   test_fixture()
   {
     api.init("http://ccdb-test.cern.ch:8080");
-  }
+    std::cout << boost::unit_test::framework::current_test_case().p_name
+              << std::endl;  }
 
   ~test_fixture() = default;
 
