@@ -70,8 +70,8 @@ class Vector final
  private:
   GPU_HOST_DEVICE Vector(const Vector&, const bool);
 
-  T* mArrayPointer;
-  int* mDeviceSize;
+  T* mArrayPointer = nullptr;
+  int* mDeviceSize = nullptr;
   int mCapacity;
   bool mIsWeak;
 };
