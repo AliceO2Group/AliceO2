@@ -50,10 +50,14 @@ namespace trd
 {
 class TRDGeometryFlat
 {
- public:
-  void clearInternalBufferPtr() {}
 };
 } // namespace trd
+namespace base
+{
+class MatLayerCylSet
+{
+};
+} //namespace base
 } // namespace o2
 #endif
 using namespace o2::trd;
@@ -214,6 +218,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mTpcTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
   }
+#ifdef HAVE_O2HEADERS
   if (mChainTracking->GetMatLUT()) {
     computePointerWithAlignment(mem, mMatLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
@@ -221,6 +226,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetTRDGeometry()) {
     computePointerWithAlignment(mem, mTrdGeometry, 1);
   }
+#endif
   return mem;
 }
 
@@ -373,6 +379,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (mTPCFastTransform != nullptr) {
     DumpFlatObjectToFile(mTPCFastTransform, f.c_str());
   }
+#ifdef HAVE_O2HEADERS
   f = dir;
   f += "matlut.dump";
   if (mMatLUT != nullptr) {
@@ -383,6 +390,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (mTRDGeometry != nullptr) {
     DumpStructToFile(mTRDGeometry.get(), f.c_str());
   }
+#endif
 }
 
 void GPUChainTracking::ReadSettings(const char* dir)
@@ -392,6 +400,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpctransform.dump";
   mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
   mTPCFastTransform = mTPCFastTransformU.get();
+#ifdef HAVE_O2HEADERS
   f = dir;
   f += "matlut.dump";
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());
@@ -399,6 +408,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f = dir;
   f += "trdgeometry.dump";
   mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+#endif
 }
 
 int GPUChainTracking::ConvertNativeToClusterData()

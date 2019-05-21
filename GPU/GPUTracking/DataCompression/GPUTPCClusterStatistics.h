@@ -26,11 +26,15 @@ struct ClusterNativeAccessExt;
 class GPUTPCClusterStatistics
 {
  public:
+#ifndef HAVE_O2HEADERS
+  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed){};
+#else
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
   void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed);
 
  protected:
   TPCClusterDecompressor mDecoder;
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
