@@ -113,7 +113,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
-
 #endif
 }
 
@@ -1113,6 +1112,8 @@ int GPUChainTracking::RunTPCCompression()
   Compressor.mOutput.nTracks = Compressor.mMemory->nStoredTracks;
   Compressor.mOutput.nAttachedClusters = Compressor.mMemory->nStoredAttachedClusters;
   Compressor.mOutput.nUnattachedClusters = Compressor.mMemory->nStoredUnattachedClusters;
+  Compressor.mOutput.nAttachedClustersReduced = Compressor.mOutput.nAttachedClusters - Compressor.mOutput.nTracks;
+  Compressor.mOutput.nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   AllocateRegisteredMemory(Compressor.mMemoryResOutputHost);
   mRec->GPUMemCpyAlways(Compressor.mOutput.nSliceRowClusters, CompressorShadow.mPtrs.nSliceRowClusters, NSLICES * GPUCA_ROW_COUNT * sizeof(Compressor.mOutput.nSliceRowClusters[0]), 0, false);
   mRec->GPUMemCpyAlways(Compressor.mOutput.nTrackClusters, CompressorShadow.mPtrs.nTrackClusters, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.nTrackClusters[0]), 0, false);

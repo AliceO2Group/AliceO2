@@ -36,7 +36,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
     }
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
     int nClustersStored = 0;
-    CompressedClusters& c = compressor.mPtrs;
+    CompressedClustersPtrsOnly& c = compressor.mPtrs;
     for (unsigned int k = 0; k < trk.NClusters(); k++) {
       const GPUTPCGMMergedTrackHit& hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
@@ -106,7 +106,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
   }
   GPUbarrier();
 
-  CompressedClusters& c = compressor.mPtrs;
+  CompressedClustersPtrsOnly& c = compressor.mPtrs;
   for (unsigned int i = get_local_id(0); i < clusters->nClusters[iSlice][iRow]; i += get_local_size(0)) {
     const int idx = idOffset + i;
     if (compressor.mClusterStatus[idx]) {
