@@ -28,7 +28,7 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
       if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
-        printf("Number of clusters mismatch slice %u row %u: %d v.s. %d\n", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
+        printf("Number of clusters mismatch slice %u row %u: expected %d v.s. decoded %d\n", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
         decodingError = true;
         continue;
       }

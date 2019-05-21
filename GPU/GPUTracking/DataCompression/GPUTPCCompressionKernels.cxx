@@ -40,7 +40,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
     int nClustersStored = 0;
     CompressedClustersPtrsOnly& c = compressor.mPtrs;
-    unsigned char lastRow = 0, lastSlice = 0;
+    unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
     for (unsigned int k = 0; k < trk.NClusters(); k++) {
       const GPUTPCGMMergedTrackHit& hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
@@ -77,8 +77,8 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
         c.timeA[myTrack] = orgCl.getTimePacked();
         c.padA[myTrack] = orgCl.padPacked;
       } else {
-        unsigned char row = hit.row;
-        unsigned char slice = hit.slice;
+        unsigned int row = hit.row;
+        unsigned int slice = hit.slice;
         if (param.rec.tpcCompressionModes & 2) {
           if (lastRow > row) {
             row += GPUCA_ROW_COUNT;
