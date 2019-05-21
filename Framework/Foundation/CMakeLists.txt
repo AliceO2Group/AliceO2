@@ -12,3 +12,8 @@ set(MODULE_NAME "FrameworkFoundation")
 
 set(MODULE_BUCKET_NAME O2FrameworkFoundation_bucket)
 
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME O2FrameworkFoundation_bucket
+  TEST_SRCS test/test_Traits.cxx
+)
