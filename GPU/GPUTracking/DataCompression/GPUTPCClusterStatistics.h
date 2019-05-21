@@ -34,6 +34,7 @@ class GPUTPCClusterStatistics
 
  protected:
   TPCClusterDecompressor mDecoder;
+  bool mDecodingError = false;
 #endif
 };
 } // namespace gpu

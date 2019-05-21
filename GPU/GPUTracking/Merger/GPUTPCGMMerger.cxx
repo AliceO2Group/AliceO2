@@ -950,7 +950,7 @@ struct GPUTPCGMMerger_CompareClusterIdsLooper {
     if (a1.GetX() != b1.GetX()) {
       return ((a1.GetX() > b1.GetX()) ^ ((a.leg - leg) & 1) ^ outwards);
     }
-    return false;
+    return a1.GetId() > b1.GetId();
   }
 };
 
@@ -961,7 +961,10 @@ struct GPUTPCGMMerger_CompareClusterIds {
   {
     const GPUTPCSliceOutCluster& a = mCmp[aa];
     const GPUTPCSliceOutCluster& b = mCmp[bb];
-    return (a.GetX() > b.GetX());
+    if (a.GetX() != b.GetX()) {
+      return (a.GetX() > b.GetX());
+    }
+    return (a.GetId() > b.GetId());
   }
 };
 
