@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct CompressedClustersCounters {
   unsigned int nTracks = 0;
@@ -70,7 +70,7 @@ struct CompressedClustersDummy_helper {
 using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
 //Slightly smaller version with pointers only for GPU constant cache
 using CompressedClustersPtrsOnly = CompressedClustersPtrs_helper<CompressedClustersDummy_helper>;
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif
