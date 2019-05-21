@@ -1124,6 +1124,7 @@ int GPUChainTracking::RunTPCCompression()
   Compressor.mOutput.nUnattachedClusters = Compressor.mMemory->nStoredUnattachedClusters;
   Compressor.mOutput.nAttachedClustersReduced = Compressor.mOutput.nAttachedClusters - Compressor.mOutput.nTracks;
   Compressor.mOutput.nSliceRows = NSLICES * GPUCA_ROW_COUNT;
+  Compressor.mOutput.nComppressionModes = param().rec.tpcCompressionModes;
   AllocateRegisteredMemory(Compressor.mMemoryResOutputHost);
   mRec->GPUMemCpyAlways(Compressor.mOutput.nSliceRowClusters, CompressorShadow.mPtrs.nSliceRowClusters, NSLICES * GPUCA_ROW_COUNT * sizeof(Compressor.mOutput.nSliceRowClusters[0]), 0, false);
   mRec->GPUMemCpyAlways(Compressor.mOutput.nTrackClusters, CompressorShadow.mPtrs.nTrackClusters, Compressor.mOutput.nTracks * sizeof(Compressor.mOutput.nTrackClusters[0]), 0, false);
@@ -1306,7 +1307,7 @@ int GPUChainTracking::RunStandalone()
     timerCompression.Start();
     RunTPCCompression();
     if (GetDeviceProcessingSettings().runCompressionStatistics) {
-      mCompressionStatistics->RunStatistics(mClusterNativeAccess.get(), &processors()->tpcCompressor.mOutput);
+      mCompressionStatistics->RunStatistics(mClusterNativeAccess.get(), &processors()->tpcCompressor.mOutput, param());
     }
     timerCompression.Stop();
   }

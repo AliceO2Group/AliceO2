@@ -71,6 +71,7 @@ AddOption(rundEdx, int, 1, "dEdx", 0, "Enable dEdx processing")
 AddOption(disableRefitAttachment, int, 0, "refitAttachmentMask", 0, "Mask to disable certain attachment steps during refit")
 AddOption(tpcReject, int, 0, "tpcReject", 0, "Enable rejection of TPC clusters for compression")
 AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold to reject clusters of TPC tracks")
+AddOption(tpcCompression, int, 7, "tpcCompression", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
 AddHelp("help", 'h')
 EndConfig()
 

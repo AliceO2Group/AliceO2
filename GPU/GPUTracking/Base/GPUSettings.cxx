@@ -39,6 +39,9 @@ void GPUSettingsRec::SetDefaults()
   dEdxTruncHigh = 77;
   tpcRejectionMode = 0;
   tpcRejectQPt = 1.f / 0.05f;
+  tpcCompressionModes = 7;
+  tpcSigBitsCharge = 4;
+  tpcSigBitsWidth = 3;
 }
 
 void GPUSettingsEvent::SetDefaults()

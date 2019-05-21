@@ -16,6 +16,8 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
+#include "GPUCommonMath.h"
+#include "GPUParam.h"
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
@@ -56,6 +58,12 @@ class GPUTPCCompression : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
+  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param)
+  {
+    truncateSignificantBits(charge, param.rec.tpcSigBitsCharge);
+  }
+  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth); }
+
   struct memory {
     unsigned int nStoredTracks = 0;
     unsigned int nStoredAttachedClusters = 0;
@@ -80,12 +88,35 @@ class GPUTPCCompression : public GPUProcessor
  protected:
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
+  template <class T>
+  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits);
 
   short mMemoryResOutput = -1;
   short mMemoryResOutputHost = -1;
   short mMemoryResMemory = -1;
   short mMemoryResScratch = -1;
 };
+
+template <class T>
+GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits)
+{
+  if (nBits == 0) {
+    return;
+  }
+
+  unsigned int val = v;
+  unsigned int ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
+  if (val && ldz > nBits) {
+    if (val & (1 << (ldz - nBits - 1))) {
+      val += (1 << (ldz - nBits - 1));
+      ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
+    }
+    val &= ((1 << ldz) - 1) ^ ((1 << (ldz - nBits)) - 1);
+    //printf("CHANGING X %x --> %x\n", (unsigned int) v, val);
+    v = val;
+  }
+}
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

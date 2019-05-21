@@ -27,10 +27,10 @@ class GPUTPCClusterStatistics
 {
  public:
 #ifndef HAVE_O2HEADERS
-  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed){};
+  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed, const GPUParam& param){};
 #else
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
-  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed);
+  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed, const GPUParam& param);
 
  protected:
   TPCClusterDecompressor mDecoder;

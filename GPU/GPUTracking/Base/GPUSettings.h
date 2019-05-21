@@ -58,6 +58,9 @@ struct GPUSettingsRec {
   unsigned char dEdxTruncHigh;          // High truncation threshold, fraction of 128
   unsigned char tpcRejectionMode;       // 0: do not reject clusters, 1: do reject identified junk, 2: reject everything but good tracks
   float tpcRejectQPt;                   // Reject tracks below this Pt
+  unsigned char tpcCompressionModes;    // Enabled steps of TPC compression as flags: 1=truncate charge/width LSB, 2=differences, 4=track-model
+  unsigned char tpcSigBitsCharge;       // Number of significant bits for TPC cluster charge in compression mode 1
+  unsigned char tpcSigBitsWidth;        // Number of significant bits for TPC cluster width in compression mode 1
 };
 
 // Settings describing the events / time frames

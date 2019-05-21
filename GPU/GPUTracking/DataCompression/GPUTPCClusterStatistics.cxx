@@ -18,7 +18,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed)
+void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::TPC::CompressedClusters* clustersCompressed, const GPUParam& param)
 {
   o2::TPC::ClusterNativeAccessFullTPC clustersNativeDecoded;
   std::vector<o2::TPC::ClusterNative> clusterBuffer;
@@ -31,7 +31,13 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
         return;
       }
       tmpClusters.resize(clustersNative->nClusters[i][j]);
-      memcpy((void*) tmpClusters.data(), (const void*) clustersNative->clusters[i][j], clustersNative->nClusters[i][j] * sizeof(tmpClusters[0]));
+      for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
+        tmpClusters[k] = clustersNative->clusters[i][j][k];
+        GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qMax, param);
+        GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
+        GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
+        GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
+      }
       std::sort(tmpClusters.begin(), tmpClusters.end());
       for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
         const o2::TPC::ClusterNative& c1 = tmpClusters[k];
