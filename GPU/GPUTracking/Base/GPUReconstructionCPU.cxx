@@ -47,6 +47,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
 
+GPUReconstructionCPU::~GPUReconstructionCPU()
+{
+  Exit(); // Needs to be identical to GPU backend bahavior in order to avoid calling abstract methods later in the destructor
+}
+
 template <class T, int I, typename... Args>
 int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {

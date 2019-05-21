@@ -92,8 +92,7 @@ GPUReconstructionHIPBackend::GPUReconstructionHIPBackend(const GPUSettingsProces
 
 GPUReconstructionHIPBackend::~GPUReconstructionHIPBackend()
 {
-  mChains.clear(); // Make sure we destroy the ITS tracker before we exit CUDA
-  GPUFailedMsgI(hipDeviceReset());
+  Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit CUDA
   delete mInternals;
 }
 

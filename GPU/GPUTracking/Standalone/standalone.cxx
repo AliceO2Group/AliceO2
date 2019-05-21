@@ -508,6 +508,7 @@ breakrun:
   }
 
   rec->Finalize();
+  rec->Exit();
 
   if (!configStandalone.noprompt) {
     printf("Press a key to exit!\n");
