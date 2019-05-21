@@ -409,7 +409,7 @@ void Data::displayData(int entry, int chip)
   mEvent = new TEveElementList(ename.c_str());
   mEvent->AddElement(clusters);
   mEvent->AddElement(tracks);
-  auto multi = o2::EventVisualisation::MultiView::getInstance();
+  auto multi = o2::event_visualisation::MultiView::getInstance();
   multi->registerEvent(mEvent);
 
   gEve->Redraw3D(kFALSE);
@@ -457,7 +457,7 @@ void init(int entry = 0, int chip = 13,
   co->SetOrthographicMode(TGLCameraOverlay::kGridFront);
 
   // Event View
-  auto multi = o2::EventVisualisation::MultiView::getInstance();
+  auto multi = o2::event_visualisation::MultiView::getInstance();
   multi->drawGeometryForDetector("ITS");
 
   // Event navigation

@@ -65,7 +65,7 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 

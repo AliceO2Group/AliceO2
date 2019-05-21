@@ -25,7 +25,7 @@
 #include <cmath>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// Minimalistic description of particles track
 ///

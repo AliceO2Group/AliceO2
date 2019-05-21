@@ -69,7 +69,7 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
    run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 

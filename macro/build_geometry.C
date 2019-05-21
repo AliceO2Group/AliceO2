@@ -87,7 +87,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   // Create geometry
   // we always need the gave
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
   cave->includeZDC(isActivated("ZDC"));
   // the experiment hall (cave)
