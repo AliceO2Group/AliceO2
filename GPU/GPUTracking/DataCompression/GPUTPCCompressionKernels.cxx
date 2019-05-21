@@ -15,6 +15,7 @@
 #include "GPUConstantMem.h"
 #include "ClusterNativeAccessExt.h"
 #include "GPUTPCGMMerger.h"
+#include "GPUParam.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::TPC;
@@ -26,6 +27,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
   GPUTPCGMMerger& merger = processors.tpcMerger;
   const ClusterNativeAccessExt* clusters = processors.tpcConverter.getClustersNative();
   GPUTPCCompression& compressor = processors.tpcCompressor;
+  GPUParam& param = processors.param;
 
   char lastLeg = 0;
   int myTrack = 0;
@@ -78,11 +80,17 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
         c.padResA[cidx] = orgCl.padPacked;
         c.timeResA[cidx] = orgCl.getTimePacked();
       }
-      c.qTotA[cidx] = orgCl.qTot;
-      c.qMaxA[cidx] = orgCl.qMax;
+      unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
+      unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
+      compressor.truncateSignificantBitsCharge(qmax, param);
+      compressor.truncateSignificantBitsCharge(qtot, param);
+      compressor.truncateSignificantBitsWidth(sigmapad, param);
+      compressor.truncateSignificantBitsWidth(sigmatime, param);
+      c.qTotA[cidx] = qtot;
+      c.qMaxA[cidx] = qmax;
+      c.sigmaPadA[cidx] = sigmapad;
+      c.sigmaTimeA[cidx] = sigmatime;
       c.flagsA[cidx] = orgCl.getFlags();
-      c.sigmaPadA[cidx] = orgCl.sigmaPadPacked;
-      c.sigmaTimeA[cidx] = orgCl.sigmaTimePacked;
     }
     if (nClustersStored) {
       CAMath::AtomicAdd(&compressor.mMemory->nStoredAttachedClusters, nClustersStored);
@@ -97,6 +105,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
   GPUTPCGMMerger& merger = processors.tpcMerger;
   const ClusterNativeAccessExt* clusters = processors.tpcConverter.getClustersNative();
   GPUTPCCompression& compressor = processors.tpcCompressor;
+  GPUParam& param = processors.param;
   const int iSlice = iBlock / GPUCA_ROW_COUNT;
   const int iRow = iBlock % GPUCA_ROW_COUNT;
   const int idOffset = clusters->clusterOffset[iSlice][iRow];
@@ -134,13 +143,19 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
 
     const ClusterNative& orgCl = clusters->clusters[iSlice][iRow][i];
     int cidx = idOffset + CAMath::AtomicAddShared(&nCount, 1);
-    c.qTotU[cidx] = orgCl.qTot;
-    c.qMaxU[cidx] = orgCl.qMax;
-    c.flagsU[cidx] = orgCl.getFlags();
     c.padDiffU[cidx] = orgCl.padPacked;
     c.timeDiffU[cidx] = orgCl.getTimePacked();
-    c.sigmaPadU[cidx] = orgCl.sigmaPadPacked;
-    c.sigmaTimeU[cidx] = orgCl.sigmaTimePacked;
+    unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
+    unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
+    compressor.truncateSignificantBitsCharge(qmax, param);
+    compressor.truncateSignificantBitsCharge(qtot, param);
+    compressor.truncateSignificantBitsWidth(sigmapad, param);
+    compressor.truncateSignificantBitsWidth(sigmatime, param);
+    c.qTotU[cidx] = qtot;
+    c.qMaxU[cidx] = qmax;
+    c.sigmaPadU[cidx] = sigmapad;
+    c.sigmaTimeU[cidx] = sigmatime;
+    c.flagsU[cidx] = orgCl.getFlags();
   }
   GPUbarrier();
   if (iThread == 0) {

@@ -51,6 +51,7 @@ class GPUCommonMath
   GPUhdni() static float Pi() { return 3.1415926535897f; }
   GPUhdni() static int Nint(float x);
   GPUhdni() static bool Finite(float x);
+  GPUhdni() static unsigned int Clz(unsigned int val);
 
   GPUhdni() static float Log(float x);
   GPUd() static unsigned int AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
@@ -68,11 +69,11 @@ class GPUCommonMath
 typedef GPUCommonMath CAMath;
 
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
-    #define CHOICE(c1, c2, c3) c2
+    #define CHOICE(c1, c2, c3) c2 // Select second option for CUDA and HIP
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
-    #define CHOICE(c1, c2, c3) c3
+    #define CHOICE(c1, c2, c3) c3 // Select third option for OpenCL
 #else
-    #define CHOICE(c1, c2, c3) c1
+    #define CHOICE(c1, c2, c3) c1 //Select first option for Host
 #endif // clang-format on
 
 GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
@@ -111,6 +112,19 @@ GPUhdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin
 GPUhdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos(x)); }
 
 GPUhdi() float GPUCommonMath::Tan(float x) { return CHOICE(tanf(x), tanf(x), tan(x)); }
+
+GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
+  return CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
+#else
+  for (int i = 31; i >= 0; i--) {
+    if (x & (1 << i))
+      return (31 - i);
+  }
+  return 32;
+#endif
+}
 
 template <class T>
 GPUhdi() T GPUCommonMath::Min(T x, T y)

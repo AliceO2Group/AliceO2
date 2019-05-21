@@ -302,6 +302,7 @@ int SetupReconstruction()
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
   }
+  recSet.tpcCompressionModes = configStandalone.configRec.tpcCompression;
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;
