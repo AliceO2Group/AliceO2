@@ -17,9 +17,9 @@
 #include <cstring>
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
-int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::TPC::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::TPC::ClusterNative>& clusterBuffer)
+int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer)
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   unsigned int offset = 0;

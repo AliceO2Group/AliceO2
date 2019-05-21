@@ -16,6 +16,14 @@
 
 #include "GPUGeneralKernels.h"
 
+namespace o2
+{
+namespace tpc
+{
+struct ClusterNative;
+} // namespace tpc
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu

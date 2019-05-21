@@ -24,13 +24,13 @@
 #else
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 struct CompressedClusters {
 };
 struct CompressedClustersPtrsOnly {
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif
 
@@ -73,8 +73,8 @@ class GPUTPCCompression : public GPUProcessor
 
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
-  o2::TPC::CompressedClustersPtrsOnly mPtrs;
-  o2::TPC::CompressedClusters mOutput;
+  o2::tpc::CompressedClustersPtrsOnly mPtrs;
+  o2::tpc::CompressedClusters mOutput;
   const GPUTPCGMMerger* mMerger = nullptr;
 
   memory* mMemory = nullptr;
