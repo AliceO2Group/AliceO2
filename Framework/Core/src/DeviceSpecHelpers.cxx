@@ -679,6 +679,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // FIXME: this should probably be done in one go with char *, but I am lazy.
     std::vector<std::string> tmpArgs = { argv[0], "--id", spec.id.c_str(), "--control", "static",
                                          "--log-color", "false", "--color", "false" };
+    if (defaultStopped) {
+      tmpArgs.push_back("-s");
+    }
 
     // do the filtering of options:
     // 1) forward options belonging to this specific DeviceSpec

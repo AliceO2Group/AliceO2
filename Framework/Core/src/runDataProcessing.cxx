@@ -284,10 +284,6 @@ void spawnDevice(std::string const& forwardedStdin,
     // We allow being debugged and do not terminate on SIGTRAP
     signal(SIGTRAP, SIG_IGN);
 
-    // We do not start the process if control.noStart is set.
-    if (control.stopped) {
-      kill(getpid(), SIGSTOP);
-    }
 
     // This is the child.
     // For stdout / stderr, we close the read part of the pipe, the
@@ -818,6 +814,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::DO_CHILD:
+        // We do not start the process if by default we are stopped.
+        if (driverControl.defaultStopped) {
+          kill(getpid(), SIGSTOP);
+        }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv, spec);
