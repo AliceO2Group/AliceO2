@@ -56,8 +56,29 @@ void MatchTOF::run()
   // we load all TOF clusters (to be checked if we need to split per time frame)
   prepareTOFClusters();
 
+  if(mIsworkflowON){
+    LOG(DEBUG) << "Number of entries in track tree = " << mCurrTracksTreeEntry;
+    mMatchedTracks.clear();
+    mOutTOFLabels.clear();
+    mOutTPCLabels.clear();
+    mOutITSLabels.clear();
+    prepareTracks();
+
+    for (int sec = o2::constants::math::NSectors; sec--;) {
+      LOG(INFO) << "Doing matching for sector " << sec << "...";
+      doMatching(sec);
+      LOG(INFO) << "...done. Now check the best matches";
+      selectBestMatches();
+    }
+    if (0) { // enabling this creates very verbose output
+      mTimerTot.Stop();
+      printCandidatesTOF();
+      mTimerTot.Start(false);
+    }
+  }
+
   // we do the matching per entry of the TPCITS matched tracks tree
-  while (mCurrTracksTreeEntry + 1 < mInputTreeTracks->GetEntries()) { // we add "+1" because mCurrTracksTreeEntry starts from -1, and it is incremented in loadTracksNextChunk which is called by prepareTracks
+  while (!mIsworkflowON && mCurrTracksTreeEntry + 1 < mInputTreeTracks->GetEntries()) { // we add "+1" because mCurrTracksTreeEntry starts from -1, and it is incremented in loadTracksNextChunk which is called by prepareTracks
     LOG(DEBUG) << "Number of entries in track tree = " << mCurrTracksTreeEntry;
     mMatchedTracks.clear();
     mOutTOFLabels.clear();
@@ -96,9 +117,6 @@ void MatchTOF::run()
       printCandidatesTOF();
       mTimerTot.Start(false);
     }
-    mOutputTree->Fill();
-    if (mOutputTreeCalib)
-      mOutputTreeCalib->Fill();
   }
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -110,6 +128,28 @@ void MatchTOF::run()
   printf("Timing:\n");
   printf("Total:        ");
   mTimerTot.Print();
+}
+
+//______________________________________________
+void MatchTOF::fill()
+{
+    mOutputTree->Fill();
+    if (mOutputTreeCalib)
+      mOutputTreeCalib->Fill();
+}
+
+//______________________________________________
+void MatchTOF::initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray){
+
+  if (mInitDone) {
+    LOG(ERROR) << "Initialization was already done";
+    return;
+  }
+
+  mTracksArrayInp = trackArray;
+  mTOFClustersArrayInp = clusterArray;
+  mIsworkflowON = kTRUE;
+  mInitDone = true;
 }
 
 //______________________________________________
@@ -252,7 +292,7 @@ bool MatchTOF::prepareTracks()
 {
   ///< prepare the tracks that we want to match to TOF
 
-  if (!loadTracksNextChunk()) {
+  if (!mIsworkflowON && !loadTracksNextChunk()) {
     return false;
   }
 
@@ -281,7 +321,7 @@ bool MatchTOF::prepareTracks()
   Printf("\n\nWe have %d tracks to try to match to TOF", mNumOfTracks);
   int nNotPropagatedToTOF = 0;
   for (int it = 0; it < mNumOfTracks; it++) {
-    o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
+    const o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
     std::array<float, 3> globalPos;
 
     // create working copy of track param
@@ -379,16 +419,31 @@ bool MatchTOF::prepareTOFClusters()
   }
 
   mNumOfClusters = 0;
-  while (loadTOFClustersNextChunk()) {
+  while (!mIsworkflowON && loadTOFClustersNextChunk()) {
     int nClusterInCurrentChunk = mTOFClustersArrayInp->size();
     LOG(DEBUG) << "nClusterInCurrentChunk = " << nClusterInCurrentChunk;
     mNumOfClusters += nClusterInCurrentChunk;
     for (int it = 0; it < nClusterInCurrentChunk; it++) {
-      Cluster& clOrig = (*mTOFClustersArrayInp)[it];
-      clOrig.setEntryInTree(mCurrTOFClustersTreeEntry);
+      const Cluster& clOrig = (*mTOFClustersArrayInp)[it];
       // create working copy of track param
       mTOFClusWork.emplace_back(clOrig);
       auto& cl = mTOFClusWork.back();
+      cl.setEntryInTree(mCurrTOFClustersTreeEntry);
+      // cache work track index
+      mTOFClusSectIndexCache[cl.getSector()].push_back(mTOFClusWork.size() - 1);
+    }
+  }
+
+  if(mIsworkflowON){
+    int nClusterInCurrentChunk = mTOFClustersArrayInp->size();
+    LOG(DEBUG) << "nClusterInCurrentChunk = " << nClusterInCurrentChunk;
+    mNumOfClusters += nClusterInCurrentChunk;
+    for (int it = 0; it < nClusterInCurrentChunk; it++) {
+      const Cluster& clOrig = (*mTOFClustersArrayInp)[it];
+      // create working copy of track param
+      mTOFClusWork.emplace_back(clOrig);
+      auto& cl = mTOFClusWork.back();
+      cl.setEntryInTree(mCurrTOFClustersTreeEntry);
       // cache work track index
       mTOFClusSectIndexCache[cl.getSector()].push_back(mTOFClusWork.size() - 1);
     }

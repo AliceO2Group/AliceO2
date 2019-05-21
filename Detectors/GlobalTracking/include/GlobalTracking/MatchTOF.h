@@ -69,8 +69,14 @@ class MatchTOF
   ///< perform matching for provided input
   void run();
 
+  ///< fill output tree
+  void fill();
+
   ///< perform all initializations
   void init();
+
+  ///< perform all initializations
+  void initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray);
 
   ///< set tree/chain containing tracks
   void setInputTreeTracks(TTree* tree) { mInputTreeTracks = tree; }
@@ -263,9 +269,11 @@ class MatchTOF
   ///----------- aux stuff --------------///
   static constexpr float MAXSNP = 0.85; // max snp of ITS or TPC track at xRef to be matched
 
+  Bool_t mIsworkflowON = kFALSE;
+
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 1);
+  ClassDefNV(MatchTOF, 2);
 };
 } // namespace globaltracking
 } // namespace o2

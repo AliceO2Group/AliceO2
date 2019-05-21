@@ -67,6 +67,8 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
 
   matching.run();
 
+  matching.fill();
+
   outFile.cd();
   outTree.Write();
   outFile.Close();
