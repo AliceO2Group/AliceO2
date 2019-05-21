@@ -68,7 +68,6 @@ void Detector::ConstructGeometry()
 {
   LOG(DEBUG) << "Creating FIT T0 geometry\n";
   CreateMaterials();
-  DefineOpticalProperties();
 
   Float_t zdetA = 333;
   Float_t zdetC = 82;
@@ -477,9 +476,10 @@ void Detector::DefineOpticalProperties()
   TString optPropPath = inputDir + "quartzOptProperties.txt";
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
 
-  if (ReadOptProperties(optPropPath.Data()) < 0) {
+  Int_t result = ReadOptProperties(optPropPath.Data());
+  if (result < 0) {
     // Error reading file
-    LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;
+    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data() << FairLogger::endl;
     return;
   }
   Int_t nBins = mPhotonEnergyD.size();
