@@ -29,11 +29,23 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
     for (unsigned int j = 0; j < clustersCompressed->nTrackClusters[i]; j++) {
       unsigned int pad = 0, time = 0;
       if (j) {
-        slice = clustersCompressed->sliceLegDiffA[offset - i - 1];
-        if (slice > NSLICES) {
-          slice -= NSLICES;
+        unsigned char tmpSlice = clustersCompressed->sliceLegDiffA[offset - i - 1];
+        if (tmpSlice >= NSLICES) {
+          tmpSlice -= NSLICES;
         }
-        row = clustersCompressed->rowDiffA[offset - i - 1];
+        if (clustersCompressed->nComppressionModes & 2) {
+          slice += tmpSlice;
+          if (slice >= NSLICES) {
+            slice -= NSLICES;
+          }
+          row += clustersCompressed->rowDiffA[offset - i - 1];
+          if (row >= GPUCA_ROW_COUNT) {
+            row -= GPUCA_ROW_COUNT;
+          }
+        } else {
+          slice = tmpSlice;
+          row = clustersCompressed->rowDiffA[offset - i - 1];
+        }
         time = clustersCompressed->timeResA[offset - i - 1];
         pad = clustersCompressed->padResA[offset - i - 1];
       } else {
@@ -53,8 +65,17 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       clustersNative.clusters[i][j] = ptr;
       memcpy((void*)&clusterBuffer[offset], (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
       offset += clusters[i][j].size();
+      unsigned int time = 0;
+      unsigned short pad = 0;
       for (unsigned int k = 0; k < clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]; k++) {
-        clusterBuffer[offset] = ClusterNative(clustersCompressed->timeDiffU[offset2], clustersCompressed->flagsU[offset2], clustersCompressed->padDiffU[offset2], clustersCompressed->sigmaTimeU[offset2], clustersCompressed->sigmaPadU[offset2], clustersCompressed->qMaxU[offset2],
+        if (clustersCompressed->nComppressionModes & 2) {
+          time += clustersCompressed->timeDiffU[offset2];
+          pad += clustersCompressed->padDiffU[offset2];
+        } else {
+          time = clustersCompressed->timeDiffU[offset2];
+          pad = clustersCompressed->padDiffU[offset2];
+        }
+        clusterBuffer[offset] = ClusterNative(time, clustersCompressed->flagsU[offset2], pad, clustersCompressed->sigmaTimeU[offset2], clustersCompressed->sigmaPadU[offset2], clustersCompressed->qMaxU[offset2],
                                               clustersCompressed->qTotU[offset2]);
         offset++;
         offset2++;

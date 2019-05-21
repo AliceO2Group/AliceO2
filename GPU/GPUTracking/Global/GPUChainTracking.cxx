@@ -209,6 +209,9 @@ int GPUChainTracking::Finalize()
   if (GetDeviceProcessingSettings().debugLevel >= 4) {
     mDebugFile.close();
   }
+  if (mCompressionStatistics) {
+    mCompressionStatistics->Finish();
+  }
   return 0;
 }
 
@@ -1109,6 +1112,15 @@ int GPUChainTracking::RunTPCCompression()
   mRec->SetThreadCounts(RecoStep::TPCCompression);
 
   Compressor.mMerger = &processors()->tpcMerger;
+  Compressor.mNGPUBlocks = BlockCount();
+  Compressor.mNMaxClusterSliceRow = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      if (mClusterNativeAccess->nClusters[i][j] > Compressor.mNMaxClusterSliceRow) {
+        Compressor.mNMaxClusterSliceRow = mClusterNativeAccess->nClusters[i][j];
+      }
+    }
+  }
   SetupGPUProcessor(&Compressor, true);
   new (Compressor.mMemory) GPUTPCCompression::memory;
 
@@ -1116,7 +1128,7 @@ int GPUChainTracking::RunTPCCompression()
   TransferMemoryResourcesToGPU(&Compressor, 0);
   runKernel<GPUMemClean16>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone, CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
   runKernel<GPUTPCCompressionKernels, 0>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
-  runKernel<GPUTPCCompressionKernels, 1>({ NSLICES * GPUCA_ROW_COUNT, ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCCompressionKernels, 1>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(&Compressor, 0);
   SynchronizeGPU();
   Compressor.mOutput.nTracks = Compressor.mMemory->nStoredTracks;
