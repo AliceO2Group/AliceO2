@@ -296,8 +296,8 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
-    cudaEvent_t* events = (cudaEvent_t*)mEvents[i].first;
-    for (unsigned int j = 0; j < mEvents[i].second; j++) {
+    cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
+    for (unsigned int j = 0; j < mEvents[i].size(); j++) {
       if (GPUFailedMsgI(cudaEventCreate(&events[j]))) {
         GPUError("Error creating event");
         GPUFailedMsgI(cudaDeviceReset());
@@ -334,8 +334,8 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
   mHostMemoryBase = nullptr;
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
-    cudaEvent_t* events = (cudaEvent_t*)mEvents[i].first;
-    for (unsigned int j = 0; j < mEvents[i].second; j++) {
+    cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
+    for (unsigned int j = 0; j < mEvents[i].size(); j++) {
       GPUFailedMsgI(cudaEventDestroy(events[j]));
     }
   }

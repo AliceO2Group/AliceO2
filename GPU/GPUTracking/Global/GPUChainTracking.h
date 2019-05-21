@@ -228,7 +228,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;       // TRD Geometry
 
   HighResTimer timerTPCtracking[NSLICES][10];
-  eventStruct mEvents;
+  eventStruct* mEvents = nullptr;
   std::ofstream mDebugFile;
 
 #ifdef __ROOT__ // ROOT5 BUG: cint doesn't do volatile
