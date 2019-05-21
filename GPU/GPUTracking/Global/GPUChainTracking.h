@@ -222,7 +222,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Ptr to reconstruction detecto objects
   std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess; // Internal memory for clusterNativeAccess
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;         // Global TPC fast transformation object
-  const TPCFastTransform* mTPCFastTransform;                    //
+  const TPCFastTransform* mTPCFastTransform = nullptr;          //
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;           // Material Lookup Table
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;            //
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;       // TRD Geometry
