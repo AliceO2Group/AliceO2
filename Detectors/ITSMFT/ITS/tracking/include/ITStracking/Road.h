@@ -44,7 +44,7 @@ class Road final
   void addCell(int, int);
 
  private:
-  int mCellIds[Constants::its::CellsPerRoad];
+  int mCellIds[constants::its::CellsPerRoad];
   int mRoadSize;
   int mLabel;
   bool mIsFakeRoad;

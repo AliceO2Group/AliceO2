@@ -138,7 +138,7 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
 {
   float diff{ 0.f };
 
-  if (Constants::DoTimeBenchmarks) {
+  if (constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<T>(args)...);
     auto end = std::chrono::high_resolution_clock::now();

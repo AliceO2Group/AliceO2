@@ -27,7 +27,7 @@ namespace o2
 namespace its
 {
 
-namespace Constants
+namespace constants
 {
 
 constexpr bool DoTimeBenchmarks = true;
@@ -63,7 +63,7 @@ namespace IndexTable
 {
 constexpr int ZBins{ 20 };
 constexpr int PhiBins{ 20 };
-constexpr float InversePhiBinSize{ Constants::IndexTable::PhiBins / Constants::Math::TwoPi };
+constexpr float InversePhiBinSize{ constants::IndexTable::PhiBins / constants::Math::TwoPi };
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
   return GPUArray<float, its::LayersNumber>{ { 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f,
