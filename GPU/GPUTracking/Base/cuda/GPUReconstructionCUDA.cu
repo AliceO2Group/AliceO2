@@ -101,8 +101,7 @@ GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsProc
 
 GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 {
-  mChains.clear(); // Make sure we destroy the ITS tracker before we exit CUDA
-  GPUFailedMsgI(cudaDeviceReset());
+  Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit CUDA
   delete mInternals;
 }
 

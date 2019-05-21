@@ -107,7 +107,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   friend class GPUChain;
 
  public:
-  ~GPUReconstructionCPU() override = default;
+  ~GPUReconstructionCPU() override;
 
 #ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
   template <class S, int I = 0>

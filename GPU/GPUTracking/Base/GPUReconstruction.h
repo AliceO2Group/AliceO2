@@ -105,6 +105,7 @@ class GPUReconstruction
 
   int Init();
   int Finalize();
+  int Exit();
 
   void DumpSettings(const char* dir = "");
   void ReadSettings(const char* dir = "");

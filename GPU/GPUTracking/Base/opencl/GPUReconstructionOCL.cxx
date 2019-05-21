@@ -64,7 +64,11 @@ GPUReconstructionOCLBackend::GPUReconstructionOCLBackend(const GPUSettingsProces
   mInternals->devices = nullptr;
 }
 
-GPUReconstructionOCLBackend::~GPUReconstructionOCLBackend() { delete mInternals; }
+GPUReconstructionOCLBackend::~GPUReconstructionOCLBackend()
+{
+  Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit CUDA
+  delete mInternals;
+}
 
 GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL(cfg); }
 

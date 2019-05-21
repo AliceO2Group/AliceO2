@@ -56,13 +56,8 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
 
 GPUReconstruction::~GPUReconstruction()
 {
-  // Reset these explicitly before the destruction of other members unloads the library
-  mHostConstantMem.reset();
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
-      operator delete(mMemoryResources[i].mPtrDevice);
-      mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
-    }
+  if (mInitialized) {
+    printf("ERROR, GPU Reconstruction not properly deinitialized!\n");
   }
 }
 
@@ -152,8 +147,23 @@ int GPUReconstruction::Finalize()
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->Finalize();
   }
+  return 0;
+}
 
-  ExitDevice();
+int GPUReconstruction::Exit()
+{
+  mChains.clear();          // Make sure we destroy a possible ITS GPU tracker before we call the destructors
+  mHostConstantMem.reset(); // Reset these explicitly before the destruction of other members unloads the library
+  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
+      operator delete(mMemoryResources[i].mPtrDevice);
+      mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
+    }
+  }
+  mMemoryResources.clear();
+  if (mInitialized) {
+    ExitDevice();
+  }
   mInitialized = false;
   return 0;
 }
