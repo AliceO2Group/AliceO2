@@ -28,7 +28,7 @@ void stackSetup(T* vmc, R* run)
     for (auto m : *modules) {
       if(strcmp("CAVE", ((FairModule*)m)->GetName()) == 0) {
         // this thing is the cave
-        if(auto c=dynamic_cast<o2::Passive::Cave*>(m)) {
+        if(auto c=dynamic_cast<o2::passive::Cave*>(m)) {
           foundCave = true;
           c->addFinishPrimaryHook([st](){ st->notifyFinishPrimary();});
         }

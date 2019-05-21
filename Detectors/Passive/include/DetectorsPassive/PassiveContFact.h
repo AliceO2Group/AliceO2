@@ -31,7 +31,7 @@
 class FairParSet;
 
 namespace o2 {
-namespace Passive {
+namespace passive {
 
 class PassiveContFact : public FairContFact
 {
@@ -41,7 +41,7 @@ class PassiveContFact : public FairContFact
     PassiveContFact();
     ~PassiveContFact() override {;}
     FairParSet* createContainer(FairContainer*) override;
-    ClassDefOverride(o2::Passive::PassiveContFact,0) // Factory for all Passive parameter containers
+    ClassDefOverride(o2::passive::PassiveContFact,0) // Factory for all Passive parameter containers
 };
 }
 }

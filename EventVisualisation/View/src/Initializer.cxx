@@ -35,7 +35,7 @@
 using namespace std;
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 Initializer::Initializer(EventManager::EDataSource defaultDataSource)
 {

@@ -31,7 +31,7 @@
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 
-using namespace o2::Passive;
+using namespace o2::passive;
 
 void Cave::createMaterials()
 {
@@ -128,4 +128,4 @@ bool Cave::ProcessHits(FairVolume*)
   return false;
 }
 
-ClassImp(o2::Passive::Cave)
+ClassImp(o2::passive::Cave)

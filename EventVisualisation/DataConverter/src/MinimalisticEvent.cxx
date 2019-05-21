@@ -19,7 +19,7 @@
 using namespace std;
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// Ctor -- set the minimalistic event up
 MinimalisticEvent::MinimalisticEvent( int eventNumber,

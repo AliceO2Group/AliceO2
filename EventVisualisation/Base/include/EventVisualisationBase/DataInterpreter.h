@@ -21,7 +21,7 @@
 #include <TEveElement.h>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
  
 /// DataInterpreter is a template class for detector-specific visualisation classes.
 ///

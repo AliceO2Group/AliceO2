@@ -19,7 +19,7 @@
 #include "EventVisualisationBase/EventManager.h"
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// This class initializes a core of the visualisation system.
 ///

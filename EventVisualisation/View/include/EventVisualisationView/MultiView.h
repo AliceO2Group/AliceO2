@@ -23,7 +23,7 @@
 #include <vector>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// This singleton class manages views and scenes of the event display.
 ///
