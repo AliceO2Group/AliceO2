@@ -28,6 +28,18 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
 #endif
+
+ protected:
+  template <int I>
+  class GPUTPCCompressionKernels_Compare
+  {
+   public:
+    GPUhdi() GPUTPCCompressionKernels_Compare(const o2::tpc::ClusterNative* p) : mClsPtr(p) {}
+    GPUd() bool operator()(unsigned int a, unsigned int b) const;
+
+   protected:
+    const o2::tpc::ClusterNative* mClsPtr;
+  };
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -29,6 +29,7 @@ void* GPUTPCCompression::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mClusterStatus, mMaxClusters);
   SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClusters, false);
+  computePointerWithAlignment(mem, mClusterSortBuffer, mNGPUBlocks * mNMaxClusterSliceRow);
   return mem;
 }
 

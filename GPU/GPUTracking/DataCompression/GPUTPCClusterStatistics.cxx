@@ -35,10 +35,12 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
       tmpClusters.resize(clustersNative->nClusters[i][j]);
       for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
         tmpClusters[k] = clustersNative->clusters[i][j][k];
-        GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qMax, param);
-        GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
-        GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
-        GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
+        if (param.rec.tpcCompressionModes & 1) {
+          GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qMax, param);
+          GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
+          GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
+          GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
+        }
       }
       std::sort(tmpClusters.begin(), tmpClusters.end());
       for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
@@ -56,5 +58,12 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
     mDecodingError = true;
   } else {
     printf("Cluster decoding verification: PASSED\n");
+  }
+}
+
+void GPUTPCClusterStatistics::Finish()
+{
+  if (mDecodingError) {
+    printf("-----------------------------------------\nERROR - INCORRECT CLUSTER DECODING!\n-----------------------------------------\n");
   }
 }

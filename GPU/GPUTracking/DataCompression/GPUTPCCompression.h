@@ -43,7 +43,7 @@ class GPUTPCGMMerger;
 
 class GPUTPCCompression : public GPUProcessor
 {
-  friend class GPUTPCCompressionKernel;
+  friend class GPUTPCCompressionKernels;
   friend class GPUChainTracking;
 
  public:
@@ -64,6 +64,7 @@ class GPUTPCCompression : public GPUProcessor
   }
   GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth); }
 
+ protected:
   struct memory {
     unsigned int nStoredTracks = 0;
     unsigned int nStoredAttachedClusters = 0;
@@ -78,14 +79,15 @@ class GPUTPCCompression : public GPUProcessor
 
   memory* mMemory = nullptr;
   unsigned int* mAttachedClusterFirstIndex = nullptr;
-
+  unsigned int* mClusterSortBuffer = nullptr;
   unsigned char* mClusterStatus = nullptr;
 
   unsigned int mMaxTracks = 0;
   unsigned int mMaxClusters = 0;
   unsigned int mMaxTrackClusters = 0;
+  unsigned int mNMaxClusterSliceRow = 0;
+  unsigned int mNGPUBlocks = 0;
 
- protected:
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
   template <class T>
