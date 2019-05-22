@@ -100,6 +100,40 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(int type, bool forceType) { return CreateInstance((DeviceType)type, forceType); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType);
 
+  //Helpers for kernel launches
+  template <class T, int I = 0>
+  class classArgument
+  {
+  };
+
+  typedef void deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t are actually pointers, we can cast them to deviceEvent* this way.
+
+  enum class krnlDeviceType : int { CPU = 0,
+                                    Device = 1,
+                                    Auto = -1 };
+  struct krnlExec {
+    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d) {}
+    unsigned int nBlocks;
+    unsigned int nThreads;
+    int stream;
+    krnlDeviceType device;
+  };
+  struct krnlRunRange {
+    constexpr krnlRunRange() = default;
+    constexpr krnlRunRange(unsigned int a) : start(a), num(0) {}
+    constexpr krnlRunRange(unsigned int s, int n) : start(s), num(n) {}
+
+    unsigned int start = 0;
+    int num = 0;
+  };
+  struct krnlEvent {
+    constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+    deviceEvent* ev;
+    deviceEvent* evList;
+    int nEvents;
+  };
+
+  //Global steering functions
   template <class T>
   T* AddChain();
 
