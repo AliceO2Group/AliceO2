@@ -115,7 +115,7 @@ GPUhdi() float GPUCommonMath::Tan(float x) { return CHOICE(tanf(x), tanf(x), tan
 
 GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
 {
-#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
   return CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
 #else
   for (int i = 31; i >= 0; i--) {
