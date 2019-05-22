@@ -45,8 +45,11 @@ endif()
 set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=HIP)
 
 set(CMAKE_CXX_COMPILER ${HIP_PATH}/bin/hipcc)
+if(HIP_AMDGPUTARGET)
+add_compile_options(--amdgpu-target=${HIP_AMDGPUTARGET})
+add_link_options(--amdgpu-target=${HIP_AMDGPUTARGET})
+endif()
 add_compile_options(--amdgpu-target=gfx906 -Wno-unused-command-line-argument -Wno-invalid-constexpr)
-add_link_options(--amdgpu-target=gfx906)
 
 message( STATUS "Building GPUTracking with HIP support" )
 
