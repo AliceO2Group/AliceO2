@@ -38,7 +38,7 @@ namespace o2 {
 
       // duration comparison
       LHCOrbitClock::duration fourOrbits(4);
-      BOOST_CHECK(fourOrbits == std::chrono::nanoseconds(4 * LHCClockParameter::gOrbitTimeNanoSec));
+      BOOST_CHECK(fourOrbits == std::chrono::nanoseconds(4 * lhc_clock_parameter::gOrbitTimeNanoSec));
     }
 
     BOOST_AUTO_TEST_CASE(TimeStamp_test)
@@ -83,7 +83,7 @@ namespace o2 {
       // check conversion of the us value to LHCClock
       auto timeInOrbitPrecision = timestamp.get<LHCOrbitClock>();
       auto timeInBunchPrecision = timestamp.get<LHCBunchClock>();
-      uint64_t expectedOrbits = tenSeconds * 1000 / (LHCClockParameter::gNumberOfBunches * LHCClockParameter::gBunchSpacingNanoSec);
+      uint64_t expectedOrbits = tenSeconds * 1000 / (lhc_clock_parameter::gNumberOfBunches * lhc_clock_parameter::gBunchSpacingNanoSec);
       BOOST_CHECK(timeInOrbitPrecision.count() == expectedOrbits);
 
       // conversion in orbit precision ignores bunches
