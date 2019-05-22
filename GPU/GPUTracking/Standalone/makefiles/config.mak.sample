@@ -16,6 +16,7 @@ HIDEECHO					= @
 #HIDEECHO					= -
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
+LINK_OVERRIDE				= $(GCCLINK)
 
 EXTRAFLAGSGCC				= -Weffc++
 EXTRAOBJFILES				= objfile.obj
@@ -50,7 +51,7 @@ include						config_common.mak
 
 TARGET						= ca
 SUBTARGETS					= libGPUTPCGPUSA
-SUBTARGETS_CLEAN				= libGPUTPCGPUSA.*
+SUBTARGETS_CLEAN			= libGPUTPCGPUSA.*
 #TARGETPATH					= ../
 
 TARGETTYPE					= LIB
