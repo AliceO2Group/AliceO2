@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 
+using namespace o2;
 using namespace o2::framework;
 
 // This is a stateful task, where we send the state downstream.
@@ -27,7 +28,7 @@ class ATask : public AnalysisTask
   {
   }
 
-  void processTracks(std::shared_ptr<arrow::Table> tracks)
+  virtual void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
   {
   }
 

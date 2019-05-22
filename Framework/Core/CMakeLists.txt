@@ -58,6 +58,7 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/InputSpec.cxx
+    src/Kernels.cxx
     src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
@@ -163,6 +164,7 @@ set(HEADERS
       include/Framework/FairMQResizableBuffer.h
       include/Framework/Metric2DViewIndex.h
       include/Framework/RawBufferContext.h
+      include/Framework/Kernels.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/O2ControlHelpers.h
@@ -229,6 +231,7 @@ O2_GENERATE_EXECUTABLE(
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_ASoA.cxx
       test/test_AnalysisTask.cxx
       test/test_BoostSerializedProcessing.cxx
       test/test_AlgorithmSpec.cxx
@@ -262,6 +265,7 @@ set(TEST_SRCS
       test/test_Graphviz.cxx
       test/test_InfoLogger.cxx
       test/test_InputRecord.cxx
+      test/test_Kernels.cxx
       test/test_LogParsingHelpers.cxx
       test/test_ParallelProducer.cxx
       test/test_PtrHelpers.cxx
