@@ -55,9 +55,9 @@ void drawNoiseAndPedestal(TString pedestalFile)
     // ===| histograms for noise and pedestal |===
     auto hPedestal = new TH1F(Form("hPedestal%02d", iroc), Form("Pedestal distribution ROC %02d;ADC value", iroc), 150, 0, 150);
     auto hNoise = new TH1F(Form("hNoise%02d", iroc), Form("Noise distribution ROC %02d;ADC value", iroc), 100, 0, 5);
-    auto hPedestal2D = Painter::getHistogram2D(rocPedestal);
+    auto hPedestal2D = painter::getHistogram2D(rocPedestal);
     hPedestal2D->SetStats(0);
-    auto hNoise2D = Painter::getHistogram2D(rocNoise);
+    auto hNoise2D = painter::getHistogram2D(rocNoise);
     hNoise2D->SetStats(0);
 
     // ===| fill 1D histograms |===

@@ -367,7 +367,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(lanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::tpc::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }

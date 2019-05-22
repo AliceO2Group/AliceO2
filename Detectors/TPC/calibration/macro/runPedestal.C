@@ -46,16 +46,16 @@ void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 
   //const CalDet<float>& calPedestal = ped.getPedestal();
   //const CalDet<float>& calNoise    = ped.getNoise();
 
-  //Painter::Draw(calPedestal);
-  //Painter::Draw(calNoise);
+  //painter::Draw(calPedestal);
+  //painter::Draw(calNoise);
 
   //TCanvas *cPedestal = new TCanvas("cPedestal","Pedestal");
-  //auto hPedestal = Painter::getHistogram2D(calPedestal.getCalArray(0));
+  //auto hPedestal = painter::getHistogram2D(calPedestal.getCalArray(0));
   //hPedestal->SetTitle("Pedestals");
   //hPedestal->Draw("colz");
 
   //TCanvas *cNoise = new TCanvas("cNoise","Noise");
-  //auto hNoise = Painter::getHistogram2D(calNoise.getCalArray(0));
+  //auto hNoise = painter::getHistogram2D(calNoise.getCalArray(0));
   //hNoise->SetTitle("Noise");
   //hNoise->Draw("colz");
 
