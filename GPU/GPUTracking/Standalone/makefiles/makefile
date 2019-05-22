@@ -1,10 +1,10 @@
 all								: all_tmp
 
-ARCH							:= $(shell sort <<< $$MACHTYPE)
+SHELL							:= /bin/bash
+ARCH							:= $(shell echo $$MACHTYPE)
 ARCHCHK							:= $(shell if [ -a makefiles/$(ARCH).mak ]; then echo -n 1; else echo -n 0; fi)
-ifeq ($(ARCHCHK), 1)
-else
-$(warning Unknown Architecture: $(ARCH) $(ARCHCHK), defaulting to x86_64-pc-linux-gnu)
+ifeq ($(ARCHCHK), 0)
+$(warning Unknown Architecture: $(ARCH), defaulting to x86_64-pc-linux-gnu)
 ARCH							:= x86_64-pc-linux-gnu
 endif
 ifeq ($(ARCH), i686-pc-cygwin)
