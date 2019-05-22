@@ -44,7 +44,7 @@ namespace o2
 {
 namespace tpc
 {
-namespace RecoWorkflow
+namespace reco_workflow
 {
 
 using namespace framework;
@@ -366,6 +366,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   return std::move(specs);
 }
 
-} // end namespace RecoWorkflow
+} // end namespace reco_workflow
 } // end namespace tpc
 } // end namespace o2

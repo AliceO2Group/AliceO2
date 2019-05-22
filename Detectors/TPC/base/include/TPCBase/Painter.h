@@ -32,7 +32,7 @@ class CalDet;
 template <class T>
 class CalArray;
 
-/// \namespace Painter
+/// \namespace painter
 /// \brief Drawing helper functions
 ///
 /// In this namespace drawing function for calibration objects are implemented
@@ -40,7 +40,7 @@ class CalArray;
 /// origin: TPC
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-namespace Painter
+namespace painter
 {
   //using T=float;
   /// Drawing of a CalDet object
@@ -67,7 +67,7 @@ namespace Painter
   template <class T>
   TH2* getHistogram2D(const CalArray<T>& calArray);
 
-} // namespace Painter
+} // namespace painter
 
 } // namespace tpc
 
