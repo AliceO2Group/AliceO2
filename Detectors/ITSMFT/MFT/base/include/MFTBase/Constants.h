@@ -21,7 +21,7 @@ namespace o2
 {
 namespace mft
 {
-namespace Constants
+namespace constants
 {
 constexpr Int_t DisksNumber{ 5 };
 constexpr Int_t LayersNumber{ 2 * DisksNumber };

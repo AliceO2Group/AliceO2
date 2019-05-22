@@ -22,7 +22,7 @@
 using namespace o2::mft;
 using namespace o2::itsmft;
 
-Tracker::Layer Tracker::sLayers[Constants::LayersNumber];
+Tracker::Layer Tracker::sLayers[constants::LayersNumber];
 
 //_____________________________________________________________________________
 Tracker::Tracker(Int_t n) : mNumOfThreads(n) {}
@@ -118,7 +118,7 @@ void Tracker::setGeometry(o2::mft::GeometryTGeo* geom)
 
   /// attach geometry interface
   mGeom = geom;
-  for (Int_t i = 0; i < Constants::LayersNumber; i++) {
+  for (Int_t i = 0; i < constants::LayersNumber; i++) {
     sLayers[i].setGeometry(geom);
   }
 }
@@ -153,9 +153,9 @@ Int_t Tracker::loadClusters(const std::vector<Cluster>& clusters)
 
   if (nLoaded) {
     std::vector<std::future<void>> fut;
-    for (Int_t l = 0; l < Constants::LayersNumber; l += mNumOfThreads) {
+    for (Int_t l = 0; l < constants::LayersNumber; l += mNumOfThreads) {
       for (Int_t t = 0; t < mNumOfThreads; t++) {
-        if ((l + t) >= Constants::LayersNumber)
+        if ((l + t) >= constants::LayersNumber)
           break;
         auto f = std::async(std::launch::async, &Tracker::Layer::init, sLayers + (l + t));
         fut.push_back(std::move(f));
@@ -172,7 +172,7 @@ Int_t Tracker::loadClusters(const std::vector<Cluster>& clusters)
 void Tracker::unloadClusters()
 {
 
-  for (Int_t i = 0; i < Constants::LayersNumber; i++) {
+  for (Int_t i = 0; i < constants::LayersNumber; i++) {
     sLayers[i].unloadClusters();
   }
 }
