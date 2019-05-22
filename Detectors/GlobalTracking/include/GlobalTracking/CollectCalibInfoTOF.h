@@ -21,8 +21,8 @@
 #include <string>
 #include <TStopwatch.h>
 #include <TParameter.h>
-#include "ReconstructionDataFormats/CalibInfoTOF.h"
-#include "ReconstructionDataFormats/CalibInfoTOFshort.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibInfoTOFshort.h"
 #include "TOFBase/Geo.h"
 
 class TTree;

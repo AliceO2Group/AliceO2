@@ -35,8 +35,6 @@
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
-#include "TOFClusterizerSpec.h"
-#include "TOFClusterWriterSpec.h"
 
 // for FIT
 #include "FITDigitizerSpec.h"
@@ -402,10 +400,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
-    // add TOF clusterer
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec());
-    // add TOF cluster writer
-    specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
   }
 
   // the FIT T0 part

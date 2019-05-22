@@ -3,7 +3,7 @@
 #include "TTree.h"
 #include "TLeaf.h"
 #include <stdio.h>
-#include "ReconstructionDataFormats/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 #endif
 
 void convertTreeTo02object()

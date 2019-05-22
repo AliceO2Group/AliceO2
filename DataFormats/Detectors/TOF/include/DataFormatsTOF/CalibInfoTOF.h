@@ -8,23 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CalibInfoTOFshort.h
-/// \brief Class to store the output of the matching to TOF for calibration (no channel info, available in CalibInfoTOF.h)
+/// \file CalibInfoTOF.h
+/// \brief Class to store the output of the matching to TOF for calibration
 
-#ifndef ALICEO2_CALIBINFOTOFSHORT_H
-#define ALICEO2_CALIBINFOTOFSHORT_H
+#ifndef ALICEO2_CALIBINFOTOF_H
+#define ALICEO2_CALIBINFOTOF_H
+
+#include "Rtypes.h"
 
 namespace o2
 {
 namespace dataformats
 {
-class CalibInfoTOFshort
+class CalibInfoTOF
 {
  public:
-  CalibInfoTOFshort(int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
-  CalibInfoTOFshort() = default;
-  void setTOFChIndex(int index) {}
-  int getTOFChIndex() const { return 0; }
+  CalibInfoTOF(int indexTOFCh, int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTOFChIndex(indexTOFCh), mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
+  CalibInfoTOF() = default;
+  ~CalibInfoTOF() = default;
+
+  void setTOFChIndex(int index) { mTOFChIndex = index; }
+  int getTOFChIndex() const { return mTOFChIndex; }
 
   void setTimestamp(int ts) { mTimestamp = ts; }
   int getTimestamp() const { return mTimestamp; }
@@ -39,12 +43,14 @@ class CalibInfoTOFshort
   float getFlags() const { return mFlags; }
 
  private:
+  int mTOFChIndex;      // index of the TOF channel
   int mTimestamp;       // timestamp in seconds
   float mDeltaTimePi;   // raw tof time - expected time for pi hypotesis
   float mTot;           // time-over-threshold
   unsigned char mFlags; // bit mask with quality flags (to be defined)
-  //  ClassDefNV(CalibInfoTOFshort, 1);
+
+  ClassDefNV(CalibInfoTOF, 1);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 #endif

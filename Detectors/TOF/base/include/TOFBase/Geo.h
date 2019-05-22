@@ -269,7 +269,8 @@ class Geo
 
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513; // Propagation delay [ns/cm]
-  static Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3];
+  static const Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3]; // not constexpr as we initialize it in CableLength.cxx at run time
+
   ClassDefNV(Geo, 1);
 };
 }

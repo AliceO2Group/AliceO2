@@ -83,6 +83,6 @@ class CalibTimeSlewingParamTOF
 
   //  ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 #endif

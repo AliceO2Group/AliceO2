@@ -23,7 +23,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
-#include "ReconstructionDataFormats/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -32,6 +32,10 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/PID.h"
+
+#ifdef _ALLOW_DEBUG_TREES_
+//#define _ALLOW_TOF_DEBUG_
+#endif
 
 class TTree;
 
@@ -76,7 +80,7 @@ class MatchTOF
   void init();
 
   ///< perform all initializations
-  void initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray);
+  void initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* toflab, const std::vector<o2::MCCompLabel>* itslab, const std::vector<o2::MCCompLabel>* tpclab);
 
   ///< set tree/chain containing tracks
   void setInputTreeTracks(TTree* tree) { mInputTreeTracks = tree; }
@@ -136,7 +140,6 @@ class MatchTOF
   ///< get number of sigma used to do the matching
   float getSigmaTimeCut() const { return mSigmaTimeCut; }
 
-#ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
     MatchTreeAll = 0x1 << 1, ///< produce matching candidates tree for all candidates
   };
@@ -164,7 +167,13 @@ class MatchTOF
   void fillTOFmatchTree(const char* tname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk, float intLength, float intTimePion, float timeTOF);
   void fillTOFmatchTreeWithLabels(const char* tname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk, int TPClabelTrackID, int TPClabelEventID, int TPClabelSourceID, int ITSlabelTrackID, int ITSlabelEventID, int ITSlabelSourceID, int TOFlabelTrackID0, int TOFlabelEventID0, int TOFlabelSourceID0, int TOFlabelTrackID1, int TOFlabelEventID1, int TOFlabelSourceID1, int TOFlabelTrackID2, int TOFlabelEventID2, int TOFlabelSourceID2, float intLength, float intTimePion, float timeTOF);
   void dumpWinnerMatches();
-#endif
+
+  std::vector<o2::dataformats::MatchInfoTOF>& getMatchedTrackVector() { return mMatchedTracks; }
+  std::vector<o2::dataformats::CalibInfoTOF>& getCalibVector() { return mCalibInfoTOF; }
+
+  std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector() { return mOutTOFLabels; } ///< get vector of TOF label of matched tracks
+  std::vector<o2::MCCompLabel>& getMatchedTPCLabelsVector() { return mOutTPCLabels; } ///< get vector of TPC label of matched tracks
+  std::vector<o2::MCCompLabel>& getMatchedITSLabelsVector() { return mOutITSLabels; } ///< get vector of ITS label of matched tracks
 
  private:
   void attachInputTrees();
@@ -209,15 +218,15 @@ class MatchTOF
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
-  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
-  std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
+  const std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
+  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
+  const std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
   std::vector<o2::MCCompLabel> mTracksLblWork;                                  ///<TPCITS track labels
 
-  std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
-  std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
+  const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
+  const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
 
   /// <<<-----
 
@@ -231,14 +240,14 @@ class MatchTOF
   std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
 
   ///<array of track-TOFCluster pairs from the matching
-  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
+  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracksPairs;
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
+  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;                 // this is the output of the matching
   std::vector<o2::MCCompLabel> mOutTOFLabels;                                ///< TOF label of matched tracks
   std::vector<o2::MCCompLabel> mOutTPCLabels;                                ///< TPC label of matched tracks
   std::vector<o2::MCCompLabel> mOutITSLabels;                                ///< ITS label of matched tracks
@@ -260,11 +269,9 @@ class MatchTOF
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch containing TOF labels for output matched tracks
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch containing TOF labels for output matched tracks
 
-#ifdef _ALLOW_DEBUG_TREES_
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   UInt_t mDBGFlags = 0;
   std::string mDebugTreeFileName = "dbg_matchTOF.root"; ///< name for the debug tree file
-#endif
 
   ///----------- aux stuff --------------///
   static constexpr float MAXSNP = 0.85; // max snp of ITS or TPC track at xRef to be matched

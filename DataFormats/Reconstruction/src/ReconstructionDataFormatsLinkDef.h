@@ -23,21 +23,15 @@
 #pragma link C++ class o2::dataformats::TrackTPCITS + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;
 #pragma link C++ class o2::dataformats::MatchInfoTOF + ;
-#pragma link C++ class o2::dataformats::CalibInfoTOFshort + ;
-#pragma link C++ class o2::dataformats::CalibInfoTOF + ;
+#pragma link C++ class std::vector < o2::dataformats::MatchInfoTOF> + ;
 
 #pragma link C++ class std::vector < std::pair < float, float >> +;
 #pragma link C++ class std::vector < std::pair < int, float >> +;
 #pragma link C++ class std::vector < int> + ;
 
-#pragma link C++ class o2::dataformats::CalibLHCphaseTOF + ;
-#pragma link C++ class o2::dataformats::CalibTimeSlewingParamTOF + ;
-
 #pragma link C++ class o2::dataformats::Vertex < int > +;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >> +;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double >> +;
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >>> +;
-#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOFshort > +;
-#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOF > +;
 
 #endif

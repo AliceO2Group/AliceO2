@@ -9,7 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TOFBase
-               SOURCES src/Geo.cxx src/Digit.cxx
+               SOURCES src/Geo.cxx
+                       src/Digit.cxx
+                       src/CableLength.cxx
+                       src/Mapping.cxx
                PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base
                                      O2::DetectorsBase)
 

@@ -13,7 +13,7 @@
 
 #include <algorithm>
 #include <cstdio>
-#include "ReconstructionDataFormats/CalibLHCphaseTOF.h"
+#include "DataFormatsTOF/CalibLHCphaseTOF.h"
 
 using namespace o2::dataformats;
 

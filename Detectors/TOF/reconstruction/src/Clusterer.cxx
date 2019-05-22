@@ -16,12 +16,16 @@
 #include "TOFReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <TStopwatch.h>
 
 using namespace o2::tof;
 
 //__________________________________________________
 void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
+  TStopwatch timerProcess;
+  timerProcess.Start();
+
   reader.init();
   int totNumDigits = 0;
 
@@ -34,6 +38,10 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
   }
 
   LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
+  timerProcess.Stop();
+  printf("Timing:\n");
+  printf("Clusterer::process:        ");
+  timerProcess.Print();
 }
 
 //__________________________________________________

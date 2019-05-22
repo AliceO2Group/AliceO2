@@ -23,8 +23,6 @@ o2_add_executable(digitizer-workflow
                           src/MIDDigitizerSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
-                          src/TOFClusterWriterSpec.cxx
-                          src/TOFClusterizerSpec.cxx
                           src/TOFDigitWriterSpec.cxx
                           src/TOFDigitizerSpec.cxx
                           src/TPCDigitRootWriterSpec.cxx

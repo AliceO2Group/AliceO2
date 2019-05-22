@@ -14,6 +14,7 @@ o2_add_test_root_macro(checkRotation.C
 
 o2_add_test_root_macro(convertTreeTo02object.C
                        PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+		       			     O2::DataFormatsTOF 
                        LABELS tof)
 
 o2_add_test_root_macro(drawTOFgeometry.C
