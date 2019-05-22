@@ -2208,3 +2208,17 @@ void Detector::Reset()
 {
   mHits->clear();
 }
+
+//_____________________________________________________________________________
+void Detector::SetSpecialPhysicsCuts()
+{
+  LOG(INFO) << "Setting special cuts for ZDC";
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  std::string inputFile;
+  if (aliceO2env) {
+    inputFile = std::string(aliceO2env);
+  }
+  inputFile += "/share/Detectors/ZDC/simulation/data/simcuts.dat";
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.loadCutsAndProcessesFromFile(GetName(), inputFile.c_str());
+}
