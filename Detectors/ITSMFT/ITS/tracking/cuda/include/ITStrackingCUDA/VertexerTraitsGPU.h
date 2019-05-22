@@ -31,7 +31,7 @@ namespace its
 {
 class ROframe;
 
-using Constants::IndexTable::InversePhiBinSize;
+using constants::IndexTable::InversePhiBinSize;
 
 class VertexerTraitsGPU : public VertexerTraits
 {

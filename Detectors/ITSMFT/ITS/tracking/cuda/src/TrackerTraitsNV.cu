@@ -52,16 +52,14 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     Vector<Cluster> nextLayerClusters { devStore.getClusters()[layerIndex + 1].getWeakCopy() };
     const Cluster currentCluster { devStore.getClusters()[layerIndex][currentClusterIndex] };
 
-    /*if (mUsedClustersTable[currentCluster.clusterId] != Constants::its::UnusedIndex) {
+    /*if (mUsedClustersTable[currentCluster.clusterId] != constants::its::UnusedIndex) {
 
      continue;
      }*/
 
     const float tanLambda { (currentCluster.zCoordinate - devStore.getPrimaryVertex().z)
         / currentCluster.rCoordinate };
-    const float directionZIntersection { tanLambda
-        * ((Constants::its::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate)
-        + currentCluster.zCoordinate };
+    const float directionZIntersection{ tanLambda * ((constants::its::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate) + currentCluster.zCoordinate };
 
     const int4 selectedBinsRect { TrackerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection,
                                                              kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi) };
@@ -73,11 +71,11 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
 
       if (phiBinsNum < 0) {
 
-        phiBinsNum += Constants::IndexTable::PhiBins;
+        phiBinsNum += constants::IndexTable::PhiBins;
       }
 
-      for (int iPhiBin { selectedBinsRect.y }, iPhiCount { 0 }; iPhiCount < phiBinsNum;
-          iPhiBin = ++iPhiBin == Constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
+      for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
+           iPhiBin = ++iPhiBin == constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
 
         const int firstBinIndex { IndexTableUtils::getBinIndex(selectedBinsRect.x, iPhiBin) };
         const int firstRowClusterIndex = devStore.getIndexTables()[layerIndex][firstBinIndex];
@@ -94,19 +92,17 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
                   - nextCluster.zCoordinate) };
           const float deltaPhi { MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
 
-          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex]
-              && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi
-                  || MATH_ABS(deltaPhi - Constants::Math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
+          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || MATH_ABS(deltaPhi - constants::Math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
 
-        	  cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
-			  int currentIndex { };
+            cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
+            int currentIndex{};
 
-			  if (threadGroup.thread_rank() == 0) {
+            if (threadGroup.thread_rank() == 0) {
 
-				currentIndex = trackletsVector.extend(threadGroup.size());
-			  }
+              currentIndex = trackletsVector.extend(threadGroup.size());
+            }
 
-			  currentIndex = threadGroup.shfl(currentIndex, 0) + threadGroup.thread_rank();
+            currentIndex = threadGroup.shfl(currentIndex, 0) + threadGroup.thread_rank();
 
             trackletsVector.emplace(currentIndex, currentClusterIndex, iNextLayerCluster, currentCluster, nextCluster);
             ++clusterTrackletsNum;
@@ -159,9 +155,7 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
         const float deltaTanLambda { MATH_ABS(currentTracklet.tanLambda - nextTracklet.tanLambda) };
         const float deltaPhi { MATH_ABS(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate) };
 
-        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda
-            && (deltaPhi < kTrkPar.CellMaxDeltaPhi
-                || MATH_ABS(deltaPhi - Constants::Math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
+        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || MATH_ABS(deltaPhi - constants::Math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
 
           const float averageTanLambda { 0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda) };
           const float directionZIntersection { -averageTanLambda * firstCellCluster.rCoordinate
@@ -186,8 +180,7 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
                 cellPlaneNormalVector.x * cellPlaneNormalVector.x + cellPlaneNormalVector.y * cellPlaneNormalVector.y
                     + cellPlaneNormalVector.z * cellPlaneNormalVector.z) };
 
-            if (!(vectorNorm < Constants::Math::FloatMinThreshold
-                || MATH_ABS(cellPlaneNormalVector.z) < Constants::Math::FloatMinThreshold)) {
+            if (!(vectorNorm < constants::Math::FloatMinThreshold || MATH_ABS(cellPlaneNormalVector.z) < constants::Math::FloatMinThreshold)) {
 
               const float inverseVectorNorm { 1.0f / vectorNorm };
               const float3 normalizedPlaneVector { cellPlaneNormalVector.x * inverseVectorNorm, cellPlaneNormalVector.y
@@ -300,11 +293,11 @@ void TrackerTraitsNV::computeLayerTracklets()
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
-  std::array<size_t, Constants::its::CellsPerRoad> tempSize;
-  std::array<int, Constants::its::CellsPerRoad> trackletsNum;
-  std::array<GPU::Stream, Constants::its::TrackletsPerRoad> streamArray;
+  std::array<size_t, constants::its::CellsPerRoad> tempSize;
+  std::array<int, constants::its::CellsPerRoad> trackletsNum;
+  std::array<GPU::Stream, constants::its::TrackletsPerRoad> streamArray;
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad; ++iLayer) {
 
     tempSize[iLayer] = 0;
     primaryVertexContext->getTempTrackletArray()[iLayer].reset(
@@ -320,7 +313,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
 
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int clustersNum { static_cast<int>(primaryVertexContext->getClusters()[iLayer].size()) };
@@ -352,7 +345,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad; ++iLayer) {
 
     trackletsNum[iLayer] = primaryVertexContext->getTempTrackletArray()[iLayer].getSizeFromDevice();
     if (trackletsNum[iLayer] == 0) {
@@ -382,19 +375,18 @@ void TrackerTraitsNV::computeLayerTracklets()
       throw std::runtime_error { errorString.str() };
     }
   }
-
 }
 
 void TrackerTraitsNV::computeLayerCells()
 {
 
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
-  std::array<size_t, Constants::its::CellsPerRoad - 1> tempSize;
-  std::array<int, Constants::its::CellsPerRoad - 1> trackletsNum;
-  std::array<int, Constants::its::CellsPerRoad - 1> cellsNum;
-  std::array<GPU::Stream, Constants::its::CellsPerRoad> streamArray;
+  std::array<size_t, constants::its::CellsPerRoad - 1> tempSize;
+  std::array<int, constants::its::CellsPerRoad - 1> trackletsNum;
+  std::array<int, constants::its::CellsPerRoad - 1> cellsNum;
+  std::array<GPU::Stream, constants::its::CellsPerRoad> streamArray;
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
 
     tempSize[iLayer] = 0;
     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
@@ -412,7 +404,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad; ++iLayer) {
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
     if (trackletsSize == 0) {
@@ -446,7 +438,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
     if (cellsNum[iLayer] == 0) {
       continue;
@@ -478,7 +470,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer { 0 }; iLayer < Constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::CellsPerRoad; ++iLayer) {
 
     int cellsSize = 0;
     if (iLayer == 0) {
