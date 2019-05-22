@@ -22,51 +22,56 @@
 #include <cassert>
 #include <type_traits> // for std::integral_constant
 
-namespace o2 {
-namespace header {
+namespace o2
+{
+namespace header
+{
 
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
 // https://www.lhc-closer.es/taking_a_closer_look_at_lhc/0.buckets_and_bunches
 
-namespace lhc_clock_parameter {
-  // number of bunches and the 40 MHz clock with 25 ns bunch spacing
-  // gives revolution time of 89.1 us and 11.223345 kHz
-  // this depends on the assumption that the particles are moving effectively
-  // at speed of light. There are also documents specifying the orbit time
-  // to 89.4 us
-  // Note: avoid to define the revolution frequency and use the integral numbers
-  // for bunch places and bunch spacing in nano seconds
-  // TODO: this eventually needs to be configurable
-  const int gNumberOfBunches = 3564;
-  const int gBunchSpacingNanoSec = 25;
-  const int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches*gBunchSpacingNanoSec>::num;
+namespace lhc_clock_parameter
+{
+// number of bunches and the 40 MHz clock with 25 ns bunch spacing
+// gives revolution time of 89.1 us and 11.223345 kHz
+// this depends on the assumption that the particles are moving effectively
+// at speed of light. There are also documents specifying the orbit time
+// to 89.4 us
+// Note: avoid to define the revolution frequency and use the integral numbers
+// for bunch places and bunch spacing in nano seconds
+// TODO: this eventually needs to be configurable
+static constexpr int gNumberOfBunches = 3564;
+static constexpr int gBunchSpacingNanoSec = 25;
+static constexpr int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches * gBunchSpacingNanoSec>::num;
 
-  using OrbitPrecision = std::integral_constant<int, 0>;
-  using BunchPrecision = std::integral_constant<int, 1>;
+using OrbitPrecision = std::integral_constant<int, 0>;
+using BunchPrecision = std::integral_constant<int, 1>;
 
-  // the type of the clock tick depends on whether to use also the bunches
-  // as substructure of the orbit.
-  // a trait class to extrat the properties of the clock, namely the type
-  // of the tick and the period
-  template <typename T>
-  struct Property {
-    // the default does not specify anything and is never going to be used
-  };
-  template <>
-  struct Property<OrbitPrecision> {
-    using rep = uint32_t;
-    // avoid rounding errors by using the integral numbers in the std::ratio
-    // template to define the period
-    using period = std::ratio_multiply<std::ratio<gOrbitTimeNanoSec>, std::nano>;
-  };
-  template <>
-  struct Property<BunchPrecision> {
-    using rep = uint64_t;
-    // this is effectively the LHC clock and the ratio is the
-    // bunch spacing
-    using period = std::ratio_multiply<std::ratio<gBunchSpacingNanoSec>, std::nano>;
-  };
+// the type of the clock tick depends on whether to use also the bunches
+// as substructure of the orbit.
+// a trait class to extrat the properties of the clock, namely the type
+// of the tick and the period
+template <typename T>
+struct Property {
+  // the default does not specify anything and is never going to be used
 };
+
+template <>
+struct Property<OrbitPrecision> {
+  using rep = uint32_t;
+  // avoid rounding errors by using the integral numbers in the std::ratio
+  // template to define the period
+  using period = std::ratio_multiply<std::ratio<gOrbitTimeNanoSec>, std::nano>;
+};
+
+template <>
+struct Property<BunchPrecision> {
+  using rep = uint64_t;
+  // this is effectively the LHC clock and the ratio is the
+  // bunch spacing
+  using period = std::ratio_multiply<std::ratio<gBunchSpacingNanoSec>, std::nano>;
+};
+} // namespace lhc_clock_parameter
 
 // a chrono clock implementation
 // - always relative to run start
@@ -74,8 +79,9 @@ namespace lhc_clock_parameter {
 // - based on revolution frequency and number of bunches
 // TODO: the reference time is probably the start of the fill
 template <typename RefTimePoint, typename Precision = lhc_clock_parameter::OrbitPrecision>
-class LHCClock {
-public:
+class LHCClock
+{
+ public:
   LHCClock(const RefTimePoint& start) : mReference(start) {}
   /// forbidden, always need a reference
   LHCClock() = delete;
@@ -98,7 +104,7 @@ public:
     return time_point(std::chrono::duration_cast<duration>(std::chrono::system_clock::now()) - mReference);
   }
 
-private:
+ private:
   /// external reference: start time of the run
   RefTimePoint mReference;
 };
@@ -175,6 +181,6 @@ class TimeStamp
   };
 };
 } //namespace header
-} //namespace AliceO2
+} //namespace o2
 
 #endif
