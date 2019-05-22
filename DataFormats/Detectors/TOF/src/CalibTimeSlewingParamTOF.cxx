@@ -13,7 +13,7 @@
 
 #include <algorithm>
 #include <cstdio>
-#include "ReconstructionDataFormats/CalibTimeSlewingParamTOF.h"
+#include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 
 using namespace o2::dataformats;
 

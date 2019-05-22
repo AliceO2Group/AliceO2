@@ -10,8 +10,16 @@
 
 o2_add_library(DataFormatsTOF
                SOURCES src/Cluster.cxx
+                       src/CalibInfoTOFshort.cxx
+                       src/CalibInfoTOF.cxx
+                       src/CalibLHCphaseTOF.cxx
+                       src/CalibTimeSlewingParamTOF.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      Boost::serialization)
 
 o2_target_root_dictionary(DataFormatsTOF
-                          HEADERS include/DataFormatsTOF/Cluster.h)
+                          HEADERS include/DataFormatsTOF/Cluster.h
+                                  include/DataFormatsTOF/CalibInfoTOFshort.h
+                                  include/DataFormatsTOF/CalibInfoTOF.h
+                                  include/DataFormatsTOF/CalibLHCphaseTOF.h
+                                  include/DataFormatsTOF/CalibTimeSlewingParamTOF.h)
