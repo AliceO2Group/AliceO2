@@ -110,7 +110,7 @@ void DigitReader::run(ProcessingContext& pc)
     return;
   }
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)

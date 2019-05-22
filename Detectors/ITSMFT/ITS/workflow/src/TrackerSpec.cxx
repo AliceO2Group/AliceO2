@@ -149,7 +149,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
 
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
 DataProcessorSpec getTrackerSpec()

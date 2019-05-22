@@ -126,7 +126,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)

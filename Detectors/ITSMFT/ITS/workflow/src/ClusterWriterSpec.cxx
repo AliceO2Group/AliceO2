@@ -87,7 +87,7 @@ void ClusterWriter::run(ProcessingContext& pc)
   mFile->Close();
 
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)
