@@ -20,7 +20,7 @@ namespace its
 {
 
 const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
-  const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
+  const std::array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>& indexTable,
   const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
@@ -28,13 +28,13 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
   int phiBinsNum{ selectedBinsRect[3] - selectedBinsRect[1] + 1 };
 
   if (phiBinsNum < 0) {
-    phiBinsNum += Constants::IndexTable::PhiBins;
+    phiBinsNum += constants::IndexTable::PhiBins;
   }
 
   filteredBins.reserve(phiBinsNum);
 
   for (int iPhiBin{ selectedBinsRect[1] }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
-       iPhiBin = ++iPhiBin == Constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
+       iPhiBin = ++iPhiBin == constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
 
     const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect[0], iPhiBin) };
 

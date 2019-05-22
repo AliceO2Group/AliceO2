@@ -228,9 +228,9 @@ void Tracker::findTracks(const ROframe& event)
         clusters[iCell] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getFirstClusterIndex();
         clusters[iCell + 1] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getSecondClusterIndex();
         clusters[iCell + 2] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getThirdClusterIndex();
-        assert(clusters[iCell] != Constants::its::UnusedIndex &&
-               clusters[iCell + 1] != Constants::its::UnusedIndex &&
-               clusters[iCell + 2] != Constants::its::UnusedIndex);
+        assert(clusters[iCell] != constants::its::UnusedIndex &&
+               clusters[iCell + 1] != constants::its::UnusedIndex &&
+               clusters[iCell + 2] != constants::its::UnusedIndex);
         lastCellLevel = iCell;
         CA_DEBUGGER(nClusters++);
       }
