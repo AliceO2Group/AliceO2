@@ -41,6 +41,6 @@ class CalibLHCphaseTOF
 
   //  ClassDefNV(CalibLHCphaseTOF, 1);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 #endif
