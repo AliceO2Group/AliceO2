@@ -7,8 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
-#define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
+#ifndef FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_
+#define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_
+
+#include "../../src/DataProcessorInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
@@ -25,13 +27,14 @@ namespace gui
 class WorkspaceGUIState;
 
 void showTopologyNodeGraph(WorkspaceGUIState& state,
-                           const std::vector<DeviceInfo>& infos,
-                           const std::vector<DeviceSpec>& specs,
+                           std::vector<DeviceInfo> const& infos,
+                           std::vector<DeviceSpec> const& specs,
+                           std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
-                           const std::vector<DeviceMetricsInfo>& metricsInfos);
+                           std::vector<DeviceMetricsInfo> const& metricsInfos);
 
 } // namespace gui
 } // namespace framework
 } // namespace o2
 
-#endif // FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
+#endif // FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_

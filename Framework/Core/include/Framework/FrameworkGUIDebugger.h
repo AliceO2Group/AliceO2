@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
 #define FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
 
+#include "DataProcessorInfo.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
@@ -28,9 +29,13 @@ class DriverControl;
 
 namespace gui
 {
-std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
-                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+/// Helper to get the callback to draw the debug GUI
+std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
+                                         std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessorInfo> const& metadata,
+                                         std::vector<DeviceMetricsInfo> const& metricsInfos,
+                                         DriverInfo const& driverInfo,
+                                         std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl);
 } // namespace gui
 } // namespace framework

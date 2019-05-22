@@ -73,7 +73,6 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   auto resources = rm.getAvailableResources();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
-  char* fakeArgv[] = { strdup("foo"), nullptr };
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
@@ -83,7 +82,17 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
     ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}}
   };
 
-  DeviceSpecHelpers::prepareArguments(1, fakeArgv, false, false, devices, workflowOptions, executions, controls);
+  std::vector<DataProcessorInfo> dataProcessorInfos = {
+    {
+      { "A", "foo", {}, workflowOptions },
+      { "B", "foo", {}, workflowOptions },
+      { "C", "foo", {}, workflowOptions },
+      { "D", "foo", {}, workflowOptions },
+    }
+  };
+  DeviceSpecHelpers::prepareArguments(false, false,
+                                      dataProcessorInfos,
+                                      devices, executions, controls);
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
