@@ -27,6 +27,5 @@
 #pragma link C++ class std::vector < o2::tpc::TrackTPC > +;
 #pragma link C++ class std::vector < o2::its::TrackITS > +;
 #pragma link C++ class std::vector < o2::tof::Cluster > +;
-#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOF > +;
 
 #endif

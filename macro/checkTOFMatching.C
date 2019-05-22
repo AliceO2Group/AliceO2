@@ -15,8 +15,8 @@ void checkTOFMatching()
   // getting TOF info
   TFile* fmatchTOF = new TFile("o2match_tof.root");
   TTree* matchTOF = (TTree*)fmatchTOF->Get("matchTOF");
-  std::vector<std::pair<o2::dataformats::EvIndex<int, int>, o2::dataformats::MatchInfoTOF>>* TOFMatchInfo;
-  TOFMatchInfo = new std::vector<std::pair<o2::dataformats::EvIndex<int, int>, o2::dataformats::MatchInfoTOF>>;
+  std::vector<o2::dataformats::MatchInfoTOF>* TOFMatchInfo;
+  TOFMatchInfo = new std::vector<o2::dataformats::MatchInfoTOF>;
   matchTOF->SetBranchAddress("TOFMatchInfo", &TOFMatchInfo);
 
   // getting the ITSTPCtracks
@@ -63,8 +63,8 @@ void checkTOFMatching()
     // now looping over the matched tracks
     nMatches += TOFMatchInfo->size();
     for (int imatch = 0; imatch < TOFMatchInfo->size(); imatch++) {
-      int indexITSTPCtrack = TOFMatchInfo->at(imatch).first.getIndex();
-      o2::dataformats::MatchInfoTOF infoTOF = TOFMatchInfo->at(imatch).second;
+      int indexITSTPCtrack = TOFMatchInfo->at(imatch).getTrackIndex();
+      o2::dataformats::MatchInfoTOF infoTOF = TOFMatchInfo->at(imatch);
       int tofClIndex = infoTOF.getTOFClIndex();
       float chi2 = infoTOF.getChi2();
       Printf("\nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
@@ -193,7 +193,7 @@ void checkTOFMatching()
 
       bool bMatched = kFALSE;
       for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
-        if ((labelsTPC[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsTPC[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC[0].getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsITS[0].getSourceID() == labelsTOF[ilabel].getSourceID())) {
+        if ((abs(labelsTPC[0].getTrackID()) == labelsTOF[ilabel].getTrackID() && labelsTPC[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC[0].getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsITS[0].getSourceID() == labelsTOF[ilabel].getSourceID())) {
           nGoodMatches++;
           bMatched = kTRUE;
           break;
@@ -211,7 +211,7 @@ void checkTOFMatching()
         itsTree->GetEntry(evIdxITScheck.getEvent());
         const auto& labelsTPCcheck = mcTPC->getLabels(evIdxTPCcheck.getIndex());
         for (int ilabel = 0; ilabel < labelsTPCcheck.size(); ilabel++) {
-          if (labelsTPCcheck[ilabel].getTrackID() == trackIdTOF && labelsTPCcheck[ilabel].getEventID() == eventIdTOF && labelsTPCcheck[ilabel].getSourceID() == sourceIdTOF) {
+          if (abs(labelsTPCcheck[ilabel].getTrackID()) == trackIdTOF && labelsTPCcheck[ilabel].getEventID() == eventIdTOF && labelsTPCcheck[ilabel].getSourceID() == sourceIdTOF) {
             Printf("The TPC track that should have been matched to TOF is number %d", i);
             TPCfound = true;
           }

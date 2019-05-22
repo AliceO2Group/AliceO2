@@ -8,19 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_
-#define STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_
+/// \file CalibInfoTOF.cxx
+/// \brief Class to store the output of the matching to TOF for calibration
 
-#include "Framework/DataProcessorSpec.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 
-namespace o2
-{
-namespace tof
-{
+using namespace o2::dataformats;
 
-o2::framework::DataProcessorSpec getTOFClusterWriterSpec();
-
-} // end namespace tof
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_ */
+ClassImp(o2::dataformats::CalibInfoTOF);

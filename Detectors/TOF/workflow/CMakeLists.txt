@@ -1,19 +1,18 @@
-set(MODULE_NAME "TOFWorkflow")
-set(MODULE_BUCKET_NAME TOF_workflow_bucket)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(TOFWorkflowUtils
+               SOURCES src/DigitReaderSpec.cxx
+	               src/ClusterReaderSpec.cxx
+ 		       src/TOFClusterizerSpec.cxx
+  		       src/TOFClusterWriterSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::TOFBase O2::DataFormatsTOF
+                                     O2::TOFReconstruction)
 
-set(SRCS
-  src/RecoWorkflowSpec.cxx
-  )
-
-set(HEADERS
-#  include/ReconstructionDataFormats/MatchInfoTOF.h
-  include/${MODULE_NAME}/RecoWorkflowSpec.h
-)
-
-set(LINKDEF src/TOFWorkflowLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()

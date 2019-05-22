@@ -14,10 +14,6 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackTPCITS.cxx
                        src/Vertex.cxx
                        src/MatchInfoTOF.cxx
-                       src/CalibInfoTOFshort.cxx
-                       src/CalibInfoTOF.cxx
-                       src/CalibLHCphaseTOF.cxx
-                       src/CalibTimeSlewingParamTOF.cxx
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
@@ -31,10 +27,6 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/TrackTPCITS.h
           include/ReconstructionDataFormats/Vertex.h
           include/ReconstructionDataFormats/MatchInfoTOF.h
-          include/ReconstructionDataFormats/CalibInfoTOFshort.h
-          include/ReconstructionDataFormats/CalibInfoTOF.h
-          include/ReconstructionDataFormats/CalibLHCphaseTOF.h
-          include/ReconstructionDataFormats/CalibTimeSlewingParamTOF.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h)
 

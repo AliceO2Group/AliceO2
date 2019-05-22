@@ -8,19 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZER_H_
-#define STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZER_H_
+#ifndef TOF_RECOWORKFLOW_H_
+#define TOF_RECOWORKFLOW_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
 
 namespace o2
 {
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFClusterizerSpec();
+o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC);
 
 } // end namespace tof
 } // end namespace o2
 
-#endif /* STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZERSPEC_H_ */
+#endif /* TOF_RECOWORKFLOW_H_ */

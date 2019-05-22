@@ -8,11 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file MatchInfoTOF.cxx
-/// \brief Class to store the output of the matching to TOF
+#include "TOFBase/Geo.h"
 
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+using namespace o2::tof;
 
-using namespace o2::dataformats;
-
-ClassImp(o2::dataformats::MatchInfoTOF);
+// TOF channels: electronic map <-> simulation/reconstruction map

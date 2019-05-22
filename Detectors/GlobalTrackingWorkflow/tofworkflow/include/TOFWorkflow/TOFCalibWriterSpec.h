@@ -8,11 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CalibInfoTOF.cxx
-/// \brief Class to store the output of the matching to TOF for calibration
+#ifndef TOFWORKFLOW_TOFCALIBWRITER_H_
+#define TOFWORKFLOW_TOFCALIBWRITER_H_
 
-#include "ReconstructionDataFormats/CalibInfoTOFshort.h"
+#include "Framework/DataProcessorSpec.h"
 
-using namespace o2::dataformats;
+namespace o2
+{
+namespace tof
+{
 
-//ClassImp(o2::dataformats::CalibInfoTOFshort);
+o2::framework::DataProcessorSpec getTOFCalibWriterSpec();
+
+} // end namespace tof
+} // end namespace o2
+
+#endif /* TOFWORKFLOW_TOFCALIBWRITER_H_ */
