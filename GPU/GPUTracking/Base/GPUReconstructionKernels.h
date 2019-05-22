@@ -32,6 +32,12 @@ class GPUReconstructionKernels : public T
 #endif
 {
  public:
+  using krnlRunRange = GPUReconstruction::krnlRunRange;
+  using krnlExec = GPUReconstruction::krnlExec;
+  using krnlEvent = GPUReconstruction::krnlEvent;
+  template <class X, int Y = 0>
+  using classArgument = GPUReconstruction::classArgument<X, Y>;
+
   virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUCA_KRNL_CLASS(cfg) {}
 
