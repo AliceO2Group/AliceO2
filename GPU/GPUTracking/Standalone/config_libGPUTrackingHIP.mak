@@ -14,3 +14,5 @@ DEFINES						+= GPUCA_GPULIBRARY=HIP
 
 LIBSUSE						+= -lGPUTracking
 libGPUTrackingHIP.so:		libGPUTracking.so
+
+LINK_OVERRIDE				= $(HIPCC) $(LINKFLAGS)
