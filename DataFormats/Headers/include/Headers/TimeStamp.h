@@ -28,7 +28,7 @@ namespace header {
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
 // https://www.lhc-closer.es/taking_a_closer_look_at_lhc/0.buckets_and_bunches
 
-namespace LHCClockParameter {
+namespace lhc_clock_parameter {
   // number of bunches and the 40 MHz clock with 25 ns bunch spacing
   // gives revolution time of 89.1 us and 11.223345 kHz
   // this depends on the assumption that the particles are moving effectively
@@ -73,7 +73,7 @@ namespace LHCClockParameter {
 // - need run start to calculate the epoch
 // - based on revolution frequency and number of bunches
 // TODO: the reference time is probably the start of the fill
-template <typename RefTimePoint, typename Precision = LHCClockParameter::OrbitPrecision>
+template <typename RefTimePoint, typename Precision = lhc_clock_parameter::OrbitPrecision>
 class LHCClock {
 public:
   LHCClock(const RefTimePoint& start) : mReference(start) {}
@@ -83,8 +83,8 @@ public:
   LHCClock(const LHCClock&) = default;
   LHCClock& operator=(const LHCClock&) = default;
 
-  using rep = typename LHCClockParameter::Property<Precision>::rep;
-  using period = typename LHCClockParameter::Property<Precision>::period;
+  using rep = typename lhc_clock_parameter::Property<Precision>::rep;
+  using period = typename lhc_clock_parameter::Property<Precision>::period;
   using duration = std::chrono::duration<rep, period>;
   using time_point = std::chrono::time_point<LHCClock>;
   // this follows the naming convention of std chrono
@@ -104,8 +104,8 @@ private:
 };
 
 // TODO: is it correct to define this types always relative to the system clock?
-using LHCOrbitClock = LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::OrbitPrecision>;
-using LHCBunchClock = LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::BunchPrecision>;
+using LHCOrbitClock = LHCClock<std::chrono::system_clock::time_point, lhc_clock_parameter::OrbitPrecision>;
+using LHCBunchClock = LHCClock<std::chrono::system_clock::time_point, lhc_clock_parameter::BunchPrecision>;
 
 class TimeStamp
 {
