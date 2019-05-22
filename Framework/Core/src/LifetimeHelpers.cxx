@@ -73,7 +73,6 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
   return [last, period](TimesliceIndex& index) -> TimesliceSlot {
-
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;

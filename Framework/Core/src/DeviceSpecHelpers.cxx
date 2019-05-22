@@ -113,9 +113,7 @@ struct ExpirationHandlerHelpers {
   static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
-      std::string rateName = std::string{ "period-" } + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
-      return LifetimeHelpers::expireTimed(std::chrono::microseconds(period));
+      return LifetimeHelpers::expireAlways();
     };
   }
 
