@@ -190,6 +190,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx
+        DataCompression/GPUTPCCompressionTrackModel.cxx
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
@@ -207,6 +208,7 @@ else() #Need at least the header installed, as it is part of constant memory
         TPCConvert/GPUTPCConvert.h
         TPCConvert/GPUTPCConvertKernel.h
         DataCompression/GPUTPCCompression.h
+        DataCompression/GPUTPCCompressionTrackModel.h
         DataCompression/GPUTPCCompressionKernels.h
         DataCompression/TPCClusterDecompressor.h
         DataCompression/GPUTPCClusterStatistics.h

@@ -13,24 +13,28 @@
 
 #include "TPCClusterDecompressor.h"
 #include "ClusterNativeAccessExt.h"
+#include "GPUParam.h"
+#include "GPUTPCCompressionTrackModel.h"
 #include <algorithm>
 #include <cstring>
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer)
+int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param)
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   unsigned int offset = 0;
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
     unsigned int slice = clustersCompressed->sliceA[i];
     unsigned int row = clustersCompressed->rowA[i];
+    GPUTPCCompressionTrackModel track;
     for (unsigned int j = 0; j < clustersCompressed->nTrackClusters[i]; j++) {
       unsigned int pad = 0, time = 0;
       if (j) {
         unsigned char tmpSlice = clustersCompressed->sliceLegDiffA[offset - i - 1];
-        if (tmpSlice >= NSLICES) {
+        bool changeLeg = (tmpSlice >= NSLICES);
+        if (changeLeg) {
           tmpSlice -= NSLICES;
         }
         if (clustersCompressed->nComppressionModes & 2) {
@@ -46,13 +50,29 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           slice = tmpSlice;
           row = clustersCompressed->rowDiffA[offset - i - 1];
         }
-        time = clustersCompressed->timeResA[offset - i - 1];
-        pad = clustersCompressed->padResA[offset - i - 1];
+        if (changeLeg && track.Mirror()) {
+          break;
+        }
+        if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
+          break;
+        }
+        time = clustersCompressed->timeResA[offset - i - 1] + ClusterNative::packTime(param.tpcGeometry.LinearZ2Time(slice, track.Z()));
+        ;
+        pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(param.tpcGeometry.LinearY2Pad(slice, row, track.Y()));
       } else {
         time = clustersCompressed->timeA[i];
         pad = clustersCompressed->padA[i];
       }
-      clusters[slice][row].emplace_back(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
+      std::vector<ClusterNative>& clusterVector = clusters[slice][row];
+      clusterVector.emplace_back(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
+      float y = param.tpcGeometry.LinearPad2Y(slice, row, clusterVector.back().getPad());
+      float z = param.tpcGeometry.LinearTime2Z(slice, clusterVector.back().getTime());
+      if (j == 0) {
+        track.Init(param.tpcGeometry.Row2X(row), y, z, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
+      }
+      if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z, row)) {
+        break;
+      }
       offset++;
     }
   }
@@ -75,8 +95,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           time = clustersCompressed->timeDiffU[offset2];
           pad = clustersCompressed->padDiffU[offset2];
         }
-        clusterBuffer[offset] = ClusterNative(time, clustersCompressed->flagsU[offset2], pad, clustersCompressed->sigmaTimeU[offset2], clustersCompressed->sigmaPadU[offset2], clustersCompressed->qMaxU[offset2],
-                                              clustersCompressed->qTotU[offset2]);
+        clusterBuffer[offset] = ClusterNative(time, clustersCompressed->flagsU[offset2], pad, clustersCompressed->sigmaTimeU[offset2], clustersCompressed->sigmaPadU[offset2], clustersCompressed->qMaxU[offset2], clustersCompressed->qTotU[offset2]);
         offset++;
         offset2++;
       }

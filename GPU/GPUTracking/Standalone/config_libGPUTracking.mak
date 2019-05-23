@@ -63,6 +63,7 @@ GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
 								SliceTracker/GPUTPCMCPoint.cxx
 								
 GPUCA_COMPRESSION_FILES		= DataCompression/GPUTPCCompression.cxx \
+								DataCompression/GPUTPCCompressionTrackModel.cxx \
 								DataCompression/GPUTPCCompressionKernels.cxx \
 								DataCompression/TPCClusterDecompressor.cxx \
 								DataCompression/GPUTPCClusterStatistics.cxx

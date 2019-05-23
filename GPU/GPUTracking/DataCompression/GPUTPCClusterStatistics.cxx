@@ -23,7 +23,7 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
   bool decodingError = false;
   o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded;
   std::vector<o2::tpc::ClusterNative> clusterBuffer;
-  mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer);
+  mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param);
   std::vector<o2::tpc::ClusterNative> tmpClusters;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
