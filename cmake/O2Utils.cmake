@@ -350,7 +350,14 @@ function(O2_GENERATE_EXECUTABLE)
 
   if (NOT ${PARSED_ARGS_NO_INSTALL})
     ############### install the executable #################
-    install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
+
+    get_filename_component(filename ${PARSED_ARGS_EXE_NAME} NAME)
+    string(REGEX MATCH "^test" isTest ${filename})
+	if(NOT "${isTest}" STREQUAL "")
+			install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION tests)
+	else()
+			install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
+	endif()
 
     ############### install the library ###################
     install(TARGETS ${PARSED_ARGS_MODULE_LIBRARY_NAME} DESTINATION lib)
