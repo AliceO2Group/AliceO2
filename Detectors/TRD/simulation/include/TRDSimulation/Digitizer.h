@@ -29,6 +29,7 @@ class PadResponse;
 class Digitizer
 {
  public:
+  enum { kTimeBins = 30 };
   //
   Digitizer();
   ~Digitizer() = default;

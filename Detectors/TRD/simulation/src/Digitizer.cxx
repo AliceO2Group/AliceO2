@@ -150,7 +150,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
     timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }
 
-  const int nTimeTotal = 0; // DigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  const int nTimeTotal = kTimeBins; // DigitsManager->GetDigitsParam()->GetNTimeBins(det);
   const float samplingRate = mCommonParam->GetSamplingFrequency();
   const float elAttachProp = mSimParam->GetElAttachProp() / 100;
 
@@ -432,18 +432,13 @@ bool Digitizer::convertSignalsToADC(const int det, int& signals)
 
   int nRowMax = mGeo->getPadPlane(det)->getNrows();
   int nColMax = mGeo->getPadPlane(det)->getNcols();
-  int nTimeTotal = 100; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  int nTimeTotal = kTimeBins; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
   // if (fSDigitsManager->GetDigitsParam()->GetNTimeBins(det)) {
   //   nTimeTotal = fSDigitsManager->GetDigitsParam()->GetNTimeBins(det);
   // } else {
   //   LOG(FATAL) << "Could not get number of time bins";
   //   return false;
   // }
-
-  // The gain factor mCalib objects
-  // const AliTRDCalDet* calGainFactorDet = mCalib->GetGainFactorDet();
-  // AliTRDCalROC* calGainFactorROC = 0x0;
-  float calGainFactorDetValue = 0.0;
 
   // AliTRDarrayADC* digits = 0x0;
   int digits = 0;
@@ -452,29 +447,12 @@ bool Digitizer::convertSignalsToADC(const int det, int& signals)
     LOG(FATAL) << "Signals array for detector " << det << " does not exis";
     return false;
   }
-  // if (signals->HasData()) {
-  //   // Expand the container if neccessary
-  //   signals->Expand();
-  // } else {
-  //   // Create missing containers
-  //   signals->Allocate(nRowMax, nColMax, nTimeTotal);
-  // }
-
-  // Get the container for the digits of this detector
-  // if (fDigitsManager->HasSDigits()) {
-  //   AliError("Digits manager has s-digits");
-  //   return false;
-  // }
-
-  // digits = (AliTRDarrayADC*)fDigitsManager->GetDigits(det);
-  // // Allocate memory space for the digits buffer
-  // if (!digits->HasData()) {
-  //   digits->Allocate(nRowMax, nColMax, nTimeTotal);
-  // }
 
   // Get the mCalib objects
-  // calGainFactorROC = mCalib->GetGainFactorROC(det);
+  // CalDet* calGainFactorDet = mCalib->GetGainFactorDet();
+  // CalRoc* calGainFactorROC = mCalib->GetGainFactorROC(det);
   // calGainFactorDetValue = calGainFactorDet->GetValue(det);
+  float calGainFactorDetValue = 0.47; // +/- 0.06 // Defaults value  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
 
   // Create the digits for this chamber
   for (row = 0; row < nRowMax; row++) {
@@ -495,7 +473,7 @@ bool Digitizer::convertSignalsToADC(const int det, int& signals)
       // }
 
       // The gain factors
-      float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row);
+      float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
       if (padgain <= 0) {
         const auto msg = Form("Not a valid gain %f, %d %d %d", padgain, det, col, row);
         LOG(FATAL) << msg;
