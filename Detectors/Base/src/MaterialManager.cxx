@@ -365,7 +365,7 @@ void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const ch
   std::ifstream cutfile(filename);
 
   if (!cutfile.is_open()) {
-    LOG(ERROR) << "File " << filename << " does not exist; Cannot apply cuts";
+    LOG(WARN) << "File " << filename << " does not exist; Cannot apply cuts";
     return;
   }
 

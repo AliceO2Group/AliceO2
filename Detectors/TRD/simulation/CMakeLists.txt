@@ -18,3 +18,5 @@ SET(LIBRARY_NAME ${MODULE_NAME})
 SET(BUCKET_NAME trd_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
+
+INSTALL(DIRECTORY data DESTINATION share/Detectors/TRD/simulation)

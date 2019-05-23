@@ -70,7 +70,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void EndOfEvent() final;
 
   void ConstructGeometry() final;
-  void SetSpecialPhysicsCuts() final;
 
   void createMaterials();
   void addAlignableVolumes() const override {}

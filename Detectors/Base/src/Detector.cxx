@@ -115,6 +115,27 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nla
 {
 }
 
+void Detector::SetSpecialPhysicsCuts()
+{
+  // default implementation for physics cuts setting (might still be overriden by detectors)
+  // we try to read an external text file supposed to be installed
+  // in a standard directory
+  // ${O2_ROOT}/share/Detectors/DETECTORNAME/simulation/data/simcuts.dat
+  LOG(INFO) << "Setting special cuts for " << GetName();
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  std::string inputFile;
+  if (aliceO2env) {
+    inputFile = std::string(aliceO2env);
+  }
+  inputFile += "/share/Detectors/" + std::string(GetName()) + "/simulation/data/simcuts.dat";
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.loadCutsAndProcessesFromFile(GetName(), inputFile.c_str());
+
+  // TODO:
+  // foresee possibility to read from local (non-installed) file or
+  // via command line
+}
+
 void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 {
   // set reasonable default values

@@ -226,7 +226,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param id volume id
   Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
 
-  void SetSpecialPhysicsCuts() override { ; }
   void EndOfEvent() override;
 
   void FinishPrimary() override { ; }
