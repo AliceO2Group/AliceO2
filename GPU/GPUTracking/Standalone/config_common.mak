@@ -2,7 +2,6 @@
 INTELARCH					= Host
 GCCARCH						= native
 MSVCFAVOR					= INTEL64
-CUDAVERSION					= 61
 CUDAREGS					= 64
 ARCHBITS					= 64
 
