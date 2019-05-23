@@ -57,7 +57,7 @@ namespace base
 class MatLayerCylSet
 {
 };
-} //namespace base
+} // namespace base
 } // namespace o2
 #endif
 using namespace o2::trd;
@@ -117,6 +117,7 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
+
 #endif
 }
 
@@ -229,6 +230,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetTRDGeometry()) {
     computePointerWithAlignment(mem, mTrdGeometry, 1);
   }
+
 #endif
   return mem;
 }
@@ -382,6 +384,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (mTPCFastTransform != nullptr) {
     DumpFlatObjectToFile(mTPCFastTransform, f.c_str());
   }
+
 #ifdef HAVE_O2HEADERS
   f = dir;
   f += "matlut.dump";
@@ -393,6 +396,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (mTRDGeometry != nullptr) {
     DumpStructToFile(mTRDGeometry.get(), f.c_str());
   }
+
 #endif
 }
 
@@ -1131,6 +1135,7 @@ int GPUChainTracking::RunTPCCompression()
   runKernel<GPUTPCCompressionKernels, 1>({ BlockCount(), ThreadCount(), 0 }, nullptr, krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(&Compressor, 0);
   SynchronizeGPU();
+  memset((void*)&Compressor.mOutput, 0, sizeof(Compressor.mOutput));
   Compressor.mOutput.nTracks = Compressor.mMemory->nStoredTracks;
   Compressor.mOutput.nAttachedClusters = Compressor.mMemory->nStoredAttachedClusters;
   Compressor.mOutput.nUnattachedClusters = Compressor.mMemory->nStoredUnattachedClusters;

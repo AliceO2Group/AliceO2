@@ -17,6 +17,8 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUParam.h"
 #include "GPUCommonAlgorithm.h"
+#include "GPUTPCCompressionTrackModel.h"
+#include "GPUTPCGeometry.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -41,7 +43,8 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
     int nClustersStored = 0;
     CompressedClustersPtrsOnly& c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
-    for (unsigned int k = 0; k < trk.NClusters(); k++) {
+    GPUTPCCompressionTrackModel track;
+    for (int k = trk.NClusters() - 1; k >= 0; k--) {
       const GPUTPCGMMergedTrackHit& hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
@@ -52,26 +55,39 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
       if ((attach & GPUTPCGMMerger::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      compressor.mClusterStatus[hitId] = 1;
+      bool rejectCluster = processors.param.rec.tpcRejectionMode && (rejectTrk || ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) || (attach & GPUTPCGMMerger::attachHighIncl));
+      if (rejectCluster) {
+        compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
+        continue;
+      }
 
-      if (processors.param.rec.tpcRejectionMode) {
-        if (rejectTrk) {
-          continue;
-        }
-        if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
-          continue;
-        }
-        if (attach & GPUTPCGMMerger::attachHighIncl) {
-          continue;
-        }
+      if (!(param.rec.tpcCompressionModes & 4)) {
+        continue; // No track model compression
       }
       const ClusterNative& orgCl = clusters->clusters[hit.slice][hit.row][hit.num - clusters->clusterOffset[hit.slice][hit.row]];
+      float x = param.tpcGeometry.Row2X(hit.row);
+      float y = param.tpcGeometry.LinearPad2Y(hit.slice, hit.row, orgCl.getPad());
+      float z = param.tpcGeometry.LinearTime2Z(hit.slice, orgCl.getTime());
+      if (nClustersStored) {
+        if (lastLeg != hit.leg && track.Mirror()) {
+          break;
+        }
+        if (track.Propagate(param.tpcGeometry.Row2X(hit.row), param.SliceParam[hit.slice].Alpha)) {
+          break;
+        }
+      }
+
+      compressor.mClusterStatus[hitId] = 1; // Cluster compressed in track model, do not store as difference
+
       int cidx = trk.FirstClusterRef() + nClustersStored++;
       if (nClustersStored == 1) {
+        unsigned char qpt = fabs(trk.GetParam().GetQPt()) < 20.f ? (trk.GetParam().GetQPt() * (127.f / 20.f) + 127.5f) : (trk.GetParam().GetQPt() > 0 ? 254 : 0);
+        track.Init(x, y, z, param.SliceParam[hit.slice].Alpha, qpt, param);
+
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();
         lastLeg = hit.leg;
-        c.qPtA[myTrack] = fabs(trk.GetParam().GetQPt()) < 127.f / 20.f ? (trk.GetParam().GetQPt() * (20.f / 127.f)) : (trk.GetParam().GetQPt() > 0 ? 127 : -127);
+        c.qPtA[myTrack] = qpt;
         c.rowA[myTrack] = hit.row;
         c.sliceA[myTrack] = hit.slice;
         c.timeA[myTrack] = orgCl.getTimePacked();
@@ -79,6 +95,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
       } else {
         unsigned int row = hit.row;
         unsigned int slice = hit.slice;
+
         if (param.rec.tpcCompressionModes & 2) {
           if (lastRow > row) {
             row += GPUCA_ROW_COUNT;
@@ -91,8 +108,9 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
         }
         c.rowDiffA[cidx] = row;
         c.sliceLegDiffA[cidx] = (hit.leg == lastLeg ? 0 : compressor.NSLICES) + slice;
-        c.padResA[cidx] = orgCl.padPacked;
-        c.timeResA[cidx] = orgCl.getTimePacked();
+        c.padResA[cidx] = orgCl.padPacked - orgCl.packPad(param.tpcGeometry.LinearY2Pad(hit.slice, hit.row, track.Y()));
+        c.timeResA[cidx] = orgCl.getTimePacked() - orgCl.packTime(param.tpcGeometry.LinearZ2Time(hit.slice, track.Z()));
+        lastLeg = hit.leg;
       }
       lastRow = hit.row;
       lastSlice = hit.slice;
@@ -109,6 +127,9 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
       c.sigmaPadA[cidx] = sigmapad;
       c.sigmaTimeA[cidx] = sigmatime;
       c.flagsA[cidx] = orgCl.getFlags();
+      if (k && track.Filter(y, z, hit.row)) {
+        break;
+      }
     }
     if (nClustersStored) {
       CAMath::AtomicAdd(&compressor.mMemory->nStoredAttachedClusters, nClustersStored);
