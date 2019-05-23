@@ -96,6 +96,10 @@ class Detector : public FairDetector
       return mDensityFactor;
     }
 
+    /// implements interface of FairModule;
+    /// generic implementation for O2 detectors
+    void SetSpecialPhysicsCuts() override;
+
     /// declare alignable volumes of detector
     virtual void addAlignableVolumes() const;
     

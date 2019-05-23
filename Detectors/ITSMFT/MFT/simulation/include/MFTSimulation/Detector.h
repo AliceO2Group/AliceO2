@@ -82,7 +82,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  void SetSpecialPhysicsCuts() override { ; }
   void ConstructGeometry() override; // inherited from FairModule
 
   //
