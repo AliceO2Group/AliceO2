@@ -23,21 +23,26 @@ using namespace o2::fit;
 //using o2::fit::Geometry;
 
 ClassImp(Digitizer);
+double signalForm_i(double x) {
+  return -(exp(-0.83344945 * x) - exp(-0.45458 * x))*(x>=0);
+};
+double signalForm(double x) {
+  return 5*signalForm_i(x-1.47) - signalForm_i(x);
+};
 
 double get_time(const std::vector<double>& times, double signal_width)
 {
   TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  auto signalForm = [](double x) {
-    return -(exp(-0.83344945 * x) - exp(-0.45458 * x));
-  };
-  for (auto time : times)
+   for (auto time : times)
     for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
       if (hist.GetBinCenter(bin) > time)
         hist.AddBinContent(bin, signalForm(hist.GetBinCenter(bin) - time));
-  double maximum{ hist.GetMaximum() };
-  int binfound{ hist.FindFirstBinAbove(maximum * 0.4) };
-  //  std::cout<<"@@@@@!!! max "<<maximum<<" binfound "<<binfound<<" return "<<hist.GetBinCenter(binfound)<<std::endl;
-  return hist.GetBinCenter(binfound);
+   for (int bin = 0; bin < hist.GetSize(); ++bin)
+     hist.AddBinContent(bin, gRandom->Gaus(0, 0.03));
+  
+  int binfound = hist.FindFirstBinAbove(0);
+  double time1st =  hist.GetBinCenter(binfound);
+  return time1st;
 }
 
 void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
@@ -94,7 +99,7 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
 void Digitizer::computeAverage(o2::t0::Digit& digit)
 {
   constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
-  auto& channel_data = digit.getChDgData();
+   auto& channel_data = digit.getChDgData();
   for (auto& ch_data : channel_data) {
     if (ch_data.numberOfParticles == 0)
       continue;
@@ -113,16 +118,16 @@ void Digitizer::computeAverage(o2::t0::Digit& digit)
 void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
+  constexpr Float_t mip_in_V = 7.; // mV /250 ph.e.
   std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Double_t cfd = d.CFDTime;
-    Float_t amp = d.QTCAmpl;
+    Float_t amp = mip_in_V * d.QTCAmpl;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
       //Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
       double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime;
-      mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
+      mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time,  amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
