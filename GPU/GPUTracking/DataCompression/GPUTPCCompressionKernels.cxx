@@ -171,8 +171,10 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
     }
     GPUbarrier();
 
-    CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<0>(clusters->clusters[iSlice][iRow]));
-    GPUbarrier();
+    if (param.rec.tpcCompressionModes & 2) {
+      CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<0>(clusters->clusters[iSlice][iRow]));
+      GPUbarrier();
+    }
 
     unsigned int lastTime = 0;
     unsigned short lastPad = 0;
