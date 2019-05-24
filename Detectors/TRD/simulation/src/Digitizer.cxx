@@ -218,7 +218,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
       absDriftLength /= TMath::Sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
     // double driftVelocity = calVdriftDetValue * calVdriftROC->GetValue(colE, rowE); PLEASE FIX ME when CCDB is ready
-    double driftVelocity = 2150; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
+    double driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
 
     // Loop over all created electrons
     const int nElectrons = abs(qTotal);
@@ -274,7 +274,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
 
       // Retrieve drift velocity becuase col and row may have changed
       // driftVelocity = calVdriftDetValue* calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
-      driftVelocity = 2150; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
+      driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
       // float t0 = calT0DetValue + calT0ROC->getValue(colE, rowE);      PLEASE FIX ME when CCDB is ready
       const float t0 = -1.38 + 0; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
 
