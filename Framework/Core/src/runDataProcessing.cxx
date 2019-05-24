@@ -1093,7 +1093,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if ((varmap["dump-workflow"].as<bool>() != 0) || (varmap.count("id") == 0 && isOutputToPipe())) {
+  } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
     control.callbacks = { [](WorkflowSpec const& workflow,
                              DeviceSpecs const devices,
                              DeviceExecutions const&,
@@ -1161,6 +1161,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")          //
     ("dump-workflow", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")     //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")          //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
