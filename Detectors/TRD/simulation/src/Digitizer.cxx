@@ -43,6 +43,10 @@ Digitizer::Digitizer()
   }
   if (!mCommonParam) {
     LOG(FATAL) << "TRD Common Parameters not available";
+  } else {
+    if(!mCommonParam->cacheMagField()) {
+      LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
+    }
   }
   // if (!mCalib) { // PLEASE FIX ME when CCDB is ready
   //   LOG(FATAL) << "TRD mCalib database not available";

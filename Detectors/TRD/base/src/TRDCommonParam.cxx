@@ -82,7 +82,8 @@ TRDCommonParam::TRDCommonParam()
     mVDhi(0.0),
     mTimeLastVdrift(-1.0),
     mSamplingFrequency(10.0),
-    mGasMixture(kXenon)
+    mGasMixture(kXenon),
+    mField(-0.5)
 {
   //
   // Default constructor
@@ -103,6 +104,19 @@ TRDCommonParam::~TRDCommonParam()
     delete[] mTimeStruct2;
     mTimeStruct2 = nullptr;
   }
+}
+
+//_____________________________________________________________________________
+bool TRDCommonParam::cacheMagField()
+{
+  // The magnetic field strength
+  const o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!fld) {
+    LOG(FATAL) << "Magnetic field is not initialized!";
+    return false;
+  }
+  mField = 0.1 * fld->solenoidField(); // kGauss -> Tesla
+  return true;
 }
 
 //_____________________________________________________________________________
@@ -182,20 +196,12 @@ bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
     // Vd and B-field dependent diffusion and Lorentz angle
     //
 
-    // The magnetic field strength
-    const o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-    if (!fld) {
-      LOG(FATAL) << "Magnetic field is not initialized!";
-      return false;
-    }
-    const double field = 0.1 * fld->solenoidField(); // kGauss -> Tesla
-
     // kNb = kNb = kNb
     constexpr int kNb = 5;
 
     // If looking at compatibility with AliRoot:
     // ibL and ibT are calculated the same way so, just define ib = ibL = ibT
-    int ib = ((int)(10 * (field - 0.15)));
+    int ib = ((int)(10 * (mField - 0.15)));
     ib = TMath::Max(0, ib);
     ib = TMath::Min(kNb - 1, ib);
 
