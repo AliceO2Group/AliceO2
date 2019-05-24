@@ -10,7 +10,7 @@
 
 /// \file testTRDDiffusionCoefficient.cxx
 /// \brief This task tests the Diffusion Coefficient module of the TRD digitization
-/// \author Jorge Lopez, Universitaet Heidelberg, jlopez@physi.uni-heidelberg
+/// \author Jorge Lopez, Universitaet Heidelberg, jlopez@physi.uni-heidelberg.de
 
 #define BOOST_TEST_MODULE Test TRD DiffusionCoefficient
 #define BOOST_TEST_MAIN
