@@ -416,10 +416,10 @@ bool isMemblockDifferent(void const* block1, void const* block2)
   // loop over thing in elements of bytes
   for (int i = 0; i < sizeof(T) / sizeof(char); ++i) {
     if (((char*)block1)[i] != ((char*)block2)[i]) {
-      return false;
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 // copies data from one place to other and returns
@@ -569,7 +569,7 @@ template <typename T>
 bool ConvertAndCopy(std::string const& valuestring, void* targetaddr)
 {
   auto addr = boost::lexical_cast<T>(valuestring);
-  if (!isMemblockDifferent<T>(targetaddr, (void*)&addr)) {
+  if (isMemblockDifferent<T>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(T));
     return true;
   }
