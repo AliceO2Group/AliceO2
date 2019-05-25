@@ -36,3 +36,4 @@ profile Halfs.csv --halfs
 profile HalfsPadMajor.csv --halfs --padMajor
 profile Halfs4x8Tiling.csv --halfs --tiling4x8
 profile Halfs8x4Tiling.csv --halfs --tiling8x4
+profile Scratchpad.csv --halfs --tiling8x4 --scratchpad
