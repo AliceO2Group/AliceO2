@@ -179,6 +179,7 @@ void fillScratchPad(
         local          ChargePos *posBcast,
         local          charge_t  *buf)
 {
+	__attribute__((opencl_unroll_hint(1)))
     for (int i = 0; i < wgSize / (wgSize / N); i++)
     {
         /* IF_DBG_GROUP DBGPR_1("y = %d", lid.y); */
@@ -211,15 +212,16 @@ void fillScratchPad(
 }
 
 void updateClusterScratchpadInner(
-                    uint            lid,
-                    uint            N,
+                    ushort          lid,
+                    ushort          N,
         local const charge_t       *buf,
                     PartialCluster *cluster,
         local       uchar          *innerAboveThreshold)
 {
     uchar aboveThreshold = 0;
 
-    for (int i = 0; i < N; i++)
+	__attribute__((opencl_unroll_hint(1)))
+    for (ushort i = 0; i < N; i++)
     {
         delta2_t d = INNER_NEIGHBORS[i];
 
@@ -243,15 +245,15 @@ void updateClusterScratchpadInner(
 }
 
 
-bool innerAboveThreshold(uchar aboveThreshold, uint outerIdx)
+bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
 {
     return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
 }
 
 void updateClusterScratchpadOuter(
-                    uint            lid,
-                    uint            N,
-                    uint            offset,
+                    ushort          lid,
+                    ushort          N,
+                    ushort          offset,
         local const charge_t       *buf,
         local const uchar          *innerAboveThresholdSet,
                     PartialCluster *cluster)
@@ -259,11 +261,12 @@ void updateClusterScratchpadOuter(
     uchar aboveThreshold = innerAboveThresholdSet[lid];
 
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
-
-    for (int i = 0; i < N; i++)
+	
+	__attribute__((opencl_unroll_hint(1)))
+    for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * lid + i];
-        uint outerIdx = i + offset;
+        ushort outerIdx = i + offset;
 
         bool contributes = (q > OUTER_CHARGE_THRESHOLD 
                 && innerAboveThreshold(aboveThreshold, outerIdx));
@@ -271,7 +274,6 @@ void updateClusterScratchpadOuter(
         IF_DBG_INST DBGPR_1("q = %f", q);
 
         q = (contributes) ? q : 0.f;
-
 
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
 
@@ -286,7 +288,7 @@ void updateClusterScratchpadOuter(
 void buildClusterScratchPad(
             global const charge_t       *chargeMap,
                          ChargePos       pos,
-                         uint            N,
+                         ushort          N,
             local        ChargePos      *posBcast,
             local        charge_t       *buf,
             local        uchar          *innerAboveThreshold,
@@ -294,7 +296,7 @@ void buildClusterScratchPad(
 {
     reset(myCluster);
 
-    uint ll = get_local_linear_id();
+    ushort ll = get_local_linear_id();
     local_id lid = {ll % N, ll / N};
     /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
     fillScratchPad(
@@ -413,12 +415,12 @@ void buildClusterNaive(
 
 bool isPeakScratchPad(
                const Digit     *digit,
-                     uint       N,
+                     ushort     N,
         global const charge_t  *chargeMap,
         local        ChargePos *posBcast,
         local        charge_t  *buf)
 {
-    uint ll = get_local_linear_id();
+    ushort ll = get_local_linear_id();
     local_id lid = {ll % N, ll / N};
 
     const timestamp time = digit->time;
@@ -441,7 +443,7 @@ bool isPeakScratchPad(
 
     bool peak = true;
 
-    for (int i = 0; i < N; i++)
+    for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * ll + i];
         peak &= (digit->charge > q) 
@@ -605,7 +607,7 @@ void findPeaks(
 
     bool peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
-    const int N = 8;
+    const ushort N = 8;
     local ChargePos posBcast[N];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
     peak = isPeakScratchPad(&myDigit, N, chargeMap, posBcast, buf);
@@ -645,7 +647,7 @@ void computeClusters(
     PartialCluster pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
 
-    const int N = 8;
+    const ushort N = 8;
     local ChargePos posBcast[N];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
     local uchar     innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
