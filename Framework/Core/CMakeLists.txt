@@ -92,6 +92,8 @@ set(SRCS
 
 set(HEADERS
       include/Framework
+      include/Framework/AnalysisDataModel.h
+      include/Framework/ASoA.h
       include/Framework/DataProcessor.h
       include/Framework/DataSpecUtils.h
       include/Framework/FrameworkGUIDevicesGraph.h
