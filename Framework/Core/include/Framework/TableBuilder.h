@@ -8,8 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_TABLEBUILDER_H
-#define FRAMEWORK_TABLEBUILDER_H
+#ifndef O2_FRAMEWORK_TABLEBUILDER_H_
+#define O2_FRAMEWORK_TABLEBUILDER_H_
+
+#include "Framework/ASoA.h"
 
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
@@ -295,6 +297,15 @@ class TableBuilder
     };
   }
 
+  // Same as above, but starting from a o2::soa::Table, which has all the
+  // information already available.
+  template <typename T>
+  auto cursor(void)
+  {
+    constexpr auto tuple_size = std::tuple_size_v<typename T::columns>;
+    return cursorHelper<T>(std::make_index_sequence<tuple_size>());
+  }
+
   template <typename... ARGS>
   auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
   {
@@ -332,6 +343,13 @@ class TableBuilder
   std::shared_ptr<arrow::Table> finalize();
 
  private:
+  template <typename T, size_t... Is>
+  auto cursorHelper(std::index_sequence<Is...> s)
+  {
+    std::vector<std::string> columnNames{ std::tuple_element_t<Is, typename T::columns>::label()... };
+    return this->template persist<typename std::tuple_element_t<Is, typename T::columns>::type...>(columnNames);
+  }
+
   std::function<void(void)> mFinalizer;
   void* mBuilders;
   arrow::MemoryPool* mMemoryPool;
