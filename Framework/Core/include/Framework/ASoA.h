@@ -138,6 +138,7 @@ class ColumnIterator
 
 template <typename T, typename INHERIT>
 struct Column {
+  using type = T;
   static constexpr const char* const& label() { return INHERIT::mLabel; }
   ColumnIterator<T> const& getIterator() const
   {
@@ -193,6 +194,7 @@ class Table
 {
  public:
   using iterator = RowView<C...>;
+  using columns = std::tuple<C...>;
 
   Table(std::shared_ptr<arrow::Table> table)
     : mTable(table)

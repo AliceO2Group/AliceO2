@@ -218,3 +218,32 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
   //BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
 }
+
+namespace test
+{
+DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
+DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
+} // namespace test
+
+using TestTable = o2::soa::Table<test::X, test::Y>;
+
+BOOST_AUTO_TEST_CASE(TestSoAIntegration)
+{
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<TestTable>();
+  rowWriter(0, 0, 0);
+  rowWriter(0, 10, 1);
+  rowWriter(0, 20, 2);
+  rowWriter(0, 30, 3);
+  rowWriter(0, 40, 4);
+  rowWriter(0, 50, 5);
+  auto table = builder.finalize();
+  auto readBack = TestTable{ table };
+
+  size_t i = 0;
+  for (auto& row : readBack) {
+    BOOST_CHECK_EQUAL(row.x(), i * 10);
+    BOOST_CHECK_EQUAL(row.y(), i);
+    ++i;
+  }
+}
