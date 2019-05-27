@@ -186,6 +186,20 @@ BOOST_AUTO_TEST_CASE(ParameterGas_test2)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[4]"), 16.f, 1e-12);
 }
 
+/// \brief Trivial test of the two ways to setValue for a ConfigurableParameter
+/// Precision: 1E-3 %
+BOOST_AUTO_TEST_CASE(setValues_test1)
+{
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 1e-3);
+  o2::conf::ConfigurableParam::setValue<float>("TPCGasParam", "Wion", 3.0);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 3.0, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 3.0, 1e-3);
+  o2::conf::ConfigurableParam::setValue("TPCGasParam.Wion", "5.0");
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 5.0, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 5.0, 1e-3);
+  ParameterGas::Instance().printKeyValues(true);
+}
+
 /// \brief Trivial test of the default initialization of Parameter GEM
 /// Precision: 1E-3 %
 ///
