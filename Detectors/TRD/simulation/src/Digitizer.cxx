@@ -289,7 +289,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
       if (mSimParam->TimeStructOn()) {
         // Get z-position with respect to anode wire
         double zz = row0 - locR + padPlane->getAnodeWireOffset();
-        zz -= ((int)(2 * zz)) / 2;
+        zz -= ((int)(2 * zz)) * 0.5;
         if (zz > 0.25) {
           zz = 0.5 - zz;
         }
