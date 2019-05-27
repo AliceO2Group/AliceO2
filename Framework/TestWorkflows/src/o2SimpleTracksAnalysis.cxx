@@ -10,13 +10,30 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/TableBuilder.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include <ROOT/RDataFrame.hxx>
 
 #include <cmath>
 
 using namespace ROOT::RDF;
+using namespace o2;
 using namespace o2::framework;
+
+namespace o2
+{
+namespace aod
+{
+namespace tracks
+{
+DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
+DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+} // namespace tracks
+
+using TracksDerived = o2::soa::Table<tracks::Eta, tracks::Phi>;
+
+} // namespace aod
+} // namespace o2
 
 // A dummy workflow which creates a few of the tables proposed by Ruben,
 // using ARROW
@@ -54,37 +71,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
           auto input = inputs.get<TableConsumer>("tracks");
           /// Get a table builder to build the results
           auto& etaPhiBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKDERIVED" });
-          auto etaPhiWriter = etaPhiBuilder.persist<float, float>({ "fEta", "fPhi" });
+          auto etaPhiWriter = etaPhiBuilder.cursor<o2::aod::TracksDerived>();
 
           /// Documentation for arrow at:
           ///
           /// https://arrow.apache.org/docs/cpp/namespacearrow.html
-          std::shared_ptr<arrow::Table> table = input->asArrowTable();
+          auto tracks = aod::Tracks(input->asArrowTable());
 
-          /// We find the indices for the columns we care about
-          /// and we use them to pick up the actual columns..
-          /// FIXME: this is better done in some initialisation part rather
-          ///        than on an message by message basis.
-          auto tglField = table->schema()->GetFieldIndex("fTgl");
-          auto alphaField = table->schema()->GetFieldIndex("fAlpha");
-          auto snpField = table->schema()->GetFieldIndex("fSnp");
-
-          std::shared_ptr<arrow::Column> tglColumn = table->column(tglField);
-          std::shared_ptr<arrow::Column> alphaColumn = table->column(alphaField);
-          std::shared_ptr<arrow::Column> snpColumn = table->column(snpField);
-
-          for (size_t ci = 0; ci < tglColumn->data()->num_chunks(); ++ci) {
-            auto tglI = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(tglColumn->data()->chunk(ci));
-            auto alphaI = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(alphaColumn->data()->chunk(ci));
-            auto snpI = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(snpColumn->data()->chunk(ci));
-            for (size_t ri = 0; ri < tglI->length(); ++ri) {
-              auto tgl = tglI->Value(ri);
-              auto alpha = alphaI->Value(ri);
-              auto snp = snpI->Value(ri);
-              auto phi = asin(snp) + alpha + M_PI;
-              auto eta = log(tan(0.25 * M_PI - 0.5 * atan(tgl)));
-              etaPhiWriter(0, eta, phi);
-            }
+          for (auto& track : tracks) {
+            auto phi = asin(track.snp()) + track.alpha() + M_PI;
+            auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
+            etaPhiWriter(0, eta, phi);
           }
         }) } },
     DataProcessorSpec{
