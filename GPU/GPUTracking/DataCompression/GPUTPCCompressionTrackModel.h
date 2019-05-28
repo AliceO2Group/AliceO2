@@ -44,17 +44,17 @@ struct GPUParam;
 class GPUTPCCompressionTrackModel
 {
  public:
-  void Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& proc);
-  int Propagate(float x, float alpha);
-  int Filter(float y, float z, int iRow);
-  int Mirror();
+  GPUd() void Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& proc);
+  GPUd() int Propagate(float x, float alpha);
+  GPUd() int Filter(float y, float z, int iRow);
+  GPUd() int Mirror();
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-  float Y() const
+  GPUd() float Y() const
   {
     return mTrk.GetY();
   }
-  float Z() const { return mTrk.GetZ(); }
+  GPUd() float Z() const { return mTrk.GetZ(); }
 
 #elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
 
