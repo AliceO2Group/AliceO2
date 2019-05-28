@@ -109,7 +109,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int i
         c.rowDiffA[cidx] = row;
         c.sliceLegDiffA[cidx] = (hit.leg == lastLeg ? 0 : compressor.NSLICES) + slice;
         c.padResA[cidx] = orgCl.padPacked - orgCl.packPad(param.tpcGeometry.LinearY2Pad(hit.slice, hit.row, track.Y()));
-        c.timeResA[cidx] = orgCl.getTimePacked() - orgCl.packTime(param.tpcGeometry.LinearZ2Time(hit.slice, track.Z()));
+        c.timeResA[cidx] = (orgCl.getTimePacked() - orgCl.packTime(param.tpcGeometry.LinearZ2Time(hit.slice, track.Z()))) & 0xFFFFFF;
         lastLeg = hit.leg;
       }
       lastRow = hit.row;
@@ -203,7 +203,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
       int cidx = idOffset + i;
       const ClusterNative& orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
-      c.timeDiffU[cidx] = orgCl.getTimePacked() - lastTime;
+      c.timeDiffU[cidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
       if (param.rec.tpcCompressionModes & 2) {
         lastPad = orgCl.padPacked;
         lastTime = orgCl.getTimePacked();
