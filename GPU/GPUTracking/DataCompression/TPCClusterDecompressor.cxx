@@ -56,8 +56,11 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
           break;
         }
-        time = clustersCompressed->timeResA[offset - i - 1] + ClusterNative::packTime(param.tpcGeometry.LinearZ2Time(slice, track.Z()));
-        ;
+        unsigned int timeTmp = clustersCompressed->timeResA[offset - i - 1];
+        if (timeTmp & 800000) {
+          timeTmp |= 0xFF000000;
+        }
+        time = timeTmp + ClusterNative::packTime(param.tpcGeometry.LinearZ2Time(slice, track.Z()));
         pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(param.tpcGeometry.LinearY2Pad(slice, row, track.Y()));
       } else {
         time = clustersCompressed->timeA[i];
@@ -89,7 +92,11 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       unsigned short pad = 0;
       for (unsigned int k = 0; k < clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]; k++) {
         if (clustersCompressed->nComppressionModes & 2) {
-          time += clustersCompressed->timeDiffU[offset2];
+          unsigned int timeTmp = clustersCompressed->timeDiffU[offset2];
+          if (timeTmp & 800000) {
+            timeTmp |= 0xFF000000;
+          }
+          time += timeTmp;
           pad += clustersCompressed->padDiffU[offset2];
         } else {
           time = clustersCompressed->timeDiffU[offset2];

@@ -15,8 +15,91 @@
 #include "ClusterNativeAccessExt.h"
 #include <algorithm>
 #include <cstring>
+#include <map>
+#include <queue>
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+// Small helper to compute Huffman probabilities
+namespace
+{
+typedef std::vector<bool> HuffCode;
+typedef std::map<unsigned int, HuffCode> HuffCodeMap;
+
+class INode
+{
+ public:
+  const double f;
+
+  virtual ~INode() = default;
+
+ protected:
+  INode(double v) : f(v) {}
+};
+
+class InternalNode : public INode
+{
+ public:
+  INode* const left;
+  INode* const right;
+
+  InternalNode(INode* c0, INode* c1) : INode(c0->f + c1->f), left(c0), right(c1) {}
+  ~InternalNode() override
+  {
+    delete left;
+    delete right;
+  }
+};
+
+class LeafNode : public INode
+{
+ public:
+  const unsigned int c;
+
+  LeafNode(double v, unsigned int w) : INode(v), c(w) {}
+};
+
+struct NodeCmp {
+  bool operator()(const INode* lhs, const INode* rhs) const { return lhs->f > rhs->f; }
+};
+
+INode* BuildTree(const double* frequencies, unsigned int UniqueSymbols)
+{
+  std::priority_queue<INode*, std::vector<INode*>, NodeCmp> trees;
+
+  for (unsigned int i = 0; i < UniqueSymbols; ++i) {
+    if (frequencies[i] != 0) {
+      trees.push(new LeafNode(frequencies[i], i));
+    }
+  }
+  while (trees.size() > 1) {
+    INode* childR = trees.top();
+    trees.pop();
+
+    INode* childL = trees.top();
+    trees.pop();
+
+    INode* parent = new InternalNode(childR, childL);
+    trees.push(parent);
+  }
+  return trees.top();
+}
+
+void GenerateCodes(const INode* node, const HuffCode& prefix, HuffCodeMap& outCodes)
+{
+  if (const LeafNode* lf = dynamic_cast<const LeafNode*>(node)) {
+    outCodes[lf->c] = prefix;
+  } else if (const InternalNode* in = dynamic_cast<const InternalNode*>(node)) {
+    HuffCode leftPrefix = prefix;
+    leftPrefix.push_back(false);
+    GenerateCodes(in->left, leftPrefix, outCodes);
+
+    HuffCode rightPrefix = prefix;
+    rightPrefix.push_back(true);
+    GenerateCodes(in->right, rightPrefix, outCodes);
+  }
+}
+} // namespace
 
 void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param)
 {
@@ -59,11 +142,138 @@ void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* cluste
   } else {
     printf("Cluster decoding verification: PASSED\n");
   }
+
+  FillStatistic(mPqTotA, clustersCompressed->qTotA, clustersCompressed->nAttachedClusters);
+  FillStatistic(mPqMaxA, clustersCompressed->qMaxA, clustersCompressed->nAttachedClusters);
+  FillStatistic(mPflagsA, clustersCompressed->flagsA, clustersCompressed->nAttachedClusters);
+  FillStatistic(mProwDiffA, clustersCompressed->rowDiffA, clustersCompressed->nAttachedClustersReduced);
+  FillStatistic(mPsliceLegDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced);
+  FillStatistic(mPpadResA, clustersCompressed->padResA, clustersCompressed->nAttachedClustersReduced);
+  FillStatistic(mPtimeResA, clustersCompressed->timeResA, clustersCompressed->nAttachedClustersReduced);
+  FillStatistic(mPsigmaPadA, clustersCompressed->sigmaPadA, clustersCompressed->nAttachedClusters);
+  FillStatistic(mPsigmaTimeA, clustersCompressed->sigmaTimeA, clustersCompressed->nAttachedClusters);
+  FillStatistic(mPqPtA, clustersCompressed->qPtA, clustersCompressed->nTracks);
+  FillStatistic(mProwA, clustersCompressed->rowA, clustersCompressed->nTracks);
+  FillStatistic(mPsliceA, clustersCompressed->sliceA, clustersCompressed->nTracks);
+  FillStatistic(mPtimeA, clustersCompressed->timeA, clustersCompressed->nTracks);
+  FillStatistic(mPpadA, clustersCompressed->padA, clustersCompressed->nTracks);
+  FillStatistic(mPqTotU, clustersCompressed->qTotU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPqMaxU, clustersCompressed->qMaxU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPflagsU, clustersCompressed->flagsU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPpadDiffU, clustersCompressed->padDiffU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPtimeDiffU, clustersCompressed->timeDiffU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPsigmaPadU, clustersCompressed->sigmaPadU, clustersCompressed->nUnattachedClusters);
+  FillStatistic(mPsigmaTimeU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters);
+  FillStatistic<short unsigned int, 1>(mPnTrackClusters, clustersCompressed->nTrackClusters, clustersCompressed->nTracks);
+  FillStatistic<unsigned int, 1>(mPnSliceRowClusters, clustersCompressed->nSliceRowClusters, clustersCompressed->nSliceRows);
+  FillStatisticCombined(mPsigmaA, clustersCompressed->sigmaPadA, clustersCompressed->sigmaTimeA, clustersCompressed->nAttachedClusters, 1 << 8);
+  FillStatisticCombined(mPsigmaU, clustersCompressed->sigmaPadU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters, 1 << 8);
+  FillStatisticCombined(mProwSliceA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUCA_ROW_COUNT);
+  mNTotalClusters += clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
 }
 
 void GPUTPCClusterStatistics::Finish()
 {
   if (mDecodingError) {
     printf("-----------------------------------------\nERROR - INCORRECT CLUSTER DECODING!\n-----------------------------------------\n");
+  }
+  if (mNTotalClusters == 0) {
+    return;
+  }
+
+  printf("\nRunning cluster compression entropy statistics\n");
+  Analyze(mPqTotA, "qTot Attached");
+  Analyze(mPqMaxA, "qMax Attached");
+  Analyze(mPflagsA, "flags Attached");
+  double eRowSlice = Analyze(mProwDiffA, "rowDiff Attached", false);
+  eRowSlice += Analyze(mPsliceLegDiffA, "sliceDiff Attached", false);
+  Analyze(mPpadResA, "padRes Attached");
+  Analyze(mPtimeResA, "timeRes Attached");
+  double eSigma = Analyze(mPsigmaPadA, "sigmaPad Attached", false);
+  eSigma += Analyze(mPsigmaTimeA, "sigmaTime Attached", false);
+  Analyze(mPqPtA, "qPt Attached");
+  Analyze(mProwA, "row Attached");
+  Analyze(mPsliceA, "slice Attached");
+  Analyze(mPtimeA, "time Attached");
+  Analyze(mPpadA, "pad Attached");
+  Analyze(mPqTotU, "qTot Unattached");
+  Analyze(mPqMaxU, "qMax Unattached");
+  Analyze(mPflagsU, "flags Unattached");
+  Analyze(mPpadDiffU, "padDiff Unattached");
+  Analyze(mPtimeDiffU, "timeDiff Unattached");
+  eSigma += Analyze(mPsigmaPadU, "sigmaPad Unattached", false);
+  eSigma += Analyze(mPsigmaTimeU, "sigmaTime Unattached", false);
+  Analyze(mPnTrackClusters, "nClusters in Track");
+  Analyze(mPnSliceRowClusters, "nClusters in Row");
+  double eSigmaCombined = Analyze(mPsigmaA, "combined sigma Attached");
+  eSigmaCombined += Analyze(mPsigmaU, "combined sigma Unattached");
+  double eRowSliceCombined = Analyze(mProwSliceA, "combined row/slice Attached");
+
+  printf("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)\n", eRowSlice, eRowSliceCombined, 100. * (eRowSlice - eRowSliceCombined) / eRowSlice);
+  printf("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)\n", eSigma, eSigmaCombined, 100. * (eSigma - eSigmaCombined) / eSigma);
+
+  printf("\nConbined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
+}
+
+float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bool count)
+{
+  double entropy = 0.;
+  double huffmanSize = 0;
+
+  std::vector<double> prob(p.size());
+  double log2 = log(2.);
+  size_t total = 0;
+  for (unsigned int i = 0; i < p.size(); i++) {
+    total += p[i];
+  }
+  for (unsigned int i = 0; i < prob.size(); i++) {
+    if (total && p[i]) {
+      prob[i] = (double)p[i] / total;
+      double I = -log(prob[i]) / log2;
+      double H = I * prob[i];
+
+      entropy += H;
+    }
+  }
+
+  INode* root = BuildTree(prob.data(), prob.size());
+
+  HuffCodeMap codes;
+  GenerateCodes(root, HuffCode(), codes);
+  delete root;
+
+  for (HuffCodeMap::const_iterator it = codes.begin(); it != codes.end(); ++it) {
+    huffmanSize += it->second.size() * prob[it->first];
+  }
+
+  if (count) {
+    mEntropy += entropy * total;
+    mHuffman += huffmanSize * total;
+  }
+  printf("Size: %30s: Entropy %7.4f Huffman %7.4f\n", name, entropy, huffmanSize);
+  return entropy;
+}
+
+template <class T, int I>
+void GPUTPCClusterStatistics::FillStatistic(std::vector<int>& p, const T* ptr, size_t n)
+{
+  for (size_t i = 0; i < n; i++) {
+    unsigned int val = ptr[i];
+    if (I && p.size() <= val + 1) {
+      p.resize(val + 1);
+    }
+    p[val]++;
+  }
+}
+
+template <class T, class S, int I>
+void GPUTPCClusterStatistics::FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, size_t n, int max1)
+{
+  for (size_t i = 0; i < n; i++) {
+    unsigned int val = ptr1[i] + ptr2[i] * max1;
+    if (I && p.size() < val + 1) {
+      p.resize(val + 1);
+    }
+    p[val]++;
   }
 }
