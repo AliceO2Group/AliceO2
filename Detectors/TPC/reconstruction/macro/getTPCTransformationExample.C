@@ -27,9 +27,10 @@ using namespace o2::gpu;
 
 void spaceChargeCorrection(const double XYZ[3], double dXdYdZ[3])
 {
-  dXdYdZ[0] = 1.;
-  dXdYdZ[1] = 2.;
-  dXdYdZ[2] = 3.;
+  double a = XYZ[2] / 100;
+  dXdYdZ[0] = a + 0.1 * a * a;
+  dXdYdZ[1] = a;
+  dXdYdZ[2] = a;
 }
 
 void getTPCTransformationExample()
@@ -70,27 +71,20 @@ void getTPCTransformationExample()
           }
 
           // local 2 global
-
-          float x0g = x0 * sliceInfo.cosAlpha - y0 * sliceInfo.sinAlpha;
-          float y0g = x0 * sliceInfo.sinAlpha + y0 * sliceInfo.cosAlpha;
-          float z0g = z0;
-
-          float x1g = x1 * sliceInfo.cosAlpha - y1 * sliceInfo.sinAlpha;
-          float y1g = x1 * sliceInfo.sinAlpha + y1 * sliceInfo.cosAlpha;
-          float z1g = z1;
-
-          //cout<<x0<<" "<<y0<<" "<<z0<<" "<<x0g<<" "<<y0g<<" "<<z0g<<endl;
-          //cout<<x1<<" "<<y1<<" "<<z1<<" "<<x1g<<" "<<y1g<<" "<<z1g<<endl;
+          float gx0, gy0, gz0;
+          fastTransform->convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
+          float gx1, gy1, gz1;
+          fastTransform->convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
 
           // compare the original correction to the difference ( transformation with correction - transformation without correction )
 
-          double xyz[3] = { x0g, y0g, z0g };
+          double xyz[3] = { gx0, gy0, gz0 };
           double d[3] = { 0, 0, 0 };
           spaceChargeCorrection(xyz, d);
 
-          hist->Fill((x1g - x0g) - d[0]);
-          hist->Fill((y1g - y0g) - d[1]);
-          hist->Fill((z1g - z0g) - d[2]);
+          hist->Fill((gx1 - gx0) - d[0]);
+          hist->Fill((gy1 - gy0) - d[1]);
+          hist->Fill((gz1 - gz0) - d[2]);
 
           //std::cout << (x1g-x0g) - d[0]<<" "<< (y1g-y0g) - d[1]<<" "<< (z1g-z0g) - d[2]<<std::endl;
         }
