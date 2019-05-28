@@ -330,6 +330,15 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
+  bool convertRun2Raw = false;
+  for (int i = 0; i < chainTracking->NSLICES; i++) {
+    if (chainTracking->mIOPtrs.rawClusters[i]) {
+      convertRun2Raw = true;
+    }
+  }
+  if (convertRun2Raw) {
+    chainTracking->ConvertRun2RawToNative();
+  }
   if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
     chainTracking->ConvertNativeToClusterDataLegacy();
   }

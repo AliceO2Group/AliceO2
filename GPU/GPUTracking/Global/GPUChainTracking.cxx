@@ -473,6 +473,21 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
     mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
   }
   mIOPtrs.clustersNative = nullptr;
+  for (unsigned int i = 0; i < NSLICES * GPUCA_ROW_COUNT; i++) {
+    mIOMem.clustersNative[i].reset(nullptr);
+  }
+  memset((void*)mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
+}
+
+void GPUChainTracking::ConvertRun2RawToNative()
+{
+  GPUReconstructionConvert::ConvertRun2RawToNative(mClusterNativeAccess.get(), mIOMem.clustersNative, mIOPtrs.rawClusters, mIOPtrs.nRawClusters);
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    mIOPtrs.rawClusters[i] = nullptr;
+    mIOPtrs.nRawClusters[i] = 0;
+    mIOMem.rawClusters[i].reset(nullptr);
+  }
+  mIOPtrs.clustersNative = mClusterNativeAccess.get();
 }
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
