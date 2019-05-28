@@ -28,7 +28,7 @@ class ATask : public AnalysisTask
   {
   }
 
-  virtual void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
+  void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
   {
   }
 

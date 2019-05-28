@@ -269,7 +269,7 @@ static void PlotMultiEx(
           return v;
           break;
         case ValueScale::LOG:
-          return log(v);
+          return logf(v);
       }
       O2_BUILTIN_UNREACHABLE();
     };
