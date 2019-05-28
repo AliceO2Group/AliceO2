@@ -49,7 +49,9 @@ class GPUTPCGeometry
   const float mPadWidth[10] GPUCA_CPP11_INIT(= { .416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f });
   GPUd() int GetRegion(int row) const { return mRegion[row]; }
 
-  static CONSTEXPR float FACTOR_T2Z = 250.f / 512.f;
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 512.f);
+#endif
 
  public:
   GPUd() int GetROC(int row) const { return row < 97 ? (row < 63 ? 0 : 1) : (row < 127 ? 2 : 3); }
@@ -66,15 +68,17 @@ class GPUTPCGeometry
                                                        215.930f, 217.430f, 218.930f, 220.430f, 221.930f, 223.430f, 224.930f, 226.430f, 227.930f, 229.430f, 230.930f, 232.430f, 233.930f, 235.430f, 236.930f, 238.430f, 239.930f, 241.430f, 242.930f, 244.430f, 245.930f });
 
   const unsigned char mNPads[GPUCA_ROW_COUNT] GPUCA_CPP11_INIT(= { 68, 68, 68, 68, 70, 70, 70, 72, 72, 72, 74, 74, 74, 76, 76, 76, 78, 78, 78, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 88, 88, 88, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 98, 98, 98, 100, 100, 100, 102,
-                                               102, 102, 104, 104, 104, 106, 106, 106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100, 100, 100, 100,
-                                               102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108, 108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138,
-                                               138, 140 };
+                                                                   102, 102, 104, 104, 104, 106, 106, 106, 108, 108, 74, 76, 76, 76, 76, 78, 78, 78, 80, 80, 80, 80, 82, 82, 82, 84, 84, 84, 86, 86, 86, 86, 88, 88, 88, 90, 90, 90, 90, 92, 92, 92, 94, 94, 94, 96, 96, 96, 96, 98, 98, 98, 100, 100, 100, 100,
+                                                                   102, 102, 102, 104, 104, 104, 106, 106, 106, 106, 108, 108, 108, 110, 110, 110, 110, 112, 112, 114, 114, 114, 116, 116, 118, 118, 120, 120, 122, 122, 122, 124, 124, 126, 126, 128, 128, 130, 130, 130, 132, 132, 134, 134, 136, 136, 138, 138,
+                                                                   138, 140 });
 
   GPUd() int GetRegion(int row) const { return (row < 63 ? 0 : row < 63 + 64 ? 1 : 2); }
   const float mPadHeight[3] GPUCA_CPP11_INIT(= { .75f, 1.f, 1.5f });
   const float mPadWidth[3] GPUCA_CPP11_INIT(= { .4f, .6f, .6f });
-  
-  static constexpr float FACTOR_T2Z = 250.f / 1024.f;
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  static CONSTEXPR float FACTOR_T2Z GPUCA_CPP11_INIT(= 250.f / 1024.f);
+#endif
 
  public:
   GPUd() int GetROC(int row) const { return GetRegion(row); }
@@ -83,8 +87,9 @@ class GPUTPCGeometry
   GPUd() int EndOROC2() const { return GPUCA_ROW_COUNT; }
 #endif
  private:
-  static CONSTEXPR float FACTOR_Z2T = 1.f / FACTOR_T2Z;
-
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  static CONSTEXPR float FACTOR_Z2T GPUCA_CPP11_INIT(= 1.f / FACTOR_T2Z);
+#endif
  public:
   GPUd() float Row2X(int row) const
   {
@@ -94,6 +99,7 @@ class GPUTPCGeometry
   GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
   GPUd() unsigned char NPads(int row) const { return mNPads[row]; }
 
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
   GPUd() float LinearPad2Y(int slice, int row, float pad) const
   {
     const float u = (pad - 0.5 * mNPads[row]) * PadWidth(row);
@@ -117,6 +123,7 @@ class GPUTPCGeometry
     const float v = (slice >= GPUCA_NSLICES / 2) ? -z : z;
     return (250.f - v) * FACTOR_Z2T;
   }
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

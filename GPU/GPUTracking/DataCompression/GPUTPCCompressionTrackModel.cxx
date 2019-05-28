@@ -21,7 +21,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 // encoded with the old version!!!
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& param)
+GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& param)
 {
   static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
   static constexpr float kRadLen = 29.532f; // 28.94;
@@ -43,14 +43,14 @@ void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, u
   // printf("Initialized: x %f y %f z %f alpha %f qPt %f\n", x, y, z, alpha, mTrk.QPt());
 }
 
-int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
+GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
 {
   int retVal = mProp.PropagateToXAlpha(x, alpha, true);
   // printf("Propagated to: x %f y %f z %f alpha %f qPt %f\n", x, mTrk.Y(), mTrk.Z(), alpha, mTrk.QPt());
   return retVal;
 }
 
-int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
+GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   mTrk.ConstrainSinPhi();
   int retVal = mProp.Update(y, z, iRow, *mParam, 0, false, false);
@@ -58,7 +58,7 @@ int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
   return retVal;
 }
 
-int GPUTPCCompressionTrackModel::Mirror()
+GPUd() int GPUTPCCompressionTrackModel::Mirror()
 {
   mProp.Mirror(true);
   // printf("Mirrored: y %f z %f qPt %f\n", mTrk.Y(), mTrk.Z(), mTrk.QPt());
