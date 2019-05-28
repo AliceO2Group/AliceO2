@@ -464,6 +464,10 @@ class DataAllocator
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
+  /// Take a snapshot of a raw data array which may contain a serialized object.
+  void snapshot(const Output& spec, const char* payload, size_t payloadSize,
+                o2::header::SerializationMethod serializationMethod);
+
   /// make an object of type T and route to output specified by OutputRef
   /// The object is owned by the framework, returned reference can be used to fill the object.
   ///
