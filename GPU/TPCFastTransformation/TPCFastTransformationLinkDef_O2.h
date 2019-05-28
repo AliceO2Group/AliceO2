@@ -22,7 +22,7 @@
 #pragma link C++ class o2::gpu::IrregularSpline2D3D+;
 #pragma link C++ class o2::gpu::SemiregularSpline2D3D+;
 #pragma link C++ class o2::gpu::IrregularSpline2D3DCalibrator+;
-#pragma link C++ class o2::gpu::TPCFastTransform + ;
-#pragma link C++ class o2::gpu::TPCDistortionIRS + ;
+#pragma link C++ class o2::gpu::TPCFastTransform+;
+#pragma link C++ class o2::gpu::TPCDistortionIRS+;
 
 #endif
