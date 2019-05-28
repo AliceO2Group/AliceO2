@@ -18,7 +18,6 @@
 #include "GPUTPCDef.h"
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUTPCGMMergedTrack.h"
-#include "GPUTPCGMPolynomialField.h"
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
@@ -45,6 +44,7 @@ class GPUTPCSliceOutput;
 class GPUTPCGMTrackParam;
 class GPUTPCTracker;
 class GPUChainTracking;
+class GPUTPCGMPolynomialField;
 
 /**
  * @class GPUTPCGMMerger
@@ -82,9 +82,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   GPUhd() const o2::base::MatLayerCylSet* MatLUT() const { return mMatLUT; }
 
-  GPUd() const GPUTPCGMPolynomialField& Field() const { return mField; }
-  GPUhd() const GPUTPCGMPolynomialField* pField() const { return &mField; }
-  void SetField(GPUTPCGMPolynomialField* field) { mField = *field; }
+  GPUd() const GPUTPCGMPolynomialField& Field() const { return mCAParam->polynomialField; }
+  GPUhd() const GPUTPCGMPolynomialField* pField() const { return &mCAParam->polynomialField; }
 
   GPUhd() int NClusters() const { return (mNClusters); }
   GPUhd() int NMaxClusters() const { return (mNMaxClusters); }
@@ -142,8 +141,6 @@ class GPUTPCGMMerger : public GPUProcessor
   static CONSTEXPR int NSLICES = GPUCA_NSLICES; //* N slices
   int mNextSliceInd[NSLICES];
   int mPrevSliceInd[NSLICES];
-
-  GPUTPCGMPolynomialField mField;
 
   const GPUTPCSliceOutput* mkSlices[NSLICES]; //* array of input slice tracks
 
