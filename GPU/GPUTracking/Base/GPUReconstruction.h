@@ -100,7 +100,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(int type, bool forceType) { return CreateInstance((DeviceType)type, forceType); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType);
 
-  //Helpers for kernel launches
+  // Helpers for kernel launches
   template <class T, int I = 0>
   class classArgument
   {
@@ -133,7 +133,7 @@ class GPUReconstruction
     int nEvents;
   };
 
-  //Global steering functions
+  // Global steering functions
   template <class T>
   T* AddChain();
 
@@ -175,6 +175,7 @@ class GPUReconstruction
   void SetSettings(float solenoidBz);
   void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsDeviceProcessing* proc = nullptr);
   void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; }
+  void SetDebugLevel(int level) { mDeviceProcessingSettings.debugLevel = level; }
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
@@ -452,10 +453,11 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   if (fp == nullptr) {
     return nullptr;
   }
-  size_t size[2], r;
+  size_t size[2] = { 0 }, r;
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
+    printf("ERROR reading %s, invalid size: %lld (%lld expected)\n", file, (long long int)size[0], (long long int)sizeof(T));
     return nullptr;
   }
   std::unique_ptr<T> retVal(new T);

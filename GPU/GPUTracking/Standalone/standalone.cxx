@@ -352,6 +352,7 @@ int main(int argc, char** argv)
     printf("Error initializing GPUReconstruction\n");
     return (1);
   }
+  rec->SetDebugLevel(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
 #ifdef HAVE_O2HEADERS
   chainITS = rec->AddChain<GPUChainITS>();
