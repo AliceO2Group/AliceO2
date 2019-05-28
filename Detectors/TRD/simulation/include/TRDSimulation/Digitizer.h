@@ -54,7 +54,7 @@ class Digitizer
 
   std::vector<HitType> mHitContainer; // The container of hits in a given detector
 
-  bool getHitContainer(const int, const std::vector<HitType>&, std::vector<HitType>&); // True if there are hits in the detector
+  void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, 540> &);
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, TRDArraySignal&); // True if hit-to-signal conversion is successful
   bool convertSignalsToDigits(const int, int&);                              // True if signal-to-digit conversion is successful
