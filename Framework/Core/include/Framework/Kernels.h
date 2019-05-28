@@ -47,9 +47,9 @@ class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
 {
  public:
   HashByColumnKernel(HashByColumnOptions options = {});
-  virtual arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                             arrow::compute::Datum const& table,
-                             arrow::compute::Datum* hashes) override;
+  arrow::Status Call(arrow::compute::FunctionContext* ctx,
+                     arrow::compute::Datum const& table,
+                     arrow::compute::Datum* hashes) override;
 
  private:
   HashByColumnOptions mOptions;
@@ -64,9 +64,9 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
 {
  public:
   explicit SortedGroupByKernel(GroupByOptions options = {});
-  virtual arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                             arrow::compute::Datum const& table,
-                             arrow::compute::Datum* outputRanges) override;
+  arrow::Status Call(arrow::compute::FunctionContext* ctx,
+                     arrow::compute::Datum const& table,
+                     arrow::compute::Datum* outputRanges) override;
   //virtual std::shared_ptr<arrow::DataType> out_type() const override {
   //  return mType;
   //}

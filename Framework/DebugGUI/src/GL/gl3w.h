@@ -41,7 +41,7 @@
 extern "C" {
 #endif
 
-typedef void (*GL3WglProc)(void);
+typedef void (*GL3WglProc)();
 typedef GL3WglProc (*GL3WGetProcAddressProc)(const char *proc);
 
 /* gl3w api */

@@ -16,10 +16,10 @@
 #include "imconfig.h"
 #endif
 
-#include <float.h>                  // FLT_MAX
-#include <stdarg.h>                 // va_list
-#include <stddef.h>                 // ptrdiff_t, nullptr
-#include <string.h>                 // memset, memmove, memcpy, strlen, strchr, strcpy, strcmp
+#include <cfloat>  // FLT_MAX
+#include <cstdarg> // va_list
+#include <cstddef> // ptrdiff_t, nullptr
+#include <cstring> // memset, memmove, memcpy, strlen, strchr, strcpy, strcmp
 
 // Version
 #define IMGUI_VERSION               "1.61"
@@ -32,7 +32,7 @@
 
 // Helpers
 #ifndef IM_ASSERT
-#include <assert.h>
+#include <cassert>
 #define IM_ASSERT(_EXPR)            assert(_EXPR)
 #endif
 #if defined(__clang__) || defined(__GNUC__)
