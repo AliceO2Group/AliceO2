@@ -19,8 +19,6 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
-#include "GPUTPCGMPolynomialField.h"
-#include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
@@ -57,7 +55,7 @@ static constexpr int kMaxClusters = 1000;
 #endif
 
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mField(), mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrder(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
+  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrder(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
 {
   //* constructor
 
@@ -72,7 +70,6 @@ GPUTPCGMMerger::GPUTPCGMMerger()
   mNextSliceInd[last] = NSLICES / 2;
   mPrevSliceInd[NSLICES / 2] = last;
 
-  mField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
   for (int i = 0; i < NSLICES; i++) {
     mkSlices[i] = nullptr;
     for (int j = 0; j < 2; j++) {
@@ -173,15 +170,7 @@ int GPUTPCGMMerger::GetTrackLabel(GPUTPCGMBorderTrack& trk)
 #endif
 // END DEBUG CODE
 
-void GPUTPCGMMerger::InitializeProcessor()
-{
-  mSliceTrackers = mChainTracking->GetTPCSliceTrackers();
-  if (mCAParam->AssumeConstantBz) {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, mCAParam->BzkG, mField);
-  } else {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(mCAParam->BzkG, mField);
-  }
-}
+void GPUTPCGMMerger::InitializeProcessor() { mSliceTrackers = mChainTracking->GetTPCSliceTrackers(); }
 
 void* GPUTPCGMMerger::SetPointersHostOnly(void* mem)
 {
