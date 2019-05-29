@@ -445,7 +445,7 @@ int main(int argc, char** argv)
           }
           rec->SetResetTimers(j1 <= configStandalone.runsInit);
 
-          int tmpRetVal = chainTracking->RunStandalone();
+          int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0) {
             int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;

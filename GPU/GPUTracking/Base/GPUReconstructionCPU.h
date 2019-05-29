@@ -132,7 +132,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class T>
   void AddGPUEvents(T*& events);
 
-  int RunStandalone() override;
+  int RunChains() override;
 
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {

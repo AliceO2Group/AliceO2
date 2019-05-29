@@ -1262,7 +1262,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   return (0);
 }
 
-int GPUChainTracking::RunStandalone()
+int GPUChainTracking::RunChain()
 {
   if (GetDeviceProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);

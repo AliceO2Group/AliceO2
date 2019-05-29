@@ -146,7 +146,7 @@ void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
   }
 }
 
-int GPUReconstructionCPU::RunStandalone()
+int GPUReconstructionCPU::RunChains()
 {
   mStatNEvents++;
 
@@ -158,7 +158,7 @@ int GPUReconstructionCPU::RunStandalone()
   }
 
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->RunStandalone()) {
+    if (mChains[i]->RunChain()) {
       return 1;
     }
   }

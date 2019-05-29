@@ -144,7 +144,7 @@ class GPUReconstruction
   void DumpSettings(const char* dir = "");
   void ReadSettings(const char* dir = "");
 
-  virtual int RunStandalone() = 0;
+  virtual int RunChains() = 0;
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }

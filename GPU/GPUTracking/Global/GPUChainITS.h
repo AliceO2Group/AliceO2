@@ -42,7 +42,7 @@ class GPUChainITS : public GPUChain
   int Init() override;
   int PrepareEvent() override;
   int Finalize() override;
-  int RunStandalone() override;
+  int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
   int PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITS>& tracks);
