@@ -14,6 +14,11 @@ set(MODULE_BUCKET_NAME O2FrameworkFoundation_bucket)
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS src/Traits.cxx)
+set(HEADERS
+  include/Framework/CompilerBuiltins.h
+  include/Framework/Signpost.h
+  include/Framework/Traits.h
+)
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
@@ -27,3 +32,5 @@ O2_GENERATE_TESTS(
   BUCKET_NAME O2FrameworkFoundation_bucket
   TEST_SRCS test/test_Traits.cxx
 )
+
+install(FILES ${HEADERS} DESTINATION include/Framework)
