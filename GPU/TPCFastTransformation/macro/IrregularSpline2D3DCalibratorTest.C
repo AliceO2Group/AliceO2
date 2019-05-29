@@ -47,9 +47,8 @@ root -l IrregularSpline2D3DCalibratorTest.C++
 
 using namespace o2::gpu;
 
-
 IrregularSpline2D3D splineF;
-float *splineF_data=0;
+float* splineF_data = 0;
 
 void initF()
 {
@@ -172,7 +171,7 @@ int IrregularSpline2D3DCalibratorTest()
   TGraph2D* gfs = nullptr;
   TGraph2D* gfdiff = nullptr;
 
-  TNtuple* ntDiff = new TNtuple("diff","diff","u:v:dfx");
+  TNtuple* ntDiff = new TNtuple("diff", "diff", "u:v:dfx");
   TH1F* qaX = new TH1F("qaX", "diff F - spline", 1000, -0.05, 0.05);
 
   char keyPressed = '\0';
@@ -218,11 +217,11 @@ int IrregularSpline2D3DCalibratorTest()
       delete gfdiff;
       gf0 = new TGraph2D();
       gf0->SetTitle("Input function F");
-      gf0->SetLineColor(kBlue);  
- 
+      gf0->SetLineColor(kBlue);
+
       gfs = new TGraph2D();
       gfs->SetTitle("Spline");
-      gfs->SetLineColor(kGreen);  
+      gfs->SetLineColor(kGreen);
 
       gfdiff = new TGraph2D();
       gfdiff->SetName("gfdiff");
@@ -251,38 +250,38 @@ int IrregularSpline2D3DCalibratorTest()
 
       int nKnots = 0;
       for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
-	double u = gridU.getKnot(i).u;
-	for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
-	  double v = gridV.getKnot(j).u;
-	  float fx, fy, fz;
-	  F(u, v, fx, fy, fz);
-	  float fx1, fy1, fz1;
-	  finder.getSpline().getSplineVec(finder.getSplineData(), u, v, fx1, fy1, fz1);
-	  gknots->SetPoint(nKnots, u, v, fx1);
-	  gknotsDiff->SetPoint(nKnots++, u, v, fx1 - fx);
-	}
+        double u = gridU.getKnot(i).u;
+        for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
+          double v = gridV.getKnot(j).u;
+          float fx, fy, fz;
+          F(u, v, fx, fy, fz);
+          float fx1, fy1, fz1;
+          finder.getSpline().getSplineVec(finder.getSplineData(), u, v, fx1, fy1, fz1);
+          gknots->SetPoint(nKnots, u, v, fx1);
+          gknotsDiff->SetPoint(nKnots++, u, v, fx1 - fx);
+        }
       }
 
       float stepu = 1.e-2;
       float stepv = 1.e-2;
       int nPoints = 0;
       for (float u = 0; u <= 1; u += stepu) {
-	for (float v = 0; v <= 1; v += stepv) {
-	  float fx0, fy0, fz0;
-    F(u, v, fx0, fy0, fz0);
-    //finder.getRaster().getSplineVec(finder.getRasterData(), u, v, fx0, fy0, fz0);
-    float fx1, fy1, fz1;
-    finder.getSpline().getSplineVec(finder.getSplineData(), u, v, fx1, fy1, fz1);
-	  if (u >= 0 && v >= 0 && u <= 1 && v <= 1) {
-	    qaX->Fill((fx1 - fx0));
-      qaX->Fill((fy1 - fy0));
-      qaX->Fill((fz1 - fz0));
-    }
-	  gf0->SetPoint(nPoints, u, v, fx0);
-	  gfs->SetPoint(nPoints, u, v, fx1);
-	  gfdiff->SetPoint(nPoints++, u, v, fx1 - fx0);
-	  ntDiff->Fill(u,v,fx1 - fx0);
-	}
+        for (float v = 0; v <= 1; v += stepv) {
+          float fx0, fy0, fz0;
+          F(u, v, fx0, fy0, fz0);
+          //finder.getRaster().getSplineVec(finder.getRasterData(), u, v, fx0, fy0, fz0);
+          float fx1, fy1, fz1;
+          finder.getSpline().getSplineVec(finder.getSplineData(), u, v, fx1, fy1, fz1);
+          if (u >= 0 && v >= 0 && u <= 1 && v <= 1) {
+            qaX->Fill((fx1 - fx0));
+            qaX->Fill((fy1 - fy0));
+            qaX->Fill((fz1 - fz0));
+          }
+          gf0->SetPoint(nPoints, u, v, fx0);
+          gfs->SetPoint(nPoints, u, v, fx1);
+          gfdiff->SetPoint(nPoints++, u, v, fx1 - fx0);
+          ntDiff->Fill(u, v, fx1 - fx0);
+        }
       }
 
       if (kDraw) {

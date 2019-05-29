@@ -34,17 +34,16 @@
 
 //#define GPUCA_NO_VC //Test without Vc, otherwise ctest fails linking
 
-
 float Fx(float u, float v)
 {
   const int PolynomDegree = 7;
   static double cu[PolynomDegree + 1], cv[PolynomDegree + 1];
   static bool isInitialized = 0;
 
-  if( !isInitialized ){
+  if (!isInitialized) {
     for (int i = 0; i <= PolynomDegree; i++) {
-      cu[i] = i*gRandom->Uniform(-1, 1);
-      cv[i] = i*gRandom->Uniform(-1, 1);
+      cu[i] = i * gRandom->Uniform(-1, 1);
+      cv[i] = i * gRandom->Uniform(-1, 1);
     }
     isInitialized = 1;
   }
@@ -83,28 +82,27 @@ int IrregularSpline2D3DTest()
 
     int nAxisTicksU = 20;
     int nAxisTicksV = 20;
-    
-    double du = 1./(nKnotsU-1);
-    double dv = 1./(nKnotsV-1);
-    for( int i=1; i<nKnotsU-1; i++ ){
-      knotsU[i] = i*du + gRandom->Uniform(-du/3., du/3.);
+
+    double du = 1. / (nKnotsU - 1);
+    double dv = 1. / (nKnotsV - 1);
+    for (int i = 1; i < nKnotsU - 1; i++) {
+      knotsU[i] = i * du + gRandom->Uniform(-du / 3., du / 3.);
     }
-    for( int i=1; i<nKnotsV-1; i++ ){
-      knotsV[i] = i*dv + gRandom->Uniform(-dv/3., dv/3.);
+    for (int i = 1; i < nKnotsV - 1; i++) {
+      knotsV[i] = i * dv + gRandom->Uniform(-dv / 3., dv / 3.);
     }
-  
- 
+
     knotsU[0] = 0.;
     knotsU[nKnotsU - 1] = 1.;
     knotsV[0] = 0.;
-    knotsV[nKnotsV - 1] = 1.;   
- 
-    std::sort( knotsU, knotsU + nKnotsU);
-    std::sort( knotsV, knotsV + nKnotsV);
+    knotsV[nKnotsV - 1] = 1.;
+
+    std::sort(knotsU, knotsU + nKnotsU);
+    std::sort(knotsV, knotsV + nKnotsV);
 
     spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
   }
-  
+
   int nKnotsTot = spline.getNumberOfKnots();
 
   const IrregularSpline1D& gridU = spline.getGridU();
@@ -214,7 +212,7 @@ int IrregularSpline2D3DTest()
   // gf0->Draw("surf,same");
   gknots->Draw("P,same");
   canv->Update();
-  
+
   delete[] data0;
   delete[] data;
 

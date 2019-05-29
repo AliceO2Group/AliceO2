@@ -55,7 +55,6 @@ float F(float u)
   return f;
 }
 
-
 using namespace o2::gpu;
 typedef double myfloat;
 

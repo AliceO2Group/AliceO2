@@ -130,7 +130,6 @@ inline T RegularSpline1D::getSpline(const int iknot1, T f0, T f1, T f2, T f3, fl
   return (a * x + b) * x2 + z1 * x + f1;
 }
 
-
 template <typename T>
 inline T RegularSpline1D::getSpline(const T correctedData[], float u) const
 {
