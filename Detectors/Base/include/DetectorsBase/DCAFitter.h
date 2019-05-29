@@ -151,7 +151,7 @@ class DCAFitter
   //< where {x0,y0,z0} and {x1,y1,z1} are track positions in their local frames
   struct TrackCoefVtx {
     ftype_t mXX, mXY, mXZ, mYX, mYY, mYZ, mZX, mZY, mZZ;
-    TrackCoefVtx() {}
+    TrackCoefVtx() CONSTRDEF;
   };
 
   //----------------------------------------------------
