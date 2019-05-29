@@ -178,13 +178,16 @@ bool GPUTRDTracker::Init(TRD_GEOMETRY_CONST GPUTRDGeometry* geo)
   return true;
 }
 
-void GPUTRDTracker::Reset()
+void GPUTRDTracker::Reset(bool fast)
 {
   //--------------------------------------------------------------------
   // Reset tracker
   //--------------------------------------------------------------------
   mNTracklets = 0;
   mNTracks = 0;
+  if (fast) {
+    return;
+  }
   for (int i = 0; i < mNMaxSpacePoints; ++i) {
     mTracklets[i] = 0x0;
     mSpacePoints[i].mR = 0.f;
