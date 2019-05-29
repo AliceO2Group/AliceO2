@@ -1012,7 +1012,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
     return 1;
   }
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Running TPC Merger (%d/%d)", Merger.NOutputTrackClusters(), Merger.NClusters());
+    GPUInfo("Running TPC Merger");
   }
   ActivateThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCMerging);
@@ -1100,7 +1100,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
 
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
-    GPUInfo("TPC Merger Finished");
+    GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
   ReleaseThreadContext();
   return 0;
