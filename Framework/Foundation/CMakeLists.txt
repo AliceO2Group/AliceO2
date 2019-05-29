@@ -9,8 +9,18 @@
 # or submit itself to any jurisdiction.
 
 set(MODULE_NAME "FrameworkFoundation")
-
 set(MODULE_BUCKET_NAME O2FrameworkFoundation_bucket)
+
+O2_SETUP(NAME ${MODULE_NAME})
+
+set(SRCS src/Traits.cxx)
+
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+
+O2_GENERATE_LIBRARY()
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
