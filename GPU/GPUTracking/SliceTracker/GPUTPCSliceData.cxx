@@ -16,6 +16,7 @@
 #include "GPUTPCHit.h"
 #include "GPUTPCSliceData.h"
 #include "GPUReconstruction.h"
+#include "GPUProcessor.h"
 #include <iostream>
 #include <cstring>
 #include "utils/vecpod.h"
@@ -113,8 +114,6 @@ inline int GPUTPCSliceData::PackHitData(GPUTPCRow* const row, const GPUTPCHit* b
   return 0;
 }
 
-void GPUTPCSliceData::InitializeProcessor() {}
-
 void GPUTPCSliceData::InitializeRows(const GPUParam& p)
 {
   // initialisation of rows
@@ -138,48 +137,40 @@ void GPUTPCSliceData::SetMaxData()
 {
   int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_ROWALIGNMENT) + mNumberOfHits;
   const unsigned int kVectorAlignment = 256;
-  mNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+  mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 }
 
-void* GPUTPCSliceData::SetPointersInput(void* mem)
+void* GPUTPCSliceData::SetPointersInput(void* mem, bool idsOnGPU)
 {
   const int firstHitInBinSize = (23 + sizeof(GPUCA_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * mNumberOfHits + 3;
-  computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
-  computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
-  if (mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging) {
-    mem = SetPointersScratchHost(mem);
+  GPUProcessor::computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
+  GPUProcessor::computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
+  if (idsOnGPU) {
+    mem = SetPointersScratchHost(mem, false); //Hijack the allocation from SetPointersScratchHost
   }
   return mem;
 }
 
 void* GPUTPCSliceData::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mLinkUpData, mNumberOfHitsPlusAlign);
-  computePointerWithAlignment(mem, mLinkDownData, mNumberOfHitsPlusAlign);
-  computePointerWithAlignment(mem, mHitWeights, mNumberOfHitsPlusAlign + 16 / sizeof(*mHitWeights));
+  GPUProcessor::computePointerWithAlignment(mem, mLinkUpData, mNumberOfHitsPlusAlign);
+  GPUProcessor::computePointerWithAlignment(mem, mLinkDownData, mNumberOfHitsPlusAlign);
+  GPUProcessor::computePointerWithAlignment(mem, mHitWeights, mNumberOfHitsPlusAlign + 16 / sizeof(*mHitWeights));
   return mem;
 }
 
-void* GPUTPCSliceData::SetPointersScratchHost(void* mem)
+void* GPUTPCSliceData::SetPointersScratchHost(void* mem, bool idsOnGPU)
 {
-  computePointerWithAlignment(mem, mClusterDataIndex, mNumberOfHitsPlusAlign);
+  if (!idsOnGPU) {
+    GPUProcessor::computePointerWithAlignment(mem, mClusterDataIndex, mNumberOfHitsPlusAlign);
+  }
   return mem;
 }
 
 void* GPUTPCSliceData::SetPointersRows(void* mem)
 {
-  computePointerWithAlignment(mem, mRows, GPUCA_ROW_COUNT + 1);
+  GPUProcessor::computePointerWithAlignment(mem, mRows, GPUCA_ROW_COUNT + 1);
   return mem;
-}
-
-void GPUTPCSliceData::RegisterMemoryAllocation()
-{
-  mMemoryResInput = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersInput, GPUMemoryResource::MEMORY_INPUT, "SliceInput");
-  mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
-  if (!(mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging)) {
-    mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
-  }
-  mMemoryResRows = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersRows, GPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 }
 
 int GPUTPCSliceData::InitFromClusterData()
@@ -293,7 +284,7 @@ int GPUTPCSliceData::InitFromClusterData()
     GPUTPCRow& row = mRows[rowIndex];
     row.mNHits = NumberOfClustersInRow[rowIndex];
     row.mHitNumberOffset = hitOffset;
-    hitOffset += nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+    hitOffset += GPUProcessor::nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
     row.mFirstHitInBinOffset = gridContentOffset;
 
@@ -363,7 +354,7 @@ int GPUTPCSliceData::InitFromClusterData()
     gridContentOffset += nn;
 
     // Make pointer aligned
-    gridContentOffset = nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+    gridContentOffset = GPUProcessor::nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
   }
 
   return (0);

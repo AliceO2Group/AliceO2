@@ -80,7 +80,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &GPUTrackingFlatObjects::SetPointersFlatObjects, GPUMemoryResource::MEMORY_PERMANENT, "Processors");
 
   for (unsigned int i = 0; i < NSLICES; i++) {
-    mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i].Data(), GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
     mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
   }
   processors()->tpcMerger.SetTrackingChain(this);
@@ -100,7 +99,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCSliceTracking) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcTrackers[i], &processors()->tpcTrackers[i]);
-      mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcTrackers[i].Data(), &processors()->tpcTrackers[i].Data());
     }
   }
   if (GetRecoStepsGPU() & RecoStep::TPCMerging) {
@@ -303,40 +301,40 @@ int GPUChainTracking::ReadData(const char* filename)
   }
 
   /*int nTotal = 0;
-        int nRead;
-        for (int i = 0;i < NSLICES;i++)
-        {
-            int nHits;
-            nRead = fread(&nHits, sizeof(nHits), 1, fp);
-            mIOPtrs.nClusterData[i] = nHits;
-            AllocateIOMemoryHelper(nHits, mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
-            nRead = fread(mIOMem.clusterData[i].get(), sizeof(*mIOPtrs.clusterData[i]), nHits, fp);
-            for (int j = 0;j < nHits;j++)
-            {
-                mIOMem.clusterData[i][j].fId = nTotal++;
-            }
-        }
-        printf("Read %d hits\n", nTotal);
-        mIOPtrs.nMCLabelsTPC = nTotal;
-        AllocateIOMemoryHelper(nTotal, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
-        nRead = fread(mIOMem.mcLabelsTPC.get(), sizeof(*mIOPtrs.mcLabelsTPC), nTotal, fp);
-        if (nRead != nTotal)
-        {
-            mIOPtrs.nMCLabelsTPC = 0;
-        }
-        else
-        {
-            printf("Read %d MC labels\n", nTotal);
-            int nTracks;
-            nRead = fread(&nTracks, sizeof(nTracks), 1, fp);
-            if (nRead)
-            {
-                mIOPtrs.nMCInfosTPC = nTracks;
-                AllocateIOMemoryHelper(nTracks, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
-                nRead = fread(mIOMem.mcInfosTPC.get(), sizeof(*mIOPtrs.mcInfosTPC), nTracks, fp);
-                printf("Read %d MC Infos\n", nTracks);
-            }
-        }*/
+  int nRead;
+  for (int i = 0;i < NSLICES;i++)
+  {
+    int nHits;
+    nRead = fread(&nHits, sizeof(nHits), 1, fp);
+    mIOPtrs.nClusterData[i] = nHits;
+    AllocateIOMemoryHelper(nHits, mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
+    nRead = fread(mIOMem.clusterData[i].get(), sizeof(*mIOPtrs.clusterData[i]), nHits, fp);
+    for (int j = 0;j < nHits;j++)
+    {
+      mIOMem.clusterData[i][j].fId = nTotal++;
+    }
+  }
+  printf("Read %d hits\n", nTotal);
+  mIOPtrs.nMCLabelsTPC = nTotal;
+  AllocateIOMemoryHelper(nTotal, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
+  nRead = fread(mIOMem.mcLabelsTPC.get(), sizeof(*mIOPtrs.mcLabelsTPC), nTotal, fp);
+  if (nRead != nTotal)
+  {
+    mIOPtrs.nMCLabelsTPC = 0;
+  }
+  else
+  {
+    printf("Read %d MC labels\n", nTotal);
+    int nTracks;
+    nRead = fread(&nTracks, sizeof(nTracks), 1, fp);
+    if (nRead)
+    {
+      mIOPtrs.nMCInfosTPC = nTracks;
+      AllocateIOMemoryHelper(nTracks, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
+      nRead = fread(mIOMem.mcInfosTPC.get(), sizeof(*mIOPtrs.mcInfosTPC), nTracks, fp);
+      printf("Read %d MC Infos\n", nTracks);
+    }
+  }*/
 
   char buf[DUMP_HEADER_SIZE + 1] = "";
   size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
@@ -684,9 +682,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
     // Copy Data to GPU Global Memory
     timerTPCtracking[iSlice][0].Start();
-    TransferMemoryResourceLinkToGPU(trk.Data().MemoryResInput(), useStream);
-    TransferMemoryResourceLinkToGPU(trk.Data().MemoryResRows(), useStream);
-    TransferMemoryResourceLinkToGPU(trk.MemoryResCommon(), useStream);
+    TransferMemoryResourcesToGPU(&trk);
     if (GPUDebug("Initialization (3)", useStream)) {
       throw std::runtime_error("memcpy failure");
     }
@@ -696,8 +692,8 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     streamInit[useStream] = true;
 
     if (GetDeviceProcessingSettings().keepAllMemory) {
-      TransferMemoryResourcesToHost(&trk.Data(), -1, true);
-      memcpy(trk.LinkTmpMemory(), mRec->Res(trk.Data().MemoryResScratch()).Ptr(), mRec->Res(trk.Data().MemoryResScratch()).Size());
+      TransferMemoryResourcesToHost(&trk, -1, true);
+      memcpy(trk.LinkTmpMemory(), mRec->Res(trk.MemoryResLinksScratch()).Ptr(), mRec->Res(trk.MemoryResLinksScratch()).Size());
       if (GetDeviceProcessingSettings().debugMask & 2) {
         trk.DumpLinks(mDebugFile);
       }
@@ -706,7 +702,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     runKernel<GPUTPCNeighboursCleaner>({ GPUCA_ROW_COUNT - 2, ThreadCount(), useStream }, &timerTPCtracking[iSlice][2], { iSlice });
 
     if (GetDeviceProcessingSettings().debugLevel >= 4) {
-      TransferMemoryResourcesToHost(&trk.Data(), -1, true);
+      TransferMemoryResourcesToHost(&trk, -1, true);
       if (GetDeviceProcessingSettings().debugMask & 4) {
         trk.DumpLinks(mDebugFile);
       }
@@ -735,8 +731,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
       trk.UpdateMaxData();
       AllocateRegisteredMemory(trk.MemoryResTracklets());
-      AllocateRegisteredMemory(trk.MemoryResTracks());
-      AllocateRegisteredMemory(trk.MemoryResTrackHits());
+      AllocateRegisteredMemory(trk.MemoryResOutput());
     }
 
     if (!doGPU || GetDeviceProcessingSettings().trackletConstructorInPipeline) {
@@ -855,8 +850,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents->selector[tmpSlice]))) {
         ReleaseEvent(&mEvents->selector[tmpSlice]);
         if (*processors()->tpcTrackers[tmpSlice].NTracks() > 0) {
-          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResTracks(), streamMap[tmpSlice]);
-          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResTrackHits(), streamMap[tmpSlice], &mEvents->selector[tmpSlice]);
+          TransferMemoryResourceLinkToHost(processors()->tpcTrackers[tmpSlice].MemoryResOutput(), streamMap[tmpSlice], &mEvents->selector[tmpSlice]);
         } else {
           transferRunning[tmpSlice] = false;
         }
