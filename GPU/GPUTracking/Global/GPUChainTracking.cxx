@@ -1379,14 +1379,18 @@ int GPUChainTracking::RunStandalone()
     }
   }
 
-  if (GetRecoSteps().isSet(RecoStep::TRDTracking) && mIOPtrs.nTRDTracklets) {
-    HighResTimer timer;
-    timer.Start();
-    if (RunTRDTracking()) {
-      return 1;
-    }
-    if (GetDeviceProcessingSettings().debugLevel >= 1) {
-      printf("TRD tracking time: %'d us\n", (int)(1000000 * timer.GetCurrentElapsedTime()));
+  if (GetRecoSteps().isSet(RecoStep::TRDTracking)) {
+    if (mIOPtrs.nTRDTracklets) {
+      HighResTimer timer;
+      timer.Start();
+      if (RunTRDTracking()) {
+        return 1;
+      }
+      if (GetDeviceProcessingSettings().debugLevel >= 1) {
+        printf("TRD tracking time: %'d us\n", (int)(1000000 * timer.GetCurrentElapsedTime()));
+      }
+    } else {
+      processors()->trdTracker.Reset();
     }
   }
 
