@@ -391,7 +391,12 @@ void GPUTPCTrackerComponent::ConfigureSlices()
   devProc.stuckProtection = fGPUStuckProtection;
   rec.NonConsecutiveIDs = true;
 
-  fRec->SetSettings(&ev, &rec, &devProc);
+  GPURecoStepConfiguration steps;
+  steps.steps.set(GPUDataTypes::RecoStep::TPCSliceTracking);
+  steps.inputs.set(GPUDataTypes::InOutType::TPCClusters);
+  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
+
+  fRec->SetSettings(&ev, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
   fRec->Init();
 }
