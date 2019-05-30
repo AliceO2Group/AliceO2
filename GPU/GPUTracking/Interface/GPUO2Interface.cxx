@@ -43,7 +43,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std
   mChain = mRec->AddChain<GPUChainTracking>();
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
-  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing);
+  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);
   mChain->SetTPCFastTransform(std::move(fastTrans));
   if (mRec->Init()) {
     return (1);
