@@ -52,17 +52,6 @@ int TPCCATracking::initialize(const GPUO2InterfaceConfiguration& config)
   return (retVal);
 }
 
-int TPCCATracking::initialize(const char* options)
-{
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  mTrackingCAO2Interface.reset(new GPUTPCO2Interface);
-  int retVal = mTrackingCAO2Interface->Initialize(options, std::move(fastTransform));
-  if (retVal) {
-    mTrackingCAO2Interface.reset();
-  }
-  return (retVal);
-}
-
 void TPCCATracking::deinitialize()
 {
   mTrackingCAO2Interface.reset();

@@ -74,6 +74,7 @@ set(SRCS
 )
 
 set(SRCS_NO_CINT
+    Base/GPUDataTypes.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUSettings.cxx
@@ -128,7 +129,6 @@ set(HDRS2
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
     Base/GPUOutputControl.h
-    Base/GPUDataTypes.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot

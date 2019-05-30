@@ -90,7 +90,7 @@ struct GPUSettingsProcessing {
   void SetDefaults();
 #endif
 
-  unsigned int deviceType; // Device type, shall use GPUReconstructions::DEVICE_TYPE constants, e.g. CPU / CUDA
+  unsigned int deviceType; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
   char forceDeviceType;    // Fail if device initialization fails, otherwise falls back to CPU
 };
 

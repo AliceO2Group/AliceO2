@@ -21,6 +21,7 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
 								SliceTracker/GPUTPCHitArea.cxx \
 								SliceTracker/GPUTPCTrackParam.cxx \
 								SliceTracker/GPUTPCClusterData.cxx \
+								Base/GPUDataTypes.cxx \
 								Base/GPUReconstruction.cxx \
 								Base/GPUReconstructionCPU.cxx \
 								Base/GPUReconstructionDeviceBase.cxx \

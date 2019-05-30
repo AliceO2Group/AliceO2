@@ -28,22 +28,26 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTPC/Constants.h"
 #include "TPCReconstruction/TPCCATracking.h"
+#include "GPUO2InterfaceConfiguration.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #else
 #pragma cling load("libTPCReconstruction")
 #pragma cling load("libDataFormatsTPC")
 #endif
 
+using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 
 using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
 
+#if !defined(__CLING__) || defined(__ROOTCLING__) // Disable in interpreted mode due to missing rootmaps
+
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg
 // TClonesArray of clusters.
-// It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-int runCATrackingClusterNative(TString inputFile, TString outputFile, TString options = "")
+// It wraps the TPCCATracking class
+int runCATrackingClusterNative(TString inputFile, TString outputFile)
 {
   if (inputFile.EqualTo("") || outputFile.EqualTo("")) {
     printf("Filename missing\n");
@@ -51,7 +55,14 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile, TString op
   }
   TPCCATracking tracker;
 
-  if (tracker.initialize(options.Data())) {
+  // Just some default options to keep the macro running for now
+  // Should be deprecated anyway in favor of the TPC workflow
+  GPUO2InterfaceConfiguration config;
+  config.configEvent.continuousMaxTimeBin = 0.023 * 5e6;
+  config.configReconstruction.NWays = 3;
+  config.configReconstruction.NWaysOuter = true;
+  config.configReconstruction.SearchWindowDZDR = 2.5f;
+  if (tracker.initialize(config)) {
     printf("Error initializing tracker\n");
     return (0);
   }
@@ -134,3 +145,5 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile, TString op
   tracker.deinitialize();
   return (0);
 }
+
+#endif

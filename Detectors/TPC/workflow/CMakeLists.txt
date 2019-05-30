@@ -22,6 +22,10 @@ set(SRCS
    src/TrackReaderSpec.cxx
    )
 
+if (GPUCA_EVENT_DISPLAY)
+    add_definitions(-DBUILD_EVENT_DISPLAY)
+endif()
+
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again
 ## this has to be fixed in the macro implementation
 set(LIBRARY_NAME ${MODULE_NAME})

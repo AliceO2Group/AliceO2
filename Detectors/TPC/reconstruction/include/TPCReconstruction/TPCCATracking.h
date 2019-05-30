@@ -22,7 +22,7 @@ namespace o2
 {
 namespace gpu
 {
-class GPUO2InterfaceConfiguration;
+struct GPUO2InterfaceConfiguration;
 class GPUTPCO2Interface;
 } // namespace gpu
 } // namespace o2
@@ -43,7 +43,6 @@ public:
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
 
   int initialize(const o2::gpu::GPUO2InterfaceConfiguration& config);
-  int initialize(const char* options = nullptr);
   void deinitialize();
 
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
