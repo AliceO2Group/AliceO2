@@ -14,6 +14,22 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
+#ifdef BUILD_EVENT_DISPLAY
+//#ifdef GPUCA_O2_LIB
+//#include "../src/GL/gl3w.h"
+//#else
+#include <GL/glew.h>
+//#endif
+
+#if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
+#ifdef GPUCA_STANDALONE
+#error Unsupported OpenGL version < 4.5
+#else
+#warning Unsupported OpenGL version < 4.5, disabling standalone event display
+#endif
+#endif
+#endif
+
 #include "GPUDisplayConfig.h"
 #include "GPUDisplayBackend.h"
 

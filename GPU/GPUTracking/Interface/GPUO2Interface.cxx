@@ -24,21 +24,6 @@
 
 using namespace o2::gpu;
 
-#ifdef BUILD_EVENT_DISPLAY
-#include "GPUDisplayBackendGlfw.h"
-#else
-#include "GPUDisplayBackend.h"
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-class GPUDisplayBackendGlfw : public GPUDisplayBackend
-{
-};
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-#endif
-
 #include "DataFormatsTPC/ClusterNative.h"
 #include "ClusterNativeAccessExt.h"
 

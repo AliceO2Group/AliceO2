@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configProcessing.forceDeviceType = true;
 
   config.configDeviceProcessing.nThreads = 4;           //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
-  config.configDeviceProcessing.runQA = true;           //Run QA after tracking
+  config.configDeviceProcessing.runQA = false;          //Run QA after tracking
   config.configDeviceProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
   //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 

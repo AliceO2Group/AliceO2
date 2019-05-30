@@ -33,9 +33,6 @@
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
 
-#include "GPUQA.h"
-#include "GPUDisplay.h"
-
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
