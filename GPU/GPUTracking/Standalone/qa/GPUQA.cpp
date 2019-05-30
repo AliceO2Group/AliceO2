@@ -1599,14 +1599,14 @@ int GPUQA::DrawQAHistograms()
                     fitFunc = customGaus;
                   }
 
-                  const float sigma = fabsf(fitFunc->GetParameter(2));
+                  const float sigma = fabs(fitFunc->GetParameter(2));
                   dst[0]->SetBinContent(bin, sigma);
                   dst[1]->SetBinContent(bin, fitFunc->GetParameter(1));
                   dst[0]->SetBinError(bin, fitFunc->GetParError(2));
                   dst[1]->SetBinError(bin, fitFunc->GetParError(1));
 
                   const bool fail1 = sigma <= 0.f;
-                  const bool fail2 = fabsf(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? PULL_AXIS : mConfig.nativeFitResolutions ? RES_AXES_NATIVE[j] : RES_AXES[j], 3.f * proj->GetRMS());
+                  const bool fail2 = fabs(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? PULL_AXIS : mConfig.nativeFitResolutions ? RES_AXES_NATIVE[j] : RES_AXES[j], 3.f * proj->GetRMS());
                   const bool fail3 = dst[0]->GetBinContent(bin) > 3.f * proj->GetRMS() || dst[0]->GetBinError(bin) > 1 || dst[1]->GetBinError(bin) > 1;
                   const bool fail4 = fitFunc->GetParameter(0) < proj->GetMaximum() / 5.;
                   const bool fail = fail1 || fail2 || fail3 || fail4;
@@ -2059,10 +2059,10 @@ int GPUQA::DrawQAHistograms()
     gInterpreter->GenerateDictionary("vector<vector<int>>", "");
     tout->WriteObject(&mcEffBuffer, "mcEffBuffer");
     tout->WriteObject(&mcLabelBuffer, "mcLabelBuffer");
-    unlink("AutoDict_vector_vector_int__.cxx");
-    unlink("AutoDict_vector_vector_int___cxx_ACLiC_dict_rdict.pcm");
-    unlink("AutoDict_vector_vector_int___cxx.d");
-    unlink("AutoDict_vector_vector_int___cxx.so");
+    remove("AutoDict_vector_vector_int__.cxx");
+    remove("AutoDict_vector_vector_int___cxx_ACLiC_dict_rdict.pcm");
+    remove("AutoDict_vector_vector_int___cxx.d");
+    remove("AutoDict_vector_vector_int___cxx.so");
   }
 
   if (tout) {
