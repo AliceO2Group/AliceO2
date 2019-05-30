@@ -22,7 +22,7 @@
 #include <omp.h>
 #endif
 
-using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::gpu;
 
 #ifdef BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
@@ -63,104 +63,6 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std
   if (mRec->Init()) {
     return (1);
   }
-  mInitialized = true;
-  return (0);
-}
-
-int GPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans)
-{
-  if (mInitialized) {
-    return (1);
-  }
-  float solenoidBz = -5.00668;
-  float refX = 1000.;
-  int nThreads = 1;
-  bool useGPU = false;
-  char gpuType[1024];
-
-  if (options && *options) {
-    printf("Received options %s\n", options);
-    const char* optPtr = options;
-    while (optPtr && *optPtr) {
-      while (*optPtr == ' ') {
-        optPtr++;
-      }
-      const char* nextPtr = strstr(optPtr, " ");
-      const int optLen = nextPtr ? nextPtr - optPtr : strlen(optPtr);
-      if (strncmp(optPtr, "cont", optLen) == 0) {
-        mContinuous = true;
-        printf("Continuous tracking mode enabled\n");
-      } else if (strncmp(optPtr, "dump", optLen) == 0) {
-        mDumpEvents = true;
-        printf("Dumping of input events enabled\n");
-      }
-#ifdef BUILD_EVENT_DISPLAY
-      else if (strncmp(optPtr, "display", optLen) == 0) {
-        mDisplayBackend.reset(new GPUDisplayBackendGlfw);
-        printf("Event display enabled\n");
-      }
-#endif
-      else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
-        sscanf(optPtr + 3, "%f", &solenoidBz);
-        printf("Using solenoid field %f\n", solenoidBz);
-      } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
-        sscanf(optPtr + 5, "%f", &refX);
-        printf("Propagating to reference X %f\n", refX);
-      } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
-        sscanf(optPtr + 8, "%d", &nThreads);
-        printf("Using %d threads\n", nThreads);
-      } else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0) {
-        int len = std::min(optLen - 8, 1023);
-        memcpy(gpuType, optPtr + 8, len);
-        gpuType[len] = 0;
-        useGPU = true;
-        printf("Using GPU Type %s\n", gpuType);
-      } else {
-        printf("Unknown option: %s\n", optPtr);
-        return 1;
-      }
-      optPtr = nextPtr;
-    }
-  }
-
-#ifdef GPUCA_HAVE_OPENMP
-  omp_set_num_threads(nThreads);
-#else
-  if (nThreads != 1) {
-    printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
-  }
-
-#endif
-  mRec.reset(GPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
-  mChain = mRec->AddChain<GPUChainTracking>();
-  if (mRec == nullptr) {
-    return 1;
-  }
-
-  GPUSettingsRec rec;
-  GPUSettingsEvent ev;
-  GPUSettingsDeviceProcessing devProc;
-
-  rec.SetDefaults();
-  ev.SetDefaults();
-  devProc.SetDefaults();
-
-  ev.solenoidBz = solenoidBz;
-  ev.continuousMaxTimeBin = mContinuous ? 0.023 * 5e6 : 0;
-
-  rec.NWays = 3;
-  rec.NWaysOuter = true;
-  rec.SearchWindowDZDR = 2.5f;
-  rec.TrackReferenceX = refX;
-
-  devProc.eventDisplay = mDisplayBackend.get();
-
-  mRec->SetSettings(&ev, &rec, &devProc);
-  mChain->SetTPCFastTransform(std::move(fastTrans));
-  if (mRec->Init()) {
-    return 1;
-  }
-
   mInitialized = true;
   return (0);
 }

@@ -8,15 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTrackingLinkDef_O2.h
+/// \file GPUDataTypes.cxx
 /// \author David Rohr
 
-#ifdef __CLING__
+#include "GPUDataTypes.h"
+#include "GPUReconstruction.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace GPUCA_NAMESPACE::gpu;
 
-#pragma link C++ class o2::gpu::GPUTPCO2Interface + ;
-
-#endif
+GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type)
+{
+  return GPUReconstruction::GetDeviceType(type);
+}
