@@ -50,9 +50,18 @@ class bitfield
     return *this;
   }
   void set(S v) { bits = v; }
+  void set(T v) { bits = (S)v; }
+  template <typename... Args>
+  void set(T v, Args... args)
+  {
+    this->set(args...);
+    *this |= v;
+  }
+  S get() const { return bits; }
   operator bool() const { return bits; }
   explicit operator S() const { return bits; }
   bool isSet(const bitfield& v) const { return *this & v; }
+  bool isSet(const S v) const { return bits & v; }
 
  private:
   S bits;

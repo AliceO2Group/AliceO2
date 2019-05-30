@@ -30,8 +30,6 @@
 #include "GPUTPCSliceOutput.h"
 #include "GPUDataTypes.h"
 
-#include "utils/bitfield.h"
-
 namespace o2
 {
 namespace its
@@ -69,6 +67,8 @@ class GPUReconstruction
   using GeometryType = GPUDataTypes::GeometryType;
   using DeviceType = GPUDataTypes::DeviceType;
   using RecoStep = GPUDataTypes::RecoStep;
+  using RecoStepField = GPUDataTypes::RecoStepField;
+  using InOutTypeField = GPUDataTypes::InOutTypeField;
 
   static constexpr const char* const GEOMETRY_TYPE_NAMES[] = { "INVALID", "ALIROOT", "O2" };
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -92,7 +92,6 @@ class GPUReconstruction
                                          CLUSTERS_NATIVE = 10,
                                          TRD_TRACKLET_MC = 11 };
   static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels" };
-  typedef bitfield<RecoStep, unsigned int> RecoStepField;
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);
@@ -173,7 +172,7 @@ class GPUReconstruction
   const GPUSettingsDeviceProcessing& GetDeviceProcessingSettings() const { return mDeviceProcessingSettings; }
   bool IsInitialized() const { return mInitialized; }
   void SetSettings(float solenoidBz);
-  void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsDeviceProcessing* proc = nullptr);
+  void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsDeviceProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; }
   void SetDebugLevel(int level) { mDeviceProcessingSettings.debugLevel = level; }
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
@@ -182,20 +181,6 @@ class GPUReconstruction
   virtual int GetMaxThreads();
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
-  RecoStepField& RecoSteps()
-  {
-    if (mInitialized) {
-      throw std::runtime_error("Cannot change reco steps once initialized");
-    }
-    return mRecoSteps;
-  }
-  RecoStepField& RecoStepsGPU()
-  {
-    if (mInitialized) {
-      throw std::runtime_error("Cannot change reco steps once initialized");
-    }
-    return mRecoStepsGPU;
-  }
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
   RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
 
@@ -250,8 +235,10 @@ class GPUReconstruction
   GPUSettingsDeviceProcessing mDeviceProcessingSettings; // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                       // Controls the output of the individual components
 
-  RecoStepField mRecoSteps = (unsigned char)-1;
-  RecoStepField mRecoStepsGPU = (unsigned char)-1;
+  RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
+  RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
+  InOutTypeField mRecoStepsInputs = 0;
+  InOutTypeField mRecoStepsOutputs = 0;
 
   // Ptrs to host and device memory;
   void* mHostMemoryBase = nullptr;
