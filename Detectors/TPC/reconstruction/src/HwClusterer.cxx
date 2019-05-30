@@ -15,7 +15,6 @@
 #include "TPCBase/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
-#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 
 #include "FairLogger.h"
@@ -28,7 +27,6 @@ using namespace o2::tpc;
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
   std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
-  std::vector<Cluster>* clusterOutputSimple,
   int sectorid, MCLabelContainer* labelOutput)
   : Clusterer(),
     mNumRows(0),
@@ -56,8 +54,7 @@ HwClusterer::HwClusterer(
     mTmpClusterArray(),
     mTmpLabelArray(),
     mClusterMcLabelArray(labelOutput),
-    mClusterArray(clusterOutputContainer),
-    mPlainClusterArray(clusterOutputSimple)
+    mClusterArray(clusterOutputContainer)
 {
   LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
 
@@ -113,29 +110,11 @@ HwClusterer::HwClusterer(
 }
 
 //______________________________________________________________________________
-HwClusterer::HwClusterer(
-  std::vector<Cluster>* clusterOutput,
-  int sectorid, MCLabelContainer* labelOutput)
-  : HwClusterer(nullptr, clusterOutput, sectorid, labelOutput)
-{
-}
-
-//______________________________________________________________________________
-HwClusterer::HwClusterer(
-  std::vector<ClusterHardwareContainer8kb>* clusterOutput,
-  int sectorid, MCLabelContainer* labelOutput)
-  : HwClusterer(clusterOutput, nullptr, sectorid, labelOutput)
-{
-}
-
-//______________________________________________________________________________
 void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   if (clearContainerFirst) {
     if (mClusterArray)
       mClusterArray->clear();
-    if (mPlainClusterArray)
-      mPlainClusterArray->clear();
 
     if (mClusterMcLabelArray)
       mClusterMcLabelArray->clear();
@@ -738,27 +717,6 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
         }
         // Copy cluster and increment cluster counter
         clusterContainer->clusters[clusterContainer->numberOfClusters++] = std::move((*mTmpClusterArray[region])[c]);
-        if (mClusterMcLabelArray) {
-          for (auto& mcLabel : (*mTmpLabelArray[region])[c]) {
-            mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
-          }
-        }
-        ++mClusterCounter;
-      }
-    } else if (mPlainClusterArray) {
-      const int cru = mClusterSector * 10 + region;
-      for (int c = 0; c < mTmpClusterArray[region]->size(); ++c) {
-        auto& cluster = (*mTmpClusterArray[region])[c];
-        mPlainClusterArray->emplace_back(
-          cru,
-          cluster.getRow(),
-          cluster.getQTotFloat(),
-          cluster.getQMax(),
-          cluster.getPad(),
-          std::sqrt(cluster.getSigmaPad2()),
-          cluster.getTimeLocal() + timeOffset,
-          std::sqrt(cluster.getSigmaTime2()));
-
         if (mClusterMcLabelArray) {
           for (auto& mcLabel : (*mTmpLabelArray[region])[c]) {
             mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);

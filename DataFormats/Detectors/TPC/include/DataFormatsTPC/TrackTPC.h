@@ -15,7 +15,6 @@
 
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Defs.h"
-#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/dEdxInfo.h"
 
 namespace o2
@@ -42,26 +41,6 @@ class TrackTPC : public o2::track::TrackParCov
 
   /// Destructor
   ~TrackTPC() = default;
-
-  /// Add a single cluster to the track
-  void addCluster(const Cluster& c);
-
-  /// Add an array/vector of clusters to the track; ClusterType needs to inherit from o2::tpc::Cluster
-  template <typename ClusterType>
-  void addClusterArray(std::vector<ClusterType>* arr);
-
-  /// Get the clusters which are associated with the track
-  /// \return clusters of the track as a std::vector
-  void getClusterVector(std::vector<Cluster>& clVec) const { clVec = mClusterVector; }
-  /// Get the truncated mean energy loss of the track
-  /// \param low low end of truncation
-  /// \param high high end of truncation
-  /// \param type 0 for Qmax, 1 for Q
-  /// \param removeRows option to remove certain rows from the dEdx calculation
-  /// \param nclPID pass any pointer to have the number of used clusters written to it
-  /// \return mean energy loss
-  float getTruncatedMean(float low = 0.05, float high = 0.7, int type = 1, int removeRows = 0,
-                         int* nclPID = nullptr) const;
 
   unsigned short getFlags() const { return mFlags; }
   unsigned short getClustersSideInfo() const { return mFlags & HasBothSidesClusters; }
@@ -115,7 +94,6 @@ class TrackTPC : public o2::track::TrackParCov
   void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
-  std::vector<Cluster> mClusterVector;
   float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
                                       ///< VDrift and reference timeframe length, unless it was moved to be on the
                                       ///< side of TPC compatible with edge clusters sides.
@@ -133,16 +111,6 @@ class TrackTPC : public o2::track::TrackParCov
   ClassDefNV(TrackTPC, 2); // RS TODO set to 1
 };
 
-inline void TrackTPC::addCluster(const Cluster& c) { mClusterVector.push_back(c); }
-template <typename ClusterType>
-inline void TrackTPC::addClusterArray(std::vector<ClusterType>* arr)
-{
-  static_assert(std::is_base_of<o2::tpc::Cluster, ClusterType>::value,
-                "ClusterType needs to inherit from o2::tpc::Cluster");
-  for (auto clusterObject : *arr) {
-    addCluster(clusterObject);
-  }
-}
 }
 }
 

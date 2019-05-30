@@ -6,8 +6,6 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/AdcClockMonitor.cxx
-   src/BoxClusterer.cxx
-   src/ClusterContainer.cxx
    src/ClustererTask.cxx
    src/GBTFrame.cxx
    src/GBTFrameContainer.cxx
@@ -25,8 +23,6 @@ set(SRCS
 
 set(HEADERS
    include/${MODULE_NAME}/AdcClockMonitor.h
-   include/${MODULE_NAME}/BoxClusterer.h
-   include/${MODULE_NAME}/ClusterContainer.h
    include/${MODULE_NAME}/Clusterer.h
    include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/GBTFrame.h

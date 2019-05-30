@@ -192,8 +192,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
           regionNumber++;
         CRU cru(sector, regionNumber);
-        oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.qTot, cl.qMax,
-                                  cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
         oTrack.setClusterReference(j, sector, globalRow, clusterId);
         if (outputTracksMCTruth) {
           for (const auto& element : clusters.clustersMCTruth[sector][globalRow]->getLabels(clusterId)) {

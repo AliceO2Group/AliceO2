@@ -23,7 +23,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include <vector>
 #include <memory>
@@ -34,7 +33,6 @@ namespace tpc{
 class ClustererTask : public FairTask{
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  //  using OutputType          = Cluster;
   using OutputType = ClusterHardwareContainer8kb;
 
  public:
