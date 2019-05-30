@@ -89,6 +89,7 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H
     SliceTracker/GPUTPCTrackerDump.cxx
+    Global/GPUChainTrackingDebugAndProfiling.cxx
 )
 
 #Extra headers to install
