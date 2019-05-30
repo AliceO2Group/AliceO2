@@ -2653,7 +2653,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     GPUTracking_bucket
-    ITStrackingCUDA
+    O2ITStrackingCUDA
 )
 
 o2_define_bucket(

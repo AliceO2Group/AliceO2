@@ -30,7 +30,7 @@ generate_export_header(O2MCHMappingImpl3)
 
 set_target_properties(O2MCHMappingImpl3 PROPERTIES CXX_VISIBILITY_PRESET hidden)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(MCHMappingImpl3 PRIVATE -fext-numeric-literals)
+    target_compile_options(O2MCHMappingImpl3 PRIVATE -fext-numeric-literals)
 endif ()
 if (APPLE)
     add_custom_command(TARGET O2MCHMappingImpl3 POST_BUILD
