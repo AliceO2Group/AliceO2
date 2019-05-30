@@ -53,6 +53,7 @@ struct GPUO2InterfaceConfiguration {
   GPUDisplayConfig configDisplay;
   GPUQAConfig configQA;
   GPUInterfaceSettings configInterface;
+  GPURecoStepConfiguration configWorkflow;
 };
 } // namespace gpu
 } // namespace o2

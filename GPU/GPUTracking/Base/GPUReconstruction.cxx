@@ -85,6 +85,9 @@ int GPUReconstruction::Init()
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
   mRecoSteps.setBits(RecoStep::TRDTracking, false);
+  mRecoSteps.setBits(RecoStep::TPCConversion, false);
+  mRecoSteps.setBits(RecoStep::TPCCompression, false);
+  mRecoSteps.setBits(RecoStep::TPCdEdx, false);
 #endif
   mRecoStepsGPU &= mRecoSteps;
   mRecoStepsGPU &= AvailableRecoSteps();
@@ -395,13 +398,18 @@ void GPUReconstruction::SetSettings(float solenoidBz)
   SetSettings(&ev, nullptr, nullptr);
 }
 
-void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc)
+void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
   mEventSettings = *settings;
   if (proc) {
     mDeviceProcessingSettings = *proc;
   }
-  param().SetDefaults(&mEventSettings, rec, proc);
+  if (workflow) {
+    mRecoSteps = workflow->steps;
+    mRecoStepsInputs = workflow->inputs;
+    mRecoStepsOutputs = workflow->outputs;
+  }
+  param().SetDefaults(&mEventSettings, rec, proc, workflow);
 }
 
 void GPUReconstruction::SetOutputControl(void* ptr, size_t size)

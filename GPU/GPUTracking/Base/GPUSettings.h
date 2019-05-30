@@ -53,7 +53,6 @@ struct GPUSettingsRec {
   float TrackReferenceX;                // Transport all tracks to this X after tracking (disabled if > 500)
   char NonConsecutiveIDs;               // Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
   unsigned char DisableRefitAttachment; // Bitmask to disable cluster attachment steps in refit: 1: attachment, 2: propagation, 4: loop following, 8: mirroring
-  char DodEdx;                          // Perform dEdx computation
   unsigned char dEdxTruncLow;           // Low truncation threshold, fraction of 128
   unsigned char dEdxTruncHigh;          // High truncation threshold, fraction of 128
   unsigned char tpcRejectionMode;       // 0: do not reject clusters, 1: do reject identified junk, 2: reject everything but good tracks

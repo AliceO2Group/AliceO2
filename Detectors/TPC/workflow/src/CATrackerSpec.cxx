@@ -178,6 +178,17 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
       config.configInterface.dumpEvents = dump;
 
+      config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
+                                      GPUDataTypes::RecoStep::TPCSliceTracking,
+                                      GPUDataTypes::RecoStep::TPCMerging,
+                                      GPUDataTypes::RecoStep::TPCCompression,
+                                      GPUDataTypes::RecoStep::TPCdEdx);
+      //Alternative steps: TRDTracking | ITSTracking
+      config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
+      //Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
+      config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters);
+      //Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
+
       // Configuration is prepared, initialize the tracker.
       if (tracker->initialize(config) != 0) {
         throw std::invalid_argument("GPUCATracking initialization failed");

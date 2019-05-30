@@ -127,6 +127,19 @@ void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 
 int GPUChainTracking::Init()
 {
+  if (GetDeviceProcessingSettings().debugLevel >= 1) {
+    printf("Enabled Reconstruction Steps: 0x%x (on GPU: 0x%x)", (int)GetRecoSteps().get(), (int)GetRecoStepsGPU().get());
+    for (unsigned int i = 0; i < sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]); i++) {
+      if (GetRecoSteps().isSet(1u << i)) {
+        printf(" - %s", GPUDataTypes::RECO_STEP_NAMES[i]);
+        if (GetRecoStepsGPU().isSet(1u << i)) {
+          printf(" (G)");
+        }
+      }
+    }
+    printf("\n");
+  }
+
   if (GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay)) {
     mQA.reset(new GPUQA(this));
   }
@@ -1307,14 +1320,14 @@ int GPUChainTracking::RunChain()
     return (1);
   }
 
-  if (mIOPtrs.clustersNative) {
+  if (GetRecoSteps().isSet(RecoStep::TPCConversion) && mIOPtrs.clustersNative) {
     timerTransform.Start();
     ConvertNativeToClusterData();
     timerTransform.Stop();
   }
 
   timerTracking.Start();
-  if (RunTPCTrackingSlices()) {
+  if (GetRecoSteps().isSet(RecoStep::TPCSliceTracking) && RunTPCTrackingSlices()) {
     return 1;
   }
   timerTracking.Stop();
@@ -1324,12 +1337,12 @@ int GPUChainTracking::RunChain()
     // printf("slice %d clusters %d tracks %d\n", i, mClusterData[i].NumberOfClusters(), processors()->tpcTrackers[i].Output()->NTracks());
     processors()->tpcMerger.SetSliceData(i, processors()->tpcTrackers[i].Output());
   }
-  if (RunTPCTrackingMerger()) {
+  if (GetRecoSteps().isSet(RecoStep::TPCMerging) && RunTPCTrackingMerger()) {
     return 1;
   }
   timerMerger.Stop();
 
-  if (mIOPtrs.clustersNative) {
+  if (GetRecoSteps().isSet(RecoStep::TPCCompression) && mIOPtrs.clustersNative) {
     timerCompression.Start();
     RunTPCCompression();
     if (GetDeviceProcessingSettings().runCompressionStatistics) {
