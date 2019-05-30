@@ -247,9 +247,11 @@ class GPUTPCTracker : public GPUProcessor
 #if !defined(GPUCA_GPUCODE)
   GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
 #endif
+#ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
+  char* mStageAtSync = nullptr; // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
+#endif
 
  private:
-  char* mStageAtSync;   // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
   char* mLinkTmpMemory; // tmp memory for hits after neighbours finder
 
   int mISlice; // Number of slice
