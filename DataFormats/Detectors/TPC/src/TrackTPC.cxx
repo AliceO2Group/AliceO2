@@ -16,40 +16,6 @@
 
 using namespace o2::tpc;
 
-float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows, int* nclPID) const
-{
-  std::vector<float> values;
-
-  for (auto& clusterObject : mClusterVector) {
-    values.push_back((type == 0) ? clusterObject.getQmax() : clusterObject.getQ());
-  }
-
-  std::sort(values.begin(), values.end());
-
-  float dEdx = 0.f;
-  int nClustersTrunc = 0;
-  int nClustersUsed = static_cast<int>(values.size());
-
-  for (int icl = 0; icl < nClustersUsed; ++icl) {
-    if (icl < std::round(low * nClustersUsed))
-      continue;
-    if (icl > std::round(high * nClustersUsed))
-      break;
-
-    dEdx += values[icl];
-    ++nClustersTrunc;
-  }
-
-  if (nClustersTrunc > 0) {
-    dEdx /= nClustersTrunc;
-  }
-
-  if (nclPID)
-    (*nclPID) = nClustersTrunc;
-
-  return dEdx;
-}
-
 void TrackTPC::resetClusterReferences(int nClusters)
 {
   mNClusters = short(nClusters);
