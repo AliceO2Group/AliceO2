@@ -16,7 +16,7 @@ The workflow consists of the following DPL processors:
 * `tpc-digit-reader` -> using tool [o2::framework::RootTreeReader](../../../Framework/Utils/include/Utils/RootTreeReader.h)
 * `tpc-clusterer` -> interfaces [o2::tpc::HwClusterer](../reconstruction/include/TPCReconstruction/HwClusterer.h)
 * `tpc-cluster-decoder` -> interfaces [o2::tpc::HardwareClusterDecoder](../reconstruction/include/TPCReconstruction/HardwareClusterDecoder.h)
-* `tpc-tracker`	-> interfaces [o2::tpc::TPCCATracking](../reconstruction/include/TPCReconstruction/TPCCATracking.h)
+* `tpc-tracker`	-> interfaces [o2::tpc::GPUCATracking](../reconstruction/include/TPCReconstruction/GPUCATracking.h)
 * `tpc-track-writer` -> implements simple writing to ROOT file
 
 Depending on the input and output types the default workflow is extended by the following readers and writers:
@@ -121,7 +121,7 @@ By default, all TPC sectors are processed by the workflow, option `--tpc-sectors
 ### Processor options
 
 #### TPC CA tracker
-The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::tpc::TPCCATracking](../reconstruction/include/TPCReconstruction/TPCCATracking.h)
+The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::tpc::GPUCATracking](../reconstruction/include/TPCReconstruction/GPUCATracking.h)
 worker class which can be initialized using an option string. The processor spec defines the option `--tracker-option`. Currently, the tracker
 should be run with options:
 ```

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TPCCATracking.h
+/// \file HardwareClusterDecoder.h
 /// \brief Decoder to convert TPC ClusterHardware to ClusterNative
 /// \author David Rohr
 #ifndef ALICEO2_TPC_HARDWARECLUSTERDECODER_H_

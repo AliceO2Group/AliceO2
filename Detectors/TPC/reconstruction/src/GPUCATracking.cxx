@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TPCCATracking.cxx
+/// \file GPUCATracking.cxx
 /// \author David Rohr
 
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
 
 #include "FairLogger.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -38,10 +38,10 @@ using namespace o2::dataformats;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-TPCCATracking::TPCCATracking() : mTrackingCAO2Interface() {}
-TPCCATracking::~TPCCATracking() { deinitialize(); }
+GPUCATracking::GPUCATracking() : mTrackingCAO2Interface() {}
+GPUCATracking::~GPUCATracking() { deinitialize(); }
 
-int TPCCATracking::initialize(const GPUO2InterfaceConfiguration& config)
+int GPUCATracking::initialize(const GPUO2InterfaceConfiguration& config)
 {
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   mTrackingCAO2Interface.reset(new GPUTPCO2Interface);
@@ -52,12 +52,12 @@ int TPCCATracking::initialize(const GPUO2InterfaceConfiguration& config)
   return (retVal);
 }
 
-void TPCCATracking::deinitialize()
+void GPUCATracking::deinitialize()
 {
   mTrackingCAO2Interface.reset();
 }
 
-int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
+int GPUCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
                                MCLabelContainer* outputTracksMCTruth)
 {
   auto& detParam = ParameterDetector::Instance();
@@ -221,14 +221,14 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   return (retVal);
 }
 
-float TPCCATracking::getPseudoVDrift()
+float GPUCATracking::getPseudoVDrift()
 {
   auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
   return (elParam.ZbinWidth * gasParam.DriftV);
 }
 
-void TPCCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   if (mTrackingCAO2Interface == nullptr) {
     return;

@@ -27,7 +27,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTPC/Constants.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #else
@@ -46,14 +46,14 @@ using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
 
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg
 // TClonesArray of clusters.
-// It wraps the TPCCATracking class
+// It wraps the GPUCATracking class
 int runCATrackingClusterNative(TString inputFile, TString outputFile)
 {
   if (inputFile.EqualTo("") || outputFile.EqualTo("")) {
     printf("Filename missing\n");
     return (1);
   }
-  TPCCATracking tracker;
+  GPUCATracking tracker;
 
   // Just some default options to keep the macro running for now
   // Should be deprecated anyway in favor of the TPC workflow

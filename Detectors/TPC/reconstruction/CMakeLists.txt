@@ -15,7 +15,7 @@ set(SRCS
    src/RawReaderCRU.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
-   src/TPCCATracking.cxx
+   src/GPUCATracking.cxx
    src/HardwareClusterDecoder.cxx
    src/DigitalCurrentClusterIntegrator.cxx
    src/TPCFastTransformHelperO2.cxx
@@ -33,7 +33,7 @@ set(HEADERS
    include/${MODULE_NAME}/RawReaderCRU.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
-   include/${MODULE_NAME}/TPCCATracking.h
+   include/${MODULE_NAME}/GPUCATracking.h
    include/${MODULE_NAME}/HardwareClusterDecoder.h
    include/${MODULE_NAME}/DigitalCurrentClusterIntegrator.h
    include/${MODULE_NAME}/TPCFastTransformHelperO2.h
@@ -80,7 +80,7 @@ endforeach (_file RANGE 0 ${_length})
 set(TEST_SRCS
   test/testTPCSyncPatternMonitor.cxx
   test/testTPCAdcClockMonitor.cxx
-  test/testTPCCATracking.cxx
+  test/testGPUCATracking.cxx
   test/testTPCHwClusterer.cxx
   test/testTPCFastTransform.cxx
 )
