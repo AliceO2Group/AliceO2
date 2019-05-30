@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testTPCCATracking.cxx
+/// \file testGPUCATracking.cxx
 /// \brief This task tests the TPC CA Tracking library
 /// \author David Rohr
 
@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
 
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUReconstruction.h"
@@ -42,7 +42,7 @@ namespace tpc
 /// @brief Test 1 basic class IO tests
 BOOST_AUTO_TEST_CASE(CATracking_test1)
 {
-  TPCCATracking tracker;
+  GPUCATracking tracker;
 
   float solenoidBz = -5.00668; //B-field
   float refX = 1000.;          //transport tracks to this x after tracking, >500 for disabling
@@ -87,5 +87,5 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   BOOST_CHECK_EQUAL(retVal, 0);
   BOOST_CHECK_EQUAL((int)tracks.size(), 1);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

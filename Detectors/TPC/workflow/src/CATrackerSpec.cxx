@@ -24,7 +24,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
 #ifdef BUILD_EVENT_DISPLAY
@@ -65,7 +65,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<o2::tpc::TPCCATracking> tracker;
+    std::unique_ptr<o2::tpc::GPUCATracking> tracker;
     std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
     int verbosity = 1;
     std::vector<int> inputIds;
@@ -81,7 +81,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<o2::tpc::TPCCATracking>();
+      tracker = std::make_unique<o2::tpc::GPUCATracking>();
 
       // Prepare initialization of CATracker - we parse the deprecated option string here,
       // and create the proper configuration objects for compatibility.
@@ -180,7 +180,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
       // Configuration is prepared, initialize the tracker.
       if (tracker->initialize(config) != 0) {
-        throw std::invalid_argument("TPCCATracking initialization failed");
+        throw std::invalid_argument("GPUCATracking initialization failed");
       }
       processAttributes->validInputs.reset();
       processAttributes->validMcInputs.reset();
