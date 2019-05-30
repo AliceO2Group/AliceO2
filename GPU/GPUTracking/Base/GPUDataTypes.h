@@ -14,6 +14,8 @@
 #ifndef GPUDATATYPES_H
 #define GPUDATATYPES_H
 
+#include "GPUCommonDef.h"
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -45,6 +47,8 @@ class GPUDataTypes
                              ITSTracking = 32,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
+
+  static DeviceType GetDeviceType(const char* type);
 };
 
 #undef ENUM_CLASS
