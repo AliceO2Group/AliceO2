@@ -30,6 +30,7 @@
 #ifdef BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #endif
+#include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -95,6 +96,16 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       bool dump = false;           // create memory dump of processed events for standalone runs
       char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
       GPUDisplayBackend* display = nullptr;
+
+      const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
+      if (grp) {
+        LOG(INFO) << "Initializing run paramerers from GRP";
+        solenoidBz *= grp->getL3Current() / 30000.;
+        continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+      } else {
+        LOG(ERROR) << "Failed to initialize run parameters from GRP";
+        // should we call fatal here?
+      }
 
       // Parse the config string
       const char* opt = options.c_str();
