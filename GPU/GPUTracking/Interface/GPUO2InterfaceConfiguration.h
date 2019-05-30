@@ -29,8 +29,9 @@
 #include "GPUDisplayConfig.h"
 #include "GPUQAConfig.h"
 #include "TPCFastTransform.h"
+#include "GPUDataTypes.h"
 
-namespace GPUCA_NAMESPACE
+namespace o2
 {
 namespace gpu
 {
@@ -54,6 +55,6 @@ struct GPUO2InterfaceConfiguration {
   GPUInterfaceSettings configInterface;
 };
 } // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace o2
 
 #endif

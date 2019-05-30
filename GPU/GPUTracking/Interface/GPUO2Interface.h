@@ -38,14 +38,13 @@ struct ClusterNative;
 } // namespace tpc
 } // namespace o2
 
-namespace GPUCA_NAMESPACE
+namespace o2
 {
 namespace gpu
 {
 class GPUReconstruction;
 class GPUChainTracking;
-class GPUO2InterfaceConfiguration;
-class GPUDisplayBackendGlfw;
+struct GPUO2InterfaceConfiguration;
 class TPCFastTransform;
 
 class GPUTPCO2Interface
@@ -55,7 +54,6 @@ class GPUTPCO2Interface
   ~GPUTPCO2Interface();
 
   int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans);
-  int Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans);
   void Deinitialize();
 
   int RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
@@ -75,9 +73,8 @@ class GPUTPCO2Interface
   std::unique_ptr<GPUReconstruction> mRec;
   GPUChainTracking* mChain = nullptr;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  std::unique_ptr<GPUDisplayBackendGlfw> mDisplayBackend;
 };
 } // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace o2
 
 #endif
