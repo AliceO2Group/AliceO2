@@ -19,7 +19,7 @@ void createGeo()
   gSystem->Load("libO2GPUTracking.so");
   GPUReconstruction* rec = GPUReconstruction::CreateInstance(GPUReconstruction::DeviceType::CPU);
   GPUChainTracking* chain = rec->AddChain<GPUChainTracking>();
-  chain->SetTRDGeometry(gf);
+  chain->SetTRDGeometry(&gf);
   rec->DumpSettings();
 }
 

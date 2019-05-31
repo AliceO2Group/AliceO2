@@ -53,7 +53,7 @@ class GPUTPCO2Interface
   GPUTPCO2Interface();
   ~GPUTPCO2Interface();
 
-  int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans);
+  int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
   int RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);

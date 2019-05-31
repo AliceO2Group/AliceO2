@@ -25,6 +25,9 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/GPUCATracking.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCFastTransform.h"
+#include "DetectorsBase/MatLayerCylSet.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
 #ifdef BUILD_EVENT_DISPLAY
@@ -44,6 +47,7 @@
 using namespace o2::framework;
 using namespace o2::header;
 using namespace o2::gpu;
+using namespace o2::base;
 
 namespace o2
 {
@@ -67,6 +71,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     std::unique_ptr<ClusterGroupParser> parser;
     std::unique_ptr<o2::tpc::GPUCATracking> tracker;
     std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
+    std::unique_ptr<TPCFastTransform> fastTransform;
     int verbosity = 1;
     std::vector<int> inputIds;
     bool readyToQuit = false;
@@ -155,6 +160,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         }
       }
 
+      // Create configuration object and fill settings
       GPUO2InterfaceConfiguration config;
       if (useGPU) {
         config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
@@ -178,16 +184,30 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
       config.configInterface.dumpEvents = dump;
 
+      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSliceTracking,
                                       GPUDataTypes::RecoStep::TPCMerging,
                                       GPUDataTypes::RecoStep::TPCCompression,
                                       GPUDataTypes::RecoStep::TPCdEdx);
-      //Alternative steps: TRDTracking | ITSTracking
+      // Alternative steps: TRDTracking | ITSTracking
       config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
-      //Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
+      // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
       config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters);
-      //Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
+      // Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
+
+      // Create and forward data objects for TPC transformation, material LUT, ...
+      processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+      config.fastTransform = processAttributes->fastTransform.get();
+      o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
+      config.matLUT = lut;
+      // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
+      /*o2::base::GeometryManager::loadGeometry();
+      o2::trd::TRDGeometry gm;
+      gm.createPadPlaneArray();
+      gm.createClusterMatrixArray();
+      std::unique_ptr<o2::trd::TRDGeometryFlat> gf(gm);
+      config.trdGeometry = gf.get();*/
 
       // Configuration is prepared, initialize the tracker.
       if (tracker->initialize(config) != 0) {
