@@ -10,6 +10,9 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 
+#include <TFile.h>
+#include <TH1F.h>
+
 using namespace o2;
 using namespace o2::framework;
 
@@ -30,6 +33,19 @@ class ATask : public AnalysisTask
 
   void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
   {
+    auto hPhi = new TH1F("phi", "Phi", 100, 0, 2 * M_PI);
+    auto hEta = new TH1F("eta", "Eta", 100, 0, 2 * M_PI);
+    for (auto& track : tracks) {
+      auto phi = asin(track.snp()) + track.alpha() + M_PI;
+      auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
+      hPhi->Fill(phi);
+      hEta->Fill(eta);
+    }
+    TFile f("result1.root", "RECREATE");
+    hPhi->SetName("Phi");
+    hPhi->Write();
+    hEta->SetName("Eta");
+    hEta->Write();
   }
 
  private:
