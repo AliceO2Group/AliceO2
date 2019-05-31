@@ -23,6 +23,7 @@ namespace o2
 namespace gpu
 {
 struct GPUO2InterfaceConfiguration;
+struct GPUO2InterfaceIOPtrs;
 class GPUTPCO2Interface;
 } // namespace gpu
 } // namespace o2
@@ -54,8 +55,7 @@ class GPUCATracking
   void deinitialize();
 
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
-  int runTracking(const o2::tpc::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
-                  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr);
+  int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data);
 
   float getPseudoVDrift();                                              //Return artificial VDrift used to convert time to Z
   float getTFReferenceLength() { return sContinuousTFReferenceLength; } //Return reference time frame length used to obtain Z from T in continuous data
