@@ -15,7 +15,6 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 #include "GPUO2InterfaceConfiguration.h"
-#include "TPCFastTransform.h"
 #include <iostream>
 #include <fstream>
 #ifdef GPUCA_HAVE_OPENMP
@@ -31,7 +30,7 @@ GPUTPCO2Interface::GPUTPCO2Interface() = default;
 
 GPUTPCO2Interface::~GPUTPCO2Interface() { Deinitialize(); }
 
-int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans)
+int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
 {
   if (mInitialized) {
     return (1);
@@ -44,7 +43,9 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);
-  mChain->SetTPCFastTransform(std::move(fastTrans));
+  mChain->SetTPCFastTransform(mConfig->fastTransform);
+  mChain->SetMatLUT(mConfig->matLUT);
+  mChain->SetTRDGeometry(mConfig->trdGeometry);
   if (mRec->Init()) {
     return (1);
   }

@@ -25,8 +25,6 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
-#include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "TPCFastTransform.h"
 
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
 #include "GPUO2Interface.h"
@@ -43,9 +41,8 @@ GPUCATracking::~GPUCATracking() { deinitialize(); }
 
 int GPUCATracking::initialize(const GPUO2InterfaceConfiguration& config)
 {
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   mTrackingCAO2Interface.reset(new GPUTPCO2Interface);
-  int retVal = mTrackingCAO2Interface->Initialize(config, std::move(fastTransform));
+  int retVal = mTrackingCAO2Interface->Initialize(config);
   if (retVal) {
     mTrackingCAO2Interface.reset();
   }

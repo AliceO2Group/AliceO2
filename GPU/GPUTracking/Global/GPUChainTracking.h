@@ -168,13 +168,14 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return mMatLUT; }
-  const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)mTRDGeometry.get(); }
+  const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)mTRDGeometry; }
   const ClusterNativeAccessExt* GetClusterNativeAccessExt() const { return mClusterNativeAccess.get(); }
-  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
-  void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet> lut);
+  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
+  void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
+  void SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo);
   void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { mTPCFastTransform = tpcFastTransform; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
-  void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
+  void SetTRDGeometry(const o2::trd::TRDGeometryFlat* geo) { mTRDGeometry = geo; }
   void LoadClusterErrors();
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
@@ -226,7 +227,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const TPCFastTransform* mTPCFastTransform = nullptr;          //
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;           // Material Lookup Table
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;            //
-  std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;       // TRD Geometry
+  std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;      // TRD Geometry
+  const o2::trd::TRDGeometryFlat* mTRDGeometry;                 //
 
   HighResTimer timerTPCtracking[NSLICES][10];
   eventStruct* mEvents = nullptr;

@@ -164,7 +164,7 @@ int GPUChainTracking::Init()
       mFlatObjectsShadow.mMatLUT->setFutureBufferAddress(mFlatObjectsDevice.mMatLUTBuffer);
     }
     if (mTRDGeometry) {
-      memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry.get(), sizeof(*mTRDGeometry));
+      memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry, sizeof(*mTRDGeometry));
       mFlatObjectsShadow.mTrdGeometry->clearInternalBufferPtr();
     }
 #endif
@@ -405,7 +405,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   f = dir;
   f += "trdgeometry.dump";
   if (mTRDGeometry != nullptr) {
-    DumpStructToFile(mTRDGeometry.get(), f.c_str());
+    DumpStructToFile(mTRDGeometry, f.c_str());
   }
 
 #endif
@@ -425,7 +425,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   mMatLUT = mMatLUTU.get();
   f = dir;
   f += "trdgeometry.dump";
-  mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+  mTRDGeometryU = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+  mTRDGeometry = mTRDGeometryU.get();
 #endif
 }
 
@@ -505,19 +506,23 @@ void GPUChainTracking::ConvertRun2RawToNative()
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
+void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
   mTPCFastTransform = mTPCFastTransformU.get();
 }
 
-void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet> lut)
+void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)
 {
   mMatLUTU = std::move(lut);
   mMatLUT = mMatLUTU.get();
 }
 
-void GPUChainTracking::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo) { mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo)); }
+void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo)
+{
+  mTRDGeometryU = std::move(geo);
+  mTRDGeometry = mTRDGeometryU.get();
+}
 
 int GPUChainTracking::ReadEvent(int iSlice, int threadId)
 {

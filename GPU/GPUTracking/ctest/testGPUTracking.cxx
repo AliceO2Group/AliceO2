@@ -49,6 +49,6 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configReconstruction.SearchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
   config.configReconstruction.TrackReferenceX = refX;
 
-  interface->Initialize(config, nullptr);
+  interface->Initialize(config);
   delete interface;
 }
