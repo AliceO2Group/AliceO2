@@ -136,13 +136,13 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   std::vector<InputSpec> inputs;
 
   if constexpr (hasProcessTrack || hasProcessCollisionTrack || hasProcessTimeframeTracks || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "tracks", "AOD", "TRACKPAR" });
+    inputs.emplace_back(InputSpec{ "tracks", "RN2", "TRACKPAR" });
   }
   if constexpr (hasProcessCollisionTrack || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "collisions", "AOD", "COLLISIONS" });
+    inputs.emplace_back(InputSpec{ "collisions", "RN2", "COLLISIONS" });
   }
   if constexpr (hasProcessTimeframeTracks) {
-    inputs.emplace_back(InputSpec{ "timeframe", "AOD", "TIMEFRAME" });
+    inputs.emplace_back(InputSpec{ "timeframe", "RN2", "TIMEFRAME" });
   }
 
   DataProcessorSpec spec{
