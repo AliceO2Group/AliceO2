@@ -54,7 +54,6 @@ class FileStream : public arrow::io::InputStream
     if (ferror(mStream) == 0) {
       *bytes_read = nbytes;
       mPos += nbytes;
-      LOG(INFO) << mPos;
     } else {
       *bytes_read = 0;
     }
@@ -173,13 +172,20 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
         return;
       }
       *counter += 1;
-      auto input = std::make_shared<FileStream>(pipe);
 
       /// We keep reading until the popen is not empty.
       while ((feof(pipe) == false) && (ferror(pipe) == 0)) {
+        // Skip extra 0-padding...
+        int c = fgetc(pipe);
+        if (c == 0 || c == EOF) {
+          continue;
+        }
+        ungetc(c, pipe);
         std::shared_ptr<arrow::RecordBatchReader> reader;
+        auto input = std::make_shared<FileStream>(pipe);
         auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
         if (readerStatus.ok() == false) {
+          LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
           break;
         }
 
@@ -187,12 +193,10 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           std::shared_ptr<arrow::RecordBatch> batch;
           auto status = reader->ReadNext(&batch);
           if (batch.get() == nullptr) {
-            LOG(INFO) << "End of batches reached";
             break;
           }
           std::unordered_map<std::string, std::string> meta;
           batch->schema()->metadata()->ToUnorderedMap(&meta);
-          LOG(INFO) << "description:" << meta["description"];
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
           if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPAR" }, batch->schema());
@@ -218,6 +222,9 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             throw std::runtime_error("Error while writing record");
           }
         }
+      }
+      if (ferror(pipe)) {
+        LOG(ERROR) << "Error while reading from PIPE";
       }
       pclose(pipe);
     });
