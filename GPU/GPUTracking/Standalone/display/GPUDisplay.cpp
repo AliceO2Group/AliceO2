@@ -84,7 +84,7 @@ GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* rec, GPUQA*
 const GPUParam& GPUDisplay::param() { return mChain->GetParam(); }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 const GPUTRDTracker& GPUDisplay::trdTracker() { return *mChain->GetTRDTracker(); }
-const GPUChainTracking::InOutPointers GPUDisplay::ioptrs() { return mChain->mIOPtrs; }
+const GPUTrackingInOutPointers GPUDisplay::ioptrs() { return mChain->mIOPtrs; }
 
 inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 {

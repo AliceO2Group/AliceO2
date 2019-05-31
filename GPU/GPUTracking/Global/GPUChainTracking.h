@@ -16,10 +16,9 @@
 
 #include "GPUChain.h"
 #include "GPUReconstructionHelpers.h"
+#include "GPUDataTypes.h"
 #include <atomic>
 #include <array>
-class AliHLTTPCClusterMCLabel;
-struct AliHLTTPCRawCluster;
 
 namespace o2
 {
@@ -50,18 +49,8 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUTPCSliceOutput;
-class GPUTPCSliceOutTrack;
-class GPUTPCSliceOutCluster;
-class GPUTPCGMMergedTrack;
-struct GPUTPCGMMergedTrackHit;
-class GPUTRDTrackletWord;
-class GPUTPCMCInfo;
 class GPUTRDTracker;
 class GPUTPCGPUTracker;
-struct GPUTPCClusterData;
-struct ClusterNativeAccessExt;
-struct GPUTRDTrackletLabels;
 class GPUDisplay;
 class GPUQA;
 class GPUTPCClusterStatistics;
@@ -83,35 +72,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
   // Structures for input and output data
-  struct InOutPointers {
-    InOutPointers() = default;
-    InOutPointers(const InOutPointers&) = default;
-
-    const GPUTPCClusterData* clusterData[NSLICES] = { nullptr };
-    unsigned int nClusterData[NSLICES] = { 0 };
-    const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
-    unsigned int nRawClusters[NSLICES] = { 0 };
-    const o2::tpc::ClusterNativeAccessFullTPC* clustersNative = nullptr;
-    const GPUTPCSliceOutTrack* sliceOutTracks[NSLICES] = { nullptr };
-    unsigned int nSliceOutTracks[NSLICES] = { 0 };
-    const GPUTPCSliceOutCluster* sliceOutClusters[NSLICES] = { nullptr };
-    unsigned int nSliceOutClusters[NSLICES] = { 0 };
-    const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
-    unsigned int nMCLabelsTPC = 0;
-    const GPUTPCMCInfo* mcInfosTPC = nullptr;
-    unsigned int nMCInfosTPC = 0;
-    const GPUTPCGMMergedTrack* mergedTracks = nullptr;
-    unsigned int nMergedTracks = 0;
-    const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
-    unsigned int nMergedTrackHits = 0;
-    const GPUTRDTrack* trdTracks = nullptr;
-    unsigned int nTRDTracks = 0;
-    const GPUTRDTrackletWord* trdTracklets = nullptr;
-    unsigned int nTRDTracklets = 0;
-    const GPUTRDTrackletLabels* trdTrackletsMC = nullptr;
-    unsigned int nTRDTrackletsMC = 0;
-    friend class GPUReconstruction;
-  } mIOPtrs;
+  GPUTrackingInOutPointers mIOPtrs;
 
   struct InOutMemory {
     InOutMemory();
