@@ -120,7 +120,7 @@ class FITDPLDigitizerTask
         // copy digits into accumulator
         labelAccum.mergeAtBack(labels);
       }
-      mDigitizer.computeAverage(digit);
+      // mDigitizer.computeAverage(digit);
       mDigitizer.smearCFDtime(&digit, channel_times);
       mDigitizer.setTriggers(&digit);
       digitAccum.push_back(digit); // we should move it there actually
