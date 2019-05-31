@@ -80,6 +80,7 @@ class FileStream : public arrow::io::InputStream
 } // anonymous namespace
 
 enum AODTypeMask : uint64_t {
+  None = 0,
   Tracks = 1 << 0,
   TracksCov = 1 << 1,
   TracksExtra = 1 << 2,
@@ -87,8 +88,42 @@ enum AODTypeMask : uint64_t {
   Muon = 1 << 4,
   VZero = 1 << 5,
   Collisions = 1 << 6,
-  Timeframe = 1 << 7
+  Timeframe = 1 << 7,
+  DZeroFlagged = 1 << 8
 };
+
+uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
+{
+  uint64_t readMask = None;
+  for (auto& route : routes) {
+    if (route.matcher.origin != origin) {
+      continue;
+    }
+    auto description = route.matcher.description;
+    if (description == header::DataDescription{ "TRACKPAR" }) {
+      readMask |= AODTypeMask::Tracks;
+    } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
+      readMask |= AODTypeMask::TracksCov;
+    } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
+      readMask |= AODTypeMask::TracksExtra;
+    } else if (description == header::DataDescription{ "CALO" }) {
+      readMask |= AODTypeMask::Calo;
+    } else if (description == header::DataDescription{ "MUON" }) {
+      readMask |= AODTypeMask::Muon;
+    } else if (description == header::DataDescription{ "VZERO" }) {
+      readMask |= AODTypeMask::VZero;
+    } else if (description == header::DataDescription{ "COLLISIONS" }) {
+      readMask |= AODTypeMask::Collisions;
+    } else if (description == header::DataDescription{ "TIMEFRAME" }) {
+      readMask |= AODTypeMask::Timeframe;
+    } else if (description == header::DataDescription{ "DZEROFLAGGED" }) {
+      readMask |= AODTypeMask::DZeroFlagged;
+    } else {
+      throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
+    }
+  }
+  return readMask;
+}
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
 {
@@ -122,35 +157,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       filenames.push_back(filename);
     }
 
-    uint64_t readMask = 0;
-
-    // FIXME: bruteforce but effective.
-    for (auto& route : spec.outputs) {
-      if (route.matcher.origin != header::DataOrigin{ "RN2" }) {
-        continue;
-      }
-      auto description = route.matcher.description;
-      if (description == header::DataDescription{ "TRACKPAR" }) {
-        readMask |= AODTypeMask::Tracks;
-      } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
-        readMask |= AODTypeMask::TracksCov;
-      } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
-        readMask |= AODTypeMask::TracksExtra;
-      } else if (description == header::DataDescription{ "CALO" }) {
-        readMask |= AODTypeMask::Calo;
-      } else if (description == header::DataDescription{ "MUON" }) {
-        readMask |= AODTypeMask::Muon;
-      } else if (description == header::DataDescription{ "VZERO" }) {
-        readMask |= AODTypeMask::VZero;
-      } else if (description == header::DataDescription{ "COLLISIONS" }) {
-        readMask |= AODTypeMask::Collisions;
-      } else if (description == header::DataDescription{ "TIMEFRAME" }) {
-        readMask |= AODTypeMask::Timeframe;
-      } else {
-        throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
-      }
-    }
-
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "RN2" });
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            counter,
@@ -256,47 +263,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       filenames.push_back(filename);
     }
 
-    bool readTracks = false;
-    bool readTracksCov = false;
-    bool readTracksExtra = false;
-    bool readCalo = false;
-    bool readMuon = false;
-    bool readDZeroFlagged = false;
-    bool readVZ = false;
-
-    // FIXME: bruteforce but effective.
-    for (auto& route : spec.outputs) {
-      if (route.matcher.origin != header::DataOrigin{ "AOD" }) {
-        continue;
-      }
-      auto description = route.matcher.description;
-      if (description == header::DataDescription{ "TRACKPAR" }) {
-        readTracks = true;
-      } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
-        readTracksCov = true;
-      } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
-        readTracksExtra = true;
-      } else if (description == header::DataDescription{ "CALO" }) {
-        readCalo = true;
-      } else if (description == header::DataDescription{ "MUON" }) {
-        readMuon = true;
-      } else if (description == header::DataDescription{ "DZEROFLAGGED" }) {
-        readDZeroFlagged = true;
-      } else if (description == header::DataDescription{ "VZERO" }) {
-        readVZ = true;
-      } else {
-        throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
-      }
-    }
-
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "AOD" });
     auto counter = std::make_shared<int>(0);
-    return adaptStateless([readTracks,
-                           readTracksCov,
-                           readTracksExtra,
-                           readCalo,
-                           readMuon,
-                           readDZeroFlagged,
-                           readVZ,
+    return adaptStateless([readMask,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& control) {
       if (*counter >= filenames.size()) {
@@ -314,7 +283,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
-      if (readTracks) {
+      if (readMask & AODTypeMask::Tracks) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         auto& trackParBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKPAR" });
         TTreeReaderValue<int> c0(*reader, "fID4Tracks");
@@ -329,7 +298,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7);
       }
 
-      if (readTracksCov) {
+      if (readMask & AODTypeMask::TracksCov) {
         std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         TTreeReaderValue<float> c0(*covReader, "fCYY");
         TTreeReaderValue<float> c1(*covReader, "fCZY");
@@ -349,7 +318,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
       }
 
-      if (readTracksExtra) {
+      if (readMask & AODTypeMask::TracksExtra) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         TTreeReaderValue<float> c0(*extraReader, "fTPCinnerP");
         TTreeReaderValue<uint64_t> c1(*extraReader, "fFlags");
@@ -369,7 +338,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
       }
 
-      if (readCalo) {
+      if (readMask & AODTypeMask::Calo) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2calo", infile.get());
         TTreeReaderValue<int> c0(*extraReader, "fID4Calo");
         TTreeReaderValue<short> c1(*extraReader, "fCellNumber");
@@ -381,7 +350,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4);
       }
 
-      if (readMuon) {
+      if (readMask & AODTypeMask::Muon) {
         std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2mu", infile.get());
         TTreeReaderValue<int> c0(*muReader, "fID4mu");
         TTreeReaderValue<float> c1(*muReader, "fInverseBendingMomentum");
@@ -399,7 +368,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
       }
 
-      if (readVZ) {
+      if (readMask & AODTypeMask::VZero) {
         std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vz", infile.get());
         TTreeReaderArray<float> c0(*vzReader, "fAdcVZ"); // FIXME: we do not support arrays for now
         TTreeReaderArray<float> c1(*vzReader, "fTimeVZ");
@@ -410,7 +379,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       // Candidates as described by Gianmichele example
-      if (readDZeroFlagged) {
+      if (readMask & AODTypeMask::DZeroFlagged) {
         std::unique_ptr<TTreeReader> dzReader = std::make_unique<TTreeReader>("fTreeDzeroFlagged", infile.get());
 
         TTreeReaderValue<float> c0(*dzReader, "d_len_ML");
