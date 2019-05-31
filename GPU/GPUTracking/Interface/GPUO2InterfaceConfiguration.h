@@ -28,13 +28,21 @@
 #include "GPUSettings.h"
 #include "GPUDisplayConfig.h"
 #include "GPUQAConfig.h"
-#include "TPCFastTransform.h"
 #include "GPUDataTypes.h"
 
 namespace o2
 {
+namespace base
+{
+class MatLayerCylSet;
+}
+namespace trd
+{
+class TRDGeometryFlat;
+}
 namespace gpu
 {
+class TPCFastTransform;
 // Full configuration structure with all available settings of GPU...
 struct GPUO2InterfaceConfiguration {
   GPUO2InterfaceConfiguration() = default;
@@ -54,6 +62,9 @@ struct GPUO2InterfaceConfiguration {
   GPUQAConfig configQA;
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
+  const TPCFastTransform* fastTransform = nullptr;
+  const o2::base::MatLayerCylSet* matLUT = nullptr;
+  const o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
 };
 } // namespace gpu
 } // namespace o2
