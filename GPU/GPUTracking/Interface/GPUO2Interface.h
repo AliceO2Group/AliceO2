@@ -27,8 +27,7 @@
 
 #include <memory>
 #include "GPUCommonDef.h"
-#include "GPUTPCGMMergedTrack.h"
-#include "GPUTPCGMMergedTrackHit.h"
+#include "GPUDataTypes.h"
 namespace o2
 {
 namespace tpc
@@ -56,8 +55,7 @@ class GPUTPCO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
-  void Cleanup();
+  int RunTracking(GPUTrackingInOutPointers* data);
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
