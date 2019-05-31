@@ -48,7 +48,7 @@ class Digitizer
   void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-
+ 
   void setTriggers(o2::t0::Digit* digit);
   void smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
 
