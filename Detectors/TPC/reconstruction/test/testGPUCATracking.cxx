@@ -23,6 +23,7 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCReconstruction/GPUCATracking.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+
 #include "TPCFastTransform.h"
 
 #include "GPUO2InterfaceConfiguration.h"
@@ -76,7 +77,6 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.fastTransform = fastTransform.get();
 
   tracker.initialize(config);
-  std::vector<TrackTPC> tracks;
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
 
   for (int i = 0; i < Constants::MAXGLOBALPADROW; i++) {
@@ -90,10 +90,14 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].clusters[0].qMax = 10;
     cont[i].clusters[0].qTot = 50;
   }
-  std::unique_ptr<ClusterNativeAccessFullTPC> clusters =
-    ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
+  std::unique_ptr<ClusterNativeAccessFullTPC> clusters = ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
 
-  int retVal = tracker.runTracking(*clusters, &tracks, nullptr);
+  GPUO2InterfaceIOPtrs ptrs;
+  std::vector<TrackTPC> tracks;
+  ptrs.clusters = clusters.get();
+  ptrs.outputTracks = &tracks;
+
+  int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);
   BOOST_CHECK_EQUAL((int)tracks.size(), 1);
 }

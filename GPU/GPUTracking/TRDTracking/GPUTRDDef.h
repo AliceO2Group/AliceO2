@@ -15,8 +15,17 @@
 #define GPUTRDDEF_H
 
 #include "GPUCommonDef.h"
+
+#ifdef GPUCA_ALIROOT_LIB
+#define TRD_TRACK_TYPE_ALIROOT
+#else
+#define TRD_TRACK_TYPE_O2
+#endif
+
+#ifdef GPUCA_ALIROOT_LIB
 class AliExternalTrackParam;
 class AliTrackerBase;
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -27,12 +36,6 @@ namespace gpu
 typedef double My_Float;
 #else
 typedef float My_Float;
-#endif
-
-#ifdef GPUCA_ALIROOT_LIB
-#define TRD_TRACK_TYPE_ALIROOT
-#else
-#define TRD_TRACK_TYPE_O2
 #endif
 
 #if defined(TRD_TRACK_TYPE_ALIROOT)
@@ -62,7 +65,7 @@ class GPUTRDTrack_t;
 typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack>> GPUTRDTrack;
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 
-#if !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__)
+#if defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__) && !defined(G__ROOT)
 #define Error(...)
 #define Warning(...)
 #define Info(...)

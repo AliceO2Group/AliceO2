@@ -401,9 +401,13 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       memset(&clusterIndex, 0, sizeof(clusterIndex));
       ClusterNativeHelper::Reader::fillIndex(clusterIndex, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
 
+      GPUO2InterfaceIOPtrs ptrs;
       std::vector<TrackTPC> tracks;
       MCLabelContainer tracksMCTruth;
-      int retVal = tracker->runTracking(clusterIndex, &tracks, (processMC ? &tracksMCTruth : nullptr));
+      ptrs.clusters = &clusterIndex;
+      ptrs.outputTracks = &tracks;
+      ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
+      int retVal = tracker->runTracking(&ptrs);
       if (retVal != 0) {
         // FIXME: error policy
         LOG(ERROR) << "tracker returned error code " << retVal;
@@ -414,6 +418,14 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
         pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
       }
+
+      // TODO - Process Compressed Clusters Output
+      const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters; // This is a ROOT-serializable container with compressed TPC clusters
+      // Example to decompress clusters
+      //#include "TPCClusterDecompressor.cxx"
+      //o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded; // Cluster native access structure as used by the tracker
+      //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
+      //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
 
       validInputs.reset();
       if (processMC) {

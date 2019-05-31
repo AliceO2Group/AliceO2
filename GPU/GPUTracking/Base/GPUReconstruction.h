@@ -90,8 +90,10 @@ class GPUReconstruction
                                          TRD_TRACKLET = 8,
                                          RAW_CLUSTERS = 9,
                                          CLUSTERS_NATIVE = 10,
-                                         TRD_TRACKLET_MC = 11 };
-  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels" };
+                                         TRD_TRACKLET_MC = 11,
+                                         TPC_COMPRESSED_CL = 12 };
+  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters",
+                                                       "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters" };
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);

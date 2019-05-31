@@ -105,7 +105,11 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   tout.Branch("TracksMCTruth", &tracksMC);
 
   printf("Processing time frame\n");
-  if (tracker.runTracking(*clusters, &tracks, doMC ? &tracksMC : nullptr) == 0) {
+  GPUO2InterfaceIOPtrs ptrs;
+  ptrs.clusters = clusters.get();
+  ptrs.outputTracks = &tracks;
+  ptrs.outputTracksMCTruth = doMC ? &tracksMC : nullptr;
+  if (tracker.runTracking(&ptrs) == 0) {
     printf("\tFound %d tracks\n", (int)tracks.size());
   } else {
     printf("\tError during tracking\n");

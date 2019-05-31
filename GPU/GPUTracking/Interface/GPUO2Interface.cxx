@@ -62,7 +62,7 @@ void GPUTPCO2Interface::Deinitialize()
   mInitialized = false;
 }
 
-int GPUTPCO2Interface::RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters)
+int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
 {
   if (!mInitialized) {
     return (1);
@@ -70,7 +70,7 @@ int GPUTPCO2Interface::RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* in
   static int nEvent = 0;
   if (mDumpEvents) {
     mChain->ClearIOPointers();
-    mChain->mIOPtrs.clustersNative = inputClusters;
+    mChain->mIOPtrs.clustersNative = data->clustersNative;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);
@@ -80,17 +80,16 @@ int GPUTPCO2Interface::RunTracking(const o2::tpc::ClusterNativeAccessFullTPC* in
     }
   }
 
-  mChain->mIOPtrs.clustersNative = inputClusters;
+  mChain->mIOPtrs = *data;
   mRec->RunChains();
+  *data = mChain->mIOPtrs;
 
-  outputTracks = mChain->mIOPtrs.mergedTracks;
-  nOutputTracks = mChain->mIOPtrs.nMergedTracks;
-  outputTrackClusters = mChain->mIOPtrs.mergedTrackHits;
   const ClusterNativeAccessExt* ext = mChain->GetClusterNativeAccessExt();
   for (int i = 0; i < mChain->mIOPtrs.nMergedTrackHits; i++) {
     GPUTPCGMMergedTrackHit& cl = (GPUTPCGMMergedTrackHit&)mChain->mIOPtrs.mergedTrackHits[i];
     cl.num -= ext->clusterOffset[cl.slice][cl.row];
   }
+
   nEvent++;
   return (0);
 }
@@ -102,5 +101,3 @@ void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float 
   }
   mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
 }
-
-void GPUTPCO2Interface::Cleanup() {}
