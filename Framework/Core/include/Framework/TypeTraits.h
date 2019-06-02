@@ -164,21 +164,15 @@ static std::enable_if_t<sizeof(std::declval<HOLDER>().get_deleter()) != 0, HOLDE
   return std::make_unique<T>(std::forward<ARGS>(args)...);
 }
 
-// Helper classes to check availability of boost serialization for RawBufferContext for a given type.
-// Provides recurrence to correclty unwrap containers of containers ... of container of base type.
-//Defining useful void_t template alias
-template <typename...>
-using void_t = void;
-
 //Base case called by all overloads when needed. Derives from false_type.
-template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = std::void_t<>>
 struct is_boost_serializable_base : std::false_type {
 };
 
 //Check if provided type implements a boost serialize method directly
 template <class Type, typename Archive>
 struct is_boost_serializable_base<Type, Archive,
-                                  void_t<decltype(std::declval<Type&>().serialize(std::declval<Archive&>(), 0))>>
+                                  std::void_t<decltype(std::declval<Type&>().serialize(std::declval<Archive&>(), 0))>>
   : std::true_type {
 };
 
@@ -190,20 +184,20 @@ struct is_boost_serializable_base<Type, Archive,
 // };
 
 //Base implementation to provided recurrence. Wraps around base templates
-template <class Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+template <class Type, typename Archive = boost::archive::binary_oarchive, typename = std::void_t<>>
 struct is_boost_serializable
   : is_boost_serializable_base<Type, Archive> {
 };
 
 //Call base implementation in contained class/type if possible
 template <class Type, typename Archive>
-struct is_boost_serializable<Type, Archive, void_t<typename Type::value_type>>
+struct is_boost_serializable<Type, Archive, std::void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, Archive> {
 };
 
 //Call base implementation in contained class/type if possible. Added default archive type for convenience
 template <class Type>
-struct is_boost_serializable<Type, boost::archive::binary_oarchive, void_t<typename Type::value_type>>
+struct is_boost_serializable<Type, boost::archive::binary_oarchive, std::void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
 } // namespace framework
