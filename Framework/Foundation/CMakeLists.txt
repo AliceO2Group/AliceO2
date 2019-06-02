@@ -16,6 +16,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS src/Traits.cxx)
 set(HEADERS
   include/Framework/CompilerBuiltins.h
+  include/Framework/FunctionalHelpers.h
   include/Framework/Signpost.h
   include/Framework/Traits.h
 )
