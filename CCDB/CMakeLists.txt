@@ -151,15 +151,17 @@ install(
     DESTINATION bin/config
 )
 
-set(TEST_SRCS
-   test/testWriteReadAny.cxx
-   test/testCcdbApi.cxx
-) 
+if (NOT APPLE)
+  set(TEST_SRCS
+     test/testWriteReadAny.cxx
+     test/testCcdbApi.cxx
+  ) 
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  MODULE_LIBRARY_NAME ${MODULE_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+  O2_GENERATE_TESTS(
+    BUCKET_NAME ${BUCKET_NAME}
+    MODULE_LIBRARY_NAME ${MODULE_NAME}
+    TEST_SRCS ${TEST_SRCS}
+  )
+endif()
 
 
