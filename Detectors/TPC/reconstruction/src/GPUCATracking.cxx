@@ -132,7 +132,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         float zHigh = trackClusters[tracks[i].FirstClusterRef()].z - tracks[i].GetParam().GetZOffset(); // high R cluster
         float zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].z -
-               tracks[i].GetParam().GetZOffset(); // low R cluster
+                     tracks[i].GetParam().GetZOffset(); // low R cluster
 
         bool sideHighA = trackClusters[tracks[i].FirstClusterRef()].slice < Sector::MAXSECTOR / 2;
         bool sideLowA =

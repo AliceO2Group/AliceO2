@@ -182,6 +182,14 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       config.configReconstruction.SearchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
       config.configReconstruction.TrackReferenceX = refX;
 
+      // Settings for TPC Compression:
+      config.configReconstruction.tpcRejectionMode = GPUSettings::RejectionStrategyA; // Implement TPC Strategy A
+      config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
+      config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
+      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortPad;     // Sort order for differences compression
+      config.configReconstruction.tpcSigBitsCharge = 4;                               // Number of significant bits in TPC cluster chargs
+      config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
+
       config.configInterface.dumpEvents = dump;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
