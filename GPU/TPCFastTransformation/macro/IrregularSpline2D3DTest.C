@@ -47,8 +47,8 @@ float Fx(float u, float v)
   return f;
 }
 
-float Fy(float u, float v) { return v; }
-float Fz(float u, float v) { return (u - .5) * (u - .5); }
+float Fy(float /*u*/, float v) { return v; }
+float Fz(float u, float /*v*/) { return (u - .5) * (u - .5); }
 
 #endif
 
