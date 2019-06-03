@@ -295,6 +295,7 @@ int SetupReconstruction()
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
   }
   recSet.tpcCompressionModes = configStandalone.configRec.tpcCompression;
+  recSet.tpcCompressionSortOrder = configStandalone.configRec.tpcCompressionSort;
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;
@@ -306,7 +307,7 @@ int SetupReconstruction()
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
 
-  steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;;
+  steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
   }

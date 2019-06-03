@@ -25,6 +25,17 @@ class GPUDisplayBackend;
 class GPUSettings
 {
  public:
+  enum CompressionModes { CompressionTruncate = 1,
+                          CompressionDifferences = 2,
+                          CompressionTrackModel = 4,
+                          CompressionFull = 7 };
+  enum CompressionSort { SortTime = 0,
+                         SortPad = 1,
+                         SortZTimePad = 2,
+                         SortZPadTime = 3 };
+  enum CompressionRejection { RejectionNone = 0,
+                              RejectionStrategyA = 1,
+                              RejectionStrategyB = 2 };
 };
 
 // Settings concerning the reconstruction
@@ -39,27 +50,28 @@ struct GPUSettingsRec {
 #endif
 
   // There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
-  float HitPickUpFactor;                // multiplier for the chi2 window for hit pick up procedure
-  float NeighboursSearchArea;           // area in cm for the search of neighbours
-  float ClusterError2CorrectionY;       // correction for the squared cluster error during tracking
-  float ClusterError2CorrectionZ;       // correction for the squared cluster error during tracking
-  int MinNTrackClusters;                //* required min number of clusters on the track
-  float MaxTrackQPt;                    //* required max Q/Pt (==min Pt) of tracks
-  char NWays;                           // Do N fit passes in final fit of merger
-  char NWaysOuter;                      // Store outer param
-  char RejectMode;                      // 0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
-  char GlobalTracking;                  // Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
-  float SearchWindowDZDR;               // Use DZDR window for seeding instead of vertex window
-  float TrackReferenceX;                // Transport all tracks to this X after tracking (disabled if > 500)
-  char NonConsecutiveIDs;               // Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
-  unsigned char DisableRefitAttachment; // Bitmask to disable cluster attachment steps in refit: 1: attachment, 2: propagation, 4: loop following, 8: mirroring
-  unsigned char dEdxTruncLow;           // Low truncation threshold, fraction of 128
-  unsigned char dEdxTruncHigh;          // High truncation threshold, fraction of 128
-  unsigned char tpcRejectionMode;       // 0: do not reject clusters, 1: do reject identified junk, 2: reject everything but good tracks
-  float tpcRejectQPt;                   // Reject tracks below this Pt
-  unsigned char tpcCompressionModes;    // Enabled steps of TPC compression as flags: 1=truncate charge/width LSB, 2=differences, 4=track-model
-  unsigned char tpcSigBitsCharge;       // Number of significant bits for TPC cluster charge in compression mode 1
-  unsigned char tpcSigBitsWidth;        // Number of significant bits for TPC cluster width in compression mode 1
+  float HitPickUpFactor;                 // multiplier for the chi2 window for hit pick up procedure
+  float NeighboursSearchArea;            // area in cm for the search of neighbours
+  float ClusterError2CorrectionY;        // correction for the squared cluster error during tracking
+  float ClusterError2CorrectionZ;        // correction for the squared cluster error during tracking
+  int MinNTrackClusters;                 //* required min number of clusters on the track
+  float MaxTrackQPt;                     //* required max Q/Pt (==min Pt) of tracks
+  char NWays;                            // Do N fit passes in final fit of merger
+  char NWaysOuter;                       // Store outer param
+  char RejectMode;                       // 0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
+  char GlobalTracking;                   // Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
+  float SearchWindowDZDR;                // Use DZDR window for seeding instead of vertex window
+  float TrackReferenceX;                 // Transport all tracks to this X after tracking (disabled if > 500)
+  char NonConsecutiveIDs;                // Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
+  unsigned char DisableRefitAttachment;  // Bitmask to disable cluster attachment steps in refit: 1: attachment, 2: propagation, 4: loop following, 8: mirroring
+  unsigned char dEdxTruncLow;            // Low truncation threshold, fraction of 128
+  unsigned char dEdxTruncHigh;           // High truncation threshold, fraction of 128
+  unsigned char tpcRejectionMode;        // 0: do not reject clusters, 1: do reject identified junk, 2: reject everything but good tracks
+  float tpcRejectQPt;                    // Reject tracks below this Pt
+  unsigned char tpcCompressionModes;     // Enabled steps of TPC compression as flags: 1=truncate charge/width LSB, 2=differences, 4=track-model
+  unsigned char tpcCompressionSortOrder; // Sort order for clusters storred as differences (0 = time, 1 = pad, 2 = Z-curve-time-pad, 3 = Z-curve-pad-time)
+  unsigned char tpcSigBitsCharge;        // Number of significant bits for TPC cluster charge in compression mode 1
+  unsigned char tpcSigBitsWidth;         // Number of significant bits for TPC cluster width in compression mode 1
 };
 
 // Settings describing the events / time frames
