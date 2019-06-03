@@ -17,7 +17,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
 
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && (!defined(__CINT__) && !defined(__ROOTCINT__))
+#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "GPUTPCConvert.h"
 #include "GPUTPCCompression.h"
 #include "GPUTPCGMMerger.h"

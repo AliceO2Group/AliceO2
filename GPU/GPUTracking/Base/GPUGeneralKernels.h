@@ -38,7 +38,7 @@ class GPUKernelTemplate
   {
     return &processors;
   }
-#if ((!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)))
+#ifdef GPUCA_NOCOMPAT
   template <int iKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors, Args... args)
   {
