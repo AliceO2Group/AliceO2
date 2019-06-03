@@ -53,13 +53,13 @@ std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
 // ------------------------------------------------------------------
 
 // Remove leading whitespace
-std::string ltrimSpace(std::string const& src)
+std::string ltrimSpace(std::string src)
 {
   return src.erase(0, src.find_first_not_of(' '));
 }
 
 // Remove trailing whitespace
-std::string rtrimSpace(std::string const& src)
+std::string rtrimSpace(std::string src)
 {
   return src.erase(src.find_last_not_of(' ') + 1);
 }
