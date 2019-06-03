@@ -53,7 +53,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
 
   unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
 
-  if (!(mMerger->Param().rec.tpcCompressionModes & 4)) {
+  if (!(mMerger->Param().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory
   }
   computePointerWithAlignment(mem, c.qTotA, nClA);
