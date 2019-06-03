@@ -34,8 +34,12 @@ FairRunSim* o2sim_init(bool asservice)
   // we can read from CCDB (for the moment faking with a TFile)
   // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
-  // update the parameters from stuff given at command line
+  // update the parameters from an INI/JSON file, if given (overrides code-based version)
+  o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
+
+  // update the parameters from stuff given at command line (overrides file-based version)
   o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
+
   // write the configuration file
   o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
 
