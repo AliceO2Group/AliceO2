@@ -19,6 +19,7 @@ set(HEADERS
   include/Framework/FunctionalHelpers.h
   include/Framework/Signpost.h
   include/Framework/Traits.h
+  include/Framework/VariantHelpers.h
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
