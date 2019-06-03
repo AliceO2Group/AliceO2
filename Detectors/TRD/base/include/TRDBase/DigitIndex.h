@@ -23,24 +23,31 @@ class DigitIndex
  public:
   DigitIndex() = default;
   ~DigitIndex() = default;
-  DigitIndex(const DigitIndex&) = default;
-  DigitIndex(const int det, const int row, const int pad)
+  DigitIndex(const int det, const int row, const int pad, const int idx)
     : mDetector(det),
       mRow(row),
-      mPad(pad) {}
+      mPad(pad),
+      mIndex(idx) {}
+  // Copy
+  DigitIndex(const DigitIndex&) = default;
+  DigitIndex& operator=(const DigitIndex&) = default;
+  // Assignment
   // Modifiers
   void setDetector(int det) { mDetector = det; }
   void setRow(int row) { mRow = row; }
   void setPad(int pad) { mPad = pad; }
+  void setIndex(int idx) { mIndex = idx; }
   // Get methods
   int getDetector() const { return mDetector; }
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
+  int getIndex() const { return mIndex; }
 
  private:
   std::uint16_t mDetector{ 0 }; // TRD detector number, 0-539
   std::uint8_t mRow{ 0 };       // pad row, 0-15
-  std::uint8_t mPad{ 0 };       // pad within pad row, 0-14
+  std::uint8_t mPad{ 0 };       // pad within pad row, 0-143
+  std::uint32_t mIndex{ 0 };    // digit index, 0 - 30*540*16*144 = 0 - 37324800
 };
 
 } // namespace trd

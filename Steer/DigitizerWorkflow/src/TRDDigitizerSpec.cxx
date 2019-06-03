@@ -22,6 +22,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/DigitIndex.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hittype
 #include "DetectorsBase/GeometryManager.h"
@@ -92,7 +93,8 @@ class TRDDPLDigitizerTask
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
+    std::vector<o2::trd::Digit> digitsAccum;           // accumulator for digits
+    std::vector<o2::trd::DigitIndex> digitsIndexAccum; // accumulator for digits index
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
@@ -110,12 +112,15 @@ class TRDDPLDigitizerTask
         retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits; // digits which get filled
-        mDigitizer.process(hits, digits);
+        std::vector<o2::trd::Digit> digits;           // digits which get filled
+        std::vector<o2::trd::DigitIndex> digit_index; // index which get filled
+        mDigitizer.process(hits, digits, digit_index);
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        std::copy(digit_index.begin(), digit_index.end(), std::back_inserter(digitsIndexAccum));
       }
     }
     pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
+    pc.outputs().snapshot(Output{ "TRD", "DIGITS INDEX", 0, Lifetime::Timeframe }, digitsIndexAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
 
@@ -143,6 +148,7 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
 
     Outputs{ OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe },
+             OutputSpec{ "TRD", "DIGITS INDEX", 0, Lifetime::Timeframe },
              OutputSpec{ "TRD", "ROMode", 0, Lifetime::Timeframe } },
 
     AlgorithmSpec{ adaptFromTask<TRDDPLDigitizerTask>() },

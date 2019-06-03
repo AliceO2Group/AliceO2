@@ -22,8 +22,8 @@ namespace trd
 class DigitIndex;
 
 typedef std::uint16_t Digit;
-typedef std::vector<Digit> DigitContainer;
-typedef std::vector<DigitIndex> DigitIndexContainer;
+typedef std::vector<Digit> DigitContainer_t;
+typedef std::vector<DigitIndex> DigitIndexContainer_t;
 
 } // namespace trd
 } // namespace o2

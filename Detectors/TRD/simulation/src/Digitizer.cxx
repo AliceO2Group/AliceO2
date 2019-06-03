@@ -18,8 +18,9 @@
 #include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDPadPlane.h"
-#include "TRDBase/TRDArraySignal.h"
 #include "TRDBase/PadResponse.h"
+
+#include "TRDBase/DigitIndex.h"
 
 #include "TRDSimulation/Digitizer.h"
 
@@ -54,7 +55,7 @@ Digitizer::Digitizer()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& digits)
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digits, DigitIndexContainer_t& digit_index)
 {
   // (WIP) Implementation for digitization
 
@@ -65,6 +66,9 @@ void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& di
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   int totalNumberOfProcessedHits = 0;
   // LOG(INFO) << "Start of processing " << hits.size() << " hits";
+
+  DigitContainer_t signals;
+  DigitIndexContainer_t signal_index;
 
   for (int det = 0; det < kNdet; ++det) {
     // Loop over all TRD detectors
@@ -85,16 +89,23 @@ void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& di
       // move to next det if no hits are found for this det
       continue;
     }
-    totalNumberOfProcessedHits += mHitContainer.size();
-    TRDArraySignal signals;
-    if (!convertHits(det, mHitContainer, signals)) {
-      LOG(WARNING) << "TRD converstion of hits failed for detector " << det;
-      signals.reset(); // make sure you have nothing
-    }
 
-    digits.emplace_back();
-  } // end of loop over detectors
-  // LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits";
+    totalNumberOfProcessedHits += mHitContainer.size();
+
+    if (!convertHits(det, mHitContainer, signals, signal_index)) {
+      LOG(WARNING) << "TRD converstion of hits failed for detector " << det;
+      /*
+       Maybe we should add a warning value in signals and signal_index to keep track of these
+      */
+    }
+  }
+
+  // copy computed signals to the output digits
+  digits.resize(signals.size());
+  digits.assign(signals.begin(), signals.end());
+  // copy computed signal_index to the output digit_index
+  digit_index.resize(signal_index.size());
+  digit_index.assign(signal_index.begin(), signal_index.end());
 }
 
 bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits, std::vector<HitType>& hitContainer)
@@ -114,7 +125,7 @@ bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits,
   return true;
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRDArraySignal& arraySignal)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, DigitContainer_t& arraySignal, DigitIndexContainer_t& arraySignal_index)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -154,7 +165,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
     timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }
 
-  const int nTimeTotal = kTimeBins; // DigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  const int nTimeTotal = kTimeBins; // PLEASE FIX ME when CCDB is ready
   const float samplingRate = mCommonParam->GetSamplingFrequency();
   const float elAttachProp = mSimParam->GetElAttachProp() / 100;
 
@@ -165,8 +176,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
   const int nRowMax = padPlane->getNrows();
   const int nColMax = padPlane->getNcols();
 
-  // Allocate space for signals
-  // arraySignal.allocate(nRowMax, nColMax, nTimeTotal);
+  // resize signals
+  arraySignal.resize(arraySignal.size() + 3 * nTimeTotal);
 
   // Loop over hits
   for (const auto& hit : hits) {
@@ -333,6 +344,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
       // The distance of the position to the middle of the timebin
       double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
 
+      // counter for digit_indexs
+      int signal_index_idx = 0;
+      bool has_filled_index = false;
+
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
@@ -360,7 +375,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
             break;
           }
           // Add the signals
+
           // signalOld[iPad] = arraySignal.getData(rowE, colPos, iTimeBin); // TO BE ADDED LATER REQUIRES ARRAYSIGNALS
+          signalOld[iPad] = arraySignal[iPad + iTimeBin + signal_index_idx];
+
           if (colPos != colE) {
             // Cross talk added to non-central pads
             signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
@@ -368,12 +386,20 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, TRD
             // Without cross talk at central pad
             signalOld[iPad] += padSignal[iPad] * timeResponse;
           }
+
           // arraySignal.setData(rowE, colPos, iTimeBin, signalOld[iPad]); // TO BE ADDED LATER REQUIRES ARRAYSIGNALS
-          // ******* TO BE ADDED LATER REQUIRES ARRAYSIGNALS
+          arraySignal[iPad + iTimeBin + signal_index_idx] = signalOld[iPad];
+
+          // we fill the signal_index only once
+          if (has_filled_index) {
+            arraySignal_index.emplace_back(det, rowE, colPos, signal_index_idx);
+            has_filled_index = true;
+          }
         } // Loop: pads
       }   // Loop: time bins
-    }     // end of loop over electrons
-  }       // end of loop over hits
+      signal_index_idx += 3 * lastTimeBin;
+    } // end of loop over electrons
+  }   // end of loop over hits
   return true;
 }
 
