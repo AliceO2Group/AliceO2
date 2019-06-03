@@ -14,8 +14,7 @@
 #ifndef Q_BITFIELD_H
 #define Q_BITFIELD_H
 
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)) && defined(__cplusplus) && __cplusplus >= 201103L
-#define Q_BITFIELD_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
 #endif
 
@@ -68,10 +67,9 @@ class bitfield
   bool isSet(const bitfield& v) const { return *this & v; }
   bool isSet(const S v) const { return bits & v; }
 
-#ifdef Q_BITFIELD_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static_assert(std::is_integral<S>::value, "Storage type non integral");
   static_assert(sizeof(S) >= sizeof(T), "Storage type has insufficient capacity");
-#undef Q_BITFIELD_NOCOMPAT
 #endif
 
  private:

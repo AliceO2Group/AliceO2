@@ -16,8 +16,7 @@
 
 #include "GPUCommonDef.h"
 
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)) && defined(__cplusplus) && __cplusplus >= 201103L
-#define GPUDATATYPES_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
 #include "GPUTRDDef.h"
 
@@ -40,7 +39,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#ifdef GPUDATATYPES_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include "utils/bitfield.h"
 #define ENUM_CLASS class
 #define ENUM_UINT : unsigned int
@@ -87,7 +86,7 @@ class GPUDataTypes
                               TRDTracklets = 16,
                               TRDTracks = 32 };
 
-#ifdef GPUDATATYPES_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static constexpr const char* const RECO_STEP_NAMES[] = { "TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation" };
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
@@ -96,7 +95,7 @@ class GPUDataTypes
   static DeviceType GetDeviceType(const char* type);
 };
 
-#ifdef GPUDATATYPES_NOCOMPAT
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
 struct GPURecoStepConfiguration {
   GPUDataTypes::RecoStepField steps = 0;
   GPUDataTypes::InOutTypeField inputs = 0;
@@ -134,7 +133,6 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTrackletsMC = 0;
   friend class GPUReconstruction;
 };
-#undef GPUDATATYPES_NOCOMPAT
 #endif
 
 #undef ENUM_CLASS
