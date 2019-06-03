@@ -15,10 +15,10 @@
 #ifndef GPUDEFOPENCL12TEMPLATES_H
 #define GPUDEFOPENCL12TEMPLATES_H
 
-#if (defined(__OPENCL__) && !defined(__OPENCLCPP__)) || (defined(__CINT__) && defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216) // Non-CPP OpenCL and ROOT5
-  #define GPUCA_CPP11_INIT(...)
-#else
+#ifdef GPUCA_NOCOMPAT
   #define GPUCA_CPP11_INIT(...) __VA_ARGS__
+#else
+  #define GPUCA_CPP11_INIT(...)
 #endif
 
 //Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
