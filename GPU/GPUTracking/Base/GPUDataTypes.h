@@ -16,8 +16,9 @@
 
 #include "GPUCommonDef.h"
 
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__))
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)) && defined(__cplusplus) && __cplusplus >= 201103L
 #define GPUDATATYPES_NOCOMPAT
+#include <type_traits>
 #include "GPUTRDDef.h"
 
 class AliHLTTPCClusterMCLabel;
