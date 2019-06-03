@@ -294,10 +294,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
 
+  o2::conf::ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
+
   // Update the (declared) parameters if changed from the command line
   // Note: In the future this should be done only on a dedicated processor managing
   // the parameters and then propagated automatically to all devices
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
 

@@ -37,8 +37,10 @@ struct SimConfigData {
   std::string mLogVerbosity;                 // loglevel for FairLogger
   std::string mKeyValueTokens;               // a string holding arbitrary sequence of key-value tokens
                                              // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
-                                             // (can be used to **loosly** change any configuration parameter from
-                                             //  command-line)
+                                             // (can be used to **loosely** change any configuration parameter from command-line)
+  std::string mConfigFile;                   // path to a JSON or INI config file (file extension is required to determine type).
+                                             // values within the config file will override values set in code by the param classes
+                                             // but will themselves be overridden by any values given in mKeyValueTokens.
   int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
   int mInternalChunkSize;                    //
   int mStartSeed;                            // base for random number seeds
@@ -101,6 +103,7 @@ class SimConfig
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
   std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
   std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
+  std::string getConfigFile() const { return mConfigData.mConfigFile; }
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
   int getStartSeed() const { return mConfigData.mStartSeed; }

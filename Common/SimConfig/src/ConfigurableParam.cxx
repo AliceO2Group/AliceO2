@@ -11,16 +11,20 @@
 //first version 8/2018, Sandro Wenzel
 
 #include "SimConfig/ConfigurableParam.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <iostream>
 #include <string>
 #include <FairLogger.h>
 #include <typeinfo>
-#include <cassert>
 #include "TDataMember.h"
 #include "TDataType.h"
 #include "TFile.h"
@@ -44,6 +48,50 @@ std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
 {
   param.output(out);
   return out;
+}
+
+// ------------------------------------------------------------------
+
+// Remove leading whitespace
+std::string ltrimSpace(std::string src)
+{
+  return src.erase(0, src.find_first_not_of(' '));
+}
+
+// Remove trailing whitespace
+std::string rtrimSpace(std::string src)
+{
+  return src.erase(src.find_last_not_of(' ') + 1);
+}
+
+// Remove leading/trailing whitespace
+std::string trimSpace(std::string const& src)
+{
+  return ltrimSpace(rtrimSpace(src));
+}
+
+// Split a given string on a delim character, return vector of tokens
+// If trim is true, then also remove leading/trailing whitespace of each token.
+std::vector<std::string> splitString(const std::string& src, char delim, bool trim = false)
+{
+  std::stringstream ss(src);
+  std::string token;
+  std::vector<std::string> tokens;
+
+  while (std::getline(ss, token, delim)) {
+    token = (trim ? trimSpace(token) : token);
+    if (!token.empty()) {
+      tokens.push_back(std::move(token));
+    }
+  }
+
+  return tokens;
+}
+
+// Does the given key exist in the boost property tree?
+bool keyInTree(boost::property_tree::ptree* pt, std::string key)
+{
+  return pt->get_optional<std::string>(key).is_initialized();
 }
 
 // ------------------------------------------------------------------
@@ -127,6 +175,56 @@ void ConfigurableParam::writeINI(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_ini(filename, *sPtree);
+}
+
+// ------------------------------------------------------------------
+
+boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
+{
+  if (!boost::filesystem::exists(filepath)) {
+    LOG(FATAL) << filepath << " : config file does not exist!";
+  }
+
+  boost::property_tree::ptree pt;
+
+  if (boost::iends_with(filepath, ".ini")) {
+    pt = readINI(filepath);
+  } else if (boost::iends_with(filepath, ".json")) {
+    pt = readJSON(filepath);
+  } else {
+    LOG(FATAL) << "Configuration file must have either .ini or .json extension";
+  }
+
+  return pt;
+}
+
+// ------------------------------------------------------------------
+
+boost::property_tree::ptree ConfigurableParam::readINI(std::string const& filepath)
+{
+  boost::property_tree::ptree pt;
+  try {
+    boost::property_tree::read_ini(filepath, pt);
+  } catch (const boost::property_tree::ptree_error& e) {
+    LOG(FATAL) << "Failed to read INI config file " << filepath << " (" << e.what() << ")";
+  }
+
+  return pt;
+}
+
+// ------------------------------------------------------------------
+
+boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filepath)
+{
+  boost::property_tree::ptree pt;
+
+  try {
+    boost::property_tree::read_json(filepath, pt);
+  } catch (const boost::property_tree::ptree_error& e) {
+    LOG(FATAL) << "Failed to read JSON config file " << filepath << " (" << e.what() << ")";
+  }
+
+  return pt;
 }
 
 // ------------------------------------------------------------------
@@ -241,51 +339,56 @@ void ConfigurableParam::printAllRegisteredParamNames()
 
 // ------------------------------------------------------------------
 
-void ConfigurableParam::updateFromString(std::string const& configstring)
+// Update the storage map of params from the given configuration file.
+// It can be in JSON or INI format.
+void ConfigurableParam::updateFromFile(std::string const& configFile)
 {
   if (!sIsFullyInitialized) {
     initialize();
   }
 
-  // -----------------------------------------------
-  // Helper functions
-  // -----------------------------------------------
+  auto cfgfile = trimSpace(configFile);
 
-  // Remove leading whitespace
-  auto ltrim = [](std::string src) {
-    return src.erase(0, src.find_first_not_of(' '));
-  };
+  if (cfgfile.length() == 0) {
+    return;
+  }
 
-  // Remove trailing whitespace
-  auto rtrim = [](std::string src) {
-    return src.erase(src.find_last_not_of(' ') + 1);
-  };
+  boost::property_tree::ptree pt = readConfigFile(cfgfile);
 
-  // Remove leading/trailing whitespace
-  auto trimSpace = [ltrim, rtrim](std::string src) {
-    return ltrim(rtrim(src));
-  };
+  std::vector<std::pair<std::string, std::string>> keyValPairs;
 
-  // Split a given string on a delim character, return vector of tokens
-  // If trim is true, then also remove leading/trailing whitespace of each token.
-  auto splitString = [trimSpace](const std::string& src, char delim, bool trim = false) {
-    std::stringstream ss(src);
-    std::string token;
-    std::vector<std::string> tokens;
+  for (auto& section : pt) {
+    std::string mainKey = section.first;
+    for (auto& subKey : section.second) {
+      auto name = subKey.first;
+      auto value = subKey.second.get_value<std::string>();
+      std::string key = mainKey + "." + name;
 
-    while (std::getline(ss, token, delim)) {
-      token = (trim ? trimSpace(token) : token);
-      if (!token.empty()) {
-        tokens.push_back(std::move(token));
-      }
+      std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
+      keyValPairs.push_back(pair);
     }
+  }
 
-    return tokens;
-  };
+  setValues(keyValPairs);
+}
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+void ConfigurableParam::updateFromString(std::string const& configString)
+{
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
+
+  auto cfgStr = trimSpace(configString);
+  if (cfgStr.length() == 0) {
+    return;
+  }
 
   // Take a vector of strings with elements of form a=b, and
   // return a vector of pairs with each pair of form <a, b>
-  auto getKeyValPairs = [trimSpace, splitString](std::vector<std::string>& tokens) {
+  auto toKeyValPairs = [](std::vector<std::string>& tokens) {
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
@@ -303,109 +406,105 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
   };
 
   // Simple check that the string starts/ends with an open square bracket
-  auto isArray = [](std::string& el) {
-    return (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
-  };
-
-  // Does the given string key exist in the boost property tree?
-  auto keyExists = [](std::string key) {
-    return sPtree->get_optional<std::string>(key).is_initialized();
-  };
-
   // Find the maximum index of a given key with array value.
   // We store string keys for arrays as a[0]...a[size_of_array]
-  auto maxIndex = [keyExists](std::string baseName) {
+  /*
+  auto maxIndex = [](std::string baseName) {
     bool isFound = true;
     int index = -1;
     do {
       index++;
       std::string key = baseName + "[" + std::to_string(index) + "]";
-      isFound = keyExists(key);
+      isFound = keyInTree(sPtree, key);
     } while (isFound);
 
     return index;
   };
-
-  auto isEnum = [](std::string key) {
-    return sEnumRegistry->contains(key);
-  };
+*/
 
   // ---- end of helper functions --------------------
 
   // Command-line string is a ;-separated list of key=value params
-  auto params = splitString(configstring, ';', true);
+  auto params = splitString(configString, ';', true);
 
-  // Now split each key=value string into its <key, value> parts
-  auto keyValues = getKeyValPairs(params);
+  // Now split each key=value string into its std::pair<key, value> parts
+  auto keyValues = toKeyValPairs(params);
 
-  // Take an array of param key/value pairs
+  setValues(keyValues);
+}
+
+// setValues takes a vector of pairs where each pair is a key and value
+// to be set in the storage map
+void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string>> keyValues)
+{
+  auto isArray = [](std::string& el) {
+    return (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
+  };
+
+  // Take a vector of param key/value pairs
   // and update the storage map for each of them by calling setValue.
-  // For string/scalar types this is simple.
-  // For array values we need to iterate over each array element
+  // 1. For string/scalar types this is simple.
+  // 2. For array values we need to iterate over each array element
   // and call setValue on the element, using an appropriately constructed key.
+  // 3. For enum types we check for the existence of the key in the enum registry
+  // and also confirm that the value is in the list of legal values
   for (auto& keyValue : keyValues) {
     std::string key = keyValue.first;
     std::string value = trimSpace(keyValue.second);
 
-    if (isEnum(key)) {
-      int val = (*sEnumRegistry)[key]->getIntValue(value);
-      if (val == -1) {
-        LOG(FATAL) << "Illegal value "
-                   << value << " for enum " << key
-                   << ". Legal string|int values:\n"
-                   << (*sEnumRegistry)[key]->toString() << std::endl;
-      }
-
-      setValue(key, std::to_string(val));
-      continue;
-    }
-
-    if (isArray(value)) {
-      // We need to check how big the array is, by increasing key[0], key[1],...
-      // and checking for this key in the sPtree until we no longer find a match.
-
-      // We remove the lead/trailing square bracket
-      value.erase(0, 1); // remove leading bracket
-      value.pop_back();  // remove trailing bracket
-
-      auto elems = splitString(value, ',', true);
-      /*
-      auto expectedLen = maxIndex(key);
-      int elemsLen = elems.size();
-
-      if (expectedLen != elemsLen) {
-        LOG(FATAL) << "Cannot configure " << key
-          << " with a different array size (expected length "
-          << expectedLen << ", found " << elemsLen << ")";
-        continue;
-      }
-      */
-      // TODO:
-      // 1. Should not assume each array element is a scalar/string. We may need to recurse.
-      // 2. Should not assume each array element - even if not complex - is correctly written. Validate.
-      // 3. Validation should include finding same types as in provided defaults.
-
-      for (int i = 0; i < elems.size(); ++i) {
-        std::string indexKey = key + "[" + std::to_string(i) + "]";
-        setValue(indexKey, elems[i]);
-      }
-
-      continue;
-    }
-
-    // Value is not an array, presume a string/scalar type
-    if (!keyExists(key)) {
+    if (!keyInTree(sPtree, key)) {
       LOG(FATAL) << "Inexistant ConfigurableParam key: " << key;
-      continue;
     }
 
-    assert(sKeyToStorageMap->find(key) != sKeyToStorageMap->end());
+    if (sEnumRegistry->contains(key)) {
+      setEnumValue(key, value);
+    } else if (isArray(value)) {
+      setArrayValue(key, value);
+    } else {
+      assert(sKeyToStorageMap->find(key) != sKeyToStorageMap->end());
 
-    // TODO: this will trap complex types like maps and structs.
-    // These need to be broken into their own cases, so that we only
-    // get strings and scalars here.
-    setValue(key, value);
+      // If the value is given as a boolean true|false, change to 1|0 int equivalent
+      if (value == "true") {
+        value = "1";
+      } else if (value == "false") {
+        value = "0";
+      }
+
+      // TODO: this will trap complex types like maps and structs.
+      // These need to be broken into their own cases, so that we only
+      // get strings and scalars here.
+      setValue(key, value);
+    }
   }
+}
+
+void ConfigurableParam::setArrayValue(const std::string& key, const std::string& value)
+{
+  // We remove the lead/trailing square bracket
+  // value.erase(0, 1).pop_back();
+  auto elems = splitString(value.substr(1, value.length() - 2), ',', true);
+
+  // TODO:
+  // 1. Should not assume each array element is a scalar/string. We may need to recurse.
+  // 2. Should not assume each array element - even if not complex - is correctly written. Validate.
+  // 3. Validation should include finding same types as in provided defaults.
+  for (int i = 0; i < elems.size(); ++i) {
+    std::string indexKey = key + "[" + std::to_string(i) + "]";
+    setValue(indexKey, elems[i]);
+  }
+}
+
+void ConfigurableParam::setEnumValue(const std::string& key, const std::string& value)
+{
+  int val = (*sEnumRegistry)[key]->getIntValue(value);
+  if (val == -1) {
+    LOG(FATAL) << "Illegal value "
+               << value << " for enum " << key
+               << ". Legal string|int values:\n"
+               << (*sEnumRegistry)[key]->toString() << std::endl;
+  }
+
+  setValue(key, std::to_string(val));
 }
 
 void unsupp() { std::cerr << "currently unsupported\n"; }
