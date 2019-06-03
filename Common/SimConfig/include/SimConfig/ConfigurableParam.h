@@ -158,6 +158,10 @@ class ConfigurableParam
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs();
 
+  static boost::property_tree::ptree readINI(std::string const& filepath);
+  static boost::property_tree::ptree readJSON(std::string const& filepath);
+  static boost::property_tree::ptree readConfigFile(std::string const& filepath);
+
   // writes a human readable JSON file of all parameters
   static void writeJSON(std::string const& filename);
   // writes a human readable INI file of all parameters
@@ -199,6 +203,12 @@ class ConfigurableParam
     }
   }
 
+  static void setEnumValue(const std::string&, const std::string&);
+  static void setArrayValue(const std::string&, const std::string&);
+
+  // update the storagemap from a vector of key/value pairs, calling setValue for each pair
+  static void setValues(std::vector<std::pair<std::string, std::string>> keyValues);
+
   // initializes the parameter database
   static void initialize();
 
@@ -212,6 +222,9 @@ class ConfigurableParam
   // propagates changes down to each registered configuration
   // might be useful to get stuff from the command line
   static void updateFromString(std::string const&);
+
+  // provide a path to a configuration file with ConfigurableParam key/values
+  static void updateFromFile(std::string const&);
 
  protected:
   // constructor is doing nothing else but
