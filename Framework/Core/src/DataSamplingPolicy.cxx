@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataSamplingPolicy.h"
+#include "Framework/DataSamplingHeader.h"
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataSpecUtils.h"
 
@@ -91,10 +92,15 @@ bool DataSamplingPolicy::match(const InputSpec& input) const
 
 bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
 {
-  return std::all_of(mConditions.begin(), mConditions.end(),
-                     [dataRef](std::unique_ptr<DataSamplingCondition>& condition) {
-                       return condition->decide(dataRef);
-                     });
+  bool decision = std::all_of(mConditions.begin(), mConditions.end(),
+                              [dataRef](std::unique_ptr<DataSamplingCondition>& condition) {
+                                return condition->decide(dataRef);
+                              });
+
+  mTotalAcceptedMessages += decision;
+  mTotalEvaluatedMessages++;
+
+  return decision;
 }
 
 const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
@@ -102,7 +108,7 @@ const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
   auto result = mPaths.find(input);
   if (result != mPaths.end()) {
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    return Output{ result->second.origin, result->second.description, concrete.subSpec };
+    return Output{ result->second.origin, result->second.description, concrete.subSpec, input.lifetime };
   } else {
     return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
   }
@@ -134,6 +140,15 @@ std::string DataSamplingPolicy::getFairMQOutputChannelName() const
 const header::DataHeader::SubSpecificationType DataSamplingPolicy::getSubSpec() const
 {
   return mSubSpec;
+}
+
+uint32_t DataSamplingPolicy::getTotalAcceptedMessages() const
+{
+  return mTotalAcceptedMessages;
+}
+uint32_t DataSamplingPolicy::getTotalEvaluatedMessages() const
+{
+  return mTotalEvaluatedMessages;
 }
 
 header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
