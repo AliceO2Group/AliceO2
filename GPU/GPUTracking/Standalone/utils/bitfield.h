@@ -14,6 +14,11 @@
 #ifndef Q_BITFIELD_H
 #define Q_BITFIELD_H
 
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)) && defined(__cplusplus) && __cplusplus >= 201103L
+#define Q_BITFIELD_NOCOMPAT
+#include <type_traits>
+#endif
+
 template <class T, class S>
 class bitfield
 {
@@ -29,7 +34,7 @@ class bitfield
     return *this;
   }
   bitfield operator&(const bitfield v) const { return bits & v.bits; }
-  bitfield operator&(const T v) const { return bits & (S)v; }
+  bitfield operator&(const T v) const { return bits & static_cast<S>(v); }
   bitfield& operator&=(const bitfield v)
   {
     bits &= v.bits;
@@ -37,9 +42,9 @@ class bitfield
   }
   bitfield operator~() const { return ~bits; }
   bool operator==(const bitfield v) { return bits == v.bits; }
-  bool operator==(const T v) { return bits == (S)v; }
+  bool operator==(const T v) { return bits == static_cast<S>(v); }
   bool operator!=(const bitfield v) { return bits != v.bits; }
-  bool operator!=(const T v) { return bits != (S)v; }
+  bool operator!=(const T v) { return bits != static_cast<S>(v); }
   bitfield& setBits(const bitfield v, bool w)
   {
     if (w) {
@@ -50,18 +55,24 @@ class bitfield
     return *this;
   }
   void set(S v) { bits = v; }
-  void set(T v) { bits = (S)v; }
+  void set(T v) { bits = static_cast<S>(v); }
   template <typename... Args>
   void set(T v, Args... args)
   {
     this->set(args...);
-    *this |= v;
+    bits |= static_cast<S>(v);
   }
   S get() const { return bits; }
   operator bool() const { return bits; }
   explicit operator S() const { return bits; }
   bool isSet(const bitfield& v) const { return *this & v; }
   bool isSet(const S v) const { return bits & v; }
+
+#ifdef Q_BITFIELD_NOCOMPAT
+  static_assert(std::is_integral<S>::value, "Storage type non integral");
+  static_assert(sizeof(S) >= sizeof(T), "Storage type has insufficient capacity");
+#undef Q_BITFIELD_NOCOMPAT
+#endif
 
  private:
   S bits;
