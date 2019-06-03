@@ -257,8 +257,8 @@ void CDBInterface::createDefaultGainMap()
       if (random < minGain) {
         random = minGain;
       }
-      if (random > minGain) {
-        random = minGain;
+      if (random > maxGain) {
+        random = maxGain;
       }
       val = random;
     }
