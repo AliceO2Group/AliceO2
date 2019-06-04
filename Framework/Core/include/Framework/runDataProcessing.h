@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <vector>
 #include <cstring>
+#include <exception>
 
 namespace o2
 {
@@ -117,8 +118,8 @@ int main(int argc, char** argv)
     ConfigContext configContext{ workflowOptionsRegistry };
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
-  } catch (std::runtime_error const& error) {
-    LOG(ERROR) << "Runtime exception caught: " << error.what();
+  } catch (std::exception const& error) {
+    LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {
     LOG(ERROR) << "Unknown error while setting up workflow.";
   }
