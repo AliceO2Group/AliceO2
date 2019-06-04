@@ -13,6 +13,7 @@ set(GPUCF_SRC
     "./common/log.cpp"
     "./common/Measurements.cpp"
     "./common/Object.cpp"
+    "./common/Position.cpp"
     "./common/RowInfo.cpp"
 
     "./debug/SCFuzzer.cpp"
@@ -28,9 +29,10 @@ set(GPUCF_SRC
     "./experiments/Experiment.cpp"
     "./experiments/TimeCf.cpp"
 
-    "./gpu/GPUAlgorithm.cpp"
-    "./gpu/GPUClusterFinder.cpp"
-    "./gpu/StreamCompaction.cpp"
+    "./algorithms/GPUAlgorithm.cpp"
+    "./algorithms/GPUClusterFinder.cpp"
+    "./algorithms/ReferenceClusterFinder.cpp"
+    "./algorithms/StreamCompaction.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})

@@ -5,9 +5,9 @@
 #include <gpucf/common/Event.h>
 #include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
-#include <gpucf/gpu/ChargemapLayout.h>
-#include <gpucf/gpu/ClusterBuilder.h>
-#include <gpucf/gpu/StreamCompaction.h>
+#include <gpucf/algorithms/ChargemapLayout.h>
+#include <gpucf/algorithms/ClusterBuilder.h>
+#include <gpucf/algorithms/StreamCompaction.h>
 
 #include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>

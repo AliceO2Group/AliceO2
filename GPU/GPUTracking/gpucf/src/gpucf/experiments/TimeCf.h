@@ -2,7 +2,7 @@
 
 #include <gpucf/common/Digit.h>
 #include <gpucf/experiments/Experiment.h>
-#include <gpucf/gpu/GPUClusterFinder.h>
+#include <gpucf/algorithms/GPUClusterFinder.h>
 
 #include <nonstd/span.hpp>
 

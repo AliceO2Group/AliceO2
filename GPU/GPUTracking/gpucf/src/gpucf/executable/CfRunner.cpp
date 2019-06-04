@@ -2,7 +2,7 @@
 
 #include <gpucf/common/DataSet.h>
 #include <gpucf/common/log.h>
-#include <gpucf/gpu/GPUClusterFinder.h>
+#include <gpucf/algorithms/GPUClusterFinder.h>
 
 
 using namespace gpucf;
