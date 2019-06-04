@@ -325,7 +325,6 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
 
   const TPCDistortionIRS& distortion = mGeoTransform.getDistortion();
 
-  const TPCFastTransform::SliceInfo& sliceInfo = mGeoTransform.getSliceInfo(slice);
   const TPCFastTransform::RowInfo& rowInfo = mGeoTransform.getRowInfo(row);
 
   float x = rowInfo.x;

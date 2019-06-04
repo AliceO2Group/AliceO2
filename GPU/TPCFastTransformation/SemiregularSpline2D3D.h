@@ -181,7 +181,6 @@ class SemiregularSpline2D3D : public FlatObject
   int mNumberOfRows;
   int mNumberOfKnots;
   int mDataIndexMapOffset;
-  int mSplineArrayOffset;
 };
 
 /// ====================================================

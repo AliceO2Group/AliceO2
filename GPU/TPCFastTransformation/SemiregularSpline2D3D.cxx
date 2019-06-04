@@ -56,20 +56,11 @@ void SemiregularSpline2D3D::cloneFromObject(const SemiregularSpline2D3D& obj, ch
 {
   /// See FlatObject for description
 
-  const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
-
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
   mNumberOfRows = obj.mNumberOfRows;
   mNumberOfKnots = obj.mNumberOfKnots;
   mGridV = obj.mGridV;
   mDataIndexMapOffset = obj.mDataIndexMapOffset;
-  /* char *bufferV = FlatObject::relocatePointer( oldFlatBufferPtr, mFlatBufferPtr, obj.mGridV.getFlatBufferPtr() );
-	 mGridV.cloneFromObject( obj.mGridV, bufferV );*/
-
-  /*for( int i=0; i<mNumberOfRows; i++) {
-	char *bufferUi = FlatObject::relocatePointer( oldFlatBufferPtr, mFlatBufferPtr, obj.mSplineArray[i].getFlatBufferPtr() );
-	mSplineArray[i].cloneFromObject( obj.mSplineArray[i], bufferUi );
-	}*/
 }
 
 void SemiregularSpline2D3D::moveBufferTo(char* newFlatBufferPtr)
