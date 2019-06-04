@@ -323,6 +323,17 @@ Some suffix for the metrics are reserved to represent vector and tabular metrics
 * `<some-metric-name>/m` contains the secondary size of a matrix metric at a given moment.
 * `<some-metric-name>/<i>` where `<i>` is an integer contains the values of the i-th element in a vector metric or of the `<i>%n` column, `<i>/m` row of a matrix metric.
 
+#### Generic Logger
+
+Generic logging capabilities of DPL are provided via FairLogger.
+
+```C++
+#include <FairLogger.h>
+...
+
+LOG(INFO) << "some message";
+```
+
 #### InfoLogger service
 
 Integration with the InfoLogger subsystem of O2 happens in two way:
