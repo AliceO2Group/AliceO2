@@ -76,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // the instance is amended from "some-producer" to "some-producer-<index>".
   WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-    spec.outputs[0].subSpec = index;
+    DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
   });
 
   std::vector<OutputSpec> outputSpecs;

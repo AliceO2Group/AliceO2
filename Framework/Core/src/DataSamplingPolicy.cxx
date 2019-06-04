@@ -106,12 +106,12 @@ bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
 const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
 {
   auto result = mPaths.find(input);
-  if (result != mPaths.end()) {
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    return Output{ result->second.origin, result->second.description, concrete.subSpec, input.lifetime };
-  } else {
+  if (result == mPaths.end()) {
     return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
   }
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(result->second);
+  auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+  return Output{ dataType.origin, dataType.description, concrete.subSpec, input.lifetime };
 }
 
 const std::string& DataSamplingPolicy::getName() const

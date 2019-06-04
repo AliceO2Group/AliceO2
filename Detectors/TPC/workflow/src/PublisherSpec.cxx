@@ -14,6 +14,7 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/ControlService.h"
+#include "Framework/DataSpecUtils.h"
 #include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "DPLUtils/RootTreeReader.h"
@@ -95,8 +96,8 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
         o2::header::DataHeader::SubSpecificationType subSpec = *outputId;
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
-        auto& dto = config.dataoutput;
-        auto& mco = config.mcoutput;
+        auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+        auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
         if (propagateMC) {
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                              filename.c_str(), // input file name
@@ -200,9 +201,11 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
     std::vector<OutputSpec> outputSpecs;
     for (size_t n = 0; n < config.outputIds.size(); ++n) {
       o2::header::DataHeader::SubSpecificationType subSpec = config.outputIds[n];
-      outputSpecs.emplace_back(OutputSpec{ { "output" }, config.dataoutput.origin, config.dataoutput.description, subSpec, Lifetime::Timeframe });
+      auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+      auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
+      outputSpecs.emplace_back(OutputSpec{ { "output" }, dto.origin, dto.description, subSpec, Lifetime::Timeframe });
       if (propagateMC) {
-        outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, config.mcoutput.origin, config.mcoutput.description, subSpec, Lifetime::Timeframe });
+        outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, mco.origin, mco.description, subSpec, Lifetime::Timeframe });
       }
     }
     return std::move(outputSpecs);

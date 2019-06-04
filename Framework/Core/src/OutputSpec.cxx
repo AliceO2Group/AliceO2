@@ -16,9 +16,7 @@ namespace o2::framework
 OutputSpec::OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
                        header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime)
   : binding{ inBinding },
-    origin{ inOrigin },
-    description{ inDescription },
-    subSpec{ inSubSpec },
+    matcher{ ConcreteDataMatcher{ inOrigin, inDescription, inSubSpec } },
     lifetime{ inLifetime }
 {
 }
@@ -26,32 +24,30 @@ OutputSpec::OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin
 OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
                        header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime)
   : binding{ OutputLabel{ "" } },
-    origin{ inOrigin },
-    description{ inDescription },
-    subSpec{ inSubSpec },
+    matcher{ ConcreteDataMatcher{ inOrigin, inDescription, inSubSpec } },
     lifetime{ inLifetime }
 {
 }
 
 OutputSpec::OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
                        enum Lifetime inLifetime)
-  : binding{ inBinding }, origin{ inOrigin }, description{ inDescription }, subSpec{ 0 }, lifetime{ inLifetime }
+  : binding{ inBinding },
+    matcher{ ConcreteDataMatcher{ inOrigin, inDescription, 0 } },
+    lifetime{ inLifetime }
 {
 }
 
 OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
                        enum Lifetime inLifetime)
   : binding{ OutputLabel{ "" } },
-    origin{ inOrigin },
-    description{ inDescription },
-    subSpec{ 0 },
+    matcher{ ConcreteDataMatcher{ inOrigin, inDescription, 0 } },
     lifetime{ inLifetime }
 {
 }
 
 bool OutputSpec::operator==(OutputSpec const& that) const
 {
-  return origin == that.origin && description == that.description && subSpec == that.subSpec &&
+  return this->matcher == that.matcher &&
          lifetime == that.lifetime;
 };
 

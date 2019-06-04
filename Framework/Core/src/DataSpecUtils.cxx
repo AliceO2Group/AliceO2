@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/VariantHelpers.h"
 #include <cstring>
 #include <cinttypes>
 
@@ -17,9 +18,14 @@ namespace o2::framework
 
 namespace
 {
-std::string join(ConcreteDataMatcher const& matcher, std::string const sep = "_")
+std::string join(ConcreteDataMatcher const& matcher, std::string const& sep = "_")
 {
   return matcher.origin.as<std::string>() + sep + matcher.description.as<std::string>() + sep + std::to_string(matcher.subSpec);
+}
+
+std::string join(ConcreteDataTypeMatcher const& matcher, std::string const& sep = "_")
+{
+  return matcher.origin.as<std::string>() + sep + matcher.description.as<std::string>();
 }
 }
 
@@ -34,6 +40,21 @@ bool DataSpecUtils::match(const InputSpec& spec,
   return match(spec, target);
 }
 
+bool DataSpecUtils::match(const OutputSpec& spec,
+                          const o2::header::DataOrigin& origin,
+                          const o2::header::DataDescription& description,
+                          const o2::header::DataHeader::SubSpecificationType& subSpec)
+{
+  ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+
+  return std::visit(overloaded{ [&dataType, &origin, &description, &subSpec](ConcreteDataMatcher const& matcher) -> bool {
+                      return dataType.origin == origin &&
+                             dataType.description == description &&
+                             matcher.subSpec == subSpec;
+                    } },
+                    spec.matcher);
+}
+
 std::string DataSpecUtils::describe(InputSpec const& spec)
 {
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
@@ -44,6 +65,12 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
     return ss.str();
   }
   throw std::runtime_error("Unhandled InputSpec kind.");
+}
+
+std::string DataSpecUtils::describe(OutputSpec const& spec)
+{
+  auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+  return join(concrete, "/");
 }
 
 void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
@@ -80,6 +107,15 @@ std::string DataSpecUtils::label(InputSpec const& spec)
   throw std::runtime_error("Unsupported InputSpec");
 }
 
+std::string DataSpecUtils::label(OutputSpec const& spec)
+{
+  // FIXME: unite with the InputSpec one...
+  return std::visit(overloaded{ [](auto const& matcher) {
+                      return join(matcher, "_");
+                    } },
+                    spec.matcher);
+}
+
 std::string DataSpecUtils::restEndpoint(InputSpec const& spec)
 {
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
@@ -100,7 +136,11 @@ void DataSpecUtils::updateMatchingSubspec(InputSpec& spec, header::DataHeader::S
 
 void DataSpecUtils::updateMatchingSubspec(OutputSpec& spec, header::DataHeader::SubSpecificationType subSpec)
 {
-  spec.subSpec = subSpec;
+  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
+    concrete->subSpec = subSpec;
+  } else {
+    throw std::runtime_error("Unsupported InputSpec kind");
+  }
 }
 
 bool DataSpecUtils::validate(InputSpec const& spec)
@@ -110,9 +150,45 @@ bool DataSpecUtils::validate(InputSpec const& spec)
     return false;
   }
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
-    return (concrete->description != DataDescription("")) && (concrete->origin != DataOrigin(""));
+    return (concrete->description != DataDescription("")) &&
+           (concrete->description != header::gDataDescriptionInvalid) &&
+           (concrete->origin != DataOrigin("")) &&
+           (concrete->origin != header::gDataOriginInvalid);
   }
   return true;
+}
+
+bool DataSpecUtils::validate(OutputSpec const& spec)
+{
+  using namespace header;
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+  return (dataType.description != DataDescription("")) &&
+         (dataType.description != header::gDataDescriptionInvalid) &&
+         (dataType.origin != DataOrigin("")) &&
+         (dataType.origin != header::gDataOriginInvalid);
+}
+
+bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataTypeMatcher const& target)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& matcher) {
+                        // We return false because the matcher is more
+                        // qualified (has subSpec) than the target.
+                        return false;
+                      },
+                      [&target](DataDescriptorMatcher const& matcher) {
+                        // FIXME: to do it properly we should actually make sure that the
+                        // matcher is invariant for changes of SubSpecification. Maybe it's
+                        // enough to check that none of the nodes actually match on SubSpec.
+                        ConcreteDataMatcher concreteExample{
+                          target.origin,
+                          target.description,
+                          static_cast<header::DataHeader::SubSpecificationType>(0xffffffff)
+                        };
+                        data_matcher::VariableContext context;
+                        return matcher.match(concreteExample, context);
+                      } },
+                    spec.matcher);
 }
 
 bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataMatcher const& target)
@@ -122,6 +198,15 @@ bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataMatcher const& targ
   } else if (auto matcher = std::get_if<DataDescriptorMatcher>(&spec.matcher)) {
     data_matcher::VariableContext context;
     return matcher->match(target, context);
+  } else {
+    throw std::runtime_error("Unsupported InputSpec");
+  }
+}
+
+bool DataSpecUtils::match(OutputSpec const& spec, ConcreteDataMatcher const& target)
+{
+  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
+    return *concrete == target;
   } else {
     throw std::runtime_error("Unsupported InputSpec");
   }
@@ -143,7 +228,25 @@ ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
 
 ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
 {
-  return ConcreteDataMatcher{spec.origin, spec.description, spec.subSpec};
+  return std::get<ConcreteDataMatcher>(spec.matcher);
+}
+
+ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
+{
+  auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+  return ConcreteDataTypeMatcher{ concrete.origin, concrete.description };
+}
+
+InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
+{
+  ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+  return InputSpec{
+    spec.binding.value,
+    concrete.origin,
+    concrete.description,
+    concrete.subSpec,
+    spec.lifetime
+  };
 }
 
 std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(OutputSpec const& spec)

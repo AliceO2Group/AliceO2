@@ -18,6 +18,7 @@
 #include "../src/WorkflowHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "../src/SimpleResourceManager.h"
 #include "test_HelperMacros.h"
 
@@ -498,7 +499,9 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
     auto& device = devices[di];
     for (size_t ri = 0; ri < device.outputs.size(); ri++) {
       // FIXME: check that the matchers are the same
-      BOOST_CHECK_EQUAL(std::string(device.outputs[ri].matcher.origin.as<std::string>()), std::string(routes[ri].matcher.origin.as<std::string>()));
+      auto concreteA = DataSpecUtils::asConcreteDataTypeMatcher(device.outputs[ri].matcher);
+      auto concreteB = DataSpecUtils::asConcreteDataTypeMatcher(routes[ri].matcher);
+      BOOST_CHECK_EQUAL(std::string(concreteA.origin.as<std::string>()), std::string(concreteB.origin.as<std::string>()));
       BOOST_CHECK_EQUAL(device.outputs[ri].channel, routes[ri].channel);
       BOOST_CHECK_EQUAL(device.outputs[ri].timeslice, routes[ri].timeslice);
     }

@@ -82,7 +82,8 @@ WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
         for (auto& output : outputs) {
           spec.outputs.push_back(output);
           spec.outputs.back().binding.value += std::to_string(inputNo);
-          spec.outputs.back().subSpec = getSubSpec(index + inputNo);
+          // FIXME: this will be unneeded once we have a subSpec-less variant...
+          DataSpecUtils::updateMatchingSubspec(spec.outputs.back(), getSubSpec(index + inputNo));
         }
       }
       index += inputMultiplicity;

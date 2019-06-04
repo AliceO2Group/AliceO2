@@ -12,6 +12,9 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
+#include "Framework/ConcreteDataMatcher.h"
+
+#include <variant>
 
 namespace o2::framework
 {
@@ -25,9 +28,7 @@ struct OutputLabel {
 /// specific payloads in a timeframe.
 struct OutputSpec {
   OutputLabel binding;
-  header::DataOrigin origin;
-  header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec = 0;
+  std::variant<ConcreteDataMatcher> matcher;
   enum Lifetime lifetime = Lifetime::Timeframe;
 
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,

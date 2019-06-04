@@ -15,10 +15,7 @@ namespace o2::framework
 
 LogicalChannelRange::LogicalChannelRange(const OutputSpec& spec)
 {
-  name = std::string("out_") +
-         spec.origin.as<std::string>() + "_" +
-         spec.description.as<std::string>() + "_" +
-         std::to_string(spec.subSpec);
+  name = std::string("out_") + std::string(DataSpecUtils::label(spec));
 }
 
 bool LogicalChannelRange::operator<(LogicalChannelRange const& other) const

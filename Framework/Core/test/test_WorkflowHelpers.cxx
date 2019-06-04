@@ -13,6 +13,7 @@
 
 #include "test_HelperMacros.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
@@ -314,18 +315,28 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
-  Outputs expectedOutputs = {
-    OutputSpec{ "TST", "A" },
-    OutputSpec{ "TST", "B" },
-    OutputSpec{ "DPL", "ENUM", 0, Lifetime::Enumeration },
+  std::vector<ConcreteDataMatcher> expectedMatchers = {
+    ConcreteDataMatcher{ "TST", "A", 0 },
+    ConcreteDataMatcher{ "TST", "B", 0 },
+    ConcreteDataMatcher{ "DPL", "ENUM", 2 }, // Enums value
   };
-  BOOST_CHECK_EQUAL(outputs.size(), expectedOutputs.size()); // FIXME: Is this what we actually want? We need
-                                                             // different matchers depending on the different timeframe ID.
+
+  std::vector<Lifetime> expectedLifetimes = {
+    Lifetime::Timeframe,
+    Lifetime::Timeframe,
+    Lifetime::Enumeration
+  };
+
+  BOOST_REQUIRE_EQUAL(expectedMatchers.size(), expectedLifetimes.size());
+  BOOST_CHECK_EQUAL(outputs.size(), expectedMatchers.size()); // FIXME: Is this what we actually want? We need
+                                                              // different matchers depending on the different timeframe ID.
 
   for (size_t i = 0; i < outputs.size(); ++i) {
-    BOOST_CHECK(outputs[i].description == expectedOutputs[i].description);
-    BOOST_CHECK(outputs[i].origin == expectedOutputs[i].origin);
-    BOOST_CHECK(outputs[i].lifetime == expectedOutputs[i].lifetime);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(outputs[i]);
+    BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), expectedMatchers[i].origin.as<std::string>());
+    BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), expectedMatchers[i].description.as<std::string>());
+    BOOST_CHECK_EQUAL(concrete.subSpec, expectedMatchers[i].subSpec);
+    BOOST_CHECK_EQUAL(static_cast<int>(outputs[i].lifetime), static_cast<int>(expectedLifetimes[i]));
   }
 
   for (size_t i = 0; i < logicalEdges.size(); ++i) {

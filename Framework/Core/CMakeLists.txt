@@ -255,6 +255,7 @@ set(TEST_SRCS
       test/test_DataSamplingCondition.cxx
       test/test_DataSamplingHeader.cxx
       test/test_DataSamplingPolicy.cxx
+      test/unittest_DataSpecUtils.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
       test/test_ExternalFairMQDeviceProxy.cxx

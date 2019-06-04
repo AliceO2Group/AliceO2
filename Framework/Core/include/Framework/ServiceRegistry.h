@@ -65,7 +65,7 @@ public:
     if (service == mServices.end()) {
       throw std::runtime_error(std::string("Unable to find service of kind ") +
                                typeid(T).name() +
-                               " did you register one?");
+                               " did you register one as non-const reference?");
     }
     return *reinterpret_cast<T*>(service->second);
   }

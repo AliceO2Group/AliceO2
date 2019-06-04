@@ -14,9 +14,12 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include <Framework/DeviceSpec.h>
+#include "Framework/DataSpecUtils.h"
 
 #include "Mergers/MergerBuilder.h"
 #include "Mergers/Merger.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
@@ -66,20 +69,20 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
   merger.inputs = mInputSpecs;
 
   merger.outputs.push_back(mOutputSpec);
-  if (mOutputSpec.origin == header::gDataOriginInvalid || mOutputSpec.description == header::gDataDescriptionInvalid) {
+  framework::DataAllocator::SubSpecificationType subSpec;
+  if (DataSpecUtils::validate(mOutputSpec) == false) {
     // inner layer => generate output spec according to scheme
-
-    merger.outputs[0].binding = { mergerOutputBinding() };
-    merger.outputs[0].origin = mergerDataOrigin();
-    merger.outputs[0].description = mergerDataDescription(mName);
-    merger.outputs[0].subSpec = mergerSubSpec(mLayer, mId); // it servers as a unique merger output ID
-
+    subSpec = mergerSubSpec(mLayer, mId);
+    merger.outputs[0] = OutputSpec{ { mergerOutputBinding() },
+                                    mergerDataOrigin(),
+                                    mergerDataDescription(mName),
+                                    subSpec }; // it servers as a unique merger output ID
   } else {
     // last layer
     merger.outputs[0].binding = { mergerOutputBinding() };
   }
 
-  merger.algorithm = framework::adaptFromTask<Merger>(mConfig, merger.outputs[0].subSpec);
+  merger.algorithm = framework::adaptFromTask<Merger>(mConfig, subSpec);
 
   if (mConfig.publicationDecision.value == PublicationDecision::EachNSeconds) {
     merger.inputs.push_back({ "timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer });
