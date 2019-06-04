@@ -66,7 +66,7 @@ class V3Services : public V11Geometry
 
   ClassDefOverride(V3Services, 0) // ITS v3 support geometry
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif
