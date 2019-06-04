@@ -60,6 +60,7 @@ namespace o2
 namespace its
 {
 class V3Layer;
+class V3Services;
 
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -271,7 +272,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mWrapperMinRadius[sNumberOfWrapperVolumes]; //! Min radius of wrapper volume
   Double_t mWrapperMaxRadius[sNumberOfWrapperVolumes]; //! Max radius of wrapper volume
   Double_t mWrapperZSpan[sNumberOfWrapperVolumes];     //! Z span of wrapper volume
-  Int_t mWrapperLayerId[sNumberLayers]; //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
+  Int_t mWrapperLayerId[sNumberLayers];                //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
   Bool_t mTurboLayer[sNumberLayers];          //! True for "turbo" layers
   Double_t mLayerPhi0[sNumberLayers];         //! Vector of layer's 1st stave phi in lab
@@ -300,6 +301,10 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
 
+  /// Creates the Inner Barrel Services
+  /// \param motherVolume the TGeoVolume owing the volume structure
+  void createInnerBarrelServices(TGeoVolume* motherVolume);
+
   Detector(const Detector&);
 
   Detector& operator=(const Detector&);
@@ -307,6 +312,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Model mStaveModelInnerBarrel;      //! The stave model for the Inner Barrel
   Model mStaveModelOuterBarrel;      //! The stave model for the Outer Barrel
   V3Layer* mGeometry[sNumberLayers]; //! Geometry
+  V3Services* mServicesGeometry;     //! Services Geometry
 
   template <typename Det>
   friend class o2::base::DetImpl;
