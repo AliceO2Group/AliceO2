@@ -59,14 +59,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     bool dataFound = false;
     for (const auto& dataProcessor : workflow) {
       for (const auto& externalOutput : dataProcessor.outputs) {
-        InputSpec candidateInputSpec{
-          "doesnt-matter", //externalOutput.binding.value,
-          externalOutput.origin,
-          externalOutput.description,
-          externalOutput.subSpec,
-          externalOutput.lifetime
-        };
-
+        InputSpec candidateInputSpec = DataSpecUtils::matchingInput(externalOutput);
         if (policy.match(candidateInputSpec)) {
           Output output = policy.prepareOutput(candidateInputSpec);
           OutputSpec outputSpec{
@@ -135,13 +128,8 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
         LOG(WARNING) << "InputSpecsForPolicy does not support subscriptions to all subSpecs yet.";
       }
       for (const auto& path : policy.getPathMap()) {
-        inputs.push_back(
-          InputSpec{
-            path.second.binding.value,
-            path.second.origin,
-            path.second.description,
-            path.second.subSpec,
-            path.second.lifetime });
+        InputSpec input = DataSpecUtils::matchingInput(path.second);
+        inputs.push_back(input);
       }
       break;
     }

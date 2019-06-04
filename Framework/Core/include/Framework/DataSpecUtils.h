@@ -26,6 +26,12 @@ struct DataSpecUtils {
   /// @return true if a given InputSpec @a spec matches with a @a target ConcreteDataMatcher
   static bool match(InputSpec const& spec, ConcreteDataMatcher const& target);
 
+  /// @return true if a given InputSpec @a spec matches with a @a target ConcreteDataTypeMatcher
+  static bool match(InputSpec const& spec, ConcreteDataTypeMatcher const& target);
+
+  /// @return true if a given InputSpec @a spec matches with a @a target ConcreteDataMatcher
+  static bool match(OutputSpec const& spec, ConcreteDataMatcher const& target);
+
   /// @return true if a given InputSpec @a input  matches the @a output outputspec
   static bool match(InputSpec const& input, OutputSpec const& output);
 
@@ -34,14 +40,10 @@ struct DataSpecUtils {
                     const o2::header::DataDescription& description,
                     const o2::header::DataHeader::SubSpecificationType& subSpec);
 
-  static bool match(const OutputSpec &spec,
-                    const o2::header::DataOrigin &origin,
-                    const o2::header::DataDescription &description,
-                    const o2::header::DataHeader::SubSpecificationType &subSpec) {
-    return spec.origin == origin &&
-           spec.description == description &&
-           spec.subSpec == subSpec;
-  }
+  static bool match(const OutputSpec& spec,
+                    const o2::header::DataOrigin& origin,
+                    const o2::header::DataDescription& description,
+                    const o2::header::DataHeader::SubSpecificationType& subSpec);
 
   template <typename T>
   static bool match(const T&spec, const o2::header::DataHeader &header) {
@@ -57,9 +59,20 @@ struct DataSpecUtils {
   /// be done, so we keep this outside.
   static std::string describe(InputSpec const& spec);
 
+  /// Describes an OutputSpec. Use this to get some human readable
+  /// version of the contents of the OutputSpec.
+  ///
+  /// @note: Notice this is not part of the InputSpec API, because there is no
+  /// unique way a description should be done, so we keep this outside.
+  static std::string describe(OutputSpec const& spec);
+
   /// Provide a unique label for the input spec. Again this is outside because there
   /// is no standard way of doing it, so better not to pollute the API.
   static std::string label(InputSpec const& spec);
+
+  /// Provide a unique label for the input spec. Again this is outside because there
+  /// is no standard way of doing it, so better not to pollute the API.
+  static std::string label(OutputSpec const& spec);
 
   /// Provides the to be used as suffix for any REST endpoint related
   /// to the @a spec.
@@ -72,8 +85,11 @@ struct DataSpecUtils {
   /// subSpec.
   static void updateMatchingSubspec(OutputSpec& in, header::DataHeader::SubSpecificationType subSpec);
 
-  /// Validates the given InputSpec @a in
-  static bool validate(InputSpec const& in);
+  /// @return true if the given InputSpec @a input is valid.
+  static bool validate(InputSpec const& input);
+
+  /// @return true if the given OutputSpec @a out is valid.
+  static bool validate(OutputSpec const& output);
 
   /// Same as the other describe, but uses a buffer to reduce memory churn.
   static void describe(char* buffer, size_t size, InputSpec const& spec);
@@ -87,6 +103,16 @@ struct DataSpecUtils {
   /// For the moment this is trivial as the OutputSpec does not allow
   /// for wildcards.
   static ConcreteDataMatcher asConcreteDataMatcher(OutputSpec const& spec);
+
+  /// If possible extract the ConcreteTypeDataMatcher from an OutputSpec.
+  /// This will always be possible, but implementation will have to
+  /// take into account the fact that the OutputSpec might have a wildcard on
+  /// the subSpec.
+  static ConcreteDataTypeMatcher asConcreteDataTypeMatcher(OutputSpec const& spec);
+
+  /// Create an InputSpec which is able to match all the outputs of the given
+  /// OutputSpec
+  static InputSpec matchingInput(OutputSpec const& spec);
 
   /// Get the subspec, if available.
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);

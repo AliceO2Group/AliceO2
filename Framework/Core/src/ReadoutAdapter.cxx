@@ -10,6 +10,7 @@
 
 #include "Framework/ReadoutAdapter.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataSpecUtils.h"
 #include "Headers/DataHeader.h"
 
 #include <Common/DataBlock.h>
@@ -28,9 +29,12 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
   return [spec, counter](FairMQDevice& device, FairMQParts& parts, int index) {
     for (size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
-      dh.dataOrigin = spec.origin;
-      dh.dataDescription = spec.description;
-      dh.subSpecification = spec.subSpec;
+      // FIXME: this will have to change and extract the actual subspec from
+      //        the data.
+      ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+      dh.dataOrigin = concrete.origin;
+      dh.dataDescription = concrete.description;
+      dh.subSpecification = concrete.subSpec;
       dh.payloadSize = parts.At(i)->GetSize();
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
