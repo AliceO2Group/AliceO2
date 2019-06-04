@@ -29,8 +29,7 @@ std::ostream& operator<<(std::ostream& stream, o2::framework::InputSpec const& a
 
 std::ostream& operator<<(std::ostream& stream, o2::framework::OutputSpec const& arg)
 {
-  // FIXME: should have stream operators for the header fields
-  stream << arg.binding.value << " {" << arg.origin.as<std::string>() << ":" << arg.description.as<std::string>() << ":" << arg.subSpec << "}";
+  stream << arg.binding.value << " { " << DataSpecUtils::describe(arg) << "}";
   return stream;
 }
 

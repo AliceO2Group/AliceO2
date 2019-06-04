@@ -20,8 +20,11 @@
 #include <boost/test/unit_test.hpp>
 
 #include "Mergers/MergerInfrastructureBuilder.h"
+
+#include "Framework/DataSpecUtils.h"
 #include <iostream>
 
+using namespace o2::framework;
 using namespace o2::experimental::mergers;
 
 BOOST_AUTO_TEST_CASE(InfrastructureBuilderUnconfigured)
@@ -78,9 +81,10 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderLayers)
     BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 7);
     BOOST_REQUIRE_EQUAL(mergersTopology[0].outputs.size(), 1);
 
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].origin.str, "TST");
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].description.str, "test");
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].subSpec, 0);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[0].outputs[0]);
+    BOOST_CHECK_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
   }
 
   {
@@ -101,9 +105,10 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderLayers)
     // the second layer
     BOOST_CHECK_EQUAL(mergersTopology[3].inputs.size(), 3);
     BOOST_CHECK_EQUAL(mergersTopology[3].outputs.size(), 1);
-    BOOST_REQUIRE_EQUAL(mergersTopology[3].outputs[0].origin.str, "TST");
-    BOOST_CHECK_EQUAL(mergersTopology[3].outputs[0].description.str, "test");
-    BOOST_CHECK_EQUAL(mergersTopology[3].outputs[0].subSpec, 0);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[3].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
   }
 }
 
@@ -136,9 +141,10 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderReductionFactor)
     BOOST_CHECK_EQUAL(mergersTopology[0].inputs.size(), 7);
     BOOST_REQUIRE_EQUAL(mergersTopology[0].outputs.size(), 1);
 
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].origin.str, "TST");
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].description.str, "test");
-    BOOST_CHECK_EQUAL(mergersTopology[0].outputs[0].subSpec, 0);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[0].outputs[0]);
+    BOOST_CHECK_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
   }
 
   {
@@ -159,8 +165,10 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderReductionFactor)
     // the second layer
     BOOST_CHECK_EQUAL(mergersTopology[3].inputs.size(), 3);
     BOOST_CHECK_EQUAL(mergersTopology[3].outputs.size(), 1);
-    BOOST_REQUIRE_EQUAL(mergersTopology[3].outputs[0].origin.str, "TST");
-    BOOST_CHECK_EQUAL(mergersTopology[3].outputs[0].description.str, "test");
-    BOOST_CHECK_EQUAL(mergersTopology[3].outputs[0].subSpec, 0);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[3].outputs[0]);
+    BOOST_REQUIRE_EQUAL(concrete.origin.str, "TST");
+    BOOST_CHECK_EQUAL(concrete.description.str, "test");
+    BOOST_CHECK_EQUAL(concrete.subSpec, 0);
   }
 }

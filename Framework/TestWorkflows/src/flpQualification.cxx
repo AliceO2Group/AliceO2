@@ -106,7 +106,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // the FLP.
   auto dataParallelLayer = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-    spec.outputs[0].subSpec = index;
+    DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
   });
 
   // This is a set of processor which will be able to process consistent

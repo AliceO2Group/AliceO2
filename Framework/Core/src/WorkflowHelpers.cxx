@@ -16,6 +16,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
+
 #include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -251,7 +252,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         providedAODs.emplace_back(concrete);
       }
       if (output.lifetime == Lifetime::Condition) {
-        providedCCDBs.push_back(concrete);
+        providedCCDBs.emplace_back(concrete);
       }
     }
   }
@@ -458,10 +459,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
         << DataSpecUtils::describe(input) << ". Candidates:\n";
 
     for (auto& output : constOutputs) {
-      str << " - " << output.origin.str << "/"
-          << output.description.str << "/"
-          << output.subSpec
-          << "\n";
+      str << "-" << DataSpecUtils::describe(output) << "\n";
     }
 
     throw std::runtime_error(str.str());
@@ -693,9 +691,10 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
     if (matched == false) {
       auto& outputSpec = workflow[output.workflowId].outputs[output.id];
+      auto input = DataSpecUtils::matchingInput(outputSpec);
       char buf[64];
-      results.emplace_back(InputSpec{ (snprintf(buf, 64, "dangling_%zu_%zu", output.workflowId, output.id), buf), outputSpec.origin,
-                                      outputSpec.description, outputSpec.subSpec });
+      input.binding = (snprintf(buf, 63, "dangling_%zu_%zu", output.workflowId, output.id), buf);
+      results.emplace_back(input);
     }
   }
 
