@@ -68,10 +68,8 @@ struct test_fixture {
   test_fixture()
   {
     api.init(ccdbUrl);
-    hostReachable = api.isHostReachable();
     std::cout << "*** " << boost::unit_test::framework::current_test_case().p_name << " ***" << std::endl;
   }
-
   ~test_fixture() = default;
 
   CcdbApi api;
