@@ -57,10 +57,16 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
 */
 #else
   float bb[3];
-  if (mFieldRegion == TRD) {
-    mField->GetFieldTrd(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
-  } else {
-    mField->GetField(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+  switch (mFieldRegion) {
+    case ITS:
+      mField->GetFieldIts(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      break;
+    case TRD:
+      mField->GetFieldTrd(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      break;
+    case TPC:
+    default:
+      mField->GetField(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
   }
 
 #endif
@@ -97,10 +103,16 @@ GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) c
   AliTracker::GetBxByBz(r, bb);
   return bb[2] * kCLight;
 #else
-  if (mFieldRegion == TRD) {
-    return mField->GetFieldTrdBz(X * cs - Y * sn, X * sn + Y * cs, Z);
-  } else {
-    return mField->GetFieldBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+  switch (mFieldRegion) {
+    case ITS:
+      return mField->GetFieldItsBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      break;
+    case TRD:
+      return mField->GetFieldTrdBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      break;
+    case TPC:
+    default:
+      return mField->GetFieldBz(X * cs - Y * sn, X * sn + Y * cs, Z);
   }
 
 #endif

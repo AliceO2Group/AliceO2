@@ -51,7 +51,8 @@ class GPUTPCGMPropagator
   /// Enumeration of field regions
   enum FieldRegion {
     TPC = 0, ///< TPC
-    TRD = 1, ///< outer TPC -> outer TRD
+    ITS = 1, ///< ITS
+    TRD = 2  ///< outer TPC -> outer TRD
   };
 
   GPUdDefault() GPUTPCGMPropagator() CON_DEFAULT;
