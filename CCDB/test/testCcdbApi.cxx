@@ -79,7 +79,9 @@ BOOST_AUTO_TEST_CASE(retrieve_test)
 
   auto h1 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
-  BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  if(h1 != nullptr) {
+    BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  }
 
   auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
   BOOST_CHECK(h2 == nullptr);
