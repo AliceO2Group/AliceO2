@@ -6,12 +6,14 @@ set(SRCS
     src/V11Geometry.cxx
     src/V1Layer.cxx
     src/V3Layer.cxx
+    src/V3Services.cxx
     src/Detector.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
     include/${MODULE_NAME}/V1Layer.h
     include/${MODULE_NAME}/V3Layer.h
+    include/${MODULE_NAME}/V3Services.h
     include/${MODULE_NAME}/V11Geometry.h
     )
 
