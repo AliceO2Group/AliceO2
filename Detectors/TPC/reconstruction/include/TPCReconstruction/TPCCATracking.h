@@ -15,7 +15,6 @@
 #define ALICEO2_TPC_TPCCATRACKING_H_
 #include <memory>
 #include <vector>
-#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/TrackTPC.h"
 

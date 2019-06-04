@@ -28,6 +28,7 @@ set(SRCS
     src/ChannelSpecHelpers.cxx
     src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
+    src/ChannelMatching.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
     src/DataDescriptorMatcher.cxx
@@ -51,6 +52,7 @@ set(SRCS
     src/O2ControlHelpers.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
+    src/ExternalFairMQDeviceProxy.cxx
     src/FairOptionsRetriever.cxx
     src/FairMQDeviceProxy.cxx
     src/FairMQResizableBuffer.cxx
@@ -58,13 +60,13 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/InputSpec.cxx
+    src/OutputSpec.cxx
     src/Kernels.cxx
     src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/Metric2DViewIndex.cxx
-    src/ExternalFairMQDeviceProxy.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/TableBuilder.cxx
@@ -92,6 +94,8 @@ set(SRCS
 
 set(HEADERS
       include/Framework
+      include/Framework/AnalysisDataModel.h
+      include/Framework/ASoA.h
       include/Framework/DataProcessor.h
       include/Framework/DataSpecUtils.h
       include/Framework/FrameworkGUIDevicesGraph.h

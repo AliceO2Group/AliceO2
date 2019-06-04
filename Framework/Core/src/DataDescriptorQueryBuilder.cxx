@@ -61,8 +61,8 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   std::optional<std::string> currentBinding;
   std::optional<std::string> currentOrigin;
   std::optional<std::string> currentDescription;
-  std::optional<size_t> currentSubSpec;
-  std::optional<size_t> currentTimeModulo;
+  std::optional<header::DataHeader::SubSpecificationType> currentSubSpec;
+  std::optional<uint64_t> currentTimeModulo;
   size_t currentNumber;
 
   auto error = [&errorString, &states](std::string const& s) {
@@ -95,7 +95,8 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     return true;
   };
 
-  auto assignLastNumericMatch = [&next, &cur, &error, &pushState, &currentNumber](std::string const& what, std::optional<size_t>& value, QueryBuilderState nextState) {
+  auto assignLastNumericMatch = [&next, &cur, &error, &pushState, &currentNumber](std::string const& what, auto& value,
+                                                                                  QueryBuilderState nextState) {
     if ((next - cur == 0)) {
       error("number expected");
       return false;

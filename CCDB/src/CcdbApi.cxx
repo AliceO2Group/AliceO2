@@ -48,6 +48,20 @@ void CcdbApi::init(std::string host)
   curlInit();
 }
 
+/**
+ * Keep only the alphanumeric characters plus '_' plus '/' from the string passed in argument.
+ * @param objectName
+ * @return a new string following the rule enounced above.
+ */
+std::string sanitizeObjectName(const std::string& objectName)
+{
+  string tmpObjectName = objectName;
+  tmpObjectName.erase(std::remove_if(tmpObjectName.begin(), tmpObjectName.end(),
+                                     [](auto const& c) -> bool { return (!std::isalnum(c) && c != '_' && c != '/'); }),
+                      tmpObjectName.end());
+  return tmpObjectName;
+}
+
 void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
                     long startValidityTimestamp, long endValidityTimestamp)
 {
@@ -67,7 +81,8 @@ void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string,
     cout << "End of Validity not set, start of validity plus 1 year used." << endl;
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
-  string fullUrl = getFullUrlForStorage(path, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
+  string sanitizedPath = sanitizeObjectName(path);
+  string fullUrl = getFullUrlForStorage(sanitizedPath, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
 
   // Curl preparation
   CURL* curl;
@@ -75,10 +90,8 @@ void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string,
   struct curl_httppost* lastptr = nullptr;
   struct curl_slist* headerlist = nullptr;
   static const char buf[] = "Expect:";
-  // todo : what is the correct file name ?
   string objectName = string(rootObject->GetName());
-  utils::trim(objectName);
-  string tmpFileName = objectName + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
+  string tmpFileName = sanitizeObjectName(objectName) + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "send",

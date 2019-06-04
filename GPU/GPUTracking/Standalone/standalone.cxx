@@ -330,6 +330,15 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
+  bool convertRun2Raw = false;
+  for (int i = 0; i < chainTracking->NSLICES; i++) {
+    if (chainTracking->mIOPtrs.rawClusters[i]) {
+      convertRun2Raw = true;
+    }
+  }
+  if (convertRun2Raw) {
+    chainTracking->ConvertRun2RawToNative();
+  }
   if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
     chainTracking->ConvertNativeToClusterDataLegacy();
   }
@@ -352,6 +361,7 @@ int main(int argc, char** argv)
     printf("Error initializing GPUReconstruction\n");
     return (1);
   }
+  rec->SetDebugLevel(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
 #ifdef HAVE_O2HEADERS
   chainITS = rec->AddChain<GPUChainITS>();
@@ -445,7 +455,7 @@ int main(int argc, char** argv)
           }
           rec->SetResetTimers(j1 <= configStandalone.runsInit);
 
-          int tmpRetVal = chainTracking->RunStandalone();
+          int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0) {
             int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;

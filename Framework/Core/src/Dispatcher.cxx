@@ -74,19 +74,8 @@ void Dispatcher::run(ProcessingContext& ctx)
 
 void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
 {
-  //todo: support other serialization methods
   const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
-  if (inputHeader->payloadSerializationMethod == header::gSerializationMethodInvalid) {
-    LOG(WARNING) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
-                 << "', description '" << inputHeader->dataDescription.str
-                 << "' has gSerializationMethodInvalid.";
-  } else if (inputHeader->payloadSerializationMethod == header::gSerializationMethodROOT) {
-    dataAllocator.adopt(output, DataRefUtils::as<TObject>(inputData).release());
-  } else { // POD
-    // todo: do it non-copy, when API is available
-    auto& outputMessage = dataAllocator.newChunk(output, inputHeader->payloadSize);
-    memcpy(outputMessage.data(), inputData.payload, inputHeader->payloadSize);
-  }
+  dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
 }
 
 // ideally this should be in a separate proxy device or use Lifetime::External

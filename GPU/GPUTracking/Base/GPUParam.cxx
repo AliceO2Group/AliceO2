@@ -14,6 +14,7 @@
 #include "GPUParam.h"
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
+#include "GPUTPCGMPolynomialFieldManager.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -111,6 +112,13 @@ void GPUParam::SetDefaults(float solenoidBz)
   continuousMaxTimeBin = 0;
   debugLevel = 0;
   resetTimers = false;
+
+  polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
+  if (AssumeConstantBz) {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, BzkG, polynomialField);
+  } else {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
+  }
 }
 
 void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)

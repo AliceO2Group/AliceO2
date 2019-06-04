@@ -46,7 +46,7 @@
 //       Rob Loach                  Cort Stratton
 //       Kenney Phillis Jr.         github:oyvindjam
 //       Brian Costabile            github:vassvik
-//       
+//
 // VERSION HISTORY
 //
 //   1.19 (2018-02-11) GPOS kerning, STBTT_fmod
@@ -206,7 +206,7 @@
 //
 //  Advancing for the next character:
 //    Call GlyphHMetrics, and compute 'current_point += SF * advance'.
-// 
+//
 //
 // ADVANCED USAGE
 //
@@ -251,7 +251,7 @@
 //   Curve tesselation                  120 LOC   \__ 550 LOC Bitmap creation
 //   Bitmap management                  100 LOC   /
 //   Baked bitmap interface              70 LOC  /
-//   Font name matching & access        150 LOC  ---- 150 
+//   Font name matching & access        150 LOC  ---- 150
 //   C runtime library abstraction       60 LOC  ----  60
 //
 //
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
    }
    return 0;
 }
-#endif 
+#endif
 //
 // Output:
 //
@@ -358,9 +358,9 @@ int main(int argc, char **argv)
 //  :@@.  M@M
 //   @@@o@@@@
 //   :M@@V:@@.
-//  
+//
 //////////////////////////////////////////////////////////////////////////////
-// 
+//
 // Complete program: print "Hello World!" banner, with bugs
 //
 #if 0
@@ -433,55 +433,55 @@ int main(int arg, char **argv)
 
    // e.g. #define your own STBTT_ifloor/STBTT_iceil() to avoid math.h
    #ifndef STBTT_ifloor
-   #include <math.h>
-   #define STBTT_ifloor(x)   ((int) floor(x))
-   #define STBTT_iceil(x)    ((int) ceil(x))
-   #endif
+#include <cmath>
+#define STBTT_ifloor(x) ((int)floor(x))
+#define STBTT_iceil(x) ((int)ceil(x))
+#endif
 
-   #ifndef STBTT_sqrt
-   #include <math.h>
-   #define STBTT_sqrt(x)      sqrt(x)
-   #define STBTT_pow(x,y)     pow(x,y)
-   #endif
+#ifndef STBTT_sqrt
+#include <cmath>
+#define STBTT_sqrt(x) sqrt(x)
+#define STBTT_pow(x, y) pow(x, y)
+#endif
 
-   #ifndef STBTT_fmod
-   #include <math.h>
-   #define STBTT_fmod(x,y)    fmod(x,y)
-   #endif
+#ifndef STBTT_fmod
+#include <cmath>
+#define STBTT_fmod(x, y) fmod(x, y)
+#endif
 
-   #ifndef STBTT_cos
-   #include <math.h>
-   #define STBTT_cos(x)       cos(x)
-   #define STBTT_acos(x)      acos(x)
-   #endif
+#ifndef STBTT_cos
+#include <cmath>
+#define STBTT_cos(x) cos(x)
+#define STBTT_acos(x) acos(x)
+#endif
 
-   #ifndef STBTT_fabs
-   #include <math.h>
-   #define STBTT_fabs(x)      fabs(x)
-   #endif
+#ifndef STBTT_fabs
+#include <cmath>
+#define STBTT_fabs(x) fabs(x)
+#endif
 
    // #define your own functions "STBTT_malloc" / "STBTT_free" to avoid malloc.h
    #ifndef STBTT_malloc
-   #include <stdlib.h>
-   #define STBTT_malloc(x,u)  ((void)(u),malloc(x))
-   #define STBTT_free(x,u)    ((void)(u),free(x))
-   #endif
+#include <cstdlib>
+#define STBTT_malloc(x, u) ((void)(u), malloc(x))
+#define STBTT_free(x, u) ((void)(u), free(x))
+#endif
 
-   #ifndef STBTT_assert
-   #include <assert.h>
-   #define STBTT_assert(x)    assert(x)
-   #endif
+#ifndef STBTT_assert
+#include <cassert>
+#define STBTT_assert(x) assert(x)
+#endif
 
-   #ifndef STBTT_strlen
-   #include <string.h>
-   #define STBTT_strlen(x)    strlen(x)
-   #endif
+#ifndef STBTT_strlen
+#include <cstring>
+#define STBTT_strlen(x) strlen(x)
+#endif
 
-   #ifndef STBTT_memcpy
-   #include <string.h>
-   #define STBTT_memcpy       memcpy
-   #define STBTT_memset       memset
-   #endif
+#ifndef STBTT_memcpy
+#include <cstring>
+#define STBTT_memcpy memcpy
+#define STBTT_memset memset
+#endif
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -653,7 +653,7 @@ STBTT_DEF int  stbtt_PackFontRangesRenderIntoRects(stbtt_pack_context *spc, cons
 // Calling these functions in sequence is roughly equivalent to calling
 // stbtt_PackFontRanges(). If you more control over the packing of multiple
 // fonts, or if you want to pack custom data into a font texture, take a look
-// at the source to of stbtt_PackFontRanges() and create a custom version 
+// at the source to of stbtt_PackFontRanges() and create a custom version
 // using these functions, e.g. call GatherRects multiple times,
 // building up a single array of rects, then call PackRects once,
 // then call RenderIntoRects repeatedly. This may result in a
@@ -959,9 +959,7 @@ STBTT_DEF unsigned char * stbtt_GetCodepointSDF(const stbtt_fontinfo *info, floa
 // and computing from that can allow drop-out prevention).
 //
 // The algorithm has not been optimized at all, so expect it to be slow
-// if computing lots of characters or very large sizes. 
-
-
+// if computing lots of characters or very large sizes.
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1625,7 +1623,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
    stbtt_int16 numberOfContours;
    stbtt_uint8 *endPtsOfContours;
    stbtt_uint8 *data = info->data;
-   stbtt_vertex *vertices=0;
+   stbtt_vertex* vertices = nullptr;
    int num_vertices=0;
    int g = stbtt__GetGlyfOffset(info, glyph_index);
 
@@ -1648,8 +1646,8 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
 
       m = n + 2*numberOfContours;  // a loose bound on how many vertices we might need
       vertices = (stbtt_vertex *) STBTT_malloc(m * sizeof(vertices[0]), info->userdata);
-      if (vertices == 0)
-         return 0;
+      if (vertices == nullptr)
+        return 0;
 
       next_move = 0;
       flagcount=0;
@@ -1716,7 +1714,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
             if (i != 0)
                num_vertices = stbtt__close_shape(vertices, num_vertices, was_off, start_off, sx,sy,scx,scy,cx,cy);
 
-            // now start the new one               
+            // now start the new one
             start_off = !(flags & 1);
             if (start_off) {
                // if we start off with an off-curve point, then when we need to find a point on the curve
@@ -1763,11 +1761,11 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
       int more = 1;
       stbtt_uint8 *comp = data + g + 10;
       num_vertices = 0;
-      vertices = 0;
+      vertices = nullptr;
       while (more) {
          stbtt_uint16 flags, gidx;
          int comp_num_verts = 0, i;
-         stbtt_vertex *comp_verts = 0, *tmp = 0;
+         stbtt_vertex *comp_verts = nullptr, *tmp = nullptr;
          float mtx[6] = {1,0,0,1,0,0}, m, n;
          
          flags = ttSHORT(comp); comp+=2;
@@ -2758,7 +2756,7 @@ static stbtt__active_edge *stbtt__new_active(stbtt__hheap *hh, stbtt__edge *e, i
    z->direction = e->invert ? 1.0f : -1.0f;
    z->sy = e->y0;
    z->ey = e->y1;
-   z->next = 0;
+   z->next = nullptr;
    return z;
 }
 #else
@@ -3116,88 +3114,89 @@ static void stbtt__fill_active_edges_new(float *scanline, float *scanline_fill, 
 // directly AA rasterize edges w/o supersampling
 static void stbtt__rasterize_sorted_edges(stbtt__bitmap *result, stbtt__edge *e, int n, int vsubsample, int off_x, int off_y, void *userdata)
 {
-   stbtt__hheap hh = { 0, 0, 0 };
-   stbtt__active_edge *active = nullptr;
-   int y,j=0, i;
-   float scanline_data[129], *scanline, *scanline2;
+  stbtt__hheap hh = { nullptr, nullptr, 0 };
+  stbtt__active_edge* active = nullptr;
+  int y, j = 0, i;
+  float scanline_data[129], *scanline, *scanline2;
 
-   STBTT__NOTUSED(vsubsample);
+  STBTT__NOTUSED(vsubsample);
 
-   if (result->w > 64)
-      scanline = (float *) STBTT_malloc((result->w*2+1) * sizeof(float), userdata);
-   else
-      scanline = scanline_data;
+  if (result->w > 64)
+    scanline = (float*)STBTT_malloc((result->w * 2 + 1) * sizeof(float), userdata);
+  else
+    scanline = scanline_data;
 
-   scanline2 = scanline + result->w;
+  scanline2 = scanline + result->w;
 
-   y = off_y;
-   e[n].y0 = (float) (off_y + result->h) + 1;
+  y = off_y;
+  e[n].y0 = (float)(off_y + result->h) + 1;
 
-   while (j < result->h) {
-      // find center of pixel for this scanline
-      float scan_y_top    = y + 0.0f;
-      float scan_y_bottom = y + 1.0f;
-      stbtt__active_edge **step = &active;
+  while (j < result->h) {
+    // find center of pixel for this scanline
+    float scan_y_top = y + 0.0f;
+    float scan_y_bottom = y + 1.0f;
+    stbtt__active_edge** step = &active;
 
-      STBTT_memset(scanline , 0, result->w*sizeof(scanline[0]));
-      STBTT_memset(scanline2, 0, (result->w+1)*sizeof(scanline[0]));
+    STBTT_memset(scanline, 0, result->w * sizeof(scanline[0]));
+    STBTT_memset(scanline2, 0, (result->w + 1) * sizeof(scanline[0]));
 
-      // update all active edges;
-      // remove all active edges that terminate before the top of this scanline
-      while (*step) {
-         stbtt__active_edge * z = *step;
-         if (z->ey <= scan_y_top) {
-            *step = z->next; // delete from list
-            STBTT_assert(z->direction);
-            z->direction = 0;
-            stbtt__hheap_free(&hh, z);
-         } else {
-            step = &((*step)->next); // advance through list
-         }
+    // update all active edges;
+    // remove all active edges that terminate before the top of this scanline
+    while (*step) {
+      stbtt__active_edge* z = *step;
+      if (z->ey <= scan_y_top) {
+        *step = z->next; // delete from list
+        STBTT_assert(z->direction);
+        z->direction = 0;
+        stbtt__hheap_free(&hh, z);
+      } else {
+        step = &((*step)->next); // advance through list
       }
+    }
 
-      // insert all edges that start before the bottom of this scanline
-      while (e->y0 <= scan_y_bottom) {
-         if (e->y0 != e->y1) {
-            stbtt__active_edge *z = stbtt__new_active(&hh, e, off_x, scan_y_top, userdata);
-            if (z != nullptr) {
-               STBTT_assert(z->ey >= scan_y_top);
-               // insert at front
-               z->next = active;
-               active = z;
-            }
-         }
-         ++e;
+    // insert all edges that start before the bottom of this scanline
+    while (e->y0 <= scan_y_bottom) {
+      if (e->y0 != e->y1) {
+        stbtt__active_edge* z = stbtt__new_active(&hh, e, off_x, scan_y_top, userdata);
+        if (z != nullptr) {
+          STBTT_assert(z->ey >= scan_y_top);
+          // insert at front
+          z->next = active;
+          active = z;
+        }
       }
+      ++e;
+    }
 
-      // now process all active edges
-      if (active)
-         stbtt__fill_active_edges_new(scanline, scanline2+1, result->w, active, scan_y_top);
+    // now process all active edges
+    if (active)
+      stbtt__fill_active_edges_new(scanline, scanline2 + 1, result->w, active, scan_y_top);
 
-      {
-         float sum = 0;
-         for (i=0; i < result->w; ++i) {
-            float k;
-            int m;
-            sum += scanline2[i];
-            k = scanline[i] + sum;
-            k = (float) STBTT_fabs(k)*255 + 0.5f;
-            m = (int) k;
-            if (m > 255) m = 255;
-            result->pixels[j*result->stride + i] = (unsigned char) m;
-         }
+    {
+      float sum = 0;
+      for (i = 0; i < result->w; ++i) {
+        float k;
+        int m;
+        sum += scanline2[i];
+        k = scanline[i] + sum;
+        k = (float)STBTT_fabs(k) * 255 + 0.5f;
+        m = (int)k;
+        if (m > 255)
+          m = 255;
+        result->pixels[j * result->stride + i] = (unsigned char)m;
       }
-      // advance all the edges
-      step = &active;
-      while (*step) {
-         stbtt__active_edge *z = *step;
-         z->fx += z->fdx; // advance to position for current scanline
-         step = &((*step)->next); // advance through list
-      }
+    }
+    // advance all the edges
+    step = &active;
+    while (*step) {
+      stbtt__active_edge* z = *step;
+      z->fx += z->fdx;         // advance to position for current scanline
+      step = &((*step)->next); // advance through list
+    }
 
-      ++y;
-      ++j;
-   }
+    ++y;
+    ++j;
+  }
 
    stbtt__hheap_cleanup(&hh, userdata);
 
@@ -3321,7 +3320,8 @@ static void stbtt__rasterize(stbtt__bitmap *result, stbtt__point *pts, int *wcou
       n += wcount[i];
 
    e = (stbtt__edge *) STBTT_malloc(sizeof(*e) * (n+1), userdata); // add an extra one as a sentinel
-   if (e == 0) return;
+   if (e == nullptr)
+     return;
    n = 0;
 
    m=0;
@@ -3431,26 +3431,27 @@ static void stbtt__tesselate_cubic(stbtt__point *points, int *num_points, float 
 // returns number of contours
 static stbtt__point *stbtt_FlattenCurves(stbtt_vertex *vertices, int num_verts, float objspace_flatness, int **contour_lengths, int *num_contours, void *userdata)
 {
-   stbtt__point *points=0;
-   int num_points=0;
+  stbtt__point* points = nullptr;
+  int num_points = 0;
 
-   float objspace_flatness_squared = objspace_flatness * objspace_flatness;
-   int i,n=0,start=0, pass;
+  float objspace_flatness_squared = objspace_flatness * objspace_flatness;
+  int i, n = 0, start = 0, pass;
 
-   // count how many "moves" there are to get the contour count
-   for (i=0; i < num_verts; ++i)
-      if (vertices[i].type == STBTT_vmove)
-         ++n;
+  // count how many "moves" there are to get the contour count
+  for (i = 0; i < num_verts; ++i)
+    if (vertices[i].type == STBTT_vmove)
+      ++n;
 
-   *num_contours = n;
-   if (n == 0) return 0;
+  *num_contours = n;
+  if (n == 0)
+    return nullptr;
 
-   *contour_lengths = (int *) STBTT_malloc(sizeof(**contour_lengths) * n, userdata);
+  *contour_lengths = (int*)STBTT_malloc(sizeof(**contour_lengths) * n, userdata);
 
-   if (*contour_lengths == 0) {
-      *num_contours = 0;
-      return 0;
-   }
+  if (*contour_lengths == nullptr) {
+    *num_contours = 0;
+    return nullptr;
+  }
 
    // make two passes through the points so we don't need to realloc
    for (pass=0; pass < 2; ++pass) {
@@ -3501,7 +3502,7 @@ static stbtt__point *stbtt_FlattenCurves(stbtt_vertex *vertices, int num_verts, 
 error:
    STBTT_free(points, userdata);
    STBTT_free(*contour_lengths, userdata);
-   *contour_lengths = 0;
+   *contour_lengths = nullptr;
    *num_contours = 0;
    return nullptr;
 }
@@ -3528,7 +3529,7 @@ STBTT_DEF unsigned char *stbtt_GetGlyphBitmapSubpixel(const stbtt_fontinfo *info
 {
    int ix0,iy0,ix1,iy1;
    stbtt__bitmap gbm;
-   stbtt_vertex *vertices;   
+   stbtt_vertex* vertices;
    int num_verts = stbtt_GetGlyphShape(info, glyph, &vertices);
 
    if (scale_x == 0) scale_x = scale_y;
@@ -3562,7 +3563,7 @@ STBTT_DEF unsigned char *stbtt_GetGlyphBitmapSubpixel(const stbtt_fontinfo *info
    }
    STBTT_free(vertices, info->userdata);
    return gbm.pixels;
-}   
+}
 
 STBTT_DEF unsigned char *stbtt_GetGlyphBitmap(const stbtt_fontinfo *info, float scale_x, float scale_y, int glyph, int *width, int *height, int *xoff, int *yoff)
 {
@@ -3574,9 +3575,9 @@ STBTT_DEF void stbtt_MakeGlyphBitmapSubpixel(const stbtt_fontinfo *info, unsigne
    int ix0,iy0;
    stbtt_vertex *vertices;
    int num_verts = stbtt_GetGlyphShape(info, glyph, &vertices);
-   stbtt__bitmap gbm;   
+   stbtt__bitmap gbm;
 
-   stbtt_GetGlyphBitmapBoxSubpixel(info, glyph, scale_x, scale_y, shift_x, shift_y, &ix0,&iy0,0,0);
+   stbtt_GetGlyphBitmapBoxSubpixel(info, glyph, scale_x, scale_y, shift_x, shift_y, &ix0, &iy0, nullptr, nullptr);
    gbm.pixels = output;
    gbm.w = out_w;
    gbm.h = out_h;
@@ -3596,7 +3597,7 @@ STBTT_DEF void stbtt_MakeGlyphBitmap(const stbtt_fontinfo *info, unsigned char *
 STBTT_DEF unsigned char *stbtt_GetCodepointBitmapSubpixel(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int codepoint, int *width, int *height, int *xoff, int *yoff)
 {
    return stbtt_GetGlyphBitmapSubpixel(info, scale_x, scale_y,shift_x,shift_y, stbtt_FindGlyphIndex(info,codepoint), width,height,xoff,yoff);
-}   
+}
 
 STBTT_DEF void stbtt_MakeCodepointBitmapSubpixelPrefilter(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, float shift_x, float shift_y, int oversample_x, int oversample_y, float *sub_x, float *sub_y, int codepoint)
 {
@@ -3611,7 +3612,7 @@ STBTT_DEF void stbtt_MakeCodepointBitmapSubpixel(const stbtt_fontinfo *info, uns
 STBTT_DEF unsigned char *stbtt_GetCodepointBitmap(const stbtt_fontinfo *info, float scale_x, float scale_y, int codepoint, int *width, int *height, int *xoff, int *yoff)
 {
    return stbtt_GetCodepointBitmapSubpixel(info, scale_x, scale_y, 0.0f,0.0f, codepoint, width,height,xoff,yoff);
-}   
+}
 
 STBTT_DEF void stbtt_MakeCodepointBitmap(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, int codepoint)
 {
@@ -3736,7 +3737,7 @@ static void stbrp_init_target(stbrp_context *con, int pw, int ph, stbrp_node *no
    con->y = 0;
    con->bottom_y = 0;
    STBTT__NOTUSED(nodes);
-   STBTT__NOTUSED(num_nodes);   
+   STBTT__NOTUSED(num_nodes);
 }
 
 static void stbrp_pack_rects(stbrp_context *con, stbrp_rect *rects, int num_rects)
@@ -4270,8 +4271,8 @@ static int stbtt__compute_crossings_x(float x, float y, int nverts, stbtt_vertex
          int x1 = (int) verts[i  ].x, y1 = (int) verts[i  ].y;
          if (y > STBTT_min(y0,y1) && y < STBTT_max(y0,y1) && x > STBTT_min(x0,x1)) {
             float x_inter = (y - y0) / (y1 - y0) * (x1-x0) + x0;
-            if (x_inter < x)  
-               winding += (y0 < y1) ? 1 : -1;
+            if (x_inter < x)
+              winding += (y0 < y1) ? 1 : -1;
          }
       }
       if (verts[i].type == STBTT_vcurve) {
@@ -4296,8 +4297,8 @@ static int stbtt__compute_crossings_x(float x, float y, int nverts, stbtt_vertex
                y1 = (int)verts[i  ].y;
                if (y > STBTT_min(y0,y1) && y < STBTT_max(y0,y1) && x > STBTT_min(x0,x1)) {
                   float x_inter = (y - y0) / (y1 - y0) * (x1-x0) + x0;
-                  if (x_inter < x)  
-                     winding += (y0 < y1) ? 1 : -1;
+                  if (x_inter < x)
+                    winding += (y0 < y1) ? 1 : -1;
                }
             } else {
                int num_hits = stbtt__ray_intersect_bezier(orig, ray, q0, q1, q2, hits);
@@ -4308,7 +4309,7 @@ static int stbtt__compute_crossings_x(float x, float y, int nverts, stbtt_vertex
                   if (hits[1][0] < 0)
                      winding += (hits[1][1] < 0 ? -1 : 1);
             }
-         } 
+         }
       }
    }
    return winding;
@@ -4538,7 +4539,7 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
       STBTT_free(verts, info->userdata);
    }
    return data;
-}   
+}
 
 STBTT_DEF unsigned char * stbtt_GetCodepointSDF(const stbtt_fontinfo *info, float scale, int codepoint, int padding, unsigned char onedge_value, float pixel_dist_scale, int *width, int *height, int *xoff, int *yoff)
 {
@@ -4556,7 +4557,7 @@ STBTT_DEF void stbtt_FreeSDF(unsigned char *bitmap, void *userdata)
 //
 
 // check if a utf8 string contains a prefix which is the utf16 string; if so return length of matching utf8 string
-static stbtt_int32 stbtt__CompareUTF8toUTF16_bigendian_prefix(stbtt_uint8 *s1, stbtt_int32 len1, stbtt_uint8 *s2, stbtt_int32 len2) 
+static stbtt_int32 stbtt__CompareUTF8toUTF16_bigendian_prefix(stbtt_uint8* s1, stbtt_int32 len1, stbtt_uint8* s2, stbtt_int32 len2)
 {
    stbtt_int32 i=0;
 
@@ -4595,7 +4596,7 @@ static stbtt_int32 stbtt__CompareUTF8toUTF16_bigendian_prefix(stbtt_uint8 *s1, s
    return i;
 }
 
-static int stbtt_CompareUTF8toUTF16_bigendian_internal(char *s1, int len1, char *s2, int len2) 
+static int stbtt_CompareUTF8toUTF16_bigendian_internal(char* s1, int len1, char* s2, int len2)
 {
    return len1 == stbtt__CompareUTF8toUTF16_bigendian_prefix((stbtt_uint8*) s1, len1, (stbtt_uint8*) s2, len2);
 }
@@ -4724,7 +4725,7 @@ STBTT_DEF int stbtt_BakeFontBitmap(const unsigned char *data, int offset,
 
 STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *data, int index)
 {
-   return stbtt_GetFontOffsetForIndex_internal((unsigned char *) data, index);   
+  return stbtt_GetFontOffsetForIndex_internal((unsigned char*)data, index);
 }
 
 STBTT_DEF int stbtt_GetNumberOfFonts(const unsigned char *data)
@@ -4817,38 +4818,38 @@ This software is available under 2 licenses -- choose whichever you prefer.
 ------------------------------------------------------------------------------
 ALTERNATIVE A - MIT License
 Copyright (c) 2017 Sean Barrett
-Permission is hereby granted, free of charge, to any person obtaining a copy of 
-this software and associated documentation files (the "Software"), to deal in 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to do 
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
 so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all 
+The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ------------------------------------------------------------------------------
 ALTERNATIVE B - Public Domain (www.unlicense.org)
 This is free and unencumbered software released into the public domain.
-Anyone is free to copy, modify, publish, use, compile, sell, or distribute this 
-software, either in source code form or as a compiled binary, for any purpose, 
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
 commercial or non-commercial, and by any means.
-In jurisdictions that recognize copyright laws, the author or authors of this 
-software dedicate any and all copyright interest in the software to the public 
-domain. We make this dedication for the benefit of the public at large and to 
-the detriment of our heirs and successors. We intend this dedication to be an 
-overt act of relinquishment in perpetuity of all present and future rights to 
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
 this software under copyright law.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN 
-ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */

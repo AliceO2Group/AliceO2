@@ -119,21 +119,21 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   void SetupCommonMemory();
-
+  void* SetPointersDataInput(void* mem);
+  void* SetPointersDataScratch(void* mem);
+  void* SetPointersDataRows(void* mem);
   void* SetPointersScratch(void* mem);
   void* SetPointersScratchHost(void* mem);
   void* SetPointersCommon(void* mem);
   void* SetPointersTracklets(void* mem);
-  void* SetPointersTracks(void* mem);
-  void* SetPointersTrackHits(void* mem);
+  void* SetPointersOutput(void* mem);
   void RegisterMemoryAllocation();
 
-  short MemoryResScratch() { return mMemoryResScratch; }
+  short MemoryResLinksScratch() { return mMemoryResLinksScratch; }
   short MemoryResScratchHost() { return mMemoryResScratchHost; }
   short MemoryResCommon() { return mMemoryResCommon; }
   short MemoryResTracklets() { return mMemoryResTracklets; }
-  short MemoryResTracks() { return mMemoryResTracks; }
-  short MemoryResTrackHits() { return mMemoryResTrackHits; }
+  short MemoryResOutput() { return mMemoryResOutput; }
 
   void SetMaxData();
   void UpdateMaxData();
@@ -247,9 +247,11 @@ class GPUTPCTracker : public GPUProcessor
 #if !defined(GPUCA_GPUCODE)
   GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
 #endif
+#ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
+  char* mStageAtSync = nullptr; // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
+#endif
 
  private:
-  char* mStageAtSync;   // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
   char* mLinkTmpMemory; // tmp memory for hits after neighbours finder
 
   int mISlice; // Number of slice
@@ -263,12 +265,12 @@ class GPUTPCTracker : public GPUProcessor
   int mNMaxTracklets;
   int mNMaxTracks;
   int mNMaxTrackHits;
+  short mMemoryResLinksScratch;
   short mMemoryResScratch;
   short mMemoryResScratchHost;
   short mMemoryResCommon;
   short mMemoryResTracklets;
-  short mMemoryResTracks;
-  short mMemoryResTrackHits;
+  short mMemoryResOutput;
 
   // GPU Temp Arrays
   GPUglobalref() int* mRowStartHitCountOffset;       // Offset, length and new offset of start hits in row

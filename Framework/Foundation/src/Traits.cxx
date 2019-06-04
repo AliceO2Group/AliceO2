@@ -7,12 +7,3 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-#include "RawClusterFinder.C"
-
-using namespace o2::tpc;
-
-void runRawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, RawClusterFinder::ClustererType clustererType=RawClusterFinder::ClustererType::HW)
-{
-   RawClusterFinder::processEvents(fileInfo, pedestalFile, outputFileName, maxEvents, static_cast<char>(clustererType));
-}

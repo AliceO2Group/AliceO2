@@ -54,7 +54,6 @@ class FileStream : public arrow::io::InputStream
     if (ferror(mStream) == 0) {
       *bytes_read = nbytes;
       mPos += nbytes;
-      LOG(INFO) << mPos;
     } else {
       *bytes_read = 0;
     }
@@ -79,6 +78,17 @@ class FileStream : public arrow::io::InputStream
 };
 
 } // anonymous namespace
+
+enum AODTypeMask : uint64_t {
+  Tracks = 1 << 0,
+  TracksCov = 1 << 1,
+  TracksExtra = 1 << 2,
+  Calo = 1 << 3,
+  Muon = 1 << 4,
+  VZero = 1 << 5,
+  Collisions = 1 << 6,
+  Timeframe = 1 << 7
+};
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
 {
@@ -112,12 +122,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       filenames.push_back(filename);
     }
 
-    bool readTracks = false;
-    bool readTracksCov = false;
-    bool readTracksExtra = false;
-    bool readCalo = false;
-    bool readMuon = false;
-    bool readVZ = false;
+    uint64_t readMask = 0;
 
     // FIXME: bruteforce but effective.
     for (auto& route : spec.outputs) {
@@ -126,35 +131,34 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       }
       auto description = route.matcher.description;
       if (description == header::DataDescription{ "TRACKPAR" }) {
-        readTracks = true;
+        readMask |= AODTypeMask::Tracks;
       } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
-        readTracksCov = true;
+        readMask |= AODTypeMask::TracksCov;
       } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
-        readTracksExtra = true;
+        readMask |= AODTypeMask::TracksExtra;
       } else if (description == header::DataDescription{ "CALO" }) {
-        readCalo = true;
+        readMask |= AODTypeMask::Calo;
       } else if (description == header::DataDescription{ "MUON" }) {
-        readMuon = true;
+        readMask |= AODTypeMask::Muon;
       } else if (description == header::DataDescription{ "VZERO" }) {
-        readVZ = true;
+        readMask |= AODTypeMask::VZero;
+      } else if (description == header::DataDescription{ "COLLISIONS" }) {
+        readMask |= AODTypeMask::Collisions;
+      } else if (description == header::DataDescription{ "TIMEFRAME" }) {
+        readMask |= AODTypeMask::Timeframe;
       } else {
         throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
       }
     }
 
     auto counter = std::make_shared<int>(0);
-    return adaptStateless([readTracks,
-                           readTracksCov,
-                           readTracksExtra,
-                           readCalo,
-                           readMuon,
-                           readVZ,
+    return adaptStateless([readMask,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
         ctrl.readyToQuit(false);
-        service.device()->WaitFor(std::chrono::milliseconds(1000));
+        service.device()->WaitFor(std::chrono::seconds(1));
         return;
       }
       auto f = filenames[*counter];
@@ -168,13 +172,20 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
         return;
       }
       *counter += 1;
-      auto input = std::make_shared<FileStream>(pipe);
 
       /// We keep reading until the popen is not empty.
       while ((feof(pipe) == false) && (ferror(pipe) == 0)) {
+        // Skip extra 0-padding...
+        int c = fgetc(pipe);
+        if (c == 0 || c == EOF) {
+          continue;
+        }
+        ungetc(c, pipe);
         std::shared_ptr<arrow::RecordBatchReader> reader;
+        auto input = std::make_shared<FileStream>(pipe);
         auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
         if (readerStatus.ok() == false) {
+          LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
           break;
         }
 
@@ -182,25 +193,27 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           std::shared_ptr<arrow::RecordBatch> batch;
           auto status = reader->ReadNext(&batch);
           if (batch.get() == nullptr) {
-            LOG(INFO) << "End of batches reached";
             break;
           }
           std::unordered_map<std::string, std::string> meta;
           batch->schema()->metadata()->ToUnorderedMap(&meta);
-          LOG(INFO) << "description:" << meta["description"];
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-          if (meta["description"] == "TRACKPAR" && readTracks) {
+          if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPAR" }, batch->schema());
-          } else if (meta["description"] == "TRACKPARCOV" && readTracksCov) {
+          } else if (meta["description"] == "TRACKPARCOV" && (readMask & AODTypeMask::TracksCov)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPARCOV" }, batch->schema());
-          } else if (meta["description"] == "TRACKEXTRA" && readTracksExtra) {
+          } else if (meta["description"] == "TRACKEXTRA" && (readMask & AODTypeMask::TracksExtra)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKEXTRA" }, batch->schema());
-          } else if (meta["description"] == "CALO" && readCalo) {
+          } else if (meta["description"] == "CALO" && (readMask & AODTypeMask::Calo)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "CALO" }, batch->schema());
-          } else if (meta["description"] == "MUON" && readMuon) {
+          } else if (meta["description"] == "MUON" && (readMask & AODTypeMask::Muon)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "MUON" }, batch->schema());
-          } else if (meta["description"] == "VZERO" && readVZ) {
+          } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "VZERO" }, batch->schema());
+          } else if (meta["description"] == "COLLISIONS" && (readMask & AODTypeMask::Collisions)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "COLLISIONS" }, batch->schema());
+          } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TIMEFRAME" }, batch->schema());
           } else {
             continue;
           }
@@ -209,6 +222,9 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             throw std::runtime_error("Error while writing record");
           }
         }
+      }
+      if (ferror(pipe)) {
+        LOG(ERROR) << "Error while reading from PIPE";
       }
       pclose(pipe);
     });

@@ -50,19 +50,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     size_t producersAmount = 8;
     Inputs mergersInputs;
     for (size_t p = 0; p < producersAmount; p++) {
-      mergersInputs.push_back({ "mo", "TST", "HISTO", p + 1, Lifetime::Timeframe });
+      mergersInputs.push_back({ "mo",               "TST",
+                                "HISTO",            static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                Lifetime::Timeframe });
       DataProcessorSpec producer{
-        "producer-histo" + std::to_string(p),
-        Inputs{},
-        Outputs{
-          {{ "mo" }, "TST", "HISTO", p + 1, Lifetime::Timeframe }
-        },
-        AlgorithmSpec{
-          (AlgorithmSpec::ProcessCallback) [p, producersAmount, srand(p)](
-            ProcessingContext& processingContext) mutable {
+        "producer-histo" + std::to_string(p), Inputs{},
+        Outputs{ { { "mo" },
+                   "TST",
+                   "HISTO",
+                   static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                   Lifetime::Timeframe } },
+        AlgorithmSpec{(AlgorithmSpec::ProcessCallback)
+                      [ p, producersAmount, srand(p) ](ProcessingContext & processingContext) mutable {
 
-//            usleep(100000 + (rand() % 10000) - 5000);
-            usleep(100000);
+                        //            usleep(100000 + (rand() % 10000) - 5000);
+                        usleep(100000);
 
             static int i = 0;
             if (i++ >= 1000) { return; }
@@ -70,7 +72,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             TH1F* histo = new TH1F("gauss", "gauss", producersAmount, 0, 1);
             histo->Fill(p / (double) producersAmount);
 
-            processingContext.outputs().adopt(Output{ "TST", "HISTO", p + 1 }, histo);
+            processingContext.outputs().adopt(
+              Output{ "TST", "HISTO", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
           }
         }
       };
@@ -121,23 +124,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     size_t producersAmount = 4;
     Inputs mergersInputs;
     for (size_t p = 0; p < producersAmount; p++) {
-      mergersInputs.push_back({ "mo", "TST", "STRING", p + 1, Lifetime::Timeframe });
-      DataProcessorSpec producer{
-        "producer-str" + std::to_string(p),
-        Inputs{},
-        Outputs{
-          {{ "mo" }, "TST", "STRING", p + 1, Lifetime::Timeframe }
-        },
-        AlgorithmSpec{
-          (AlgorithmSpec::ProcessCallback) [p, producersAmount](ProcessingContext& processingContext) mutable {
+      mergersInputs.push_back({ "mo",               "TST",
+                                "STRING",           static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                Lifetime::Timeframe });
+      DataProcessorSpec producer{ "producer-str" + std::to_string(p), Inputs{},
+                                  Outputs{ { { "mo" },
+                                             "TST",
+                                             "STRING",
+                                             static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                             Lifetime::Timeframe } },
+                                  AlgorithmSpec{(AlgorithmSpec::ProcessCallback)
+                                                [p, producersAmount](ProcessingContext& processingContext) mutable {
 
             usleep(1000000);
             char str[2] = "a";
             str[0] += p;
-            processingContext.outputs().adopt(Output{ "TST", "STRING", p + 1 }, new TObjString(str));
-          }
-        }
-      };
+            processingContext.outputs().adopt(
+              Output{ "TST", "STRING", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) },
+              new TObjString(str));
+                                                } } };
       specs.push_back(producer);
     }
 
@@ -187,23 +192,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     size_t producersAmount = 4;
     Inputs mergersInputs;
     for (size_t p = 0; p < producersAmount; p++) {
-      mergersInputs.push_back({ "mo", "TST", "CUSTOM", p + 1, Lifetime::Timeframe });
-      DataProcessorSpec producer{
-        "producer-custom" + std::to_string(p),
-        Inputs{},
-        Outputs{
-          {{ "mo" }, "TST", "CUSTOM", p + 1, Lifetime::Timeframe }
-        },
-        AlgorithmSpec{
-          (AlgorithmSpec::ProcessCallback) [p, producersAmount, srand(p)](
-            ProcessingContext& processingContext) mutable {
-            usleep(100000);
+      mergersInputs.push_back({ "mo",               "TST",
+                                "CUSTOM",           static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                Lifetime::Timeframe });
+      DataProcessorSpec producer{ "producer-custom" + std::to_string(p), Inputs{},
+                                  Outputs{ { { "mo" },
+                                             "TST",
+                                             "CUSTOM",
+                                             static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
+                                             Lifetime::Timeframe } },
+                                  AlgorithmSpec{(AlgorithmSpec::ProcessCallback)[ p, producersAmount, srand(p) ](
+                                    ProcessingContext & processingContext) mutable { usleep(100000);
 
             static int i = 0;
             if (i++ >= 1000) { return; }
 
             auto* histo = new MergeInterfaceOverrideExample(1);
-            processingContext.outputs().adopt(OutputRef{ "mo", p + 1 }, histo);
+            processingContext.outputs().adopt(
+              OutputRef{ "mo", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
           }
         }
       };

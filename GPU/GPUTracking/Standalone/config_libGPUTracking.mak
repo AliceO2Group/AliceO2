@@ -35,6 +35,7 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
 								TPCConvert/GPUTPCConvertKernel.cxx \
 								Global/GPUChain.cxx \
 								Global/GPUChainTracking.cxx \
+								Global/GPUChainTrackingDebugAndProfiling.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \
@@ -63,6 +64,7 @@ GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
 								SliceTracker/GPUTPCMCPoint.cxx
 								
 GPUCA_COMPRESSION_FILES		= DataCompression/GPUTPCCompression.cxx \
+								DataCompression/GPUTPCCompressionTrackModel.cxx \
 								DataCompression/GPUTPCCompressionKernels.cxx \
 								DataCompression/TPCClusterDecompressor.cxx \
 								DataCompression/GPUTPCClusterStatistics.cxx

@@ -177,6 +177,16 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
+void DataAllocator::snapshot(const Output& spec, const char* payload, size_t payloadSize,
+                             o2::header::SerializationMethod serializationMethod)
+{
+  auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+  FairMQMessagePtr payloadMessage(proxy.createMessage(payloadSize));
+  memcpy(payloadMessage->GetData(), payload, payloadSize);
+
+  addPartToContext(std::move(payloadMessage), spec, serializationMethod);
+}
+
 void DataAllocator::create(const Output& spec,
                            std::shared_ptr<arrow::ipc::RecordBatchWriter>* writer,
                            std::shared_ptr<arrow::Schema> schema)

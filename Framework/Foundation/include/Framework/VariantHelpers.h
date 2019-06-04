@@ -7,12 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_VARIANTHELPERS_H_
+#define O2_FRAMEWORK_VARIANTHELPERS_H_
 
-#include "TPCReconstruction/ClusterContainer.h"
-#include "DataFormatsTPC/Cluster.h"
+namespace o2::framework
+{
+/// From https://en.cppreference.com/w/cpp/utility/variant/visit
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
 
-#include "FairLogger.h"
-#include <cassert>
+template <class... Ts>
+overloaded(Ts...)->overloaded<Ts...>;
+} // namespace o2::framework
 
-using namespace o2::tpc;
-
+#endif // O2_FRAMEWORK_VARIANTHELPERS_H_

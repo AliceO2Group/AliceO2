@@ -171,8 +171,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(tname.c_str())) {
           sector = extractSector(tname.c_str());
           LOG(INFO) << "HAVE TRIGGER DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            triggersdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              triggersdone[d] = true;
+            }
           } else {
             auto triggers = pc.inputs().get<std::vector<DigiGroupRef>>(tname.c_str());
             (*trigP2Sect.get())[sector] = std::move(triggers);
@@ -186,8 +188,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(dname.c_str())) {
           sector = extractSector(dname.c_str());
           LOG(INFO) << "HAVE DIGIT DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            digitsdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              digitsdone[d] = true;
+            }
           } else {
             // have to do work ...
             // the digits
@@ -232,8 +236,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(lname.c_str())) {
           sector = extractSector(lname.c_str());
           LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            labelsdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              labelsdone[d] = true;
+            }
           } else {
             // the labels
             auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());

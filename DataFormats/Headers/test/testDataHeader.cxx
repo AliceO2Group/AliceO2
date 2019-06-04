@@ -218,9 +218,14 @@ namespace o2 {
 
         std::cout << "dataDescription:             " << "size " << std::setw(2) << sizeof(dh.dataDescription)            << " at " << (char *)(&dh.dataDescription) - (char *)(&dh) << std::endl;
         std::cout << "dataOrigin:                  " << "size " << std::setw(2) << sizeof(dh.dataOrigin)                 << " at " << (char *)(&dh.dataOrigin) - (char *)(&dh) << std::endl;
-        std::cout << "reserved:                    " << "size " << std::setw(2) << sizeof(dh.reserved)                   << " at " << (char *)(&dh.reserved) - (char *)(&dh) << std::endl;
+        std::cout << "splitPayloadParts:          "
+                  << "size " << std::setw(2) << sizeof(dh.splitPayloadParts) << " at "
+                  << (char*)(&dh.splitPayloadParts) - (char*)(&dh) << std::endl;
         std::cout << "payloadSerializationMethod:  " << "size " << std::setw(2) << sizeof(dh.payloadSerializationMethod) << " at " << (char *)(&dh.payloadSerializationMethod) - (char *)(&dh) << std::endl;
         std::cout << "subSpecification:            " << "size " << std::setw(2) << sizeof(dh.subSpecification)           << " at " << (char *)(&dh.subSpecification) - (char *)(&dh) << std::endl;
+        std::cout << "splitPayloadIndex:           "
+                  << "size " << std::setw(2) << sizeof(dh.splitPayloadIndex) << " at "
+                  << (char*)(&dh.splitPayloadIndex) - (char*)(&dh) << std::endl;
         std::cout << "payloadSize                  " << "size " << std::setw(2) << sizeof(dh.payloadSize)                << " at " << (char *)(&dh.payloadSize) - (char *)(&dh) << std::endl;
       }
 

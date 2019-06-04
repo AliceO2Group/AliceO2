@@ -95,7 +95,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // to be created.
     *last = current;
     data_matcher::VariableContext newContext;
-    newContext.put({ 0, current });
+    newContext.put({ 0, static_cast<uint64_t>(current) });
     newContext.commit();
     auto [action, slot] = index.replaceLRUWith(newContext);
     switch (action) {

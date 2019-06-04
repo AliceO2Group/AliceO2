@@ -79,7 +79,7 @@
       }}
       #define GPUAtomic(type) GPUCA_NAMESPACE::gpu::oclAtomic<type>::t
     #else
-      #define GPUAtomic(type) type
+      #define GPUAtomic(type) volatile type
     #endif
     #ifdef CONSTEXPR
       #undef CONSTEXPR

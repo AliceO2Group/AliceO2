@@ -11,7 +11,6 @@ link_directories( ${LINK_DIRECTORIES})
 set(SRCS
    src/Helpers.cxx
    src/TrackTPC.cxx
-   src/Cluster.cxx
    src/TPCSectorHeader.cxx
    src/ClusterNativeHelper.cxx
 )
@@ -23,7 +22,6 @@ set(HEADERS
    include/${MODULE_NAME}/ClusterHardware.h
    include/${MODULE_NAME}/Helpers.h
    include/${MODULE_NAME}/TrackTPC.h
-   include/${MODULE_NAME}/Cluster.h
    include/${MODULE_NAME}/Constants.h
    include/${MODULE_NAME}/Defs.h
    include/${MODULE_NAME}/dEdxInfo.h
