@@ -117,6 +117,13 @@ class CcdbApi //: public DatabaseInterface
    */
   std::string list(std::string path = "", bool latestOnly = false, std::string returnFormat = "text/plain");
 
+  /**
+   * Check whether the url is reachable.
+   * @param url The url to test.
+   * @return a bool indicating whether the url is reachable or not.
+   */
+  bool isHostReachable();
+
  private:
   /**
    * Get the current timestamp.
