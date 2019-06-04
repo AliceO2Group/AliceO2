@@ -63,7 +63,7 @@ class ConfigParamRegistry
     } catch (std::exception& e) {
       throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
     } catch (...) {
-      throw std::invalid_argument(std::string("missing option: ") + key);
+      throw std::invalid_argument(std::string("error parsing option: ") + key);
     }
   }
 
