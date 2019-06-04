@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
     3,
     [](DataProcessorSpec& spec, size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));

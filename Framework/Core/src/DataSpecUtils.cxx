@@ -99,6 +99,11 @@ void DataSpecUtils::updateMatchingSubspec(InputSpec& spec, header::DataHeader::S
   }
 }
 
+void DataSpecUtils::updateMatchingSubspec(OutputSpec& spec, header::DataHeader::SubSpecificationType subSpec)
+{
+  spec.subSpec = subSpec;
+}
+
 bool DataSpecUtils::validate(InputSpec const& spec)
 {
   using namespace header;
