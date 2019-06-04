@@ -257,7 +257,7 @@ void IrregularSpline2D3DCalibrator::getRegionOfInfluence(std::list<KnotData>::it
   std::list<KnotData>::iterator prev = knot;
   for (int i = 0; i < 3; ++i) {
     if (prev != mKnots[uv].begin()) {
-      prev--;
+      --prev;
       regionKnotFirst = prev->rasterKnot;
     } else {
       regionKnotFirst = 0;
