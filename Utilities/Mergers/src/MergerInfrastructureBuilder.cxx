@@ -17,7 +17,11 @@
 #include "Mergers/Merger.h"
 #include "Mergers/MergerBuilder.h"
 
+#include "Framework/DataSpecUtils.h"
+
 // todo use MergerBuilder
+
+using namespace o2::framework;
 
 namespace o2
 {
@@ -58,7 +62,7 @@ std::string MergerInfrastructureBuilder::validateConfig()
   if (mInputs.empty()) {
     error += preamble + "no inputs specified\n";
   }
-  if (mOutputSpec.origin == header::gDataOriginInvalid || mOutputSpec.description == header::gDataDescriptionInvalid) {
+  if (DataSpecUtils::validate(mOutputSpec) == false) {
     error += preamble + "invalid output\n";
   }
 
@@ -128,7 +132,9 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
 
       auto merger = mergerBuilder.buildSpec();
 
-      nextLayerInputs.push_back({ "in", merger.outputs.at(0).origin, merger.outputs.at(0).description, merger.outputs.at(0).subSpec });
+      auto input = DataSpecUtils::matchingInput(merger.outputs.at(0));
+      input.binding = "in";
+      nextLayerInputs.push_back(input);
 
       workflow.emplace_back(std::move(merger));
     }
