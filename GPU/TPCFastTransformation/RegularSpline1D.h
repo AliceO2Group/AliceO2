@@ -169,7 +169,7 @@ inline void RegularSpline1D::correctEdges(T* data) const
   data[i] = c0 * (data[i - 0] + data[i - 3]) + c1 * (data[i - 1] - data[i - 2]);
 }
 
-} // namespace
-} // namespace
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

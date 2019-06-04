@@ -393,8 +393,8 @@ inline void SemiregularSpline2D3D::getSpline(const T* correctedData, float u, fl
 
 inline void SemiregularSpline2D3D::getSplineVec(const float* correctedData, float u, float v, float& x, float& y, float& z) const
 {
-// Same as getSpline, but using vectorized calculation.
-// \param correctedData should be at least 128-bit aligned
+  // Same as getSpline, but using vectorized calculation.
+  // \param correctedData should be at least 128-bit aligned
 
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
   //&& !defined(__CLING__)
