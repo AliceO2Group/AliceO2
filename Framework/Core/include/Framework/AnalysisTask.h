@@ -98,7 +98,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
             ++currentCollision;
             ++collision;
           }
-          task->processTrack(collision, track);
+          task->processCollisionTrack(collision, track);
         }
       }
       if constexpr (hasProcessTimeframeTracks) {
