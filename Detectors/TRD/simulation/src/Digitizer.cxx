@@ -65,7 +65,7 @@ void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& di
   int totalNumberOfProcessedHits = 0;
   // LOG(INFO) << "Start of processing " << hits.size() << " hits";
 
-  std::array<std::vector<HitType>, 540> hitsPerDetector;
+  std::array<std::vector<HitType>, kNdet> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
 
   for (int det = 0; det < kNdet; ++det) {
@@ -98,10 +98,10 @@ void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& di
   // LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits";
 }
 
-void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, 540>& hitsPerDetector)
+void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
 {
   //
-  // Fill an array of size 540
+  // Fill an array of size kNdet (540)
   // The i-element of the array contains the hit collection for the i-detector
   // To be called once, before doing the loop over all detectors and process the hits
   //
