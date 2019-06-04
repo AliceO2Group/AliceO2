@@ -45,6 +45,7 @@ struct Fixture {
       CcdbApi api;
       api.init(ccdbUrl);
       hostReachable = api.isHostReachable();
+      cout << "Is host reachable ? --> " << hostReachable << endl;
     }
     ~Fixture() = default;
 };
