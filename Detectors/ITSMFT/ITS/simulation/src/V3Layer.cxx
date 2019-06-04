@@ -1034,7 +1034,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
   TGeoBBox* connAside = new TGeoBBox("connAsideIB", sIBConnectorXWidth / 2, sIBConnectorYTot / 2, zlen / 2);
 
   zlen = sIBConnectBlockZLen - sIBConnTailZLen;
-  TGeoBBox* connCside = new TGeoBBox("connCsideIB", sIBConnectorXWidth / 2, sIBConnectorYTot / 2, zlen / 2);
+  TGeoBBox* connCside = new TGeoBBox("connCsideIB", sIBConnectorXWidth / 2, sIBConnBodyYHeight / 2, zlen / 2);
 
   // The StaveStruct container, a Composite Shape
   yposPipe = 2 * glue->GetDY() + 2 * fleecbot->GetDY() + 2 * cfplate->GetDY() + pipe->GetRmax();
@@ -1660,12 +1660,16 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   // Now create the container: cannot be a simple box
   // to avoid fake overlaps with stave elements
   xlen = sIBConnectorXWidth;
-  ylen = sIBConnectorYTot;
+  ylen = sIBConnBodyYHeight;
   zlen = sIBConnectBlockZLen - sIBConnTailZLen;
 
   TGeoBBox* connBox = new TGeoBBox("connBoxC", xlen / 2, ylen / 2, zlen / 2);
 
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBox->GetDY();
+  TGeoTranslation* transBodyC = new TGeoTranslation("transBodyC", 0, ypos, 0);
+  transBodyC->RegisterYourself();
+
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   TGeoTranslation* transTailC = new TGeoTranslation("transTailC", 0, ypos, zpos);
   transTailC->RegisterYourself();
@@ -1673,7 +1677,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoTube* connTubeHollow = new TGeoTube("tubeHollowC", 0, sIBConnTubeHole1D / 2, sIBConnTubeHole1ZLen / 2);
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = -connBox->GetDZ() - connTail->GetZ(1) + sIBConnTubeHole1ZLen / 2;
   TGeoTranslation* connTubeHollTrans1 = new TGeoTranslation("tubeHollTrans1C", -xpos, ypos, zpos);
   connTubeHollTrans1->RegisterYourself();
@@ -1687,7 +1691,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   connTubes2Trans2Body->RegisterYourself();
 
   TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
+    "connBoxC:transBodyC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
     "tubeHollowC:tubeHollTrans2C");
 
   TGeoVolume* connBoxCSide = new TGeoVolume("IBConnectorCSide", connBoxSh, medAir);
@@ -1698,11 +1702,11 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   zpos = -connBodySh->GetDZ() - connTail->GetZ(1);
   connBoxCSide->AddNode(connBlockTail, 1, new TGeoTranslation(0, ypos, zpos));
 
-  ypos = -connBoxSh->GetDY() + connBodySh->GetDY();
+  ypos = -connBoxSh->GetDY() + connBody->GetDY();
   connBoxCSide->AddNode(connBlockBody, 1, new TGeoTranslation(0, ypos, 0));
 
   xpos = connBox->GetDX();
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = connBody->GetDZ() - (sIBConnectBlockZLen - sIBConnTubeHole3ZPos);
   connBoxCSide->AddNode(connPlug, 1, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 90, -90, 90)));
 }
