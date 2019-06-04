@@ -66,6 +66,9 @@ struct DataSpecUtils {
   /// Given an InputSpec, manipulate it so that it will match only the given
   /// subSpec.
   static void updateMatchingSubspec(InputSpec& in, header::DataHeader::SubSpecificationType subSpec);
+  /// Given an OutputSpec, manipulate it so that it will match only the given
+  /// subSpec.
+  static void updateMatchingSubspec(OutputSpec& in, header::DataHeader::SubSpecificationType subSpec);
 
   /// Validates the given InputSpec @a in
   static bool validate(InputSpec const& in);
