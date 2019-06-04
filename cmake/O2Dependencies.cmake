@@ -817,6 +817,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    simdiagnostics_bucket
+
+    DEPENDENCIES
+    mcsteplogger_bucket
+
+    INCLUDE_DIRECTORIES
+    ${MCSTEPLOGGER_DIR}/include
+)
+
+o2_define_bucket(
+    NAME
     itsmft_simulation_bucket
 
     DEPENDENCIES
@@ -1005,7 +1016,7 @@ o2_define_bucket(
     T0Reconstruction
     DataFormatsFITT0
     DataFormatsFITV0
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/workflow/include
 )
@@ -1022,7 +1033,7 @@ o2_define_bucket(
     ITSWorkflow
     ITSMFTWorkflow
     FITWorkflow
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/GlobalTrackingWorkflow/include
 )
