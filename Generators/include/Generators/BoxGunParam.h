@@ -27,7 +27,7 @@ namespace eventgen
  ** of particle type, energy, direction, etc.
  **/
 struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
-  int pdg = 13;                      // which particle (default proton?); could make this an enum
+  int pdg = 211;                     // which particle (default pion); could make this an enum
   int number = 10;                   // how many particles
   double eta[2] = { -1, 1 };         // eta range
   double prange[2] = { 0.1, 5 };     // energy range min, max in GeV
