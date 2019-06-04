@@ -15,7 +15,6 @@
 #include "DetectorsBase/GeometryManager.h"
 
 #include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "TRDBase/TRDArraySignal.h"

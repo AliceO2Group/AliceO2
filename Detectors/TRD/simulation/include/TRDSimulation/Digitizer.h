@@ -13,6 +13,7 @@
 
 #include "TRDSimulation/Detector.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/TRDCommonParam.h"
 
 namespace o2
 {
@@ -20,7 +21,6 @@ namespace trd
 {
 
 class TRDGeometry;
-class TRDCommonParam;
 class TRDSimParam;
 class TRDPadPlane;
 class TRDArraySignal;
@@ -29,9 +29,6 @@ class PadResponse;
 class Digitizer
 {
  public:
-  enum { kTimeBins = 30,
-         kNdet = 540 };
-  //
   Digitizer();
   ~Digitizer() = default;
   void process(std::vector<HitType> const&, std::vector<Digit>&);
