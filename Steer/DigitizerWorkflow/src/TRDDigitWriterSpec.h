@@ -15,6 +15,7 @@
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/DigitIndex.h"
 
 namespace o2
 {
@@ -32,7 +33,8 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
                                 "trddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<o2::trd::Digit>{ InputSpec{ "input", "TRD", "DIGITS" }, "TRDDigit" }
+                                BranchDefinition<o2::trd::Digit>{ InputSpec{ "input", "TRD", "DIGITS" }, "TRDDigit" },
+                                BranchDefinition<o2::trd::DigitIndex>{ InputSpec{ "input", "TRD", "DIGITS INDEX" }, "TRDDigitIndex" }
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }
