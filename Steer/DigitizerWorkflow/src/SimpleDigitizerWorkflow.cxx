@@ -135,6 +135,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
   workflowOptions.push_back(
     ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
+  workflowOptions.push_back(
+    ConfigParamSpec{ "configFile", VariantType::String, "", { "configuration file for configurable parameters" } });
 }
 
 // ------------------------------------------------------------------
