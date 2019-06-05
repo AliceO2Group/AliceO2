@@ -157,7 +157,7 @@ public:
                   "ForwardParser currently only supports byte type buffer"
                   );
     if (buffer == nullptr || bufferSize == 0) return 0;
-    auto position = 0;
+    size_t position = 0;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
