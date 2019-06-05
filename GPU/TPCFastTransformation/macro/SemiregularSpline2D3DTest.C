@@ -8,18 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  IrregularSpline2D3DTest.C
-/// \brief A macro fo testing the IrregularSpline2D3D class
+/// \file  SemiregularSpline2D3DTest.C
+/// \brief A macro fo testing the SemiregularSpline2D3D class
 ///
+/// \author  Felix Lapp
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 /*  Load the macro:
-  root -l IrregularSpline2D3DTest.C++
+  root -l SemiregularSpline2D3DTest.C++
 */
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "GPU/IrregularSpline2D3D.h"
+#include "GPU/SemiregularSpline2D3D.h"
 #include "TFile.h"
 #include "TRandom.h"
 #include "TNtuple.h"
@@ -32,14 +33,11 @@
 
 #endif
 
-//#define GPUCA_NO_VC //Test without Vc, otherwise ctest fails linking
-
 float Fx(float u, float v)
 {
   const int PolynomDegree = 7;
   static double cu[PolynomDegree + 1], cv[PolynomDegree + 1];
   static bool isInitialized = 0;
-
   if (!isInitialized) {
     for (int i = 0; i <= PolynomDegree; i++) {
       cu[i] = i * gRandom->Uniform(-1, 1);
@@ -47,6 +45,7 @@ float Fx(float u, float v)
     }
     isInitialized = 1;
   }
+
   u -= 0.5;
   v -= 0.5;
   double uu = 1.;
@@ -64,78 +63,86 @@ float Fx(float u, float v)
 float Fy(float u, float v) { return v; }
 float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
+template <typename T>
+bool equalityCheck(const string title, const T expected, const T received)
+{
+  bool check = expected == received;
+  cout << "=== " << title << " ===" << endl;
+  cout << "  expected:\t" << expected << endl;
+  cout << "  received:\t" << received << endl;
+  cout << "  check:\t" << check << "\t\t\t" << (check ? "Success!" : "Error") << endl;
+  cout << endl;
+  return check;
+}
 
-int IrregularSpline2D3DTest()
+int SemiregularSpline2D3DTest()
 {
   using namespace o2::gpu;
 
   gRandom->SetSeed(0);
-  UInt_t seed = gRandom->Integer(100000); // 605
-  gRandom->SetSeed(seed);
-  cout << "Random seed: " << seed << " " << gRandom->GetSeed() << endl;
 
-  IrregularSpline2D3D spline;
-
-  {
-    const int nKnotsU = 7, nKnotsV = 7;
-    float knotsU[nKnotsU], knotsV[nKnotsV];
-
-    int nAxisTicksU = 20;
-    int nAxisTicksV = 20;
-
-    double du = 1. / (nKnotsU - 1);
-    double dv = 1. / (nKnotsV - 1);
-    for (int i = 1; i < nKnotsU - 1; i++) {
-      knotsU[i] = i * du + gRandom->Uniform(-du / 3., du / 3.);
-    }
-    for (int i = 1; i < nKnotsV - 1; i++) {
-      knotsV[i] = i * dv + gRandom->Uniform(-dv / 3., dv / 3.);
-    }
-
-    knotsU[0] = 0.;
-    knotsU[nKnotsU - 1] = 1.;
-    knotsV[0] = 0.;
-    knotsV[nKnotsV - 1] = 1.;
-
-    std::sort(knotsU, knotsU + nKnotsU);
-    std::sort(knotsV, knotsV + nKnotsV);
-
-    spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
+  const int numberOfRows = 6;
+  int numbersOfKnots[numberOfRows];
+  for (int i = 0; i < numberOfRows; i++) {
+    numbersOfKnots[i] = 5 + gRandom->Integer(5);
   }
 
+  int knotAmountExp = 0; //Expected amount of knots in total
+  for (int i = 0; i < numberOfRows; i++) {
+    knotAmountExp += numbersOfKnots[i];
+  }
+
+  SemiregularSpline2D3D spline;
+  spline.construct(numberOfRows, numbersOfKnots);
+  std::vector<bool> checker;
+
   int nKnotsTot = spline.getNumberOfKnots();
+  checker.push_back(equalityCheck("Number of rows", numberOfRows, spline.getNumberOfRows()));
+  checker.push_back(equalityCheck("Number of knots", knotAmountExp, nKnotsTot));
 
-  const IrregularSpline1D& gridU = spline.getGridU();
-  const IrregularSpline1D& gridV = spline.getGridV();
+  const RegularSpline1D& gridV = spline.getGridV();
 
-  float* data0 = new float[3 * nKnotsTot];
-  float* data = new float[3 * nKnotsTot];
+  float* data0 = new float[6 * nKnotsTot];
+  float* data = new float[6 * nKnotsTot];
 
-  int nu = gridU.getNumberOfKnots();
+  int nv = gridV.getNumberOfKnots(); //4
 
-  for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
-    double u = gridU.getKnot(i).u;
-    for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
-      double v = gridV.getKnot(j).u;
-      int ind = (nu * j + i) * 3;
+  checker.push_back(equalityCheck("Number of Knots in gridV", numberOfRows, nv));
+
+  //loop through all rows (v-coordinate)
+  for (int i = 0; i < nv; i++) {
+
+    //get each v coordinate
+    double v = gridV.knotIndexToU(i);
+
+    //get Spline for u-coordinate at that point
+    const RegularSpline1D& gridU = spline.getGridU(i);
+
+    //loop through all u-indexes
+    for (int j = 0; j < gridU.getNumberOfKnots(); j++) {
+      //get the u coodrinate
+      double u = gridU.knotIndexToU(j);
+      int ind = spline.getDataIndex(j, i);
       data0[ind + 0] = Fx(u, v);
       data0[ind + 1] = Fy(u, v);
       data0[ind + 2] = Fz(u, v);
-      // use random values instaad of Fx
-      //data0[ind + 0] = gRandom->Uniform(-.3, .3);
+      // just some random values
+      //data0[ind + 0] = gRandom->Uniform(-1, 1); //Gaus();
     }
   }
 
-  for (int i = 0; i < 3 * nKnotsTot; i++) {
+  for (int i = 0; i < nKnotsTot * 3; i++) {
     data[i] = data0[i];
   }
 
+  cout << "Start correcting edges..." << endl;
   spline.correctEdges(data);
+  cout << "corrected edges!" << endl;
 
   TCanvas* canv = new TCanvas("cQA", "2D splines  QA", 1500, 1500);
   canv->Draw();
-  // canv->Divide(3,1);
-  // canv->Update();
+  //canv->Divide(3,1);
+  //canv->Update();
 
   TGraph2D* gknots = new TGraph2D();
   gknots->SetName("gknots");
@@ -148,11 +155,12 @@ int IrregularSpline2D3DTest()
   int gknotsN = 0;
   TNtuple* knots = new TNtuple("knots", "knots", "u:v:f");
   double diff = 0;
-  for (int i = 0; i < gridU.getNumberOfKnots(); i++) {
-    for (int j = 0; j < gridV.getNumberOfKnots(); j++) {
-      double u = gridU.getKnot(i).u;
-      double v = gridV.getKnot(j).u;
-      int ind = (nu * j + i) * 3;
+  for (int i = 0; i < gridV.getNumberOfKnots(); i++) {
+    const RegularSpline1D& gridU = spline.getGridU(i);
+    for (int j = 0; j < gridU.getNumberOfKnots(); j++) {
+      double v = gridV.knotIndexToU(i);
+      double u = gridU.knotIndexToU(j);
+      int ind = spline.getDataIndex(j, i);
       double fx0 = data0[ind + 0];
       knots->Fill(u, v, fx0);
       float x, y, z;
@@ -161,6 +169,8 @@ int IrregularSpline2D3DTest()
       gknots->SetPoint(gknotsN++, u, v, fx0);
     }
   }
+
+  checker.push_back(equalityCheck("inserted points", nKnotsTot, gknotsN));
   cout << "mean diff at knots: " << sqrt(diff) / gknotsN << endl;
 
   knots->SetMarkerSize(1.);
@@ -189,8 +199,8 @@ int IrregularSpline2D3DTest()
   float stepu = 1.e-3;
   float stepv = 1.e-3;
 
-  for (float u = -.05; u <= 1.05; u += stepu) {
-    for (float v = -.05; v <= 1.05; v += stepv) {
+  for (float u = -0.01; u <= 1.01; u += stepu) {
+    for (float v = -0.01; v <= 1.01; v += stepv) {
       iter++;
       float x, y, z;
       spline.getSplineVec(data, u, v, x, y, z);
@@ -207,15 +217,24 @@ int IrregularSpline2D3DTest()
 
   gStyle->SetPalette(1);
 
-  // gknots->Draw("P");
+  //gknots->Draw("P");
   gfs->Draw("surf");
-  // gf0->Draw("surf,same");
+  gf0->Draw("surf,same");
   gknots->Draw("P,same");
   canv->Update();
 
-  delete[] data0;
-  delete[] data;
+  //Check if everything went good
+  bool success = true;
+  for (unsigned int i = 0; i < checker.size(); i++) {
+    success = success && checker[i];
+    if (!success) {
+      cout << "Something went wrong!" << endl;
+      break;
+    }
+  }
+  if (success) {
+    cout << "Everything worked fine" << endl;
+  }
 
-  return 0;
+  return success;
 }
-

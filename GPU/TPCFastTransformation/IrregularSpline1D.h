@@ -182,6 +182,9 @@ class IrregularSpline1D : public FlatObject
   ///
   void construct(int numberOfKnots, const float knots[], int numberOfAxisBins);
 
+  /// Constructor for a regular spline
+  void constructRegular(int numberOfKnotsU);
+
   /// _______________  Main functionality   ________________________
 
   /// Correction of data values at both edge knots.

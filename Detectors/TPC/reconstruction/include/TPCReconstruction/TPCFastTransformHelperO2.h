@@ -73,10 +73,13 @@ class TPCFastTransformHelperO2
  private:
   /// initialization
   void init();
+  /// get space charge correction in internal TPCFastTransform coordinates su,sv->dx,du,dv
+  int getSpaceChargeCorrection(int slice, int row, float su, float sv, float& dx, float& du, float& dv);
 
   static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
   bool mIsInitialized = 0;                                                                     ///< initialization flag
   std::function<void(const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
+  TPCFastTransform mGeoTransform;                                                              ///< helper to store geometry parameters
 
   ClassDefNV(TPCFastTransformHelperO2, 2);
 };

@@ -102,10 +102,11 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
+  std::cout << "mark 1" << std::endl;
   double statDiff = 0., statN = 0.;
 
   for (int slice = 0; slice < fastTransform->getNumberOfSlices(); slice += 1) {
-    //std::cout<<"slice "<<slice<<" ... "<<std::endl;
+    std::cout << "slice " << slice << " ... " << std::endl;
 
     const TPCFastTransform::SliceInfo& sliceInfo = fastTransform->getSliceInfo(slice);
 
@@ -116,6 +117,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
       for (int pad = 0; pad < nPads; pad += 10) {
 
         for (float time = 0; time < 1000; time += 30) {
+          //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
           fastTransform->setApplyDistortionFlag(0);
           float x0, y0, z0;
@@ -131,22 +133,15 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
           }
 
           // local 2 global
+          float gx0, gy0, gz0;
+          fastTransform->convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
+          float gx1, gy1, gz1;
+          fastTransform->convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
 
-          float x0g = x0 * sliceInfo.cosAlpha - y0 * sliceInfo.sinAlpha;
-          float y0g = x0 * sliceInfo.sinAlpha + y0 * sliceInfo.cosAlpha;
-          float z0g = z0;
-
-          float x1g = x1 * sliceInfo.cosAlpha - y1 * sliceInfo.sinAlpha;
-          float y1g = x1 * sliceInfo.sinAlpha + y1 * sliceInfo.cosAlpha;
-          float z1g = z1;
-
-          //cout<<x0<<" "<<y0<<" "<<z0<<" "<<x0g<<" "<<y0g<<" "<<z0g<<endl;
-          //cout<<x1<<" "<<y1<<" "<<z1<<" "<<x1g<<" "<<y1g<<" "<<z1g<<endl;
-
-          double xyz[3] = { x0g, y0g, z0g };
+          double xyz[3] = { gx0, gy0, gz0 };
           double d[3] = { 0, 0, 0 };
           correctionFunction(xyz, d);
-          statDiff += fabs((x1g - x0g) - d[0]) + fabs((y1g - y0g) - d[1]) + fabs((z1g - z0g) - d[2]);
+          statDiff += fabs((gx1 - gx0) - d[0]) + fabs((gy1 - gy0) - d[1]) + fabs((gz1 - gz0) - d[2]);
           statN += 3;
           //std::cout << (x1g-x0g) - d[0]<<" "<< (y1g-y0g) - d[1]<<" "<< (z1g-z0g) - d[2]<<std::endl;
         }
