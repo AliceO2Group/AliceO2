@@ -332,16 +332,16 @@ o2_define_bucket(
     DEPENDENCIES
     arrow_bucket
     O2FrameworkFoundation_bucket
+    O2Headers
+    O2DebugGUI
     common_utils_bucket
     ROOTDataFrame
     ROOTVecOps
     Base
-    Headers
     Core
     Tree
     TreePlayer
     Net
-    O2DebugGUI
     AliceO2::Monitoring
     AliceO2::Configuration
     InfoLogger_bucket
