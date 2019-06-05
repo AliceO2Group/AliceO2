@@ -15,7 +15,6 @@
 #include "DetectorsBase/GeometryManager.h"
 
 #include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDCommonParam.h" // For kNdet & el. diffusion
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "TRDBase/PadResponse.h"
@@ -66,6 +65,8 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // Loop over all TRD detectors
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
+  std::array<std::vector<HitType>, kNdet> hitsPerDetector;
+  getHitContainerPerDetector(hits, hitsPerDetector);
   int totalNumberOfProcessedHits = 0;
   for (int det = 0; det < kNdet; ++det) {
     // Loop over all TRD detectors
@@ -80,15 +81,13 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    mHitContainer.clear();
-    // Skip detectors without hits
-    if (!getHitContainer(det, hits, mHitContainer)) {
-      // move to next det if no hits are found for this det
+    // Go to the next detector if there are no hits
+    if (hitsPerDetector[det].size() == 0) {
       continue;
     }
     
     totalNumberOfProcessedHits += mHitContainer.size();
-    if (!convertHits(det, mHitContainer, signalCont)) {
+    if (!convertHits(det, hitsPerDetector[det], signalCont)) {
       LOG(WARNING) << "TRD converstion of hits failed for detector " << det;
       /*
        Maybe we should add a warning value in signals and signal_index to keep track of these
@@ -100,21 +99,16 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   Digit::convertMapToVectors(signalCont, digits, digit_index);
 }
 
-bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits, std::vector<HitType>& hitContainer)
+void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
 {
   //
-  // Fills the hit vector for hits in detector number det
-  // Returns false if there are no hits in the dectector
+  // Fill an array of size kNdet (540)
+  // The i-element of the array contains the hit collection for the i-detector
+  // To be called once, before doing the loop over all detectors and process the hits
   //
   for (const auto& hit : hits) {
-    if (hit.GetDetectorID() == det) {
-      hitContainer.push_back(hit);
-    }
+    hitsPerDetector[hit.GetDetectorID()].push_back(hit);
   }
-  if (hitContainer.size() == 0) {
-    return false;
-  }
-  return true;
 }
 
 bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, DigitMapContainer_t& signalCont)

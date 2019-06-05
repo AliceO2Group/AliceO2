@@ -13,6 +13,7 @@
 
 #include "TRDSimulation/Detector.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/TRDCommonParam.h"
 
 namespace o2
 {
@@ -20,7 +21,6 @@ namespace trd
 {
 
 class TRDGeometry;
-class TRDCommonParam;
 class TRDSimParam;
 class TRDPadPlane;
 class TRDArraySignal;
@@ -29,8 +29,6 @@ class PadResponse;
 class Digitizer
 {
  public:
-  enum { kTimeBins = 30 };
-  //
   Digitizer();
   ~Digitizer() = default;
   void process(std::vector<HitType> const&, DigitContainer_t&, DigitIndexContainer_t&);
@@ -54,7 +52,7 @@ class Digitizer
 
   std::vector<HitType> mHitContainer; // The container of hits in a given detector
 
-  bool getHitContainer(const int, const std::vector<HitType>&, std::vector<HitType>&); // True if there are hits in the detector
+  void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, DigitMapContainer_t&); // True if hit-to-signal conversion is successful
   bool convertSignalsToDigits(const int, int&);                                   // True if signal-to-digit conversion is successful
