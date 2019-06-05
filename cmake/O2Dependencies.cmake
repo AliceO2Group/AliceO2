@@ -336,7 +336,7 @@ o2_define_bucket(
     ROOTDataFrame
     ROOTVecOps
     Base
-    Headers
+    O2Headers
     Core
     Tree
     TreePlayer
