@@ -27,9 +27,14 @@ namespace framework
 /// input or in output. This can be used, for example to match
 /// specific payloads in a timeframe.
 struct InputSpec {
-  /// This is the legacy way to construct things. For the moment we still allow
-  /// accessing directly the members, but this will change as well at some point.
-  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_ = 0, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  /// Create a fully qualified InputSpec
+  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  /// Create a fully qualified InputSpec (alternative syntax)
+  InputSpec(std::string binding_, ConcreteDataMatcher const& dataType, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  /// Create a fully qualified InputSpec where the subSpec is 0
+  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  /// Create an InputSpec which does not check for the subSpec.
+  InputSpec(std::string binding_, ConcreteDataTypeMatcher const& dataType, enum Lifetime lifetime_ = Lifetime::Timeframe);
   InputSpec(std::string binding, data_matcher::DataDescriptorMatcher &&matcher);
 
   std::string binding;
