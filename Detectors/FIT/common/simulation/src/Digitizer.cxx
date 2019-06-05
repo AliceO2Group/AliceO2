@@ -18,35 +18,74 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <optional>
 
 using namespace o2::fit;
 //using o2::fit::Geometry;
 
 ClassImp(Digitizer);
-double signalForm_i(double x) {
-  return -(exp(-0.83344945 * x) - exp(-0.45458 * x))*(x>=0);
+double signalForm_i(double x)
+{
+  return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
-double signalForm(double x) {
-  return 5*signalForm_i(x-1.47) - signalForm_i(x);
+double signalForm(double x)
+{
+  return 5 * signalForm_i(x - 1.47) - signalForm_i(x);
 };
 
 double get_time(const std::vector<double>& times, double signal_width)
 {
   TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  for (auto time : times)
+  TH1F histsum("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F histshift("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  //int bin_start = hist.GetSize();
+  float shift = 1.47;
+  for (auto time : times) {
+    //bin_start = std::min(bin_start, hist.FindBin(time));
+    // std::cout<<"@@@@start "<<bin_start <<std::endl;
     for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
-      if (hist.GetBinCenter(bin) > time) 
-        hist.AddBinContent(bin, signalForm(hist.GetBinCenter(bin) - time));
-  for (int bin = hist.GetMinimumBin() ; bin < hist.GetMaximumBin(); ++bin) {
-    //   std::cout<<hist.GetBinContent(bin)<<" ";
-    Double_t gausnoise = gRandom->Gaus(0, 70.);
-    hist.AddBinContent(bin, gausnoise);
-    //   std::cout<<" add gaus "<<bin<<" gaus "<< gausnoise<<" "<<hist.GetBinContent(bin)<<std::endl;
+      if (hist.GetBinCenter(bin) > time)
+        hist.AddBinContent(bin, signalForm_i(hist.GetBinCenter(bin) - time));
   }
+  double noiseVar = 0.5;
+  for (int bin = 0; bin < hist.GetSize(); ++bin) {
+    Double_t gausnoise = gRandom->Gaus(0, noiseVar);
+    hist.AddBinContent(bin, gausnoise);
+  }
+
+  int binshift = int(1.47 / (signal_width / 1000.));
+  for (int bin =0; bin < binshift; ++bin) {
+    Double_t gausnoise = gRandom->Gaus(0, noiseVar);
+    hist.AddBinContent(bin, gausnoise);
+  }
+    
+  for (int bin = 0; bin < hist.GetSize() - binshift; ++bin) {
+    histshift.SetBinContent(bin + binshift, hist.GetBinContent(bin));
+    //  std::cout << " bin " << bin << " hist  " << hist.GetBinContent(bin) << " small " << histshift.GetBinContent(bin+binshift) << std::endl;
+  }
+  float maxBin = hist.GetMaximum();
+  hist.Scale(-1);
+  histsum.Add(&histshift, &hist, 5, 1);
+  // for (int bin=0; bin<hist.GetSize(); bin++)     std::cout<<hist.GetBinCenter(bin)<<", ";
+  // std::cout<<"\n";
+  //for (int bin = 0; bin < hist.GetSize(); bin++)
+  //  std::cout << hist.GetBinContent(bin) << ", ";
+  //std::cout << "\n";
   
-  int binfound = hist.FindFirstBinAbove(0);
-  double time1st =  hist.GetBinCenter(binfound);
-  return time1st;
+  // for (int bin =  hist.GetMinimumBin() ; bin < hist.GetMaximumBin(); ++bin) {
+  // std::cout<< "bin  "<<bin << " "<<hist.GetBinCenter(bin)<<" "<<hist.GetBinContent(bin)<<" shift "<<histshift.GetBinContent(bin)<<std::endl;
+  for (int bin =  1 ; bin < hist.GetSize(); ++bin) {
+    // std::cout<< "bin  "<<bin << " "<<hist.GetBinCenter(bin)<<" "<<hist.GetBinContent(bin)<<" shift "<<histshift.GetBinContent(bin)<<std::endl;
+    if (histsum.GetBinContent(bin-1)<0 && histsum.GetBinContent(bin)>=0) {
+      if (std::abs(hist.GetBinContent(bin)) > 3) {
+      //    int binfound = hist.FindFirstBinAbove(0);
+	//std::cout << "Amp high enough: " << hist.GetBinContent(bin) << " mV of " << maxBin << " mV at " << hist.GetBinCenter(bin) << " ns\n";
+	return hist.GetBinCenter(bin);
+      }
+    }
+  }
+  std::cout << "CFD failed to find peak\n";
+  return 1e10;
 }
 
 void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
@@ -82,7 +121,7 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
 
     if (is_hit_in_signal_gate) {
       channel_data[hit_ch].numberOfParticles++;
-     channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss(); //for FV0
+      channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss(); //for FV0
       channel_times[hit_ch].push_back(hit_time);
     }
 
@@ -99,30 +138,12 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
     }
   }
 }
-/*
-void Digitizer::computeAverage(o2::t0::Digit& digit)
-{
-  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
-   auto& channel_data = digit.getChDgData();
-  for (auto& ch_data : channel_data) {
-    if (ch_data.numberOfParticles == 0)
-      continue;
-    ch_data.CFDTime /= ch_data.numberOfParticles;
-    if (parameters.mIsT0)
-      ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
-  }
-  channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
-                                    [this](o2::t0::ChannelData const& ch_data) {
-                                      return ch_data.QTCAmpl < parameters.mCFD_trsh_mip;
-                                    }),
-                     channel_data.end());
-}
-*/
+
 //------------------------------------------------------------------------
 void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
-  constexpr Float_t mip_in_V = 7.; // mV /250 ph.e.
+  constexpr Float_t mip_in_V = 7.;     // mV /250 ph.e.
   constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
   std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
@@ -131,8 +152,9 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<doubl
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
       //Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
-      double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime;
-      mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time,  amp, numpart });
+      double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime /* - parameters.mCfdShift*/;
+      if (smeared_time < 1e9)
+	mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
@@ -141,7 +163,7 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<doubl
 //------------------------------------------------------------------------
 void Digitizer::setTriggers(o2::t0::Digit* digit)
 {
-  constexpr Double_t BC_clk_center = 12.5;      // clk center
+
   constexpr Double_t trg_central_trh = 100.;    // mip
   constexpr Double_t trg_semicentral_trh = 50.; // mip
   constexpr Double_t trg_vertex_min = -3.;      //ns
@@ -159,7 +181,7 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime;
+    cfd[mcp] = d.CFDTime - parameters.mBC_clk_center - mEventTime /*+ parameters.mCfdShift*/;
     amp[mcp] = d.QTCAmpl;
     if (amp[mcp] < parameters.mCFD_trsh_mip)
       continue;
@@ -185,8 +207,8 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
 
   mean_time_A = is_A ? mean_time_A / n_hit_A : 0;
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0;
-  vertex_time = (mean_time_A + mean_time_C) * .5;
-  Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
+  vertex_time = (mean_time_A - mean_time_C) * .5;
+  Bool_t is_Vertex = is_A && is_C && (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
 
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
