@@ -390,19 +390,19 @@ void CcdbApi::truncate(std::string path)
   }
 }
 
-size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
+size_t write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 {
   return size * nmemb;
 }
 
 bool CcdbApi::isHostReachable()
 {
-  CURL *curl;
+  CURL* curl;
   CURLcode res;
   bool result = false;
 
   curl = curl_easy_init();
-  if(curl) {
+  if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
     res = curl_easy_perform(curl);
