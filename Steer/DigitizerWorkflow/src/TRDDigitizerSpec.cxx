@@ -93,7 +93,7 @@ class TRDDPLDigitizerTask
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::trd::Digit> digitsAccum;           // accumulator for digits
+    std::vector<o2::trd::Digit_t> digitsAccum;         // accumulator for digits
     std::vector<o2::trd::DigitIndex> digitsIndexAccum; // accumulator for digits index
 
     // loop over all composite collisions given from context
@@ -112,7 +112,7 @@ class TRDDPLDigitizerTask
         retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits;           // digits which get filled
+        std::vector<o2::trd::Digit_t> digits;         // digits which get filled
         std::vector<o2::trd::DigitIndex> digit_index; // index which get filled
         mDigitizer.process(hits, digits, digit_index);
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));

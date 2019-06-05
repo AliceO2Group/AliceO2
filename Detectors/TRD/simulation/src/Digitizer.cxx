@@ -62,14 +62,11 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // Check if Geometry and if CCDB are available as they will be requiered
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
+  DigitMapContainer_t signalCont;
+
   // Loop over all TRD detectors
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   int totalNumberOfProcessedHits = 0;
-  // LOG(INFO) << "Start of processing " << hits.size() << " hits";
-
-  DigitContainer_t signals;
-  DigitIndexContainer_t signal_index;
-
   for (int det = 0; det < kNdet; ++det) {
     // Loop over all TRD detectors
 
@@ -89,10 +86,9 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       // move to next det if no hits are found for this det
       continue;
     }
-
+    
     totalNumberOfProcessedHits += mHitContainer.size();
-
-    if (!convertHits(det, mHitContainer, signals, signal_index)) {
+    if (!convertHits(det, mHitContainer, signalCont)) {
       LOG(WARNING) << "TRD converstion of hits failed for detector " << det;
       /*
        Maybe we should add a warning value in signals and signal_index to keep track of these
@@ -100,12 +96,8 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
     }
   }
 
-  // copy computed signals to the output digits
-  digits.resize(signals.size());
-  digits.assign(signals.begin(), signals.end());
-  // copy computed signal_index to the output digit_index
-  digit_index.resize(signal_index.size());
-  digit_index.assign(signal_index.begin(), signal_index.end());
+  // Finalize
+  Digit::convertMapToVectors(signalCont, digits, digit_index);
 }
 
 bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits, std::vector<HitType>& hitContainer)
@@ -125,7 +117,7 @@ bool Digitizer::getHitContainer(const int det, const std::vector<HitType>& hits,
   return true;
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, DigitContainer_t& arraySignal, DigitIndexContainer_t& arraySignal_index)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, DigitMapContainer_t& signalCont)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -175,9 +167,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
   const float row0 = padPlane->getRow0ROC();
   const int nRowMax = padPlane->getNrows();
   const int nColMax = padPlane->getNcols();
-
-  // resize signals
-  arraySignal.resize(arraySignal.size() + 3 * nTimeTotal);
 
   // Loop over hits
   for (const auto& hit : hits) {
@@ -259,26 +248,22 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
           continue;
         }
       }
-
       // Apply diffusion smearing
       if (mSimParam->DiffusionOn()) {
         if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT)) {
           continue;
         }
       }
-
       // Apply E x B effects
       if (mCommonParam->ExBOn()) {
         locC = locC + calExBDetValue * driftLength;
       }
-
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locR);
       if (rowE < 1) {
         continue;
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
-
       // The pad column (rphi-direction)
       offsetTilt = padPlane->getTiltOffset(rowOffset);
       colE = padPlane->getPadColNumber(locC + offsetTilt);
@@ -286,13 +271,11 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locC + offsetTilt);
-
       // Retrieve drift velocity becuase col and row may have changed
       // driftVelocity = calVdriftDetValue* calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
       driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
       // float t0 = calT0DetValue + calT0ROC->getValue(colE, rowE);      PLEASE FIX ME when CCDB is ready
       const float t0 = -1.38 + 0; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
-
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
       // Also add absolute time of hits to take pile-up events into account properly
@@ -344,9 +327,23 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
       // The distance of the position to the middle of the timebin
       double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
 
-      // counter for digit_indexs
-      int signal_index_idx = 0;
-      bool has_filled_index = false;
+      // ************************************************************
+      // Check if there are signals already
+      // ************************************************************
+      std::vector<int> pads_in_response(kNpad);
+      std::vector<int> keys_in_response(kNpad);
+      for (int iPad = 0; iPad < kNpad; iPad++) {
+        const int colPos = colE + iPad - 1;
+        const int key = Digit::calculateKey(det, rowE, colPos);
+        pads_in_response[iPad] = colPos;
+        keys_in_response[iPad] = key;
+        // check if the element exist, otherwise create it
+        if (!signalCont.count(key)) {
+          DigitContainer_t empty_digits(kTimeBins); // create an empty vector with kTimeBins entries
+          signalCont[key] = empty_digits;           // associate the missing key with the new digit container
+        }
+      }
+      // ************************************************************
 
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
@@ -375,10 +372,9 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
             break;
           }
           // Add the signals
-
-          // signalOld[iPad] = arraySignal.getData(rowE, colPos, iTimeBin); // TO BE ADDED LATER REQUIRES ARRAYSIGNALS
-          signalOld[iPad] = arraySignal[iPad + iTimeBin + signal_index_idx];
-
+          const int key = keys_in_response[iPad];
+          // Get the old signal
+          signalOld[iPad] = signalCont[key][iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
             signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
@@ -386,20 +382,12 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Dig
             // Without cross talk at central pad
             signalOld[iPad] += padSignal[iPad] * timeResponse;
           }
-
-          // arraySignal.setData(rowE, colPos, iTimeBin, signalOld[iPad]); // TO BE ADDED LATER REQUIRES ARRAYSIGNALS
-          arraySignal[iPad + iTimeBin + signal_index_idx] = signalOld[iPad];
-
-          // we fill the signal_index only once
-          if (has_filled_index) {
-            arraySignal_index.emplace_back(det, rowE, colPos, signal_index_idx);
-            has_filled_index = true;
-          }
+          // Update the final signal
+          signalCont[key][iTimeBin] = signalOld[iPad];
         } // Loop: pads
       }   // Loop: time bins
-      signal_index_idx += 3 * lastTimeBin;
-    } // end of loop over electrons
-  }   // end of loop over hits
+    }     // end of loop over electrons
+  }       // end of loop over hits
   return true;
 }
 
