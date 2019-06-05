@@ -63,8 +63,10 @@ void IrregularSpline1D::construct(int numberOfKnots, const float inputKnots[], i
   /// \param knots             Array of knots.
   /// \param numberOfAxisBins Number of axis bins to map U coordinate to
   ///                          an appropriate [knot(i),knot(i+1)] interval.
-  ///                          The knot positions have a "granularity" of 1./numberOfAxisBins
+  ///                          The knot positions have a "granularity" of 1./(numberOfAxisBins-1)
   ///
+
+  numberOfAxisBins -= 1;
 
   FlatObject::startConstruction();
 
@@ -177,6 +179,25 @@ void IrregularSpline1D::construct(int numberOfKnots, const float inputKnots[], i
     }
     map[iBin] = iKnot;
   }
+}
+
+void IrregularSpline1D::constructRegular(int numberOfKnots)
+{
+  /// Constructor for a regular spline
+  /// \param numberOfKnots     Number of knots
+  ///
+
+  if (numberOfKnots < 5)
+    numberOfKnots = 5;
+
+  std::vector<float> knots(numberOfKnots);
+  double du = 1. / (numberOfKnots - 1.);
+  for (int i = 1; i < numberOfKnots - 1; i++) {
+    knots[i] = i * du;
+  }
+  knots[0] = 0.f;
+  knots[numberOfKnots - 1] = 1.f;
+  construct(numberOfKnots, knots.data(), numberOfKnots);
 }
 
 void IrregularSpline1D::Print() const

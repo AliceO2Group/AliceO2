@@ -126,6 +126,26 @@ void IrregularSpline2D3D::construct(int numberOfKnotsU, const float knotsU[], in
   mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
 }
 
+void IrregularSpline2D3D::constructRegular(int numberOfKnotsU, int numberOfKnotsV)
+{
+  /// Constructor for a regular spline
+  /// \param numberOfKnotsU     U axis: Number of knots in knots[] array
+  /// \param numberOfKnotsV     V axis: Number of knots in knots[] array
+  ///
+
+  FlatObject::startConstruction();
+
+  mGridU.constructRegular(numberOfKnotsU);
+  mGridV.constructRegular(numberOfKnotsV);
+
+  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+
+  FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
+
+  mGridU.moveBufferTo(mFlatBufferPtr);
+  mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
+}
+
 void IrregularSpline2D3D::Print() const
 {
 #if !defined(GPUCA_GPUCODE)
