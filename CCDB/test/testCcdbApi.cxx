@@ -31,15 +31,46 @@
 
 using namespace std;
 using namespace o2::ccdb;
+namespace utf = boost::unit_test;
+namespace tt = boost::test_tools;
 
+static string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+bool hostReachable = false;
+
+/**
+ * Global fixture, ie general setup and teardown
+ */
+struct Fixture {
+  Fixture()
+  {
+    CcdbApi api;
+    api.init(ccdbUrl);
+    hostReachable = api.isHostReachable();
+    cout << "Is host reachable ? --> " << hostReachable << endl;
+  }
+  ~Fixture() = default;
+};
+BOOST_GLOBAL_FIXTURE(Fixture);
+
+/**
+ * Just an accessor to the hostReachable variable to be used to determine whether tests can be ran or not.
+ */
+struct if_reachable {
+  tt::assertion_result operator()(utf::test_unit_id)
+  {
+    return hostReachable;
+  }
+};
+
+/**
+ * Fixture for the tests, i.e. code is ran in every test that uses it, i.e. it is like a setup and teardown for tests.
+ */
 struct test_fixture {
   test_fixture()
   {
-    api.init("http://ccdb-test.cern.ch:8080");
-    std::cout << boost::unit_test::framework::current_test_case().p_name
-              << std::endl;
+    api.init(ccdbUrl);
+    std::cout << "*** " << boost::unit_test::framework::current_test_case().p_name << " ***" << std::endl;
   }
-
   ~test_fixture() = default;
 
   CcdbApi api;
@@ -65,7 +96,7 @@ long getCurrentTimestamp()
   return value.count();
 }
 
-BOOST_AUTO_TEST_CASE(store_test)
+BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -73,19 +104,21 @@ BOOST_AUTO_TEST_CASE(store_test)
   f.api.store(h1, "Test/Detector", f.metadata);
 }
 
-BOOST_AUTO_TEST_CASE(retrieve_test)
+BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
   auto h1 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
-  BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  if (h1 != nullptr) {
+    BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  }
 
   auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
   BOOST_CHECK(h2 == nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(truncate_test)
+BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -96,7 +129,7 @@ BOOST_AUTO_TEST_CASE(truncate_test)
   BOOST_CHECK(h1 == nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(delete_test)
+BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -143,7 +176,7 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   }
 }
 
-BOOST_AUTO_TEST_CASE(list_test)
+BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 

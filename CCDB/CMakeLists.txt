@@ -155,7 +155,7 @@ if (NOT APPLE)
   set(TEST_SRCS
      test/testWriteReadAny.cxx
      test/testCcdbApi.cxx
-  ) 
+  )
 
   O2_GENERATE_TESTS(
     BUCKET_NAME ${BUCKET_NAME}
@@ -163,5 +163,3 @@ if (NOT APPLE)
     TEST_SRCS ${TEST_SRCS}
   )
 endif()
-
-
