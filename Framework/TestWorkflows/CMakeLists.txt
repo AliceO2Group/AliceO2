@@ -30,6 +30,11 @@ o2_add_executable(diamond-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_executable(output-wildcard-workflow
+                  SOURCES src/o2OutputWildcardWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_executable(parallel-workflow
                   SOURCES src/o2ParallelWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework

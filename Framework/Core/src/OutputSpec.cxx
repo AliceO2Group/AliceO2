@@ -45,6 +45,22 @@ OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDe
 {
 }
 
+OutputSpec::OutputSpec(ConcreteDataTypeMatcher const& dataType,
+                       enum Lifetime inLifetime)
+  : binding{ OutputLabel{ "" } },
+    matcher{ dataType },
+    lifetime{ inLifetime }
+{
+}
+
+OutputSpec::OutputSpec(OutputLabel const& inBinding, ConcreteDataTypeMatcher const& dataType,
+                       enum Lifetime inLifetime)
+  : binding{ inBinding },
+    matcher{ dataType },
+    lifetime{ inLifetime }
+{
+}
+
 bool OutputSpec::operator==(OutputSpec const& that) const
 {
   return this->matcher == that.matcher &&
