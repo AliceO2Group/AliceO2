@@ -69,9 +69,7 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx,
-               std::vector<o2::itsmft::ROFRecord>& rofs);
-  void processFrame(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
@@ -94,6 +92,7 @@ class CookedTracker
   void addOutputTrack(const TrackITSExt& t, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
   int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
+  void processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
 
   std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
   void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
