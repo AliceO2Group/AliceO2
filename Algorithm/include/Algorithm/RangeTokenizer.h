@@ -66,7 +66,6 @@ struct RangeTokenizer {
     std::string token;
     std::vector<T> res;
     while (std::getline(stream, token, ',')) {
-      T value;
       if (std::is_integral<T>::value && token.find('-') != token.npos) {
         // extract range
         if constexpr (std::is_integral<T>::value) { // c++17 compile time

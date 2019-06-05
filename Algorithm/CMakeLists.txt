@@ -45,6 +45,7 @@ set(TEST_SRCS
   test/pageparser.cxx
   test/test_mpl_tools.cxx
   test/test_RangeTokenizer.cxx
+  test/test_BitstreamReader.cxx
 )
 
 O2_GENERATE_TESTS(
