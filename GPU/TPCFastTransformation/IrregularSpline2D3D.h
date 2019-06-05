@@ -123,6 +123,9 @@ class IrregularSpline2D3D : public FlatObject
   ///
   void construct(int numberOfKnotsU, const float knotsU[], int numberOfAxisBinsU, int numberOfKnotsV, const float knotsV[], int numberOfAxisBinsV);
 
+  /// Constructor for a regular spline
+  void constructRegular(int numberOfKnotsU, int numberOfKnotsV);
+
   /// _______________  Main functionality   ________________________
 
   /// Correction of data values at edge knots.
@@ -149,6 +152,9 @@ class IrregularSpline2D3D : public FlatObject
 
   /// Get 1-D grid for V coordinate
   GPUd() const IrregularSpline1D& getGridV() const { return mGridV; }
+
+  /// Get 1-D grid for U or V coordinate
+  GPUd() const IrregularSpline1D& getGrid(int uv) const { return (uv == 0) ? mGridU : mGridV; }
 
   /// Get u,v of i-th knot
   GPUd() void getKnotUV(int iKnot, float& u, float& v) const;
@@ -340,13 +346,22 @@ GPUdi() void IrregularSpline2D3D::getSplineVec(const float* correctedData, float
 
   Vc::SimdArray<float, 12> dataV0vec(dataV0), dataV1vec(dataV1), dataV2vec(dataV2), dataV3vec(dataV3), dataVvec = gridV.getSpline(knotV, dataV0vec, dataV1vec, dataV2vec, dataV3vec, v);
 
-  constexpr int vecSize = (Vc::float_v::size() > 3) ? Vc::float_v::size() : 3;
-  float dataV[9 + vecSize];
+  using V = std::conditional_t<(Vc::float_v::size() >= 4),
+                               Vc::float_v,
+                               Vc::SimdArray<float, 3>>;
+
+  float dataV[9 + V::size()];
   // dataVvec.scatter( dataV, Vc::SimdArray<float,12>::IndexType::IndexesFromZero() );
-  dataVvec.scatter(dataV, Vc::SimdArray<uint, 12>(Vc::IndexesFromZero));
+  //dataVvec.scatter(dataV, Vc::SimdArray<uint, 12>(Vc::IndexesFromZero));
+  dataVvec.store(dataV, Vc::Unaligned);
+
+  for (unsigned int i = 12; i < 9 + V::size(); i++) // fill not used part of the vector with 0
+    dataV[i] = 0.f;
 
   // calculate F values at V==v and U == u
-  Vc::SimdArray<float, vecSize> dataU0vec(dataV), dataU1vec(dataV + 3), dataU2vec(dataV + 6), dataU3vec(dataV + 9), dataUVvec = gridU.getSpline(knotU, dataU0vec, dataU1vec, dataU2vec, dataU3vec, u);
+  V dataU0vec(dataV), dataU1vec(dataV + 3), dataU2vec(dataV + 6), dataU3vec(dataV + 9);
+
+  V dataUVvec = gridU.getSpline(knotU, dataU0vec, dataU1vec, dataU2vec, dataU3vec, u);
 
   x = dataUVvec[0];
   y = dataUVvec[1];
