@@ -23,24 +23,38 @@ struct OutputLabel {
   std::string value;
 };
 
-/// A selector for some kind of data being processed, either in
-/// input or in output. This can be used, for example to match
-/// specific payloads in a timeframe.
+/// A criteria which matches data being produced by a given DataProcessorSpec.
+/// This needs to be declared upfront so that we can automatically build the
+/// topology.
 struct OutputSpec {
   OutputLabel binding;
-  std::variant<ConcreteDataMatcher> matcher;
+  std::variant<ConcreteDataMatcher, ConcreteDataTypeMatcher> matcher;
   enum Lifetime lifetime = Lifetime::Timeframe;
 
+  /// Build a fully qualified tuple for the OutputSpec
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
              header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build a fully qualified tuple for the OutputSpec
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
              header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build an OutputSpec which has 0 as subSpec.
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
              enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build an OutputSpec which has 0 as subSpec.
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  /// Build an OutputSpec which does not specify which subSpec the output will
+  /// have.
+  OutputSpec(OutputLabel const& inBinding, ConcreteDataTypeMatcher const& dataType,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  /// Build an OutputSpec which does not specify which subSpec the output will
+  /// have.
+  OutputSpec(ConcreteDataTypeMatcher const& dataType,
              enum Lifetime inLifetime = Lifetime::Timeframe);
 
   bool operator==(OutputSpec const& that) const;
