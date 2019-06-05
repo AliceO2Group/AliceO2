@@ -97,7 +97,6 @@ BOOST_AUTO_TEST_CASE(TestContents)
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(buffer.capacity(), 10);
   BOOST_REQUIRE_EQUAL(buffer.size(), 10);
-  auto old_ptr = buffer.data();
 
   strcpy((char *) buffer.mutable_data(), "foo");
 

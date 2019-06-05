@@ -39,8 +39,8 @@ using Metric = o2::monitoring::Metric;
 using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
-constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
-constexpr unsigned int MIN_RATE_LOGGING = 60;
+constexpr int MONITORING_QUEUE_SIZE = 100;
+constexpr int MIN_RATE_LOGGING = 60;
 
 namespace o2
 {
@@ -54,6 +54,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
+    mServiceRegistry{ registry },
     mFairMQContext{ FairMQDeviceProxy{ this } },
     mRootContext{ FairMQDeviceProxy{ this } },
     mStringContext{ FairMQDeviceProxy{ this } },
@@ -62,7 +63,6 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mContextRegistry{ &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
-    mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
 {
@@ -233,9 +233,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   });
 
   auto& device = *this;
-  auto& errorCount = mErrorCount;
   auto& relayer = mRelayer;
-  auto& serviceRegistry = mServiceRegistry;
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -247,7 +245,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
     if (parts.Size() % 2) {
       return false;
     }
-    for (size_t hi = 0; hi < parts.Size()/2; ++hi) {
+    for (int hi = 0; hi < parts.Size() / 2; ++hi) {
       auto pi = hi*2;
       auto dh = o2::header::get<DataHeader*>(parts.At(pi)->GetData());
       if (!dh) {
@@ -274,7 +272,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
     // We relay execution to make sure we have a complete set of parts
     // available.
-    for (size_t pi = 0; pi < (parts.Size()/2); ++pi) {
+    for (int pi = 0; pi < (parts.Size() / 2); ++pi) {
       auto headerIndex = 2*pi;
       auto payloadIndex = 2*pi+1;
       assert(payloadIndex < parts.Size());
@@ -316,7 +314,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& context = *mContextRegistry.get<MessageContext>();
   auto& device = *this;
   auto& errorCallback = mError;
-  auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
   auto& processingCount = mProcessingCount;

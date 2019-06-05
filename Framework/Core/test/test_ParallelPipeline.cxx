@@ -48,8 +48,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
                      << *input.spec << ": " << *((int*)input.payload);
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           //auto data& = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
-          auto& data = ctx.outputs().make<int>(Output{ "TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe });
-          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
+          auto& data = ctx.outputs().make<unsigned int>(Output{ "TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe });
+          ASSERT_ERROR(ctx.inputs().get<unsigned int>(input.spec->binding.c_str()) == parallelContext.index1D());
           data = parallelContext.index1D();
         }
       } } },
@@ -64,7 +64,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           auto const& parallelContext = ctx.services().get<ParallelContext>();
           LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
                      << *input.spec << ": " << *((int*)input.payload);
-          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
+          ASSERT_ERROR(ctx.inputs().get<unsigned>(input.spec->binding.c_str()) == parallelContext.index1D());
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           // TODO: there is a bug in the API for using OutputRef, returns an rvalue which can not be bound to
           // lvalue reference
@@ -102,7 +102,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     "trigger",
     Inputs{},
     producerOutputs(),
-    AlgorithmSpec{ [subspecs, checkMap, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
+    AlgorithmSpec{ [subspecs, checkMap, counter = std::make_shared<size_t>(0)](ProcessingContext& ctx) {
       if (*counter < nRolls) {
         size_t multiplicity = subspecs.size() / nPipelines;
         if (subspecs.size() % nPipelines) {

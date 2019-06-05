@@ -137,7 +137,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   };
   auto describeCell = [&metrics, &variablesIndex, &queriesIndex](int input, int slot) -> void {
     ImGui::BeginTooltip();
-    for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
+    for (int vi = 0; vi < variablesIndex.w; ++vi) {
       auto idx = (slot * variablesIndex.w) + vi;
       assert(idx < variablesIndex.indexes.size());
       MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];

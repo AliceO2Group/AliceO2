@@ -142,7 +142,8 @@ class InputRecord
   int getPos(const char *name) const;
   int getPos(const std::string &name) const;
 
-  DataRef getByPos(int pos) const {
+  DataRef getByPos(unsigned pos) const
+  {
     if (pos * 2 + 1 > mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
@@ -487,11 +488,8 @@ class InputRecord
 
     Iterator() = delete;
 
-  Iterator(ParentType const * parent, size_t position = 0, size_t size = 0)
-      : mParent(parent)
-      , mPosition(position)
-      , mSize(size > position? size : position)
-      , mElement{nullptr, nullptr, nullptr}
+    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
+      : mPosition(position), mSize(size > position ? size : position), mParent(parent), mElement{ nullptr, nullptr, nullptr }
     {
       if (mPosition < mSize) {
         mElement = mParent->getByPos(mPosition);

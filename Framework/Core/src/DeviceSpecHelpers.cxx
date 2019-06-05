@@ -17,6 +17,7 @@
 #include <cstring>
 #include <unordered_set>
 #include <vector>
+#include <limits>
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
@@ -274,7 +275,6 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
     deviceIndex.emplace_back(DeviceId{ edge.producer, edge.producerTimeIndex, di });
 
     OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, resources.back().port);
-    const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, resources.back().port);
     resources.pop_back();
 
     device.outputChannels.push_back(channel);
@@ -534,10 +534,10 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // of the sink data processors.
   // New InputChannels need to refer to preexisting OutputChannels we create
   // previously.
-  for (size_t edge : inEdgeIndex) {
+  for (size_t const& edge : inEdgeIndex) {
     auto& action = actions[edge];
 
-    size_t consumerDevice;
+    size_t consumerDevice = std::numeric_limits<size_t>::max();
 
     if (action.requiresNewDevice) {
       if (hasConsumerForEdge(edge)) {
@@ -638,8 +638,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     control.quiet = defaultQuiet;
     control.stopped = defaultStopped;
 
-    int argc;
-    char** argv;
+    int argc = 0;
+    char** argv = nullptr;
     std::vector<ConfigParamSpec> workflowOptions;
     /// Lookup the executable name in the metadata associated with the workflow.
     /// If we find it, we rewrite the command line arguments to be processed

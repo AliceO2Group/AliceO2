@@ -480,7 +480,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       }
       s.remove_prefix(pos + delimiter.length());
     }
-    size_t oldSize = info.unprinted.size();
+    [[maybe_unused]] size_t oldSize = info.unprinted.size();
     info.unprinted = s;
     O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
   }
@@ -1134,7 +1134,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            o2::framework::ConfigContext& configContext)
 {
   std::vector<std::string> currentArgs;
-  for (size_t ai = 1; ai < argc; ++ai) {
+  for (int ai = 1; ai < argc; ++ai) {
     currentArgs.push_back(argv[ai]);
   }
 

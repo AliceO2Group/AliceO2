@@ -67,7 +67,7 @@ void check(const std::vector<std::string>& arguments,
   std::vector<DeviceExecution> deviceExecutions(deviceSpecs.size());
   std::vector<DeviceControl> deviceControls(deviceSpecs.size());
   std::vector<DataProcessorInfo> dataProcessorInfos;
-  for (auto& [name, _] : matrix) {
+  for ([[maybe_unused]] auto& [name, _] : matrix) {
     dataProcessorInfos.push_back(DataProcessorInfo{
       name,
       "executable-name",

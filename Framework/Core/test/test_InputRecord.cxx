@@ -98,9 +98,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   BOOST_CHECK_EXCEPTION(record.get("err"), std::exception, any_exception);
 
   // Or we can get it positionally
-  BOOST_CHECK_NO_THROW(record.get("x"));
   auto ref01 = record.getByPos(0);
-  auto ref11= record.getByPos(1);
+  auto ref11 = record.getByPos(1);
+  auto ref21 = record.getByPos(2);
   BOOST_CHECK_EXCEPTION(record.getByPos(10), std::exception, any_exception);
 
   // This should be exactly the same pointers
@@ -108,6 +108,8 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   BOOST_CHECK_EQUAL(ref00.payload, ref01.payload);
   BOOST_CHECK_EQUAL(ref10.header, ref11.header);
   BOOST_CHECK_EQUAL(ref10.payload, ref11.payload);
+  BOOST_CHECK_EQUAL(ref20.header, ref21.header);
+  BOOST_CHECK_EQUAL(ref20.payload, ref21.payload);
 
   BOOST_CHECK_EQUAL(record.isValid("x"), true);
   BOOST_CHECK_EQUAL(record.isValid("y"), true);

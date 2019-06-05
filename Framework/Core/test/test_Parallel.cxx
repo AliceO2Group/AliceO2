@@ -20,6 +20,11 @@
 
 #include <iostream>
 
+#define ASSERT_ERROR(condition)                                   \
+  if ((condition) == false) {                                     \
+    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+  }
+
 using namespace o2::framework;
 
 struct FakeCluster {
@@ -140,6 +145,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         const InputSpec* inputSpec = ctx.inputs().get("dataTPC-sampled").spec;
         auto matcher = DataSpecUtils::asConcreteDataMatcher(*inputSpec);
         LOG(DEBUG) << "qcTask received data with subSpec: " << matcher.subSpec;
+        ASSERT_ERROR(inputDataTpc[0].x < parallelSize);
+        ASSERT_ERROR(inputDataTpc[0].y == 0);
+        ASSERT_ERROR(inputDataTpc[1].y == 1);
       }
     }
   };
@@ -157,6 +165,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       [](ProcessingContext& ctx) {
         const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "dataTPC-proc").payload);
+        ASSERT_ERROR(inputDataTpc[0].x < parallelSize);
+        ASSERT_ERROR(inputDataTpc[0].y == 0);
+        ASSERT_ERROR(inputDataTpc[1].y == 1);
       } }
   };
 

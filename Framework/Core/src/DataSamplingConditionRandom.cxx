@@ -36,8 +36,8 @@ class DataSamplingConditionRandom : public DataSamplingCondition
   DataSamplingConditionRandom() : DataSamplingCondition(),
                                   mThreshold(0),
                                   mGenerator(0),
-                                  mCurrentTimesliceID(0),
-                                  mLastDecision(false){};
+                                  mLastDecision(false),
+                                  mCurrentTimesliceID(0){};
   /// \brief Default destructor
   ~DataSamplingConditionRandom() override = default;
 

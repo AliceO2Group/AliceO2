@@ -55,7 +55,7 @@ std::shared_ptr<arrow::Table>
   mFinalizer();
   std::vector<std::shared_ptr<arrow::Column>> columns;
   columns.reserve(mArrays.size());
-  for (size_t i = 0; i < mSchema->num_fields(); ++i) {
+  for (int i = 0; i < mSchema->num_fields(); ++i) {
     auto column = std::make_shared<arrow::Column>(mSchema->field(i), mArrays[i]);
     columns.emplace_back(column);
   }

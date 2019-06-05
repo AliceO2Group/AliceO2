@@ -72,7 +72,6 @@ DataProcessorSpec getTimeoutSpec()
 DataProcessorSpec getSourceSpec()
 {
   auto processingFct = [](ProcessingContext& pc) {
-    static int counter = 0;
     o2::test::TriviallyCopyable a(42, 23, 0xdead);
     o2::test::Polymorphic b(0xbeef);
     std::vector<o2::test::Polymorphic> c{ { 0xaffe }, { 0xd00f } };
@@ -209,7 +208,7 @@ DataProcessorSpec getSinkSpec()
 
     LOG(INFO) << "extracting o2::test::TriviallyCopyable from input7";
     auto object7 = pc.inputs().get<o2::test::TriviallyCopyable>("input7");
-    ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    ASSERT_ERROR(object7 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input8";
     auto objectspan8 = DataRefUtils::as<o2::test::TriviallyCopyable>(pc.inputs().get("input8"));

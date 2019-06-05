@@ -29,12 +29,9 @@ void ConfigParamsHelper::populateBoostProgramOptions(
     const std::vector<ConfigParamSpec> &specs,
     bpo::options_description vetos
   ) {
-  auto proxy = options.add_options();
   for (auto & spec : specs) {
     // skip everything found in the veto definition
     if (vetos.find_nothrow(spec.name, false)) continue;
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
 
     switch(spec.type) {
       // FIXME: Should we handle int and size_t diffently?

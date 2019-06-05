@@ -23,7 +23,7 @@ namespace data_matcher
 ContextElement::Value const& VariableContext::get(size_t pos) const
 {
   // First we check if there is any pending update
-  for (size_t i = 0; i < mPerformedUpdates; ++i) {
+  for (int i = 0; i < mPerformedUpdates; ++i) {
     if (mUpdates[i].position == pos) {
       return mUpdates[i].newValue;
     }
@@ -34,7 +34,7 @@ ContextElement::Value const& VariableContext::get(size_t pos) const
 
 void VariableContext::commit()
 {
-  for (size_t i = 0; i < mPerformedUpdates; ++i) {
+  for (int i = 0; i < mPerformedUpdates; ++i) {
     mElements[mUpdates[i].position].value = mUpdates[i].newValue;
   }
   mPerformedUpdates = 0;

@@ -99,8 +99,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          TimesliceIndex& index)
   : mInputRoutes{ inputRoutes },
     mForwardRoutes{ forwardRoutes },
-    mTimesliceIndex{ index },
     mMetrics{ metrics },
+    mTimesliceIndex{ index },
     mCompletionPolicy{ policy },
     mDistinctRoutesIndex{ createDistinctRouteIndex(inputRoutes) },
     mInputMatchers{ createInputMatchers(inputRoutes) }
@@ -130,7 +130,7 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
     }
     assert(mDistinctRoutesIndex.empty() == false);
     for (size_t ri = 0; ri < mDistinctRoutesIndex.size(); ++ri) {
-      auto& route = mInputRoutes[mDistinctRoutesIndex[ri]];
+      //auto& route = mInputRoutes[mDistinctRoutesIndex[ri]];
       auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
       auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
@@ -163,9 +163,9 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// This does the mapping between a route and a InputSpec. The
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.
-size_t matchToContext(void* data,
-                      std::vector<DataDescriptorMatcher> const& matchers,
-                      VariableContext& context)
+int matchToContext(void* data,
+                   std::vector<DataDescriptorMatcher> const& matchers,
+                   VariableContext& context)
 {
   for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
     auto& matcher = matchers[ri];
@@ -205,11 +205,11 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
   // relay concurrently.
-  auto const& inputRoutes = mInputRoutes;
+  //auto const& inputRoutes = mInputRoutes;
   auto& index = mTimesliceIndex;
 
   auto& cache = mCache;
-  auto const& readonlyCache = mCache;
+  //auto const& readonlyCache = mCache;
   auto& metrics = mMetrics;
   auto numInputTypes = mDistinctRoutesIndex.size();
 
@@ -271,10 +271,11 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // the current timeslice.
   // This should never happen, however given this is dependent on the input
   // we want to protect again malicious / bad upstream source.
-  auto hasCacheInputAlreadyFor = [&cache, &index, &numInputTypes](TimesliceSlot slot, int input) {
-    PartRef& currentPart = cache[numInputTypes * slot.index + input];
-    return (currentPart.payload != nullptr) || (currentPart.header != nullptr);
-  };
+  // unused for the moment
+  //auto hasCacheInputAlreadyFor = [&cache, &index, &numInputTypes](TimesliceSlot slot, int input) {
+  //  PartRef& currentPart = cache[numInputTypes * slot.index + input];
+  //  return (currentPart.payload != nullptr) || (currentPart.header != nullptr);
+  //};
 
   // Actually save the header / payload in the slot
   auto saveInSlot = [&header,

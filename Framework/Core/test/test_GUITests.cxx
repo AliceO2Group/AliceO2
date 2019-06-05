@@ -90,9 +90,9 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
       "[METRIC] data_relayer/0,3 1 1789372894 hostname=test.cern.ch"
     };
     for (auto& metric : dummyHeatmapMetrics) {
-      auto result = DeviceMetricsHelper::parseMetric(metric, match);
+      DeviceMetricsHelper::parseMetric(metric, match);
       // Add the first metric to the store
-      result = DeviceMetricsHelper::processMetric(match, metrics);
+      DeviceMetricsHelper::processMetric(match, metrics);
     }
     gui::displayDataRelayer(metrics, deviceInfo2, size);
 

@@ -76,8 +76,8 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny() {
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny() {
   auto matcher = [](DeviceSpec const &) -> bool { return true; };
-  auto callback = [](gsl::span<PartRef const> const &inputs) -> CompletionPolicy::CompletionOp {
-    size_t present = 0;
+  auto callback = [](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
+    int present = 0;
     for (auto &input : inputs) {
       if (input.header != nullptr) {
         present++;

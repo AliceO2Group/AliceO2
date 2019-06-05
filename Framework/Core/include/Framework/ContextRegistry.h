@@ -45,7 +45,6 @@ class ContextRegistry
   template <typename T>
   T* get() const
   {
-    void* instance = nullptr;
     for (size_t i = 0; i < mRegistryCount; ++i) {
       if (mRegistryKey[i] == typeid(T*).hash_code()) {
         return reinterpret_cast<T*>(mRegistryValue[i]);

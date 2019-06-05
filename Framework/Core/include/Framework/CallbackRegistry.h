@@ -116,8 +116,6 @@ class CallbackRegistry
     using FunT = typename std::tuple_element<pos - 1, decltype(mStore)>::type::type;
     using ResT = typename FunT::result_type;
     using CheckT = std::function<ResT(TArgs...)>;
-    FunT& fct = std::get<pos - 1>(mStore).callback;
-    auto& storedTypeId = fct.target_type();
     execAt<pos - 1, FunT, CheckT>(std::forward<TArgs>(args)...);
   }
   // termination of the recursive loop

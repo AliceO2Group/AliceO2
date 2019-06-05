@@ -84,14 +84,13 @@ void broadcastDPLMessage(FairMQDevice& device, FairMQMessagePtr&& headerMessage,
 // FIXME: should I filter out only the output specs which match?
 InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step) {
   auto timesliceId = std::make_shared<size_t>(startTime);
-  return [timesliceId, step](FairMQDevice &device, FairMQParts &parts, int index) {
-    for (size_t i = 0; i < parts.Size()/2; ++i) {
+  return [timesliceId, step](FairMQDevice& device, FairMQParts& parts, int index) {
+    for (int i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
       o2::header::Stack headerStack{*dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i*2+1)), index);
-      auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
     }
   };
@@ -100,7 +99,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, 
 InjectorFunction dplModelAdaptor(OutputSpec const& spec)
 {
   return [](FairMQDevice& device, FairMQParts& parts, int index) {
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+    for (int i = 0; i < parts.Size() / 2; ++i) {
       broadcastDPLMessage(device, std::move(parts.At(i * 2)), std::move(parts.At(i * 2 + 1)), index);
     }
   };
@@ -112,7 +111,7 @@ InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime
   return [timesliceId, spec, step](FairMQDevice &device, FairMQParts &parts, int index) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
-    for (size_t i = 0; i < parts.Size(); ++i) {
+    for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
 
       // FIXME: this only supports fully specified output specs...

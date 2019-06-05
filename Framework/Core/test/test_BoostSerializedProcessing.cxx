@@ -19,6 +19,11 @@
 #include "Framework/SerializationMethods.h"
 #include <boost/serialization/access.hpp>
 
+#define ASSERT_ERROR(condition)                                   \
+  if ((condition) == false) {                                     \
+    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+  }
+
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
@@ -40,8 +45,8 @@ class Foo
     fBar4 = "This is FooBar!";
   };
   Foo(int bar1, double bar21, double bar22, std::vector<float>& bar3, std::string& bar4) : fBar1(bar1),
-                                                                                           fBar4(bar4),
-                                                                                           fBar3(bar3)
+                                                                                           fBar3(bar3),
+                                                                                           fBar4(bar4)
   {
     fBar2[0] = bar21;
     fBar2[1] = bar22;
@@ -105,15 +110,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
           size_t i = 0;
           for (auto const& test : in) {
-            assert((test.fBar1 == check[i].fBar1));       // fBar1 wrong
-            assert((test.fBar2[0] == check[i].fBar2[0])); // fBar2[0] wrong
-            assert((test.fBar2[1] == check[i].fBar2[1])); // fBar2[1] wrong
+            ASSERT_ERROR((test.fBar1 == check[i].fBar1));       // fBar1 wrong
+            ASSERT_ERROR((test.fBar2[0] == check[i].fBar2[0])); // fBar2[0] wrong
+            ASSERT_ERROR((test.fBar2[1] == check[i].fBar2[1])); // fBar2[1] wrong
             size_t j = 0;
             for (auto const& fBar3It : test.fBar3) {
-              assert((fBar3It == check[i].fBar3[j]));     // fBar3[j] wrong
+              ASSERT_ERROR((fBar3It == check[i].fBar3[j])); // fBar3[j] wrong
               j++;
             }
-            assert((test.fBar4 == check[i].fBar4));       // fBar4 wrong
+            ASSERT_ERROR((test.fBar4 == check[i].fBar4)); // fBar4 wrong
             i++;
           }
           ctx.services().get<ControlService>().readyToQuit(true);

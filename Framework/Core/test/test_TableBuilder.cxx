@@ -206,9 +206,9 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //        https://github.com/root-project/root/pull/3277
   //        https://github.com/root-project/root/pull/3428
   //
-  auto sum = [](int lx, int rx) { return lx + rx; };
-  auto left = [](int lx, int) { return lx; };
-  auto right = [](int, int rx) { return rx; };
+  //auto sum = [](int lx, int rx) { return lx + rx; };
+  //auto left = [](int lx, int) { return lx; };
+  //auto right = [](int, int rx) { return rx; };
 
   //BOOST_CHECK_EQUAL(*finalDF.Define("s1", sum, { "left_x", "left_y" }).Sum("s1"), 448);
   //BOOST_CHECK_EQUAL(*finalDF.Define("s4", sum, { "right_x", "left_x" }).Sum("s4"), 448);

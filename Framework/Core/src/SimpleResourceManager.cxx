@@ -27,7 +27,7 @@ std::vector<ComputingResource> SimpleResourceManager::getAvailableResources() {
   }
   // We insert them backwards for compatibility with the previous 
   // way of assigning them.
-  for (size_t i = mInitialPort + mMaxPorts - 1; i >= mInitialPort; --i) {
+  for (int i = mInitialPort + mMaxPorts - 1; i >= mInitialPort; --i) {
     result.push_back(ComputingResource{
       1.0,
       1.0,

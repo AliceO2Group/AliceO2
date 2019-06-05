@@ -51,7 +51,7 @@ class FileStream : public arrow::io::InputStream
 
   arrow::Status Read(int64_t nbytes, int64_t* bytes_read, void* out) override
   {
-    auto count = fread(out, nbytes, 1, mStream);
+    [[maybe_unused]] auto count = fread(out, nbytes, 1, mStream);
     if (ferror(mStream) == 0) {
       *bytes_read = nbytes;
       mPos += nbytes;
@@ -157,7 +157,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
     }
 
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "RN2" });
-    auto counter = std::make_shared<int>(0);
+    auto counter = std::make_shared<size_t>(0);
     return adaptStateless([readMask,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
@@ -263,7 +263,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     }
 
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "AOD" });
-    auto counter = std::make_shared<int>(0);
+    auto counter = std::make_shared<size_t>(0);
     return adaptStateless([readMask,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& control) {

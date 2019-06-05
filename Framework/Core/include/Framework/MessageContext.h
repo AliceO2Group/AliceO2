@@ -23,6 +23,7 @@
 #include <string>
 #include <type_traits>
 #include <stdexcept>
+#include <numeric>
 
 class FairMQDevice;
 
@@ -273,9 +274,8 @@ class MessageContext {
   void clear()
   {
     // Verify that everything has been sent on clear.
-    for (auto &m : mMessages) {
-      assert(m->empty());
-    }
+    assert(std::accumulate(mMessages.begin(), mMessages.end(), true, [](bool cond, auto& m) { return cond && m->empty(); }));
+
     mMessages.clear();
   }
 

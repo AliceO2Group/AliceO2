@@ -218,7 +218,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       char* groupBasename = strrchr(workflow.data(), '/');
       char const* groupName = groupBasename ? groupBasename + 1 : workflow.data();
       bool hasDuplicate = false;
-      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+      for (int gi = 0; gi < groupList.Size; ++gi) {
         if (strncmp(groupName, groupList[gi].name, MAX_GROUP_NAME_SIZE - 1) == 0) {
           hasDuplicate = true;
           break;
@@ -236,7 +236,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto metadatum = std::find_if(metadata.begin(), metadata.end(),
                                     [& name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
 
-      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+      for (int gi = 0; gi < groupList.Size; ++gi) {
         if (metadatum == metadata.end()) {
           break;
         }
@@ -273,7 +273,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     // definition of the inputs and of the outputs due to the
     // way the forwarding creates hidden dependencies between processes.
     // This should not happen, but apparently it does.
-    for (auto di = 0; di < specs.size(); ++di) {
+    for (size_t di = 0; di < specs.size(); ++di) {
       auto fn = std::find_if(sortedNodes.begin(), sortedNodes.end(), [di](TopoIndexInfo const& info) {
         return di == info.index;
       });
@@ -293,7 +293,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
     // FIXME: display nodes using topological sort
     // Update positions
-    for (int si = 0; si < specs.size(); ++si) {
+    for (size_t si = 0; si < specs.size(); ++si) {
       auto& node = sortedNodes[si];
       assert(node.index == si);
       int xpos = 40 + 240 * node.layer;

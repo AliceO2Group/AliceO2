@@ -241,7 +241,7 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
+  auto makeBuilders(std::vector<std::string> const& columnNames, int nRows)
   {
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));

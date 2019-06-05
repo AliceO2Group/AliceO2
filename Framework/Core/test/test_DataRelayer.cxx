@@ -362,19 +362,19 @@ BOOST_AUTO_TEST_CASE(TestPolicies) {
   };
 
   // This fills the cache, and then empties it.
-  auto actions1 = createMessage(dh1, DataProcessingHeader{0,1});
+  createMessage(dh1, DataProcessingHeader{ 0, 1 });
   auto ready1 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready1.size(), 1);
   BOOST_CHECK_EQUAL(ready1[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready1[0].op, CompletionPolicy::CompletionOp::Process);
 
-  auto actions2 = createMessage(dh1, DataProcessingHeader{1,1});
+  createMessage(dh1, DataProcessingHeader{ 1, 1 });
   auto ready2 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready2.size(), 1);
   BOOST_CHECK_EQUAL(ready2[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready2[0].op, CompletionPolicy::CompletionOp::Process);
 
-  auto actions3 = createMessage(dh2, DataProcessingHeader{1,1});
+  createMessage(dh2, DataProcessingHeader{ 1, 1 });
   auto ready3 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready3.size(), 1);
   BOOST_CHECK_EQUAL(ready3[0].slot.index, 1);

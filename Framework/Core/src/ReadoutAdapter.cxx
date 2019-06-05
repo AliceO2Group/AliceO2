@@ -27,7 +27,7 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
   auto counter = std::make_shared<uint64_t>(0);
 
   return [spec, counter](FairMQDevice& device, FairMQParts& parts, int index) {
-    for (size_t i = 0; i < parts.Size(); ++i) {
+    for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
       // FIXME: this will have to change and extract the actual subspec from
       //        the data.

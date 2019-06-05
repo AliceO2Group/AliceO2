@@ -15,6 +15,7 @@
 #include <arrow/type.h>
 #include <arrow/util/variant.h>
 #include <memory>
+#include <limits>
 #include <iostream>
 
 using namespace arrow;
@@ -116,13 +117,13 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
   auto countData = std::static_pointer_cast<UInt64Array>(countChunks->chunk(0))->raw_values();
 
   auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
-  for (size_t ri = 0; ri < ranges->num_rows(); ++ri) {
+  for (int ri = 0; ri < ranges->num_rows(); ++ri) {
     auto start = startData[ri];
     auto count = countData[ri];
     auto schema = table->schema();
     std::vector<std::shared_ptr<Column>> slicedColumns;
     slicedColumns.reserve(schema->num_fields());
-    for (size_t ci = 0; ci < schema->num_fields(); ++ci) {
+    for (int ci = 0; ci < schema->num_fields(); ++ci) {
       slicedColumns.emplace_back(table->column(ci)->Slice(start, count));
     }
     outputSlices->emplace_back(Datum(arrow::Table::Make(table->schema(), slicedColumns)));

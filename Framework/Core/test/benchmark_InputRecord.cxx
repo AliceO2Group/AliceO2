@@ -83,13 +83,13 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name
-    auto ref00 = record.get("x");
-    auto ref10 = record.get("y");
-    auto ref20 = record.get("z");
+    [[maybe_unused]] auto ref00 = record.get("x");
+    [[maybe_unused]] auto ref10 = record.get("y");
+    [[maybe_unused]] auto ref20 = record.get("z");
 
     // Or we can get it positionally
-    auto ref01 = record.getByPos(0);
-    auto ref11 = record.getByPos(1);
+    [[maybe_unused]] auto ref01 = record.getByPos(0);
+    [[maybe_unused]] auto ref11 = record.getByPos(1);
 
     record.isValid("x");
     record.isValid("y");

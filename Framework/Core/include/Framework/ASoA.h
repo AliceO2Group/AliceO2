@@ -57,10 +57,10 @@ class ColumnIterator
  public:
   ColumnIterator(std::shared_ptr<arrow::Column> const& column)
     : mColumn{ column },
-      mCurrentChunk{ 0 },
-      mLastChunk{ mColumn->data()->num_chunks() - 1 },
+      mCurrent{ nullptr },
       mLast{ nullptr },
-      mCurrent{ nullptr }
+      mCurrentChunk{ 0 },
+      mLastChunk{ mColumn->data()->num_chunks() - 1 }
   {
     moveToChunk(mCurrentChunk);
   }

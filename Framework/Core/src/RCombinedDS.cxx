@@ -123,10 +123,10 @@ RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RD
     // they actually own them.
     fLeft{ inLeft.get() },
     fRight{ inRight.get() },
-    fLeftDF{ std::make_unique<RDataFrame>(std::move(inLeft)) },
-    fRightDF{ std::make_unique<RDataFrame>(std::move(inRight)) },
     fLeftPrefix{ inLeftPrefix },
     fRightPrefix{ inRightPrefix },
+    fLeftDF{ std::make_unique<RDataFrame>(std::move(inLeft)) },
+    fRightDF{ std::make_unique<RDataFrame>(std::move(inRight)) },
     fIndex{ std::move(inIndex) }
 {
   fColumnNames.reserve(fLeft->GetColumnNames().size() + fRight->GetColumnNames().size());
