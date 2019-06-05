@@ -214,7 +214,11 @@ macro(O2_GENERATE_LIBRARY)
   #  CHECK_VARIABLE(ARGS_LIBRARY_NAME "You must provide the name of the library" )
   #  CHECK_VARIABLE(ARGS_BUCKET_NAME "You must provide a bucket name" )
 
-  set(Int_LIB ${LIBRARY_NAME})
+  if("${LIBRARY_NAME}" MATCHES "O2")
+    set(Int_LIB ${LIBRARY_NAME})
+  else()
+    set(Int_LIB "O2${LIBRARY_NAME}")
+  endif()
   Set(HeaderRuleName "${Int_LIB}_HEADER_RULES")
   Set(DictName "G__${Int_LIB}Dict.cxx")
 
@@ -338,6 +342,15 @@ function(O2_GENERATE_EXECUTABLE)
   if (CURRENT_BINARY_DIR_NAME_LOWER STREQUAL EXE_NAME_LOWER)
     message(FATAL_ERROR "module name ${CURRENT_BINARY_DIR_NAME} and application name ${PARSED_ARGS_EXE_NAME} can not be distinguished on case-insensitive file systems. Please choose different names to avoid compilation errors")
   endif()
+  set(MODULE_LIBNAME ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+  if("${MODULE_LIBNAME}" STREQUAL "")
+  else()
+    # Add O2 tag to library name (if needed)
+    if("${MODULE_LIBNAME}" MATCHES "O2")
+    else()
+      set(MODULE_LIBNAME "O2${MODULE_LIBNAME}")
+    endif()
+  endif()
 
   ############### build the library #####################
   ADD_EXECUTABLE(${PARSED_ARGS_EXE_NAME} ${PARSED_ARGS_SOURCES})
@@ -345,7 +358,7 @@ function(O2_GENERATE_EXECUTABLE)
       TARGET ${PARSED_ARGS_EXE_NAME}
       BUCKET ${PARSED_ARGS_BUCKET_NAME}
       EXE TRUE
-      MODULE_LIBRARY_NAME ${PARSED_ARGS_MODULE_LIBRARY_NAME}
+      MODULE_LIBRARY_NAME ${MODULE_LIBNAME}
   )
 
   if (NOT ${PARSED_ARGS_NO_INSTALL})
@@ -360,7 +373,7 @@ function(O2_GENERATE_EXECUTABLE)
 	endif()
 
     ############### install the library ###################
-    install(TARGETS ${PARSED_ARGS_MODULE_LIBRARY_NAME} DESTINATION lib)
+    install(TARGETS ${MODULE_LIBNAME} DESTINATION lib)
   endif ()
 
 endfunction(O2_GENERATE_EXECUTABLE)
@@ -392,12 +405,21 @@ CHECK_VARIABLE(PARSED_ARGS_WORKFLOW_NAME "You must provide an executable name")
     BUCKET FrameworkApplication_bucket
     EXE TRUE
   )
+  set(MODULE_LIBNAME ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+  if("${MODULE_LIBNAME}" STREQUAL "")
+  else()
+    # Add O2 tag to library name (if needed)
+    if("${MODULE_LIBNAME}" MATCHES "O2")
+    else()
+      set(MODULE_LIBNAME "O2${MODULE_LIBNAME}")
+    endif()
+  endif()
   if (NOT ${PARSED_ARGS_NO_INSTALL})
     ############### install the executable #################
     install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
 
     ############### install the library ###################
-    install(TARGETS ${PARSED_ARGS_MODULE_LIBRARY_NAME} DESTINATION lib)
+    install(TARGETS ${MODULE_LIBNAME} DESTINATION lib)
   endif ()
 
 endfunction(O2_FRAMEWORK_WORKFLOW)
@@ -483,10 +505,20 @@ function(O2_GENERATE_TESTS)
     string(REGEX REPLACE "\\..*" "" test_name ${test_name})
     set(test_name test_${MODULE_NAME}_${test_name})
 
+    set(MODULE_LIBNAME ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+    if("${MODULE_LIBNAME}" STREQUAL "")
+    else()
+      # Add O2 tag to library name (if needed)
+      if("${MODULE_LIBNAME}" MATCHES "O2")
+      else()
+        set(MODULE_LIBNAME "O2${MODULE_LIBNAME}")
+      endif()
+    endif()
+
     O2_GENERATE_EXECUTABLE(
         EXE_NAME ${test_name}
         SOURCES ${test}
-        MODULE_LIBRARY_NAME ${PARSED_ARGS_MODULE_LIBRARY_NAME}
+        MODULE_LIBRARY_NAME ${MODULE_LIBNAME}
         BUCKET_NAME ${PARSED_ARGS_BUCKET_NAME}
         NO_INSTALL FALSE
     )
@@ -543,7 +575,12 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   # in the parent scope, namely in the CMakeLists.txt of the submodule
   set(Int_LINKDEF ${LINKDEF})
   set(Int_DICTIONARY ${DICTIONARY})
-  set(Int_LIB ${LIBRARY_NAME})
+  # Add O2 tag to library name (if needed)
+  if("${LIBRARY_NAME}" MATCHES "O2")
+    set(Int_LIB ${LIBRARY_NAME})
+  else()
+    set(Int_LIB "O2${LIBRARY_NAME}")
+  endif()
 
   set(Int_HDRS ${HDRS})
   set(Int_DEF ${DEFINITIONS})
