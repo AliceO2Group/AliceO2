@@ -42,6 +42,9 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+constexpr GPUReconstructionCPU::krnlRunRange GPUReconstructionCPU::krnlRunRangeNone;
+constexpr GPUReconstructionCPU::krnlEvent GPUReconstructionCPU::krnlEventNone;
+
 GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
 
 GPUReconstructionCPU::~GPUReconstructionCPU()

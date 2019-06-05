@@ -26,15 +26,15 @@ set(LIBRARY_NAME MCHMappingImpl3)
 O2_GENERATE_LIBRARY()
 
 include(GenerateExportHeader)
-generate_export_header(MCHMappingImpl3)
+generate_export_header(O2MCHMappingImpl3)
 
-set_target_properties(MCHMappingImpl3 PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(O2MCHMappingImpl3 PROPERTIES CXX_VISIBILITY_PRESET hidden)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(MCHMappingImpl3 PRIVATE -fext-numeric-literals)
+    target_compile_options(O2MCHMappingImpl3 PRIVATE -fext-numeric-literals)
 endif ()
 if (APPLE)
-    add_custom_command(TARGET MCHMappingImpl3 POST_BUILD
-            COMMAND ${CMAKE_SOURCE_DIR}/Detectors/MUON/check_nof_exported_symbols.sh $<TARGET_LINKER_FILE:MCHMappingImpl3> 18
+    add_custom_command(TARGET O2MCHMappingImpl3 POST_BUILD
+            COMMAND ${CMAKE_SOURCE_DIR}/Detectors/MUON/check_nof_exported_symbols.sh $<TARGET_LINKER_FILE:O2MCHMappingImpl3> 18
             COMMENT "Checking number of exported symbols in the library")
 endif ()
 

@@ -106,10 +106,8 @@ GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) c
   switch (mFieldRegion) {
     case ITS:
       return mField->GetFieldItsBz(X * cs - Y * sn, X * sn + Y * cs, Z);
-      break;
     case TRD:
       return mField->GetFieldTrdBz(X * cs - Y * sn, X * sn + Y * cs, Z);
-      break;
     case TPC:
     default:
       return mField->GetFieldBz(X * cs - Y * sn, X * sn + Y * cs, Z);
