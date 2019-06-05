@@ -32,6 +32,7 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   result.mIsT0 = true;
   result.mSignalWidth = 5;
+  result.mCfdShift = 1.49;                                   //ns
 
   return result;
 }
