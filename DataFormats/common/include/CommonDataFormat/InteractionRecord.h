@@ -23,9 +23,12 @@ namespace o2
 {
 struct InteractionRecord {
   // information about bunch crossing and orbit
+  static constexpr uint16_t DummyBC = 0xffff;
+  static constexpr uint32_t DummyOrbit = 0xffffffff;
+  static constexpr double DummyTime = DummyBC * o2::constants::lhc::LHCBunchSpacingNS + DummyOrbit * o2::constants::lhc::LHCOrbitNS;
 
-  uint16_t bc = 0xffff;        ///< bunch crossing ID of interaction
-  uint32_t orbit = 0xffffffff; ///< LHC orbit
+  uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
+  uint32_t orbit = DummyOrbit; ///< LHC orbit
 
   InteractionRecord() = default;
 
@@ -113,6 +116,10 @@ struct InteractionTimeRecord : public InteractionRecord {
   double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
 
   InteractionTimeRecord() = default;
+
+  InteractionTimeRecord(const InteractionRecord& ir, double tNS) : InteractionRecord(ir), timeNS(tNS)
+  {
+  }
 
   InteractionTimeRecord(double tNS)
   {
