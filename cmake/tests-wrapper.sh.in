@@ -72,6 +72,7 @@ rm -f "$LOG"* &> /dev/null
 # used.
 #
 # exec &> >(tee "$LOG")
+echo "No separate logs for now" > "$LOG"
 
 function banner() {
   echo "=== $TEST_NAME - $1 ===" >&2
