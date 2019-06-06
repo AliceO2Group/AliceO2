@@ -55,7 +55,23 @@ fi
 LOG="@CMAKE_BINARY_DIR@/test_logs/${TEST_NAME//\//_}.log"
 mkdir -p "$(dirname "$LOG")"
 rm -f "$LOG"* &> /dev/null
-exec &> >(tee "$LOG")
+
+# Mitigate zombie processes
+# 
+# This will create a zombie process when executed in something which does fork
+# + exec + wait on children process.  This is because >(tee "$LOG") will
+# actually create a new process which is unknown to the parent.
+# 
+# Under normal conditions this should not be a problem, given the bash
+# executing the continuous-builder.sh should reap the zombie process. However
+# continuous-builder.sh itself does the same and the zombie ends up escaping
+# the bash and gets attached to the python agent, which only reaps the
+# processes it knows about.
+#
+# Bottomline is that this trick is looking for troubles and should never be
+# used.
+#
+# exec &> >(tee "$LOG")
 
 function banner() {
   echo "=== $TEST_NAME - $1 ===" >&2
