@@ -437,9 +437,9 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
   seeds.reserve(last - first + 1);
 
   for (auto& vtx : mVertices) {
-    mX = vtx[0];
-    mY = vtx[1];
-    mZ = vtx[2];
+    mX = vtx.getX();
+    mY = vtx.getY();
+    mZ = vtx.getZ();
     makeSeeds(seeds, first, last);
   }
 
