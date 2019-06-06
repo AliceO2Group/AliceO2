@@ -18,7 +18,11 @@
 #include <string>
 #include <vector>
 
+#if __has_include(<fairmq/ProgOptionsFwd.h>)
+#include <fairmq/ProgOptionsFwd.h>
+#else
 class FairMQProgOptions;
+#endif
 
 namespace o2
 {
