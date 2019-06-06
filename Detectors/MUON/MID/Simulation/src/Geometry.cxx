@@ -117,7 +117,8 @@ TGeoVolume* createRPC(RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
-  auto name = getRPCVolumeName(type, iChamber).c_str();
+  auto sname = getRPCVolumeName(type, iChamber);
+  auto name = sname.c_str();
 
   auto rpc = new TGeoVolumeAssembly(name);
 
