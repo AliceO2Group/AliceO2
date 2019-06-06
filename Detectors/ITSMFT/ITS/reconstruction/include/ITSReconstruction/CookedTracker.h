@@ -25,6 +25,7 @@
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
@@ -45,6 +46,7 @@ namespace its
 class CookedTracker
 {
   using Cluster = o2::itsmft::Cluster;
+  using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
  public:
   CookedTracker(Int_t nThreads = 1);
@@ -52,7 +54,11 @@ class CookedTracker
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
 
-  void setVertices(std::vector<std::array<Double_t, 3>>& vertices) { mVertices = std::move(vertices); }
+  void setVertices(std::vector<Vertex>& vertices)
+  {
+    mVertices.clear();
+    mVertices = std::move(vertices);
+  }
 
   Double_t getX() const { return mX; }
   Double_t getY() const { return mY; }
@@ -114,7 +120,7 @@ class CookedTracker
 
   Double_t mBz; ///< Effective Z-component of the magnetic field (kG)
 
-  std::vector<std::array<Double_t, 3>> mVertices;
+  std::vector<Vertex> mVertices;
   Double_t mX = 0.; ///< X-coordinate of the primary vertex
   Double_t mY = 0.; ///< Y-coordinate of the primary vertex
   Double_t mZ = 0.; ///< Z-coordinate of the primary vertex
