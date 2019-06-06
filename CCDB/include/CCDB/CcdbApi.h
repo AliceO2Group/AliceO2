@@ -22,6 +22,7 @@
 #include <map>
 #include <curl/curl.h>
 #include <TObject.h>
+#include <TMessage.h>
 
 namespace o2
 {
@@ -52,16 +53,28 @@ class CcdbApi //: public DatabaseInterface
   void init(std::string host);
 
   /**
-   * Stores an object in the CCDB
+   * Stores an object in the CCDB as a streamed object, not a TFile.
    *
-   * @param rootObject Shared pointer to the object to store.
+   * @param rootObject Raw pointer to the object to store.
    * @param path The path where the object is going to be stored.
    * @param metadata Key-values representing the metadata for this object.
    * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
    * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
    */
   void store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
-             long startValidityTimestamp = -1, long endValidityTimestamp = -1);
+             long startValidityTimestamp = -1, long endValidityTimestamp = -1, bool storeStreamerInfo = false);
+
+  /**
+     * Store into the CCDB a TFile containing the ROOT object.
+     *
+     * @param rootObject Raw pointer to the object to store.
+     * @param path The path where the object is going to be stored.
+     * @param metadata Key-values representing the metadata for this object.
+     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
+     */
+  void storeAsTFile(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
+                    long startValidityTimestamp = -1, long endValidityTimestamp = -1);
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -73,6 +86,17 @@ class CcdbApi //: public DatabaseInterface
    */
   TObject* retrieve(std::string path, std::map<std::string, std::string> metadata,
                     long timestamp = -1);
+
+  /**
+   * Retrieve object at the given path for the given timestamp.
+   *
+   * @param path The path where the object is to be found.
+   * @param metadata Key-values representing the metadata to filter out objects.
+   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
+   * @return the object, or nullptr if none were found.
+   */
+  TObject* retrieveFromTFile(std::string path, std::map<std::string, std::string> metadata,
+                             long timestamp = -1);
 
   //    std::vector<std::string> getListOfTasksWithPublications();
   //    std::vector<std::string> getPublishedObjectNames(std::string taskName);
