@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gpucf/algorithms/ClusterFinderConfig.h>
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Map.h>
@@ -14,7 +15,9 @@ class ReferenceClusterFinder
 {
 
 public:
-    std::vector<Cluster> run(nonstd::span<const Digit>, bool);
+    ReferenceClusterFinder(ClusterFinderConfig);
+
+    std::vector<Cluster> run(nonstd::span<const Digit>);
 
 private:
 
@@ -46,6 +49,7 @@ private:
     void update(Cluster &, float, int, int);
     void finalize(Cluster &, const Digit &);
 
+    ClusterFinderConfig config;
 };
 
 } // namespace gpucf
