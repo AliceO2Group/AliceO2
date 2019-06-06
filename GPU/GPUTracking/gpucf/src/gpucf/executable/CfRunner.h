@@ -30,6 +30,8 @@ private:
     OptFlag scratchpad;
     OptFlag padMajor;
     OptFlag halfs;
+    OptFlag splitCharges;
+    OptFlag cpu;
 };
 
 } // namespace gpucf
