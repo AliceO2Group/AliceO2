@@ -75,7 +75,9 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 #endif
 }
 
-#define CHARGE(map, gpad, time) map[chargemapIdx(gpad, time)]
+
+#define CHARGE(map, gpad, time) GET(map, gpad, time)
+#define GET(map, gpad, time)    map[chargemapIdx(gpad, time)]
 
 #endif //!defined(CONFIG_H)
 

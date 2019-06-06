@@ -67,7 +67,7 @@ int Benchmark::mainImpl()
 void Benchmark::registerExperiments()
 {
     {
-        GPUClusterFinder::Config naiveConfig;
+        ClusterFinderConfig naiveConfig;
         naiveConfig.usePackedDigits = false;
         experiments.emplace_back(
                 new TimeCf(
@@ -80,7 +80,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config packedDigitsConf;
+        ClusterFinderConfig packedDigitsConf;
         packedDigitsConf.usePackedDigits = true;
         experiments.emplace_back(
                 new TimeCf(
@@ -107,7 +107,7 @@ void Benchmark::registerExperiments()
     /* } */
 
     {
-        GPUClusterFinder::Config tilingLayout;
+        ClusterFinderConfig tilingLayout;
         tilingLayout.layout = ChargemapLayout::Tiling4x4;
         experiments.emplace_back(
                 new TimeCf(
@@ -120,7 +120,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config padMajorLayout;
+        ClusterFinderConfig padMajorLayout;
         padMajorLayout.layout = ChargemapLayout::PadMajor;
         experiments.emplace_back(
                 new TimeCf(
@@ -133,7 +133,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config halfs;
+        ClusterFinderConfig halfs;
         halfs.halfPrecisionCharges = true;
         experiments.emplace_back(
                 new TimeCf(
@@ -146,7 +146,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config halfsPadMajor;
+        ClusterFinderConfig halfsPadMajor;
         halfsPadMajor.halfPrecisionCharges = true;
         halfsPadMajor.layout = ChargemapLayout::PadMajor;
         experiments.emplace_back(
@@ -161,7 +161,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config halfs4x8Tiling;
+        ClusterFinderConfig halfs4x8Tiling;
         halfs4x8Tiling.halfPrecisionCharges = true;
         halfs4x8Tiling.layout = ChargemapLayout::Tiling4x8;
         experiments.emplace_back(
@@ -176,7 +176,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config halfs8x4Tiling;
+        ClusterFinderConfig halfs8x4Tiling;
         halfs8x4Tiling.halfPrecisionCharges = true;
         halfs8x4Tiling.layout = ChargemapLayout::Tiling8x4;
         experiments.emplace_back(
@@ -190,7 +190,7 @@ void Benchmark::registerExperiments()
     }
 
     {
-        GPUClusterFinder::Config scratchpad;
+        ClusterFinderConfig scratchpad;
         scratchpad.halfPrecisionCharges = true;
         scratchpad.layout = ChargemapLayout::Tiling8x4;
         scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;

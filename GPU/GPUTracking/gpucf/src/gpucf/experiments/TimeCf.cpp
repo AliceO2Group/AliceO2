@@ -10,7 +10,7 @@ namespace fs = filesystem;
 TimeCf::TimeCf(
         const std::string &n,
         fs::path tgt,
-        GPUClusterFinder::Config conf,
+        ClusterFinderConfig conf,
         nonstd::span<const Digit> d, 
         size_t N, 
         fs::path baseDir)

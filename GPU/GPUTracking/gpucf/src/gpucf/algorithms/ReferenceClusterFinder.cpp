@@ -8,9 +8,13 @@
 using namespace gpucf;
 
 
+ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
+    : config(config)
+{
+}
+
 std::vector<Cluster> ReferenceClusterFinder::run(
-        nonstd::span<const Digit> digits, 
-        bool deconv)
+        nonstd::span<const Digit> digits)
 {
     Map<float> chargemap(digits, [](const Digit &d) { return d.charge; }, 0.f);
 
@@ -22,16 +26,28 @@ std::vector<Cluster> ReferenceClusterFinder::run(
             [=](const Digit &d) { return isPeak(d, chargemap); });
 
 
-    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, deconv);
+    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, config.splitCharges);
 
     std::vector<Cluster> clusters;
 
-    std::transform(
-            peaks.begin(), 
-            peaks.end(),
-            std::back_inserter(clusters),
-            [=](const Digit &d) { 
-                return clusterize(d, chargemap, peakcount); });
+    if (config.splitCharges)
+    {
+        std::transform(
+                peaks.begin(), 
+                peaks.end(),
+                std::back_inserter(clusters),
+                [=](const Digit &d) { 
+                    return clusterize(d, chargemap, peakcount); });
+    }
+    else
+    {
+        std::transform(
+                peaks.begin(), 
+                peaks.end(),
+                std::back_inserter(clusters),
+                [=](const Digit &d) { 
+                    return clusterize(d, chargemap, peakcount); });
+    }
 
     return clusters;
 }
@@ -66,7 +82,7 @@ Cluster ReferenceClusterFinder::clusterize(
             PeakCount pc = peakcount[{d, dp, dt}];
             if (PCMASK_HAS_3X3_PEAKS & pc)
             {
-                continue; 
+                continue;
             }
 
             pc = PCMASK_PEAK_COUNT & pc;
@@ -119,12 +135,19 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
         const Digit &d, 
         const Map<bool> &peakmap)
 {
-    int peaks = 0; 
+
+    if (peakmap[{d, 0, 0}]) 
+    {
+        return PCMASK_HAS_3X3_PEAKS | 1;
+    }
+
+    PeakCount peaks = 0; 
 
     for (int dp = -1; dp <= 1; dp++)
     {
         for (int dt = -1; dt <= 1; dt++)
         {
+
             peaks += peakmap[{d, dp, dt}];
         }
     }
@@ -161,7 +184,7 @@ void ReferenceClusterFinder::update(Cluster &c, float q, int dp, int dt)
 
 void ReferenceClusterFinder::finalize(Cluster &c, const Digit &peak)
 {
-    float qtot      = c.Q + peak.charge;
+    float qtot      = c.Q;
     float padMean   = c.padMean;
     float timeMean  = c.timeMean;
     float padSigma  = c.padSigma;
@@ -177,6 +200,13 @@ void ReferenceClusterFinder::finalize(Cluster &c, const Digit &peak)
 
     padMean  += peak.pad;
     timeMean += peak.time;
+
+    c.Q    = qtot;
+    c.QMax = std::round(peak.charge);
+    c.padMean = padMean;
+    c.timeMean = timeMean;
+    c.timeSigma = timeSigma;
+    c.padSigma = padSigma;
 
     c.cru = RowInfo::instance().globalRowToCru(peak.row);
     c.row = RowInfo::instance().globalToLocal(peak.row);

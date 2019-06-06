@@ -1,8 +1,9 @@
 #include "CfRunner.h"
 
+#include <gpucf/algorithms/GPUClusterFinder.h>
+#include <gpucf/algorithms/ReferenceClusterFinder.h>
 #include <gpucf/common/DataSet.h>
 #include <gpucf/common/log.h>
-#include <gpucf/algorithms/GPUClusterFinder.h>
 
 
 using namespace gpucf;
@@ -84,6 +85,20 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "",
             "Store charges in charge map as halfs.",
             {"halfs"});
+
+    splitCharges = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Split charges among neighboring clusters.",
+            {"split"});
+
+    cpu = INIT_FLAG(
+            args::Flag,
+            *cfconfig,
+            "",
+            "Run cluster finder on cpu.",
+            {"cpu"});
 }
 
 int CfRunner::mainImpl()
@@ -95,7 +110,7 @@ int CfRunner::mainImpl()
 
     std::vector<Digit> digits = digitSet.deserialize<Digit>();
 
-    GPUClusterFinder::Config config;
+    ClusterFinderConfig config;
 
     if (*padMajor)
     {
@@ -122,28 +137,38 @@ int CfRunner::mainImpl()
         config.clusterbuilder = ClusterBuilder::ScratchPad;
     }
 
-    if (*halfs)
-    {
-        config.halfPrecisionCharges = true;
-    }
-
-    GPUClusterFinder cf;
-    cf.setup(config, env, digits);
-    auto cfRes = cf.run();
+    config.halfPrecisionCharges = *halfs;
+    config.splitCharges = *splitCharges;
 
     DataSet clusters;
-    clusters.serialize(cfRes.clusters);
+
+    if (*cpu)
+    {
+        ReferenceClusterFinder cf(config);    
+
+        std::vector<Cluster> res = cf.run(digits);
+        clusters.serialize(res);
+    }
+    else
+    {
+        GPUClusterFinder cf;
+        cf.setup(config, env, digits);
+        auto cfRes = cf.run();
+        clusters.serialize(cfRes.clusters);
+
+        if (*peakFile)
+        {
+            auto peaks = cf.getPeaks();
+            log::Info() << "Writing " << peaks.size()
+                        << " peaks to file " << peakFile->Get();
+            DataSet peakSet;
+            peakSet.serialize<Digit>(peaks);
+            peakSet.write(peakFile->Get());
+        }
+    }
+
     clusters.write(args::get(*clusterResultFile));
 
-    if (*peakFile)
-    {
-        auto peaks = cf.getPeaks();
-        log::Info() << "Writing " << peaks.size()
-                    << " peaks to file " << peakFile->Get();
-        DataSet peakSet;
-        peakSet.serialize<Digit>(peaks);
-        peakSet.write(peakFile->Get());
-    }
 
     return 0;
 }

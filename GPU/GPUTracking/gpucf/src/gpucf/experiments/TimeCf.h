@@ -15,7 +15,7 @@ class TimeCf : public Experiment
 public:
     TimeCf( const std::string &,
             filesystem::path,
-            GPUClusterFinder::Config,
+            ClusterFinderConfig,
             nonstd::span<const Digit>, 
             size_t, 
             filesystem::path);
@@ -26,7 +26,7 @@ private:
     std::string name;
     filesystem::path tgtFile;
 
-    GPUClusterFinder::Config config;
+    ClusterFinderConfig config;
     size_t repeats;
     nonstd::span<const Digit> digits;
 };

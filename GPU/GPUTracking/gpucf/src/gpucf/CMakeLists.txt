@@ -29,7 +29,6 @@ set(GPUCF_SRC
     "./experiments/Experiment.cpp"
     "./experiments/TimeCf.cpp"
 
-    "./algorithms/GPUAlgorithm.cpp"
     "./algorithms/GPUClusterFinder.cpp"
     "./algorithms/ReferenceClusterFinder.cpp"
     "./algorithms/StreamCompaction.cpp"
