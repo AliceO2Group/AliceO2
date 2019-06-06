@@ -30,6 +30,12 @@ typedef struct ChargePos_s
 
 typedef short2 local_id;
 
+enum PCMask
+{
+    PCMask_Has3x3Peak = 0x80,
+    PCMask_PeakCount  = 0x7F
+};
+
 constant charge_t CHARGE_THRESHOLD = 2;
 constant charge_t OUTER_CHARGE_THRESHOLD = 0;
 
@@ -98,7 +104,6 @@ constant uchar OUTER_TO_INNER[16] =
 };
 
 
-
 void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t dt)
 {
     cluster->Q         += charge;
@@ -108,54 +113,95 @@ void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t
     cluster->timeSigma += charge*dt*dt;
 }
 
-void updateClusterOuter(
+void addOuterCharge(
         global const charge_t       *chargeMap,
+        global const uchar          *peakCountMap,
                      PartialCluster *cluster, 
                      global_pad_t    gpad,
                      timestamp       time,
-                     delta_t         dpOut,
-                     delta_t         dtOut)
+                     delta_t         dp,
+                     delta_t         dt)
 {
-    charge_t outerCharge = CHARGE(chargeMap, gpad+dpOut, time+dtOut);
+    charge_t outerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
 
+#if defined(SPLIT_CHARGES)
+    uchar pc = GET(peakCountMap, gpad+dp, time+dt);
+
+    /* outerCharge = select(outerCharge, (charge_t)0.f, PCMask_Has3x3Peak & pc); */
+    outerCharge = (PCMask_Has3x3Peak & pc) ? (charge_t)0.f : outerCharge;
+
+    pc &= PCMask_PeakCount;
+    outerCharge /= pc;
+#else
     outerCharge = (outerCharge > OUTER_CHARGE_THRESHOLD) ? outerCharge : 0;
-    updateCluster(cluster, outerCharge, dpOut, dtOut);
+#endif
+
+    updateCluster(cluster, outerCharge, dp, dt);
+}
+
+charge_t addInnerCharge(
+        global const charge_t       *chargeMap,
+        global const uchar          *peakCountMap,
+                     PartialCluster *cluster,
+                     global_pad_t    gpad,
+                     timestamp       time,
+                     delta_t         dp,
+                     delta_t         dt)
+{
+    charge_t q  = CHARGE(chargeMap, gpad+dp, time+dt);
+
+#if defined(SPLIT_CHARGES)
+    uchar pc = PCMask_PeakCount & GET(peakCountMap, gpad+dp, time+dt);
+    q /= pc;
+#endif
+
+    updateCluster(cluster, q, dp, dt);
+
+    return q;
 }
 
 void addCorner(
         global const charge_t       *chargeMap,
+        global const uchar          *peakCountMap,
                      PartialCluster *myCluster,
                      global_pad_t    gpad,
                      timestamp       time,
                      delta_t         dp,
                      delta_t         dt)
 {
-    charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
-    updateCluster(myCluster, innerCharge, dp, dt);
+    charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
     
-    if (innerCharge > CHARGE_THRESHOLD)
+#if !defined(SPLIT_CHARGES)
+    if (q > CHARGE_THRESHOLD)
     {
-        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp,   dt);
-        updateClusterOuter(chargeMap, myCluster, gpad, time,   dp, 2*dt);
-        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp, 2*dt);
+#endif
+        addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp,   dt);
+        addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time,   dp, 2*dt);
+        addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
+#if !defined(SPLIT_CHARGES)
     }
+#endif
 }
 
 void addLine(
         global const charge_t       *chargeMap,
+        global const uchar          *peakCountMap,
                      PartialCluster *myCluster,
                      global_pad_t    gpad,
                      timestamp       time,
                      delta_t         dp,
                      delta_t         dt)
 {
-    charge_t innerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
-    updateCluster(myCluster, innerCharge, dp, dt);
+    charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
 
-    if (innerCharge > CHARGE_THRESHOLD)
+#if !defined(SPLIT_CHARGES)
+    if (q > CHARGE_THRESHOLD)
     {
-        updateClusterOuter(chargeMap, myCluster, gpad, time, 2*dp, 2*dt);
+#endif
+        addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
+#if !defined(SPLIT_CHARGES)
     }
+#endif
 }
 
 void reset(PartialCluster *clus)
@@ -340,9 +386,10 @@ void buildClusterScratchPad(
 
 void buildClusterNaive(
         global const charge_t       *chargeMap,
-        PartialCluster *myCluster,
-        global_pad_t    gpad,
-        timestamp       time)
+        global const uchar          *peakCountMap,
+                     PartialCluster *myCluster,
+                     global_pad_t    gpad,
+                     timestamp       time)
 {
     reset(myCluster);
 
@@ -352,7 +399,7 @@ void buildClusterNaive(
     // o i c i o
     // o i i i o
     // o o o o o
-    addCorner(chargeMap, myCluster, gpad, time, -1, -1);
+    addCorner(chargeMap, peakCountMap, myCluster, gpad, time, -1, -1);
 
     // Add upper charges
     // o o O o o
@@ -360,7 +407,7 @@ void buildClusterNaive(
     // o i c i o
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, gpad, time,  0, -1);
+    addLine(chargeMap, peakCountMap, myCluster, gpad, time,  0, -1);
 
     // Add charges in top right corner:
     // o o o O O
@@ -368,7 +415,7 @@ void buildClusterNaive(
     // o i c i o
     // o i i i o
     // o o o o o
-    addCorner(chargeMap, myCluster, gpad, time, 1, -1);
+    addCorner(chargeMap, peakCountMap, myCluster, gpad, time, 1, -1);
 
 
     // Add left charges
@@ -377,7 +424,7 @@ void buildClusterNaive(
     // O I c i o
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, gpad, time, -1,  0);
+    addLine(chargeMap, peakCountMap, myCluster, gpad, time, -1,  0);
 
     // Add right charges
     // o o o o o
@@ -385,7 +432,7 @@ void buildClusterNaive(
     // o i c I O
     // o i i i o
     // o o o o o
-    addLine(chargeMap, myCluster, gpad, time,  1,  0);
+    addLine(chargeMap, peakCountMap, myCluster, gpad, time,  1,  0);
 
 
     // Add charges in bottom left corner:
@@ -394,7 +441,7 @@ void buildClusterNaive(
     // o i c i o
     // O I i i o
     // O O o o o
-    addCorner(chargeMap, myCluster, gpad, time, -1, 1);
+    addCorner(chargeMap, peakCountMap, myCluster, gpad, time, -1, 1);
 
     // Add bottom charges
     // o o o o o
@@ -402,7 +449,7 @@ void buildClusterNaive(
     // o i c i o
     // o i I i o
     // o o O o o
-    addLine(chargeMap, myCluster, gpad, time,  0,  1);
+    addLine(chargeMap, peakCountMap, myCluster, gpad, time,  0,  1);
 
     // Add charges in bottom right corner:
     // o o o o o
@@ -410,7 +457,7 @@ void buildClusterNaive(
     // o i c i o
     // o i i I O
     // o o o O O
-    addCorner(chargeMap, myCluster, gpad, time, 1, 1);
+    addCorner(chargeMap, peakCountMap, myCluster, gpad, time, 1, 1);
 }
 
 bool isPeakScratchPad(
@@ -454,8 +501,6 @@ bool isPeakScratchPad(
 
     return peak;
 }
-
-
 
 bool isPeak(
                const Digit    *digit,
@@ -562,6 +607,37 @@ void finalizeCluster(
     outCluster->row = globalToLocalRow[myDigit->row];
 }
 
+uchar countPeaksAroundDigit(
+               const global_pad_t  gpad,
+               const timestamp     time,
+        global const uchar        *peakMap)
+{
+    uchar peakCount = 0;
+
+    for (uchar i = 0; i < 8; i++)
+    {
+        delta2_t d = INNER_NEIGHBORS[i];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+        peakCount += GET(peakMap, gpad+dp, time+dt);
+    }
+
+    if (peakCount > 0)
+    {
+        return PCMask_Has3x3Peak | peakCount;
+    }
+
+    for (uchar i = 0; i < 16; i++)
+    {
+        delta2_t d = OUTER_NEIGHBORS[i];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+        peakCount += GET(peakMap, gpad+dp, time+dt);
+    }
+
+    return peakCount;
+}
+
 
 kernel
 void fillChargeMap(
@@ -578,9 +654,10 @@ void fillChargeMap(
 
 
 kernel
-void resetChargeMap(
+void resetMaps(
         global const Digit    *digits,
-        global       charge_t *chargeMap)
+        global       charge_t *chargeMap,
+        global       uchar    *peakCountMap)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -588,6 +665,10 @@ void resetChargeMap(
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     CHARGE(chargeMap, gpad, myDigit.time) = 0.f;
+
+#if defined(SPLIT_CHARGES)
+    GET(peakCountMap, gpad, myDigit.time) = 1;
+#endif
 }
 
 
@@ -596,7 +677,8 @@ void findPeaks(
         global const charge_t *chargeMap,
         global const Digit    *digits,
                      uint      digitnum,
-        global       uchar    *isPeakPredicate)
+        global       uchar    *isPeakPredicate,
+        global       uchar    *peakMap)
 {
     size_t idx = get_global_linear_id();
 
@@ -623,6 +705,42 @@ void findPeaks(
     }
 
     isPeakPredicate[idx] = peak;
+
+    const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GET(peakMap, gpad, myDigit.time) = peak;
+}
+
+
+kernel
+void countPeaks(
+        global const uchar *peakMap,
+        global const Digit *digits,
+               const uint   digitnum,
+        global const uchar *isPeak,
+        global       uchar *peakCountMap)
+{
+    size_t idx = get_global_linear_id();
+
+    bool iamDummy = (idx >= digitnum);
+    /* idx = select(idx, (size_t)(digitnum-1), (size_t)iamDummy); */
+    idx = iamDummy ? digitnum-1 : idx;
+
+    Digit myDigit = digits[idx];
+
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    uchar peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
+
+    if (iamDummy)
+    {
+        return;
+    }
+
+    bool iamPeak  = isPeak[idx];
+    /* peakCount = select(peakCount, (uchar) (PCMask_Has3x3Peak | 1), (uchar)iamPeak); */
+    peakCount = iamPeak ? PCMask_Has3x3Peak | 1 : peakCount;
+
+    GET(peakCountMap, gpad, myDigit.time) = peakCount;
 }
 
 
@@ -630,10 +748,12 @@ kernel
 void computeClusters(
         global const charge_t *chargeMap,
         global const Digit    *digits,
+        global const uchar    *peakCountMap,
         global const int      *globalToLocalRow,
         global const int      *globalRowToCru,
                      uint      clusternum,
-        global       Cluster  *clusters)
+        global       Cluster  *clusters,
+        global       uchar    *peakMap)
 {
     uint idx = get_global_linear_id();
 
@@ -650,24 +770,30 @@ void computeClusters(
     const ushort N = 8;
     local ChargePos posBcast[N];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
+    local charge_t  pcbuf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
     local uchar     innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 
     buildClusterScratchPad(
             chargeMap,
             (ChargePos){gpad, myDigit.time},
+            peakCountMap,
             N,
             posBcast,
             buf,
+            pcbuf,
             innerAboveThreshold,
             &pc);
 #else
-    buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
+    buildClusterNaive(chargeMap, peakCountMap, &pc, gpad, myDigit.time);
 #endif
-
 
     Cluster myCluster;
     finalizeCluster(
             &pc, &myDigit, globalToLocalRow, globalRowToCru, &myCluster);
 
     clusters[idx] = myCluster;
+
+#if defined(SPLIT_CHARGES)
+    GET(peakMap, gpad, myDigit.time) = 0;
+#endif
 }

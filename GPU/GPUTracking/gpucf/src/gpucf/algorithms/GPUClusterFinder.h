@@ -1,13 +1,12 @@
 #pragma once
 
+#include <gpucf/algorithms/ClusterFinderConfig.h>
+#include <gpucf/algorithms/StreamCompaction.h>
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Event.h>
 #include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
-#include <gpucf/algorithms/ChargemapLayout.h>
-#include <gpucf/algorithms/ClusterBuilder.h>
-#include <gpucf/algorithms/StreamCompaction.h>
 
 #include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>
@@ -28,32 +27,17 @@ class GPUClusterFinder
 
 public:
 
-    struct Config
-    {
-        size_t chunks = 1;
-
-        bool usePackedDigits = true;
-
-        bool halfPrecisionCharges = false;
-
-        ChargemapLayout layout = ChargemapLayout::TimeMajor;
-
-        ClusterBuilder clusterbuilder = ClusterBuilder::Naive;
-
-        bool useChargemapMacro = false; //< Hunting ghosts with this option...
-    };
-    
     struct Result
     {
         std::vector<Cluster> clusters;
         std::vector<Step> profiling; 
     };
 
-    static const Config defaultConfig;
+    static const ClusterFinderConfig defaultConfig;
 
     std::vector<Digit> getPeaks() const;
 
-    void setup(Config, ClEnv &, nonstd::span<const Digit>);
+    void setup(ClusterFinderConfig, ClEnv &, nonstd::span<const Digit>);
 
     Result run();
 
@@ -64,6 +48,8 @@ private:
         cl::Buffer isPeak;
         cl::Buffer peaks;
         cl::Buffer chargeMap;
+        cl::Buffer peakMap;
+        cl::Buffer peakCountMap;
         cl::Buffer cluster;
 
         cl::Buffer globalToLocalRow;
@@ -106,13 +92,15 @@ private:
         Event zeroChargeMap;
         Event fillingChargeMap;
         Event findingPeaks;
+        Event countingPeaks;
         Event computingClusters;
         Event clustersToHost;
 
         cl::Kernel findPeaks;
         cl::Kernel fillChargeMap;
+        cl::Kernel countPeaks;
         cl::Kernel computeClusters;
-        cl::Kernel resetChargeMap;
+        cl::Kernel resetMaps;
 
         DeviceMemory mem;
         StreamCompaction::Worker streamCompaction;
@@ -124,7 +112,7 @@ private:
 
         size_t clusterend;
 
-        Config config;
+        ClusterFinderConfig config;
 
 
         Worker(
@@ -132,7 +120,7 @@ private:
                 cl::Device, 
                 cl::Program, 
                 DeviceMemory, 
-                Config,
+                ClusterFinderConfig,
                 StreamCompaction::Worker,
                 Worker *);
 
@@ -170,7 +158,7 @@ private:
             const std::vector<int> &,
             const std::vector<Digit> &);
 
-    Config config;
+    ClusterFinderConfig config;
 
     nonstd::span<const Digit> digits;
     std::vector<PackedDigit>  packedDigits;

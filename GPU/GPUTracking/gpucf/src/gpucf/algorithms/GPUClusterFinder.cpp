@@ -17,7 +17,7 @@ using nonstd::optional;
 using nonstd::nullopt;
 
 
-const GPUClusterFinder::Config GPUClusterFinder::defaultConfig;
+const ClusterFinderConfig GPUClusterFinder::defaultConfig;
 
 
 GPUClusterFinder::Worker::Worker(
@@ -25,7 +25,7 @@ GPUClusterFinder::Worker::Worker(
         cl::Device  device,
         cl::Program program,
         DeviceMemory mem,
-        Config config,
+        ClusterFinderConfig config,
         StreamCompaction::Worker streamCompaction,
         Worker *prev)
     : mem(mem)
@@ -47,9 +47,10 @@ GPUClusterFinder::Worker::Worker(
     log::Debug() << "finished creating cleanup queue.";
 
     fillChargeMap    = cl::Kernel(program, "fillChargeMap");
-    resetChargeMap   = cl::Kernel(program, "resetChargeMap");
     findPeaks        = cl::Kernel(program, "findPeaks");
+    countPeaks       = cl::Kernel(program, "countPeaks");
     computeClusters  = cl::Kernel(program, "computeClusters");
+    resetMaps        = cl::Kernel(program, "resetMaps");
 
     if (prev != nullptr)
     {
@@ -172,6 +173,7 @@ void GPUClusterFinder::Worker::run(
     findPeaks.setArg(1, mem.digits);
     findPeaks.setArg(2, static_cast<cl_uint>(maybePeaksNum));
     findPeaks.setArg(3, mem.isPeak);
+    findPeaks.setArg(4, mem.peakMap);
     clustering.enqueueNDRangeKernel(
             findPeaks,
             cl::NDRange(range.start),
@@ -194,6 +196,27 @@ void GPUClusterFinder::Worker::run(
 
     DBG(clusternum);
     ASSERT(clusternum <= range.backlog + range.items);
+    
+
+    /*************************************************************************
+     * Count peaks around digits
+     ************************************************************************/
+
+    if (config.splitCharges)
+    {
+        countPeaks.setArg(0, mem.peakMap);
+        countPeaks.setArg(1, mem.digits);
+        countPeaks.setArg(2, static_cast<cl_uint>(maybePeaksNum));
+        countPeaks.setArg(3, mem.isPeak);
+        countPeaks.setArg(4, mem.peakCountMap);
+        clustering.enqueueNDRangeKernel(
+                countPeaks,
+                cl::NDRange(range.start),
+                cl::NDRange(peakfinderWorkitems),
+                local,
+                nullptr,
+                countingPeaks.get());
+    }
 
 
     /*************************************************************************
@@ -209,10 +232,12 @@ void GPUClusterFinder::Worker::run(
 
         computeClusters.setArg(0, mem.chargeMap);
         computeClusters.setArg(1, mem.peaks);
-        computeClusters.setArg(2, mem.globalToLocalRow);
-        computeClusters.setArg(3, mem.globalRowToCru);
-        computeClusters.setArg(4, cl_uint(clusternum));
-        computeClusters.setArg(5, mem.cluster);
+        computeClusters.setArg(2, mem.peakCountMap);
+        computeClusters.setArg(3, mem.globalToLocalRow);
+        computeClusters.setArg(4, mem.globalRowToCru);
+        computeClusters.setArg(5, cl_uint(clusternum));
+        computeClusters.setArg(6, mem.cluster);
+        computeClusters.setArg(7, mem.peakMap);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
                 offset,
@@ -238,10 +263,11 @@ void GPUClusterFinder::Worker::run(
         clustering.enqueueBarrierWithWaitList(&ev);
     }
 
-    resetChargeMap.setArg(0, mem.digits);
-    resetChargeMap.setArg(1, mem.chargeMap);
+    resetMaps.setArg(0, mem.digits);
+    resetMaps.setArg(1, mem.chargeMap);
+    resetMaps.setArg(2, mem.peakCountMap);
     clustering.enqueueNDRangeKernel(
-            resetChargeMap,
+            resetMaps,
             cl::NDRange(range.start),
             cl::NDRange(range.backlog + range.items),
             local,
@@ -312,7 +338,10 @@ std::vector<Digit> GPUClusterFinder::getPeaks() const
     return peaks;
 }
 
-void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> digits)
+void GPUClusterFinder::setup(
+        ClusterFinderConfig        conf, 
+        ClEnv                     &env, 
+        nonstd::span<const Digit>  digits)
 {
     ASSERT(conf.chunks > 0);
 
@@ -331,9 +360,6 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
     context = env.getContext(); 
     device  = env.getDevice();
 
-    
-
-    
     /*************************************************************************
      * Allocate clusters output
      ************************************************************************/
@@ -390,11 +416,16 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
     size_t chargeSize = 
         (config.halfPrecisionCharges) ? sizeof(cl_half)
                                       : sizeof(cl_float);
-    size_t chargeMapSize  = 
-        numOfRows * TPC_PADS_PER_ROW_PADDED 
-        * TPC_MAX_TIME_PADDED 
-        * chargeSize;
+
+    size_t mapEntries = numOfRows 
+        * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED;
+
+    size_t chargeMapSize  = mapEntries * chargeSize;
     mem.chargeMap = cl::Buffer(context, CL_MEM_READ_WRITE, chargeMapSize);
+
+    size_t peakMapSize = mapEntries * sizeof(cl_uchar);
+    mem.peakMap      = cl::Buffer(context, CL_MEM_READ_WRITE, peakMapSize);
+    mem.peakCountMap = cl::Buffer(context, CL_MEM_READ_WRITE, peakMapSize);
 
 
     /************************************************************************
@@ -447,6 +478,19 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
             0.0f, 
             0, 
             chargeMapSize);
+
+    ASSERT(peakMapSize > 0);
+    initQueue.enqueueFillBuffer(
+            mem.peakMap,
+            cl_uchar(0),
+            0,
+            peakMapSize);
+
+    initQueue.enqueueFillBuffer(
+            mem.peakCountMap,
+            cl_uchar(1),
+            0,
+            peakMapSize);
 
     initQueue.finish();
 }
@@ -613,14 +657,14 @@ void GPUClusterFinder::addDefines(ClEnv &env)
         env.addDefine("USE_PACKED_DIGIT");
     }
 
-    if (config.useChargemapMacro)
-    {
-        env.addDefine("CHARGEMAP_IDX_MACRO");
-    }
-
     if (config.halfPrecisionCharges)
     {
         env.addDefine("CHARGEMAP_TYPE_HALF");
+    }
+
+    if (config.splitCharges)
+    {
+        env.addDefine("SPLIT_CHARGES");
     }
 }
 
@@ -633,7 +677,7 @@ std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
         {"findPeaks", p.findingPeaks},
         p.streamCompaction.asStep("compactPeaks"),
         {"computeCluster", p.computingClusters},
-        {"resetChargeMap", p.zeroChargeMap},
+        {"resetMaps", p.zeroChargeMap},
         {"clusterToHost", p.clustersToHost},
     };
 
