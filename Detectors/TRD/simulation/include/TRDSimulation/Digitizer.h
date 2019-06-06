@@ -31,16 +31,14 @@ class Digitizer
  public:
   Digitizer();
   ~Digitizer() = default;
-  void process(std::vector<HitType> const&, DigitContainer_t&, DigitIndexContainer_t&);
+  void process(std::vector<HitType> const&, DigitContainer_t&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
 
  private:
-  // TRDCalibDB *mCalib = nullptr;
-  TRDGeometry* mGeo = nullptr;
-  PadResponse* mPRF = nullptr;
-
+  TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
+  PadResponse* mPRF = nullptr;            // access to PadResponse
   TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
   TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
 
@@ -48,17 +46,16 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  bool mSDigits; // true: convert signals to summable digits, false by default
-
+  bool mSDigits{ false };             // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // The container of hits in a given detector
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, DigitMapContainer_t&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, int&);                                   // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, int&);                                  // True if singal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, int&);                                      // True if signal-to-ADC conversion is successful
-  bool diffusion(float, double, double, double&, double&, double&);               // True if diffusion is applied successfully
+  bool convertHits(const int, const std::vector<HitType>&, ArrayADCMapContainer_t&); // True if hit-to-signal conversion is successful
+  bool convertSignalsToDigits(const int, ArrayADCMapContainer_t&);                   // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(const int, ArrayADCMapContainer_t&);                  // True if signal-to-sdigit conversion is successful
+  bool convertSignalsToADC(const int, ArrayADCMapContainer_t&);                      // True if signal-to-ADC conversion is successful
+  bool diffusion(float, double, double, double&, double&, double&);                  // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2
