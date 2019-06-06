@@ -26,9 +26,16 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "ReconstructionDataFormats/Vertex.h"
+
+#include "ITStracking/ROframe.h"
+#include "ITStracking/IOUtils.h"
+#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerTraits.h"
 #endif
 
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
@@ -149,10 +156,20 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     std::cout << "entry nclusters offset " << entry << ' ' << clusters->size() << ' ' << offset << '\n';
   }
 
-  std::vector<std::array<Double_t, 3>> vertices;
-  vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
-  tracker.setVertices(vertices);
-  tracker.process(allClusters, tracksITS, trackClIdx, *rofs);
+  o2::its::VertexerTraits vertexerTraits;
+  o2::its::Vertexer vertexer(&vertexerTraits);
+  o2::its::ROframe event(0);
+
+  for (auto& rof : *rofs) {
+    o2::its::IOUtils::loadROFrameData(rof, event, &allClusters, &allLabels);
+    vertexer.clustersToVertices(event);
+    auto vertices = vertexer.exportVertices();
+    if (vertices.empty()) {
+      vertices.emplace_back();
+    }
+    tracker.setVertices(vertices);
+    tracker.process(allClusters, tracksITS, trackClIdx, rof);
+  }
   outTree.Fill();
   treeROF.Fill();
 
