@@ -9,20 +9,25 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsFITT0/RecPoints.h"
-#include "T0Base/Geometry.h"
 #include <cassert>
 #include <iostream>
 #include <CommonDataFormat/InteractionRecord.h>
 
 using namespace o2::t0;
 
+namespace
+{
+constexpr int NCellsA = 24; // number of radiatiors on A side
+constexpr int NCellsC = 28; // number of radiatiors on C side
+} // namespace
+
 void RecPoints::fillFromDigits(const o2::t0::Digit& digit)
 {
   mCollisionTime = {};
 
   Int_t ndigitsC = 0, ndigitsA = 0;
-  constexpr Int_t nMCPsA = 4 * o2::t0::Geometry::NCellsA;
-  constexpr Int_t nMCPsC = 4 * o2::t0::Geometry::NCellsC;
+  constexpr Int_t nMCPsA = 4 * NCellsA;
+  constexpr Int_t nMCPsC = 4 * NCellsC;
   constexpr Int_t nMCPs = nMCPsA + nMCPsC;
   Float_t sideAtime = 0, sideCtime = 0;
 

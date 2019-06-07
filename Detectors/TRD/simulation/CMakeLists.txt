@@ -1,22 +1,10 @@
-SET(MODULE_NAME TRDSimulation)
+o2_add_library(TRDSimulation SOURCES src/Detector.cxx src/TRsim.cxx
+               src/Digitizer.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::DetectorsBase
+               O2::SimulationDataFormat
+               O2::TRDBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-SET(SRCS
-  src/Detector.cxx
-  src/TRsim.cxx
-  src/Digitizer.cxx
-)
-SET(HEADERS
-  include/${MODULE_NAME}/Detector.h
-  include/${MODULE_NAME}/TRsim.h
-  include/${MODULE_NAME}/Digitizer.h
-)
-
-SET(LINKDEF src/TRDSimulationLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME trd_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-INSTALL(DIRECTORY data DESTINATION share/Detectors/TRD/simulation)
+o2_target_root_dictionary(TRDSimulation HEADERS include/TRDSimulation/Detector.h
+                          include/TRDSimulation/TRsim.h
+                          include/TRDSimulation/Digitizer.h)

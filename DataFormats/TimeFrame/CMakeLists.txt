@@ -1,29 +1,17 @@
-# @author Sandro Wenzel
-# @brief  cmake setup for module DataFormats/TimeFrame
+o2_add_library(TimeFrame
+               SOURCES
+               src/TimeFrame.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairMQ::FairMQ
+               O2::Headers
+               ROOT::RIO)
 
-set(MODULE_NAME "TimeFrame")
-set(MODULE_BUCKET_NAME TimeFrame_bucket)
+o2_target_root_dictionary(TimeFrame HEADERS include/TimeFrame/TimeFrame.h)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/TimeFrame.cxx
-)
-
-# define headers
-set(HEADERS include/TimeFrame/TimeFrame.h)
-
-set(LINKDEF src/TimeFrameLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/TimeFrameTest.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS})
+o2_add_test(TimeFrameTest
+            SOURCES
+            test/TimeFrameTest.cxx
+            PUBLIC_LINK_LIBRARIES
+            TimeFrame
+            COMPONENT_NAME
+            DataFormats)

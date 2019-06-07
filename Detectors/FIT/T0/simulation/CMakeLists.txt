@@ -1,19 +1,9 @@
-set(MODULE_NAME "T0Simulation")
+o2_add_library(T0Simulation
+               SOURCES
+               src/Detector.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::SimulationDataFormat
+               O2::T0Base
+               O2::DataFormatsFITT0)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Detector.cxx
-  #src/DigitizerTask.cxx
-  )
-
-set(HEADERS
-    include/${MODULE_NAME}/Detector.h
-    #include/${MODULE_NAME}/DigitizerTask.h
-    )
-
-Set(LINKDEF src/T0SimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(T0Simulation HEADERS include/T0Simulation/Detector.h)

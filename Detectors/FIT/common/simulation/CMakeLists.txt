@@ -1,21 +1,8 @@
-set(MODULE_NAME "FITSimulation")
+o2_add_library(FITSimulation SOURCES src/Digitizer.cxx
+        PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+        O2::DataFormatsFITT0
+        O2::T0Simulation)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Digitizer.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Digitizer.h
-    include/${MODULE_NAME}/DigitizationParameters.h
-    )
-
-
-Set(LINKDEF src/FITSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-
+o2_target_root_dictionary(FITSimulation HEADERS
+                          include/FITSimulation/Digitizer.h
+                          include/FITSimulation/DigitizationParameters.h)

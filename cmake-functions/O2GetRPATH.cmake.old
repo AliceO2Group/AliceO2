@@ -1,0 +1,57 @@
+include(O2GetTargetDependencies)
+
+#
+# o2_get_rpath(target ...) builds a RPATH list using all the dependencies of the
+# given target.
+#
+# * RPATH : the name of the variable that is used to return the rpath values.
+#
+# Not so sure this one is very robust, as treatment has to be different
+# depending on the target type, due to some CMake limitations (or
+# misunderstandings on my part ?). But unfortunately, there is currently nothing
+# in CMake that offers this functionality.
+#
+function(o2_get_rpath)
+
+  message(FATAL_ERROR "DO NOT USE ME. TOO SLOW. TOO FRAGILE")
+
+  cmake_parse_arguments(PARSE_ARGV
+                        1
+                        A
+                        ""
+                        "RPATH"
+                        "")
+  if(A_UNPARSED_ARGUMENTS)
+    message(
+      FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
+  endif()
+
+  set(target ${ARGV0})
+  o2_get_target_dependencies(${target} DEPLIST deplist)
+  list(REMOVE_DUPLICATES deplist)
+  # message(STATUS "========= ${target}")
+  foreach(d IN LISTS deplist)
+    if(NOT TARGET ${d})
+      continue()
+    endif()
+    get_property(isImported TARGET ${d} PROPERTY IMPORTED)
+    get_property(targetType TARGET ${d} PROPERTY TYPE)
+    # message(STATUS " > DEP ${d} isImported ${isImported} type ${targetType}")
+    if(isImported)
+      if(NOT "${targetType}" STREQUAL "INTERFACE_LIBRARY")
+        get_property(lib TARGET ${d} PROPERTY LOCATION)
+        get_filename_component(dir ${lib} DIRECTORY)
+        list(APPEND rp ${dir})
+      else()
+        get_property(lib TARGET ${d} PROPERTY INTERFACE_LINK_LIBRARIES)
+        foreach(f in LISTS ${lib})
+          if(IS_ABSOLUTE ${f})
+            get_filename_component(dir ${f} DIRECTORY)
+            list(APPEND rp ${dir})
+          endif()
+        endforeach()
+      endif()
+    endif()
+  endforeach()
+  set(${A_RPATH} ${rp} PARENT_SCOPE)
+endfunction()

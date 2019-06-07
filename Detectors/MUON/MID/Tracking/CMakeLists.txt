@@ -1,14 +1,8 @@
-set(MODULE_NAME "MIDTracking")
+o2_add_library(MIDTracking SOURCES src/Tracker.cxx
+        PUBLIC_LINK_LIBRARIES O2::DataFormatsMID
+        O2::MIDBase
+        O2::MIDTestingSimTools)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-   src/Tracker.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_tracking_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

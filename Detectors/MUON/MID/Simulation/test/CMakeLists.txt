@@ -1,12 +1,19 @@
-O2_SETUP(NAME "MIDSimulationTest")
-set(BUCKET_NAME mid_simulation_test_bucket)
+o2_add_test(Geometry
+            SOURCES
+            testGeometry.cxx
+            PUBLIC_LINK_LIBRARIES
+            O2::MIDSimulation
+            COMPONENT_NAME
+            mid
+            LABELS
+            mid)
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS testGeometry.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS testSimulation.cxx
-)
+o2_add_test(Simulation
+            SOURCES
+            testSimulation.cxx
+            PUBLIC_LINK_LIBRARIES
+            O2::MIDSimulation
+            COMPONENT_NAME
+            mid
+            LABELS
+            "mid;slow")

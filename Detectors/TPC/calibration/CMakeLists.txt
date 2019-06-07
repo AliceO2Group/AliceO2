@@ -1,27 +1,26 @@
-# Libraries
 add_subdirectory(SpacePoints)
 
-set(MODULE_NAME "TPCCalibration")
+o2_add_library(TPCCalibration
+               SOURCES
+               src/CalibRawBase.cxx
+               src/CalibPedestal.cxx
+               src/CalibPulser.cxx
+               src/CalibTreeDump.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::DataFormatsTPC
+               O2::TPCBase
+               O2::TPCReconstruction
+               ROOT::Minuit)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(TPCCalibration
+                          HEADERS
+                          include/TPCCalibration/CalibRawBase.h
+                          include/TPCCalibration/CalibPedestal.h
+                          include/TPCCalibration/CalibPulser.h
+                          include/TPCCalibration/CalibTreeDump.h)
 
-link_directories( ${LINK_DIRECTORIES})
-
-set(SRCS
-  src/CalibRawBase.cxx
-  src/CalibPedestal.cxx
-  src/CalibPulser.cxx
-  src/CalibTreeDump.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/CalibRawBase.h
-  include/${MODULE_NAME}/CalibPedestal.h
-  include/${MODULE_NAME}/CalibPulser.h
-  include/${MODULE_NAME}/CalibTreeDump.h
-)
-Set(LINKDEF src/${MODULE_NAME}LinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME tpc_calibration_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_add_test_root_macro(macro/comparePedestalsAndNoise.C PUBLIC_LINK_LIBRARIES
+                       TPCBase)
+o2_add_test_root_macro(macro/drawNoiseAndPedestal.C PUBLIC_LINK_LIBRARIES
+                       TPCBase)
+o2_add_test_root_macro(macro/runPedestal.C PUBLIC_LINK_LIBRARIES TPCCalibration)

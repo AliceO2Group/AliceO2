@@ -1,22 +1,12 @@
-set(MODULE_NAME "ITSBase")
+o2_add_library(ITSBase
+               SOURCES
+               src/GeometryTGeo.cxx
+               src/ContainerFactory.cxx
+               src/MisalignmentParameter.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::DetectorsBase
+               O2::ITSMFTBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/GeometryTGeo.cxx
-    src/ContainerFactory.cxx
-    src/MisalignmentParameter.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/GeometryTGeo.h
-    include/${MODULE_NAME}/ContainerFactory.h
-    include/${MODULE_NAME}/MisalignmentParameter.h
-    )
-
-
-Set(LINKDEF src/ITSBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME its_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(ITSBase HEADERS include/ITSBase/GeometryTGeo.h
+                          include/ITSBase/ContainerFactory.h
+                          include/ITSBase/MisalignmentParameter.h)

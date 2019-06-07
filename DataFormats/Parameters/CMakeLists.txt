@@ -1,18 +1,17 @@
-set(MODULE_NAME "DataFormatsParameters")
+o2_add_library(DataFormatsParameters
+               SOURCES
+               src/GRPObject.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairRoot::Base
+               O2::CommonConstants
+               O2::CommonTypes
+               O2::DetectorsCommonDataFormats)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/GRPObject.cxx
-)
-
-Set(HEADERS
-    include/${MODULE_NAME}/GRPObject.h
-)
-
-Set(LINKDEF src/ParametersDataLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-Set(BUCKET_NAME data_parameters_bucket)
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(DataFormatsParameters HEADERS
+                          include/DataFormatsParameters/GRPObject.h LINKDEF
+                          src/ParametersDataLinkDef.h)
+# note we are explicitely giving the LINKDEF parameter as the LinkDef does not
+# follow the usual naming scheme [module]LinkDef.h
+#
+# * should be src/DataFormatParametersLinkDef.h
+# * is src/ParametersDataLinkDef.h instead

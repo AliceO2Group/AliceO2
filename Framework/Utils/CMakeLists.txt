@@ -8,11 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-set(MODULE_NAME "DPLUtils")
-set(MODULE_BUCKET_NAME DPLUtils_bucket)
-
-O2_SETUP(NAME ${MODULE_NAME})
-set(SRCS
+o2_add_library(DPLUtils
+        SOURCES
         src/Utils.cxx
         src/DPLBroadcaster.cxx
         src/DPLGatherer.cxx
@@ -20,41 +17,35 @@ set(SRCS
         src/DPLRouter.cxx
         test/DPLBroadcasterMerger.cxx
         test/DPLOutputTest.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::Framework
         )
 
-set(HEADERS
-        include/Utils/Utils.h
-        include/Utils/RootTreeReader.h
-        )
 
-## TODO: feature of macro, it deletes the variables we pass to it, set them again
-## this has to be fixed in the macro implementation
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+# FIXME: this one seg fault.
+# o2_add_test(DPLBroadcasterMerger
+#         SOURCES
+#         src/Utils.cxx test/test_DPLBroadcasterMerger.cxx test/DPLBroadcasterMerger.cxx src/DPLMerger.cxx src/DPLBroadcaster.cxx
+#         PUBLIC_LINK_LIBRARIES
+#         O2::DPLUtils
+#         COMPONENT_NAME DPLUtils)
 
-O2_GENERATE_LIBRARY()
+# FIXME: this one never ends ? or is doing too much ? check that.
+# o2_add_test(DPLOutput
+#         SOURCES src/Utils.cxx test/test_DPLOutputTest.cxx test/DPLOutputTest.cxx
+#         PUBLIC_LINK_LIBRARIES
+#         O2::DPLUtils
+#         COMPONENT_NAME DPLUtils
+#         LABELS slow)
 
-O2_FRAMEWORK_WORKFLOW(
-        WORKFLOW_NAME "test_DPLBroadcasterMerger"
-        DETECTOR_BUCKETS DPLUtils_bucket
-        SOURCES src/Utils.cxx test/test_DPLBroadcasterMerger.cxx test/DPLBroadcasterMerger.cxx src/DPLMerger.cxx src/DPLBroadcaster.cxx
-)
+o2_add_test(RootTreeWriter
+        SOURCES test/test_RootTreeWriter.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::DPLUtils
+        COMPONENT_NAME DPLUtils)
 
-O2_FRAMEWORK_WORKFLOW(
-        WORKFLOW_NAME "test_DPLOutputTest"
-        DETECTOR_BUCKETS DPLUtils_bucket
-        SOURCES src/Utils.cxx test/test_DPLOutputTest.cxx test/DPLOutputTest.cxx
-)
-
-set(TEST_SRCS
-    #  test/test_RootTreeReader.cxx
-      test/test_RootTreeWriter.cxx
-    #  test/test_RootTreeWriterWorkflow.cxx
-   )
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-  TIMEOUT 60
-)
+o2_add_test(RootTreeWriterWorkflow
+        SOURCES test/test_RootTreeWriterWorkflow.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::DPLUtils
+        COMPONENT_NAME DPLUtils)

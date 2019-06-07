@@ -1,16 +1,10 @@
-set(MODULE_NAME "MIDClustering")
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-   src/Clusterizer.cxx
-   src/PreClusterizer.cxx
-   src/PreClusters.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_clustering_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+o2_add_library(MIDClustering
+               SOURCES
+               src/Clusterizer.cxx
+               src/PreClusterizer.cxx
+               src/PreClusters.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::MIDBase)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

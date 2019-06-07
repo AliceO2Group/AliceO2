@@ -1,21 +1,5 @@
-SET(MODULE_NAME PHOSBase)
+o2_add_library(PHOSBase SOURCES src/Geometry.cxx src/Hit.cxx src/Digit.cxx
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Geometry.cxx
-  src/Hit.cxx
-  src/Digit.cxx
- )
-
-set(HEADERS
-  include/${MODULE_NAME}/Geometry.h
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/Digit.h
-)
-
-SET(LINKDEF src/PHOSBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME phos_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(PHOSBase HEADERS include/PHOSBase/Geometry.h
+                          include/PHOSBase/Hit.h include/PHOSBase/Digit.h)

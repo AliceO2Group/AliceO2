@@ -1,21 +1,5 @@
-SET(MODULE_NAME CPVBase)
+o2_add_library(CPVBase SOURCES src/Geometry.cxx src/Hit.cxx src/Digit.cxx
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Geometry.cxx
-  src/Hit.cxx
-  src/Digit.cxx
- )
-
-set(HEADERS
-  include/${MODULE_NAME}/Geometry.h
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/Digit.h
-)
-
-SET(LINKDEF src/CPVBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME cpv_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(CPVBase HEADERS include/CPVBase/Geometry.h
+                          include/CPVBase/Hit.h include/CPVBase/Digit.h)

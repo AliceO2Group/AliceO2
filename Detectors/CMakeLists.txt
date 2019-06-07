@@ -1,36 +1,29 @@
-# **************************************************************************
-# * Copyright(c) 1998-2014, ALICE Experiment at CERN, All rights reserved. *
-# *                                                                        *
-# * Author: The ALICE Off-line Project.                                    *
-# * Contributors are mentioned in the code where appropriate.              *
-# *                                                                        *
-# * Permission to use, copy, modify and distribute this software and its   *
-# * documentation strictly for non-commercial purposes is hereby granted   *
-# * without fee, provided that the above copyright notice appears in all   *
-# * copies and that both the copyright notice and this permission notice   *
-# * appear in the supporting documentation. The authors make no claims     *
-# * about the suitability of this software for any purpose. It is          *
-# * provided "as is" without express or implied warranty.                  *
-# **************************************************************************
+# * add_subdirectory(Base) # already done earlier in src/CMakeLists.txt
 
-# Libraries
-add_subdirectory(Base)
-add_subdirectory(Passive)
-add_subdirectory(ITSMFT)
-add_subdirectory(TPC)
-add_subdirectory(EMCAL)
-add_subdirectory(HMPID)
-add_subdirectory(TOF)
-add_subdirectory(TRD)
-add_subdirectory(FIT)
+add_subdirectory(Passive) # must be first as some detector's macros use it
+
 add_subdirectory(PHOS)
 add_subdirectory(CPV)
-add_subdirectory(MUON)
+add_subdirectory(EMCAL)
+add_subdirectory(FIT)
+add_subdirectory(HMPID)
+add_subdirectory(TOF)
 add_subdirectory(ZDC)
+
+# already done earlier as they are required for GPU
+# and GPU is required for Detectors/TPC ...
+# * add_subdirectory(ITSMFT)
+# * add_subdirectory(TRD) 
+
+add_subdirectory(MUON)
+
+add_subdirectory(TPC)
+
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
-IF (HAVESIMULATION)
-  add_subdirectory(gconfig)
-ENDIF (HAVESIMULATION)
 
-Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)
+if(HAVESIMULATION)
+  add_subdirectory(gconfig)
+endif(HAVESIMULATION)
+
+install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)

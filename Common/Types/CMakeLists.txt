@@ -1,5 +1,2 @@
-set(INC_DIR include/CommonTypes)
-install(
-  DIRECTORY ${INC_DIR}
-  DESTINATION include
-)
+o2_add_header_only_library(CommonTypes)
+

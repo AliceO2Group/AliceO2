@@ -1,92 +1,133 @@
-set(MODULE_NAME "TPCReconstruction")
+o2_add_library(TPCReconstruction
+               SOURCES
+               src/AdcClockMonitor.cxx
+               src/ClustererTask.cxx
+               src/GBTFrame.cxx
+               src/GBTFrameContainer.cxx
+               src/HalfSAMPAData.cxx
+               src/HwClusterer.cxx
+               src/RawReader.cxx
+               src/RawReaderCRU.cxx
+               src/RawReaderEventSync.cxx
+               src/SyncPatternMonitor.cxx
+               src/GPUCATracking.cxx
+               src/HardwareClusterDecoder.cxx
+               src/DigitalCurrentClusterIntegrator.cxx
+               src/TPCFastTransformHelperO2.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairRoot::Base
+               O2::SimulationDataFormat
+               O2::TPCBase
+               O2::GPUTracking)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(
+  TPCReconstruction
+  HEADERS
+  include/TPCReconstruction/AdcClockMonitor.h
+  include/TPCReconstruction/Clusterer.h
+  include/TPCReconstruction/ClustererTask.h
+  include/TPCReconstruction/GBTFrame.h
+  include/TPCReconstruction/GBTFrameContainer.h
+  include/TPCReconstruction/HalfSAMPAData.h
+  include/TPCReconstruction/HwClusterer.h
+  include/TPCReconstruction/RawReader.h
+  include/TPCReconstruction/RawReaderCRU.h
+  include/TPCReconstruction/RawReaderEventSync.h
+  include/TPCReconstruction/SyncPatternMonitor.h
+  include/TPCReconstruction/GPUCATracking.h
+  include/TPCReconstruction/HardwareClusterDecoder.h
+  include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
+  include/TPCReconstruction/TPCFastTransformHelperO2.h)
 
-link_directories( ${LINK_DIRECTORIES})
+o2_add_executable(read-gbtframes
+                  COMPONENT_NAME
+                  tpc
+                  PUBLIC_LINK_LIBRARIES
+                  O2::TPCReconstruction
+                  SOURCES
+                  run/readGBTFrames.cxx)
+o2_add_executable(read-rawdata
+                  COMPONENT_NAME
+                  tpc
+                  PUBLIC_LINK_LIBRARIES
+                  O2::TPCReconstruction
+                  SOURCES
+                  run/readRawData.cxx)
+o2_add_executable(rawreader-cru
+                  COMPONENT_NAME
+                  tpc
+                  PUBLIC_LINK_LIBRARIES
+                  O2::TPCReconstruction
+                  SOURCES
+                  run/rawReaderCRU.cxx)
 
-set(SRCS
-   src/AdcClockMonitor.cxx
-   src/ClustererTask.cxx
-   src/GBTFrame.cxx
-   src/GBTFrameContainer.cxx
-   src/HalfSAMPAData.cxx
-   src/HwClusterer.cxx
-   src/RawReader.cxx
-   src/RawReaderCRU.cxx
-   src/RawReaderEventSync.cxx
-   src/SyncPatternMonitor.cxx
-   src/GPUCATracking.cxx
-   src/HardwareClusterDecoder.cxx
-   src/DigitalCurrentClusterIntegrator.cxx
-   src/TPCFastTransformHelperO2.cxx
-)
+o2_add_test(SyncPatternMonitor
+            COMPONENT_NAME
+            tpc
+            LABELS
+            tpc
+            PUBLIC_LINK_LIBRARIES
+            O2::TPCReconstruction
+            SOURCES
+            test/testTPCSyncPatternMonitor.cxx)
+o2_add_test(AdcClockMonitor
+            COMPONENT_NAME
+            tpc
+            LABELS
+            tpc
+            PUBLIC_LINK_LIBRARIES
+            O2::TPCReconstruction
+            SOURCES
+            test/testTPCAdcClockMonitor.cxx)
+o2_add_test(GPUCATracking
+            COMPONENT_NAME
+            tpc
+            LABELS
+            tpc
+            PUBLIC_LINK_LIBRARIES
+            O2::TPCReconstruction
+            SOURCES
+            test/testGPUCATracking.cxx)
+o2_add_test(HwClusterer
+            COMPONENT_NAME
+            tpc
+            LABELS
+            tpc
+            PUBLIC_LINK_LIBRARIES
+            O2::TPCReconstruction
+            SOURCES
+            test/testTPCHwClusterer.cxx)
+o2_add_test(FastTransform
+            COMPONENT_NAME
+            tpc
+            LABELS
+            tpc
+            PUBLIC_LINK_LIBRARIES
+            O2::TPCReconstruction
+            SOURCES
+            test/testTPCFastTransform.cxx)
 
-set(HEADERS
-   include/${MODULE_NAME}/AdcClockMonitor.h
-   include/${MODULE_NAME}/Clusterer.h
-   include/${MODULE_NAME}/ClustererTask.h
-   include/${MODULE_NAME}/GBTFrame.h
-   include/${MODULE_NAME}/GBTFrameContainer.h
-   include/${MODULE_NAME}/HalfSAMPAData.h
-   include/${MODULE_NAME}/HwClusterer.h
-   include/${MODULE_NAME}/RawReader.h
-   include/${MODULE_NAME}/RawReaderCRU.h
-   include/${MODULE_NAME}/RawReaderEventSync.h
-   include/${MODULE_NAME}/SyncPatternMonitor.h
-   include/${MODULE_NAME}/GPUCATracking.h
-   include/${MODULE_NAME}/HardwareClusterDecoder.h
-   include/${MODULE_NAME}/DigitalCurrentClusterIntegrator.h
-   include/${MODULE_NAME}/TPCFastTransformHelperO2.h
-)
-set(LINKDEF src/TPCReconstructionLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME tpc_reconstruction_bucket)
-
-O2_GENERATE_LIBRARY()
-
-Set(Exe_Names
-  o2-tpc-read-gbtframes
-  o2-tpc-read-rawdata
-  o2-tpc-rawreader-cru
-)
-
-
-Set(Exe_Source
-  run/readGBTFrames.cxx
-  run/readRawData.cxx
-  run/rawReaderCRU.cxx
-)
-
-# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(BUCKET_NAME tpc_reconstruction_bucket)
-set(LIBRARY_NAME ${MODULE_NAME})
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  # FIXME: propably a copy paste remnant, remove?
-#  Set(DEPENDENCIES CCDB)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-endforeach (_file RANGE 0 ${_length})
-
-set(TEST_SRCS
-  test/testTPCSyncPatternMonitor.cxx
-  test/testTPCAdcClockMonitor.cxx
-  test/testGPUCATracking.cxx
-  test/testTPCHwClusterer.cxx
-  test/testTPCFastTransform.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  MODULE_LIBRARY_NAME ${MODULE_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+# FIXME: should be moved to TPCCalibration as it requires O2::TPCCalibration
+# which is built after TPCReconstruction
+# o2_add_test_root_macro(macro/RawClusterFinder.C PUBLIC_LINK_LIBRARIES
+# O2::DataFormatsTPC O2::TPCBase O2::TPCCalibration O2::TPCReconstruction)
+o2_add_test_root_macro(macro/convertTracks.C PUBLIC_LINK_LIBRARIES
+                       O2::DataFormatsTPC O2::ReconstructionDataFormats)
+o2_add_test_root_macro(macro/dEdxRes.C PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+                       O2::TPCBase)
+o2_add_test_root_macro(macro/readClusterMCtruth.C PUBLIC_LINK_LIBRARIES
+                       O2::DataFormatsTPC O2::SimulationDataFormat)
+o2_add_test_root_macro(macro/readClusters.C PUBLIC_LINK_LIBRARIES
+                       O2::DataFormatsTPC O2::SimulationDataFormat O2::TPCBase)
+# FIXME: should be moved to TPCCalibration as it requires O2::TPCCalibration
+# which is built after TPCReconstruction
+# o2_add_test_root_macro(macro/runRawClusterFinder.C PUBLIC_LINK_LIBRARIES
+# O2::DataFormatsTPC O2::TPCBase O2::TPCCalibration O2::TPCReconstruction)
+o2_add_test_root_macro(macro/testClustererData.C PUBLIC_LINK_LIBRARIES
+                       O2::DataFormatsTPC O2::TPCBase O2::TPCReconstruction)
+o2_add_test_root_macro(macro/testRawRead.C PUBLIC_LINK_LIBRARIES
+                       O2::TPCReconstruction)
+# FIXME: should be moved to TPCSimulation as it requires O2::TPCSimulation
+# target which is built after reconstruction
+# o2_add_test_root_macro(macro/testTracks.C PUBLIC_LINK_LIBRARIES
+# ReconstructionDataFormats O2::TPCBase O2::DataFormatsTPC O2::TPCSimulation)

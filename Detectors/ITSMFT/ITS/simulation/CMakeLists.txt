@@ -1,24 +1,12 @@
-set(MODULE_NAME "ITSSimulation")
+o2_add_library(ITSSimulation
+               SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
+                       src/Detector.cxx src/V3Services.cxx
+               PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTSimulation
+                                     ROOT::Physics)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/V11Geometry.cxx
-    src/V1Layer.cxx
-    src/V3Layer.cxx
-    src/V3Services.cxx
-    src/Detector.cxx
-    )
-set(HEADERS
-    include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/V1Layer.h
-    include/${MODULE_NAME}/V3Layer.h
-    include/${MODULE_NAME}/V3Services.h
-    include/${MODULE_NAME}/V11Geometry.h
-    )
-
-Set(LINKDEF src/ITSSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME its_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(ITSSimulation
+                          HEADERS include/ITSSimulation/Detector.h
+                                  include/ITSSimulation/V1Layer.h
+                                  include/ITSSimulation/V3Layer.h
+                                  include/ITSSimulation/V11Geometry.h
+                                  include/ITSSimulation/V3Services.h)

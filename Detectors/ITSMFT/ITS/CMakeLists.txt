@@ -19,4 +19,4 @@ add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(tracking)
 add_subdirectory(workflow)
-
+add_subdirectory(macros)

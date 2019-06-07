@@ -1,22 +1,7 @@
-set(MODULE_NAME "V0Base")
+o2_add_library(V0Base SOURCES src/Geometry.cxx
+        PUBLIC_LINK_LIBRARIES ROOT::Geom
+        FairRoot::Base)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(V0Base HEADERS include/V0Base/Geometry.h)
 
-set(SRCS
-  src/Geometry.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Geometry.h
-    )
-
-Set(LINKDEF src/V0BaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
-install(
-  DIRECTORY files
-  DESTINATION share/Detectors/V0/
-)
+install(DIRECTORY files DESTINATION share/Detectors/V0/)
