@@ -140,7 +140,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -154,7 +154,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(time, padid, signal);
+    digits.emplace_back(time, detID, padid, signal);
     ++ndigits;
   });
   return ndigits;
@@ -166,7 +166,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits](int a, int b) {
-    return digits[a].getPadID() < digits[b].getPadID();
+      return ((100000*digits[a].getDetID() + digits[a].getPadID()) < (100000*digits[b].getDetID() + digits[b].getPadID()));
   });
 
   auto sortedDigits = [&digits, &indices](int i) {
@@ -186,14 +186,14 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
+    while (j < indices.size() && ( (100000*sortedDigits(i).getDetID() + sortedDigits(i).getPadID()) == (100000*sortedDigits(j).getDetID() + sortedDigits(j).getPadID()))) {
       j++;
     }
     float adc{ 0 };
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
     }
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
     i = j;
     ++count;
