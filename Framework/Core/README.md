@@ -524,7 +524,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
 }
 ```
 
-Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file.
+Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file. Dispatcher adds a `DataSamplingHeader` to the header stack, which contains statistics like total number of evaluated/accepted messages for a given Policy or the sampling time since epoch.
 
 [o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
 

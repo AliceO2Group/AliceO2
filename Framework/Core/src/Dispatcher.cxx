@@ -61,10 +61,14 @@ void Dispatcher::run(ProcessingContext& ctx)
         // todo: consider matching (and deciding) in completion policy to save some time
         if (policy->match(*input.spec) && policy->decide(input)) {
 
+          DataSamplingHeader dsHeader = prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>());
+
           if (!policy->getFairMQOutputChannel().empty()) {
-            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName());
+            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(dsHeader));
           } else {
-            send(ctx.outputs(), input, policy->prepareOutput(*input.spec));
+            Output output = policy->prepareOutput(*input.spec);
+            output.metaHeader = { output.metaHeader, dsHeader };
+            send(ctx.outputs(), input, std::move(output));
           }
         }
       }
@@ -72,14 +76,29 @@ void Dispatcher::run(ProcessingContext& ctx)
   }
 }
 
-void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
+DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec)
+{
+  uint64_t sampleTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
+  DataSamplingHeader::DeviceIDType id;
+  id.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
+
+  return {
+    sampleTime,
+    policy.getTotalAcceptedMessages(),
+    policy.getTotalEvaluatedMessages(),
+    id
+  };
+}
+
+void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const
 {
   const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
   dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
 }
 
 // ideally this should be in a separate proxy device or use Lifetime::External
-void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const
+void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel, DataSamplingHeader&& dsHeader) const
 {
   const auto* dh = header::get<header::DataHeader*>(inputData.header);
   assert(dh);
@@ -89,7 +108,7 @@ void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, cons
   header::DataHeader dhout{ dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize };
   dhout.payloadSerializationMethod = dh->payloadSerializationMethod;
   DataProcessingHeader dphout{ dph->startTime, dph->duration };
-  o2::header::Stack headerStack{ dhout, dphout };
+  o2::header::Stack headerStack{ dhout, dphout, dsHeader };
 
   auto channelAlloc = o2::pmr::getTransportAllocator(device->Transport());
   FairMQMessagePtr msgHeaderStack = o2::pmr::getMessage(std::move(headerStack), channelAlloc);

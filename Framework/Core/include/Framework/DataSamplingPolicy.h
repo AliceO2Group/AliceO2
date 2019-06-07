@@ -93,6 +93,8 @@ class DataSamplingPolicy
   // optional fairmq channel to send stuff outside of DPL
   const std::string& getFairMQOutputChannel() const;
   std::string getFairMQOutputChannelName() const;
+  uint32_t getTotalAcceptedMessages() const;
+  uint32_t getTotalEvaluatedMessages() const;
 
   static header::DataOrigin createPolicyDataOrigin();
   static header::DataDescription createPolicyDataDescription(std::string policyName, size_t id);
@@ -103,6 +105,10 @@ class DataSamplingPolicy
   header::DataHeader::SubSpecificationType mSubSpec;
   std::vector<std::unique_ptr<DataSamplingCondition>> mConditions;
   std::string mFairMQOutputChannel;
+
+  // stats
+  uint32_t mTotalAcceptedMessages = 0;
+  uint32_t mTotalEvaluatedMessages = 0;
 };
 
 } // namespace framework
