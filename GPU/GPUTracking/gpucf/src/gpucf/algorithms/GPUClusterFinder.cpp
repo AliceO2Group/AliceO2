@@ -208,7 +208,7 @@ void GPUClusterFinder::Worker::run(
         countPeaks.setArg(1, mem.digits);
         countPeaks.setArg(2, static_cast<cl_uint>(maybePeaksNum));
         countPeaks.setArg(3, mem.isPeak);
-        countPeaks.setArg(4, mem.peakCountMap);
+        countPeaks.setArg(4, mem.chargeMap);
         clustering.enqueueNDRangeKernel(
                 countPeaks,
                 cl::NDRange(range.start),
@@ -232,12 +232,11 @@ void GPUClusterFinder::Worker::run(
 
         computeClusters.setArg(0, mem.chargeMap);
         computeClusters.setArg(1, mem.peaks);
-        computeClusters.setArg(2, mem.peakCountMap);
-        computeClusters.setArg(3, mem.globalToLocalRow);
-        computeClusters.setArg(4, mem.globalRowToCru);
-        computeClusters.setArg(5, cl_uint(clusternum));
-        computeClusters.setArg(6, mem.cluster);
-        computeClusters.setArg(7, mem.peakMap);
+        computeClusters.setArg(2, mem.globalToLocalRow);
+        computeClusters.setArg(3, mem.globalRowToCru);
+        computeClusters.setArg(4, cl_uint(clusternum));
+        computeClusters.setArg(5, mem.cluster);
+        computeClusters.setArg(6, mem.peakMap);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
                 offset,
@@ -265,7 +264,6 @@ void GPUClusterFinder::Worker::run(
 
     resetMaps.setArg(0, mem.digits);
     resetMaps.setArg(1, mem.chargeMap);
-    resetMaps.setArg(2, mem.peakCountMap);
     clustering.enqueueNDRangeKernel(
             resetMaps,
             cl::NDRange(range.start),
@@ -425,7 +423,6 @@ void GPUClusterFinder::setup(
 
     size_t peakMapSize = mapEntries * sizeof(cl_uchar);
     mem.peakMap      = cl::Buffer(context, CL_MEM_READ_WRITE, peakMapSize);
-    mem.peakCountMap = cl::Buffer(context, CL_MEM_READ_WRITE, peakMapSize);
 
 
     /************************************************************************
@@ -483,12 +480,6 @@ void GPUClusterFinder::setup(
     initQueue.enqueueFillBuffer(
             mem.peakMap,
             cl_uchar(0),
-            0,
-            peakMapSize);
-
-    initQueue.enqueueFillBuffer(
-            mem.peakCountMap,
-            cl_uchar(1),
             0,
             peakMapSize);
 

@@ -49,7 +49,6 @@ private:
         cl::Buffer peaks;
         cl::Buffer chargeMap;
         cl::Buffer peakMap;
-        cl::Buffer peakCountMap;
         cl::Buffer cluster;
 
         cl::Buffer globalToLocalRow;
