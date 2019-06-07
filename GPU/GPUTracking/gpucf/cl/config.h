@@ -76,8 +76,10 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 }
 
 
-#define CHARGE(map, gpad, time) GET(map, gpad, time)
-#define GET(map, gpad, time)    map[chargemapIdx(gpad, time)]
+#define ACCESS_2D(map, idxFunc, gpad, time) map[idxFunc(gpad, time)]
+
+#define CHARGE(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
+#define IS_PEAK(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
 
 #endif //!defined(CONFIG_H)
 
