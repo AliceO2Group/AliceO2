@@ -125,7 +125,7 @@ void addOuterCharge(
     charge_t outerCharge = CHARGE(chargeMap, gpad+dp, time+dt);
 
 #if defined(SPLIT_CHARGES)
-    uchar pc = GET(peakCountMap, gpad+dp, time+dt);
+    uchar pc = IS_PEAK(peakCountMap, gpad+dp, time+dt);
 
     /* outerCharge = select(outerCharge, (charge_t)0.f, PCMask_Has3x3Peak & pc); */
     outerCharge = (PCMask_Has3x3Peak & pc) ? (charge_t)0.f : outerCharge;
@@ -151,7 +151,7 @@ charge_t addInnerCharge(
     charge_t q  = CHARGE(chargeMap, gpad+dp, time+dt);
 
 #if defined(SPLIT_CHARGES)
-    uchar pc = PCMask_PeakCount & GET(peakCountMap, gpad+dp, time+dt);
+    uchar pc = PCMask_PeakCount & IS_PEAK(peakCountMap, gpad+dp, time+dt);
     q /= pc;
 #endif
 
@@ -619,7 +619,7 @@ uchar countPeaksAroundDigit(
         delta2_t d = INNER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
-        peakCount += GET(peakMap, gpad+dp, time+dt);
+        peakCount += IS_PEAK(peakMap, gpad+dp, time+dt);
     }
 
     if (peakCount > 0)
@@ -632,7 +632,7 @@ uchar countPeaksAroundDigit(
         delta2_t d = OUTER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
-        peakCount += GET(peakMap, gpad+dp, time+dt);
+        peakCount += IS_PEAK(peakMap, gpad+dp, time+dt);
     }
 
     return peakCount;
@@ -667,7 +667,7 @@ void resetMaps(
     CHARGE(chargeMap, gpad, myDigit.time) = 0.f;
 
 #if defined(SPLIT_CHARGES)
-    GET(peakCountMap, gpad, myDigit.time) = 1;
+    IS_PEAK(peakCountMap, gpad, myDigit.time) = 1;
 #endif
 }
 
@@ -707,7 +707,7 @@ void findPeaks(
     isPeakPredicate[idx] = peak;
 
     const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-    GET(peakMap, gpad, myDigit.time) = peak;
+    IS_PEAK(peakMap, gpad, myDigit.time) = peak;
 }
 
 
@@ -740,7 +740,7 @@ void countPeaks(
     /* peakCount = select(peakCount, (uchar) (PCMask_Has3x3Peak | 1), (uchar)iamPeak); */
     peakCount = iamPeak ? PCMask_Has3x3Peak | 1 : peakCount;
 
-    GET(peakCountMap, gpad, myDigit.time) = peakCount;
+    IS_PEAK(peakCountMap, gpad, myDigit.time) = peakCount;
 }
 
 
@@ -794,6 +794,6 @@ void computeClusters(
     clusters[idx] = myCluster;
 
 #if defined(SPLIT_CHARGES)
-    GET(peakMap, gpad, myDigit.time) = 0;
+    IS_PEAK(peakMap, gpad, myDigit.time) = 0;
 #endif
 }
