@@ -1,23 +1,16 @@
-set(MODULE_NAME "ZDCSimulation")
+o2_add_library(ZDCSimulation
+               SOURCES
+               src/Detector.cxx
+               src/Digitizer.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::SimulationDataFormat
+               O2::ZDCBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(ZDCSimulation
+                          HEADERS
+                          include/ZDCSimulation/Hit.h
+                          include/ZDCSimulation/Digit.h
+                          include/ZDCSimulation/Digitizer.h
+                          include/ZDCSimulation/Detector.h)
 
-set(SRCS
-    src/Detector.cxx
-    src/Digitizer.cxx
-    src/Digit.cxx
-    )
-set(HEADERS
-    include/${MODULE_NAME}/Hit.h
-    include/${MODULE_NAME}/Digit.h
-    include/${MODULE_NAME}/Digitizer.h
-    include/${MODULE_NAME}/Detector.h
-    )
-
-Set(LINKDEF src/ZDCSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME zdc_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-INSTALL(DIRECTORY data DESTINATION share/Detectors/ZDC/simulation)
+install(DIRECTORY data DESTINATION share/Detectors/ZDC/simulation)

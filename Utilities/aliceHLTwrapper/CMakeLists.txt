@@ -1,60 +1,53 @@
-# @author Matthias Richter
-# @brief  cmake setup for module devices/aliceHLTwrapper
+# @author Matthias Richter @brief  cmake setup for module
+# devices/aliceHLTwrapper
 
-set(MODULE_NAME "aliceHLTwrapper")
+o2_add_library(aliceHLTwrapper
+               SOURCES
+               src/SystemInterface.cxx
+               src/HOMERFactory.cxx
+               src/WrapperDevice.cxx
+               src/Component.cxx
+               src/MessageFormat.cxx
+               src/EventSampler.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairMQ::FairMQ
+               O2::Headers
+               O2::O2Device
+               Boost::thread)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_executable(wrapper-device
+                  SOURCES
+                  src/aliceHLTWrapper.cxx
+                  COMPONENT_NAME
+                  alicehlt
+                  PUBLIC_LINK_LIBRARIES
+                  O2::aliceHLTwrapper)
 
-set(SRCS
-    src/SystemInterface.cxx
-    src/HOMERFactory.cxx
-    src/WrapperDevice.cxx
-    src/Component.cxx
-    src/MessageFormat.cxx
-    src/EventSampler.cxx
-    )
+o2_add_executable(eventsampler-device
+                  SOURCES
+                  src/aliceHLTEventSampler.cxx
+                  COMPONENT_NAME
+                  alicehlt
+                  PUBLIC_LINK_LIBRARIES
+                  O2::aliceHLTwrapper)
 
-set(LIBRARY_NAME ${MODULE_NAME})
+o2_add_executable(runcomponent
+                  SOURCES
+                  src/runComponent.cxx
+                  COMPONENT_NAME
+                  alicehlt
+                  PUBLIC_LINK_LIBRARIES
+                  O2::aliceHLTwrapper)
 
-set(BUCKET_NAME O2DeviceApplication_bucket)
+o2_add_test(MessageFormat
+            COMPONENT_NAME
+            alicehlt
+            SOURCES
+            test/testMessageFormat.cxx
+            PUBLIC_LINK_LIBRARIES
+            O2::aliceHLTwrapper)
 
-O2_GENERATE_LIBRARY()
-
-Set(Exe_Names
-    o2-alicehlt-wrapper-device
-    o2-alicehlt-eventsampler-device
-    o2-alicehlt-runcomponent
-    )
-
-set(Exe_Source
-    src/aliceHLTWrapper.cxx
-    src/aliceHLTEventSampler.cxx
-    src/runComponent.cxx
-    )
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
-
-set(TEST_SRCS
-  test/testMessageFormat.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
-
-O2_GENERATE_MAN(NAME o2-alicehlt-wrapper-device)
-O2_GENERATE_MAN(NAME AliceHLTComponents)
+# FIXME: reconnect those
+#
+# * O2_GENERATE_MAN(NAME o2-alicehlt-wrapper-device)
+# * O2_GENERATE_MAN(NAME AliceHLTComponents)

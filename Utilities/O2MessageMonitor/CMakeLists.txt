@@ -1,39 +1,13 @@
-# @author Mikolaj Krzewicki
+o2_add_library(O2MessageMonitor
+               SOURCES
+               src/O2MessageMonitor.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairLogger::FairLogger
+               FairMQ::FairMQ
+               O2::O2Device)
 
-set(MODULE_NAME "O2MessageMonitor")
+o2_add_executable(message-monitor SOURCES src/runO2MessageMonitor.cxx
+        PUBLIC_LINK_LIBRARIES O2::O2MessageMonitor)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-# Define the source and header files
-set(SRCS
-  src/O2MessageMonitor.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/O2MessageMonitor.h
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME O2MessageMonitor_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-message-monitor
-  SOURCES src/runO2MessageMonitor.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-)
-
-ADD_DEFINITIONS()
-
-set(TEST_SRCS
-  test/O2MessageMonitorTest.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(O2MessageMonitorTest SOURCES test/O2MessageMonitorTest.cxx
+            PUBLIC_LINK_LIBRARIES O2::O2MessageMonitor)

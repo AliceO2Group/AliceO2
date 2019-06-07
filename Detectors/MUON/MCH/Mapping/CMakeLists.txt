@@ -1,4 +1,6 @@
-add_subdirectory(Impl3)
 add_subdirectory(Interface)
+add_subdirectory(Impl3)
 add_subdirectory(SegContour)
-add_subdirectory(test)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

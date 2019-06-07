@@ -1,28 +1,15 @@
-set(MODULE_NAME "MIDBase")
+o2_add_library(MIDBase
+               SOURCES
+               src/ChamberEfficiency.cxx
+               src/Constants.cxx
+               src/GeometryTransformer.cxx
+               src/HitFinder.cxx
+               src/Mapping.cxx
+               src/MpArea.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::MathUtils
+               O2::DataFormatsMID)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/ChamberEfficiency.cxx
-  src/Constants.cxx
-  src/GeometryTransformer.cxx
-  src/HitFinder.cxx
-  src/Mapping.cxx
-  src/MpArea.cxx
-)
-
-set(NO_DICT_HEADERS
-  include/${MODULE_NAME}/ChamberEfficiency.h
-  include/${MODULE_NAME}/Constants.h
-  include/${MODULE_NAME}/GeometryTransformer.h
-  include/${MODULE_NAME}/HitFinder.h
-  include/${MODULE_NAME}/Mapping.h
-  include/${MODULE_NAME}/MpArea.h
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

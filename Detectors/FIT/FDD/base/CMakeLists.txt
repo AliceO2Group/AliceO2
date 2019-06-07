@@ -1,17 +1,8 @@
-set(MODULE_NAME "FDDBase")
+o2_add_library(FDDBase
+               SOURCES
+               src/Geometry.cxx
+               PUBLIC_LINK_LIBRARIES
+               ROOT::Geom
+               FairRoot::Base)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Geometry.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Geometry.h
-    )
-
-Set(LINKDEF src/FDDBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(FDDBase HEADERS include/FDDBase/Geometry.h)

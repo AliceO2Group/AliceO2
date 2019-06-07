@@ -1,39 +1,27 @@
-set(MODULE_NAME "CommonUtils")
+o2_add_library(CommonUtils
+               SOURCES
+               src/TreeStream.cxx
+               src/TreeStreamRedirector.cxx
+               src/RootChain.cxx
+               src/CompStream.cxx
+               src/ShmManager.cxx
+               PUBLIC_LINK_LIBRARIES
+               ROOT::Tree
+               Boost::iostreams
+               FairLogger::FairLogger)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(CommonUtils
+                          HEADERS
+                          include/CommonUtils/TreeStream.h
+                          include/CommonUtils/TreeStreamRedirector.h
+                          include/CommonUtils/RootChain.h
+                          include/CommonUtils/BoostSerializer.h
+                          include/CommonUtils/ShmManager.h
+                          include/CommonUtils/RngHelper.h
+                          include/CommonUtils/StringUtils.h)
 
-set(SRCS
-  src/TreeStream.cxx
-  src/TreeStreamRedirector.cxx
-  src/RootChain.cxx
-  src/CompStream.cxx
-  src/ShmManager.cxx
-)
-
-Set(HEADERS
-  include/${MODULE_NAME}/TreeStream.h
-  include/${MODULE_NAME}/TreeStreamRedirector.h
-  include/${MODULE_NAME}/RootChain.h
-  include/${MODULE_NAME}/BoostSerializer.h
-  include/${MODULE_NAME}/ShmManager.h
-  include/${MODULE_NAME}/RngHelper.h
-  include/${MODULE_NAME}/StringUtils.h
-)
-
-Set(LINKDEF src/CommonUtilsLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME common_utils_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testTreeStream.cxx
-  test/testBoostSerializer.cxx
-  test/testCompStream.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+# set(TEST_SRCS test/testTreeStream.cxx test/testBoostSerializer.cxx
+# test/testCompStream.cxx )
+#
+# O2_GENERATE_TESTS( MODULE_LIBRARY_NAME ${LIBRARY_NAME} BUCKET_NAME
+# ${BUCKET_NAME} TEST_SRCS ${TEST_SRCS} )

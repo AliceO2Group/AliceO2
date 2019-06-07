@@ -1,18 +1,10 @@
-set(MODULE_NAME "HMPIDSimulation")
+o2_add_library(HMPIDSimulation
+               SOURCES
+               src/Detector.cxx
+               src/HMPIDDigitizer.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::HMPIDBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/Detector.cxx
-    src/HMPIDDigitizer.cxx
-    )
-set(HEADERS
-    include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/HMPIDDigitizer.h
-    )
-
-Set(LINKDEF src/HMPIDSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME hmpid_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(HMPIDSimulation HEADERS
+                          include/HMPIDSimulation/Detector.h
+                          include/HMPIDSimulation/HMPIDDigitizer.h)

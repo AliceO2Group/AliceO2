@@ -1,22 +1,23 @@
-O2_SETUP(NAME "MIDBaseTest")
-set(BUCKET_NAME mid_base_test_bucket)
+o2_add_test(Mapping
+            SOURCES
+            src/testMapping.cxx
+            COMPONENT_NAME
+            mid
+            PUBLIC_LINK_LIBRARIES
+            O2::MIDBase
+            LABELS
+            mid)
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS src/testMapping.cxx
-)
+o2_add_test(Positions
+            SOURCES
+            src/Positions.cxx
+            COMPONENT_NAME
+            mid
+            PUBLIC_LINK_LIBRARIES
+            RapidJSON::RapidJSON
+            O2::MIDBase
+            LABELS
+            mid)
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS src/Positions.cxx
-)
-
-# target_link_libraries(test_MIDpositions Boost::unit_test_framework MIDBase)
-# add_test(NAME test_MIDpositions COMMAND test_MIDpositions)
-
-file(COPY
-     ${CMAKE_CURRENT_SOURCE_DIR}/data/test_random_pos.json
-     DESTINATION
-     ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/test_random_pos.json
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

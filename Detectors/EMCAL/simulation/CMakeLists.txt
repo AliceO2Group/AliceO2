@@ -1,25 +1,18 @@
-SET(MODULE_NAME EMCALSimulation)
+o2_add_library(EMCALSimulation
+               SOURCES
+               src/Detector.cxx
+               src/Digitizer.cxx
+               src/DigitizerTask.cxx
+               src/SpaceFrame.cxx
+               src/SimParam.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::EMCALBase
+               O2::DetectorsBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Detector.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
-  src/SpaceFrame.cxx
-  src/SimParam.cxx
-)
-
-set(HEADERS
-  include/EMCALSimulation/Detector.h
-  include/EMCALSimulation/Digitizer.h
-  include/EMCALSimulation/DigitizerTask.h
-  include/EMCALSimulation/SpaceFrame.h
-  include/EMCALSimulation/SimParam.h
-)
-
-SET(LINKDEF src/EMCALSimulationLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME emcal_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(EMCALSimulation
+                          HEADERS
+                          include/EMCALSimulation/Detector.h
+                          include/EMCALSimulation/Digitizer.h
+                          include/EMCALSimulation/DigitizerTask.h
+                          include/EMCALSimulation/SpaceFrame.h
+                          include/EMCALSimulation/SimParam.h)

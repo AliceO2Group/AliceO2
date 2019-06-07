@@ -1,36 +1,31 @@
-set(MODULE_NAME "Field")
+o2_add_library(Field
+        SOURCES
+        src/MagFieldContFact.cxx
+        src/MagFieldFact.cxx
+        src/MagFieldFast.cxx
+        src/MagFieldParam.cxx
+        src/MagneticField.cxx
+        src/MagneticWrapperChebyshev.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::MathUtils)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(Field
+        HEADERS
+        include/Field/MagneticWrapperChebyshev.h
+        include/Field/MagneticField.h
+        include/Field/MagFieldParam.h
+        include/Field/MagFieldContFact.h
+        include/Field/MagFieldFast.h
+        include/Field/MagFieldFact.h)
 
-set(SRCS
-    src/MagneticWrapperChebyshev.cxx
-    src/MagneticField.cxx
-    src/MagFieldParam.cxx
-    src/MagFieldContFact.cxx
-    src/MagFieldFast.cxx
-    src/MagFieldFact.cxx
-    )
+o2_add_test(MagneticField
+        SOURCES
+        test/testMagneticField.cxx
+        PUBLIC_LINK_LIBRARIES
+        Field
+        COMPONENT_NAME
+        Field
+        COMMAND_LINE_ARGS --file ${CMAKE_CURRENT_LIST_DIR}/../maps/mfchebKGI_sym.root)
 
-set(HEADERS
-    include/${MODULE_NAME}/MagneticWrapperChebyshev.h
-    include/${MODULE_NAME}/MagneticField.h
-    include/${MODULE_NAME}/MagFieldParam.h
-    include/${MODULE_NAME}/MagFieldContFact.h
-    include/${MODULE_NAME}/MagFieldFast.h
-    include/${MODULE_NAME}/MagFieldFact.h
-    )
-set(LINKDEF src/FieldLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME common_field_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testMagneticField.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test_root_macro(macro/extractMapsAsText.C PUBLIC_LINK_LIBRARIES Field)
+o2_add_test_root_macro(macro/createMapsFromText.C PUBLIC_LINK_LIBRARIES Field)

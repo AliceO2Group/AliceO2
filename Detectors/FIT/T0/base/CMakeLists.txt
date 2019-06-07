@@ -1,23 +1,6 @@
-set(MODULE_NAME "T0Base")
-set(BUCKET_NAME fit_base_bucket)
+o2_add_library(T0Base SOURCES src/Geometry.cxx
+        PUBLIC_LINK_LIBRARIES ROOT::Physics FairRoot::Base)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(T0Base HEADERS include/T0Base/Geometry.h)
 
-set(SRCS
-  src/Geometry.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Geometry.h
-    )
-
-  Set(LINKDEF src/T0BaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-
-
-O2_GENERATE_LIBRARY()
-
-install(
-  DIRECTORY files
-  DESTINATION share/Detectors/T0/
-)
+install(DIRECTORY files DESTINATION share/Detectors/T0/)

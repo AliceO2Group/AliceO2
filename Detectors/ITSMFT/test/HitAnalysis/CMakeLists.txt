@@ -1,18 +1,8 @@
-set(MODULE_NAME "HitAnalysis")
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/HitAnalysis.cxx
-    )
-set(HEADERS
-    include/HitAnalysis/HitAnalysis.h
-    )
-Set(LINKDEF src/HitAnalysisLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME hitanalysis_bucket)
-
-
-O2_GENERATE_LIBRARY()
-
-
+o2_add_library(HitAnalysis
+               SOURCES
+               src/HitAnalysis.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairRoot::Base
+               O2::ITSMFTSimulation
+               O2::ITSBase)
+o2_target_root_dictionary(HitAnalysis HEADERS include/HitAnalysis/HitAnalysis.h)

@@ -1,20 +1,5 @@
-set(MODULE_NAME "T0Reconstruction")
+o2_add_library(T0Reconstruction SOURCES src/CollisionTimeRecoTask.cxx
+        PUBLIC_LINK_LIBRARIES O2::DataFormatsFITT0)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/CollisionTimeRecoTask.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/CollisionTimeRecoTask.h
-    )
-
-
-Set(LINKDEF src/T0ReconstructionLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_reconstruction_bucket)
-
-O2_GENERATE_LIBRARY()
-
-
+o2_target_root_dictionary(T0Reconstruction HEADERS
+                          include/T0Reconstruction/CollisionTimeRecoTask.h)

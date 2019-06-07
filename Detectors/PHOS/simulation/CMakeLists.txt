@@ -1,23 +1,15 @@
-SET(MODULE_NAME PHOSSimulation)
+o2_add_library(PHOSSimulation
+               SOURCES
+               src/Detector.cxx
+               src/GeometryParams.cxx
+               src/Digitizer.cxx
+               src/DigitizerTask.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+               O2::PHOSBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Detector.cxx
-  src/GeometryParams.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
-)
-
-set(HEADERS
-  include/PHOSSimulation/Detector.h
-  include/PHOSSimulation/GeometryParams.h
-  include/PHOSSimulation/Digitizer.h
-  include/PHOSSimulation/DigitizerTask.h
-)
-
-SET(LINKDEF src/PHOSSimulationLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME phos_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(PHOSSimulation
+                          HEADERS
+                          include/PHOSSimulation/Detector.h
+                          include/PHOSSimulation/GeometryParams.h
+                          include/PHOSSimulation/Digitizer.h
+                          include/PHOSSimulation/DigitizerTask.h)

@@ -1,14 +1,19 @@
-O2_SETUP(NAME MIDClusteringTest)
-set(BUCKET_NAME mid_clustering_test_bucket)
+o2_add_test(Clusterizer
+            SOURCES
+            testClusterizer.cxx
+            COMPONENT_NAME
+            mid
+            PUBLIC_LINK_LIBRARIES
+            O2::MIDClustering)
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS testClusterizer.cxx
-)
-
-if (benchmark_FOUND)
-    O2_GENERATE_EXECUTABLE(
-            EXE_NAME o2-mid-bench-clusterizer
-            SOURCES bench_Clusterizer.cxx
-            BUCKET_NAME ${BUCKET_NAME})
-endif ()
+if(benchmark_FOUND)
+  o2_add_executable(clusterizer
+                    SOURCES
+                    bench_Clusterizer.cxx
+                    IS_BENCHMARK
+                    PUBLIC_LINK_LIBRARIES
+                    O2::MIDClustering
+                    benchmark::benchmark
+                    COMPONENT_NAME
+                    mid)
+endif()

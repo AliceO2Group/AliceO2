@@ -1,29 +1,14 @@
-SET(MODULE_NAME TOFBase)
+o2_add_library(TOFBase
+               SOURCES
+               src/Geo.cxx
+               src/Digit.cxx
+               PUBLIC_LINK_LIBRARIES
+               Boost::serialization
+               FairRoot::Base
+               O2::DetectorsBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(TOFBase HEADERS include/TOFBase/Geo.h
+                          include/TOFBase/Digit.h)
 
-set(SRCS
-  src/Geo.cxx
-  src/Digit.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/Geo.h
-  include/${MODULE_NAME}/Digit.h
-)
-
-SET(LINKDEF src/TOFBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME tof_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testTOFIndex.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(TOFIndex SOURCES test/testTOFIndex.cxx COMPONENT_NAME TOF
+        PUBLIC_LINK_LIBRARIES TOFBase)

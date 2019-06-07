@@ -1,21 +1,9 @@
-set(MODULE_NAME "DataFormatsTOF")
-set(MODULE_BUCKET_NAME data_format_TOF_bucket)
+o2_add_library(DataFormatsTOF
+               SOURCES
+               src/Cluster.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::ReconstructionDataFormats
+               Boost::serialization)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-link_directories( ${LINK_DIRECTORIES})
-
-set(SRCS
-   src/Cluster.cxx
-)
-
-set(HEADERS
-   include/${MODULE_NAME}/Cluster.h
-)
-
-set(LINKDEF src/DataFormatsTOFLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(DataFormatsTOF HEADERS
+                          include/DataFormatsTOF/Cluster.h)

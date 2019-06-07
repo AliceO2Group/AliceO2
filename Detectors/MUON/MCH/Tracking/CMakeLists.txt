@@ -1,35 +1,22 @@
-set(MODULE_NAME "MCHTracking")
+o2_add_library(MCHTracking
+               SOURCES
+               src/Cluster.cxx
+               src/TrackParam.cxx
+               src/Track.cxx
+               src/TrackExtrap.cxx
+               src/TrackFitter.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::Framework
+               O2::Field
+               O2::MCHBase)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-   src/Cluster.cxx
-   src/TrackParam.cxx
-   src/Track.cxx
-   src/TrackExtrap.cxx
-   src/TrackFitter.cxx
-)
-
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_tracking_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_tracking_bucket)
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-mch-trackfitter-workflow
-
-  SOURCES
-  src/TrackFitterWorkflow.cxx
-  src/TrackSamplerSpec.cxx
-  src/TrackFitterSpec.cxx
-  src/TrackSinkSpec.cxx
-
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-
-  BUCKET_NAME ${BUCKET_NAME}
-)
+o2_add_executable(trackfitter-workflow
+                  SOURCES
+                  src/TrackFitterWorkflow.cxx
+                  src/TrackSamplerSpec.cxx
+                  src/TrackFitterSpec.cxx
+                  src/TrackSinkSpec.cxx
+                  COMPONENT_NAME
+                  mch
+                  PUBLIC_LINK_LIBRARIES
+                  O2::MCHTracking)

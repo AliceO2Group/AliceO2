@@ -1,38 +1,83 @@
-set(BUCKET_NAME mch_contour_bucket)
-set(MODULE_NAME MCHContour)
+o2_add_header_only_library(MCHContour)
 
-add_library(MCHContour INTERFACE)
+o2_add_test(BBox
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/BBox.cxx)
 
-install(DIRECTORY include/MCHContour DESTINATION include)
+o2_add_test(Contour
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/Contour.cxx)
 
-O2_GENERATE_TESTS(
+o2_add_test(ContourCreator
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/ContourCreator.cxx)
 
-        BUCKET_NAME mch_contour_bucket
+o2_add_test(Edge
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/Edge.cxx)
 
-        TEST_SRCS
-        test/BBox.cxx
-        test/Contour.cxx
-        test/ContourCreator.cxx
-        test/Edge.cxx
-        test/Interval.cxx
-        test/Polygon.cxx
-        test/SegmentTree.cxx
-        test/Vertex.cxx
+o2_add_test(Interval
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/Interval.cxx)
 
-)
+o2_add_test(Polygon
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/Polygon.cxx)
 
-# custom target so that some IDE (e.g. CLion) recognize those files as
-# being part of the project even though they are not part of a CMake target
-add_custom_target(MCHContour_ide SOURCES
-        include/MCHContour/BBox.h
-        include/MCHContour/Contour.h
-        include/MCHContour/ContourCreator.h
-        include/MCHContour/ContourCreator.inl
-        include/MCHContour/Edge.h
-        include/MCHContour/Helper.h
-        include/MCHContour/Interval.h
-        include/MCHContour/Polygon.h
-        include/MCHContour/SegmentTree.h
-        include/MCHContour/SVGWriter.h
-        include/MCHContour/Vertex.h
-        )
+o2_add_test(SegmentTree
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/SegmentTree.cxx)
+
+o2_add_test(Vertex
+            COMPONENT_NAME
+            mchcontour
+            LABELS
+            mch
+            PUBLIC_LINK_LIBRARIES
+            MCHContour
+            SOURCES
+            test/Vertex.cxx
+            PUBLIC_LINK_LIBRARIES
+            MCHContour)

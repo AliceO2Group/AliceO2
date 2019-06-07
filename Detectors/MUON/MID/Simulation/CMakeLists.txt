@@ -1,42 +1,41 @@
-set(MODULE_NAME "MIDSimulation")
+o2_add_library(MIDSimulation
+               SOURCES src/ChamberEfficiencyResponse.cxx
+                       src/ChamberHV.cxx
+                       src/ChamberResponse.cxx
+                       src/ChamberResponseParams.cxx
+                       src/Detector.cxx
+                       src/Digitizer.cxx
+                       src/DigitsMerger.cxx
+                       src/DigitsPacker.cxx
+                       src/Geometry.cxx
+                       src/Hit.cxx
+                       src/Materials.cxx
+                       src/MCLabel.cxx
+                       src/Stepper.cxx
+               PUBLIC_LINK_LIBRARIES O2::MIDBase O2::CommonDataFormat
+                                     O2::DetectorsBase O2::SimulationDataFormat
+                                     O2::MIDClustering)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(
+  MIDSimulation
+  HEADERS include/MIDSimulation/ChamberEfficiencyResponse.h
+          include/MIDSimulation/ChamberHV.h
+          include/MIDSimulation/ChamberResponse.h
+          include/MIDSimulation/ChamberResponseParams.h
+          include/MIDSimulation/ColumnDataMC.h
+          include/MIDSimulation/Detector.h
+          include/MIDSimulation/Digitizer.h
+          include/MIDSimulation/DigitsMerger.h
+          include/MIDSimulation/DigitsPacker.h
+          include/MIDSimulation/Hit.h
+          include/MIDSimulation/MCLabel.h
+          include/MIDSimulation/Stepper.h)
 
-set(SRCS
-  src/ChamberEfficiencyResponse.cxx
-  src/ChamberHV.cxx
-  src/ChamberResponse.cxx
-  src/ChamberResponseParams.cxx
-  src/Detector.cxx
-  src/Digitizer.cxx
-  src/DigitsMerger.cxx
-  src/DigitsPacker.cxx
-  src/Geometry.cxx
-  src/Hit.cxx
-  src/Materials.cxx
-  src/MCLabel.cxx
-  src/Stepper.cxx
-)
+if(BUILD_TESTING)
+  add_subdirectory(test)
 
-set(HEADERS
-  include/${MODULE_NAME}/ChamberEfficiencyResponse.h
-  include/${MODULE_NAME}/ChamberHV.h
-  include/${MODULE_NAME}/ChamberResponse.h
-  include/${MODULE_NAME}/ChamberResponseParams.h
-  include/${MODULE_NAME}/ColumnDataMC.h
-  include/${MODULE_NAME}/Detector.h
-  include/${MODULE_NAME}/Digitizer.h
-  include/${MODULE_NAME}/DigitsMerger.h
-  include/${MODULE_NAME}/DigitsPacker.h
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/MCLabel.h
-  include/${MODULE_NAME}/Stepper.h
-)
-
-set(LINKDEF src/MIDSimulationLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+  o2_add_test_root_macro(macros/drawMIDGeometry.C
+                         PUBLIC_LINK_LIBRARIES FairRoot::Base DetectorsPassive
+                                               MIDSimulation
+                         LABELS mid)
+endif()

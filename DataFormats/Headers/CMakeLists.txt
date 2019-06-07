@@ -1,38 +1,20 @@
-# @author Mikolaj Krzewicki
+o2_add_library(Headers
+               SOURCES
+               src/DataHeader.cxx
+               src/NameHeader.cxx
+               src/HeartbeatFrame.cxx
+               src/TimeStamp.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::MemoryResources)
 
-set(MODULE_NAME "Headers")
+o2_add_test(DataHeader SOURCES test/testDataHeader.cxx PUBLIC_LINK_LIBRARIES
+            O2::Headers)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_test(TimeStamp SOURCES test/testTimeStamp.cxx PUBLIC_LINK_LIBRARIES
+            O2::Headers)
 
-# Define the source and header files
-set(SRCS
-  src/DataHeader.cxx
-  src/NameHeader.cxx
-  src/HeartbeatFrame.cxx
-  src/TimeStamp.cxx
-)
+o2_add_test(HeartbeatFrame SOURCES test/test_HeartbeatFrame.cxx
+            PUBLIC_LINK_LIBRARIES O2::Headers)
 
-set(HEADERS
-  include/${MODULE_NAME}/DataHeader.h
-  include/${MODULE_NAME}/NameHeader.h
-  include/${MODULE_NAME}/HeartbeatFrame.h
-  include/${MODULE_NAME}/TimeStamp.h
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME data_format_headers_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testDataHeader.cxx
-  test/testTimeStamp.cxx
-  test/test_HeartbeatFrame.cxx
-  test/test_RAWDataHeader.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(RAWDataHeader SOURCES test/test_RAWDataHeader.cxx
+            PUBLIC_LINK_LIBRARIES O2::Headers)

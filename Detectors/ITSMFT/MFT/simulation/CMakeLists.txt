@@ -1,19 +1,10 @@
-set(MODULE_NAME "MFTSimulation")
+o2_add_library(MFTSimulation
+               SOURCES
+               src/Detector.cxx
+               src/DigitizerTask.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::MFTBase
+               ROOT::Physics)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Detector.cxx
-  src/DigitizerTask.cxx
-)
-set(HEADERS
-  include/${MODULE_NAME}/Detector.h
-  include/${MODULE_NAME}/DigitizerTask.h
-)
-
-Set(LINKDEF src/MFTSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mft_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(MFTSimulation HEADERS include/MFTSimulation/Detector.h
+                          include/MFTSimulation/DigitizerTask.h)

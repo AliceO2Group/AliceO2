@@ -1,62 +1,24 @@
-set(MODULE_NAME "TPCMonitor")
+o2_add_library(TPCMonitor
+               SOURCES
+               src/SimpleEventDisplay.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::TPCBase
+               O2::TPCCalibration)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(TPCMonitor HEADERS
+                          include/TPCMonitor/SimpleEventDisplay.h)
 
-set(SRCS
-  src/SimpleEventDisplay.cxx
-)
+o2_add_executable(monitor
+                  COMPONENT_NAME
+                  tpc
+                  SOURCES
+                  run/runMonitor.cxx
+                  PUBLIC_LINK_LIBRARIES
+                  O2::TPCMonitor)
 
-set(HEADERS
-  include/${MODULE_NAME}/SimpleEventDisplay.h
-)
-
-Set(LINKDEF src/${MODULE_NAME}LinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME tpc_monitor_bucket)
-
-O2_GENERATE_LIBRARY()
-
-#install(
-  #DIRECTORY files
-  #DESTINATION share/Detectors/TPC/
-#)
-# ===| Tests |==================================================================
-#set(TEST_SRCS
-   #test/testTPCBase.cxx
-#)
-
-#O2_GENERATE_TESTS(
-  #BUCKET_NAME ${BUCKET_NAME}
-  #MODULE_LIBRARY_NAME ${MODULE_NAME}
-  #TEST_SRCS ${TEST_SRCS}
-#)
-
-# ===| generate executables |===================================================
-Set(Exe_Names
-  o2-tpc-monitor
-)
-
-Set(Exe_Source
-  run/runMonitor.cxx
-)
-
-# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(BUCKET_NAME tpc_monitor_bucket)
-set(LIBRARY_NAME ${MODULE_NAME})
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  # FIXME: propably a copy paste remnant, remove?
-#  Set(DEPENDENCIES CCDB)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-endforeach (_file RANGE 0 ${_length})
-
+o2_add_test_root_macro(macro/RunCompareMode3.C PUBLIC_LINK_LIBRARIES
+                       O2::TPCReconstruction LABELS tpc)
+o2_add_test_root_macro(macro/RunFindAdcError.C PUBLIC_LINK_LIBRARIES
+                       O2::TPCReconstruction LABELS tpc)
+o2_add_test_root_macro(macro/RunSimpleEventDisplay.C PUBLIC_LINK_LIBRARIES
+                       O2::TPCMonitor LABELS tpc)

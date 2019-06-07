@@ -1,0 +1,43 @@
+function(o2_get_target_dependencies)
+
+  cmake_parse_arguments(PARSE_ARGV
+                        1
+                        A
+                        ""
+                        "DEPLIST"
+                        "")
+
+  if(A_UNPARSED_ARGUMENTS)
+    message(
+      FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
+  endif()
+
+  set(target ${ARGV0})
+
+  if(NOT TARGET ${target})
+    return()
+  endif()
+
+  get_property(targetType TARGET ${target} PROPERTY TYPE)
+
+  if(NOT ${targetType} STREQUAL "INTERFACE_LIBRARY")
+    # do not try to get the LINK_DIRECTORIES property as it's not existing for
+    get_property(libs TARGET ${target} PROPERTY LINK_LIBRARIES)
+  else()
+    get_property(libs TARGET ${target} PROPERTY INTERFACE_LINK_LIBRARIES)
+    # return()
+  endif()
+
+  if(NOT libs)
+    return()
+  endif()
+  foreach(dep IN LISTS libs)
+    o2_get_target_dependencies(${dep} DEPLIST deplist)
+    list(APPEND deplist ${dep})
+  endforeach()
+
+  list(REMOVE_DUPLICATES deplist)
+
+  set(${A_DEPLIST} ${deplist} PARENT_SCOPE)
+
+endfunction()

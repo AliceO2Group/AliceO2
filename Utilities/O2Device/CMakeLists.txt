@@ -1,30 +1,17 @@
-# @author Mikolaj Krzewicki
+o2_add_library(O2Device
+               SOURCES
+               src/O2Device.cxx
+               PUBLIC_LINK_LIBRARIES
+               FairMQ::FairMQ
+               O2::MemoryResources
+               O2::Headers
+               ms_gsl
+               AliceO2::Monitoring)
 
-set(MODULE_NAME "O2Device")
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-# Define the source and header files
-set(SRCS
-  src/O2Device.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/O2Device.h
-  include/${MODULE_NAME}/Utilities.h
-)
-
-set(TEST_SRCS
-  test/test_O2Device.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME O2Device_bucket)
-
-O2_GENERATE_LIBRARY()
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(O2Device
+            SOURCES
+            test/test_O2Device.cxx
+            PUBLIC_LINK_LIBRARIES
+            O2::O2Device
+            COMPONENT_NAME
+            O2Device)

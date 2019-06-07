@@ -1,57 +1,51 @@
-# @author Matthias Richter
-# @brief  cmake setup for module Algorithm
+o2_add_header_only_library(Algorithm INTERFACE_LINK_LIBRARIES O2::Headers)
 
-set(MODULE_NAME "Algorithm")
+o2_add_test(o2formatparser
+            SOURCES
+            test/o2formatparser.cxx
+            COMPONENT_NAME
+            Algorithm
+            PUBLIC_LINK_LIBRARIES
+            Algorithm)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_test(headerstack
+            SOURCES
+            test/headerstack.cxx
+            COMPONENT_NAME
+            Algorithm
+            PUBLIC_LINK_LIBRARIES
+            Algorithm)
 
-set(SRCS
-    )
+o2_add_test(parser
+            SOURCES
+            test/parser.cxx
+            COMPONENT_NAME
+            Algorithm
+            PUBLIC_LINK_LIBRARIES
+            Algorithm)
 
-set(LIBRARY_NAME ${MODULE_NAME})
+o2_add_test(tableview
+            SOURCES
+            test/tableview.cxx
+            COMPONENT_NAME
+            Algorithm
+            PUBLIC_LINK_LIBRARIES
+            Algorithm)
 
-set(BUCKET_NAME Algorithm_bucket)
+o2_add_test(pageparser
+            SOURCES
+            test/pageparser.cxx
+            COMPONENT_NAME
+            Algorithm
+            PUBLIC_LINK_LIBRARIES
+            Algorithm)
 
-# no library for the moment
-#O2_GENERATE_LIBRARY()
+o2_add_test(mpl_tools SOURCES test/test_mpl_tools.cxx COMPONENT_NAME Algorithm)
 
-Set(Exe_Names
-    )
+o2_add_test(RangeTokenizer SOURCES test/test_RangeTokenizer.cxx COMPONENT_NAME
+            Algorithm)
 
-set(Exe_Source
-    )
-
-list(LENGTH Exe_Names _length)
-if (LENGTH)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
-endif()
-
-set(TEST_SRCS
-  test/o2formatparser.cxx
-  test/headerstack.cxx
-  test/parser.cxx
-  test/tableview.cxx
-  test/pageparser.cxx
-  test/test_mpl_tools.cxx
-  test/test_RangeTokenizer.cxx
-  test/test_BitstreamReader.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
-
-O2_GENERATE_MAN(NAME Algorithm SECTION 3)
-O2_GENERATE_MAN(NAME algorithm_parser SECTION 3)
+# FIXME: reconnect man pages generation
+#
+# * O2_GENERATE_MAN(NAME Algorithm SECTION 3)
+# * O2_GENERATE_MAN(NAME algorithm_parser SECTION 3)

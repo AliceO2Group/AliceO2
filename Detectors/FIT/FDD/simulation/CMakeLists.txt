@@ -1,18 +1,6 @@
-set(MODULE_NAME "FDDSimulation")
+o2_add_library(FDDSimulation SOURCES src/Detector.cxx
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+        O2::FDDBase ROOT::Physics)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/Detector.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/Hit.h
-    )
-
-Set(LINKDEF src/FDDSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(FDDSimulation HEADERS include/FDDSimulation/Detector.h
+                          include/FDDSimulation/Hit.h)

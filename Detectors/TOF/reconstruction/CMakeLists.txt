@@ -1,21 +1,10 @@
-SET(MODULE_NAME TOFReconstruction)
+o2_add_library(TOFReconstruction SOURCES src/DataReader.cxx src/Clusterer.cxx
+               src/ClustererTask.cxx
+               PUBLIC_LINK_LIBRARIES O2::TOFBase
+               O2::DataFormatsTOF
+               O2::SimulationDataFormat)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/DataReader.cxx
-  src/Clusterer.cxx
-  src/ClustererTask.cxx
-)
-
-set(HEADERS
-  include/TOFReconstruction/DataReader.h
-  include/TOFReconstruction/Clusterer.h
-  include/TOFReconstruction/ClustererTask.h
-)
-
-SET(LINKDEF src/TOFReconstructionLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME tof_reconstruction_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(TOFReconstruction HEADERS
+                          include/TOFReconstruction/DataReader.h
+                          include/TOFReconstruction/Clusterer.h
+                          include/TOFReconstruction/ClustererTask.h)

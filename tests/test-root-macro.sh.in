@@ -1,0 +1,40 @@
+#!/bin/bash -e
+
+# script to test the loading and possibly compilation of a Root macro
+# within a controlled environment
+#
+# we'll take the include path from ROOT_INCLUDE_PATH (as that's what's working)
+# for both loading and compilation modes
+# and the library path from .rootrc and not from (DY)LD_LIBRARY_PATH to 
+# have it working even on MacOS with SIP enabled
+
+MACRO=$1
+COMPILE=$2
+INCPATH=$3
+LIBPATH=$4
+
+if [[ ! -f ${MACRO} ]]; then
+  echo "Could not find macro ${MACRO}"
+  exit 64
+fi
+
+ROOTCMD=".L ${MACRO}"
+
+[[ ${COMPILE} -eq 1 ]] && ROOTCMD="${ROOTCMD}++"
+
+ERRVARNAME="test_root_macro_sh_in_err"
+
+CMD="Int_t ${ERRVARNAME}; gROOT->ProcessLine(\"${ROOTCMD}\",&${ERRVARNAME});
+std::cout << \"Exit code=\" <<  ${ERRVARNAME} << \"\n\"; gSystem->Exit(${ERRVARNAME});" 
+
+echo "ROOT_INCLUDE_PATH to be used:"
+echo ${INCPATH} | tr ":" "\n"
+echo "LD_LIBRARY_PATH to be used:"
+echo ${LIBPATH} | tr ":" "\n"
+
+env ROOT_INCLUDE_PATH=${INCPATH} LD_LIBRARY_PATH=${LIBPATH} root -n -b -l -q -e "${CMD}"
+
+RV=$?
+
+exit $RV
+

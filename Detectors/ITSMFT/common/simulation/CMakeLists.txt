@@ -1,43 +1,37 @@
-set(MODULE_NAME "ITSMFTSimulation")
+o2_add_library(ITSMFTSimulation
+               SOURCES
+               src/Hit.cxx
+               src/AlpideSimResponse.cxx
+               src/ChipDigitsContainer.cxx
+               src/AlpideChip.cxx
+               src/DigiParams.cxx
+               src/Digitizer.cxx
+               src/AlpideSignalTrapezoid.cxx
+               src/ClusterShape.cxx
+               src/DPLDigitizerParam.cxx
+               PUBLIC_LINK_LIBRARIES
+               O2::SimulationDataFormat
+               O2::ITSMFTBase
+               O2::DataFormatsITSMFT)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_root_dictionary(ITSMFTSimulation
+                          HEADERS
+                          include/ITSMFTSimulation/Hit.h
+                          include/ITSMFTSimulation/AlpideSimResponse.h
+                          include/ITSMFTSimulation/DigiParams.h
+                          include/ITSMFTSimulation/Digitizer.h
+                          include/ITSMFTSimulation/PreDigit.h
+                          include/ITSMFTSimulation/ChipDigitsContainer.h
+                          include/ITSMFTSimulation/AlpideChip.h
+                          include/ITSMFTSimulation/AlpideSignalTrapezoid.h
+                          include/ITSMFTSimulation/ClusterShape.h
+                          include/ITSMFTSimulation/DPLDigitizerParam.h)
 
-set(SRCS
-    src/Hit.cxx
-    src/AlpideSimResponse.cxx
-    src/ChipDigitsContainer.cxx
-    src/AlpideChip.cxx
-    src/DigiParams.cxx
-    src/Digitizer.cxx
-    src/AlpideSignalTrapezoid.cxx
-    src/ClusterShape.cxx
-    src/DPLDigitizerParam.cxx
-    )
-set(HEADERS
-    include/${MODULE_NAME}/Hit.h
-    include/${MODULE_NAME}/AlpideSimResponse.h
-    include/${MODULE_NAME}/DigiParams.h
-    include/${MODULE_NAME}/Digitizer.h
-    include/${MODULE_NAME}/PreDigit.h
-    include/${MODULE_NAME}/ChipDigitsContainer.h
-    include/${MODULE_NAME}/AlpideChip.h
-    include/${MODULE_NAME}/AlpideSignalTrapezoid.h
-    include/${MODULE_NAME}/ClusterShape.h
-    include/${MODULE_NAME}/DPLDigitizerParam.h
-    )
-
-Set(LINKDEF src/ITSMFTSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME itsmft_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testAlpideSimResponse.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(AlpideSimResponse
+            SOURCES
+            test/testAlpideSimResponse.cxx
+            COMPONENT_NAME
+            ITSMFT
+            PUBLIC_LINK_LIBRARIES
+            O2::ITSMFTSimulation
+            LABELS "its;mft")
