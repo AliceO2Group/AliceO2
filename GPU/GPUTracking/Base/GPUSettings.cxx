@@ -34,12 +34,12 @@ void GPUSettingsRec::SetDefaults()
   TrackReferenceX = 1000.f;
   NonConsecutiveIDs = false;
   DisableRefitAttachment = 0;
-  DodEdx = false;
   dEdxTruncLow = 2;
   dEdxTruncHigh = 77;
-  tpcRejectionMode = 0;
+  tpcRejectionMode = GPUSettings::RejectionStrategyA;
   tpcRejectQPt = 1.f / 0.05f;
-  tpcCompressionModes = 7;
+  tpcCompressionModes = GPUSettings::CompressionFull;
+  tpcCompressionSortOrder = GPUSettings::SortPad;
   tpcSigBitsCharge = 4;
   tpcSigBitsWidth = 3;
 }

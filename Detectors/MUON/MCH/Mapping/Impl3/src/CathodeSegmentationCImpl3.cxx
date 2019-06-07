@@ -13,46 +13,46 @@
 
 #include "MCHMappingInterface/CathodeSegmentationCInterface.h"
 #include "CathodeSegmentationImpl3.h"
-#include "mchmappingimpl3_export.h"
+#include "o2mchmappingimpl3_export.h"
 #include <fstream>
 
 extern "C" {
 
-struct MCHMAPPINGIMPL3_EXPORT MchCathodeSegmentation {
+struct O2MCHMAPPINGIMPL3_EXPORT MchCathodeSegmentation {
   MchCathodeSegmentation(o2::mch::mapping::impl3::CathodeSegmentation* i) : impl{ i } {}
 
   std::unique_ptr<o2::mch::mapping::impl3::CathodeSegmentation> impl;
 };
 
-MCHMAPPINGIMPL3_EXPORT MchCathodeSegmentationHandle mchCathodeSegmentationConstruct(int detElemId, bool isBendingPlane)
+O2MCHMAPPINGIMPL3_EXPORT MchCathodeSegmentationHandle mchCathodeSegmentationConstruct(int detElemId, bool isBendingPlane)
 {
   auto seg = o2::mch::mapping::impl3::createCathodeSegmentation(detElemId, isBendingPlane);
   return seg ? new MchCathodeSegmentation(seg) : nullptr;
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle sh) { delete sh; }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationId(MchCathodeSegmentationHandle segHandle)
 {
   // return segHandle->impl->getId();
   return -1;
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationFindPadByPosition(MchCathodeSegmentationHandle segHandle, double x, double y)
 {
   return segHandle->impl->findPadByPosition(x, y);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationFindPadByFEE(MchCathodeSegmentationHandle segHandle, int dualSampaId, int dualSampaChannel)
 {
   return segHandle->impl->findPadByFEE(dualSampaId, dualSampaChannel);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void* clientData)
 {
   for (auto detElemId :
@@ -69,7 +69,7 @@ void mchCathodeSegmentationForEachDetectionElement(MchDetectionElementHandler ha
   }
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData)
 {
   for (auto dualSampaId : segHandle->impl->dualSampaIds()) {
@@ -77,7 +77,7 @@ void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHand
   }
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData)
 {
   for (auto detElemId :
@@ -86,13 +86,13 @@ void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetec
   }
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return catPadIndex != segHandle->impl->InvalidCatPadIndex;
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle segHandle, int dualSampaId, MchPadHandler handler,
                                                  void* clientData)
 {
@@ -101,43 +101,43 @@ void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle se
   }
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padPositionX(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padPositionY(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padSizeX(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padSizeY(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padDualSampaId(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
   return segHandle->impl->padDualSampaChannel(catPadIndex);
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
                                             double ymax, MchPadHandler handler, void* clientData)
 {
@@ -146,7 +146,7 @@ void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHand
   }
 }
 
-MCHMAPPINGIMPL3_EXPORT
+O2MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int catPadIndex, MchPadHandler handler,
                                                   void* userData)
 {

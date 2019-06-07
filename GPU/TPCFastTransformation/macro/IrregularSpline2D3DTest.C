@@ -1,16 +1,25 @@
-/*
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-   // works only with ROOT >= 6
+/// \file  IrregularSpline2D3DTest.C
+/// \brief A macro fo testing the IrregularSpline2D3D class
+///
+/// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-   alienv load ROOT/latest-root6
-   alienv load Vc/latest
-
-   root -l  loadlibs.C
-   .x IrregularSpline2D3DTest.C++
- */
+/*  Load the macro:
+  root -l IrregularSpline2D3DTest.C++
+*/
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
+#include "GPU/IrregularSpline2D3D.h"
 #include "TFile.h"
 #include "TRandom.h"
 #include "TNtuple.h"
@@ -21,18 +30,23 @@
 #include "TGraph2D.h"
 #include "TStyle.h"
 
-#define GPUCA_NO_VC //Test without Vc, otherwise ctest fails linking
-#include "IrregularSpline2D3D.h"
+#endif
 
-#ifndef IrregularSpline2D3DTest_H
-#define IrregularSpline2D3DTest_H
-
-const int PolynomDegree = 7;
-
-double cu[PolynomDegree + 1], cv[PolynomDegree + 1];
+//#define GPUCA_NO_VC //Test without Vc, otherwise ctest fails linking
 
 float Fx(float u, float v)
 {
+  const int PolynomDegree = 7;
+  static double cu[PolynomDegree + 1], cv[PolynomDegree + 1];
+  static bool isInitialized = 0;
+
+  if (!isInitialized) {
+    for (int i = 0; i <= PolynomDegree; i++) {
+      cu[i] = i * gRandom->Uniform(-1, 1);
+      cv[i] = i * gRandom->Uniform(-1, 1);
+    }
+    isInitialized = 1;
+  }
   u -= 0.5;
   v -= 0.5;
   double uu = 1.;
@@ -50,45 +64,44 @@ float Fx(float u, float v)
 float Fy(float u, float v) { return v; }
 float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
-#endif
 
 int IrregularSpline2D3DTest()
 {
-  using namespace GPUCA_NAMESPACE::gpu;
+  using namespace o2::gpu;
 
   gRandom->SetSeed(0);
   UInt_t seed = gRandom->Integer(100000); // 605
   gRandom->SetSeed(seed);
   cout << "Random seed: " << seed << " " << gRandom->GetSeed() << endl;
 
-  for (int i = 0; i <= PolynomDegree; i++) {
-    cu[i] = gRandom->Uniform(-1, 1);
-    cv[i] = gRandom->Uniform(-1, 1);
-  }
-
-  const int nKnotsU = 7, nKnotsV = 7;
-  int nAxisTicksU = 70;
-  int nAxisTicksV = 1000;
-
-  float du = 1. / (nKnotsU - 1);
-  float dv = 1. / (nKnotsV - 1);
-
-  float knotsU[nKnotsU], knotsV[nKnotsV];
-  knotsU[0] = 0;
-  knotsU[nKnotsU - 1] = 1;
-  knotsV[0] = 0;
-  knotsV[nKnotsV - 1] = 1;
-
-  for (int i = 1; i < nKnotsU - 1; i++) {
-    knotsU[i] = i * du + gRandom->Uniform(-du / 3, du / 3);
-  }
-
-  for (int i = 1; i < nKnotsV - 1; i++) {
-    knotsV[i] = i * dv + gRandom->Uniform(-dv / 3, dv / 3);
-  }
-
   IrregularSpline2D3D spline;
-  spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
+
+  {
+    const int nKnotsU = 7, nKnotsV = 7;
+    float knotsU[nKnotsU], knotsV[nKnotsV];
+
+    int nAxisTicksU = 20;
+    int nAxisTicksV = 20;
+
+    double du = 1. / (nKnotsU - 1);
+    double dv = 1. / (nKnotsV - 1);
+    for (int i = 1; i < nKnotsU - 1; i++) {
+      knotsU[i] = i * du + gRandom->Uniform(-du / 3., du / 3.);
+    }
+    for (int i = 1; i < nKnotsV - 1; i++) {
+      knotsV[i] = i * dv + gRandom->Uniform(-dv / 3., dv / 3.);
+    }
+
+    knotsU[0] = 0.;
+    knotsU[nKnotsU - 1] = 1.;
+    knotsV[0] = 0.;
+    knotsV[nKnotsV - 1] = 1.;
+
+    std::sort(knotsU, knotsU + nKnotsU);
+    std::sort(knotsV, knotsV + nKnotsV);
+
+    spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
+  }
 
   int nKnotsTot = spline.getNumberOfKnots();
 
@@ -108,8 +121,8 @@ int IrregularSpline2D3DTest()
       data0[ind + 0] = Fx(u, v);
       data0[ind + 1] = Fy(u, v);
       data0[ind + 2] = Fz(u, v);
-      // just some random values
-      data0[ind + 0] = gRandom->Uniform(-1, 1); // Gaus();
+      // use random values instaad of Fx
+      //data0[ind + 0] = gRandom->Uniform(-.3, .3);
     }
   }
 
@@ -176,8 +189,8 @@ int IrregularSpline2D3DTest()
   float stepu = 1.e-3;
   float stepv = 1.e-3;
 
-  for (float u = -0.1; u <= 1.2; u += stepu) {
-    for (float v = -0.1; v <= 1.2; v += stepv) {
+  for (float u = -.05; u <= 1.05; u += stepu) {
+    for (float v = -.05; v <= 1.05; v += stepv) {
       iter++;
       float x, y, z;
       spline.getSplineVec(data, u, v, x, y, z);
@@ -200,25 +213,9 @@ int IrregularSpline2D3DTest()
   gknots->Draw("P,same");
   canv->Update();
 
-  /*
-      Specific drawing options can be used to paint a TGraph2D:
+  delete[] data0;
+  delete[] data;
 
-         "TRI"  : The Delaunay triangles are drawn using filled area.
-                  An hidden surface drawing technique is used. The surface is
-                  painted with the current fill area color. The edges of each
-                  triangles are painted with the current line color.
-         "TRIW" : The Delaunay triangles are drawn as wire frame
-         "TRI1" : The Delaunay triangles are painted with color levels. The edges
-                  of each triangles are painted with the current line color.
-         "TRI2" : the Delaunay triangles are painted with color levels.
-         "P"    : Draw a marker at each vertex
-         "P0"   : Draw a circle at each vertex. Each circle background is white.
-         "PCOL" : Draw a marker at each vertex. The color of each marker is
-                  defined according to its Z position.
-         "CONT" : Draw contours
-         "LINE" : Draw a 3D polyline
-   */
   return 0;
 }
 
-#endif

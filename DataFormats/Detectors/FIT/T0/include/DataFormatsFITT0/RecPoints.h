@@ -28,6 +28,10 @@ namespace t0
 class RecPoints
 {
  public:
+  enum : int { TimeMean,
+               TimeA,
+               TimeC };
+
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 3>& collisiontime,
             Float_t vertex,
@@ -39,14 +43,18 @@ class RecPoints
   }
   ~RecPoints() = default;
 
-  void FillFromDigits(const o2::t0::Digit& digit);
-  Float_t GetCollisionTime(int side) const { return mCollisionTime[side]; }
+  void fillFromDigits(const o2::t0::Digit& digit);
+  float getCollisionTime(int side) const { return mCollisionTime[side]; }
+  float getCollisionTimeMean() const { return getCollisionTime(TimeMean); }
+  float getCollisionTimeA() const { return getCollisionTime(TimeC); }
+  float getCollisionTimeC() const { return getCollisionTime(TimeA); }
+  bool isValidTime(int side) const { return getCollisionTime(side) < o2::InteractionRecord::DummyTime; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 
-  Float_t GetTimeFromDigit() const { return mEventTime; }
+  float getTimeFromDigit() const { return mEventTime; }
   void setTimFromDigit(Float_t time) { mEventTime = time; }
 
-  Float_t GetVertex(Float_t vertex) const { return mVertex; }
+  Float_t getVertex(Float_t vertex) const { return mVertex; }
   void setVertex(Float_t vertex) { mVertex = vertex; }
 
   void SetMgrEventTime(Double_t time) { mEventTime = time; }
@@ -66,9 +74,11 @@ class RecPoints
   uint16_t getBC() const { return mIntRecord.bc; }
 
  private:
-  std::array<Float_t, 3> mCollisionTime;
+  std::array<Float_t, 3> mCollisionTime = { 2 * o2::InteractionRecord::DummyTime,
+                                            2 * o2::InteractionRecord::DummyTime,
+                                            2 * o2::InteractionRecord::DummyTime };
   Float_t mVertex = 0;
-  Double_t mEventTime; //event time from Fair for continuous
+  Double_t mEventTime = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
   std::vector<o2::t0::ChannelData> mTimeAmp;
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
 

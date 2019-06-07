@@ -26,8 +26,12 @@ namespace o2
 {
 namespace tpc
 {
-struct CompressedClusters {
+template <class T>
+struct CompressedClustersPtrs_helper {
 };
+struct CompressedClustersCounters {
+};
+using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
 struct CompressedClustersPtrsOnly {
 };
 } // namespace tpc

@@ -127,6 +127,19 @@ void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 
 int GPUChainTracking::Init()
 {
+  if (GetDeviceProcessingSettings().debugLevel >= 1) {
+    printf("Enabled Reconstruction Steps: 0x%x (on GPU: 0x%x)", (int)GetRecoSteps().get(), (int)GetRecoStepsGPU().get());
+    for (unsigned int i = 0; i < sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]); i++) {
+      if (GetRecoSteps().isSet(1u << i)) {
+        printf(" - %s", GPUDataTypes::RECO_STEP_NAMES[i]);
+        if (GetRecoStepsGPU().isSet(1u << i)) {
+          printf(" (G)");
+        }
+      }
+    }
+    printf("\n");
+  }
+
   if (GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay)) {
     mQA.reset(new GPUQA(this));
   }
@@ -151,7 +164,7 @@ int GPUChainTracking::Init()
       mFlatObjectsShadow.mMatLUT->setFutureBufferAddress(mFlatObjectsDevice.mMatLUTBuffer);
     }
     if (mTRDGeometry) {
-      memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry.get(), sizeof(*mTRDGeometry));
+      memcpy((void*)mFlatObjectsShadow.mTrdGeometry, (const void*)mTRDGeometry, sizeof(*mTRDGeometry));
       mFlatObjectsShadow.mTrdGeometry->clearInternalBufferPtr();
     }
 #endif
@@ -392,7 +405,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   f = dir;
   f += "trdgeometry.dump";
   if (mTRDGeometry != nullptr) {
-    DumpStructToFile(mTRDGeometry.get(), f.c_str());
+    DumpStructToFile(mTRDGeometry, f.c_str());
   }
 
 #endif
@@ -412,7 +425,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   mMatLUT = mMatLUTU.get();
   f = dir;
   f += "trdgeometry.dump";
-  mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+  mTRDGeometryU = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+  mTRDGeometry = mTRDGeometryU.get();
 #endif
 }
 
@@ -492,19 +506,23 @@ void GPUChainTracking::ConvertRun2RawToNative()
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
+void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
   mTPCFastTransform = mTPCFastTransformU.get();
 }
 
-void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet> lut)
+void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)
 {
   mMatLUTU = std::move(lut);
   mMatLUT = mMatLUTU.get();
 }
 
-void GPUChainTracking::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo) { mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo)); }
+void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo)
+{
+  mTRDGeometryU = std::move(geo);
+  mTRDGeometry = mTRDGeometryU.get();
+}
 
 int GPUChainTracking::ReadEvent(int iSlice, int threadId)
 {
@@ -1307,14 +1325,14 @@ int GPUChainTracking::RunChain()
     return (1);
   }
 
-  if (mIOPtrs.clustersNative) {
+  if (GetRecoSteps().isSet(RecoStep::TPCConversion) && mIOPtrs.clustersNative) {
     timerTransform.Start();
     ConvertNativeToClusterData();
     timerTransform.Stop();
   }
 
   timerTracking.Start();
-  if (RunTPCTrackingSlices()) {
+  if (GetRecoSteps().isSet(RecoStep::TPCSliceTracking) && RunTPCTrackingSlices()) {
     return 1;
   }
   timerTracking.Stop();
@@ -1324,12 +1342,12 @@ int GPUChainTracking::RunChain()
     // printf("slice %d clusters %d tracks %d\n", i, mClusterData[i].NumberOfClusters(), processors()->tpcTrackers[i].Output()->NTracks());
     processors()->tpcMerger.SetSliceData(i, processors()->tpcTrackers[i].Output());
   }
-  if (RunTPCTrackingMerger()) {
+  if (GetRecoSteps().isSet(RecoStep::TPCMerging) && RunTPCTrackingMerger()) {
     return 1;
   }
   timerMerger.Stop();
 
-  if (mIOPtrs.clustersNative) {
+  if (GetRecoSteps().isSet(RecoStep::TPCCompression) && mIOPtrs.clustersNative) {
     timerCompression.Start();
     RunTPCCompression();
     if (GetDeviceProcessingSettings().runCompressionStatistics) {

@@ -13,6 +13,8 @@ include_directories(../Common)
 set(SRCS
     IrregularSpline1D.cxx
     IrregularSpline2D3D.cxx
+    SemiregularSpline2D3D.cxx
+    IrregularSpline2D3DCalibrator.cxx
     TPCDistortionIRS.cxx
     TPCFastTransform.cxx
 )
@@ -52,6 +54,9 @@ if (NOT ROOT_VERSION_MAJOR EQUAL 5)
         ../Common/FlatObject.h
         IrregularSpline1D.h
         IrregularSpline2D3D.h
+	SemiregularSpline2D3D.h	
+ 	IrregularSpline2D3DCalibrator.h
+        RegularSpline1D.h
         TPCFastTransform.h
         TPCDistortionIRS.h
     )
@@ -97,6 +102,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
     set (HDRS
         ${HDRS}
     	../Common/GPUCommonDef.h
+	RegularSpline1D.h
     )
 
     Set(HEADERS ${HDRS})

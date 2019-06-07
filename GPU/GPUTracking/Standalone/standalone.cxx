@@ -221,6 +221,7 @@ int SetupReconstruction()
   GPUSettingsEvent ev = rec->GetEventSettings();
   GPUSettingsRec recSet;
   GPUSettingsDeviceProcessing devProc;
+  GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
     ev.homemadeEvents = true;
@@ -289,20 +290,12 @@ int SetupReconstruction()
   devProc.globalInitMutex = configStandalone.gpuInitMutex;
   devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
   devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-  if (configStandalone.configRec.runTRD != -1) {
-    rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
-  }
-  if (!configStandalone.merger) {
-    rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TPCMerging, false);
-  }
-  if (configStandalone.configRec.rundEdx != -1) {
-    recSet.DodEdx = configStandalone.configRec.rundEdx > 0;
-  }
   recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
   }
   recSet.tpcCompressionModes = configStandalone.configRec.tpcCompression;
+  recSet.tpcCompressionSortOrder = configStandalone.configRec.tpcCompressionSort;
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;
@@ -314,7 +307,20 @@ int SetupReconstruction()
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
 
-  rec->SetSettings(&ev, &recSet, &devProc);
+  steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
+  if (configStandalone.configRec.runTRD != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+  }
+  if (!configStandalone.merger) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
+  }
+  if (configStandalone.configRec.rundEdx != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
+  }
+  steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
+  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TRDTracks);
+
+  rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;

@@ -27,31 +27,42 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTPC/Constants.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
+#include "GPUO2InterfaceConfiguration.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #else
-#pragma cling load("libTPCReconstruction")
-#pragma cling load("libDataFormatsTPC")
+#pragma cling load("libO2TPCReconstruction")
+#pragma cling load("libO2DataFormatsTPC")
 #endif
 
+using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 
 using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
 
+#if !defined(__CLING__) || defined(__ROOTCLING__) // Disable in interpreted mode due to missing rootmaps
+
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg
 // TClonesArray of clusters.
-// It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-int runCATrackingClusterNative(TString inputFile, TString outputFile, TString options = "")
+// It wraps the GPUCATracking class
+int runCATrackingClusterNative(TString inputFile, TString outputFile)
 {
   if (inputFile.EqualTo("") || outputFile.EqualTo("")) {
     printf("Filename missing\n");
     return (1);
   }
-  TPCCATracking tracker;
+  GPUCATracking tracker;
 
-  if (tracker.initialize(options.Data())) {
+  // Just some default options to keep the macro running for now
+  // Should be deprecated anyway in favor of the TPC workflow
+  GPUO2InterfaceConfiguration config;
+  config.configEvent.continuousMaxTimeBin = 0.023 * 5e6;
+  config.configReconstruction.NWays = 3;
+  config.configReconstruction.NWaysOuter = true;
+  config.configReconstruction.SearchWindowDZDR = 2.5f;
+  if (tracker.initialize(config)) {
     printf("Error initializing tracker\n");
     return (0);
   }
@@ -94,7 +105,11 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile, TString op
   tout.Branch("TracksMCTruth", &tracksMC);
 
   printf("Processing time frame\n");
-  if (tracker.runTracking(*clusters, &tracks, doMC ? &tracksMC : nullptr) == 0) {
+  GPUO2InterfaceIOPtrs ptrs;
+  ptrs.clusters = clusters.get();
+  ptrs.outputTracks = &tracks;
+  ptrs.outputTracksMCTruth = doMC ? &tracksMC : nullptr;
+  if (tracker.runTracking(&ptrs) == 0) {
     printf("\tFound %d tracks\n", (int)tracks.size());
   } else {
     printf("\tError during tracking\n");
@@ -134,3 +149,5 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile, TString op
   tracker.deinitialize();
   return (0);
 }
+
+#endif

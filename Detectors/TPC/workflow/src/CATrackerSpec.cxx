@@ -24,7 +24,16 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCFastTransform.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUDisplayBackend.h"
+#ifdef BUILD_EVENT_DISPLAY
+#include "GPUDisplayBackendGlfw.h"
+#endif
+#include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,6 +46,8 @@
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2::gpu;
+using namespace o2::base;
 
 namespace o2
 {
@@ -58,7 +69,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<o2::tpc::TPCCATracking> tracker;
+    std::unique_ptr<o2::tpc::GPUCATracking> tracker;
+    std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
+    std::unique_ptr<TPCFastTransform> fastTransform;
     int verbosity = 1;
     std::vector<int> inputIds;
     bool readyToQuit = false;
@@ -73,9 +86,140 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<o2::tpc::TPCCATracking>();
-      if (tracker->initialize(options.c_str()) != 0) {
-        throw std::invalid_argument("TPCCATracking initialization failed");
+      tracker = std::make_unique<o2::tpc::GPUCATracking>();
+
+      // Prepare initialization of CATracker - we parse the deprecated option string here,
+      // and create the proper configuration objects for compatibility.
+      // This should go away eventually.
+
+      // Default Settings
+      float solenoidBz = -5.00668; // B-field
+      float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
+      bool continuous = false;     // time frame data v.s. triggered events
+      int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
+      bool useGPU = false;         // use a GPU for processing, if false uses GPU
+      bool dump = false;           // create memory dump of processed events for standalone runs
+      char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
+      GPUDisplayBackend* display = nullptr;
+
+      const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
+      if (grp) {
+        LOG(INFO) << "Initializing run paramerers from GRP";
+        solenoidBz *= grp->getL3Current() / 30000.;
+        continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+      } else {
+        LOG(ERROR) << "Failed to initialize run parameters from GRP";
+        // should we call fatal here?
+      }
+
+      // Parse the config string
+      const char* opt = options.c_str();
+      if (opt && *opt) {
+        printf("Received options %s\n", opt);
+        const char* optPtr = opt;
+        while (optPtr && *optPtr) {
+          while (*optPtr == ' ') {
+            optPtr++;
+          }
+          const char* nextPtr = strstr(optPtr, " ");
+          const int optLen = nextPtr ? nextPtr - optPtr : strlen(optPtr);
+          if (strncmp(optPtr, "cont", optLen) == 0) {
+            continuous = true;
+            printf("Continuous tracking mode enabled\n");
+          } else if (strncmp(optPtr, "dump", optLen) == 0) {
+            dump = true;
+            printf("Dumping of input events enabled\n");
+          } else if (strncmp(optPtr, "display", optLen) == 0) {
+#ifdef BUILD_EVENT_DISPLAY
+            processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
+            display = processAttributes->displayBackend.get();
+            printf("Event display enabled\n");
+#else
+            printf("Standalone Event Display not enabled at build time!\n");
+#endif
+          } else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
+            sscanf(optPtr + 3, "%f", &solenoidBz);
+            printf("Using solenoid field %f\n", solenoidBz);
+          } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
+            sscanf(optPtr + 5, "%f", &refX);
+            printf("Propagating to reference X %f\n", refX);
+          } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
+            sscanf(optPtr + 8, "%d", &nThreads);
+            printf("Using %d threads\n", nThreads);
+          } else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0) {
+            int len = std::min(optLen - 8, 1023);
+            memcpy(gpuType, optPtr + 8, len);
+            gpuType[len] = 0;
+            useGPU = true;
+            printf("Using GPU Type %s\n", gpuType);
+          } else {
+            printf("Unknown option: %s\n", optPtr);
+            throw std::invalid_argument("Unknown config string option");
+          }
+          optPtr = nextPtr;
+        }
+      }
+
+      // Create configuration object and fill settings
+      GPUO2InterfaceConfiguration config;
+      if (useGPU) {
+        config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
+      } else {
+        config.configProcessing.deviceType = GPUDataTypes::DeviceType::CPU;
+      }
+      config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
+
+      config.configDeviceProcessing.nThreads = nThreads;
+      config.configDeviceProcessing.runQA = false;          // Run QA after tracking
+      config.configDeviceProcessing.eventDisplay = display; // Ptr to event display backend, for running standalone OpenGL event display
+                                                            // config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendX11;
+
+      config.configEvent.solenoidBz = solenoidBz;
+      config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+
+      config.configReconstruction.NWays = 3;               // Should always be 3!
+      config.configReconstruction.NWaysOuter = true;       // Will create outer param for TRD
+      config.configReconstruction.SearchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
+      config.configReconstruction.TrackReferenceX = refX;
+
+      // Settings for TPC Compression:
+      config.configReconstruction.tpcRejectionMode = GPUSettings::RejectionStrategyA; // Implement TPC Strategy A
+      config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
+      config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
+      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortPad;     // Sort order for differences compression
+      config.configReconstruction.tpcSigBitsCharge = 4;                               // Number of significant bits in TPC cluster chargs
+      config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
+
+      config.configInterface.dumpEvents = dump;
+
+      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
+      config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
+                                      GPUDataTypes::RecoStep::TPCSliceTracking,
+                                      GPUDataTypes::RecoStep::TPCMerging,
+                                      GPUDataTypes::RecoStep::TPCCompression,
+                                      GPUDataTypes::RecoStep::TPCdEdx);
+      // Alternative steps: TRDTracking | ITSTracking
+      config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
+      // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
+      config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters);
+      // Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
+
+      // Create and forward data objects for TPC transformation, material LUT, ...
+      processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+      config.fastTransform = processAttributes->fastTransform.get();
+      o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
+      config.matLUT = lut;
+      // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
+      /*o2::base::GeometryManager::loadGeometry();
+      o2::trd::TRDGeometry gm;
+      gm.createPadPlaneArray();
+      gm.createClusterMatrixArray();
+      std::unique_ptr<o2::trd::TRDGeometryFlat> gf(gm);
+      config.trdGeometry = gf.get();*/
+
+      // Configuration is prepared, initialize the tracker.
+      if (tracker->initialize(config) != 0) {
+        throw std::invalid_argument("GPUCATracking initialization failed");
       }
       processAttributes->validInputs.reset();
       processAttributes->validMcInputs.reset();
@@ -265,9 +409,13 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       memset(&clusterIndex, 0, sizeof(clusterIndex));
       ClusterNativeHelper::Reader::fillIndex(clusterIndex, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
 
+      GPUO2InterfaceIOPtrs ptrs;
       std::vector<TrackTPC> tracks;
       MCLabelContainer tracksMCTruth;
-      int retVal = tracker->runTracking(clusterIndex, &tracks, (processMC ? &tracksMCTruth : nullptr));
+      ptrs.clusters = &clusterIndex;
+      ptrs.outputTracks = &tracks;
+      ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
+      int retVal = tracker->runTracking(&ptrs);
       if (retVal != 0) {
         // FIXME: error policy
         LOG(ERROR) << "tracker returned error code " << retVal;
@@ -278,6 +426,14 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
         pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
       }
+
+      // TODO - Process Compressed Clusters Output
+      const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters; // This is a ROOT-serializable container with compressed TPC clusters
+      // Example to decompress clusters
+      //#include "TPCClusterDecompressor.cxx"
+      //o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded; // Cluster native access structure as used by the tracker
+      //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
+      //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
 
       validInputs.reset();
       if (processMC) {

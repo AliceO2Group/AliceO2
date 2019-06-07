@@ -13,6 +13,8 @@
 namespace o2
 {
 
+//const double InteractionRecord::DummyTime = InteractionRecord::bc2ns(0xffff,0xffffffff);
+
 std::ostream& operator<<(std::ostream& stream, o2::InteractionRecord const& ir)
 {
   stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit;

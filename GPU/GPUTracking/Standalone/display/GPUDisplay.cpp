@@ -11,12 +11,6 @@
 /// \file GPUDisplay.cpp
 /// \author David Rohr
 
-//#ifdef GPUCA_O2_LIB
-//#include "../src/GL/gl3w.h"
-//#else
-#include <GL/glew.h>
-//#endif
-
 #include "GPUDisplay.h"
 #include "GPUTPCDef.h"
 
@@ -52,10 +46,6 @@
 #include "utils/qconfig.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-
-#if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
-#error Unsupported OpenGL version < 4.5
-#endif
 
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd)                                                                           \
@@ -94,7 +84,7 @@ GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* rec, GPUQA*
 const GPUParam& GPUDisplay::param() { return mChain->GetParam(); }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 const GPUTRDTracker& GPUDisplay::trdTracker() { return *mChain->GetTRDTracker(); }
-const GPUChainTracking::InOutPointers GPUDisplay::ioptrs() { return mChain->mIOPtrs; }
+const GPUTrackingInOutPointers GPUDisplay::ioptrs() { return mChain->mIOPtrs; }
 
 inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 {
@@ -158,17 +148,17 @@ void GPUDisplay::calcXYZ()
   createQuaternionFromMatrix(mQuat, mCurrentMatrix);
 
   /*float mAngle[1] = -asinf(mCurrentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
-        float C = cosf( angle_y );
-        if (fabsf(C) > 0.005) //Gimball lock?
-        {
-            mAngle[0]  = atan2f(-mCurrentMatrix[6] / C, mCurrentMatrix[10] / C);
-            mAngle[2]  = atan2f(-mCurrentMatrix[1] / C, mCurrentMatrix[0] / C);
-        }
-        else
-        {
-            mAngle[0]  = 0; //set x-angle
-            mAngle[2]  = atan2f(mCurrentMatrix[4], mCurrentMatrix[5]);
-        }*/
+  float C = cosf( angle_y );
+  if (fabsf(C) > 0.005) //Gimball lock?
+  {
+      mAngle[0]  = atan2f(-mCurrentMatrix[6] / C, mCurrentMatrix[10] / C);
+      mAngle[2]  = atan2f(-mCurrentMatrix[1] / C, mCurrentMatrix[0] / C);
+  }
+  else
+  {
+      mAngle[0]  = 0; //set x-angle
+      mAngle[2]  = atan2f(mCurrentMatrix[4], mCurrentMatrix[5]);
+  }*/
 }
 
 void GPUDisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
