@@ -41,6 +41,7 @@ set(SRCS
     src/DataSamplingConditionPayloadSize.cxx
     src/DataSamplingConditionNConsecutive.cxx
     src/DataSamplingConditionFactory.cxx
+    src/DataSamplingHeader.cxx
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
     src/DataSpecUtils.cxx
@@ -160,6 +161,7 @@ set(HEADERS
       include/Framework/DataSampling.h
       include/Framework/DataSamplingCondition.h
       include/Framework/DataSamplingConditionFactory.h
+      include/Framework/DataSamplingHeader.h
       include/Framework/DataSamplingReadoutAdapter.h
       include/Framework/DataSamplingPolicy.h
       include/Framework/Dispatcher.h
@@ -257,6 +259,7 @@ set(TEST_SRCS
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
+      test/test_DataSamplingHeader.cxx
       test/test_DataSamplingPolicy.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
