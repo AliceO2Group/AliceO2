@@ -30,7 +30,8 @@ include(O2AddTestWrapper)
 # * TIMEOUT : the number of seconds allowed for the test to run. Past this time
 #   failure is assumed.
 # * NON_FATAL : true if the failing of this test is not causing the CI to fail
-
+# * ENVIRONMENT: extra environment needed by the test to run properly
+#
 function(o2_add_test)
 
   if(NOT BUILD_TESTING)
@@ -43,7 +44,8 @@ function(o2_add_test)
     A
     "INSTALL;NO_BOOST_TEST;NON_FATAL"
     "COMPONENT_NAME;MAX_ATTEMPTS;TIMEOUT;WORKING_DIRECTORY"
-    "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS")
+    "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT"
+    )
 
   if(A_UNPARSED_ARGUMENTS)
     message(
@@ -88,7 +90,8 @@ function(o2_add_test)
                       MAX_ATTEMPTS ${A_MAX_ATTEMPTS}
                       TIMEOUT ${A_TIMEOUT} ${nonFatal}
                       WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
-                      COMMAND_LINE_ARGS ${A_COMMAND_LINE_ARGS}
-                      LABELS ${A_LABELS}
-                      CONFIGURATIONS ${A_CONFIGURATIONS})
+                      COMMAND_LINE_ARGS "${A_COMMAND_LINE_ARGS}"
+                      LABELS "${A_LABELS}"
+                      CONFIGURATIONS "${A_CONFIGURATIONS}"
+                      ENVIRONMENT "${A_ENVIRONMENT}")
 endfunction()

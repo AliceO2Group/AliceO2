@@ -58,8 +58,7 @@ rm -f "$LOG"* &>/dev/null
 exec &> >(tee "$LOG")
 
 function banner() {
-  # echo "=== $TEST_NAME - $1 ===" >&2
-  a=2
+  echo "=== $TEST_NAME - $1 ===" >&2
 }
 
 banner "Starting test. Max attempts: $MAX_ATTEMPTS.${TIMEOUT:+" Timeout per attempt: $TIMEOUT."}${DONT_FAIL_ON_TIMEOUT:+" Timeouts are not fatal."}${NON_FATAL:+" Errors are not fatal."}"
@@ -68,8 +67,8 @@ for A in "${ARGS[@]}"; do
   banner "Argument: $A"
 done
 banner "Current working directory: $PWD"
-banner "Environment"
-#env
+banner "Environment ZOB!"
+env
 echo "PATH=$PATH"
 echo "ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"

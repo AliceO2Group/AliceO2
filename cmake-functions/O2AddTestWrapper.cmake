@@ -17,6 +17,7 @@ include_guard()
 # * COMMAND_LINE_ARGS (optional) extra arguments to the test executable, if
 #   needed
 # * NON_FATAL (optional) mark the test as non criticial for the CI
+# * ENVIRONMENT: extra environment needed by the test to run properly
 #
 function(o2_add_test_wrapper)
   cmake_parse_arguments(PARSE_ARGV
@@ -24,7 +25,7 @@ function(o2_add_test_wrapper)
                         "A"
                         "DONT_FAIL_ON_TIMEOUT;NON_FATAL"
                         "COMMAND;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT;NAME"
-                        "COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS")
+                        "COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT")
 
   if(A_UNPARSED_ARGUMENTS)
     message(
@@ -84,5 +85,8 @@ function(o2_add_test_wrapper)
   set_tests_properties(${testName} PROPERTIES TIMEOUT ${ctestTimeout})
   if(A_LABELS)
     set_tests_properties(${testName} PROPERTIES LABELS ${A_LABELS})
+  endif()
+  if(A_ENVIRONMENT)
+    set_tests_properties(${testName} PROPERTIES ENVIRONMENT "${A_ENVIRONMENT}")
   endif()
 endfunction()
