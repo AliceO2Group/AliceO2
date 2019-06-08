@@ -1,5 +1,5 @@
-# allsim is not a real library (i.e. not something that is built)
-# but a convenient bag for all the deps needed in the executables below
+# allsim is not a real library (i.e. not something that is built) but a
+# convenient bag for all the deps needed in the executables below
 add_library(allsim INTERFACE)
 
 target_link_libraries(allsim
@@ -50,16 +50,20 @@ o2_add_executable(hit-merger-runner
                   SOURCES O2HitMergerRunner.cxx
                   PUBLIC_LINK_LIBRARIES allsim)
 
-o2_add_executable(tpc COMPONENT_NAME sim SOURCES runTPC.cxx
-PUBLIC_LINK_LIBRARIES allsim O2::TPCReconstruction)
+o2_add_executable(tpc
+                  COMPONENT_NAME sim
+                  SOURCES runTPC.cxx
+                  PUBLIC_LINK_LIBRARIES allsim O2::TPCReconstruction)
 
-install(FILES o2simtopology.json DESTINATION share/config)
+install(FILES o2simtopology.json DESTINATION ${CMAKE_INSTALL_DATADIR}/config)
+file(COPY o2simtopology.json
+     DESTINATION ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
 #   perform
 # * # some checks on kinematics and track references
 #
-# * FIXME : use o2_add_test_wrapper for those 
+# * FIXME : use o2_add_test_wrapper for those
 #
 # * add_test_wrap(NAME
 # * o2sim_G4

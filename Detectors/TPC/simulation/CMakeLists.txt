@@ -29,9 +29,7 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/SAMPAProcessing.h
                                   include/TPCSimulation/SpaceCharge.h)
 
-file(COPY files
-     DESTINATION ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/Detectors/TPC)
-install(DIRECTORY files DESTINATION ${CMAKE_INSTALL_DATADIR}/Detectors/TPC/)
+o2_file(COPY files DESTINATION Detectors/TPC)
 
 if(BUILD_TESTING)
   add_subdirectory(test)

@@ -67,8 +67,6 @@ for A in "${ARGS[@]}"; do
   banner "Argument: $A"
 done
 banner "Current working directory: $PWD"
-banner "Environment ZOB!"
-env
 echo "PATH=$PATH"
 echo "ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"

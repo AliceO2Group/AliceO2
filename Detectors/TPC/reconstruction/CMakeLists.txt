@@ -46,6 +46,7 @@ o2_add_executable(read-gbtframes
                   O2::TPCReconstruction
                   SOURCES
                   run/readGBTFrames.cxx)
+
 o2_add_executable(read-rawdata
                   COMPONENT_NAME
                   tpc
@@ -53,6 +54,7 @@ o2_add_executable(read-rawdata
                   O2::TPCReconstruction
                   SOURCES
                   run/readRawData.cxx)
+
 o2_add_executable(rawreader-cru
                   COMPONENT_NAME
                   tpc
@@ -70,6 +72,7 @@ o2_add_test(SyncPatternMonitor
             O2::TPCReconstruction
             SOURCES
             test/testTPCSyncPatternMonitor.cxx)
+
 o2_add_test(AdcClockMonitor
             COMPONENT_NAME
             tpc
@@ -79,6 +82,7 @@ o2_add_test(AdcClockMonitor
             O2::TPCReconstruction
             SOURCES
             test/testTPCAdcClockMonitor.cxx)
+
 o2_add_test(GPUCATracking
             COMPONENT_NAME
             tpc
@@ -87,7 +91,9 @@ o2_add_test(GPUCATracking
             PUBLIC_LINK_LIBRARIES
             O2::TPCReconstruction
             SOURCES
-            test/testGPUCATracking.cxx)
+            test/testGPUCATracking.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(HwClusterer
             COMPONENT_NAME
             tpc
@@ -96,7 +102,9 @@ o2_add_test(HwClusterer
             PUBLIC_LINK_LIBRARIES
             O2::TPCReconstruction
             SOURCES
-            test/testTPCHwClusterer.cxx)
+            test/testTPCHwClusterer.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(FastTransform
             COMPONENT_NAME
             tpc
@@ -105,7 +113,8 @@ o2_add_test(FastTransform
             PUBLIC_LINK_LIBRARIES
             O2::TPCReconstruction
             SOURCES
-            test/testTPCFastTransform.cxx)
+            test/testTPCFastTransform.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 # FIXME: should be moved to TPCCalibration as it requires O2::TPCCalibration
 # which is built after TPCReconstruction

@@ -36,6 +36,7 @@ include(O2AddLibrary)
 include(O2AddTest)
 include(O2AddTestRootMacro)
 include(O2TargetRootDictionary)
+include(O2File)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common/Constants)
