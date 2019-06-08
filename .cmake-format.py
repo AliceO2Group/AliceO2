@@ -65,6 +65,12 @@ additional_commands = {
             "HEADERS": '*',
         }
     },
+    "o2_file": {
+        "kwargs": {
+            "COPY": '+',
+            "DESTINATION": '*',
+        }
+    },
     "o2_add_test_wrapper": {
         "flags": ["DONT_FAIL_ON_TIMEOUT", "NON_FATAL"],
         "kwargs": {

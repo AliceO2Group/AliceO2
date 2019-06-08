@@ -18,6 +18,7 @@ o2_add_test(ElectronTransport
             tpc
             SOURCES
             testTPCElectronTransport.cxx)
+
 o2_add_test(GEMAmplification
             LABELS
             tpc
@@ -26,7 +27,9 @@ o2_add_test(GEMAmplification
             COMPONENT_NAME
             tpc
             SOURCES
-            testTPCGEMAmplification.cxx)
+            testTPCGEMAmplification.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(SAMPAProcessing
             LABELS
             tpc
@@ -35,7 +38,9 @@ o2_add_test(SAMPAProcessing
             COMPONENT_NAME
             tpc
             SOURCES
-            testTPCSAMPAProcessing.cxx)
+            testTPCSAMPAProcessing.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(Simulation
             LABELS
             tpc

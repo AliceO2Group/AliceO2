@@ -19,8 +19,4 @@ add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 
-install(DIRECTORY data DESTINATION ${CMAKE_INSTALL_DATADIR}/Detectors/ITSMFT)
-file(
-  COPY data
-  DESTINATION
-    ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/Detectors/ITSMFT)
+o2_file(COPY data DESTINATION Detectors/ITSMFT)

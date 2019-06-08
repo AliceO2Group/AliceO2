@@ -26,4 +26,4 @@ if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
 endif()
 
-install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)
+o2_file(COPY Geometry gconfig DESTINATION Detectors/)
