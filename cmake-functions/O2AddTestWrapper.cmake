@@ -6,9 +6,9 @@ include_guard()
 # Same as add_test() but optionally retry up to MAX_ATTEMPTS times upon failure.
 # This is achieved by using a shell script wrapper.
 #
-# * exe (required) is the full path to the executable to be wrapped
+# * COMMAND (required) is the full path to the executable to be wrapped
 #
-# * NAME (optional) if not present the name of the test is the exe name
+# * NAME (optional) if not present the name of the test is the command name
 # * WORKING_DIRECTORY (optional) the wrapper will cd into this directory before
 #   running the executable
 # * DONT_FAIL_ON_TIMEOUT (optional) indicate the test will not fail on timeouts
@@ -20,10 +20,10 @@ include_guard()
 #
 function(o2_add_test_wrapper)
   cmake_parse_arguments(PARSE_ARGV
-                        1
+                        0
                         "A"
                         "DONT_FAIL_ON_TIMEOUT;NON_FATAL"
-                        "WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT;NAME"
+                        "COMMAND;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT;NAME"
                         "COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS")
 
   if(A_UNPARSED_ARGUMENTS)
@@ -31,7 +31,7 @@ function(o2_add_test_wrapper)
       FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  set(testExe ${ARGV0})
+  set(testExe ${A_COMMAND})
 
   if(A_NAME)
     set(testName ${A_NAME})

@@ -30,7 +30,8 @@ o2_target_root_dictionary(DetectorsBase
 if(BUILD_SIMULATION)
   o2_add_test(MadBudLUT
               SOURCES test/testMatBudLUT.cxx
-              COMPONENT_NAME DetectorsBase)
+              COMPONENT_NAME DetectorsBase
+              PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
 endif()
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
