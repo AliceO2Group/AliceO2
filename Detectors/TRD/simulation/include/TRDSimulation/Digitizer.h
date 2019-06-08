@@ -51,10 +51,10 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, ArrayADCMapContainer_t&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, ArrayADCMapContainer_t&);                   // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, ArrayADCMapContainer_t&);                  // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, ArrayADCMapContainer_t&);                      // True if signal-to-ADC conversion is successful
+  bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&); // True if hit-to-signal conversion is successful
+  bool convertSignalsToDigits(const int, SignalContainer_t&);                   // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(const int, SignalContainer_t&);                  // True if signal-to-sdigit conversion is successful
+  bool convertSignalsToADC(const int, SignalContainer_t&);                      // True if signal-to-ADC conversion is successful
   bool diffusion(float, double, double, double&, double&, double&);                  // True if diffusion is applied successfully
 };
 } // namespace trd

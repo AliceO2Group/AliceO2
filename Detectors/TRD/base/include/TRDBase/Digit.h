@@ -27,10 +27,10 @@ constexpr int kTB = 30;
 constexpr int KEY_MIN = 0;
 constexpr int KEY_MAX = 2211727;
 
-typedef std::uint16_t ADC_t;                              // the ADC value type
-typedef std::array<ADC_t, kTB> ArrayADC_t;                // the array ADC
-typedef std::vector<Digit> DigitContainer_t;              // the digit container type
-typedef std::map<int, ArrayADC_t> ArrayADCMapContainer_t; // a map container type for signal handling during digitization
+typedef std::uint16_t ADC_t;                         // the ADC value type
+typedef std::array<ADC_t, kTB> ArrayADC_t;           // the array ADC
+typedef std::vector<Digit> DigitContainer_t;         // the digit container type
+typedef std::map<int, ArrayADC_t> SignalContainer_t; // a map container type for signal handling during digitization
 
 class Digit
 {
@@ -59,7 +59,7 @@ class Digit
   static int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }
   static int getRowFromKey(const int key) { return (key >> 8) & 0xF; }
   static int getColFromKey(const int key) { return key & 0xFF; }
-  static void convertMapToVectors(ArrayADCMapContainer_t& adcMapCont,
+  static void convertMapToVectors(const SignalContainer_t& adcMapCont,
                                   DigitContainer_t& digitCont)
   {
     //
@@ -74,8 +74,8 @@ class Digit
                              element.second);
     }
   }
-  static void convertVectorsToMap(ArrayADCMapContainer_t& adcMapCont,
-                                  DigitContainer_t& digitCont)
+  static void convertVectorsToMap(const DigitContainer_t& digitCont,
+                                  SignalContainer_t& adcMapCont)
   {
     //
     // Create a map container from a digit and a digit-index container

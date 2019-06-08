@@ -59,7 +59,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // Check if Geometry and if CCDB are available as they will be requiered
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
-  ArrayADCMapContainer_t adcMapCont;
+  SignalContainer_t adcMapCont;
 
   // Loop over all TRD detectors
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
@@ -115,7 +115,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, ArrayADCMapContainer_t& adcMapCont)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -330,7 +330,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Arr
       //  - Should we move this block? It's only used here
       //  - It's only used here...
       // ************************************************************
-      std::vector<int> pads_in_response(kNpad);
+      /* std::vector<int> pads_in_response(kNpad);
       std::vector<int> keys_in_response(kNpad);
       for (int iPad = 0; iPad < kNpad; iPad++) {
         const int colPos = colE + iPad - 1;
@@ -351,7 +351,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Arr
           ArrayADC_t adc;        // create an empty vector with kTimeBins entries
           adcMapCont[key] = adc; // associate the missing key with the new digit container
         }
-      }
+      } */
       // ************************************************************
 
       // Sample the time response inside the drift region + additional time bins before and after.
@@ -373,7 +373,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Arr
         signalOld[1] = 0;
         signalOld[2] = 0;
         for (int iPad = 0; iPad < kNpad; iPad++) {
-          int colPos = pads_in_response[iPad];
+          int colPos = colE + iPad - 1;
           if (colPos < 0) {
             continue;
           }
@@ -381,8 +381,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Arr
             break;
           }
           // Add the signals
-          const int key = keys_in_response[iPad];
           // Get the old signal
+          const int key = Digit::calculateKey(det, rowE, colPos);
           signalOld[iPad] = adcMapCont[key][iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
@@ -400,7 +400,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Arr
   return true;
 }
 
-bool Digitizer::convertSignalsToDigits(const int det, ArrayADCMapContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
 {
   //
   // Converstion of signals to digits
@@ -422,7 +422,7 @@ bool Digitizer::convertSignalsToDigits(const int det, ArrayADCMapContainer_t& ad
   return true;
 }
 
-bool Digitizer::convertSignalsToSDigits(const int det, ArrayADCMapContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont)
 {
   //
   // Convert signals to S-digits
@@ -431,7 +431,7 @@ bool Digitizer::convertSignalsToSDigits(const int det, ArrayADCMapContainer_t& a
   return false;
 }
 
-bool Digitizer::convertSignalsToADC(const int det, ArrayADCMapContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -459,59 +459,55 @@ bool Digitizer::convertSignalsToADC(const int det, ArrayADCMapContainer_t& adcMa
   float calGainFactorDetValue = 0.47; // +/- 0.06 // Defaults value  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
 
   // Create the digits for this chamber
-  for (int row = 0; row < nRowMax; row++) {
-    for (int col = 0; col < nColMax; col++) {
-      // halfchamber masking
-      int iMcm = (int)(col / 18);               // current group of 18 col pads
-      int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
-      // Halfchambers that are switched off, masked by mCalib
-      // if (mCalib->IsHalfChamberNoData(det, halfchamberside))
-      //   continue;
+  // for (int row = 0; row < nRowMax; row++) {
+  //   for (int col = 0; col < nColMax; col++) {
+  for (auto& adcMapIter : adcMapCont) {
+    const int col = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
+    const int row = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
+    // halfchamber masking
+    int iMcm = (int)(col / 18);               // current group of 18 col pads
+    int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+    // Halfchambers that are switched off, masked by mCalib
+    // if (mCalib->IsHalfChamberNoData(det, halfchamberside))
+    //   continue;
+    // Check whether pad is masked
+    // Bridged pads are not considered yet!!!
+    // if (mCalib->IsPadMasked(det, col, row) ||
+    //     mCalib->IsPadNotConnected(det, col, row)) {
+    //   continue;
+    // }
 
-      // Check whether pad is masked
-      // Bridged pads are not considered yet!!!
-      // if (mCalib->IsPadMasked(det, col, row) ||
-      //     mCalib->IsPadNotConnected(det, col, row)) {
-      //   continue;
-      // }
-
-      // The gain factors
-      float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
-      if (padgain <= 0) {
-        LOG(FATAL) << "Not a valid gain " << padgain
-                   << ", " << det
-                   << ", " << col
-                   << ", " << row;
+    // The gain factors
+    float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
+    if (padgain <= 0) {
+      LOG(FATAL) << "Not a valid gain " << padgain
+                 << ", " << det
+                 << ", " << col
+                 << ", " << row;
+    }
+    // loop over time bins
+    // for (int tb = 0; tb < nTimeTotal; tb++) {
+    for (auto& adcArrayVal : adcMapIter.second) {
+      float signalAmp = (float)adcArrayVal; // The signal amplitude
+      signalAmp *= coupling;                // Pad and time coupling
+      signalAmp *= padgain;                 // Gain factors
+      // Add the noise, starting from minus ADC baseline in electrons
+      signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
+      signalAmp *= convert;  // Convert to mV
+      signalAmp += baseline; // Add ADC baseline in mV
+      // Convert to ADC counts
+      // Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
+      ADC_t adc = 0;
+      if (signalAmp >= mSimParam->GetADCinRange()) {
+        adc = ((ADC_t)mSimParam->GetADCoutRange());
+      } else {
+        adc = TMath::Nint(signalAmp * adcConvert);
       }
-
-      for (int tb = 0; tb < nTimeTotal; tb++) {
-        const int key = Digit::calculateKey(det, row, col);
-        // Get the signal amplitude
-        //signals->GetData(row, col, time);
-        float signalAmp = (float)adcMapCont[key][tb];
-        // Pad and time coupling
-        signalAmp *= coupling;
-        // Gain factors
-        signalAmp *= padgain;
-        // Add the noise, starting from minus ADC baseline in electrons
-        signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
-        // Convert to mV
-        signalAmp *= convert;
-        // Add ADC baseline in mV
-        signalAmp += baseline;
-        // Convert to ADC counts. Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
-        ADC_t adc = 0;
-        if (signalAmp >= mSimParam->GetADCinRange()) {
-          adc = ((ADC_t)mSimParam->GetADCoutRange());
-        } else {
-          adc = TMath::Nint(signalAmp * adcConvert);
-        }
-        // Saving all digits
-        // digits->SetData(row, col, tb, adc);
-        adcMapCont[key][tb] = adc;
-      } // for: tb
-    }   // for: col
-  }     // for: row
+      // Saving all digits
+      // digits->SetData(row, col, tb, adc);
+      adcArrayVal = adc;
+    } // for: tb
+  }
   return true;
 }
 
