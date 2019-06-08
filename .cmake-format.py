@@ -65,6 +65,20 @@ additional_commands = {
             "HEADERS": '*',
         }
     },
+    "o2_add_test_wrapper": {
+        "flags": ["DONT_FAIL_ON_TIMEOUT", "NON_FATAL"],
+        "kwargs": {
+            "COMMAND": '*',
+            "NO_BOOST_TEST": '*',
+            "MAX_ATTEMPTS": '*',
+            "TIMEOUT": '*',
+            "NAME": '*',
+            "WORKING_DIRECTORY": '*',
+            "CONFIGURATIONS": '*',
+            "COMMAND_LINE_ARGS": '*',
+            "LABELS": '*',
+        }
+    },
     "o2_add_test": {
         "kwargs": {
             "INSTALL": '*',
