@@ -6,7 +6,8 @@ include(CTest)
 
 # Project wide setup
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-functions)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+                      ${CMAKE_CURRENT_SOURCE_DIR}/cmake-functions)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
@@ -27,15 +28,8 @@ o2_define_rpath()
 # External dependencies
 include(dependencies/CMakeLists.txt)
 
-# Main targets of the project
-if(BUILD_SIMULATION)
-  include(O2SetupMC)
-  o2_setup_mc()
-endif()
-
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
-
 include(O2AddExecutable)
 include(O2AddHeaderOnlyLibrary)
 include(O2AddLibrary)
@@ -43,7 +37,7 @@ include(O2AddTest)
 include(O2AddTestRootMacro)
 include(O2TargetRootDictionary)
 
-# include subdirectories. Order matters.
+# Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common/Constants)
 add_subdirectory(GPU/Common)
 add_subdirectory(Common/MathUtils)
@@ -92,8 +86,7 @@ if(BUILD_TEST_ROOT_MACROS)
   add_subdirectory(macro)
 endif()
 
-if(HAVESIMULATION)
-  message(FATAL_ERROR "HAVESIMULATION")
+if(BUILD_SIMULATION)
   add_subdirectory(run)
 endif()
 

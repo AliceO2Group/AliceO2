@@ -37,55 +37,65 @@ keyword_case = 'upper'
 # + = ONE_OR_MORE
 additional_commands = {
     "o2_add_executable": {
-        "flags": [ "IS_TEST", "IS_BENCHMARK", "NO_INSTALL" ],
+        "flags": ["IS_TEST", "IS_BENCHMARK", "NO_INSTALL"],
         "kwargs": {
             "SOURCES": '+',
             "PUBLIC_LINK_LIBRARIES": '*',
             "COMPONENT_NAME": '*',
-            "EXEVARNAME" : '*'
+            "EXEVARNAME": '*'
         }
     },
-    "o2_add_header_only_library" : {
-        "kwargs" : {
+    "o2_add_header_only_library": {
+        "kwargs": {
             "INCLUDE_DIRECTORIES": '*',
             "INTERFACE_LINK_LIBRARIES": '*',
         }
     },
-    "o2_add_library" : {
-        "kwargs" : {
+    "o2_add_library": {
+        "kwargs": {
             "SOURCES": '+',
             "PUBLIC_INCLUDE_DIRECTORIES": '*',
             "PUBLIC_LINK_LIBRARIES": '*',
             "PRIVATE_INCLUDE_DIRECTORIES": '*',
         }
     },
-    "o2_target_root_dictionary" : {
-        "kwargs" : {
+    "o2_target_root_dictionary": {
+        "kwargs": {
             "LINKDEF": '+',
             "HEADERS": '*',
         }
     },
     "o2_add_test": {
         "kwargs": {
-            "INSTALL" : '*',
-            "NO_BOOST_TEST" : '*',
-            "NON_FATAL" : '*',
-            "COMPONENT_NAME" : '*',
-            "MAX_ATTEMPTS" : '*',
-            "TIMEOUT" : '*',
-            "WORKING_DIRECTORY" : '*',
-            "SOURCES" : '*',
-            "PUBLIC_LINK_LIBRARIES" : '*',
-            "COMMAND_LINE_ARGS" : '*',
-            "LABELS" : '*',
+            "INSTALL": '*',
+            "NO_BOOST_TEST": '*',
+            "NON_FATAL": '*',
+            "COMPONENT_NAME": '*',
+            "MAX_ATTEMPTS": '*',
+            "TIMEOUT": '*',
+            "WORKING_DIRECTORY": '*',
+            "SOURCES": '*',
+            "PUBLIC_LINK_LIBRARIES": '*',
+            "COMMAND_LINE_ARGS": '*',
+            "LABELS": '*',
         }
     },
     "o2_add_test_root_macro": {
-        "flags": [ "NON_FATAL", "LOAD_ONLY" ],
+        "flags": ["NON_FATAL", "LOAD_ONLY"],
         "kwargs": {
-            "ENVIRONMENT" : '*',
-            "PUBLIC_LINK_LIBRARIES" : '*',
-            "LABELS" : '*',
+            "ENVIRONMENT": '*',
+            "PUBLIC_LINK_LIBRARIES": '*',
+            "LABELS": '*',
+        }
+    },
+    "find_package_handle_standard_args": {
+        "flags": ["CONFIG_MODE"],
+        "kwargs": {
+            "DEFAULT_MSG": '*',
+            "REQUIRED_VARS": '*',
+            "VERSION_VAR": '*',
+            "HANDLE_COMPONENTS": '*',
+            "FAIL_MESSAGE": '*'
         }
     }
 }
@@ -142,4 +152,3 @@ output_encoding = 'utf-8'
 # A dictionary containing any per-command configuration overrides. Currently
 # only `command_case` is supported.
 per_command = {}
-

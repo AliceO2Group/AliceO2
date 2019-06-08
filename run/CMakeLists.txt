@@ -37,7 +37,7 @@ Install(FILES o2simtopology.json DESTINATION share/config)
 
 # add a complex simulation as a unit test (if simulation was enabled)
 # perform some checks on kinematics and track references
-if (HAVESIMULATION)
+if (BUILD_SIMULATION)
 
   add_test_wrap(NAME o2sim_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
