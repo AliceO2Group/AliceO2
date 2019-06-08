@@ -22,8 +22,8 @@ add_subdirectory(TPC)
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
 
-if(HAVESIMULATION)
+if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
-endif(HAVESIMULATION)
+endif()
 
 install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)

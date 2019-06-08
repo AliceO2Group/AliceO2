@@ -90,7 +90,7 @@ o2_add_test_root_macro(macro/readMCtruth.C
                        tpc)
 #
 # * # add the TPC run sim as a unit test (if simulation was enabled)
-# * if (HAVESIMULATION)
+# * if (BUILD_SIMULATION)
 # * add_test_wrap(NAME tpcsim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim-tpc -n 2
 #   -e TGeant4)
 # * set_tests_properties(tpcsim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro
