@@ -34,4 +34,5 @@ o2_add_test(AlpideSimResponse
             ITSMFT
             PUBLIC_LINK_LIBRARIES
             O2::ITSMFTSimulation
-            LABELS "its;mft")
+            LABELS "its;mft"
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)

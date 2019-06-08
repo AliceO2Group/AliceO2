@@ -1,9 +1,9 @@
 # **************************************************************************
 # * Copyright(c) 1998-2014, ALICE Experiment at CERN, All rights reserved. *
-# *                                                                        *
+# * *
 # * Author: The ALICE Off-line Project.                                    *
 # * Contributors are mentioned in the code where appropriate.              *
-# *                                                                        *
+# * *
 # * Permission to use, copy, modify and distribute this software and its   *
 # * documentation strictly for non-commercial purposes is hereby granted   *
 # * without fee, provided that the above copyright notice appears in all   *
@@ -19,7 +19,8 @@ add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 
-install(
-    DIRECTORY data
-    DESTINATION share/Detectors/ITSMFT
-)
+install(DIRECTORY data DESTINATION ${CMAKE_INSTALL_DATADIR}/Detectors/ITSMFT)
+file(
+  COPY data
+  DESTINATION
+    ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/Detectors/ITSMFT)
