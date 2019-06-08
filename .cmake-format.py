@@ -77,6 +77,7 @@ additional_commands = {
             "CONFIGURATIONS": '*',
             "COMMAND_LINE_ARGS": '*',
             "LABELS": '*',
+            "ENVIRONMENT": '*',
         }
     },
     "o2_add_test": {
@@ -92,6 +93,7 @@ additional_commands = {
             "PUBLIC_LINK_LIBRARIES": '*',
             "COMMAND_LINE_ARGS": '*',
             "LABELS": '*',
+            "ENVIRONMENT": '*',
         }
     },
     "o2_add_test_root_macro": {

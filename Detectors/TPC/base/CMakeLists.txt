@@ -94,4 +94,6 @@ o2_add_test(CCDBInterface
             SOURCES
             test/testTPCCDBInterface.cxx)
 
+file(COPY files
+     DESTINATION ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/Detectors/TPC)
 install(DIRECTORY files DESTINATION share/Detectors/TPC/)

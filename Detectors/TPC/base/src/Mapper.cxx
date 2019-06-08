@@ -119,6 +119,11 @@ bool Mapper::readMappingFile(std::string file)
 
   std::string       line;
   std::ifstream infile(file, std::ifstream::in);
+  if(!infile.is_open())
+  {
+      std::cout << "could not open file " << file << "\n";
+      exit(1);
+  }
   while (std::getline(infile, line)) {
     std::stringstream streamLine(line);
     streamLine
