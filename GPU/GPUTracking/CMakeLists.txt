@@ -15,7 +15,7 @@ if(ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
 endif()
 
 o2_add_library(GPUTracking
-               PUBLIC_LINK_LIBRARIES O2::CommonGPU O2::DataFormatsTPC
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::DataFormatsTPC
                                      O2::TRDBase O2::ITStracking
                                      O2::TPCFastTransformation
                PUBLIC_INCLUDE_DIRECTORIES SliceTracker

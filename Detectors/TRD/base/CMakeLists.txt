@@ -1,4 +1,4 @@
-o2_add_library(TRDBase
+o2_add_library(TRDBase <<<<<<< 8701cd13c68d8fb591dbefe25e4c920c17c67879
                SOURCES src/TRDPadPlane.cxx
                        src/TRDGeometryBase.cxx
                        src/TRDGeometry.cxx

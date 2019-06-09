@@ -10,7 +10,7 @@ o2_add_library(MathUtils
                ROOT::Hist
                FairRoot::Base
                O2::CommonConstants
-               O2::CommonGPU
+               O2::GPUCommon
                ROOT::GenVector
                ROOT::Geom)
 
