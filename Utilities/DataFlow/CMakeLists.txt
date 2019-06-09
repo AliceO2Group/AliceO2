@@ -20,7 +20,7 @@ o2_add_library(DataFlow
                O2::Headers
                O2::TimeFrame
                FairMQ::FairMQ
-               O2::O2Device)
+               O2::Device)
 
 o2_add_executable(fake-timeframegenerator-device SOURCES
                   src/runFakeTimeframeGeneratorDevice PUBLIC_LINK_LIBRARIES
