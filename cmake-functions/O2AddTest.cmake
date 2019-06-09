@@ -91,7 +91,7 @@ function(o2_add_test)
                       TIMEOUT ${A_TIMEOUT} ${nonFatal}
                       WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
                       COMMAND_LINE_ARGS "${A_COMMAND_LINE_ARGS}"
-                      LABELS "${A_LABELS}"
-                      CONFIGURATIONS "${A_CONFIGURATIONS}"
+                      LABELS ${A_LABELS}
+                      CONFIGURATIONS ${A_CONFIGURATIONS}
                       ENVIRONMENT "${A_ENVIRONMENT}")
 endfunction()
