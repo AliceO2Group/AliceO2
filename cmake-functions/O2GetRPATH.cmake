@@ -10,10 +10,6 @@ function(o2_get_rpath)
 
   message(FATAL_ERROR "review this usage")
 
-  if(BUILD_FOR_DEV)
-    return()
-  endif()
-
   cmake_parse_arguments(PARSE_ARGV
                         1
                         A
