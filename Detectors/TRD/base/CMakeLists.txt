@@ -18,7 +18,7 @@ o2_add_library(TRDBase
                src/TRDFeeParam.cxx
                src/TRDSignalIndex.cxx
                PUBLIC_LINK_LIBRARIES
-               O2::CommonGPU
+               O2::GPUCommon
                O2::DetectorsCommonDataFormats
                O2::Field
                O2::DetectorsBase

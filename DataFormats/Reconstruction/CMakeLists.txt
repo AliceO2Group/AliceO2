@@ -12,7 +12,7 @@ o2_add_library(ReconstructionDataFormats
                src/TrackLTIntegral.cxx
                src/PID.cxx
                PUBLIC_LINK_LIBRARIES
-               O2::CommonGPU
+               O2::GPUCommon
                O2::DetectorsCommonDataFormats
                O2::CommonDataFormat)
 

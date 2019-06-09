@@ -14,7 +14,7 @@ o2_add_library(DataFormatsTPC
                src/TPCSectorHeader.cxx
                src/ClusterNativeHelper.cxx
                PUBLIC_LINK_LIBRARIES
-               O2::CommonGPU
+               O2::GPUCommon
                O2::SimulationDataFormat
                O2::Headers
                O2::Algorithm)

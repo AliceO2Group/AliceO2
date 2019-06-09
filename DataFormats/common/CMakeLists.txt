@@ -4,7 +4,7 @@ o2_add_library(CommonDataFormat
                src/BunchFilling.cxx
                PUBLIC_LINK_LIBRARIES
                O2::CommonConstants
-               O2::CommonGPU
+               O2::GPUCommon
                ROOT::Core
                FairRoot::Base)
 

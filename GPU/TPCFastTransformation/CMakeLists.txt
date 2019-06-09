@@ -3,7 +3,7 @@ o2_add_library(TPCFastTransformation
                        IrregularSpline2D3DCalibrator.cxx TPCDistortionIRS.cxx
                        TPCFastTransform.cxx
                PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}
-               PUBLIC_LINK_LIBRARIES O2::CommonGPU Vc::Vc ROOT::Core)
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon Vc::Vc ROOT::Core)
 
 # set (HDRS ../Common/GPUCommonDef.h ../Common/FlatObject.h
 # ../Common/GPUCommonDef.h )

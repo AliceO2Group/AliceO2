@@ -9,7 +9,7 @@ o2_add_library(SimulationDataFormat
                PUBLIC_LINK_LIBRARIES
                ms_gsl
                O2::DetectorsCommonDataFormats
-               O2::CommonGPU
+               O2::GPUCommon
                O2::DetectorsBase
                O2::SimConfig)
 

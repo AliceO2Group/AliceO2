@@ -9,7 +9,7 @@ o2_add_library(DetectorsBase
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
-                                     O2::CommonGPU
+                                     O2::GPUCommon
                                      O2::ReconstructionDataFormats
                                      O2::Field
                                      FairMQ::FairMQ
