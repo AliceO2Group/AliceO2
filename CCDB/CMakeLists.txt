@@ -27,7 +27,7 @@ o2_add_library(CCDB
                                      ROOT::XMLParser
                                      O2::CommonUtils
                                      FairRoot::ParMQ
-                                     O2::O2Device
+                                     O2::Device
                                      CURL::libcurl
                                      Boost::thread)
 

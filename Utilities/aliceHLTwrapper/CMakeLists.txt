@@ -12,7 +12,7 @@ o2_add_library(aliceHLTwrapper
                PUBLIC_LINK_LIBRARIES
                FairMQ::FairMQ
                O2::Headers
-               O2::O2Device
+               O2::Device
                Boost::thread)
 
 o2_add_executable(wrapper-device
