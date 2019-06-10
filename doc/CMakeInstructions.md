@@ -1,66 +1,36 @@
 \page refdocCMakeInstructions CMake Instructions
 
-CMake
-=====
+# CMake
 
-## Instructions for the contributors
+## Instructions for contributors (aka developers' documentation)
 
-A sub-module CMakeLists.txt minimally contains (see Examples/ExampleModule1)
+A sub-module `CMakeLists.txt` defines one or more _targets_.
+A target generally corresponds to an actual build artifact like a (static or shared) library or an executable. Targets are the cornerstone of any modern cmake build system.
 
-* The setup the system : `O2_SETUP(NAME My_Module)`
-* The list of the source files in the variable SRC : `set(SRCS something.cxx)`
-* The name of the library : `set(LIBRARY_NAME My_Module)`
-* The name of the dependency bucket to use : `set(BUCKET_NAME My_bucket)`
-* The call to generate the library : `O2_GENERATE_LIBRARY()`
+Targets are normally created with CMake-provided functions like `add_library`, `add_executable` and characterized with functions like `target_include_directories`, `target_link_libraries`, etc...
 
-Optionally it contains (see Examples/ExampleModule2)
+We pondered for a long time whether we should simply stick to those native functions for our builds. But that would mean quite a bit of repetitive pieces of code in all our CMakeLists.txt. Plus it would make enforcing some conventions harder. So we decided (like in the previous incarnation of our build system) to use our own functions instead.
 
-* To generate a dictionary :
-  * The list of source files not to be used for the dictionary : `set(NO_DICT_SRCS src/Bar.cxx)`
-  * The list of headers (private and public) : `set(HEADERS include/${MODULE_NAME}/Foo.h)`
-  * The linkdef : `set(LINKDEF src/ExampleLinkDef.h)`
-* To generate an executable :
-    ```
-    O2_GENERATE_EXECUTABLE(
-        EXE_NAME runExampleModule1
-        SOURCES src/main.cxx
-        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-        BUCKET_NAME ${BUCKET_NAME}
-    )
-    ```
+Compared to the previous system though, we tried :
 
-If a new bucket is needed, it should be defined in cmake/O2Dependencies.cmake using this function :
-```
-o2_define_bucket(
-    NAME
-    ExampleModule2_bucket
+- to use names (of the functions and their parameters) closely matching those of the original CMake ones, so people already CMake are less confused
+- to use only functions instead of macros (unless required), so the parameters do not leak into parent scope
+- to forego completely the usage of variables (variables are not bad practice per se, but most of our CMakeLists.txt can be written without any)
 
-    DEPENDENCIES
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}    # a library
-    ExampleModule1                      # another module
-    ExampleModule1_bucket               # another bucket
+As a side note, CMakeLists.txt should be considered as code and so the same care you put into writing code (e.g. do not repeat yourself, comments, etc...) should be applied to CMakeLists.txt. Also, like the rest of our code, we can take of the formatting using the [cmake-format](https://github.com/cheshirekow/cmake_format) tool (that tool is certainly not as robust as `clang-format` but it can get most of the job done easily).
 
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Examples/ExampleModule1/include   # another module's include dir
+All our CMake functions are defined in the [cmake](../cmake) directory. Each file there defines one function. The filename is [UpperCamelCase](https://en.wikipedia.org/wiki/Camel_case) while the function name is [snake_case](https://en.wikipedia.org/wiki/Snake_case) (CMake function names are case insensitive but the modern convention is to have them all lower case). So for instance `o2_add_executable` is defined in `cmake/O2AddExecutable.cmake`. Each function is documented in its corresponding `.cmake` file.
 
-    SYSTEMINCLUDE_DIRECTORIES
-    ${Boost_INCLUDE_DIR}                # a system lib include dir
-)
-```
+## Typical CMakeLists.txt
 
-If it needs a new external library, it should be first discussed with WP3.
+A typical module's `CMakeLists.txt` contains (see [Examples/ExampleModule1](../Examples/ExampleModule1)
 
-## Developers' documentation
+- a call to `o2_add_library` to define a library (and its dependencies)
+- call(s) to `o2_add_executable` to define one or more executables (and their dependencies)
+- call(s) to `o2_add_test` to define one or more tests (and their dependencies)
 
-* Q: Why are the libraries' directories globally set in O2Dependencies.cmake ?
- * A: CMake discourages the use of _link_directories_ because find_package and find_library
-   should return absolute paths. As a consequence little effort is put in the development of this
-   feature and it only exists at the global level. We can't set it on a target like the
-   _include_directories_ for example.
-* Q: Why buckets ?
- * A: The goal is to avoid a dependency nightmare.
- It allows to define centrally and in an organized way the dependencies for all modules.
- It also allows us to be especially careful in PRs about changes to the bucket definition file.
-* Q: Why macros to build libraries and executables ?
- * A: To simplify the life of the users and to make sure everyone does it the same way. It is also a way
- to reuse what was made for FairRoot.
+Optionally it might contain a call to `o2_target_root_dictionary` (see [Examples/ExampleModule2](../Examples/ExampleModule2/) if the module's library requires a Root dictionary.
+
+Compared to the previous system, there is no notion of bucket. All dependencies are explicitely defined with the `PUBLIC_LINK_LIBRARIES` (or less commonly with `PRIVATE_LINK_LIBRARIES`) keyword of the various o2_xxx functions.
+
+Note that despite the parameter name, the `PUBLIC_LINK_LIBRARIES` should refer to _target_ names, not library names. You _have to_ use the fully qualified `O2::targetName` and not the short `basename` you might have used to _create_ the target. Note also that if the referenced target does not exist, CMake will tell you right at the configure stage (which is a good thing).

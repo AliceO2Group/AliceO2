@@ -44,7 +44,6 @@ function(o2_add_test_root_macro)
   o2_add_executable(${exeName}
           SOURCES ${CMAKE_SOURCE_DIR}/tests/testRootMacro.cxx
           PUBLIC_LINK_LIBRARIES ROOT::RIO
-          EXEVARNAME exefile
           TARGETVARNAME exeTargetName)
 
   message(STATUS "exefile=${exeTargetName}")

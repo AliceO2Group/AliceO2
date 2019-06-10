@@ -76,8 +76,7 @@ function(o2_add_test)
                     SOURCES ${A_SOURCES}
                     PUBLIC_LINK_LIBRARIES ${linkLibraries}
                     COMPONENT_NAME ${A_COMPONENT_NAME}
-                    IS_TEST ${noInstall}
-                    EXEVARNAME exe)
+                    IS_TEST ${noInstall} TARGETVARNAME targetName)
 
   set(nonFatal "")
   if(NON_FATAL)
@@ -85,7 +84,7 @@ function(o2_add_test)
   endif()
 
   # create a test with a script wrapping the executable above
-  o2_add_test_wrapper(COMMAND ${exe}
+  o2_add_test_wrapper(TARGET ${targetName}
                       DONT_FAIL_ON_TIMEOUT
                       MAX_ATTEMPTS ${A_MAX_ATTEMPTS}
                       TIMEOUT ${A_TIMEOUT} ${nonFatal}

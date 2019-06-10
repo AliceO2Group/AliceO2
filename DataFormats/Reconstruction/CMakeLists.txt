@@ -37,7 +37,7 @@ o2_add_test(Vertex
             COMPONENT_NAME
             ReconstructionDataFormats
             PUBLIC_LINK_LIBRARIES
-            ReconstructionDataFormats
+            O2::ReconstructionDataFormats
             O2::CommonDataFormat)
 
 o2_add_test(LTOFIntegration
@@ -46,4 +46,4 @@ o2_add_test(LTOFIntegration
             COMPONENT_NAME
             ReconstructionDataFormats
             PUBLIC_LINK_LIBRARIES
-            ReconstructionDataFormats)
+            O2::ReconstructionDataFormats)

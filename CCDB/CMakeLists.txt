@@ -53,17 +53,17 @@ o2_target_root_dictionary(CCDB
 o2_add_executable(conditions-server
                   SOURCES src/runConditionsServer.cxx
                   COMPONENT_NAME ccdb
-                  PUBLIC_LINK_LIBRARIES CCDB)
+                  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
 o2_add_executable(conditions-client
                   SOURCES src/runConditionsClient.cxx
                   COMPONENT_NAME ccdb
-                  PUBLIC_LINK_LIBRARIES CCDB)
+                  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
 o2_add_executable(standalone-client
                   SOURCES test/testQueryServerStandalone.cxx
                   COMPONENT_NAME ccdb
-                  PUBLIC_LINK_LIBRARIES CCDB)
+                  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
 install(FILES config/conditions-server.json config/conditions-client.json
               example/fill_local_ocdb.C
@@ -72,9 +72,9 @@ install(FILES config/conditions-server.json config/conditions-client.json
 o2_add_test(WriteReadAny
             SOURCES test/testWriteReadAny.cxx
             COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES CCDB)
+            PUBLIC_LINK_LIBRARIES O2::CCDB)
 
 o2_add_test(CcdbApi
             SOURCES test/testCcdbApi.cxx
             COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES CCDB)
+            PUBLIC_LINK_LIBRARIES O2::CCDB)

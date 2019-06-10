@@ -57,6 +57,7 @@ additional_commands = {
             "PUBLIC_INCLUDE_DIRECTORIES": '*',
             "PUBLIC_LINK_LIBRARIES": '*',
             "PRIVATE_INCLUDE_DIRECTORIES": '*',
+            "TARGETVARNAME": '*',
         }
     },
     "o2_target_root_dictionary": {
@@ -65,7 +66,7 @@ additional_commands = {
             "HEADERS": '*',
         }
     },
-    "o2_file": {
+    "o2_data_file": {
         "kwargs": {
             "COPY": '+',
             "DESTINATION": '*',

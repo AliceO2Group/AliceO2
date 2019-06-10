@@ -17,9 +17,11 @@ o2_target_root_dictionary(Field
 
 o2_add_test(MagneticField
             SOURCES test/testMagneticField.cxx
-            PUBLIC_LINK_LIBRARIES Field
+            PUBLIC_LINK_LIBRARIES O2::Field
             COMPONENT_NAME Field
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
-o2_add_test_root_macro(macro/extractMapsAsText.C PUBLIC_LINK_LIBRARIES Field)
-o2_add_test_root_macro(macro/createMapsFromText.C PUBLIC_LINK_LIBRARIES Field)
+o2_add_test_root_macro(macro/extractMapsAsText.C
+                       PUBLIC_LINK_LIBRARIES O2::Field)
+o2_add_test_root_macro(macro/createMapsFromText.C
+                       PUBLIC_LINK_LIBRARIES O2::Field)

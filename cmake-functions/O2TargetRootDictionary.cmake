@@ -5,7 +5,8 @@ include_guard()
 #
 # arguments :
 #
-# * 1st parameter (required) is the name of the associated target
+# * 1st parameter (required) is the _basename_ of the associated target (see
+#   o2_add_library for the definition of basename).
 #
 # * HEADERS (required, see below) is a list of relative filepaths needed for the
 #   dictionary definition
@@ -55,11 +56,16 @@ function(o2_target_root_dictionary)
         "Wrong number of arguments. At least target name must be present")
   endif()
 
-  set(target ${ARGV0})
+  set(baseTargetName ${ARGV0})
+
+  o2_name_target(${baseTargetName} NAME target)
 
   # check the target exists
   if(NOT TARGET ${target})
-    message(FATAL_ERROR "Target ${target} does not exist")
+    # try with our project specific naming
+    if(NOT TARGET ${targe})
+      message(FATAL_ERROR "Target ${target} does not exist")
+    endif()
   endif()
 
   # we _require_ the list of input headers to be explicitely given to us. if we
@@ -70,13 +76,13 @@ function(o2_target_root_dictionary)
 
   # ensure we have a LinkDef we need a LINKDEF
   if(NOT A_LINKDEF)
-    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/src/${target}LinkDef.h)
+    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/src/${baseTargetName}LinkDef.h)
       message(
         FATAL_ERROR
-          "You did not specify a LinkDef and the default one src/${target}LinkDef.h does not exist"
+          "You did not specify a LinkDef and the default one src/${baseTargetName}LinkDef.h does not exist"
         )
     else()
-      set(A_LINKDEF src/${target}LinkDef.h)
+      set(A_LINKDEF src/${baseTargetName}LinkDef.h)
     endif()
   endif()
 
@@ -107,8 +113,8 @@ function(o2_target_root_dictionary)
     endif()
   endforeach()
 
-  set(dictionaryFile ${CMAKE_CURRENT_BINARY_DIR}/G__O2${target}Dict.cxx)
-  set(pcmFile G__O2${target}Dict_rdict.pcm)
+  set(dictionaryFile ${CMAKE_CURRENT_BINARY_DIR}/G__O2${baseTargetName}Dict.cxx)
+  set(pcmFile G__O2${baseTargetName}Dict_rdict.pcm)
 
   # get the list of compile_definitions and split it into -Dxxx pieces but only
   # if non empty
@@ -127,7 +133,7 @@ function(o2_target_root_dictionary)
       -f
       ${dictionaryFile}
       -inlineInputHeader
-      -rmf ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${target}.rootmap
+      -rmf ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${baseTargetName}.rootmap
       -rml $<TARGET_FILE:${target}>
       $<GENEX_EVAL:-I$<JOIN:$<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>,\;-I>>
       # the generator expression above gets the list of all include 
@@ -145,6 +151,9 @@ function(o2_target_root_dictionary)
 
   # add dictionary source to the target sources
   target_sources(${target} PRIVATE ${dictionaryFile})
+  
+  # a target that has a Root dictionary has to depend on ... Root 
+  target_link_libraries(${target} PUBLIC ROOT::RIO)
 
   # Get the list of include directories that will be required to compile the
   # dictionary itself and add them as private include directories
@@ -161,7 +170,7 @@ function(o2_target_root_dictionary)
 
   # will install the rootmap and pcm files alongside the target's lib
   get_filename_component(dict ${dictionaryFile} NAME_WLE)
-  install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${target}.rootmap
+  install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${baseTargetName}.rootmap
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${dict}_rdict.pcm
           TYPE LIB)
 

@@ -15,6 +15,7 @@ if(ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
 endif()
 
 o2_add_library(GPUTracking
+               TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::DataFormatsTPC
                                      O2::TRDBase O2::ITStracking
                                      O2::TPCFastTransformation
@@ -90,32 +91,32 @@ o2_add_library(GPUTracking
                        Standalone/utils/timer.cpp
                        SliceTracker/GPUTPCTrackerDump.cxx)
 
-target_compile_definitions(GPUTracking PRIVATE GPUCA_O2_LIB
+target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                            GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
 
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
-  target_sources(GPUTracking
+  target_sources(${targetName}
                  Standalone/utils/qsem.cpp
                  Standalone/display/GPUDisplay.cpp
                  Standalone/display/GPUDisplayBackendGlfw.cpp
                  Standalone/display/GPUDisplayQuaternion.cpp
                  Standalone/display/GPUDisplayInterpolation.cpp
                  Standalone/display/GPUDisplayKeys.cpp)
-  target_compile_definitions(GPUTracking PRIVATE BUILD_EVENT_DISPLAY)
-  target_link_libraries(GPUTracking -lGL -lGLU -lGLEW)
+  target_compile_definitions(${targetName} PRIVATE BUILD_EVENT_DISPLAY)
+  target_link_libraries(${targetName} -lGL -lGLU -lGLEW)
 endif()
 
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")
-  target_sources(GPUTracking Standalone/qa/GPUQA.cpp)
-  target_compile_definitions(GPUTracking PRIVATE BUILD_QA)
+  target_sources(${targetName} Standalone/qa/GPUQA.cpp)
+  target_compile_definitions(${targetName} PRIVATE BUILD_QA)
 endif()
 
 if(OpenMP_CXX_FOUND)
   message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
-  target_compile_definitions(GPUTracking PRIVATE GPUCA_HAVE_OPENMP)
-  target_link_libraries(GPUTracking OpenMP::OpenMP_CXX)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_OPENMP)
+  target_link_libraries(${targetName} OpenMP::OpenMP_CXX)
 endif()
 
 o2_target_root_dictionary(GPUTracking

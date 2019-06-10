@@ -4,4 +4,4 @@ o2_add_library(T0Base
 
 o2_target_root_dictionary(T0Base HEADERS include/T0Base/Geometry.h)
 
-o2_file(COPY files DESTINATION share/Detectors/T0/)
+o2_data_file(COPY files DESTINATION Detectors/T0/)

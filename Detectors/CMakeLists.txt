@@ -26,4 +26,4 @@ if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
 endif()
 
-o2_file(COPY Geometry gconfig DESTINATION Detectors/)
+o2_data_file(COPY Geometry gconfig DESTINATION Detectors)
