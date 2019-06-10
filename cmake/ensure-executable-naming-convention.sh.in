@@ -42,7 +42,7 @@ mergers \
 subframebuilder sync timeframe"
 
 for F in @CMAKE_INSTALL_PREFIX@/bin/*; do
-  [[ -x $F ]] && continue
+  [[ -x $F && -f $F ]] && continue
   [[ $F =~ $RE_IS_TEST ]] && continue # convention for tests is yet to come
   [[ ! $F =~ $RE_START_WITH_O2_OR_TEST ]] && error_msg $F "does not start with o2-"
   [[ ! $F =~ $RE_ONLY_LOWER_CASE_OR_DASH ]] && error_msg $F "should only contains lowercase letters, numbers, or dashes"

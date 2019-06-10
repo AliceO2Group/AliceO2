@@ -23,7 +23,7 @@ o2_target_root_dictionary(ExampleModule2
                           HEADERS src/Bar.h include/ExampleModule2/Foo.h
                           LINKDEF src/ExampleLinkDef.h)
 
-o2_add_executable(runExampleModule2
+o2_add_executable(module2
                   SOURCES src/main.cxx
                   COMPONENT_NAME example
                   PUBLIC_LINK_LIBRARIES O2::ExampleModule2
