@@ -24,13 +24,10 @@ using namespace o2::fit;
 //using o2::fit::Geometry;
 
 ClassImp(Digitizer);
+
 double signalForm_i(double x)
 {
   return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
-};
-double signalForm(double x)
-{
-  return 5 * signalForm_i(x - 1.47) - signalForm_i(x);
 };
 
 double get_time(const std::vector<double>& times, double signal_width)
@@ -38,49 +35,42 @@ double get_time(const std::vector<double>& times, double signal_width)
   TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F histsum("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F histshift("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  //int bin_start = hist.GetSize();
   float shift = 1.47;
+  /// Fill Histrogram `hist` with photoelectron induced voltage
   for (auto time : times) {
-    //bin_start = std::min(bin_start, hist.FindBin(time));
-    // std::cout<<"@@@@start "<<bin_start <<std::endl;
     for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
       if (hist.GetBinCenter(bin) > time)
         hist.AddBinContent(bin, signalForm_i(hist.GetBinCenter(bin) - time));
   }
-  double noiseVar = 0.5;
+  /// Add noise to `hist`
+  double noiseVar = 0.1;
   for (int bin = 0; bin < hist.GetSize(); ++bin) {
     Double_t gausnoise = gRandom->Gaus(0, noiseVar);
     hist.AddBinContent(bin, gausnoise);
   }
-
+  
   int binshift = int(1.47 / (signal_width / 1000.));
+  /// Add noise to the initial part of `histshift` that would contain values before the timeframe
   for (int bin =0; bin < binshift; ++bin) {
     Double_t gausnoise = gRandom->Gaus(0, noiseVar);
-    hist.AddBinContent(bin, gausnoise);
+    histshift.AddBinContent(bin, gausnoise);
   }
-    
-  for (int bin = 0; bin < hist.GetSize() - binshift; ++bin) {
+  
+  /// Shift `hist` by 1.47 ns to `histshift`
+  for (int bin = 0; bin < hist.GetSize() - binshift; ++bin) 
     histshift.SetBinContent(bin + binshift, hist.GetBinContent(bin));
-    //  std::cout << " bin " << bin << " hist  " << hist.GetBinContent(bin) << " small " << histshift.GetBinContent(bin+binshift) << std::endl;
-  }
+  
   float maxBin = hist.GetMaximum();
+  /// Add the signal and its shifted version to `histsum`
   hist.Scale(-1);
   histsum.Add(&histshift, &hist, 5, 1);
-  // for (int bin=0; bin<hist.GetSize(); bin++)     std::cout<<hist.GetBinCenter(bin)<<", ";
-  // std::cout<<"\n";
-  //for (int bin = 0; bin < hist.GetSize(); bin++)
-  //  std::cout << hist.GetBinContent(bin) << ", ";
-  //std::cout << "\n";
-  
-  // for (int bin =  hist.GetMinimumBin() ; bin < hist.GetMaximumBin(); ++bin) {
-  // std::cout<< "bin  "<<bin << " "<<hist.GetBinCenter(bin)<<" "<<hist.GetBinContent(bin)<<" shift "<<histshift.GetBinContent(bin)<<std::endl;
   for (int bin =  1 ; bin < hist.GetSize(); ++bin) {
-    // std::cout<< "bin  "<<bin << " "<<hist.GetBinCenter(bin)<<" "<<hist.GetBinContent(bin)<<" shift "<<histshift.GetBinContent(bin)<<std::endl;
+    /// Find the point where zero is crossed in `histsum` ...
     if (histsum.GetBinContent(bin-1)<0 && histsum.GetBinContent(bin)>=0) {
+      /// ... and voltage is above 3 mV
       if (std::abs(hist.GetBinContent(bin)) > 3) {
-      //    int binfound = hist.FindFirstBinAbove(0);
-	//std::cout << "Amp high enough: " << hist.GetBinContent(bin) << " mV of " << maxBin << " mV at " << hist.GetBinCenter(bin) << " ns\n";
-	return hist.GetBinCenter(bin);
+        //std::cout << "Amp high enough: " << hist.GetBinContent(bin) << " mV of " << maxBin << " mV at " << hist.GetBinCenter(bin) << " ns\n";
+        return hist.GetBinCenter(bin);
       }
     }
   }
