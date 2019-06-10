@@ -3,23 +3,26 @@ o2_add_library(FLP2EPNex_distributed
                        src/EPNReceiver.cxx
                PUBLIC_LINK_LIBRARIES O2::Device)
 
-o2_add_executable(flpSyncSampler
+o2_add_executable(flp-sync-sampler
                   SOURCES run/runFLPSyncSampler.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed)
+                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed
+                  COMPONENT_NAME example)
 
-o2_add_executable(flpSender
+o2_add_executable(flp-sender
                   SOURCES run/runFLPSender.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed)
+                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed
+                  COMPONENT_NAME example)
 
-o2_add_executable(epnReceiver
+o2_add_executable(epn-receiver
                   SOURCES run/runEPNReceiver.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed)
+                  PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed
+                  COMPONENT_NAME example)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in
-               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/startFLP2EPN-distributed.sh)
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn-distributed.sh)
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/test/testFLP2EPN-distributed.sh.in
-  ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh
+  ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/o2-test-flp2epn-distributed.sh
   )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-prototype.json
                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn-prototype.json)
