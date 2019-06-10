@@ -36,7 +36,7 @@ include(O2AddLibrary)
 include(O2AddTest)
 include(O2AddTestRootMacro)
 include(O2TargetRootDictionary)
-include(O2File)
+include(O2DataFile)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common/Constants)
@@ -48,9 +48,7 @@ add_subdirectory(DataFormats/MemoryResources)
 add_subdirectory(DataFormats/Headers)
 add_subdirectory(Utilities/O2Device)
 add_subdirectory(CCDB)
-
 add_subdirectory(Algorithm)
-
 add_subdirectory(DataFormats/common)
 add_subdirectory(DataFormats/Reconstruction)
 add_subdirectory(DataFormats/Parameters)
@@ -58,29 +56,19 @@ add_subdirectory(Detectors/Base)
 add_subdirectory(DataFormats/simulation)
 add_subdirectory(DataFormats/Detectors)
 add_subdirectory(DataFormats/TimeFrame)
-
 add_subdirectory(Utilities/PCG)
 add_subdirectory(Framework)
-
 add_subdirectory(EventVisualisation)
-
 add_subdirectory(Generators)
-
 add_subdirectory(Detectors/TRD)
-
 add_subdirectory(Detectors/ITSMFT)
-
 add_subdirectory(GPU)
-
 add_subdirectory(Detectors)
-
 add_subdirectory(Utilities)
-
 add_subdirectory(Steer) # consider building this only for simulation ?
 
 if(BUILD_EXAMPLES)
-  message(WARNING "To be revisited once the global scheme is agreed upon")
-  # add_subdirectory(Examples)
+  add_subdirectory(Examples)
 endif()
 
 if(BUILD_TEST_ROOT_MACROS)

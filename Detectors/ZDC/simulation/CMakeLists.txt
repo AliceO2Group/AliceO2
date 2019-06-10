@@ -8,4 +8,4 @@ o2_target_root_dictionary(ZDCSimulation
                                   include/ZDCSimulation/Digitizer.h
                                   include/ZDCSimulation/Detector.h)
 
-o2_file(COPY data DESTINATION share/Detectors/ZDC/simulation)
+o2_data_file(COPY data DESTINATION Detectors/ZDC/simulation)

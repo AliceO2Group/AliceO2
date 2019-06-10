@@ -1,14 +1,18 @@
 include_guard()
 
-# ------------------------------------------------------------------------------
-# o2_add_test_wrapper(exe)
 #
-# Same as add_test() but optionally retry up to MAX_ATTEMPTS times upon failure.
-# This is achieved by using a shell script wrapper.
+# o2_add_test_wrapper
 #
-# * COMMAND (required) is the full path to the executable to be wrapped
+# Same as o2_add_test() but optionally retry up to MAX_ATTEMPTS times upon
+# failure. This is achieved by using a shell script wrapper.
 #
-# * NAME (optional) if not present the name of the test is the command name
+# * TARGET or COMMAND (required) is either a target name or the full path to the
+#   executable to be wrapped
+#
+# * NAME (optional): the test name.  If not present it is derived from the
+#   target name (if TARGET was used) or from the executable name (if COMMAND was
+#   given)
+#
 # * WORKING_DIRECTORY (optional) the wrapper will cd into this directory before
 #   running the executable
 # * DONT_FAIL_ON_TIMEOUT (optional) indicate the test will not fail on timeouts
@@ -20,24 +24,51 @@ include_guard()
 # * ENVIRONMENT: extra environment needed by the test to run properly
 #
 function(o2_add_test_wrapper)
-  cmake_parse_arguments(PARSE_ARGV
-                        0
-                        "A"
-                        "DONT_FAIL_ON_TIMEOUT;NON_FATAL"
-                        "COMMAND;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT;NAME"
-                        "COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT")
+
+  if(NOT BUILD_TESTING)
+    return()
+  endif()
+
+  cmake_parse_arguments(
+    PARSE_ARGV
+    0
+    "A"
+    "DONT_FAIL_ON_TIMEOUT;NON_FATAL"
+    "TARGET;COMMAND;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT;NAME"
+    "COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT")
 
   if(A_UNPARSED_ARGUMENTS)
     message(
       FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  set(testExe ${A_COMMAND})
+  if(A_TARGET AND A_COMMAND)
+    message(FATAL_ERROR "Should only use one of COMMAND or TARGET")
+  endif()
+
+  if(NOT A_TARGET AND NOT A_COMMAND)
+    message(FATAL_ERROR "Must give at least one of COMMAND or TARGET")
+  endif()
+
+  if(A_TARGET)
+    if(NOT TARGET ${A_TARGET})
+      message(FATAL_ERROR "${A_TARGET} is not a target")
+    endif()
+    set(testExe $<TARGET_FILE:${A_TARGET}>)
+  endif()
+
+  if(A_COMMAND)
+    set(testExe ${A_COMMAND})
+  endif()
 
   if(A_NAME)
     set(testName ${A_NAME})
   else()
-    get_filename_component(testName ${testExe} NAME_WLE)
+    if(A_COMMAND)
+      get_filename_component(testName ${testExe} NAME_WLE)
+    else()
+      set(testName ${A_TARGET})
+    endif()
   endif()
 
   if("${A_MAX_ATTEMPTS}" GREATER 1)
@@ -84,7 +115,9 @@ function(o2_add_test_wrapper)
            CONFIGURATIONS "${A_CONFIGURATIONS}")
   set_tests_properties(${testName} PROPERTIES TIMEOUT ${ctestTimeout})
   if(A_LABELS)
-    set_tests_properties(${testName} PROPERTIES LABELS ${A_LABELS})
+    foreach(A IN LISTS A_LABELS)
+      set_property(TEST ${testName} APPEND PROPERTY LABELS ${A})
+    endforeach()
   endif()
   if(A_ENVIRONMENT)
     set_tests_properties(${testName} PROPERTIES ENVIRONMENT ${A_ENVIRONMENT})

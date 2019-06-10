@@ -1,42 +1,49 @@
-# @author  Barthélémy von Haller
+# Example of a minimal CMakeLists.txt which creates :
+#
+# * one library
+# * one executable
+# * one test
 
-set(MODULE_NAME "ExampleModule1")
+# Define a target of type "library" with a basename of ExampleModule1
+#
+# As per our code organisation policy, all the includes that are in
+# include/ExampleModule1 are considered public and will be installed, even if we
+# don't explicitely specify them in the o2_add_library call
+#
+# As per our naming conventions, the built library will be named
+# libO2ExampleModule1.(dylib|so|a).
+#
+# The cmake target itself will have a name derived from ExampleModule1 (see the
+# details in o2_name_target function if you really are interested), so you'll
+# usually want to reference it afterwards by its alias O2::ExampleModule1 in
+# order not to depend on how the final target name is computed.
+#
+o2_add_library(ExampleModule1 SOURCES src/Foo.cxx src/Bar.cxx)
 
-O2_SETUP(NAME ${MODULE_NAME})
+# Define a target of type "executable" that depends on the library above.
+#
+# Following our naming conventions, the built executable will be named
+# o2-example-runExampleModule1
+#
+o2_add_executable(runExampleModule1
+                  SOURCES src/main.cxx
+                  COMPONENT_NAME example
+                  PUBLIC_LINK_LIBRARIES O2::ExampleModule1
+                                        Boost::program_options)
 
-# Define the source and header files
-set(SRCS
-    src/Foo.cxx
-    src/Bar.cxx
-    )
-
-# HEADERS is not needed if we don't generate a dictionary.
-#set(HEADERS
-#    include/${MODULE_NAME}/Foo.h
-#    src/Bar.h
-#    )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ExampleModule1_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-    EXE_NAME runExampleModule1
-    SOURCES src/main.cxx
-    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-    BUCKET_NAME ${BUCKET_NAME}
-)
-
-
-
-set(TEST_SRCS
-    test/testExampleModule1.cxx
-    )
-
-O2_GENERATE_TESTS(
-    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-    BUCKET_NAME ${BUCKET_NAME}
-    TEST_SRCS ${TEST_SRCS}
-)
+# Define a test executable that depends on the library above.
+#
+# Following our naming conventions, the built executable will be named
+# o2-test-example-module1
+# 
+# The labels attached to the test might be used to narrow the ctest
+# execution to specific tests:
+#
+# ctest -L fast 
+# ctest -L example
+#
+o2_add_test(module1
+            SOURCES test/testExampleModule1.cxx
+            COMPONENT_NAME example
+            LABELS fast example
+            PUBLIC_LINK_LIBRARIES O2::ExampleModule1)

@@ -1,6 +1,6 @@
 o2_add_library(DetectorsCommonDataFormats
                SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Core ROOT::Geom MathUtils)
+               PUBLIC_LINK_LIBRARIES ROOT::Core ROOT::Geom O2::MathUtils)
 
 o2_target_root_dictionary(
   DetectorsCommonDataFormats
@@ -10,5 +10,5 @@ o2_target_root_dictionary(
 
 o2_add_test(DetID
             SOURCES test/testDetID.cxx
-            PUBLIC_LINK_LIBRARIES DetectorsCommonDataFormats
+            PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
             COMPONENT_NAME DetectorsCommonDataFormats)

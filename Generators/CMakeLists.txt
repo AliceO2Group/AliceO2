@@ -14,10 +14,11 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorFactory.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
-                                     O2::SimulationDataFormat ${pythiaTarget})
+                                     O2::SimulationDataFormat ${pythiaTarget}
+               TARGETVARNAME targetName)
 
 if(pythia_FOUND)
-  target_compile_definitions(Generators PUBLIC GENERATORS_WITH_PYTHIA8)
+  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_PYTHIA8)
 endif()
 
 set(headers

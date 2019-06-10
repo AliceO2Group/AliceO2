@@ -29,7 +29,7 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/SAMPAProcessing.h
                                   include/TPCSimulation/SpaceCharge.h)
 
-o2_file(COPY files DESTINATION Detectors/TPC)
+o2_data_file(COPY files DESTINATION Detectors/TPC)
 
 if(BUILD_TESTING)
   add_subdirectory(test)

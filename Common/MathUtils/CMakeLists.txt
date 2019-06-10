@@ -29,7 +29,7 @@ o2_add_test(CachingTF1
             COMPONENT_NAME
             MathUtils
             PUBLIC_LINK_LIBRARIES
-            MathUtils)
+            O2::MathUtils)
 
 o2_add_test(Cartesian3D
             SOURCES
@@ -37,4 +37,4 @@ o2_add_test(Cartesian3D
             COMPONENT_NAME
             MathUtils
             PUBLIC_LINK_LIBRARIES
-            MathUtils)
+            O2::MathUtils)

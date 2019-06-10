@@ -80,4 +80,4 @@ o2_add_test(CCDBInterface
             SOURCES test/testTPCCDBInterface.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
-o2_file(COPY files DESTINATION Detectors/TPC)
+o2_data_file(COPY files DESTINATION Detectors/TPC)

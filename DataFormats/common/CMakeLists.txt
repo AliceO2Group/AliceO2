@@ -22,4 +22,4 @@ o2_add_test(TimeStamp
             COMPONENT_NAME
             CommonDataFormat
             PUBLIC_LINK_LIBRARIES
-            CommonDataFormat)
+            O2::CommonDataFormat)

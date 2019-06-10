@@ -1,9 +1,13 @@
 include_guard()
 
+include(O2NameTarget)
+
 #
-# o2_add_library(target SOURCES c1.cxx c2.cxx .....) defines a new target
-# composed of the given sources. It also defines an alias named O2::target. The
-# generated library will be called libO2[target].(dylib|so)
+# o2_add_library(target SOURCES c1.cxx c2.cxx .....) defines a new target of
+# type "library" composed of the given sources. It also defines an alias named
+# O2::target. The generated library will be called libO2[target].(dylib|so|.a)
+# The library will be static or shared depending on the BUILD_SHARED_LIBS option
+# (which is normally ON for O2 project)
 #
 # Parameters:
 #
@@ -21,7 +25,7 @@ include_guard()
 #   account, which should cover most of the use cases. Use this parameter only
 #   for special cases then.
 #
-# * PRIVATE_INCLUDE_DIRECTORIES (not need in most cases) : the list of include
+# * PRIVATE_INCLUDE_DIRECTORIES (not needed in most cases) : the list of include
 #   directories where to find the include files needed to compile this library,
 #   but that will _not_ be needed by its consumers. But default we add the
 #   ${CMAKE_CURRENT_BINARY_DIR} here to cover use case of generated headers
@@ -34,7 +38,7 @@ function(o2_add_library)
     1
     A
     ""
-    ""
+    "TARGETVARNAME"
     "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES"
     )
 
@@ -43,14 +47,21 @@ function(o2_add_library)
       FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  set(target ${ARGV0})
+  set(baseTargetName ${ARGV0})
 
-  # define the library and its O2:: alias
+  o2_name_target(${baseTargetName} NAME targetName)
+  set(target ${targetName})
+
+  # define the target and its O2:: alias
   add_library(${target} ${A_SOURCES})
-  add_library(O2::${target} ALIAS ${target})
+  add_library(O2::${baseTargetName} ALIAS ${target})
 
-  # output name of the lib will be libO2[target]
-  set_property(TARGET ${target} PROPERTY OUTPUT_NAME O2${target})
+  if(A_TARGETVARNAME)
+    set(${A_TARGETVARNAME} ${target} PARENT_SCOPE)
+  endif()
+
+  # output name of the lib will be libO2[baseTargetName].(so|dylib|a)
+  set_property(TARGET ${target} PROPERTY OUTPUT_NAME O2${baseTargetName})
 
   # Start by adding the dependencies to other targets
   if(A_PUBLIC_LINK_LIBRARIES)
