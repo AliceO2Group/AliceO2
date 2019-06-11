@@ -171,13 +171,3 @@ function(o2_find_dependencies_from_alibuild)
           "whether the dependencies where found from an alibuild installation")
 endfunction()
 
-# * -DCMAKE_PREFIX_PATH="$deplocation/$platform/ROOT/$version;$deplocation/$pla
-#   tform/Vc/$version;$d eplocation/$platform/GEANT3/$version;$deplocation/$plat
-#   form/GEANT4/$version;$d eplocation/$platform/vgm/$version"
-# * -DPythia6_LIBRARY_DIR=$deplocation/$platform/pythia6/$version/lib
-# * -DPythia8_DIR=$deplocation/$platform/pythia/$version/
-# * -DGeant3_DIR=$deplocation/$platform/GEANT3/$version
-# * -DGeant4_DIR=$deplocation/$platform/GEANT4/$version
-# * -DGEANT4VMC_DIR=$deplocation/$platform/GEANT4_VMC/$version/lib/Geant4VMC-3.6
-#   .3
-# * -DVGM_DIR=$deplocation/$platform/vgm/$version
