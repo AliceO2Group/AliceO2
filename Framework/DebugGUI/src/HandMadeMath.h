@@ -33,7 +33,7 @@
   
   =============================================================================
   
-  To use HandmadeMath without the CRT, you MUST 
+  To use HandmadeMath without the CRT, you MUST
   
      #define HMM_SINF MySinF
      #define HMM_COSF MyCosF
@@ -45,9 +45,9 @@
      #define HMM_ATANF MyATanF
      #define HMM_ATAN2F MYATan2F
      
-  Provide your own implementations of SinF, CosF, TanF, ACosF, ATanF, ATan2F, 
+  Provide your own implementations of SinF, CosF, TanF, ACosF, ATanF, ATan2F,
   ExpF, and LogF in EXACTLY one C or C++ file that includes this header,
-  BEFORE the include, like this:     
+  BEFORE the include, like this:
   
      #define HMM_SINF MySinF
      #define HMM_COSF MyCosF
@@ -69,7 +69,7 @@
   Version History:
       0.2 (*) Updated documentation
           (*) Better C compliance
-          (*) Prefix all handmade math functions 
+          (*) Prefix all handmade math functions
           (*) Better operator overloading
       0.2a
           (*) Prefixed Macros
@@ -97,13 +97,13 @@
       0.6
           (*) Added Unit testing
           (*) Made HMM_Power faster
-          (*) Fixed possible efficiency problem with HMM_Normalize 
+          (*) Fixed possible efficiency problem with HMM_Normalize
           (*) RENAMED HMM_LengthSquareRoot to HMM_LengthSquared
           (*) RENAMED HMM_RSqrtF to HMM_RSquareRootF
           (*) RENAMED HMM_SqrtF to HMM_SquareRootF
           (*) REMOVED Inner function (user should use Dot now)
           (*) REMOVED HMM_FastInverseSquareRoot function declaration
-      0.7 
+      0.7
           (*) REMOVED HMM_LengthSquared in HANDMADE_MATH_IMPLEMENTATION (should
               use HMM_LengthSquaredVec3, or HANDMADE_MATH_CPP_MODE for function
               overloaded version)
@@ -148,7 +148,7 @@
           (*) Fixed divide-by-zero errors when normalizing zero vectors.
      1.1.5
           (*) Add Width and Height to HMM_Vec2
-          (*) Made it so you can supply your own SqrtF 
+          (*) Made it so you can supply your own SqrtF
      1.2.0
           (*) Added equality functions for HMM_Vec2, HMM_Vec3, and HMM_Vec4.
               (*) Added HMM_EqualsVec2, HMM_EqualsVec3, and HMM_EqualsVec4
@@ -160,7 +160,7 @@
           (*) Remove need to #define HANDMADE_MATH_CPP_MODE
      1.4.0
           (*) Fixed bug when using HandmadeMath in C mode
-          (*) SSEd all vec4 operations          
+          (*) SSEd all vec4 operations
           (*) Removed all zero-ing
      1.5.0
           (*) Changed internal structure for better performance and inlining.
@@ -193,7 +193,7 @@
    Aleph
    FieryDrake (@fierydrake)
    Gingerbill (@TheGingerBill)
-   Ben Visness (@bvisness) 
+   Ben Visness (@bvisness)
    Trinton Bullard (@Peliex_Dev)
    
   Fixes:
@@ -202,7 +202,6 @@
    Insofaras (@insofaras)
    Daniel Gibson (@DanielGibson)
 */
-
 
 /* let's figure out if SSE is really available (unless disabled anyway)
    (it isn't on non-x86/x86_64 platforms or even x86 without explicit SSE support)
@@ -251,25 +250,25 @@ extern "C"
 #if !defined(HMM_SINF) || !defined(HMM_COSF) || !defined(HMM_TANF) || \
     !defined(HMM_SQRTF) || !defined(HMM_EXPF) || !defined(HMM_LOGF) || \
     !defined(HMM_ACOSF) || !defined(HMM_ATANF)|| !defined(HMM_ATAN2F)
-#include <math.h>    
+#include <math.h>
 #endif
     
 #ifndef HMM_SINF
 #define HMM_SINF sinf
-#endif    
-        
+#endif
+
 #ifndef HMM_COSF
 #define HMM_COSF cosf
-#endif    
-        
+#endif
+
 #ifndef HMM_TANF
 #define HMM_TANF tanf
-#endif        
+#endif
 
 #ifndef HMM_SQRTF
 #define HMM_SQRTF sqrtf
-#endif    
-    
+#endif
+
 #ifndef HMM_EXPF
 #define HMM_EXPF expf
 #endif
@@ -433,8 +432,8 @@ typedef union hmm_vec4
     };
 
     float Elements[4];
-    
-#ifdef HANDMADE_MATH__USE_SSE    
+
+#ifdef HANDMADE_MATH__USE_SSE
     __m128 InternalElementsSSE;
 #endif
 
@@ -498,8 +497,7 @@ typedef int32_t hmm_bool;
 typedef hmm_vec2 hmm_v2;
 typedef hmm_vec3 hmm_v3;
 typedef hmm_vec4 hmm_v4;
-typedef hmm_mat4 hmm_m4;    
-
+typedef hmm_mat4 hmm_m4;
 
 /*
  * Floating-point math functions
@@ -571,7 +569,7 @@ HMM_INLINE float HMM_SquareRootF(float Float)
     Result = _mm_cvtss_f32(Out);
 #else
     Result = HMM_SQRTF(Float);
-#endif 
+#endif
 
     return(Result);
 }
@@ -759,11 +757,11 @@ HMM_INLINE hmm_vec4 HMM_AddVec4(hmm_vec4 Left, hmm_vec4 Right)
 
 #ifdef HANDMADE_MATH__USE_SSE
     Result.InternalElementsSSE = _mm_add_ps(Left.InternalElementsSSE, Right.InternalElementsSSE);
-#else    
+#else
     Result.X = Left.X + Right.X;
     Result.Y = Left.Y + Right.Y;
     Result.Z = Left.Z + Right.Z;
-    Result.W = Left.W + Right.W;    
+    Result.W = Left.W + Right.W;
 #endif
 
     return (Result);
@@ -796,11 +794,11 @@ HMM_INLINE hmm_vec4 HMM_SubtractVec4(hmm_vec4 Left, hmm_vec4 Right)
     
 #ifdef HANDMADE_MATH__USE_SSE
     Result.InternalElementsSSE = _mm_sub_ps(Left.InternalElementsSSE, Right.InternalElementsSSE);
-#else    
+#else
     Result.X = Left.X - Right.X;
     Result.Y = Left.Y - Right.Y;
     Result.Z = Left.Z - Right.Z;
-    Result.W = Left.W - Right.W;    
+    Result.W = Left.W - Right.W;
 #endif
 
     return (Result);
@@ -858,7 +856,7 @@ HMM_INLINE hmm_vec4 HMM_MultiplyVec4(hmm_vec4 Left, hmm_vec4 Right)
     Result.X = Left.X * Right.X;
     Result.Y = Left.Y * Right.Y;
     Result.Z = Left.Z * Right.Z;
-    Result.W = Left.W * Right.W;    
+    Result.W = Left.W * Right.W;
 #endif
 
     return (Result);
@@ -871,7 +869,7 @@ HMM_INLINE hmm_vec4 HMM_MultiplyVec4f(hmm_vec4 Left, float Right)
 #ifdef HANDMADE_MATH__USE_SSE
     __m128 Scalar = _mm_set1_ps(Right);
     Result.InternalElementsSSE = _mm_mul_ps(Left.InternalElementsSSE, Scalar);
-#else    
+#else
     Result.X = Left.X * Right;
     Result.Y = Left.Y * Right;
     Result.Z = Left.Z * Right;
@@ -946,7 +944,7 @@ HMM_INLINE hmm_vec4 HMM_DivideVec4f(hmm_vec4 Left, float Right)
 #ifdef HANDMADE_MATH__USE_SSE
     __m128 Scalar = _mm_set1_ps(Right);
     Result.InternalElementsSSE = _mm_div_ps(Left.InternalElementsSSE, Scalar);
-#else    
+#else
     Result.X = Left.X / Right;
     Result.Y = Left.Y / Right;
     Result.Z = Left.Z / Right;
@@ -995,15 +993,15 @@ HMM_INLINE float HMM_DotVec4(hmm_vec4 VecOne, hmm_vec4 VecTwo)
 {
     float Result;
 
-    // NOTE(zak): IN the future if we wanna check what version SSE is support 
-    // we can use _mm_dp_ps (4.3) but for now we will use the old way. 
+    // NOTE(zak): IN the future if we wanna check what version SSE is support
+    // we can use _mm_dp_ps (4.3) but for now we will use the old way.
     // Or a r = _mm_mul_ps(v1, v2), r = _mm_hadd_ps(r, r), r = _mm_hadd_ps(r, r) for SSE3
 #ifdef HANDMADE_MATH__USE_SSE
     __m128 SSEResultOne = _mm_mul_ps(VecOne.InternalElementsSSE, VecTwo.InternalElementsSSE);
     __m128 SSEResultTwo = _mm_shuffle_ps(SSEResultOne, SSEResultOne, _MM_SHUFFLE(2, 3, 0, 1));
     SSEResultOne = _mm_add_ps(SSEResultOne, SSEResultTwo);
     SSEResultTwo = _mm_shuffle_ps(SSEResultOne, SSEResultOne, _MM_SHUFFLE(0, 1, 2, 3));
-    SSEResultOne = _mm_add_ps(SSEResultOne, SSEResultTwo);       
+    SSEResultOne = _mm_add_ps(SSEResultOne, SSEResultTwo);
     _mm_store_ss(&Result, SSEResultOne);
 #else
     Result = (VecOne.X * VecTwo.X) + (VecOne.Y * VecTwo.Y) + (VecOne.Z * VecTwo.Z) + (VecOne.W * VecTwo.W);
@@ -1116,8 +1114,8 @@ HMM_INLINE hmm_vec4 HMM_NormalizeVec4(hmm_vec4 A)
         
 #ifdef HANDMADE_MATH__USE_SSE
         __m128 SSEMultiplier = _mm_set1_ps(Multiplier);
-        Result.InternalElementsSSE = _mm_mul_ps(A.InternalElementsSSE, SSEMultiplier);        
-#else 
+        Result.InternalElementsSSE = _mm_mul_ps(A.InternalElementsSSE, SSEMultiplier);
+#else
         Result.X = A.X * Multiplier;
         Result.Y = A.Y * Multiplier;
         Result.Z = A.Z * Multiplier;
@@ -1151,7 +1149,7 @@ HMM_INLINE __m128 HMM_LinearCombineSSE(__m128 Left, hmm_mat4 Right)
  * Matrix functions
  */
 
-HMM_INLINE hmm_mat4 HMM_Mat4(void)
+HMM_INLINE hmm_mat4 HMM_Mat4()
 {
     hmm_mat4 Result = {0};
 
@@ -1191,7 +1189,7 @@ HMM_INLINE hmm_mat4 HMM_AddMat4(hmm_mat4 Left, hmm_mat4 Right)
     Result.Columns[0] = _mm_add_ps(Left.Columns[0], Right.Columns[0]);
     Result.Columns[1] = _mm_add_ps(Left.Columns[1], Right.Columns[1]);
     Result.Columns[2] = _mm_add_ps(Left.Columns[2], Right.Columns[2]);
-    Result.Columns[3] = _mm_add_ps(Left.Columns[3], Right.Columns[3]);    
+    Result.Columns[3] = _mm_add_ps(Left.Columns[3], Right.Columns[3]);
 
     return (Result);
 }
@@ -1245,7 +1243,7 @@ HMM_INLINE hmm_mat4 HMM_DivideMat4f(hmm_mat4 Matrix, float Scalar)
     Result.Columns[0] = _mm_div_ps(Matrix.Columns[0], SSEScalar);
     Result.Columns[1] = _mm_div_ps(Matrix.Columns[1], SSEScalar);
     Result.Columns[2] = _mm_div_ps(Matrix.Columns[2], SSEScalar);
-    Result.Columns[3] = _mm_div_ps(Matrix.Columns[3], SSEScalar);    
+    Result.Columns[3] = _mm_div_ps(Matrix.Columns[3], SSEScalar);
 
     return (Result);
 }
@@ -1492,9 +1490,9 @@ HMM_INLINE float HMM_LengthSquared(hmm_vec4 A)
 
 HMM_INLINE hmm_vec2 HMM_Normalize(hmm_vec2 A)
 {
-    hmm_vec2 Result = HMM_NormalizeVec2(A);    
-    
-    return (Result);
+  hmm_vec2 Result = HMM_NormalizeVec2(A);
+
+  return (Result);
 }
 
 HMM_INLINE hmm_vec3 HMM_Normalize(hmm_vec3 A)
@@ -2263,8 +2261,8 @@ hmm_mat4 HMM_MultiplyMat4(hmm_mat4 Left, hmm_mat4 Right)
     Result.Columns[0] = HMM_LinearCombineSSE(Right.Columns[0], Left);
     Result.Columns[1] = HMM_LinearCombineSSE(Right.Columns[1], Left);
     Result.Columns[2] = HMM_LinearCombineSSE(Right.Columns[2], Left);
-    Result.Columns[3] = HMM_LinearCombineSSE(Right.Columns[3], Left);     
-    
+    Result.Columns[3] = HMM_LinearCombineSSE(Right.Columns[3], Left);
+
 #else
     int Columns;
     for(Columns = 0; Columns < 4; ++Columns)

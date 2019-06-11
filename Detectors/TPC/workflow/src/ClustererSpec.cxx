@@ -20,7 +20,6 @@
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "DataFormatsTPC/Cluster.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <FairMQLogger.h>

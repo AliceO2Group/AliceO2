@@ -14,6 +14,22 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
+#ifdef BUILD_EVENT_DISPLAY
+//#ifdef GPUCA_O2_LIB
+//#include "../src/GL/gl3w.h"
+//#else
+#include <GL/glew.h>
+//#endif
+
+#if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
+#ifdef GPUCA_STANDALONE
+#error Unsupported OpenGL version < 4.5
+#else
+#warning Unsupported OpenGL version < 4.5, disabling standalone event display
+#endif
+#endif
+#endif
+
 #include "GPUDisplayConfig.h"
 #include "GPUDisplayBackend.h"
 
@@ -211,7 +227,7 @@ class GPUDisplay
   const GPUParam& param();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTracker& trdTracker();
-  const GPUChainTracking::InOutPointers ioptrs();
+  const GPUTrackingInOutPointers ioptrs();
   void drawVertices(const vboList& v, const GLenum t);
   void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
   void insertVertexList(int iSlice, size_t first, size_t last);

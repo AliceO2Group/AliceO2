@@ -14,6 +14,8 @@
 #include "GPUParam.h"
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
+#include "GPUTPCGMPolynomialFieldManager.h"
+#include "GPUDataTypes.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -82,6 +84,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   ErrX = PadPitch / CAMath::Sqrt(12.f);
   ErrY = 1.;
   ErrZ = 0.228808;
+  dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
   constexpr float plusZmax = 249.778;
@@ -111,6 +114,13 @@ void GPUParam::SetDefaults(float solenoidBz)
   continuousMaxTimeBin = 0;
   debugLevel = 0;
   resetTimers = false;
+
+  polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
+  if (AssumeConstantBz) {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, BzkG, polynomialField);
+  } else {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
+  }
 }
 
 void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)
@@ -125,9 +135,12 @@ void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsD
   }
 }
 
-void GPUParam::SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r, const GPUSettingsDeviceProcessing* p)
+void GPUParam::SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r, const GPUSettingsDeviceProcessing* p, const GPURecoStepConfiguration* w)
 {
   SetDefaults(e->solenoidBz);
+  if (w) {
+    dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+  }
   if (r) {
     rec = *r;
   }

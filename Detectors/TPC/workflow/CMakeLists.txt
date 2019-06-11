@@ -22,6 +22,10 @@ set(SRCS
    src/TrackReaderSpec.cxx
    )
 
+if (OPENGL_FOUND AND GLFW_FOUND AND GLEW_FOUND AND OPENGL_GLU_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    add_definitions(-DBUILD_EVENT_DISPLAY)
+endif()
+
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again
 ## this has to be fixed in the macro implementation
 set(LIBRARY_NAME ${MODULE_NAME})

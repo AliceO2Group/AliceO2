@@ -19,6 +19,7 @@
 #include "GPUDef.h"
 #include "GPUSettings.h"
 #include "GPUTPCGeometry.h"
+#include "GPUTPCGMPolynomialField.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -26,6 +27,7 @@ namespace gpu
 {
 struct GPUSettingsRec;
 struct GPUSettingsEvent;
+struct GPURecoStepConfiguration;
 
 struct GPUParamSlice {
   float Alpha;              // slice angle
@@ -46,18 +48,21 @@ struct GPUParam {
   float BzkG;             // constant magnetic field value in kG
   float ConstBz;          // constant magnetic field value in kG*clight
 
-  char AssumeConstantBz;      // Assume a constant magnetic field
-  char ToyMCEventsFlag;       // events were build with home-made event generator
-  char ContinuousTracking;    // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-  char resetTimers;           // Reset benchmark timers before event processing
-  int debugLevel;             // Debug level
-  int continuousMaxTimeBin;   // Max time bin for continuous tracking
-  GPUTPCGeometry tpcGeometry; // TPC Geometry
+  char AssumeConstantBz;                   // Assume a constant magnetic field
+  char ToyMCEventsFlag;                    // events were build with home-made event generator
+  char ContinuousTracking;                 // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+  char resetTimers;                        // Reset benchmark timers before event processing
+  char dodEdx;                             // Do dEdx computation
+  int debugLevel;                          // Debug level
+  int continuousMaxTimeBin;                // Max time bin for continuous tracking
+  GPUTPCGeometry tpcGeometry;              // TPC Geometry
+  GPUTPCGMPolynomialField polynomialField; // Polynomial approx. of magnetic field for TPC GM
+
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
-  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsDeviceProcessing* p = nullptr);
+  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsDeviceProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
 #endif

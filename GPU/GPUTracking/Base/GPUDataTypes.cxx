@@ -8,11 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCReconstruction/ClusterContainer.h"
-#include "DataFormatsTPC/Cluster.h"
+/// \file GPUDataTypes.cxx
+/// \author David Rohr
 
-#include "FairLogger.h"
-#include <cassert>
+#include "GPUDataTypes.h"
+#include "GPUReconstruction.h"
 
-using namespace o2::tpc;
+using namespace GPUCA_NAMESPACE::gpu;
 
+constexpr const char* const GPUDataTypes::RECO_STEP_NAMES[];
+
+GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type)
+{
+  return GPUReconstruction::GetDeviceType(type);
+}

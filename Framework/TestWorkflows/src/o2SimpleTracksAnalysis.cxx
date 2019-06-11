@@ -9,11 +9,31 @@
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisHelpers.h"
+#include "Framework/TableBuilder.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include <ROOT/RDataFrame.hxx>
 
+#include <cmath>
+
 using namespace ROOT::RDF;
+using namespace o2;
 using namespace o2::framework;
+
+namespace o2
+{
+namespace aod
+{
+namespace tracks
+{
+DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
+DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+} // namespace tracks
+
+using TracksDerived = o2::soa::Table<tracks::Eta, tracks::Phi>;
+
+} // namespace aod
+} // namespace o2
 
 // A dummy workflow which creates a few of the tables proposed by Ruben,
 // using ARROW
@@ -40,24 +60,61 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         InputSpec{ "tracks", "RN2", "TRACKPAR" },
       },
       // No outputs for the time being.
-      Outputs{},
+      Outputs{
+        OutputSpec{ { "derived" }, "AOD", "TRACKDERIVED" } },
       AlgorithmSpec{
         // This is the actual per "message" loop, where a message could
         // be the contents of a file or part of it.
         // FIXME: Too much boilerplate.
-        adaptStateless([](InputRecord& inputs) {
+        adaptStateless([](InputRecord& inputs, DataAllocator& outputs) {
+          /// Get the input from the converter.
           auto input = inputs.get<TableConsumer>("tracks");
+          /// Get a table builder to build the results
+          auto& etaPhiBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKDERIVED" });
+          auto etaPhiWriter = etaPhiBuilder.cursor<o2::aod::TracksDerived>();
 
-          // This does a single loop on all the candidates in the input message
-          // using a simple mask on the cand_type_ML column and does
-          // a simple 1D histogram of the filtered entries.
+          /// Documentation for arrow at:
+          ///
+          /// https://arrow.apache.org/docs/cpp/namespacearrow.html
+          auto tracks = aod::Tracks(input->asArrowTable());
+
+          for (auto& track : tracks) {
+            auto phi = asin(track.snp()) + track.alpha() + M_PI;
+            auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
+            etaPhiWriter(0, eta, phi);
+          }
+        }) } },
+    DataProcessorSpec{
+      "phi-consumer",
+      Inputs{
+        InputSpec{ "etaphi", "AOD", "TRACKDERIVED" } },
+      Outputs{},
+      AlgorithmSpec{
+        adaptStateless([](InputRecord& inputs) {
+          auto input = inputs.get<TableConsumer>("etaphi");
           auto tracks = o2::analysis::doSingleLoopOn(input);
 
-          auto h1 = tracks.Filter("fSigned1Pt > 20").Histo1D("fSigned1Pt");
+          auto h = tracks.Histo1D("fPhi");
 
-          TFile f("result.root", "RECREATE");
-          h1->SetName("fSigned1PtWithCut");
-          h1->Write();
+          TFile f("result1.root", "RECREATE");
+          h->SetName("Phi");
+          h->Write();
+        }) } },
+    DataProcessorSpec{
+      "eta-consumer",
+      Inputs{
+        InputSpec{ "etaphi", "AOD", "TRACKDERIVED" } },
+      Outputs{},
+      AlgorithmSpec{
+        adaptStateless([](InputRecord& inputs) {
+          auto input = inputs.get<TableConsumer>("etaphi");
+          auto tracks = o2::analysis::doSingleLoopOn(input);
+
+          auto h2 = tracks.Histo1D("fEta");
+
+          TFile f("result2.root", "RECREATE");
+          h2->SetName("Eta");
+          h2->Write();
         }) } }
   };
   return workflow;

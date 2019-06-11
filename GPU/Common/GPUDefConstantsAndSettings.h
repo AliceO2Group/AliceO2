@@ -14,16 +14,18 @@
 #ifndef GPUDEFCONSTANTSANDSETTINGS_H
 #define GPUDEFCONSTANTSANDSETTINGS_H
 
+// clang-format off
+
 #ifndef GPUDEF_H
-#error Please include GPUDef.h
+  #error Please include GPUDef.h
 #endif
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
-#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running a ROOT macro, please include GPUO2Interface.h first!
+  #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running a ROOT macro, please include GPUO2Interface.h first!
 #endif
 
-#if defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)
-#error Invalid Compile Definitions, need to build for either AliRoot or O2
+#if (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)) || (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_STANDALONE)) || (defined(GPUCA_O2_LIB) && defined(GPUCA_STANDALONE))
+  #error Invalid Compile Definitions, need to build for either AliRoot or O2 or Standalone
 #endif
 
 #define GPUCA_EXTERN_ROW_HITS
@@ -57,12 +59,20 @@
 #define GPUCA_MAX_SIN_PHI_LOW 0.99f // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define GPUCA_MAX_SIN_PHI 0.999f
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_ROW_COUNT 152
+#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
+  //Use definitions from the O2 headers if available for nicer code and type safety
+  #include "DataFormatsTPC/Constants.h"
+  #define GPUCA_NSLICES GPUCA_NAMESPACE::tpc::Constants::MAXSECTOR
+  #define GPUCA_ROW_COUNT GPUCA_NAMESPACE::tpc::Constants::MAXGLOBALPADROW
 #else
-#define GPUCA_ROW_COUNT 159
+  //Define it manually, if O2 headers not available, ROOT5, and OpenCL 1.2, which do not know C++11.
+  #define GPUCA_NSLICES 36
+  #ifdef GPUCA_TPC_GEOMETRY_O2
+    #define GPUCA_ROW_COUNT 152
+  #else
+    #define GPUCA_ROW_COUNT 159
+  #endif
 #endif
-#define GPUCA_NSLICES 36
 
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define GPUCA_REPRODUCIBLE_CLUSTER_SORTING
@@ -77,5 +87,7 @@
 //#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME							//Propagate Pad, Row, Time cluster information to GM
 //#define GPUCA_GM_USE_FULL_FIELD						//Use offline magnetic field during GMPropagator prolongation
 //#define GPUCA_TPC_USE_STAT_ERROR								//Use statistical errors from offline in track fit
+
+// clang-format on
 
 #endif

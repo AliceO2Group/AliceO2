@@ -28,6 +28,7 @@ set(SRCS
     src/ChannelSpecHelpers.cxx
     src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
+    src/ChannelMatching.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
     src/DataDescriptorMatcher.cxx
@@ -40,6 +41,7 @@ set(SRCS
     src/DataSamplingConditionPayloadSize.cxx
     src/DataSamplingConditionNConsecutive.cxx
     src/DataSamplingConditionFactory.cxx
+    src/DataSamplingHeader.cxx
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
     src/DataSpecUtils.cxx
@@ -51,6 +53,7 @@ set(SRCS
     src/O2ControlHelpers.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
+    src/ExternalFairMQDeviceProxy.cxx
     src/FairOptionsRetriever.cxx
     src/FairMQDeviceProxy.cxx
     src/FairMQResizableBuffer.cxx
@@ -58,13 +61,13 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/InputSpec.cxx
+    src/OutputSpec.cxx
     src/Kernels.cxx
     src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/Metric2DViewIndex.cxx
-    src/ExternalFairMQDeviceProxy.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/TableBuilder.cxx
@@ -92,6 +95,8 @@ set(SRCS
 
 set(HEADERS
       include/Framework
+      include/Framework/AnalysisDataModel.h
+      include/Framework/ASoA.h
       include/Framework/DataProcessor.h
       include/Framework/DataSpecUtils.h
       include/Framework/FrameworkGUIDevicesGraph.h
@@ -156,6 +161,7 @@ set(HEADERS
       include/Framework/DataSampling.h
       include/Framework/DataSamplingCondition.h
       include/Framework/DataSamplingConditionFactory.h
+      include/Framework/DataSamplingHeader.h
       include/Framework/DataSamplingReadoutAdapter.h
       include/Framework/DataSamplingPolicy.h
       include/Framework/Dispatcher.h
@@ -253,6 +259,7 @@ set(TEST_SRCS
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
+      test/test_DataSamplingHeader.cxx
       test/test_DataSamplingPolicy.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx

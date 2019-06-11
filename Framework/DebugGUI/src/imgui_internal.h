@@ -12,10 +12,10 @@
 #error Must include imgui.h before imgui_internal.h
 #endif
 
-#include <stdio.h>      // FILE*
-#include <stdlib.h>     // nullptr, malloc, free, qsort, atoi, atof
-#include <math.h>       // sqrtf, fabsf, fmodf, powf, floorf, ceilf, cosf, sinf
-#include <limits.h>     // INT_MIN, INT_MAX
+#include <cstdio>  // FILE*
+#include <cstdlib> // nullptr, malloc, free, qsort, atoi, atof
+#include <cmath>   // sqrtf, fabsf, fmodf, powf, floorf, ceilf, cosf, sinf
+#include <climits> // INT_MIN, INT_MAX
 
 #ifdef _MSC_VER
 #pragma warning (push)

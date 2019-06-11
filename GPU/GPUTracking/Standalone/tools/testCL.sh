@@ -15,6 +15,7 @@ DEFINES="-DGPUCA_STANDALONE -DGPUCA_ENABLE_GPU_TRACKER -DGPUCA_GPULIBRARY=OCL -D
 echo Test1 - Preprocess
 echo $COMPILER -cl-std=c++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -E ../Base/opencl/GPUReconstructionOCL.cl > test.cl
      $COMPILER -cl-std=c++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -E ../Base/opencl/GPUReconstructionOCL.cl > test.cl
+if [ $? != 0 ]; then exit 1; fi
     #Test 1A - Compile Preprocessed
     #$COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -c test.cl -o test.o
     #exit
@@ -22,9 +23,12 @@ echo $COMPILER -cl-std=c++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_spe
 echo Test2 - amdgcn
 echo $COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -c ../Base/opencl/GPUReconstructionOCL.cl -o test.o
      $COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -c ../Base/opencl/GPUReconstructionOCL.cl -o test.o
+if [ $? != 0 ]; then exit 1; fi
 
 echo Test3 - SPIR-V
 echo $COMPILER -cl-std=c++ -x cl -emit-llvm --target=spir64-unknown-unknown -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -c ../Base/opencl/GPUReconstructionOCL.cl -o test.bc
      $COMPILER -cl-std=c++ -x cl -emit-llvm --target=spir64-unknown-unknown -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -c ../Base/opencl/GPUReconstructionOCL.cl -o test.bc
+if [ $? != 0 ]; then exit 1; fi
 echo $LLVM_SPIRV test.bc
      $LLVM_SPIRV test.bc
+if [ $? != 0 ]; then exit 1; fi

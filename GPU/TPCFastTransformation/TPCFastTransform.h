@@ -148,6 +148,9 @@ class TPCFastTransform : public FlatObject
   GPUd() int Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
   GPUd() int TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
 
+  GPUdi() int convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz);
+  GPUdi() int convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz);
+
   GPUd() int convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
   GPUd() int convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const;
   GPUd() int getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
@@ -176,6 +179,12 @@ class TPCFastTransform : public FlatObject
 
   /// Gives TPC row info
   GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
+
+  /// Gives Z length of the TPC, side A
+  GPUd() float getTPCzLengthA() const { return mTPCzLengthA; }
+
+  /// Gives Z length of the TPC, side C
+  GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
   /// Print method
   void Print() const;
@@ -262,6 +271,30 @@ inline void TPCFastTransform::setTPCrow(int iRow, float x, int nPads, float padW
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
   mConstructionCounter++;
+}
+
+GPUdi() int TPCFastTransform::convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz)
+{
+  if (slice < 0 || slice >= NumberOfSlices) {
+    return -1;
+  }
+  const SliceInfo& sliceInfo = getSliceInfo(slice);
+  gx = lx * sliceInfo.cosAlpha - ly * sliceInfo.sinAlpha;
+  gy = lx * sliceInfo.sinAlpha + ly * sliceInfo.cosAlpha;
+  gz = lz;
+  return 0;
+}
+
+GPUdi() int TPCFastTransform::convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz)
+{
+  if (slice < 0 || slice >= NumberOfSlices) {
+    return -1;
+  }
+  const SliceInfo& sliceInfo = getSliceInfo(slice);
+  lx = gx * sliceInfo.cosAlpha + gy * sliceInfo.sinAlpha;
+  ly = -gx * sliceInfo.sinAlpha + gy * sliceInfo.cosAlpha;
+  lz = gz;
+  return 0;
 }
 
 GPUdi() int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const

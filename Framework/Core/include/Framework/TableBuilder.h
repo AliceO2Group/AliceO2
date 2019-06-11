@@ -300,7 +300,7 @@ class TableBuilder
   // Same as above, but starting from a o2::soa::Table, which has all the
   // information already available.
   template <typename T>
-  auto cursor(void)
+  auto cursor()
   {
     constexpr auto tuple_size = std::tuple_size_v<typename T::columns>;
     return cursorHelper<T>(std::make_index_sequence<tuple_size>());

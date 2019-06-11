@@ -10,11 +10,12 @@
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/AlgorithmSpec.h"
-#include "Framework/Traits.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
+#include "Framework/AlgorithmSpec.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Kernels.h"
+#include "Framework/Traits.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -25,44 +26,6 @@
 
 namespace o2
 {
-
-namespace aod
-{
-
-namespace track
-{
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fID4Tracks");
-DECLARE_SOA_COLUMN(X, x, float, "fX");
-DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
-DECLARE_SOA_COLUMN(Y, y, float, "fY");
-DECLARE_SOA_COLUMN(Z, z, float, "fZ");
-DECLARE_SOA_COLUMN(Snp, snp, float, "fSnp");
-DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
-DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
-} // namespace track
-
-using Tracks = soa::Table<track::CollisionId, track::X, track::Alpha,
-                          track::Y, track::Z, track::Snp, track::Tgl,
-                          track::Signed1Pt>;
-using Track = Tracks::iterator;
-
-namespace collision
-{
-DECLARE_SOA_COLUMN(Centrality, centrality, float, "centrality");
-} // namespace collision
-
-using Collisions = soa::Table<collision::Centrality>;
-using Collision = Collisions::iterator;
-
-namespace timeframe
-{
-DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t, "timestamp");
-} // namespace timeframe
-
-using Timeframes = soa::Table<timeframe::Timestamp>;
-using Timeframe = Timeframes::iterator;
-
-} // namespace aod
 
 namespace framework
 {
@@ -135,7 +98,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
             ++currentCollision;
             ++collision;
           }
-          task->processTrack(collision, track);
+          task->processCollisionTrack(collision, track);
         }
       }
       if constexpr (hasProcessTimeframeTracks) {
@@ -173,13 +136,13 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   std::vector<InputSpec> inputs;
 
   if constexpr (hasProcessTrack || hasProcessCollisionTrack || hasProcessTimeframeTracks || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "tracks", "AOD", "TRACKPAR" });
+    inputs.emplace_back(InputSpec{ "tracks", "RN2", "TRACKPAR" });
   }
   if constexpr (hasProcessCollisionTrack || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "collisions", "AOD", "COLLISIONS" });
+    inputs.emplace_back(InputSpec{ "collisions", "RN2", "COLLISIONS" });
   }
   if constexpr (hasProcessTimeframeTracks) {
-    inputs.emplace_back(InputSpec{ "timeframe", "AOD", "TIMEFRAME" });
+    inputs.emplace_back(InputSpec{ "timeframe", "RN2", "TIMEFRAME" });
   }
 
   DataProcessorSpec spec{

@@ -811,7 +811,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
     GPUTPCGMTrackParam t = track.Param();
     float Alpha = track.Alpha();
     CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
-    bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().rec.DodEdx ? &track.dEdxInfo() : nullptr);
+    bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
     CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks));
 
     if (CAMath::Abs(t.QPt()) < 1.e-4f) {

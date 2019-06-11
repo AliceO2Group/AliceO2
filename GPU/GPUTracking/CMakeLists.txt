@@ -6,6 +6,10 @@ endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(DEFINITIONS ${DEFINITIONS} GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+    if (OPENGL_FOUND AND GLFW_FOUND AND GLEW_FOUND AND OPENGL_GLU_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set(GPUCA_EVENT_DISPLAY ON)
+    endif()
+    set(GPUCA_QA ON)
 endif()
 
 if(OpenMP_CXX_FOUND)
@@ -74,6 +78,7 @@ set(SRCS
 )
 
 set(SRCS_NO_CINT
+    Base/GPUDataTypes.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUSettings.cxx
@@ -89,6 +94,7 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H
     SliceTracker/GPUTPCTrackerDump.cxx
+    Global/GPUChainTrackingDebugAndProfiling.cxx
 )
 
 #Extra headers to install
@@ -127,7 +133,6 @@ set(HDRS2
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
     Base/GPUOutputControl.h
-    Base/GPUDataTypes.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -190,6 +195,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx
+        DataCompression/GPUTPCCompressionTrackModel.cxx
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
@@ -207,6 +213,7 @@ else() #Need at least the header installed, as it is part of constant memory
         TPCConvert/GPUTPCConvert.h
         TPCConvert/GPUTPCConvertKernel.h
         DataCompression/GPUTPCCompression.h
+        DataCompression/GPUTPCCompressionTrackModel.h
         DataCompression/GPUTPCCompressionKernels.h
         DataCompression/TPCClusterDecompressor.h
         DataCompression/GPUTPCClusterStatistics.h
@@ -314,6 +321,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
         target_link_libraries(${MODULE} OpenMP::OpenMP_CXX)
     endif()
     if (GPUCA_EVENT_DISPLAY)
-        target_link_libraries(${MODULE} -lGL -lGLU -lGLEW)
+        target_link_libraries(${MODULE} ${GLEW_LIBRARIES} ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
     endif()
 endif()

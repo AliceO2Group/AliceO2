@@ -20,8 +20,9 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 #ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
-__constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
+__constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
 __global__ void gGPUConstantMemBuffer_dummy(uint4* p) { p[0] = gGPUConstantMemBuffer[0]; }
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
@@ -171,7 +172,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp_t, mDeviceId));
 
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp_t.name);
     GPUInfo("totalGlobalMem = %lld", (unsigned long long int)hipDeviceProp_t.totalGlobalMem);
     GPUInfo("sharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp_t.sharedMemPerBlock);
@@ -186,31 +187,43 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     GPUInfo("clockRate = %d", hipDeviceProp_t.clockRate);
     GPUInfo("memoryClockRate = %d", hipDeviceProp_t.memoryClockRate);
     GPUInfo("multiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
+    GPUInfo(" ");
   }
 
   mCoreCount = hipDeviceProp_t.multiProcessorCount;
 
-  if (hipDeviceProp_t.major < 1 || (hipDeviceProp_t.major == 1 && hipDeviceProp_t.minor < 2)) {
+  if (hipDeviceProp_t.major < 3) {
     GPUError("Unsupported HIP Device");
     return (1);
   }
+#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+  if (gGPUConstantMemBufferSize > hipDeviceProp_t.totalConstMem) {
+    GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp_t.totalConstMem, (int)gGPUConstantMemBufferSize);
+    return (1);
+  }
+#endif
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
   /*if (GPUFailedMsgI(hipThreadSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
-     {
-      GPUError("Error setting HIP stack size");
-      GPUFailedMsgI(hipDeviceReset());
-      return(1);
-     }*/
+  {
+    GPUError("Error setting HIP stack size");
+    GPUFailedMsgI(hipDeviceReset());
+    return(1);
+  }*/
 
-  if (mDeviceMemorySize > hipDeviceProp_t.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
+  if (mDeviceMemorySize > hipDeviceProp_t.totalGlobalMem) {
+    GPUError("Insufficient GPU memory (%lld < %lld)", (long long int)hipDeviceProp_t.totalGlobalMem, (long long int)mDeviceMemorySize);
+    GPUFailedMsgI(hipDeviceReset());
+    return (1);
+  }
+  if (GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
     GPUError("HIP Memory Allocation Error");
     GPUFailedMsgI(hipDeviceReset());
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld", (long long int)mDeviceMemorySize);
+    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
   }
   if (GPUFailedMsgI(hipHostMalloc(&mHostMemoryBase, mHostMemorySize))) {
     GPUError("Error allocating Page Locked Host Memory");
@@ -218,15 +231,15 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld", (long long int)mHostMemorySize);
+    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
   }
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0, mHostMemorySize);
     if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 143, mDeviceMemorySize))) {
-      GPUError("Error during HIP memset");
-      GPUFailedMsgI(hipDeviceReset());
-      return (1);
+      GPUError("Error during HIP memset (non-fatal)");
+      //GPUFailedMsgI(hipDeviceReset());
+      //return (1);
     }
   }
 
@@ -246,7 +259,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     return 1;
   }
 #else
-  if (GPUFailedMsgI(hipMalloc(&devPtrConstantMem, sizeof(GPUConstantMem)))) {
+  if (GPUFailedMsgI(hipMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize))) {
     GPUError("HIP Memory Allocation Error");
     GPUFailedMsgI(hipDeviceReset());
     return (1);
@@ -267,7 +280,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   ReleaseThreadContext();
   GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, hipDeviceProp_t.name, hipDeviceProp_t.clockRate, hipDeviceProp_t.multiProcessorCount, (long long int)mHostMemorySize,
-          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)sizeof(GPUConstantMem));
+          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
 }

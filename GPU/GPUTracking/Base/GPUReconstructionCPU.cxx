@@ -33,9 +33,6 @@
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
 
-#include "GPUQA.h"
-#include "GPUDisplay.h"
-
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
@@ -44,6 +41,9 @@
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+constexpr GPUReconstructionCPU::krnlRunRange GPUReconstructionCPU::krnlRunRangeNone;
+constexpr GPUReconstructionCPU::krnlEvent GPUReconstructionCPU::krnlEventNone;
 
 GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
 
@@ -146,7 +146,7 @@ void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
   }
 }
 
-int GPUReconstructionCPU::RunStandalone()
+int GPUReconstructionCPU::RunChains()
 {
   mStatNEvents++;
 
@@ -158,7 +158,7 @@ int GPUReconstructionCPU::RunStandalone()
   }
 
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->RunStandalone()) {
+    if (mChains[i]->RunChain()) {
       return 1;
     }
   }

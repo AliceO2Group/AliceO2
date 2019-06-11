@@ -10,6 +10,7 @@ set(SRCS
   src/MatLayerCyl.cxx
   src/MatLayerCylSet.cxx
   src/Ray.cxx
+  src/DCAFitter.cxx
 )
 
 Set(HEADERS
@@ -22,6 +23,7 @@ Set(HEADERS
   include/${MODULE_NAME}/MatCell.h
   include/${MODULE_NAME}/MatLayerCyl.h
   include/${MODULE_NAME}/MatLayerCylSet.h
+  include/${MODULE_NAME}/DCAFitter.h
 )
 
 Set(LINKDEF src/DetectorsBaseLinkDef.h)
@@ -32,6 +34,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testMatBudLUT.cxx
+  test/testDCAFitter.cxx
 )
 
 if (HAVESIMULATION)

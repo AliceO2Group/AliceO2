@@ -26,6 +26,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL_cl[];
+constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 
 #define quit(msg)  \
   {                \
@@ -207,19 +208,40 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
   mInternals->device = mInternals->devices[bestDevice];
 
+  cl_ulong constantBuffer, globalMem, localMem;
+  char deviceVersion[64];
+  size_t maxWorkGroup, maxWorkItems[3];
   clGetDeviceInfo(mInternals->device, CL_DEVICE_NAME, 64, device_name, nullptr);
   clGetDeviceInfo(mInternals->device, CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
   clGetDeviceInfo(mInternals->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, nullptr);
   clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, nullptr);
   clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMem), &globalMem, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(constantBuffer), &constantBuffer, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMem), &localMem, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_VERSION, sizeof(deviceVersion) - 1, deviceVersion, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroup), &maxWorkGroup, nullptr);
+  clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(maxWorkItems), maxWorkItems, nullptr);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Using OpenCL device %d: %s %s (Frequency %d, Shaders %d)\n", bestDevice, device_vendor, device_name, (int)freq, (int)shaders);
+    GPUInfo("Using OpenCL device %d: %s %s with properties:", bestDevice, device_vendor, device_name);
+    GPUInfo("Version = %s", deviceVersion);
+    GPUInfo("Frequency = %d", (int)freq);
+    GPUInfo("Shaders = %d", (int)shaders);
+    GPUInfo("GLobalMemory = %lld", (long long int)globalMem);
+    GPUInfo("ContantMemoryBuffer = %lld", (long long int)constantBuffer);
+    GPUInfo("LocalMemory = %lld", (long long int)localMem);
+    GPUInfo("maxThreadsPerBlock = %lld", (long long int)maxWorkGroup);
+    GPUInfo("maxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
+    GPUInfo(" ");
   }
+#ifndef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+  if (gGPUConstantMemBufferSize > constantBuffer) {
+    GPUError("Insufficient constant memory available on GPU %d < %d!", (int)constantBuffer, (int)gGPUConstantMemBufferSize);
+    return (1);
+  }
+#endif
 
-  cl_uint compute_units;
-  clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, nullptr);
-
-  mCoreCount = compute_units;
+  mCoreCount = shaders;
 
   mInternals->context = clCreateContext(nullptr, count, mInternals->devices, nullptr, nullptr, &ocl_error);
   if (ocl_error != CL_SUCCESS) {
@@ -330,7 +352,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
     return (1);
   }
 
-  mInternals->mem_constant = clCreateBuffer(mInternals->context, CL_MEM_READ_ONLY, sizeof(GPUConstantMem), nullptr, &ocl_error);
+  mInternals->mem_constant = clCreateBuffer(mInternals->context, CL_MEM_READ_ONLY, gGPUConstantMemBufferSize, nullptr, &ocl_error);
   if (ocl_error != CL_SUCCESS) {
     GPUError("OPENCL Constant Memory Allocation Error");
     clReleaseMemObject(mInternals->mem_gpu);
@@ -358,7 +380,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld", (long long int)mDeviceMemorySize);
+    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
   }
 
   mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
@@ -397,7 +419,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld", (long long int)mHostMemorySize);
+    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
   }
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
@@ -411,7 +433,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
 
   GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long long int)mDeviceMemorySize,
-          (long long int)mHostMemorySize, -1, (long long int)sizeof(GPUConstantMem));
+          (long long int)mHostMemorySize, -1, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
 }

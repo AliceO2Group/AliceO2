@@ -43,7 +43,7 @@ struct CompressedClustersPtrs_helper : public T {
   unsigned char* sigmaPadA = nullptr;     //[nAttachedClusters]
   unsigned char* sigmaTimeA = nullptr;    //[nAttachedClusters]
 
-  char* qPtA = nullptr;            //[nTracks]
+  unsigned char* qPtA = nullptr;   //[nTracks]
   unsigned char* rowA = nullptr;   //[nTracks]
   unsigned char* sliceA = nullptr; //[nTracks]
   unsigned int* timeA = nullptr;   //[nTracks]

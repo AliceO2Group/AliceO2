@@ -37,7 +37,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #if !defined(GPUCA_GPUCODE)
 
 GPUTPCTracker::GPUTPCTracker()
-  : GPUProcessor(), mStageAtSync(nullptr), mLinkTmpMemory(nullptr), mISlice(-1), mData(), mNMaxStartHits(0), mNMaxTracklets(0), mNMaxTracks(0), mNMaxTrackHits(0), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResCommon(-1), mMemoryResTracklets(-1), mMemoryResTracks(-1), mMemoryResTrackHits(-1), mRowStartHitCountOffset(nullptr), mTrackletTmpStartHits(nullptr), mGPUTrackletTemp(nullptr), mGPUParametersConst(), mCommonMem(nullptr), mTrackletStartHits(nullptr), mTracklets(nullptr), mTrackletRowHits(nullptr), mTracks(nullptr), mTrackHits(nullptr), mOutput(nullptr), mOutputMemory(nullptr)
+  : GPUProcessor(), mLinkTmpMemory(nullptr), mISlice(-1), mData(), mNMaxStartHits(0), mNMaxTracklets(0), mNMaxTracks(0), mNMaxTrackHits(0), mMemoryResLinksScratch(-1), mMemoryResScratchHost(-1), mMemoryResCommon(-1), mMemoryResTracklets(-1), mMemoryResOutput(-1), mRowStartHitCountOffset(nullptr), mTrackletTmpStartHits(nullptr), mGPUTrackletTemp(nullptr), mGPUParametersConst(), mCommonMem(nullptr), mTrackletStartHits(nullptr), mTracklets(nullptr), mTrackletRowHits(nullptr), mTracks(nullptr), mTrackHits(nullptr), mOutput(nullptr), mOutputMemory(nullptr)
 {
 }
 
@@ -59,6 +59,21 @@ void GPUTPCTracker::InitializeProcessor()
   SetupCommonMemory();
 }
 
+void* GPUTPCTracker::SetPointersDataInput(void* mem)
+{
+  return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging);
+}
+
+void* GPUTPCTracker::SetPointersDataScratch(void* mem)
+{
+  return mData.SetPointersScratch(mem);
+}
+
+void* GPUTPCTracker::SetPointersDataRows(void* mem)
+{
+  return mData.SetPointersRows(mem);
+}
+
 void* GPUTPCTracker::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mTrackletStartHits, mNMaxStartHits);
@@ -74,7 +89,8 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
 
 void* GPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-  computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mData.MemoryResScratch()).Size());
+  computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinksScratch).Size());
+  mem = mData.SetPointersScratchHost(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging);
   return mem;
 }
 
@@ -86,17 +102,19 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 
 void GPUTPCTracker::RegisterMemoryAllocation()
 {
-  mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TrackerScratch");
-  mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TrackerHost");
+  mMemoryResLinksScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "SliceInput");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TrackerScratch");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TrackerHost");
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TrackerCommon");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 
   auto type = GPUMemoryResource::MEMORY_OUTPUT;
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
     type = GPUMemoryResource::MEMORY_CUSTOM;
     mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TrackerTracklets");
   }
-  mMemoryResTracks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracks, type, "TrackerTracks");
-  mMemoryResTrackHits = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTrackHits, type, "TrackerTrackHits");
+  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TrackerTracks");
 }
 
 GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
@@ -108,14 +126,9 @@ GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
   return mem;
 }
 
-GPUhd() void* GPUTPCTracker::SetPointersTracks(void* mem)
+GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mTracks, mNMaxTracks);
-  return mem;
-}
-
-GPUhd() void* GPUTPCTracker::SetPointersTrackHits(void* mem)
-{
   computePointerWithAlignment(mem, mTrackHits, mNMaxTrackHits);
   return mem;
 }
@@ -131,6 +144,7 @@ void GPUTPCTracker::SetMaxData()
       mNMaxStartHits = GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT;
     }
   }
+  mData.SetMaxData();
 }
 
 void GPUTPCTracker::UpdateMaxData()

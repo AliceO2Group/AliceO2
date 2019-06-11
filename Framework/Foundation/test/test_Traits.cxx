@@ -20,7 +20,7 @@ struct Foo {
 };
 
 struct Bar : public Foo {
-  virtual void a() {}
+  void a() override {}
 };
 
 struct FooBar : public Foo {

@@ -16,7 +16,7 @@
 
 using namespace o2::t0;
 
-void RecPoints::FillFromDigits(const o2::t0::Digit& digit)
+void RecPoints::fillFromDigits(const o2::t0::Digit& digit)
 {
   mCollisionTime = {};
 
@@ -45,14 +45,14 @@ void RecPoints::FillFromDigits(const o2::t0::Digit& digit)
     }
   }
 
-  if (ndigitsA > 0)
-    mCollisionTime[1] = sideAtime / Float_t(ndigitsA);
-
-  if (ndigitsC > 0)
-    mCollisionTime[2] = sideCtime / Float_t(ndigitsC);
+  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / Float_t(ndigitsC) : 2 * o2::InteractionRecord::DummyTime;
 
   if (ndigitsA > 0 && ndigitsC > 0) {
-    mVertex = (mCollisionTime[1] - mCollisionTime[2]) / 2.;
-    mCollisionTime[0] = (mCollisionTime[1] + mCollisionTime[2]) / 2.;
+    mVertex = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;
+    mCollisionTime[TimeMean] = (mCollisionTime[TimeA] + mCollisionTime[TimeC]) / 2.;
+  } else {
+    mVertex = 0.;
+    mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
 }

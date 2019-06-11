@@ -42,18 +42,13 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     DataProcessorSpec{
       "dataProducer",
       Inputs{},
-      {
-        OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe }
-      },
+      { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe } },
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
-      }
-    },
+        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm } },
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.outputs[0].subSpec = index;
-    }
-  );
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
+    });
 
   auto processingStages = parallel(
     DataProcessorSpec{
@@ -68,7 +63,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   auto inputsDataSampler = mergeInputs(

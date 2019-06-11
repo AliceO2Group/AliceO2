@@ -49,9 +49,13 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
   computePointerWithAlignment(mem, c.timeDiffU, nClU);
   computePointerWithAlignment(mem, c.sigmaPadU, nClU);
   computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
+  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSLICES);
 
   unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
 
+  if (!(mMerger->Param().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
+    return; // Track model disabled, do not allocate memory
+  }
   computePointerWithAlignment(mem, c.qTotA, nClA);
   computePointerWithAlignment(mem, c.qMaxA, nClA);
   computePointerWithAlignment(mem, c.flagsA, nClA);
@@ -69,7 +73,6 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
   computePointerWithAlignment(mem, c.padA, nTr);
 
   computePointerWithAlignment(mem, c.nTrackClusters, nTr);
-  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSLICES);
 }
 
 void* GPUTPCCompression::SetPointersMemory(void* mem)

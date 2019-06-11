@@ -2806,7 +2806,7 @@ struct ExampleAppConsole
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0,0));
         static ImGuiTextFilter filter;
-        filter.Draw("Filter (\"incl,-excl\") (\"error\")", 180);
+        filter.Draw("Filter (\"incl,-excl\") (\"error\")", 180); // NOLINT
         ImGui::PopStyleVar();
         ImGui::Separator();
 

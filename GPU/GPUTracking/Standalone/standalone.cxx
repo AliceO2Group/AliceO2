@@ -221,6 +221,7 @@ int SetupReconstruction()
   GPUSettingsEvent ev = rec->GetEventSettings();
   GPUSettingsRec recSet;
   GPUSettingsDeviceProcessing devProc;
+  GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
     ev.homemadeEvents = true;
@@ -289,20 +290,12 @@ int SetupReconstruction()
   devProc.globalInitMutex = configStandalone.gpuInitMutex;
   devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
   devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-  if (configStandalone.configRec.runTRD != -1) {
-    rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
-  }
-  if (!configStandalone.merger) {
-    rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TPCMerging, false);
-  }
-  if (configStandalone.configRec.rundEdx != -1) {
-    recSet.DodEdx = configStandalone.configRec.rundEdx > 0;
-  }
   recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
   }
   recSet.tpcCompressionModes = configStandalone.configRec.tpcCompression;
+  recSet.tpcCompressionSortOrder = configStandalone.configRec.tpcCompressionSort;
 
   if (configStandalone.configProc.nStreams >= 0) {
     devProc.nStreams = configStandalone.configProc.nStreams;
@@ -314,7 +307,20 @@ int SetupReconstruction()
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
 
-  rec->SetSettings(&ev, &recSet, &devProc);
+  steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
+  if (configStandalone.configRec.runTRD != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+  }
+  if (!configStandalone.merger) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
+  }
+  if (configStandalone.configRec.rundEdx != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
+  }
+  steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
+  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TRDTracks);
+
+  rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;
@@ -329,6 +335,15 @@ int ReadEvent(int n)
   int r = chainTracking->ReadData(filename);
   if (r) {
     return r;
+  }
+  bool convertRun2Raw = false;
+  for (int i = 0; i < chainTracking->NSLICES; i++) {
+    if (chainTracking->mIOPtrs.rawClusters[i]) {
+      convertRun2Raw = true;
+    }
+  }
+  if (convertRun2Raw) {
+    chainTracking->ConvertRun2RawToNative();
   }
   if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
     chainTracking->ConvertNativeToClusterDataLegacy();
@@ -352,6 +367,7 @@ int main(int argc, char** argv)
     printf("Error initializing GPUReconstruction\n");
     return (1);
   }
+  rec->SetDebugLevel(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
 #ifdef HAVE_O2HEADERS
   chainITS = rec->AddChain<GPUChainITS>();
@@ -445,7 +461,7 @@ int main(int argc, char** argv)
           }
           rec->SetResetTimers(j1 <= configStandalone.runsInit);
 
-          int tmpRetVal = chainTracking->RunStandalone();
+          int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0) {
             int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;

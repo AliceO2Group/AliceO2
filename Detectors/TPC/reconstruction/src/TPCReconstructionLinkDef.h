@@ -22,12 +22,10 @@
 #pragma link C++ class o2::tpc::RawReaderCRU;
 #pragma link C++ class o2::tpc::RawReaderEventSync;
 #pragma link C++ class o2::tpc::SyncPatternMonitor;
-#pragma link C++ class o2::tpc::TPCCATracking;
+#pragma link C++ class o2::tpc::GPUCATracking;
 #pragma link C++ class o2::tpc::HardwareClusterDecoder;
 
-#pragma link C++ class o2::tpc::BoxClusterer+;
 #pragma link C++ class o2::tpc::Clusterer+;
-#pragma link C++ class o2::tpc::ClusterContainer+;
 #pragma link C++ class o2::tpc::ClustererTask+;
 #pragma link C++ class o2::tpc::HwClusterer+;
 

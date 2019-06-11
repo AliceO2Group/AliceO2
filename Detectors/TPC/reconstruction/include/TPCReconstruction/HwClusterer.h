@@ -31,7 +31,6 @@ namespace o2{
 namespace tpc {
 
 class Digit;
-class Cluster;
 class ClusterHardware;
 
 /// \class HwClusterer
@@ -45,7 +44,6 @@ class HwClusterer : public Clusterer
   /// Main Constructor
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
-    std::vector<Cluster>* clusterOutputSimple, int sectorid,
     MCLabelContainer* labelOutput);
 
  public:
@@ -55,15 +53,6 @@ class HwClusterer : public Clusterer
   /// \param sectorid is sector number to be processed
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutput,
-    int sectorid,
-    MCLabelContainer* labelOutput = nullptr);
-
-  /// Constructor
-  /// \param clusterOutput is pointer to vector to be filled with clusters
-  /// \param labelOutput is pointer to storage to be filled with MC labels
-  /// \param sectorid is sector number to be processed
-  HwClusterer(
-    std::vector<Cluster>* clusterOutput,
     int sectorid,
     MCLabelContainer* labelOutput = nullptr);
 
@@ -219,7 +208,6 @@ class HwClusterer : public Clusterer
   std::vector<std::unique_ptr<std::vector<std::vector<std::pair<MCCompLabel, unsigned>>>>> mTmpLabelArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
 
   std::vector<ClusterHardwareContainer8kb>* mClusterArray; ///< Pointer to output cluster container
-  std::vector<Cluster>* mPlainClusterArray;                ///< Pointer to output cluster container
   MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
 };
 

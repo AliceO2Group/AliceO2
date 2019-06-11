@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testTPCCATracking.cxx
+/// \file testGPUCATracking.cxx
 /// \brief This task tests the TPC CA Tracking library
 /// \author David Rohr
 
@@ -21,7 +21,10 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
-#include "TPCReconstruction/TPCCATracking.h"
+#include "TPCReconstruction/GPUCATracking.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+
+#include "TPCFastTransform.h"
 
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUReconstruction.h"
@@ -42,7 +45,7 @@ namespace tpc
 /// @brief Test 1 basic class IO tests
 BOOST_AUTO_TEST_CASE(CATracking_test1)
 {
-  TPCCATracking tracker;
+  GPUCATracking tracker;
 
   float solenoidBz = -5.00668; //B-field
   float refX = 1000.;          //transport tracks to this x after tracking, >500 for disabling
@@ -53,7 +56,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configProcessing.forceDeviceType = true;
 
   config.configDeviceProcessing.nThreads = 4;           //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
-  config.configDeviceProcessing.runQA = true;           //Run QA after tracking
+  config.configDeviceProcessing.runQA = false;          //Run QA after tracking
   config.configDeviceProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
   //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
@@ -65,8 +68,15 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configReconstruction.SearchWindowDZDR = 2.5f; //Should always be 2.5 for looper-finding and/or continuous tracking
   config.configReconstruction.TrackReferenceX = refX;
 
+  config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion, GPUDataTypes::RecoStep::TPCSliceTracking,
+                                  GPUDataTypes::RecoStep::TPCMerging, GPUDataTypes::RecoStep::TPCCompression, GPUDataTypes::RecoStep::TPCdEdx);
+  config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
+  config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
+
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  config.fastTransform = fastTransform.get();
+
   tracker.initialize(config);
-  std::vector<TrackTPC> tracks;
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
 
   for (int i = 0; i < Constants::MAXGLOBALPADROW; i++) {
@@ -80,12 +90,16 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].clusters[0].qMax = 10;
     cont[i].clusters[0].qTot = 50;
   }
-  std::unique_ptr<ClusterNativeAccessFullTPC> clusters =
-    ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
+  std::unique_ptr<ClusterNativeAccessFullTPC> clusters = ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
 
-  int retVal = tracker.runTracking(*clusters, &tracks, nullptr);
+  GPUO2InterfaceIOPtrs ptrs;
+  std::vector<TrackTPC> tracks;
+  ptrs.clusters = clusters.get();
+  ptrs.outputTracks = &tracks;
+
+  int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);
   BOOST_CHECK_EQUAL((int)tracks.size(), 1);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

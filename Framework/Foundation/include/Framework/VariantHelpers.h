@@ -7,12 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_VARIANTHELPERS_H_
+#define O2_FRAMEWORK_VARIANTHELPERS_H_
 
-#include "RawClusterFinder.C"
-
-using namespace o2::tpc;
-
-void runRawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, RawClusterFinder::ClustererType clustererType=RawClusterFinder::ClustererType::HW)
+namespace o2::framework
 {
-   RawClusterFinder::processEvents(fileInfo, pedestalFile, outputFileName, maxEvents, static_cast<char>(clustererType));
-}
+/// From https://en.cppreference.com/w/cpp/utility/variant/visit
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+
+template <class... Ts>
+overloaded(Ts...)->overloaded<Ts...>;
+} // namespace o2::framework
+
+#endif // O2_FRAMEWORK_VARIANTHELPERS_H_
