@@ -1,7 +1,7 @@
 #pragma once
 
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/executable/Executable.h>
-#include <gpucf/ClEnv.h>
 
 
 namespace gpucf

@@ -1,6 +1,6 @@
 #include "GPUClusterFinder.h"
 
-#include <gpucf/ClEnv.h>
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/common/DigitDivider.h>
 #include <gpucf/common/log.h>
 #include <gpucf/common/RowInfo.h>
@@ -666,6 +666,9 @@ std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
         {"digitsToDevice", p.digitsToDevice},
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
+        (config.splitCharges) 
+            ? Step{"countPeaks", p.countingPeaks}
+            : Step{"countPeaks", 0, 0, 0, 0},
         p.streamCompaction.asStep("compactPeaks"),
         {"computeCluster", p.computingClusters},
         {"resetMaps", p.zeroChargeMap},

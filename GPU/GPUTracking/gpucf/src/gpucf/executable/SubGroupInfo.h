@@ -2,7 +2,7 @@
 
 #include "Executable.h"
 
-#include <gpucf/ClEnv.h>
+#include <gpucf/common/ClEnv.h>
 
 
 namespace gpucf
