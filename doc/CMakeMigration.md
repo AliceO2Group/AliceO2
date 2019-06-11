@@ -47,6 +47,8 @@ The idea is to go in steps.
 
 4. add creation of O2Config.cmake
 
+5. polish and fix the remaining inconsistencies (e.g. test labelling, etc...)
+
 ## Step 1
 
 In this step the idea is to limit ourselves to change only `CMakeLists.txt` and `*.cmake` files and not the source code (unless absolutely necessary). The top [CMakeLists.txt](../CMakeLists.txt) was rewritten from scratch and is composed of different parts :
@@ -92,6 +94,49 @@ That part is the meat of the CMakeLists.txt and is just the inclusion of the rel
 ### Testing
 
 Lastly some setup for testing is done in `tests` subdirectory. That part is still a bit WIP, but that's the location of the shell scripts that are used.
+
+## Status at end of step 1
+
+The way it was developped : first make a regular install of O2@dev using aliBuild.
+Then switch to `cmake-migration-step-1` branch. Create a build directory somewhere, and run cmake there :
+
+```
+> cd build-RelWithDebInfo
+> rm -rf *
+> cmake $HOME/alice/cmake/O2 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=../install-RelWithDebInfo -DCMAKE_GENERATOR=Ninja -DALIBUILD_BASEDIR=$HOME/alice/cmake/sw/osx_x86-64
+```
+
+Use `ninja` to build, `cmake .` to force rerunning cmake. Rince and repeat. Do it on Mac(10.14) and on CentOS7.
+
+The tests for this step (the failing test is only failing on CentOS7 in Debug configuration) :
+
+```
+~/alice/cmake/standalone/O2/build-Debug$ ctest --progress -j32
+Test project /home/aphecetche/alice/cmake/standalone/O2/build-Debug
+50/85 Test #34: O2test-dplutils-RootTreeWriterWorkflow..............***Failed    2.07 sec
+85/85 Test #24: O2test-detectorsbase-MatBudLUT
+99% tests passed, 1 tests failed out of 85
+
+Label Time Summary:
+dummy      =   0.11 sec*proc (2 tests)
+example    =   0.05 sec*proc (1 test)
+fast       =   0.16 sec*proc (3 tests)
+gpu        =   2.13 sec*proc (2 tests)
+its        =   1.06 sec*proc (1 test)
+mch        =   0.42 sec*proc (8 tests)
+mft        =   1.06 sec*proc (1 test)
+mid        =  20.33 sec*proc (5 tests)
+obvious    =   0.06 sec*proc (1 test)
+slow       =  14.10 sec*proc (1 test)
+steer      =   3.10 sec*proc (2 tests)
+tpc        =  28.64 sec*proc (10 tests)
+
+Total Test time (real) =  23.29 sec
+
+The following tests FAILED:
+         34 - O2test-dplutils-RootTreeWriterWorkflow (Failed)
+Errors while running CTest
+```
 
 ## Tips
 
