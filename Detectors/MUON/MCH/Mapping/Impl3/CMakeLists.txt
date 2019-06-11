@@ -31,6 +31,6 @@ if(APPLE)
   add_custom_command(
     TARGET ${targetName} POST_BUILD
     COMMAND ${CMAKE_CURRENT_LIST_DIR}/../../../check_nof_exported_symbols.sh
-            $<TARGET_LINKER_FILE:MCHMappingImpl3> 18
+            $<TARGET_LINKER_FILE:${targetName}> 18
     COMMENT "Checking number of exported symbols in the library")
 endif()

@@ -44,8 +44,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-dds-hosts.cfg
 
 install(
   FILES
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/startFLP2EPN-distributed.sh
-    ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh
+    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn-distributed.sh
+    ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/o2-test-flp2epn-distributed.sh
   DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 install(

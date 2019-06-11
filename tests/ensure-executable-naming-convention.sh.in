@@ -26,7 +26,7 @@ warning_unknown_subsystem() {
 RE_IS_TEST="^o2-test"
 RE_IS_BENCH="^o2-bench"
 RE_START_WITH_O2_OR_TEST="^o2-"
-RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA="^[a-z0-9.]([a-z0-9.]+|-)+[a-z0-9.]$"
+RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA="^[a-z0-9]([a-z0-9\.]+|-)+[a-z0-9]$"
 RE_SUBSYSTEM="(o2)-([a-z,0-9]+)+" # o2-subsystem
 
 KNOWN_GROUPS="alicehlt \
@@ -51,7 +51,7 @@ for F in *; do
   [[ $F =~ $RE_IS_TEST ]] && continue # convention for tests is yet to come
   [[ $F =~ $RE_IS_BENCH ]] && continue # convention for tests is yet to come
   [[ ! $F =~ $RE_START_WITH_O2_OR_TEST ]] && error_msg $F "does not start with o2-"
-  [[ ! $F =~ $RE_ONLY_LOWER_CASE_OR_DASH ]] && error_msg $F "should only contains lowercase letters, numbers, or dashes"
+  [[ ! $F =~ $RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA ]] && error_msg $F "should only contains lowercase letters, numbers, or dashes"
   [[ $F =~ $RE_SUBSYSTEM ]] && SUBSYSTEM=${BASH_REMATCH[2]}
   [[ ! " $KNOWN_GROUPS " =~  .*\ $SUBSYSTEM\ .* ]] && warning_unknown_subsystem $F $SUBSYSTEM
 done

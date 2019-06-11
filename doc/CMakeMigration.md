@@ -1,0 +1,122 @@
+# Migration to "Modern" CMake
+
+## Big picture
+
+The driving force is to abandon the whole bucket system that proved itself a great way to hide genuine dependency issues we're having in our build system.
+
+To do so the main idea is to migrate our CMake usage to latest practices recommended by the CMake community.
+
+Details can be found in [blog post](https://pabloariasal.github.io/2018/02/19/its-time-to-do-cmake-right/), [video](https://www.youtube.com/watch?v=bsXLMQ6WgIk), or [book](https://crascit.com/professional-cmake/) form, but the core concept is to base everything on **targets** and forego as much as possible the usage of variables and/or directory specific functions.
+
+Also, since our CMakeLists.txt were first written a few years back, more third-party libraries have embraced the new CMake ways of working and as such provide reasonably good `XXXConfig.cmake` files that are used when using `find_package(XXX)`. We should use them instead of cooking complicated `FindXXX.cmake` as much as we can.
+
+Targets are normally created with CMake-provided functions like `add_library`, `add_executable` and characterized with functions like `target_include_directories`, `target_link_libraries`, etc...
+
+We pondered for a long time whether we should simply stick to those native functions for our builds. But that would mean quite a bit of repetitive pieces of code in all our CMakeLists.txt. Plus it would make enforcing some conventions harder. So we decided (like in the previous incarnation of our build system) to use our own functions instead.
+
+Compared to the previous system though, we tried :
+
+- to use names (of the functions and their parameters) closely matching those of the original CMake ones, so people already CMake are less confused
+- to use only functions instead of macros (unless required), so the parameters do not leak into parent scope
+- to forego completely the usage of variables (variables are not bad practice per se, but most of our CMakeLists.txt can be written without any)
+
+## Custom CMake functions
+
+All our CMake functions are defined in the [cmake](../cmake) directory. Each file there defines one function. The filename is [UpperCamelCase](https://en.wikipedia.org/wiki/Camel_case) while the function name is [snake_case](https://en.wikipedia.org/wiki/Snake_case) (CMake function names are case insensitive but the modern convention is to have them all lower case). So for instance `o2_add_executable` is defined in `cmake/O2AddExecutable.cmake`. Each function is documented in its corresponding `.cmake` file.
+
+Currently defined functions :
+
+- o2_add_executable
+- o2_add_library
+- o2_add_test
+- o2_add_test_wrapper
+- o2_target_root_dictionary
+
+All the `o2_` functions above take as first (unnamed) parameter the _basename_ of a target. In order to prepare for the packaging step, the actual target name is _not_ the same as this _basename_. The target naming scheme is handled by the `o2_name_target` function. But in most cases the developpers do not need to know this final name, just that their target should be referenced as `basename` when they are used as first parameter of the `o2_xxx` functions or as `O2::basename` when used as dependencies.
+
+## Migration plan
+
+The idea is to go in steps.
+
+1. rewrite all our main CMakeLists.txt to get a working build, but without taking care of more difficult or less critical parts, like a) GPU stuff (critical and difficult) b) testing of Root macros (difficult) c) getting a proper O2Config.cmake produced (aka packaging). This first step is like a proof-of-concept, but almost full scale. Discuss the implementation at this stage.
+
+2. add Root macro testing
+
+3. add GPU/HIP/OpenCL stuff
+
+4. add creation of O2Config.cmake
+
+## Step 1
+
+In this step the idea is to limit ourselves to change `CMakeLists.txt` and not the source code (unless absolutely necessary). The top `CMakeLists.txt` was rewritten from scratch and is composed of different parts :
+
+- preamble: basic project definition, cmake version requirement, ctest inclusion
+- project wide setup: cxx checks, build options, output paths, rpath settings
+- external dependencices: all the find_package calls
+- definition of the targets : i.e. inclusion of all the sub_directories, in the correct order
+- end with testing and doc
+
+There is one major visible change from before : testing (still using ctest of course) can be done from the build tree itself, i.e. without installation.
+
+I'm highlighting below the main changes with respect to the current/previous situation.
+
+### Preamble
+
+CMake 3.14 is now required. We could live without, but it's easier with that version. As we anyway compile our version, I guess that's not a big deal. Note that when out CMake 3.15 will bring some generator expressions features that we might want to take advantage of.
+
+### Project wide setup
+
+Here we have some basic sanity checks (forbid in-source builds for instance), perform some feature checks on the CXX compiler, set the default for our [build options](../cmake/O2DefineOptions.cmake), set the output directories and RPATH settings. Note the `BUILD_SIMULATION` option : currently used "only" to fetch more dependencies, but might imagine to actually group all the simulation-dependent parts of O2 into an optional component ? Not for now, but maybe a thing to consider for the future ?
+
+Compared to previous usage, I've added a `stage` area in the build tree, where (most of) the build artifacts are created. That's where you'll find the `bin`, `lib`, `share` directories.
+
+### External dependencies
+
+Third-party dependencies are found in [dependencies/CMakeLists.txt](../dependencies/CMakeLists.txt).
+`find_package` calls are of the `CONFIG` variety unless there's a compelling reason to use the `MODULE` version.
+In particular :
+
+- [FindFairRoot](../dependencies/FindFairRoot.cmake) is creating imported targets so we can use `FairRoot::XXX` targets even if those are not (yet) created by FairRoot itself. That file will disappear when FairRoot completes its own CMake migration.
+- [FindGeant3](../dependencies/FindGeant3.cmake), [FindGeant4](../dependencies/FindGeant4.cmake), [Geant4VMC](../dependencies/FindGeant4VMC.cmake) : while those MC projects have Config.cmake files and thus define targets, they do not include the proper include paths for those targets. So those Find modules are just light ones that add the missing include paths to the imported targets defined in those projects.
+- [Findpythia](../dependencies/Findpythia.cmake) (for Pythia8) and [Findpythia6](../dependencies/Findpythia6.cmake) define imported targets for those libraries
+- [Findms_gsl](../dependencies/Findms_gsl.cmake) defines a `ms_gsl` target corresponding to the header only library
+- [FindRapidJSON](../dependencies/FindRapidJSON.cmake) defines a `RapidJSON::RapidJSON` target corresponding to the header only library
+
+As an aside, in order to ease the development of this new CMake system, I've written an [o2_find_dependencies_from_alibuild](../dependencies/O2FindDependenciesFromAliBuild.cmake) that "detects" the third-party dependencies from an AliBuild installation zone. That might come in handy for other people too (e.g. those using IDEs like CLion ?)
+
+### Definition of all targets
+
+That part is the meat of the CMakeLists.txt and is just the inclusion of the relevant subdirectories, but with a catch : order matters ! Some dependency cycles that had been hidden with the bucket system now shows up ...
+
+### Testing
+
+Lastly some setup for testing is done in `tests` subdirectory. That part is still a bit WIP, but that's the location of the shell scripts that are used.
+
+## Tips
+
+### Getting the list of targets
+
+In the build directory, if you do :
+
+```
+mkdir -p .cmake/api/v1/query/
+touch .cmake/api/v1/query/codemodel-v2
+```
+
+Then after the cmake configure stage you'll get a list of JSON files describing the targets in the reply subdir :
+
+```
+> tree .cmake/api/v1/reply
+├── codemodel-v2-83681dd2d17b5fde868d.json
+├── index-2019-06-11T10-25-54-0072.json
+├── target-O2bench-mch-segmentation3-Debug-9c692e4e44d81a3a3a92.json
+├── target-O2bench-mid-clusterizer-Debug-1340ba249c9a02e67ed5.json
+├── target-O2bench-mid-tracker-Debug-3e2229d129fb77d3b863.json
+├── target-O2exe-alicehlt-eventsampler-device-Debug-3bd0b54283972d791f58.json
+├── target-O2exe-alicehlt-runcomponent-Debug-80eb80e9623ee42d3fb2.json
+├── target-O2exe-alicehlt-wrapper-device-Debug-10621b10deb5caf32c18.json
+├── target-O2exe-ccdb-conditions-client-Debug-07e6fca14004fe227979.json
+├── target-O2exe-ccdb-conditions-server-Debug-ab5afdf6854abca507b7.json
+├── target-O2exe-ccdb-standalone-client-Debug-aaff2add767f9b354708.json
+
+```
