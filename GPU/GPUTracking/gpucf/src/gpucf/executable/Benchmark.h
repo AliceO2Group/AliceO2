@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gpucf/ClEnv.h>
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/executable/Executable.h>
 #include <gpucf/experiments/Experiment.h>

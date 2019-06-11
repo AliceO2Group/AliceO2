@@ -1,7 +1,7 @@
 #pragma once
 
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/executable/Executable.h>
-#include <gpucf/ClEnv.h>
 
 
 namespace gpucf
@@ -25,7 +25,7 @@ private:
 
 };
 
-};
+} // namespace gpucf
 
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
