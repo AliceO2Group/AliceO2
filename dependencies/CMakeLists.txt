@@ -42,7 +42,6 @@ find_package(FairLogger CONFIG REQUIRED)
 find_package(FairRoot MODULE REQUIRED)
 find_package(ms_gsl MODULE REQUIRED)
 find_package(FairMQ REQUIRED)
-find_package(DDS)
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(protobuf CONFIG REQUIRED)
 find_package(InfoLogger REQUIRED)
@@ -50,7 +49,6 @@ find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
 find_package(Common REQUIRED)
 find_package(RapidJSON MODULE REQUIRED)
-find_package(benchmark CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 
 # MC specific packages
@@ -66,6 +64,8 @@ endif()
 
 # Optional packages
 
+find_package(DDS)
+find_package(benchmark CONFIG)
 find_package(OpenMP)
 find_package(GLFW NAMES GLFW3 CONFIG)
 find_package(AliRoot)
