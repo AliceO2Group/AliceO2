@@ -285,32 +285,24 @@ if(HAVESIMULATION)
                     COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}")
 
       # Test for compiled macros
-      if(${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_COMPILED_TEST)
-        set(_MACRO_NON_FATAL "NON_FATAL")
-        message(WARNING "Compiled macro test for ${MACRO_FILE} will be non-fatal")
-      else()
-        set(_MACRO_NON_FATAL "")
+      if(NOT ${MACRO_FILE} IN_LIST EXCLUDE_MACROS_FROM_COMPILED_TEST)
+        add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
+                      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                      ${_MACRO_NON_FATAL}
+                      COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
+
+        # Set environment variables
+        foreach(_TEST_NAME "${MACRO_FILE_LABEL}" "${MACRO_FILE_LABEL}_compiled")
+          set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+          if(APPLE)
+            set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+          endif()
+          set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+        endforeach()
+
+        # Cleanup
+        unset(_TEST_NAME)
       endif()
-      add_test_wrap(NAME ${MACRO_FILE_LABEL}_compiled
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                    ${_MACRO_NON_FATAL}
-                    COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}++")
-
-      # Set environment variables
-      foreach(_TEST_NAME "${MACRO_FILE_LABEL}" "${MACRO_FILE_LABEL}_compiled")
-        set_property(TEST ${_TEST_NAME} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-        if(APPLE)
-          set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-        endif()
-        set_property(TEST ${_TEST_NAME} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
-      endforeach()
-
-      # Cleanup
-      unset(_TEST_NAME)
-      unset(_MACRO_NON_FATAL)
-
-    else()
-      message(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
     endif()
   endforeach()
 endif()
@@ -336,5 +328,5 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/ensure-executable-naming-convention.sh
                @ONLY
                NEWLINE_STYLE UNIX)
 
-add_test(NAME "ensure-executable-naming-convention" 
+add_test(NAME "ensure-executable-naming-convention"
         COMMAND "ensure-executable-naming-convention.sh")
