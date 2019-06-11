@@ -6,8 +6,7 @@ include(CTest)
 
 # Project wide setup
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-                      ${CMAKE_CURRENT_SOURCE_DIR}/cmake-functions)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
