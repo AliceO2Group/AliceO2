@@ -1,8 +1,8 @@
 set(GPUCF_SRC
-    "./ClEnv.cpp"
     "./ClusterChecker.cpp"
     "./VectorAdd.cpp"
     
+    "./common/ClEnv.cpp"
     "./common/Cluster.cpp"
     "./common/DataSet.cpp"
     "./common/Digit.cpp"

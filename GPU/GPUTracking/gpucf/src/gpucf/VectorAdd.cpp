@@ -1,6 +1,6 @@
 #include "VectorAdd.h"
 
-#include <gpucf/ClEnv.h>
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/common/log.h>
 
 

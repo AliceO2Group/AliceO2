@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gpucf/ClEnv.h>
+#include <gpucf/common/ClEnv.h>
 #include <gpucf/common/Measurements.h>
 
 #include <filesystem/path.h>
