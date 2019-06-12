@@ -115,7 +115,7 @@ class TRDDPLDigitizerTask
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
       }
     }
-    
+
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";

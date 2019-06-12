@@ -15,7 +15,6 @@
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "TRDBase/Digit.h"
-#include <vector>
 
 namespace o2
 {

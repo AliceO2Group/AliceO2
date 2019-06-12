@@ -60,15 +60,13 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
   SignalContainer_t adcMapCont;
-
-  // Loop over all TRD detectors
+  
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
-  int totalNumberOfProcessedHits = 0;
-  for (int det = 0; det < kNdet; ++det) {
-    // Loop over all TRD detectors
 
+  // Loop over all TRD detectors
+  for (int det = 0; det < kNdet; ++det) {
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
     /*      
@@ -84,18 +82,14 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    totalNumberOfProcessedHits += mHitContainer.size();
     if (!convertHits(det, hitsPerDetector[det], adcMapCont)) {
-      LOG(WARN) << "TRD converstion of hits failed for detector " << det;
-      /*
-       Maybe we should add a warning value in signals and signal_index to keep track of these
-      */
+      LOG(WARN) << "TRD conversion of hits failed for detector " << det;
+      continue; // go to the next chamber
     }
+
     if (!convertSignalsToDigits(det, adcMapCont)) {
-      LOG(WARN) << "TRD converstion of signals to digits failed for detector " << det;
-      /*
-       Maybe we should add a warning value in signals and signal_index to keep track of these
-      */
+      LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
+      continue; // go to the next chamber
     }
   }
 
@@ -325,35 +319,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The distance of the position to the middle of the timebin
       double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
 
-      // ************************************************************
-      // Check if there are signals already
-      //  - Should we move this block? It's only used here
-      //  - It's only used here...
-      // ************************************************************
-      /* std::vector<int> pads_in_response(kNpad);
-      std::vector<int> keys_in_response(kNpad);
-      for (int iPad = 0; iPad < kNpad; iPad++) {
-        const int colPos = colE + iPad - 1;
-        pads_in_response[iPad] = colPos;
-        if (colPos < 0) {
-          continue;
-        }
-        if (colPos >= nColMax) {
-          break;
-        }
-        const int key = Digit::calculateKey(det, rowE, colPos);
-        if (key < KEY_MIN || key > KEY_MAX) {
-          LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
-        }
-        keys_in_response[iPad] = key;
-        // check if the element exist, otherwise create it
-        if (!adcMapCont.count(key)) {
-          ArrayADC_t adc;        // create an empty vector with kTimeBins entries
-          adcMapCont[key] = adc; // associate the missing key with the new digit container
-        }
-      } */
-      // ************************************************************
-
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
@@ -383,6 +348,9 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           // Add the signals
           // Get the old signal
           const int key = Digit::calculateKey(det, rowE, colPos);
+          if (key < KEY_MIN || key > KEY_MAX) {
+            LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
+          }
           signalOld[iPad] = adcMapCont[key][iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
@@ -403,7 +371,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
 {
   //
-  // Converstion of signals to digits
+  // conversion of signals to digits
   //
 
   if (mSDigits) {
@@ -437,7 +405,6 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   // Converts the sampled electron signals to ADC values for a given chamber
   //
   if (adcMapCont.size() == 0) {
-    LOG(WARN) << "Signals array for detector " << det << " does not exist or it has zero entries";
     return false;
   }
 
