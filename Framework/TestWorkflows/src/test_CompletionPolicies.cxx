@@ -30,7 +30,7 @@ void customize(std::vector<CompletionPolicy> &policies) {
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataProcessorSpec.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 #include <vector>

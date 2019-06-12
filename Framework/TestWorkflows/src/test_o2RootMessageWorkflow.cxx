@@ -15,7 +15,7 @@
 // FIXME: this should not be needed as the framework should be able to
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>

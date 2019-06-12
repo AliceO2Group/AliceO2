@@ -16,10 +16,11 @@
 #include "Framework/DataSampling.h"
 #include "Framework/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/Logger.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
-#include <fairmq/FairMQLogger.h>
 
 using namespace o2::configuration;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
