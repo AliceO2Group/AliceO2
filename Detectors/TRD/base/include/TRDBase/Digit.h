@@ -15,6 +15,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include "Rtypes.h" // for ClassDef
 
 namespace o2
 {
@@ -93,6 +94,8 @@ class Digit
   std::uint8_t mRow{ 0 };       // pad row, 0-15
   std::uint8_t mPad{ 0 };       // pad within pad row, 0-143
   ArrayADC_t mADC{};            // ADC vector (30 time-bins)
+
+  ClassDefNV(Digit,0)
 };
 
 } // namespace trd
