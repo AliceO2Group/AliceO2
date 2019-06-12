@@ -20,7 +20,7 @@
 #include "Framework/SerializationMethods.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <fairmq/FairMQDevice.h>
 #include <vector>
 #include <chrono>

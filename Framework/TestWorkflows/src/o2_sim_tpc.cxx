@@ -13,7 +13,7 @@
 #include "Framework/RootFileService.h"
 #include "Framework/AlgorithmSpec.h"
 
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 #include "FairRunSim.h"
 #include "FairRuntimeDb.h"

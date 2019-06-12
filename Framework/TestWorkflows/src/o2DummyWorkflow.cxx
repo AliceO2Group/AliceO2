@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
 #include <Monitoring/Monitoring.h>
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 #include <chrono>
 

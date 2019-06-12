@@ -13,12 +13,12 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableConsumer.h"
 #include <Monitoring/Monitoring.h>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
-#include <FairMQLogger.h>
 #include <memory>
 
 using namespace o2::framework;

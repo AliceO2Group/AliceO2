@@ -18,11 +18,11 @@
 #include "Framework/DataSamplingPolicy.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/Logger.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <fairmq/FairMQDevice.h>
-#include <fairmq/FairMQLogger.h>
 
 using namespace o2::configuration;
 

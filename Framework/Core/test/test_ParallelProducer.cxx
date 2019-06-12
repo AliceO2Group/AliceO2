@@ -11,9 +11,9 @@
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/Logger.h"
 #include "Framework/ParallelContext.h"
 
-#include "FairMQLogger.h"
 
 #include <chrono>
 #include <vector>

@@ -15,6 +15,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/Logger.h"
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
 #include "DataProcessingStatus.h"
@@ -22,7 +23,6 @@
 
 #include <Monitoring/Monitoring.h>
 
-#include <fairmq/FairMQLogger.h>
 
 #include <gsl/span>
 

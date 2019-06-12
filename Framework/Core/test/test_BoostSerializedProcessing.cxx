@@ -15,7 +15,7 @@
 #include <Monitoring/Monitoring.h>
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include "Framework/SerializationMethods.h"
 #include <boost/serialization/access.hpp>
 

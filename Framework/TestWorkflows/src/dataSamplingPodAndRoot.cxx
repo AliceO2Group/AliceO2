@@ -26,7 +26,7 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include "Framework/runDataProcessing.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/DataSamplingHeader.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
