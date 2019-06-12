@@ -15,7 +15,7 @@
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
 #include "o2_sim_its_ALP3.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 

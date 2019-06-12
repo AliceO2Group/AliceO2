@@ -19,32 +19,20 @@
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-/// Example of how to send around strings using DPL.
+/// This shows how to get a condition for the
+/// origin "TES" and the description "STRING".
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    //
     DataProcessorSpec{
-      "string_producer", //
-      Inputs{},          //
+      "condition_consumer", //
       {
-        OutputSpec{ { "make" }, "TES", "STRING" }, //
-      },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
-        auto& out1 = ctx.outputs().make<std::string>(Output{ "TES", "STRING" }, "default");
-        assert(out1 == "default");
-        out1 = "Hello";
-      } } //
-    },    //
-    DataProcessorSpec{
-      "string_consumer", //
-      {
-        InputSpec{ "make", "TES", "STRING" }, //
-      },                                      //
-      Outputs{},                              //
+        InputSpec{ "condition", "TES", "STRING", 0, Lifetime::Condition }, //
+      },                                                      //
+      Outputs{},                                              //
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          auto s = ctx.inputs().get<std::string>("make");
+          auto s = ctx.inputs().get<std::string>("condition");
 
           if (s != "Hello") {
             LOG(ERROR) << "Expecting `Hello', found `" << s << "'";

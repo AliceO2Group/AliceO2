@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include "Headers/HeartbeatFrame.h"
 
 using namespace o2::framework;
