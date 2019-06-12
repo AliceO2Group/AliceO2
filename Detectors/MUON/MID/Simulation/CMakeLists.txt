@@ -19,6 +19,7 @@ set(SRCS
   src/MCLabel.cxx
   src/PreClusterLabeler.cxx
   src/Stepper.cxx
+  src/TrackLabeler.cxx
 )
 
 set(HEADERS
@@ -36,6 +37,7 @@ set(HEADERS
   include/${MODULE_NAME}/MCClusterLabel.h
   include/${MODULE_NAME}/MCLabel.h
   include/${MODULE_NAME}/Stepper.h
+  include/${MODULE_NAME}/TrackLabeler.h
 )
 
 set(LINKDEF src/MIDSimulationLinkDef.h)
