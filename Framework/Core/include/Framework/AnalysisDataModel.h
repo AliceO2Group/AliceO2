@@ -16,6 +16,10 @@ namespace o2
 {
 namespace aod
 {
+// This is required to register SOA_TABLEs inside
+// the o2::aod namespace.
+DECLARE_SOA_STORE();
+
 namespace track
 {
 // TRACKPAR TABLE definition
@@ -29,7 +33,7 @@ DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
 
 // TRACKPARCOV TABLE definition
-DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY")
+DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
 DECLARE_SOA_COLUMN(CZZ, cXX, float, "fCZZ");
 DECLARE_SOA_COLUMN(CSnpY, cSnpY, float, "fCSnpY");
@@ -61,18 +65,22 @@ DECLARE_SOA_COLUMN(Lenght, lenght, float, "fLength");
 
 } // namespace track
 
-using Tracks = soa::Table<track::CollisionId, track::X, track::Alpha,
-                          track::Y, track::Z, track::Snp, track::Tgl,
-                          track::Signed1Pt>;
-using TracksCov = soa::Table<track::CYY, track::CZY, track::CZZ, track::CSnpY,
-                             track::CSnpZ, track::CSnpSnp, track::CTglY,
-                             track::CTglZ, track::CTglSnp, track::CTglTgl,
-                             track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl,
-                             track::C1Pt21Pt2>;
-using TracksExtra = soa::Table<track::TPCInnerParam, track::Flags, track::ITSClusterMap,
-                               track::TPCNCls, track::TRDNTracklets, track::ITSChi2NCl,
-                               track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
-                               track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Lenght>;
+DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKS",
+                  track::CollisionId, track::X, track::Alpha,
+                  track::Y, track::Z, track::Snp, track::Tgl,
+                  track::Signed1Pt);
+
+DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKCOV",
+                  track::CYY, track::CZY, track::CZZ, track::CSnpY,
+                  track::CSnpZ, track::CSnpSnp, track::CTglY,
+                  track::CTglZ, track::CTglSnp, track::CTglTgl,
+                  track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl,
+                  track::C1Pt21Pt2);
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKSEXTRA",
+                  track::TPCInnerParam, track::Flags, track::ITSClusterMap,
+                  track::TPCNCls, track::TRDNTracklets, track::ITSChi2NCl,
+                  track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
+                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Lenght);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
@@ -87,7 +95,8 @@ DECLARE_SOA_COLUMN(Time, time, float, "fTime");
 DECLARE_SOA_COLUMN(CaloType, caloType, float, "fType");
 } // namespace calo
 
-using Calos = soa::Table<calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CaloType>;
+DECLARE_SOA_TABLE(Calos, "AOD", "CALO",
+                  calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CaloType);
 using Calo = Calos::iterator;
 
 namespace muon
@@ -105,10 +114,11 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float, "fChi2MatchTrigger");
 } // namespace muon
 
-using Muons = soa::Table<muon::CollisionId, muon::InverseBendingMomentum,
-                         muon::ThetaX, muon::ThetaY, muon::ZMu,
-                         muon::BendingCoor, muon::NonBendingCoor,
-                         muon::Chi2, muon::Chi2MatchTrigger>;
+DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
+                  muon::CollisionId, muon::InverseBendingMomentum,
+                  muon::ThetaX, muon::ThetaY, muon::ZMu,
+                  muon::BendingCoor, muon::NonBendingCoor,
+                  muon::Chi2, muon::Chi2MatchTrigger);
 using Muon = Muons::iterator;
 
 namespace vzero
@@ -117,7 +127,7 @@ DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fIDvz");
 // FIXME: add missing arrays...
 } // namespace vzero
 
-using VZeros = soa::Table<vzero::CollisionId>;
+DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId);
 using VZero = VZeros::iterator;
 
 namespace collision
@@ -128,8 +138,9 @@ DECLARE_SOA_COLUMN(NumCalo, numCalo, uint32_t, "numCalo");
 DECLARE_SOA_COLUMN(NumMuons, numMuons, uint32_t, "numMuons");
 } // namespace collision
 
-using Collisions = soa::Table<collision::TimeframeID, collision::NumTracks,
-                              collision::NumCalo, collision::NumMuons>;
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION",
+                  collision::TimeframeID, collision::NumTracks,
+                  collision::NumCalo, collision::NumMuons);
 using Collision = Collisions::iterator;
 
 namespace timeframe
@@ -137,7 +148,8 @@ namespace timeframe
 DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t, "timestamp");
 } // namespace timeframe
 
-using Timeframes = soa::Table<timeframe::Timestamp>;
+DECLARE_SOA_TABLE(Timeframes, "AOD", "TIMEFRAME",
+                  timeframe::Timestamp);
 using Timeframe = Timeframes::iterator;
 
 } // namespace aod
