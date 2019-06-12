@@ -60,7 +60,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
   SignalContainer_t adcMapCont;
-  
+
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
