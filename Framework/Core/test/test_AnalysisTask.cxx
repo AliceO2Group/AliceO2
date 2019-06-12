@@ -27,12 +27,32 @@ class ATask : public AnalysisTask
   {
   }
 
-  void processTracks(std::shared_ptr<arrow::Table> tracks)
+  void processTrack(o2::aod::Track const& track)
+  {
+  }
+};
+
+class BTask : public AnalysisTask
+{
+ public:
+  void init(InitContext& ic) final
+  {
+  }
+  void run(ProcessingContext& pc) final
+  {
+  }
+
+  void processCollisionTrack(o2::aod::Collision const&, o2::aod::Track const&)
   {
   }
 };
 
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
-  auto task = adaptAnalysisTask<ATask>("test");
+  auto task1 = adaptAnalysisTask<ATask>("test1");
+  BOOST_CHECK_EQUAL(task1.inputs.size(), 1);
+  auto task2 = adaptAnalysisTask<BTask>("test2");
+  BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Tracks");
 }
