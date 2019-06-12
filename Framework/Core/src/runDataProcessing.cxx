@@ -25,6 +25,7 @@
 #include "Framework/FreePortFinder.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
+#include "Framework/Logger.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
@@ -49,7 +50,6 @@
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
-#include <fairmq/FairMQLogger.h>
 #include "options/FairMQProgOptions.h"
 
 #include <boost/program_options.hpp>

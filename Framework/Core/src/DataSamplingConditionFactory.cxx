@@ -16,7 +16,7 @@
 #include <memory>
 
 #include "Framework/DataSamplingConditionFactory.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
