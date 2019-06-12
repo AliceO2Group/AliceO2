@@ -197,28 +197,15 @@ void fillScratchPad(
         global   const charge_t  *chargeMap,
                        uint       wgSize,
                        local_id   lid,
-                       ChargePos  pos,
                        uint       offset,
                        uint       N,
         constant       delta2_t  *neighbors,
         local          ChargePos *posBcast,
         local          charge_t  *buf)
 {
-	__attribute__((opencl_unroll_hint(1)))
-    for (int i = 0; i < wgSize / (wgSize / N); i++)
+    for (int i = 0; i < wgSize; i += N)
     {
-        /* IF_DBG_GROUP DBGPR_1("y = %d", lid.y); */
-        if (lid.y == i)
-        {
-            /* IF_DBG_GROUP DBGPR_3("y = %d, pos = (%d, %d)", lid.y, pos.gpad, pos.time); */
-            posBcast[lid.x] = pos;
-        }
-        work_group_barrier(CLK_LOCAL_MEM_FENCE);
-
-        ChargePos readFrom = posBcast[lid.y];
-        /* IF_DBG_INST DBGPR_2("readFrom = (%d, %d)", readFrom.gpad, readFrom.time); */
-
-        work_group_barrier(CLK_LOCAL_MEM_FENCE);
+        ChargePos readFrom = posBcast[i + lid.y];
 
         delta2_t d = neighbors[lid.x + offset];
         delta_t dp = d.x;
@@ -226,7 +213,7 @@ void fillScratchPad(
 
         /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */
         
-        uint writeTo = N * (i * N + lid.y) + lid.x;
+        uint writeTo = N * (i + lid.y) + lid.x;
 
         /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */
 
@@ -245,7 +232,7 @@ void updateClusterScratchpadInner(
 {
     uchar aboveThreshold = 0;
 
-	__attribute__((opencl_unroll_hint(1)))
+	/* __attribute__((opencl_unroll_hint(1))) */
     for (ushort i = 0; i < N; i++)
     {
         delta2_t d = INNER_NEIGHBORS[i];
@@ -287,7 +274,7 @@ void updateClusterScratchpadOuter(
 
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 	
-	__attribute__((opencl_unroll_hint(1)))
+	/* __attribute__((opencl_unroll_hint(1))) */
     for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * lid + i];
@@ -323,12 +310,15 @@ void buildClusterScratchPad(
 
     ushort ll = get_local_linear_id();
     local_id lid = {ll % N, ll / N};
+
+    posBcast[ll] = pos;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
     /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
     fillScratchPad(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
-            pos,
             0,
             N,
             INNER_NEIGHBORS,
@@ -341,7 +331,6 @@ void buildClusterScratchPad(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE, 
             lid, 
-            pos, 
             0, 
             N, 
             OUTER_NEIGHBORS,
@@ -353,7 +342,6 @@ void buildClusterScratchPad(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
-            pos,
             8,
             N,
             OUTER_NEIGHBORS,
@@ -455,11 +443,13 @@ bool isPeakScratchPad(
     const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
     ChargePos pos = {gpad, time};
 
+    posBcast[ll] = pos;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
     fillScratchPad(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
-            pos,
             0,
             N,
             INNER_NEIGHBORS,
@@ -467,14 +457,12 @@ bool isPeakScratchPad(
             buf);
 
     bool peak = true;
-
     for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * ll + i];
         peak &= (digit->charge > q) 
              || (INNER_TEST_EQ[i] && digit->charge == q);
     }
-
     peak &= (digit->charge > CHARGE_THRESHOLD);
 
     return peak;
@@ -742,9 +730,8 @@ void computeClusters(
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
 
     const ushort N = 8;
-    local ChargePos posBcast[N];
+    local ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
-    local charge_t  pcbuf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
     local uchar     innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 
     buildClusterScratchPad(
@@ -753,7 +740,6 @@ void computeClusters(
             N,
             posBcast,
             buf,
-            pcbuf,
             innerAboveThreshold,
             &pc);
 #else
