@@ -19,7 +19,7 @@
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
 #include "DPLBroadcasterMerger.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::framework;
 
