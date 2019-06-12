@@ -33,7 +33,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 #include <vector>
 
