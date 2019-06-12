@@ -61,6 +61,25 @@ class AnalysisTask
   virtual void processCollisionTracks(aod::Collision const& collision, aod::Tracks const& tracks) {}
 };
 
+// Helper struct which builds a DataProcessorSpec from
+// the contents of an AnalysisTask...
+struct AnalysisDataProcessorBuilder {
+  template <typename Arg>
+  static void appendInputWithMetadata(std::vector<InputSpec>& inputs)
+  {
+    using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
+    static_assert(std::is_same_v<metadata, void> == false,
+                  "Could not find metadata. Did you register your type?");
+    inputs.emplace_back(metadata::label(), "RN2", metadata::description());
+  }
+
+  template <typename R, typename C, typename... Args>
+  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs)
+  {
+    (appendInputWithMetadata<Args>(inputs), ...);
+  }
+};
+
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
@@ -81,14 +100,14 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     return [task](ProcessingContext& pc) {
       task->run(pc);
       if constexpr (hasProcessTrack) {
-        auto tracks = pc.inputs().get<TableConsumer>("tracks");
+        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
         for (auto& track : aod::Tracks(tracks->asArrowTable())) {
           task->processTrack(track);
         }
       }
       if constexpr (hasProcessCollisionTrack) {
-        auto tracks = pc.inputs().get<TableConsumer>("tracks");
-        auto collisions = pc.inputs().get<TableConsumer>("collisions");
+        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
+        auto collisions = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Collisions>::metadata::label());
         size_t currentCollision = 0;
         aod::Collision collision(collisions->asArrowTable());
         for (auto& track : aod::Tracks(tracks->asArrowTable())) {
@@ -102,15 +121,15 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
         }
       }
       if constexpr (hasProcessTimeframeTracks) {
-        auto tracks = pc.inputs().get<TableConsumer>("tracks");
-        auto timeframes = pc.inputs().get<TableConsumer>("timeframe");
+        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
+        auto timeframes = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Timeframe>::metadata::label());
         // FIXME: For the moment we assume we have a single timeframe...
         aod::Timeframe timeframe(timeframes->asArrowTable());
         task->processTimeframeTracks(timeframe, aod::Tracks(tracks->asArrowTable()));
       }
       if constexpr (hasProcessCollisionTracks) {
-        auto collisions = pc.inputs().get<TableConsumer>("collisions");
-        auto allTracks = pc.inputs().get<TableConsumer>("tracks");
+        auto collisions = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Collisions>::metadata::label());
+        auto allTracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
         arrow::compute::FunctionContext ctx;
         std::vector<arrow::compute::Datum> eventTracksCollection;
         auto result = o2::framework::sliceByColumn(&ctx, "fID4Tracks", allTracks->asArrowTable(), &eventTracksCollection);
@@ -133,16 +152,21 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
       }
     };
   } };
+
   std::vector<InputSpec> inputs;
 
-  if constexpr (hasProcessTrack || hasProcessCollisionTrack || hasProcessTimeframeTracks || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "tracks", "RN2", "TRACKPAR" });
+  // Ugly, however will be cleaned up once we drop the extra methods.
+  if constexpr (hasProcessTrack) {
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processTrack, inputs);
   }
-  if constexpr (hasProcessCollisionTrack || hasProcessCollisionTracks) {
-    inputs.emplace_back(InputSpec{ "collisions", "RN2", "COLLISIONS" });
+  if constexpr (hasProcessCollisionTrack) {
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processCollisionTrack, inputs);
   }
   if constexpr (hasProcessTimeframeTracks) {
-    inputs.emplace_back(InputSpec{ "timeframe", "RN2", "TIMEFRAME" });
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processTimeframeTracks, inputs);
+  }
+  if constexpr (hasProcessCollisionTracks) {
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::hasProcessCollisionTracks, inputs);
   }
 
   DataProcessorSpec spec{
