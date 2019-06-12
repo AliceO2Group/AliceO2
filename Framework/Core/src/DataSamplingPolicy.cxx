@@ -17,6 +17,7 @@
 #include "Framework/DataSamplingHeader.h"
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataDescriptorQueryBuilder.h"
 
 namespace o2
 {
@@ -42,34 +43,58 @@ void DataSamplingPolicy::configure(const ptree& config)
     mName.resize(14);
   }
 
-  // todo: get the sub spec range if there is a requirement and when dpl supports it
-  auto subSpecString = config.get<std::string>("subSpec");
-  mSubSpec = subSpecString.find_first_of("-*") != std::string::npos ? -1 : std::strtoull(subSpecString.c_str(), nullptr, 10);
+  auto subSpecString = config.get_optional<std::string>("subSpec").value_or("*");
+  auto subSpec = subSpecString.find_first_of("-*") != std::string::npos ? -1 : std::strtoull(subSpecString.c_str(), nullptr, 10);
+
   mPaths.clear();
   size_t outputId = 0;
+  std::vector<InputSpec> inputSpecs;
 
-  for (const auto& dataHeaderConfig : config.get_child("dataHeaders")) {
+  if (config.get_optional<std::string>("query").has_value()) {
+    inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
+  } else {
+    // for a while, we leave an old way of specyfing the inputs, so we can gracefully update QC
+    LOG(WARN) << "Specifying policy inputs by dataHeaders structures is deprecated and "
+                 "soon it will not be possible anymore. Please use the queries mechanism.";
+    for (const auto& dataHeaderConfig : config.get_child("dataHeaders")) {
 
-    header::DataOrigin origin;
-    header::DataDescription description;
-    origin.runtimeInit(dataHeaderConfig.second.get<std::string>("dataOrigin").c_str());
-    description.runtimeInit(dataHeaderConfig.second.get<std::string>("dataDescription").c_str());
+      header::DataOrigin origin;
+      header::DataDescription description;
+      origin.runtimeInit(dataHeaderConfig.second.get<std::string>("dataOrigin").c_str());
+      description.runtimeInit(dataHeaderConfig.second.get<std::string>("dataDescription").c_str());
 
-    InputSpec inputSpec{
-      dataHeaderConfig.second.get<std::string>("binding"),
-      origin,
-      description,
-      mSubSpec
-    };
+      std::string binding = dataHeaderConfig.second.get<std::string>("binding");
+      if (subSpec == -1) {
+        inputSpecs.push_back({ binding, { origin, description } });
+      } else {
+        inputSpecs.push_back({ binding, origin, description, static_cast<o2::header::DataHeader::SubSpecificationType>(subSpec) });
+      }
+    }
+  }
 
-    OutputSpec outputSpec{
-      { dataHeaderConfig.second.get<std::string>("binding") },
-      createPolicyDataOrigin(),
-      createPolicyDataDescription(mName, outputId++),
-      mSubSpec
-    };
+  for (const auto& inputSpec : inputSpecs) {
 
-    mPaths.emplace(inputSpec, outputSpec);
+    if (DataSpecUtils::getOptionalSubSpec(inputSpec).has_value()) {
+      OutputSpec outputSpec{
+        { inputSpec.binding },
+        createPolicyDataOrigin(),
+        createPolicyDataDescription(mName, outputId++),
+        DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
+        inputSpec.lifetime
+      };
+
+      mPaths.push_back({ inputSpec, outputSpec });
+
+    } else {
+      OutputSpec outputSpec{
+        { inputSpec.binding },
+        { createPolicyDataOrigin(), createPolicyDataDescription(mName, outputId++) },
+        inputSpec.lifetime
+      };
+
+      mPaths.push_back({ inputSpec, outputSpec });
+    }
+
     if (outputId > 9) {
       LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported";
       break;
@@ -85,7 +110,7 @@ void DataSamplingPolicy::configure(const ptree& config)
   mFairMQOutputChannel = config.get_optional<std::string>("fairMQOutput").value_or("");
 }
 
-bool DataSamplingPolicy::match(const InputSpec& input) const
+bool DataSamplingPolicy::match(const ConcreteDataMatcher& input) const
 {
   return mPaths.find(input) != mPaths.end();
 }
@@ -103,15 +128,15 @@ bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
   return decision;
 }
 
-const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
+const Output DataSamplingPolicy::prepareOutput(const ConcreteDataMatcher& input, Lifetime lifetime) const
 {
   auto result = mPaths.find(input);
-  if (result == mPaths.end()) {
+  if (result != mPaths.end()) {
+    auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(result->second);
+    return Output{ dataType.origin, dataType.description, input.subSpec, lifetime };
+  } else {
     return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
   }
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(result->second);
-  auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-  return Output{ dataType.origin, dataType.description, concrete.subSpec, input.lifetime };
 }
 
 const std::string& DataSamplingPolicy::getName() const
@@ -135,11 +160,6 @@ std::string DataSamplingPolicy::getFairMQOutputChannelName() const
   size_t nameEnd = mFairMQOutputChannel.find_first_of(',', nameBegin);
   std::string name = mFairMQOutputChannel.substr(nameBegin, nameEnd - nameBegin);
   return name;
-}
-
-const header::DataHeader::SubSpecificationType DataSamplingPolicy::getSubSpec() const
-{
-  return mSubSpec;
 }
 
 uint32_t DataSamplingPolicy::getTotalAcceptedMessages() const
