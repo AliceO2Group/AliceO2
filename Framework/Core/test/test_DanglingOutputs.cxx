@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/DeviceSpec.h"
-#include <InfoLogger/InfoLogger.hxx>
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 

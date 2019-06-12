@@ -9,10 +9,10 @@
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/DeviceSpec.h"
-#include <InfoLogger/InfoLogger.hxx>
-#include <vector>
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
+
+#include <vector>
 
 using namespace o2::framework;
 
