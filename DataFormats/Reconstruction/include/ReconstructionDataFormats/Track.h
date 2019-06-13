@@ -32,6 +32,7 @@
 
 #include "CommonConstants/MathConstants.h"
 #include "MathUtils/Utils.h"
+#include "MathUtils/Primitive2D.h"
 
 //Forward declarations, since we cannot include the headers if we eventually want to use track.h on GPU
 namespace ROOT
@@ -84,6 +85,10 @@ enum CovLabels : int {
   kSigQ2PtTgl,
   kSigQ2Pt2
 };
+
+enum DirType : int { DirInward = -1,
+                     DirAuto = 0,
+                     DirOutward = 1 };
 
 constexpr int kNParams = 5, kCovMatSize = 15, kLabCovMatSize = 21;
 
@@ -141,6 +146,10 @@ class TrackPar
   void setQ2Pt(float v) { mP[kQ2Pt] = v; }
 
   // derived getters
+  bool getXatLabR(float r, float& x, float bz, DirType dir = DirAuto) const;
+  void getCircleParamsLoc(float bz, o2::utils::CircleXY& circle) const;
+  void getCircleParams(float bz, o2::utils::CircleXY& circle, float& sna, float& csa) const;
+  void getLineParams(o2::utils::IntervalXY& line, float& sna, float& csa) const;
   float getCurvature(float b) const { return mP[kQ2Pt] * b * o2::constants::math::B2C; }
   float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
   float getPhi() const;
@@ -287,6 +296,37 @@ inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams
 }
 
 //_______________________________________________________
+inline void TrackPar::getLineParams(o2::utils::IntervalXY& ln, float& sna, float& csa) const
+{
+  // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
+  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
+  float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
+  ln.dxP = csp * csa - snp * sna;
+  ln.dyP = snp * csa + csp * sna;
+}
+
+//_______________________________________________________
+inline void TrackPar::getCircleParams(float bz, o2::utils::CircleXY& c, float& sna, float& csa) const
+{
+  // get circle params in loc and lab frame
+  getCircleParamsLoc(bz, c);
+  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
+}
+
+//_______________________________________________________
+inline void TrackPar::getCircleParamsLoc(float bz, o2::utils::CircleXY& c) const
+{
+  // get circle params in track local frame
+  c.rC = 1.f / getCurvature(bz);
+  float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
+  c.xC = getX() - sn * c.rC; // center in tracking
+  c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
+  c.rC = fabs(c.rC);
+}
+
+//_______________________________________________________
 inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
 {
   // track coordinates in lab frame
@@ -299,6 +339,7 @@ inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
 //_______________________________________________________
 inline float TrackPar::getPhi() const
 {
+  // track pt direction phi (in -pi:pi range)
   float phi = asinf(getSnp()) + getAlpha();
   utils::BringToPMPi(phi);
   return phi;
@@ -326,7 +367,7 @@ inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
 //_______________________________________________________
 inline float TrackPar::getPhiPos() const
 {
-  // angle of track position
+  // angle of track position (in -pi:pi range)
   float phi = atan2f(getY(), getX()) + getAlpha();
   utils::BringToPMPi(phi);
   return phi;
