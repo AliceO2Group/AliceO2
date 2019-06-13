@@ -57,6 +57,8 @@ struct InteractionRecord {
     bc = ns2bc(ns, orbit);
   }
 
+  double bc2ns() const { return bc2ns(bc, orbit); }
+
   static double bc2ns(int bc, unsigned int orbit)
   {
     return bc * o2::constants::lhc::LHCBunchSpacingNS + orbit * o2::constants::lhc::LHCOrbitNS;
