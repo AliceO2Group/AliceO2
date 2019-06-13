@@ -15,6 +15,7 @@ o2_add_library(MathUtils
                        src/Chebyshev3D.cxx
                        src/Chebyshev3DCalc.cxx
                        src/MathBase.cxx
+		       src/Primitive2D.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist
                                      FairRoot::Base
                                      O2::CommonConstants
@@ -23,12 +24,15 @@ o2_add_library(MathUtils
                                      ROOT::Geom)
 
 o2_target_root_dictionary(MathUtils
-                          HEADERS include/MathUtils/Chebyshev3D.h
-                                  include/MathUtils/Chebyshev3DCalc.h
+                          HEADERS include/MathUtils/Utils.h
+			          include/MathUtils/Chebyshev3D.h
+				  include/MathUtils/Chebyshev3DCalc.h
                                   include/MathUtils/MathBase.h
                                   include/MathUtils/Cartesian2D.h
                                   include/MathUtils/Cartesian3D.h
-                                  include/MathUtils/CachingTF1.h)
+                                  include/MathUtils/CachingTF1.h
+                                  include/MathUtils/Primitive2D.h
+				  include/MathUtils/Bracket.h)
 
 o2_add_test(CachingTF1
             SOURCES test/testCachingTF1.cxx
