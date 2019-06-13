@@ -12,10 +12,9 @@
 #include <cstring>
 #include <cinttypes>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
 namespace
 {
 std::string join(ConcreteDataMatcher const& matcher, std::string const sep = "_")
@@ -147,5 +146,10 @@ ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
   return ConcreteDataMatcher{spec.origin, spec.description, spec.subSpec};
 }
 
-} // namespace framework
-} // namespace o2
+std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(OutputSpec const& spec)
+{
+  ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+  return concrete.subSpec;
+}
+
+} // namespace o2::framework
