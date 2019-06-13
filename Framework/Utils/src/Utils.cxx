@@ -32,7 +32,7 @@ o2f::Output getOutput(const o2f::OutputSpec outputSpec)
 // This is useful for DPL devices, to avoid specifying both OutputSpec and Output in define
 std::shared_ptr<std::vector<o2f::Output>> getOutputList(const o2f::Outputs outputSpecs)
 {
-  std::shared_ptr<std::vector<o2f::Output>> outputList;
+  std::shared_ptr<std::vector<o2f::Output>> outputList = std::make_shared<std::vector<o2f::Output>>();
 
   for (const auto& itOutputSpec : outputSpecs) {
     (*outputList).emplace_back(getOutput(itOutputSpec));
