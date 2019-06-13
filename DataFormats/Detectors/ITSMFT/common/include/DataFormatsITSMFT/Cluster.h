@@ -63,8 +63,6 @@ class Cluster : public o2::BaseCluster<float>
 
   ~Cluster() = default;
 
-  Cluster& operator=(const Cluster& cluster) = delete; // RS why?
-
   //****** Basic methods ******************
   void setUsed() { setBit(kUsed); }
   void setShared() { setBit(kShared); }

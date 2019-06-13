@@ -14,8 +14,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-//#pragma link C++ class o2::its::TrivialClustererTask+;
 #pragma link C++ class o2::its::ClustererTask + ;
 #pragma link C++ class o2::its::CookedTracker + ;
+
+#pragma link C++ class o2::its::RecoGeomHelper + ;
 
 #endif
