@@ -227,11 +227,20 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   //
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblITSPtr = nullptr;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblITS;
+
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblClusITSPtr = nullptr;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblClusITS;
+
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblTPCPtr = nullptr;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblTPC;
+
   if (mUseMC) {
     lblITS = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("trackITSMCTR");
     lblITSPtr = lblITS.get();
+
+    lblClusITS = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("clusITSMCTR");
+    lblClusITSPtr = lblClusITS.get();
+
     lblTPC = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("trackTPCMCTR");
     lblTPCPtr = lblTPC.get();
   }
@@ -247,6 +256,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 
   if (mUseMC) {
     mMatching.setITSTrkLabelsInp(lblITSPtr);
+    mMatching.setITSClsLabelsInp(lblClusITSPtr);
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
@@ -298,6 +308,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
   if (useMC) {
     inputs.emplace_back("trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trackTPCMCTR", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
+    inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     //
     outputs.emplace_back("GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
