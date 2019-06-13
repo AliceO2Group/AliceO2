@@ -26,13 +26,13 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.mBC_clk_center = 12.5;                               // clk center
   result.mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
   // result.mCFD_trsh_mip = 0.4;                                 // = 4[mV] / 10[mV/mip]
-  result.mCFD_trsh_mip = 3.;                                 // [mV] 
+  result.mCFD_trsh_mip = 3.;                                  // [mV]
   result.mTime_trg_gate = 4.;                                 // ns
-  result.mAmpThreshold = 3.;                                 // amplitude threshold in mV
+  result.mAmpThreshold = 3.;                                  // amplitude threshold in mV
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   result.mIsT0 = true;
   result.mSignalWidth = 5;
-  result.mCfdShift = 1.49;                                   //ns
+  result.mCfdShift = 1.66; //ns
 
   return result;
 }
