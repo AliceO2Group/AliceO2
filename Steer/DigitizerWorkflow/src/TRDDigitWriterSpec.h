@@ -32,7 +32,7 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
                                 "trddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<o2::trd::Digit>{ InputSpec{ "input", "TRD", "DIGITS" }, "TRDDigit" }
+                                BranchDefinition<std::vector<o2::trd::Digit>>{ InputSpec{ "input", "TRD", "DIGITS" }, "TRDDigit" }
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }
