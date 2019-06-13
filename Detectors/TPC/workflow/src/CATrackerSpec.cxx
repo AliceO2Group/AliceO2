@@ -93,7 +93,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // This should go away eventually.
 
       // Default Settings
-      float solenoidBz = -5.00668; // B-field
+      float solenoidBz = 5.00668;  // B-field
       float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
       bool continuous = false;     // time frame data v.s. triggered events
       int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
