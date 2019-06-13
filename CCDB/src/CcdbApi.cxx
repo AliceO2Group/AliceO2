@@ -151,6 +151,7 @@ void CcdbApi::storeAsTFile(TObject* rootObject, std::string path, std::map<std::
 #endif
   if (memFile.IsZombie()) {
     cerr << "Error opening file " << tmpFileName << ", we can't store object " << rootObject->GetName() << endl;
+    memFile.Close();
     return;
   }
   rootObject->Write("ccdb_object");
@@ -399,45 +400,40 @@ TObject* CcdbApi::retrieveFromTFile(std::string path, std::map<std::string, std:
   res = curl_easy_perform(curl_handle);
 
   TObject* result = nullptr;
-  if (res != CURLE_OK) { /* check for errors */
-    fprintf(stderr, "curl_easy_perform() failed: %s\n",
-            curl_easy_strerror(res));
-  } else {
+  if (res == CURLE_OK) {
     long response_code;
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
     if ((res == CURLE_OK) && (response_code != 404)) {
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
-      if (memFile.IsZombie()) {
-        cerr << "object " << path << " is not stored in a TMemFile" << endl;
-        return nullptr;
+      if (!memFile.IsZombie()) {
+        void* object = memFile.GetObjectChecked("ccdb_object", "TObject");
+        if (object != nullptr) {
+          // Copy object in memory and make sure we detach it from the file
+          result = ((TObject*)(object))->Clone(); // the buffer will be discarded so we have to copy
+          // because objects of these classes will belong to the current directory, ie. the file, we ahve to explicitly unset the directory
+          if (result->InheritsFrom("TTree")) {
+            auto* tree = dynamic_cast<TTree*>(result);
+            tree->SetDirectory(nullptr);
+          } else if (result->InheritsFrom("TH1")) {
+            auto* h = dynamic_cast<TH1*>(result);
+            h->SetDirectory(nullptr);
+          }
+        } else {
+          cerr << "Couldn't retrieve the object " << path << endl;
+        }
+        memFile.Close();
+      } else {
+        cerr << "Object " << path << " is not stored in a TMemFile" << endl;
       }
-      void* object = memFile.GetObjectChecked("ccdb_object", "TObject");
-      if (object == nullptr) {
-        cerr << "couldn't retrieve the object " << path << endl;
-        return nullptr;
-      }
-
-      // Copy object in memory and make sure we detach it from the file
-      result = ((TObject*)(object))->Clone(); // the buffer will be discarded so we have to copy
-      // because objects of these classes will belong to the current directory, ie. the file, we ahve to explicitly unset the directory
-      if (result->InheritsFrom("TTree")) {
-        TTree* tree = dynamic_cast<TTree*>(result);
-        tree->SetDirectory(nullptr);
-      } else if (result->InheritsFrom("TH1")) {
-        TH1* h = dynamic_cast<TH1*>(result);
-        h->SetDirectory(nullptr);
-      }
-
-      memFile.Close();
     } else {
-      cerr << "invalid URL : " << fullUrl << endl;
+      cerr << "Invalid URL : " << fullUrl << endl;
     }
+  } else {
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
   }
-  /* cleanup curl stuff */
+
   curl_easy_cleanup(curl_handle);
-
   free(chunk.memory);
-
   return result;
 }
 
