@@ -16,6 +16,7 @@ o2_add_library(GlobalTracking
                                      O2::DataFormatsITS
                                      O2::DataFormatsFT0
                                      O2::DataFormatsTOF
+				     O2::ITSReconstruction
                                      O2::TPCFastTransformation
                                      O2::GPUTracking
                                      O2::TPCBase
