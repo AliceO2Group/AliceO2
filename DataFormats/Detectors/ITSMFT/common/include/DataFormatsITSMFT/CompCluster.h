@@ -102,6 +102,7 @@ class CompClusterExt : public CompCluster
   }
 
   UShort_t getChipID() const { return mChipID; }
+  UShort_t getSensorID() const { return mChipID; } // to have the same signature as BaseCluster
 
   void setChipID(UShort_t c) { mChipID = c; }
 
