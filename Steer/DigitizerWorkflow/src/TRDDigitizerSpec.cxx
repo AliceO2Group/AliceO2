@@ -21,9 +21,9 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "TRDBase/Digit.h"
+#include "TRDBase/Digit.h" // for the Digit type
 #include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/Detector.h" // for the Hittype
+#include "TRDSimulation/Detector.h" // for the Hit type
 #include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::framework;
@@ -115,6 +115,8 @@ class TRDDPLDigitizerTask
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
       }
     }
+
+    LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
