@@ -26,9 +26,9 @@ struct DigitizationParameters {
   Float_t mTime_trg_gate; // ns
   Int_t mAmpThreshold;    // number of photoelectrons
   Float_t mTimeDiffAC;
-  bool mIsT0;             //amplitude T0(true) or V0 (false)
-  Float_t mSignalWidth;   // Gate in ns
-  Float_t mCfdShift    ;  // time shift for CFD shape simulation
+  bool mIsT0;           //amplitude T0(true) or V0 (false)
+  Float_t mSignalWidth; // Gate in ns
+  Float_t mCfdShift;    // time shift for CFD shape simulation
 };
 } // namespace o2::fit
 #endif
