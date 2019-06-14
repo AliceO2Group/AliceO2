@@ -13,6 +13,8 @@
 
 #include <cstdio>
 #include "GPUDisplay.h"
+#ifdef BUILD_EVENT_DISPLAY
+
 using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
@@ -86,3 +88,5 @@ float GPUDisplay::opengl_spline::evaluate(float x)
   }
   return (retVal);
 }
+
+#endif

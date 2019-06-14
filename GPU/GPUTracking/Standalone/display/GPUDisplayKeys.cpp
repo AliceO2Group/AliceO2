@@ -12,6 +12,8 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
+#ifdef BUILD_EVENT_DISPLAY
+
 using namespace GPUCA_NAMESPACE::gpu;
 
 const char* HelpText[] = {
@@ -445,3 +447,5 @@ void GPUDisplay::PrintGLHelpText(float colorValue)
     mBackend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
+
+#endif

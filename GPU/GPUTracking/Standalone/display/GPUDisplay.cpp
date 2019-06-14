@@ -12,6 +12,8 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
+
+#ifdef BUILD_EVENT_DISPLAY
 #include "GPUTPCDef.h"
 
 #include <GL/glu.h>
@@ -2037,3 +2039,5 @@ int GPUDisplay::StartDisplay()
   }
   return (mInitResult != 1);
 }
+
+#endif
