@@ -2429,6 +2429,7 @@ o2_define_bucket(
     DEPENDENCIES
     rapidjson_bucket
     Boost::unit_test_framework
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
     mid_base_bucket
     O2MIDBase
 )

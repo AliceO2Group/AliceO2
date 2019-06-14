@@ -20,3 +20,10 @@ file(COPY
      ${CMAKE_CURRENT_SOURCE_DIR}/data/test_random_pos.json
      DESTINATION
      ${CMAKE_CURRENT_BINARY_DIR})
+
+if (benchmark_FOUND)
+    O2_GENERATE_EXECUTABLE(
+            EXE_NAME benchVector
+            SOURCES src/benchVector.cxx
+            BUCKET_NAME ${BUCKET_NAME})
+endif ()
