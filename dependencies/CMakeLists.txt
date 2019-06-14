@@ -67,7 +67,7 @@ endif()
 find_package(DDS)
 find_package(benchmark CONFIG)
 find_package(OpenMP)
-find_package(GLFW NAMES GLFW3 CONFIG)
+find_package(GLFW NAMES glfw3 CONFIG)
 find_package(AliRoot)
 
 include(O2CUDA)
