@@ -41,24 +41,24 @@ namespace mch
 
 ///  Constants
 
-/// Gas
+// gas
 const float kGasLength = 40.;
 const float kGasHalfHeight = 40. / 2;
 const float kGasHalfThickness = 0.25;
 
-/// PCB = gas + 2*(cathode + insulator)
+// PCB = gas + 2*(cathode + insulator)
 const float kPCBLength = kGasLength;
 const float kShortPCBLength = 35.;
 const float kRoundedPCBLength = 42.5;
 const float kR1PCBLength = 19.25;
 const float kPCBHalfHeight = 58. / 2;
 
-const float kCathodeHalfThickness = 0.002 / 2; // changed w.r.t AliRoot after investigation
-const float kInsuHalfThickness = 0.04 / 2;     // changed w.r.t AliRoot after investigation
+const float kCathodeHalfThickness = 0.002 / 2;
+const float kInsuHalfThickness = 0.04 / 2;
 
 const float kPCBHalfThickness = kGasHalfThickness + 2 * (kCathodeHalfThickness + kInsuHalfThickness);
 
-/// Slat panel = honeycomb nomex + 2 carbon fiber skins
+// slat panel = honeycomb nomex + 2 carbon fiber skins
 const float kSlatPanelHalfHeight = 42.5 / 2;
 
 const float kGlueHalfThickness = 0.004 / 2;
@@ -66,19 +66,19 @@ const float kNomexBulkHalfThickness = 0.025 / 2;
 const float kCarbonHalfThickness = 0.02 / 2;
 const float kNomexHalfThickness = 0.8 / 2;
 
-/// Spacers (noryl)
+// spacers (noryl)
 const float kSpacerHalfThickness = kGasHalfThickness;
 const float kHoriSpacerHalfHeight = 1.95 / 2;
 const float kVertSpacerHalfLength = 2.5 / 2;
-const float kRoundedSpacerHalfLength = 2. / 2;
+const float kRoundedSpacerHalfLength = 1.;
 
-/// Border (Rohacell)
-const float kBorderHalfHeight = 5. / 2;
+// border (rohacell)
+const float kBorderHalfHeight = 2.5;
 const float kBorderHalfThickness = kGasHalfThickness;
 
-/// DualSampas (parameters from the PRR)
+// DualSampas (parameters from the PRR)
 const float kDualSampaHalfLength = 3.2 / 2;
-const float kDualSampaHalfHeight = 5. / 2;
+const float kDualSampaHalfHeight = 2.5;
 const float kDualSampaHalfThickness = 0.027 / 2; // to be confirmed
 const float kDualSampaYPos = 0.45 + kSlatPanelHalfHeight + kDualSampaHalfHeight;
 
@@ -150,7 +150,7 @@ bool isShort(string name)
 
 TGeoVolume* getRoundedVolume(const char* name, int mediumID, float halfLength, float halfHeight, float halfThickness, float xPos, float yPos, float radius)
 {
-  /// function creating a volume with a rounded shape by creating a hole in a box
+  /// Function creating a volume with a rounded shape by creating a hole in a box
 
   // create the box
   const char* boxName = Form("%sBox", name);
@@ -287,8 +287,8 @@ void createPCBs()
       // compute the radius of curvature of the PCB we want to create
       curvRad = radius + 2 * kRoundedSpacerHalfLength;
 
-      x = -kRoundedPCBLength + gasLength / 2. + kVertSpacerHalfLength;
-      gas = getRoundedVolume(Form("%sGas", name), Medium::Gas, gasLength / 2., kGasHalfHeight, kGasHalfThickness, x, -y, curvRad);
+      x = -kRoundedPCBLength + gasLength / 2 + kVertSpacerHalfLength;
+      gas = getRoundedVolume(Form("%sGas", name), Medium::Gas, gasLength / 2, kGasHalfHeight, kGasHalfThickness, x, -y, curvRad);
 
       x = -kRoundedPCBLength + pcbLength / 2 + kVertSpacerHalfLength;
 
@@ -308,11 +308,11 @@ void createPCBs()
 
     /// place all the layers in the PCB
     halfThickness = kGasHalfThickness;
-    pcb->AddNode(gas, 1, new TGeoTranslation(gasShift / 2., 0., 0.));
+    pcb->AddNode(gas, 1, new TGeoTranslation(gasShift / 2, 0., 0.));
     z = halfThickness;
 
     halfThickness = kCathodeHalfThickness;
-    x = pcbShift / 2.;
+    x = pcbShift / 2;
     z += halfThickness;
     pcb->AddNode(bend, 1, new TGeoTranslation(x, 0., z));
     pcb->AddNode(nonbend, 2, new TGeoTranslation(x, 0., -z));
@@ -334,7 +334,7 @@ void createPCBs()
     pcb->AddNode(gGeoManager->GetVolume(Form("Top border %.2f long", pcbLength)), 1, new TGeoTranslation(x, y, 0.));
     x = (pcbShift + pcbLength - borderLength) / 2;
     pcb->AddNode(gGeoManager->MakeBox(Form("%s bottom border", name), assertMedium(Medium::Rohacell),
-                                      borderLength / 2., kBorderHalfHeight, kBorderHalfThickness),
+                                      borderLength / 2, kBorderHalfHeight, kBorderHalfThickness),
                  1, new TGeoTranslation(x, -y, 0.));
 
     // the DualSampa read-out cards
@@ -413,7 +413,7 @@ void createSlats()
 
       // place the corresponding PCB volume in the slat and correct the origin of the slat
       slat->AddNode(gGeoManager->GetVolume(pcb.data()), iVol + 1,
-                    new TGeoTranslation(iVol * kPCBLength - 0.5 * (kPCBLength - gasLength) - center, 0, 0));
+                    new TGeoTranslation(iVol * kPCBLength - (kPCBLength - gasLength) / 2 - center, 0, 0));
       iVol++;
 
     } // end of the PCBs loop
