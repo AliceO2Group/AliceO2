@@ -23,12 +23,11 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <random>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDBase/HitFinder.h"
+#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 

@@ -14,13 +14,12 @@
 /// \date   17 March 2018
 
 #include "benchmark/benchmark.h"
-#include <iostream>
 #include <random>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDBase/HitFinder.h"
+#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 

@@ -6,7 +6,6 @@ set(SRCS
   src/ChamberEfficiency.cxx
   src/Constants.cxx
   src/GeometryTransformer.cxx
-  src/HitFinder.cxx
   src/Mapping.cxx
   src/MpArea.cxx
 )
@@ -15,7 +14,6 @@ set(NO_DICT_HEADERS
   include/${MODULE_NAME}/ChamberEfficiency.h
   include/${MODULE_NAME}/Constants.h
   include/${MODULE_NAME}/GeometryTransformer.h
-  include/${MODULE_NAME}/HitFinder.h
   include/${MODULE_NAME}/Mapping.h
   include/${MODULE_NAME}/MpArea.h
 )
