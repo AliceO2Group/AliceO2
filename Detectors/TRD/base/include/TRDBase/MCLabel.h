@@ -30,7 +30,7 @@ class MCLabel : public o2::MCCompLabel
   MCLabel(int trackID, int eventID, int srcID, int isDigit)
     : o2::MCCompLabel(trackID, eventID, srcID), mIsDigit(isDigit) {}
   int isDigit() const { return mIsDigit; }
-  
+
   ClassDefNV(MCLabel, 1);
 };
 
