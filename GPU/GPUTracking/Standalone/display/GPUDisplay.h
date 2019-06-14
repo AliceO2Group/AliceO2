@@ -15,17 +15,22 @@
 #define GPUDISPLAY_H
 
 #ifdef BUILD_EVENT_DISPLAY
-//#ifdef GPUCA_O2_LIB
-//#include "../src/GL/gl3w.h"
-//#else
+#ifdef GPUCA_O2_LIB
+//#define GPUCA_DISPLAY_GL3W
+#endif
+
+#ifdef GPUCA_DISPLAY_GL3W
+#include "../src/GL/gl3w.h"
+#else
 #include <GL/glew.h>
-//#endif
+#endif
 
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
 #error Unsupported OpenGL version < 4.5
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
+#undef BUILD_EVENT_DISPLAY
 #endif
 #endif
 #endif
@@ -79,7 +84,9 @@ class GPUDisplay
 #include "../utils/qsem.h"
 
 #include <GL/gl.h>
+#ifdef GPUCA_DISPLAY_GL3W
 #include <GL/glext.h>
+#endif
 
 #include "utils/timer.h"
 
