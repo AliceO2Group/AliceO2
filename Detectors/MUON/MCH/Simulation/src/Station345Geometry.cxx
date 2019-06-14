@@ -24,8 +24,8 @@
 #include <TGeoVolume.h>
 #include <TMath.h>
 
-#include <rapidjson/document.h>
-#include <rapidjson/filereadstream.h>
+#include "rapidjson/document.h"
+#include "rapidjson/filereadstream.h"
 
 #include <iostream>
 #include <string>
@@ -86,11 +86,11 @@ const float kRoundedSpacerLength = 2.; // according to AliRoot and construction 
 const float kBorderHeight = 5.;       // to be checked !
 const float kBorderWidth = kGasWidth; // to be checked
 
-/// MANU (NULOC, equivalent to 44 mum width of copper according to AliRoot)
-const float kMANULength = 2.5;      // according to AliRoot
-const float kMANUHeight = 5 - 0.35; // according to construction plan
-const float kMANUWidth = 0.0044;    // according to AliRoot
-const float kMANUypos = 0.45 + (kSlatPanelHeight + kMANUHeight) / 2.;
+/// DualSampas (parameters from the PRR)
+const float kDualSampaHalfLength = 3.2 / 2;
+const float kDualSampaHalfHeight = 5. / 2;
+const float kDualSampaHalfThickness = 0.027 / 2; // to be confirmed
+const float kDualSampaYPos = 0.45 + (kSlatPanelHeight / 2) + kDualSampaHalfHeight;
 
 /// Cables (copper)
 // Low voltage (values from AliRoot)
@@ -117,7 +117,7 @@ const float kRadSt45 = 37.5;
 const float kRoundedSlatYposSt3 = 37.8;
 const float kRoundedSlatYposSt45 = 38.2;
 
-// PCB types {name, number of MANUs array}
+// PCB types {name, number of DualSampa array = (nUP bending, nDOWN bending, nUP non-bending, nDOWN non-bending)}
 const map<string, array<int, 4>> kPcbTypes = { { "B1N1", { 10, 10, 7, 7 } }, { "B2N2-", { 5, 5, 4, 3 } }, { "B2N2+", { 5, 5, 3, 4 } }, { "B3-N3", { 3, 2, 2, 2 } }, { "B3+N3", { 2, 3, 2, 2 } }, { "R1", { 3, 4, 2, 3 } }, { "R2", { 13, 4, 9, 3 } }, { "R3", { 13, 1, 10, 0 } }, { "S2-", { 4, 5, 3, 3 } }, { "S2+", { 5, 4, 3, 3 } } };
 
 // Slat types
@@ -144,6 +144,11 @@ const map<string, vector<string>> kSlatTypes = { { "122000SR1", { "R1", "B1N1", 
 
 extern const string jsonSlatDescription;
 
+TGeoVolume* getDualSampa()
+{
+  return gGeoManager->MakeBox("DualSampa345", assertMedium(Medium::Copper), kDualSampaHalfLength, kDualSampaHalfHeight, kDualSampaHalfThickness);
+}
+
 //______________________________________________________________________________
 void createCommonVolumes()
 {
@@ -165,9 +170,6 @@ void createCommonVolumes()
                          assertMedium(Medium::Rohacell),
                          lengths[i] / 2., kBorderHeight / 2., kBorderWidth / 2.);
   }
-
-  // MANU card (to be changed by Dual SAMPAs in the future)
-  gGeoManager->MakeBox("MANU345", assertMedium(Medium::Copper), kMANULength / 2., kMANUHeight / 2., kMANUWidth / 2.);
 }
 
 //______________________________________________________________________________
@@ -183,13 +185,15 @@ void createPCBs()
   // Define some necessary variables
   string bendName, nonbendName; // cathode names
   float halfWidth = 0., gasLength = 0., pcbLength = 0., borderLength = 0., radius = 0., curvRad = 0., pcbShift = 0.,
-        gasShift = 0., x = 0., y = 0.,
+        gasShift = 0., x = 0., y = 0., shift = 0., length = 0.,
         z = 0.; // useful parameters for dimensions and positions
-  int numb = 1, nMANU = 0;
+  int numb = 1, nDualSampas = 0;
 
-  for (const auto& pcbType : kPcbTypes) { // loop over the PCB types of the array
+  // get the DualSampa volume
+  auto* dualSampaVol = getDualSampa();
 
-    const string pcbName = pcbType.first;
+  for (const auto& [pcbName, dualSampas] : kPcbTypes) { // loop over the PCB types of the array
+
     auto name = (const char*)pcbName.data();
 
     auto pcb = new TGeoVolumeAssembly(name);
@@ -338,22 +342,20 @@ void createPCBs()
                                       borderLength / 2., kBorderHeight / 2., kBorderWidth / 2.),
                  1, new TGeoTranslation(x, -y, 0.));
 
-    // the MANU cards
-    halfWidth = kMANUWidth / 2.;
+    // the DualSampa read-out cards
+    halfWidth = kDualSampaHalfThickness;
     z += halfWidth;
-    auto manus = pcbType.second;
-    float length, shift;
-    for (int i = 0; i < manus.size(); i++) {
+    for (int i = 0; i < dualSampas.size(); i++) {
 
-      nMANU = manus[i];
+      nDualSampas = dualSampas[i];
       length = (i % 2) ? borderLength : pcbLength;
       shift = (i % 2) ? pcbLength - borderLength : 0.;
-      y = TMath::Power(-1, i % 2) * kMANUypos;
-      z = TMath::Power(-1, i / 2) * z;
+      y = TMath::Power(-1, i % 2) * kDualSampaYPos;
+      z = TMath::Power(-1, i / 2) * TMath::Abs(z);
 
-      for (int j = 0; j < nMANU; j++) {
-        pcb->AddNode(gGeoManager->GetVolume("MANU345"), 100 * i + j,
-                     new TGeoTranslation((j - nMANU / 2) * (length / nMANU) - (nMANU % 2 - 1) * (length / (2 * nMANU)) +
+      for (int j = 0; j < nDualSampas; j++) {
+        pcb->AddNode(dualSampaVol, 100 * i + j,
+                     new TGeoTranslation((j - nDualSampas / 2) * (length / nDualSampas) - (nDualSampas % 2 - 1) * (length / (2 * nDualSampas)) +
                                            (pcbShift + shift) / 2,
                                          y, z));
       }
@@ -590,7 +592,7 @@ void createSlats()
     auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableLength / 2.,
                                         kLVcableHeight / 2., kLVcableWidth / 2.);
     x = -kVertSpacerLength + (length + cableLength + panelShift) / 2.;
-    y = kMANUypos + (kMANUHeight + kLVcableHeight) / 2.;
+    y = kDualSampaYPos + kDualSampaHalfHeight + kLVcableHeight / 2;
     z = -(kTotalPCBWidth - kLVcableWidth) / 2.;
     slat->AddNode(LVcable, 1, new TGeoTranslation(x, y, z));
     slat->AddNode(LVcable, 2, new TGeoTranslation(x, -y, z));
