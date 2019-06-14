@@ -95,7 +95,7 @@ class Digit
   std::uint8_t mPad{ 0 };       // pad within pad row, 0-143
   ArrayADC_t mADC{};            // ADC vector (30 time-bins)
 
-  ClassDefNV(Digit, 1)
+  ClassDefNV(Digit, 1);
 };
 
 } // namespace trd
