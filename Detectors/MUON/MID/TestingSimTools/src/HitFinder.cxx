@@ -8,16 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Base/src/HitFinder.cxx
+/// \file   MID/TestingSimTools/src/HitFinder.cxx
 /// \brief  Implementation of the hit finder for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   14 March 2018
 
-#include "MIDBase/HitFinder.h"
+#include "MIDTestingSimTools/HitFinder.h"
 
 #include <cmath>
 #include "MIDBase/Constants.h"
-#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
