@@ -88,7 +88,7 @@ class TPCFastTransformGeo
   void finishConstruction();
 
   /// Is the object constructed
-  bool isConstructed() const { return (mConstructionMask == (uint)ConstructionState::Constructed); }
+  bool isConstructed() const { return (mConstructionMask == (unsigned int)ConstructionState::Constructed); }
 
   /// _______________  Getters _________________________________
 
