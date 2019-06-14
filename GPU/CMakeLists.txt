@@ -14,7 +14,7 @@
 # **************************************************************************
 
 set(ALIGPU_BUILD_TYPE "O2")
-option(ENABLE_CUDA   "Build GPU tracker using CUDA"   OFF)
+#option(ENABLE_CUDA   "Build GPU tracker using CUDA"   OFF)
 option(ENABLE_OPENCL "Build GPU tracker using OpenCL" OFF)
 option(ENABLE_HIP    "Build GPU tracker using HIP"    OFF)
 
