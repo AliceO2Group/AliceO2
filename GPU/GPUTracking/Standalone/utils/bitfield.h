@@ -47,9 +47,9 @@ class bitfield
   bitfield& setBits(const bitfield v, bool w)
   {
     if (w) {
-      bits |= v;
+      bits |= v.bits;
     } else {
-      bits &= ~v;
+      bits &= ~v.bits;
     }
     return *this;
   }
@@ -63,7 +63,7 @@ class bitfield
   }
   S get() const { return bits; }
   operator bool() const { return bits; }
-  explicit operator S() const { return bits; }
+  operator S() const { return bits; }
   bool isSet(const bitfield& v) const { return *this & v; }
   bool isSet(const S v) const { return bits & v; }
 
