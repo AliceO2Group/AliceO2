@@ -12,7 +12,7 @@
 #define STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITWRITERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "MCHSimulation/Digit.h"
 #include <SimulationDataFormat/MCCompLabel.h>

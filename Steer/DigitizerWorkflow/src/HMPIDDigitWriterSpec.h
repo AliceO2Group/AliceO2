@@ -12,7 +12,7 @@
 #define STEER_DIGITIZERWORKFLOW_SRC_HMPDIGITWRITERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "HMPIDBase/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

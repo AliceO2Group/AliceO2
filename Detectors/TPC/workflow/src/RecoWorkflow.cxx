@@ -15,7 +15,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"

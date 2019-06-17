@@ -13,7 +13,7 @@
 
 #include <vector>
 #include "Framework/DataProcessorSpec.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDSimulation/ColumnDataMC.h"

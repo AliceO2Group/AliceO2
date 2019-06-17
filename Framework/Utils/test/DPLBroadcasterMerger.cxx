@@ -12,7 +12,7 @@
 
 #include <fstream>
 #include "DPLBroadcasterMerger.h"
-#include "../include/Utils/Utils.h"
+#include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "random"
 #include "FairMQLogger.h"
