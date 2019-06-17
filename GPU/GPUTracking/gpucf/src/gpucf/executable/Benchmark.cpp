@@ -204,6 +204,22 @@ void Benchmark::registerExperiments()
                         baseDir));
     }
 
+    {
+        ClusterFinderConfig split;
+        split.halfPrecisionCharges = true;
+        split.layout = ChargemapLayout::Tiling8x4;
+        split.clusterbuilder = ClusterBuilder::ScratchPad;
+        split.splitCharges = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Split charges among peaks.",
+                        "split.json",
+                        split,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
 }
 
 void Benchmark::runExperiments(ClEnv &env)
