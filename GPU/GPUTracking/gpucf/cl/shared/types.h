@@ -17,10 +17,11 @@
 #  define CL_PREFIX(type) cl_ ## type
 #endif
 
-#define SHARED_INT   CL_PREFIX(int)
-#define SHARED_FLOAT CL_PREFIX(float)
-#define SHARED_UCHAR CL_PREFIX(uchar)
-#define SHARED_HALF  CL_PREFIX(half)
+#define SHARED_INT     CL_PREFIX(int)
+#define SHARED_UINT    CL_PREFIX(uint)
+#define SHARED_FLOAT   CL_PREFIX(float)
+#define SHARED_UCHAR   CL_PREFIX(uchar)
+#define SHARED_HALF    CL_PREFIX(half)
 #define SHARED_USHORT  CL_PREFIX(ushort)
 
 #endif //!defined(SHARED_TYPES_H)
