@@ -1,13 +1,19 @@
 #include "config.h"
 #include "debug.h"
 
+#include "shared/ClusterNative.h"
 #include "shared/tpc.h"
 
-#define IF_DBG_INST if (get_global_linear_id() == 0)
-#define IF_DBG_GROUP if (get_group_id(0) == 0)
+
+#if 0
+# define IF_DBG_INST if (get_global_linear_id() == 0)
+# define IF_DBG_GROUP if (get_group_id(0) == 0)
+#else
+# define IF_DBG_INST if (false)
+# define IF_DBG_GROUP if (false)
+#endif
 
 #define SCRATCH_PAD_WORK_GROUP_SIZE 64
-
 
 
 typedef struct PartialCluster_s
@@ -97,6 +103,35 @@ constant uchar OUTER_TO_INNER[16] =
     7, 7, 7
 };
 
+
+void toNative(const PartialCluster *cluster, charge_t qmax, ClusterNative *cn)
+{
+    cn->qmax = qmax;
+    cn->qtot = cluster->Q;
+    cnSetTimeFlags(cn, cluster->timeMean, 0);
+    cnSetPad(cn, cluster->padMean);
+    cnSetSigmaTime(cn, cluster->timeSigma);
+    cnSetSigmaPad(cn, cluster->padSigma);
+}
+
+void toRegular(
+               const PartialCluster *cluster, 
+               const Digit          *myDigit,
+        global const int            *globalToLocalRow,
+        global const int            *globalRowToCru,
+                     Cluster        *out)
+{
+    out->Q         = cluster->Q;
+    out->QMax      = round(myDigit->charge);
+    out->padMean   = cluster->padMean;
+    out->timeMean  = cluster->timeMean;
+    out->timeSigma = cluster->timeSigma;
+    out->padSigma  = cluster->padSigma;
+
+    out->cru = globalRowToCru[myDigit->row];
+    out->row = globalToLocalRow[myDigit->row];
+
+}
 
 void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t dt)
 {
@@ -203,7 +238,27 @@ void fillScratchPad(
         local          ChargePos *posBcast,
         local          charge_t  *buf)
 {
-    for (int i = 0; i < wgSize; i += N)
+    int i = 0;
+	__attribute__((opencl_unroll_hint(1)))
+    for (; i < wgSize-N; i += N)
+    {
+        ChargePos readFrom = posBcast[i + lid.y];
+
+        delta2_t d = neighbors[lid.x + offset];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+
+        /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */
+        
+        uint writeTo = N * (i + lid.y) + lid.x;
+
+        /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */
+
+        buf[writeTo] = CHARGE(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
+    }
+
+    // load last batch of values seperately as wgSize might not be divisible by N
+    if (i + lid.y <= wgSize)
     {
         ChargePos readFrom = posBcast[i + lid.y];
 
@@ -232,7 +287,7 @@ void updateClusterScratchpadInner(
 {
     uchar aboveThreshold = 0;
 
-	/* __attribute__((opencl_unroll_hint(1))) */
+	__attribute__((opencl_unroll_hint(1)))
     for (ushort i = 0; i < N; i++)
     {
         delta2_t d = INNER_NEIGHBORS[i];
@@ -274,7 +329,7 @@ void updateClusterScratchpadOuter(
 
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 	
-	/* __attribute__((opencl_unroll_hint(1))) */
+	__attribute__((opencl_unroll_hint(1)))
     for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * lid + i];
@@ -536,41 +591,22 @@ bool isPeak(
 }
 
 
-void finalizeCluster(
-        const PartialCluster *pc,
-        const Digit          *myDigit, 
-        global const int            *globalToLocalRow,
-        global const int            *globalRowToCru,
-        Cluster        *outCluster)
+void finalize(
+              PartialCluster *pc,
+        const Digit          *myDigit)
 {
-    charge_t totalCharge = pc->Q + myDigit->charge;
-    charge_t padMean     = pc->padMean;
-    charge_t timeMean    = pc->timeMean;
-    charge_t padSigma    = pc->padSigma;
-    charge_t timeSigma   = pc->timeSigma;
+    pc->Q += myDigit->charge;
 
-    padMean   /= totalCharge;
-    timeMean  /= totalCharge;
-    padSigma  /= totalCharge;
-    timeSigma /= totalCharge;
+    pc->padMean   /= pc->Q;
+    pc->timeMean  /= pc->Q;
+    pc->padSigma  /= pc->Q;
+    pc->timeSigma /= pc->Q;
 
-    padSigma  = sqrt(padSigma  - padMean*padMean);
+    pc->padSigma  = sqrt(pc->padSigma  - pc->padMean*pc->padMean);
+    pc->timeSigma = sqrt(pc->timeSigma - pc->timeMean*pc->timeMean);
 
-    timeSigma = sqrt(timeSigma - timeMean*timeMean);
-
-    padMean  += myDigit->pad;
-    timeMean += myDigit->time;
-
-
-    outCluster->Q         = totalCharge;
-    outCluster->QMax      = round(myDigit->charge);
-    outCluster->padMean   = padMean;
-    outCluster->timeMean  = timeMean;
-    outCluster->timeSigma = timeSigma;
-    outCluster->padSigma  = padSigma;
-
-    outCluster->cru = globalRowToCru[myDigit->row];
-    outCluster->row = globalToLocalRow[myDigit->row];
+    pc->padMean  += myDigit->pad;
+    pc->timeMean += myDigit->time;
 }
 
 char countPeaksAroundDigit(
@@ -602,6 +638,35 @@ char countPeaksAroundDigit(
     }
 
     return peakCount;
+}
+
+
+ushort partition(
+                    ushort     ll, 
+                    bool       pred, 
+                    ushort     partSize,
+        local const charge_t  *chargeBcastIn,
+        local const ChargePos *posBcastIn,
+        local       charge_t  *chargeBcastOut,
+        local       ChargePos *posBcastOut)
+{
+    bool participates = ll < partSize;
+
+    ushort lpos = work_group_scan_inclusive_add( pred && participates);
+    ushort rpos = work_group_scan_inclusive_add(!pred && participates);
+
+    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
+
+    lpos -= 1;
+    rpos += part-1;
+    ushort pos = (participates) ? ((pred) ? rpos : lpos) : ll;
+
+    chargeBcastOut[pos] = chargeBcastIn[ll];
+    posBcastOut[pos]    = posBcastIn[ll];
+
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    return part;
 }
 
 
@@ -691,31 +756,93 @@ void countPeaks(
     Digit myDigit = digits[idx];
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    bool iamPeak  = isPeak[idx];
 
-    char peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
+    char peakCount;
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+    ushort ll = get_local_linear_id();
+
+    local ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local ChargePos posBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local charge_t  chargeBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local charge_t  chargeBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
+
+    posBcast1[ll]    = {gpad, myDigit.time};
+    chargeBcast1[ll] = myDigit.charge;
+
+    // TODO find number of dummies
+
+    ushort in3x3 = partition(
+            ll, 
+            iamPeak,
+            SCRATCH_PAD_WORK_GROUP_SIZE - numOfDummies, 
+            chargeBcast1, 
+            posBcast1, 
+            chargeBcast2, 
+            posBcast2);
+
+    fillScratchPad(isPeak, in3x3, lid, 0, N, INNER_NEIGHBORS, posBcast2, buf);
+    if (ll < in3x3)
+    {
+        peakCount = countPeaksScratchPadInner();
+        chargeBcast2[ll] /= peakCount;
+    }
+
+    ushort in5x5 = partition(
+            ll,
+            peakCount > 0,
+            in3x3,
+            chargeBcast2,
+            posBcast2,
+            chargeBcast1,
+            posBcast1);
+
+    fillScratchPad(isPeak, in5x5, lid, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
+    if (ll < in5x5)
+    {
+        peakCount = countPeaksScratchPad();
+    }
+
+    fillScratchPad(isPeak, in5x5, lid, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
+    if (ll < in5x5)
+    {
+        peakCount += countPeaksScratchPad();
+        chargeBcast1[ll] /= peakCount;
+    }
+
+    ChargePos pos = posBcast1[ll];
+    CHARGE(chargeMap, pos.pad, pos.time) = chargeBcast[ll];
+
+#else
+    peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
 
     if (iamDummy)
     {
         return;
     }
 
-    bool iamPeak  = isPeak[idx];
     /* peakCount = select(peakCount, (uchar) (PCMask_Has3x3Peak | 1), (uchar)iamPeak); */
     peakCount = iamPeak ? 1 : peakCount;
 
     CHARGE(chargeMap, gpad, myDigit.time) = myDigit.charge / peakCount;
+#endif
 }
 
 
 kernel
 void computeClusters(
-        global const charge_t *chargeMap,
-        global const Digit    *digits,
-        global const int      *globalToLocalRow,
-        global const int      *globalRowToCru,
-                     uint      clusternum,
-        global       Cluster  *clusters,
-        global       uchar    *peakMap)
+        global const charge_t      *chargeMap,
+        global const Digit         *digits,
+        global const int           *globalToLocalRow,
+        global const int           *globalRowToCru,
+                     uint           clusternum,
+#if defined(CLUSTER_NATIVE_OUTPUT)
+        global       ClusterNative *clusters,
+#else
+        global       Cluster       *clusters,
+#endif
+        global       uchar         *peakMap)
 {
     uint idx = get_global_linear_id();
 
@@ -728,7 +855,6 @@ void computeClusters(
 
     PartialCluster pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
-
     const ushort N = 8;
     local ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
@@ -746,9 +872,20 @@ void computeClusters(
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
 #endif
 
+    finalize(&pc, &myDigit);
+
+#if defined(CLUSTER_NATIVE_OUTPUT)
+    ClusterNative myCluster;
+    toNative(&pc, myDigit.charge, &myCluster);
+#else
     Cluster myCluster;
-    finalizeCluster(
-            &pc, &myDigit, globalToLocalRow, globalRowToCru, &myCluster);
+    toRegular(
+            &pc, 
+            &myDigit,
+            globalToLocalRow, 
+            globalRowToCru, 
+            &myCluster);
+#endif
 
     clusters[idx] = myCluster;
 
