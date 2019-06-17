@@ -49,7 +49,7 @@ struct DefaultKey {
 
   operator Output() const { return Output{ origin, description, subSpec, lifetime }; }
 };
-}
+} // namespace rtr
 
 /// @class RootTreeReader
 /// A generic reader interface for ROOT TTrees
@@ -304,7 +304,7 @@ class GenericRootTreeReader
   /// parse the branch definitions with key and branch name.
   template <typename T, typename... Args>
   typename std::enable_if_t<std::is_same<T, int>::value == false && std::is_same<T, PublishingMode>::value == false>
-  parseConstructorArgs(T key, const char* name, Args&&... args)
+    parseConstructorArgs(T key, const char* name, Args&&... args)
   {
     if (name != nullptr && *name != 0) {
       // add branch spec if the name is not empty

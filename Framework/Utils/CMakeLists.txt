@@ -23,8 +23,10 @@ set(SRCS
         )
 
 set(HEADERS
-        include/Utils/Utils.h
-        include/Utils/RootTreeReader.h
+        include/${MODULE_NAME}/Utils.h
+        include/${MODULE_NAME}/RootTreeReader.h
+        include/${MODULE_NAME}/RootTreeWriter.h
+        include/${MODULE_NAME}/MakeRootTreeWriterSpec.h
         )
 
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again

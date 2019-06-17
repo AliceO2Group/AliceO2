@@ -16,7 +16,7 @@
 #include "Framework/ControlService.h"
 #include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
-#include "Utils/RootTreeReader.h"
+#include "DPLUtils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
