@@ -104,7 +104,7 @@ if(GPUCA_EVENT_DISPLAY)
                  Standalone/display/GPUDisplayInterpolation.cpp
                  Standalone/display/GPUDisplayKeys.cpp)
   target_compile_definitions(${targetName} PRIVATE BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName} -lGL -lGLU -lGLEW)
+  target_link_libraries(${targetName} PUBLIC -lGL -lGLU -lGLEW)
 endif()
 
 if(GPUCA_QA)
@@ -116,7 +116,7 @@ endif()
 if(OpenMP_CXX_FOUND)
   message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
   target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_OPENMP)
-  target_link_libraries(${targetName} OpenMP::OpenMP_CXX)
+  target_link_libraries(${targetName} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 o2_target_root_dictionary(GPUTracking
