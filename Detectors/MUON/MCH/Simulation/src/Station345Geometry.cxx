@@ -202,11 +202,9 @@ void createPCBs()
   /// apply from the JSON. By doing so, we make sure that we match the mapping convention
 
   // Define some necessary variables
-  string bendName, nonbendName; // cathode names
-  float halfHeight = 0., halfThickness = 0., gasLength = 0., pcbLength = 0., borderLength = 0., radius = 0., curvRad = 0., pcbShift = 0.,
-        gasShift = 0., x = 0., y = 0., shift = 0., length = 0.,
-        z = 0.; // useful parameters for dimensions and positions
-  int numb = 1, nDualSampas = 0;
+  string bendName, nonbendName;
+  float y = 0., shift = 0., length = 0.; // useful parameters for dimensions and positions
+  int nDualSampas = 0;
 
   // get the DualSampa volume
   auto* dualSampaVol = getDualSampa();
@@ -218,10 +216,12 @@ void createPCBs()
     auto pcb = new TGeoVolumeAssembly(name);
 
     // Reset shift variables
-    gasShift = 0.;
-    pcbShift = 0.;
+    float gasShift = 0., pcbShift = 0.;
 
-    numb = pcbName[1] - '0'; // char -> int conversion
+    float gasLength = kGasLength;
+    float pcbLength = kPCBLength;
+
+    int numb = pcbName[1] - '0'; // char -> int conversion
 
     // change the variables according to the PCB shape if necessary
     switch (pcbName.front()) {
@@ -242,20 +242,18 @@ void createPCBs()
         nonbendName = Form("S2N%c", pcbName.back());
         break;
       default: // normal
-        gasLength = kGasLength;
-        pcbLength = kPCBLength;
         bendName = (numb == 3) ? pcbName.substr(0, 3) : pcbName.substr(0, 2);
         nonbendName = (numb == 3) ? pcbName.substr(3) : pcbName.substr(2);
     }
 
-    borderLength = pcbLength;
+    float borderLength = pcbLength;
 
     // create the volume of each material (a box by default)
     // sensitive gas
     auto gas = gGeoManager->MakeBox(Form("%s gas", name), assertMedium(Medium::Gas), gasLength / 2., kGasHalfHeight, kGasHalfThickness);
 
-    x = pcbLength / 2;
-    halfHeight = kPCBHalfHeight;
+    float x = pcbLength / 2;
+    float halfHeight = kPCBHalfHeight;
     // bending cathode
     auto bend = gGeoManager->MakeBox(bendName.data(), assertMedium(Medium::Copper), x, halfHeight, kCathodeHalfThickness);
 
@@ -271,7 +269,7 @@ void createPCBs()
     // change the volume shape if we are creating a rounded PCB
     if (isRounded(pcbName)) {
       // LHC beam pipe radius ("R3" -> it is a slat of a station 4 or 5)
-      radius = (numb == 3) ? kSt45Radius : kSt3Radius;
+      float radius = (numb == 3) ? kSt45Radius : kSt3Radius;
       // y position of the PCB center w.r.t the beam pipe shape
       switch (numb) {
         case 1:
@@ -285,7 +283,7 @@ void createPCBs()
           break;
       }
       // compute the radius of curvature of the PCB we want to create
-      curvRad = radius + 2 * kRoundedSpacerHalfLength;
+      float curvRad = radius + 2 * kRoundedSpacerHalfLength;
 
       x = -kRoundedPCBLength + gasLength / 2 + kVertSpacerHalfLength;
       gas = getRoundedVolume(Form("%sGas", name), Medium::Gas, gasLength / 2, kGasHalfHeight, kGasHalfThickness, x, -y, curvRad);
@@ -307,9 +305,9 @@ void createPCBs()
     }
 
     /// place all the layers in the PCB
-    halfThickness = kGasHalfThickness;
+    float halfThickness = kGasHalfThickness;
     pcb->AddNode(gas, 1, new TGeoTranslation(gasShift / 2, 0., 0.));
-    z = halfThickness;
+    float z = halfThickness;
 
     halfThickness = kCathodeHalfThickness;
     x = pcbShift / 2;
@@ -364,11 +362,6 @@ void createSlats()
   /// Slat building function
   /// The different PCB types must have been built before calling this function !!!
 
-  // Define some necessary variables
-  float length = 0., center = 0., pcbLength = 0., gasLength = 0., x = 0., y = 0., z = 0., halfHeight = 0., halfThickness = 0., xRoundedPos = 0., angMin = 0.,
-        angMax = 0., radius = 0., cableHalfLength = 0., leftSpacerHalfHeight = 0., panelShift = 0.;
-  int iVol = 0;
-
   const auto kSpacerMed = assertMedium(Medium::Noryl);
   auto rightSpacer = gGeoManager->GetVolume("Right spacer");
 
@@ -384,15 +377,16 @@ void createSlats()
     auto slat = new TGeoVolumeAssembly(name);
 
     // Reset slat variables
-    length = 2 * 2 * kVertSpacerHalfLength; // vertical spacers
-    center = (pcbVector.size() - 1) * kGasLength / 2;
-    panelShift = 0.;
-    iVol = 0;
+    float length = 2 * 2 * kVertSpacerHalfLength; // vertical spacers
+    float center = (pcbVector.size() - 1) * kGasLength / 2;
+    float panelShift = 0.;
+    int iVol = 0;
 
     // loop over the number of PCBs in the current slat
     for (const auto& pcb : pcbVector) {
 
-      gasLength = kGasLength;
+      float gasLength = kGasLength;
+      float pcbLength = kPCBLength;
 
       switch (pcb.front()) {
         case 'R':
@@ -403,9 +397,6 @@ void createSlats()
           pcbLength = kShortPCBLength;
           gasLength = kShortPCBLength;
           panelShift += pcbLength - kPCBLength;
-          break;
-        default:
-          pcbLength = kPCBLength;
           break;
       }
 
@@ -420,14 +411,14 @@ void createSlats()
     panelShift /= 2;
 
     // compute the LV cable length
-    cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
+    float cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
     if (typeName == "122200N")
       cableHalfLength = kCh6SupportHalfLength;
     cableHalfLength -= length / 2;
     if (typeName == "122330N")
       cableHalfLength -= kGasLength / 2;
 
-    leftSpacerHalfHeight = kSlatPanelHalfHeight;
+    float leftSpacerHalfHeight = kSlatPanelHalfHeight;
     if (isRounded(typeName)) {
       length -= 2 * kVertSpacerHalfLength;   // don't count the vertical spacer length twice in the case of rounded slat
       leftSpacerHalfHeight = kGasHalfHeight; // to avoid overlaps with the horizontal spacers
@@ -439,8 +430,8 @@ void createSlats()
     // glue a slat panel on each side of the PCBs
     auto panel = new TGeoVolumeAssembly(Form("%s panel", name));
 
-    x = length / 2;
-    halfHeight = kSlatPanelHalfHeight;
+    float x = length / 2;
+    float halfHeight = kSlatPanelHalfHeight;
 
     // glue
     auto glue = gGeoManager->MakeBox(Form("%s panel glue", name), assertMedium(Medium::Glue), x, halfHeight, kGlueHalfThickness);
@@ -458,14 +449,15 @@ void createSlats()
     if (isRounded(typeName)) {
 
       // LHC beam pipe radius ("NR3" -> it is a slat of a station 4 or 5)
-      radius = (typeName.back() == '3') ? kSt45Radius : kSt3Radius;
+      float radius = (typeName.back() == '3') ? kSt45Radius : kSt3Radius;
 
-      // extreme angle value for the rounded spacer
-      angMax = 90.;
+      // extreme angle values for the rounded spacer
+      float angMin = 0., angMax = 90.;
 
       // position of the slat center w.r.t the beam pipe center
       x = length / 2 - kVertSpacerHalfLength;
-      xRoundedPos = x - panelShift / 2;
+      float y = 0.;
+      float xRoundedPos = x - panelShift / 2;
 
       // change the LV cable length for st.3 slats
       cableHalfLength = (isShort(typeName)) ? kCh5SupportHalfLength : kCh6SupportHalfLength;
@@ -513,8 +505,8 @@ void createSlats()
     // place all the layers in the slat panel volume assembly
     // be careful : the panel origin is on the glue edge !
 
-    halfThickness = kGlueHalfThickness;
-    z = halfThickness;
+    float halfThickness = kGlueHalfThickness;
+    float z = halfThickness;
     panel->AddNode(glue, 1, new TGeoTranslation(0., 0., z));
     z += halfThickness;
 
@@ -560,7 +552,7 @@ void createSlats()
     auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableHalfLength,
                                         kLVCableHalfHeight, kLVCableHalfThickness);
     x = -2 * kVertSpacerHalfLength + panelShift + cableHalfLength + length / 2;
-    y = kDualSampaYPos + kDualSampaHalfHeight + kLVCableHalfHeight;
+    float y = kDualSampaYPos + kDualSampaHalfHeight + kLVCableHalfHeight;
     z = -kPCBHalfThickness - kLVCableHalfThickness;
     slat->AddNode(LVcable, 1, new TGeoTranslation(x, y, z));
     slat->AddNode(LVcable, 2, new TGeoTranslation(x, -y, z));
@@ -574,7 +566,7 @@ void createSupportPanels()
   /// Function building the half-chamber support panels (one different per chamber)
 
   // dimensions
-  float halfLength = 0., halfHeight = 0., halfThickness = 0., radius = 0., x = 0., z = 0.;
+  float halfLength = 0., halfHeight = 0.;
 
   for (int i = 5; i <= 10; i++) {
 
@@ -590,13 +582,13 @@ void createSupportPanels()
     }
 
     // LHC beam pipe radius at the given chamber z position
-    radius = (i <= 6) ? kSt3Radius : kSt45Radius;
+    float radius = (i <= 6) ? kSt3Radius : kSt45Radius;
 
-    x = -halfLength + kVertSpacerHalfLength;
+    float x = -halfLength + kVertSpacerHalfLength;
 
     // create the nomex volume, change its shape by extracting the pipe shape and place it in the support panel
-    halfThickness = kNomexSupportHalfThickness;
-    z = 0.;
+    float halfThickness = kNomexSupportHalfThickness;
+    float z = 0.;
 
     support->AddNode(getRoundedVolume(Form("NomexSupportPanelCh%d", i), Medium::HoneyNomex, halfLength, halfHeight, halfThickness, x, 0., radius), i, new TGeoTranslation(halfLength, 0., z));
 
@@ -642,19 +634,17 @@ void buildHalfChambers(TGeoVolume& topVolume)
   Value& hChs = doc["HalfChambers"];
   assert(hChs.IsArray());
 
-  int moduleID = 0, nCh = 0, detID = 0;
-
   // loop over the objects (half-chambers) of the array
   for (const auto& halfCh : hChs.GetArray()) {
     // check that "halfCh" is an object
     if (!halfCh.IsObject())
       throw runtime_error("Can't create the half-chambers : wrong Value input");
 
-    moduleID = halfCh["moduleID"].GetInt();
+    int moduleID = halfCh["moduleID"].GetInt();
     const string name = halfCh["name"].GetString();
     // get the chamber number (if the chamber name has a '0' at the 3rd digit, take the number after; otherwise it's the
     // chamber 10)
-    nCh = (name.find('0') == 2) ? name[3] - '0' : 10;
+    int nCh = (name.find('0') == 2) ? name[3] - '0' : 10;
 
     auto halfChVol = new TGeoVolumeAssembly(name.data());
 
@@ -670,7 +660,7 @@ void buildHalfChambers(TGeoVolume& topVolume)
       if (!slat.IsObject())
         throw runtime_error("Can't create the slat : wrong Value input");
 
-      detID = slat["detID"].GetInt();
+      int detID = slat["detID"].GetInt();
 
       // place the slat on the half-chamber volume
       halfChVol->AddNode(

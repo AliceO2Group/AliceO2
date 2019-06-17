@@ -1551,16 +1551,14 @@ void createStation1Geometry(TGeoVolume& topVolume)
   int detElemID = 0;
   float z = kQuadrantZPos;
 
-  TGeoVolumeAssembly *in, *out, *quadrant;
-
   for (int ich = 1; ich < 3; ich++) {
 
     // create two half-chambers
-    in = new TGeoVolumeAssembly(Form("SC0%dI", ich));
-    out = new TGeoVolumeAssembly(Form("SC0%dO", ich));
+    auto* in = new TGeoVolumeAssembly(Form("SC0%dI", ich));
+    auto* out = new TGeoVolumeAssembly(Form("SC0%dO", ich));
 
     // create a quadrant volume
-    quadrant = createQuadrant(ich);
+    auto* quadrant = createQuadrant(ich);
 
     // place the quadrants in the half-chambers
     for (int i = 0; i < kNQuadrants; i++) {
