@@ -1,5 +1,7 @@
 include_guard()
 
+include("${CMAKE_CURRENT_LIST_DIR}/O2RecipeAdapter.cmake")
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
 
 if(ALIBUILD_BASEDIR)
