@@ -1,19 +1,3 @@
-if(ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
-  if(CMAKE_SYSTEM_NAME MATCHES Darwin)
-    message(WARNING "GPU Tracking disabled on MacOS")
-  else()
-    if(ENABLE_CUDA)
-      add_subdirectory(Base/cuda)
-    endif()
-    if(ENABLE_OPENCL)
-      add_subdirectory(Base/opencl)
-    endif()
-    if(ENABLE_HIP)
-      add_subdirectory(Base/hip)
-    endif()
-  endif()
-endif()
-
 o2_add_library(GPUTracking
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::DataFormatsTPC
@@ -128,3 +112,20 @@ o2_add_test(GPUTracking
             SOURCES ctest/testGPUTracking.cxx
             COMPONENT_NAME GPU
             LABELS gpu)
+
+if(ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
+  if(CMAKE_SYSTEM_NAME MATCHES Darwin)
+    message(WARNING "GPU Tracking disabled on MacOS")
+  else()
+    if(ENABLE_CUDA)
+      add_subdirectory(Base/cuda)
+    endif()
+    if(ENABLE_OPENCL)
+      add_subdirectory(Base/opencl)
+    endif()
+    if(ENABLE_HIP)
+      add_subdirectory(Base/hip)
+    endif()
+  endif()
+endif()
+
