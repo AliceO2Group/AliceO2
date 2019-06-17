@@ -15,7 +15,7 @@
 /// @since  2018-05-15
 /// @brief  Configurable generator for RootTreeWriter processor spec
 
-#include "Utils/RootTreeWriter.h"
+#include "DPLUtils/RootTreeWriter.h"
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/CallbackService.h"
@@ -476,7 +476,7 @@ class MakeRootTreeWriterSpec
   TerminationCondition mTerminationCondition;
   size_t mNofBranches = 0;
 };
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_MAKEROOTTREEWRITERSPEC_H
