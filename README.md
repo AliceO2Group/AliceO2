@@ -2,6 +2,8 @@
 ALICE O2 software    {#mainpage}
 ===================
 
+TESTING - I'm interesting, the best thing since wrestling !
+
 <!--  \cond EXCLUDE_FOR_DOXYGEN -->
 [![codecov](https://codecov.io/gh/AliceO2Group/AliceO2/branch/dev/graph/badge.svg)](https://codecov.io/gh/AliceO2Group/AliceO2/branches/dev)
 [![JIRA](https://img.shields.io/badge/JIRA-Report%20issue-blue.svg)](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1)
