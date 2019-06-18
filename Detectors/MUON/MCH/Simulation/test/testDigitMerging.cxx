@@ -42,7 +42,7 @@ std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
     { 0, 0, 10 },
     { 10, 0, 10 },
     { 11, 0, 10 }
-      };
+  };
 }
 
 std::vector<Digit> createOverlappingDigits()

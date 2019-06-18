@@ -166,7 +166,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits](int a, int b) {
-      return ((100000*digits[a].getDetID() + digits[a].getPadID()) < (100000*digits[b].getDetID() + digits[b].getPadID()));
+      return ((100000 * digits[a].getDetID() + digits[a].getPadID()) < (100000 * digits[b].getDetID() + digits[b].getPadID()));
   });
 
   auto sortedDigits = [&digits, &indices](int i) {
@@ -186,7 +186,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && ( (100000*sortedDigits(i).getDetID() + sortedDigits(i).getPadID()) == (100000*sortedDigits(j).getDetID() + sortedDigits(j).getPadID()))) {
+    while (j < indices.size() && ( (100000 * sortedDigits(i).getDetID() + sortedDigits(i).getPadID()) == (100000 * sortedDigits(j).getDetID() + sortedDigits(j).getPadID()))) {
       j++;
     }
     float adc{ 0 };
