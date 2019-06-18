@@ -19,15 +19,6 @@ namespace o2
 {
 namespace mid
 {
-//______________________________________________________________________________
-TrackGenerator::TrackGenerator()
-  : mMeanTracksPerEvent(1),
-    mSlopeLimits{ { -0.2, 0.2, -0.5, 0.5 } },
-    mPositionLimits{ { -2., 2, -2., 2., -5., 5. } },
-    mGenerator(std::default_random_engine())
-{
-  /// Default constructor
-}
 
 //______________________________________________________________________________
 std::vector<Track> TrackGenerator::generate()
