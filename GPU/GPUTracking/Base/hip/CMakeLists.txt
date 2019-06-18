@@ -13,7 +13,7 @@ if(NOT EXISTS ${HIP_PATH})
 endif()
 
 set(hip_ROOT ${HIP_PATH})
-set(hcc_ROOT ${hic_ROOT}/../hcc)
+set(hcc_ROOT ${hip_ROOT}/../hcc)
 
 find_package(hip REQUIRED)
 
