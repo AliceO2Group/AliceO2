@@ -56,12 +56,17 @@ function(o2_add_library)
   add_library(${target} ${A_SOURCES})
   add_library(O2::${baseTargetName} ALIAS ${target})
 
-  if(A_TARGETVARNAME)
-    set(${A_TARGETVARNAME} ${target} PARENT_SCOPE)
-  endif()
+  # set the export name so that packages using O2 can reference the target as
+  # O2::${baseTargetName} as well (assuming the export is installed with
+  # namespace O2::)
+  set_property(TARGET ${target} PROPERTY EXPORT_NAME ${baseTargetName})
 
   # output name of the lib will be libO2[baseTargetName].(so|dylib|a)
   set_property(TARGET ${target} PROPERTY OUTPUT_NAME O2${baseTargetName})
+
+  if(A_TARGETVARNAME)
+    set(${A_TARGETVARNAME} ${target} PARENT_SCOPE)
+  endif()
 
   # Start by adding the dependencies to other targets
   if(A_PUBLIC_LINK_LIBRARIES)
@@ -82,13 +87,14 @@ function(o2_add_library)
         message(
           FATAL_ERROR "Trying to append non existing include directory ${d}")
       endif()
-      target_include_directories(${target} PUBLIC ${d})
+      target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${adir}>)
     endforeach()
   else()
     # use sane default (if it exists)
     if(IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include)
-      target_include_directories(${target}
-        PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+      target_include_directories(
+        ${target}
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
     endif()
   endif()
 
@@ -100,27 +106,40 @@ function(o2_add_library)
         message(
           FATAL_ERROR "Trying to append non existing include directory ${d}")
       endif()
-      target_include_directories(${target} PRIVATE ${d})
+      target_include_directories(${target} PRIVATE $<BUILD_INTERFACE:${d}>)
     endforeach()
   else()
     # use sane(?) default
-    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_include_directories(
+      ${target}
+      PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
   endif()
-
-  # will install the library itself
-  install(TARGETS ${target} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
   if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName})
 
-      # add ${CMAKE_INSTALL_INCLUDEDIR} to the INTERFACE_DIRECTORIES property
-      install(TARGETS ${target} INCLUDES ${CMAKE_INSTALL_INCLUDEDIR})
+    # The INCLUDES DESTINATION adds ${CMAKE_INSTALL_INCLUDEDIR} to the
+    # INTERFACE_INCLUDE_DIRECTORIES property
+    #
+    # The EXPORT must come first in the list of parameters
+    #
+    install(TARGETS ${target}
+            EXPORT O2Targets
+            INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-      # install all the includes found in
-      # ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName} as those are public
-      # headers
-      install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    # install all the includes found in
+    # ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName} as those are public
+    # headers
+    install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  else()
 
-    endif()
+    # The EXPORT must come first in the list of parameters
+    #
+    install(TARGETS ${target}
+            EXPORT O2Targets
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-  endfunction()
+  endif()
+
+endfunction()

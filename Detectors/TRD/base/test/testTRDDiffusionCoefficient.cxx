@@ -17,6 +17,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TRDBase/TRDCommonParam.h"
+#include <iostream>
 
 #include "Field/MagneticField.h"
 #include <TGeoGlobalMagField.h>
@@ -29,7 +30,11 @@ namespace trd
 /// \brief Test 1 of the GetDiffCoeff function
 BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
 {
+  std::cout << "hello you" << std::endl;
   auto fld = o2::field::MagneticField::createFieldMap();
+
+  std::cout << "fld=" << fld << std::endl;
+
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
 

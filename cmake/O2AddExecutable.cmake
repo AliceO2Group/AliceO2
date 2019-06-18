@@ -102,7 +102,8 @@ function(o2_add_executable)
       install(TARGETS ${target}
               RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tests)
     else()
-      install(TARGETS ${target} RUNTIME)
+      install(TARGETS ${target}
+              RUNTIME DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     endif()
   endif()
 

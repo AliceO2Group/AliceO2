@@ -15,12 +15,17 @@ endif()
 #
 # Order is not completely irrelevant. For instance arrow must come before
 # FairRoot (see FindFairRoot.cmake)
+#
+# Generally speaking we should prefer the CONFIG variant of the find_package. We
+# explicitely don't use the CONFIG variant (i.e. we do use the MODULE variant)
+# only for some packages XXX where we define our own FindXXX.cmake module (e.g.
+# to complement and/or fix what's done in the package's XXXConfig.cmake file)
 
 include(FindThreads)
 
 find_package(arrow CONFIG REQUIRED)
 find_package(Vc REQUIRED)
-find_package(ROOT 6.06.00 NO_MODULE REQUIRED)
+find_package(ROOT 6.06.00 MODULE REQUIRED)
 find_package(Boost 1.59
              COMPONENTS container
                         thread
@@ -71,4 +76,3 @@ find_package(benchmark CONFIG)
 find_package(OpenMP)
 find_package(GLFW NAMES glfw3 CONFIG)
 find_package(AliRoot)
-
