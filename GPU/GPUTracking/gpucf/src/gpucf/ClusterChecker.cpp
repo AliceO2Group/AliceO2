@@ -143,8 +143,17 @@ bool ClusterChecker::verify(
             FEQ_EPSILON_BIG, 
             Cluster::Field_all);
     std::vector<Cluster> wrongClusters = findWrongClusters(clusters);
-    gpucf::log::Info() << clusters.size() - wrongClusters.size() 
-                       << " correct clusters.";
+
+    if (wrongClusters.size() == 0)
+    {
+        gpucf::log::Success() << "All clusters look correct.";
+        return true;
+    }
+
+    gpucf::log::Error() << "Found " 
+                        << clusters.size() - wrongClusters.size() 
+                        << " correct cluster.";
+
 
     gpucf::log::Info() << "Testing remaining " << wrongClusters.size() 
                        << " clusters with relaxed equality tests.";

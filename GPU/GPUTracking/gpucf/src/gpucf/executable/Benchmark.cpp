@@ -68,7 +68,7 @@ void Benchmark::registerExperiments()
 {
     {
         ClusterFinderConfig naiveConfig;
-        naiveConfig.usePackedDigits = false;
+        naiveConfig.packedDigits = false;
         experiments.emplace_back(
                 new TimeCf(
                         "naive cluster finder", 
@@ -81,7 +81,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig packedDigitsConf;
-        packedDigitsConf.usePackedDigits = true;
+        packedDigitsConf.packedDigits = true;
         experiments.emplace_back(
                 new TimeCf(
                         "packed digits cluster finder", 
@@ -134,7 +134,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig halfs;
-        halfs.halfPrecisionCharges = true;
+        halfs.halfs = true;
         experiments.emplace_back(
                 new TimeCf(
                         "Chargemap storing half charges.",
@@ -147,7 +147,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig halfsPadMajor;
-        halfsPadMajor.halfPrecisionCharges = true;
+        halfsPadMajor.halfs = true;
         halfsPadMajor.layout = ChargemapLayout::PadMajor;
         experiments.emplace_back(
                 new TimeCf(
@@ -162,7 +162,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig halfs4x8Tiling;
-        halfs4x8Tiling.halfPrecisionCharges = true;
+        halfs4x8Tiling.halfs = true;
         halfs4x8Tiling.layout = ChargemapLayout::Tiling4x8;
         experiments.emplace_back(
                 new TimeCf(
@@ -177,7 +177,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig halfs8x4Tiling;
-        halfs8x4Tiling.halfPrecisionCharges = true;
+        halfs8x4Tiling.halfs = true;
         halfs8x4Tiling.layout = ChargemapLayout::Tiling8x4;
         experiments.emplace_back(
                 new TimeCf(
@@ -191,7 +191,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig scratchpad;
-        scratchpad.halfPrecisionCharges = true;
+        scratchpad.halfs = true;
         scratchpad.layout = ChargemapLayout::Tiling8x4;
         scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
         experiments.emplace_back(
@@ -206,7 +206,7 @@ void Benchmark::registerExperiments()
 
     {
         ClusterFinderConfig split;
-        split.halfPrecisionCharges = true;
+        split.halfs = true;
         split.layout = ChargemapLayout::Tiling8x4;
         split.clusterbuilder = ClusterBuilder::ScratchPad;
         split.splitCharges = true;
