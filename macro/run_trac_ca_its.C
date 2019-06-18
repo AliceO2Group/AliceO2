@@ -41,6 +41,7 @@
 using namespace o2::gpu;
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(bool useITSVertex = false,
                      std::string path = "./",
@@ -117,15 +118,16 @@ void run_trac_ca_its(bool useITSVertex = false,
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
 
+  std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("o2sim", "CA ITS Tracks");
-  std::vector<o2::its::TrackITS>* tracksITS = new std::vector<o2::its::TrackITS>;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trackLabels =
-    new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  //  outTree.Branch("EventHeader.", &header);
-  outTree.Branch("ITSTrack", &tracksITS);
-  outTree.Branch("ITSTrackMCTruth", &trackLabels);
+  std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
+  std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
+  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  outTree.Branch("ITSTrack", &tracksITSPtr);
+  outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
+  outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
 
   TChain itsClustersROF("ITSClustersROF");
   itsClustersROF.AddFile((path + inputClustersITS).data());
@@ -163,9 +165,20 @@ void run_trac_ca_its(bool useITSVertex = false,
       std::cout << Form("MC Vertex for roFrame %i: %f %f %f", roFrameCounter, mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ()) << std::endl;
       event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
     }
+    trackClIdx.clear();
+    tracksITS.clear();
     tracker.clustersToTracks(event);
-    tracksITS->swap(tracker.getTracks());
-    *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    tracks.swap(tracker.getTracks());
+    for (auto& trc : tracks) {
+      trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
+      int ncl = trc.getNumberOfClusters();
+      for (int ic = 0; ic < ncl; ic++) {
+        trackClIdx.push_back(trc.getClusterIndex(ic));
+      }
+      tracksITS.emplace_back(trc);
+    }
+
+    trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
     outTree.Fill();
     roFrameCounter++;
   }

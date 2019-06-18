@@ -47,6 +47,7 @@ void TrackReader::run(ProcessingContext& pc)
             << mTracksOut.size() << " tracks";
   pc.outputs().snapshot(Output{ mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe }, mROFRecOut);
   pc.outputs().snapshot(Output{ mOrigin, "TRACKS", 0, Lifetime::Timeframe }, mTracksOut);
+  pc.outputs().snapshot(Output{ mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe }, mClusIndOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{ mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe }, mMCTruthOut);
   }
@@ -75,6 +76,7 @@ void TrackReader::accumulate()
 
   rofTree->SetBranchAddress(mROFTreeName.c_str(), &mROFRecInp);
   trTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
+  trTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
   if (mUseMC) {
     if (trTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
       trTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
@@ -95,6 +97,7 @@ void TrackReader::accumulate()
   if (nEnt == 1) {
     trTree->GetEntry(0);
     mTracksOut.swap(*mTracksInp);
+    mClusIndOut.swap(*mClusIndInp);
     if (mUseMC) {
       mMCTruthOut.mergeAtBack(*mMCTruthInp);
     }
@@ -105,7 +108,16 @@ void TrackReader::accumulate()
       auto rEntry = rof.getROFEntry().getEvent();
       if (lastEntry != rEntry) {
         trTree->GetEntry((lastEntry = rEntry));
+        int shiftIdx = mClusIndOut.size();
+        std::copy(mClusIndInp->begin(), mClusIndInp->end(), std::back_inserter(mClusIndOut)); // cluster indices
+        // update cluster indices
+        if (shiftIdx) {
+          for (auto& trc : *mTracksInp) {
+            trc.shiftFirstClusterEntry(shiftIdx);
+          }
+        }
       }
+
       auto tr0 = mTracksInp->begin() + rof.getROFEntry().getIndex();
       auto tr1 = tr0 + rof.getNROFEntries();
       std::copy(tr0, tr1, std::back_inserter(mTracksOut));
@@ -128,6 +140,7 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }

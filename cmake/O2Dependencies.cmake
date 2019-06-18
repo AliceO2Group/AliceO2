@@ -2244,6 +2244,7 @@ o2_define_bucket(
     data_format_its_bucket
 
     DEPENDENCIES
+    data_format_common_bucket
     data_format_reconstruction_bucket
     #
     O2ReconstructionDataFormats

@@ -225,7 +225,7 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
 {
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {

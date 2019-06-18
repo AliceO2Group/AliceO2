@@ -60,8 +60,8 @@ class CookedTracker
   Double_t getSigmaX() const { return mSigmaX; }
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
-  o2::MCCompLabel cookLabel(TrackITS& t, Float_t wrong) const;
-  void setExternalIndices(TrackITS& t) const;
+  o2::MCCompLabel cookLabel(TrackITSExt& t, Float_t wrong) const;
+  void setExternalIndices(TrackITSExt& t) const;
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
 
@@ -69,12 +69,9 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx,
                std::vector<o2::itsmft::ROFRecord>& rofs);
-  void processFrame(std::vector<TrackITS>& tracks);
-  // Int_t propagateBack(std::vector<TrackITS> *event);
-  // Int_t RefitInward(std::vector<TrackITS> *event);
-  // Bool_t refitAt(Double_t x, TrackITS *seed, const TrackITS *t);
+  void processFrame(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
@@ -94,24 +91,24 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
+  void addOutputTrack(const TrackITSExt& t, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
   int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
 
-  std::vector<TrackITS> trackInThread(Int_t first, Int_t last);
-  void makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t last);
-  void trackSeeds(std::vector<TrackITS>& seeds);
+  std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
+  void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
+  void trackSeeds(std::vector<TrackITSExt>& seeds);
 
-  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITS& t, const TrackITS& o) const;
+  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSExt& t, const TrackITSExt& o) const;
 
-  void makeBackPropParam(std::vector<TrackITS>& seeds) const;
-  bool makeBackPropParam(TrackITS& track) const;
+  void makeBackPropParam(std::vector<TrackITSExt>& seeds) const;
+  bool makeBackPropParam(TrackITSExt& track) const;
 
  private:
   bool mContinuousMode = true;                                                    ///< triggered or cont. mode
   const o2::its::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       /// Track MC labels
-
   std::uint32_t mFirstInFrame = 0; ///< Index of the 1st cluster of a frame (within the loaded vector of clusters)
 
   Int_t mNumOfThreads; ///< Number of tracking threads
@@ -128,7 +125,7 @@ class CookedTracker
   Double_t mSigmaZ = 2.; ///< error of the primary vertex position in Z
 
   static Layer sLayers[kNLayers]; ///< Layers filled with clusters
-  std::vector<TrackITS> mSeeds;   ///< Track seeds
+  std::vector<TrackITSExt> mSeeds; ///< Track seeds
 
   const Cluster* mFirstCluster = nullptr; ///< Pointer to the 1st cluster in event
 

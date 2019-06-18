@@ -103,10 +103,12 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("o2sim", "Cooked ITS Tracks");
-  std::vector<o2::its::TrackITS>* tracksITS = new std::vector<o2::its::TrackITS>;
-  MCLabCont* trackLabels = new MCLabCont();
-  outTree.Branch("ITSTrack", &tracksITS);
-  outTree.Branch("ITSTrackMCTruth", &trackLabels);
+  std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
+  std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
+  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  outTree.Branch("ITSTrack", &tracksITSPtr);
+  outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
+  outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
 
   TTree treeROF("ITSTracksROF", "ROF records tree");
   treeROF.Branch("ITSTracksROF", &rofs);
@@ -120,7 +122,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
   if (mcTruth)
-    tracker.setMCTruthContainers(&allLabels, trackLabels);
+    tracker.setMCTruthContainers(&allLabels, trackLabelsPtr);
   //===========================================
 
   // Load all clusters into a single vector
@@ -150,7 +152,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   std::vector<std::array<Double_t, 3>> vertices;
   vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
   tracker.setVertices(vertices);
-  tracker.process(allClusters, *tracksITS, *rofs);
+  tracker.process(allClusters, tracksITS, trackClIdx, *rofs);
   outTree.Fill();
   treeROF.Fill();
 

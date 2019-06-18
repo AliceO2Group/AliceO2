@@ -46,16 +46,23 @@ void TrackWriter::run(ProcessingContext& pc)
     return;
 
   auto tracks = pc.inputs().get<const std::vector<o2::its::TrackITS>>("tracks");
+  auto clusIdx = pc.inputs().get<gsl::span<int>>("trackClIdx");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
+  std::vector<int> clusIdxOut, *clusIdxOutPtr = &clusIdxOut;
+  clusIdxOut.reserve(clusIdx.size());
+  for (auto v : clusIdx) {
+    clusIdxOut.push_back(v);
+  }
 
   LOG(INFO) << "ITSTrackWriter pulled " << tracks.size() << " tracks, in "
             << rofs.size() << " RO frames";
 
   TTree tree("o2sim", "Tree with ITS tracks");
   tree.Branch("ITSTrack", &tracks);
+  tree.Branch("ITSTrackClusIdx", &clusIdxOutPtr);
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
     plabels = labels.get();
@@ -91,6 +98,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tracks", "ITS", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);

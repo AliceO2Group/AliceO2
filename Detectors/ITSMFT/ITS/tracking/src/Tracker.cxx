@@ -205,7 +205,7 @@ void Tracker::findRoads(int& iteration)
 void Tracker::findTracks(const ROframe& event)
 {
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
-  std::vector<TrackITS> tracks;
+  std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
 #ifdef CA_DEBUG
   std::array<int, 4> roadCounters{ 0, 0, 0, 0 };
@@ -256,7 +256,7 @@ void Tracker::findTracks(const ROframe& event)
     const auto& cluster3_tf = event.getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
-    TrackITS temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
+    TrackITSExt temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -282,7 +282,7 @@ void Tracker::findTracks(const ROframe& event)
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
-            [](TrackITS& track1, TrackITS& track2) { return track1.isBetter(track2, 1.e6f); });
+            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
 #ifdef CA_DEBUG
   std::array<int, 26> sharingMatrix{ 0 };
@@ -375,7 +375,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITS& track, int start, int end, int step)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
 {
   track.setChi2(0);
   for (int iLayer{ start }; iLayer != end; iLayer += step) {
@@ -528,14 +528,14 @@ void Tracker::computeTracksMClabels(const ROframe& event)
 
   int tracksNum{ static_cast<int>(mTracks.size()) };
 
-  for (TrackITS& track : mTracks) {
+  for (auto& track : mTracks) {
 
     MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
                                      constants::its::UnusedIndex };
     int count{ 0 };
     bool isFakeTrack{ false };
 
-    for (int iCluster = 0; iCluster < TrackITS::MaxClusters; ++iCluster) {
+    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
       if (index == constants::its::UnusedIndex) {
         continue;

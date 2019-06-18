@@ -94,10 +94,12 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   mTracker.setVertices(vertices);
 
   std::vector<o2::its::TrackITS> tracks;
-  mTracker.process(clusters, tracks, rofs);
+  std::vector<int> clusIdx;
+  mTracker.process(clusters, tracks, clusIdx, rofs);
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
+  pc.outputs().snapshot(Output{ "ITS", "TRACKCLSID", 0, Lifetime::Timeframe }, clusIdx);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
 
   if (mUseMC) {
@@ -118,6 +120,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
 
   if (useMC) {

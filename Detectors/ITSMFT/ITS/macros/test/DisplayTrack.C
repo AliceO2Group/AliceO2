@@ -175,7 +175,9 @@ found:
   points->SetMarkerColor(kGreen);
 
   std::vector<TrackITS>* trkArr = nullptr;
+  std::vector<int>* clIdx = nullptr;
   tree->SetBranchAddress("ITSTrack", &trkArr);
+  tree->SetBranchAddress("ITSTrackClusIdx", &clIdx);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
   tree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
@@ -192,8 +194,9 @@ found:
     if (TMath::Abs(lab.getTrackID()) != track)
       continue;
     Int_t nc = t.getNumberOfClusters();
+    int idxRef = t.getFirstClusterEntry();
     while (n < nc) {
-      Int_t idx = t.getClusterIndex(n);
+      Int_t idx = (*clIdx)[idxRef++];
       Cluster& c = (*clusArr)[idx];
       auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
       points->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());

@@ -81,16 +81,29 @@ void TrackerDPL::run(ProcessingContext& pc)
               << mc2rofs.size() << " MC events";
   }
 
-  std::vector<TrackITS> tracks;
-  dataformats::MCTruthContainer<MCCompLabel> trackLabels;
-  std::vector<TrackITS> allTracks;
-  dataformats::MCTruthContainer<MCCompLabel> allTrackLabels;
+  std::vector<o2::its::TrackITSExt> tracks;
+  std::vector<int> allClusIdx;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
+  std::vector<o2::its::TrackITS> allTracks;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
 
   std::uint32_t roFrame = 0;
   ROframe event(0);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
+
+  // snippet to convert found tracks to final output tracks with separate cluster indices
+  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
+    for (auto& trc : tracks) {
+      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+      int ncl = trc.getNumberOfClusters();
+      for (int ic = 0; ic < ncl; ic++) {
+        allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
+      }
+      allTracks.emplace_back(trc);
+    }
+  };
 
   if (continuous) {
     for (const auto& rof : rofs) {
@@ -103,12 +116,13 @@ void TrackerDPL::run(ProcessingContext& pc)
         mTracker->clustersToTracks(event);
         tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
-        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
         int first = allTracks.size();
         int number = tracks.size();
+        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+        int shiftIdx = -rof.getROFEntry().getIndex();
         rofs[roFrame].getROFEntry().setIndex(first);
         rofs[roFrame].setNROFEntries(number);
-        allTracks.insert(allTracks.end(), tracks.begin(), tracks.end());
+        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
       }
       roFrame++;
@@ -117,12 +131,15 @@ void TrackerDPL::run(ProcessingContext& pc)
     IOUtils::loadEventData(event, &clusters, labels);
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
-    allTracks.swap(mTracker->getTracks());
+    tracks.swap(mTracker->getTracks());
+    copyTracks(tracks, allTracks, allClusIdx);
     allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, allTracks);
+  pc.outputs().snapshot(Output{ "ITS", "TRACKCLSID", 0, Lifetime::Timeframe }, allClusIdx);
+  pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
   if (mIsMC) {
     pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
@@ -142,6 +159,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
