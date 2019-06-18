@@ -255,6 +255,5 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
 int Digitizer::getGlobalDigit(int detID, int padID)
 {
   //calculate global index
-  return detID * 100000 + padID;
-  
+  return detID * 100000 + padID;  
 }
