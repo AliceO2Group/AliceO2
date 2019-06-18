@@ -28,6 +28,7 @@
 
 #pragma link C++ class std::vector < std::pair < float, float >> +;
 #pragma link C++ class std::vector < std::pair < int, float >> +;
+#pragma link C++ class std::vector < int> + ;
 
 #pragma link C++ class o2::dataformats::CalibLHCphaseTOF + ;
 #pragma link C++ class o2::dataformats::CalibTimeSlewingParamTOF + ;
