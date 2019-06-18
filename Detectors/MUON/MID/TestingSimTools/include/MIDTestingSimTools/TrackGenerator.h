@@ -29,16 +29,11 @@ namespace mid
 class TrackGenerator
 {
  public:
-  TrackGenerator();
-  virtual ~TrackGenerator() = default;
-
-  TrackGenerator(const TrackGenerator&) = delete;
-  TrackGenerator& operator=(const TrackGenerator&) = delete;
-  TrackGenerator(TrackGenerator&&) = delete;
-  TrackGenerator& operator=(TrackGenerator&&) = delete;
-
   std::vector<Track> generate();
   std::vector<Track> generate(int nTracks);
+
+  /// Sets the seed
+  inline void setSeed(unsigned int seed) { mGenerator.seed(seed); }
 
   /// Sets the mean number of track per events
   void setMeanTracksPerEvent(int meanTracksPerEvent) { mMeanTracksPerEvent = meanTracksPerEvent; }
@@ -56,10 +51,10 @@ class TrackGenerator
  private:
   std::array<float, 4> getLimitsForAcceptance(std::array<float, 3> pos);
 
-  int mMeanTracksPerEvent;               ///< Mean tracks per event
-  std::array<float, 4> mSlopeLimits;     ///< Limits for track slope
-  std::array<float, 6> mPositionLimits;  ///< x,y,z position limits
-  std::default_random_engine mGenerator; ///< Random numbers generator
+  int mMeanTracksPerEvent = 1;                                           ///< Mean tracks per event
+  std::array<float, 4> mSlopeLimits{ { -0.2, 0.2, -0.5, 0.5 } };         ///< Limits for track slope
+  std::array<float, 6> mPositionLimits{ { -2., 2, -2., 2., -5., 5. } };  ///< x,y,z position limits
+  std::default_random_engine mGenerator{ std::default_random_engine() }; ///< Random numbers generator
 };
 } // namespace mid
 } // namespace o2
