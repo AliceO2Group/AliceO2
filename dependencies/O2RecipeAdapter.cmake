@@ -6,14 +6,14 @@ if(ALICEO2_MODULAR_BUILD)
   # we use the presence of ALICEO2_MODULAR_BUILD as a signal that we are using
   # the old recipe and we assume BOOST_ROOT is defined and can be used to
   # retrieve the ALIBUILD_BASEDIR
-  if(NOT BOOST_ROOT)
+  if(NOT Common_O2_ROOT)
     message(FATAL_ERROR "Don't know how to adapt (yet) to this situation")
   endif()
-  get_filename_component(ALIBUILD_BASEDIR ${BOOST_ROOT}/../.. ABSOLUTE)
+  get_filename_component(ALIBUILD_BASEDIR ${Common_O2_ROOT}/../.. ABSOLUTE)
   message(STATUS "!!!!")
   message(
     STATUS
-      "!!!! Used BOOST_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
+      "!!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
     )
 
   message(STATUS "!!!! Unsetting most of the -D options and detecting them instead !!!!")
