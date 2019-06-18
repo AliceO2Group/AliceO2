@@ -13,11 +13,8 @@ struct ClusterFinderConfig
 {
     size_t chunks = 1;
 
-    bool usePackedDigits = true;
-
-    bool halfPrecisionCharges = false;
-
-    bool splitCharges = false;
+    #define CLUSTER_FINDER_FLAG(name, val, def, desc) bool name = val;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 
     ChargemapLayout layout = ChargemapLayout::TimeMajor;
 

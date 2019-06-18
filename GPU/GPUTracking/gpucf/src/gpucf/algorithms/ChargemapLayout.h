@@ -3,14 +3,11 @@
 namespace gpucf
 {
 
-    enum class ChargemapLayout
-    {
-        TimeMajor,
-        PadMajor,
-        Tiling4x4,
-        Tiling8x4,
-        Tiling4x8,
-    };
+enum class ChargemapLayout
+{
+    #define MEMORY_LAYOUT(name, def, desc) name,
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+};
 
 } // namespace gpucf
 

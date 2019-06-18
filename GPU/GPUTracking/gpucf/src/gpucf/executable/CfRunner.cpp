@@ -39,59 +39,9 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "Cluster peaks are writtern here.",
             {'p', "peaks"});
 
-
     cfconfig = std::make_unique<args::Group>(
             optional,
             "Cluster finder config");
-
-    tiling4x4 = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use 4x4 tiling layout",
-            {"tiling4x4"});
-
-    tiling4x8 = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use 4x8 tiling layout",
-            {"tiling4x8"});
-
-    tiling8x4 = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use 8x4 tiling layout",
-            {"tiling8x4"});
-
-    scratchpad = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Load charges into scratchpad before building cluster.",
-            {"scratchpad"});
-
-    padMajor = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Use pad major in charge map",
-            {"padMajor"});
-
-    halfs = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Store charges in charge map as halfs.",
-            {"halfs"});
-
-    splitCharges = INIT_FLAG(
-            args::Flag,
-            *cfconfig,
-            "",
-            "Split charges among neighboring clusters.",
-            {"split"});
 
     cpu = INIT_FLAG(
             args::Flag,
@@ -99,6 +49,33 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "",
             "Run cluster finder on cpu.",
             {"cpu"});
+
+    #define CLUSTER_FINDER_FLAG(name, val, def, desc) \
+            name = INIT_FLAG( \
+                    args::Flag, \
+                    *cfconfig, \
+                    "", \
+                    desc, \
+                    {#name});
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+
+    #define MEMORY_LAYOUT(name, def, desc) \
+            layout##name = INIT_FLAG( \
+                    args::Flag, \
+                    *cfconfig, \
+                    "", \
+                    desc, \
+                    {"layout" #name});
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+
+    #define CLUSTER_BUILDER(name, def, desc) \
+            builder##name = INIT_FLAG( \
+                    args::Flag, \
+                    *cfconfig, \
+                    "", \
+                    desc, \
+                    {"builder" #name});
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 }
 
 int CfRunner::mainImpl()
@@ -112,33 +89,23 @@ int CfRunner::mainImpl()
 
     ClusterFinderConfig config;
 
-    if (*padMajor)
-    {
-        config.layout = ChargemapLayout::PadMajor;
-    }
+    #define CLUSTER_FINDER_FLAG(name, val, def, desc) config.name = *name;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 
-    if (*tiling4x4)
-    {
-        config.layout = ChargemapLayout::Tiling4x4;
-    }
+    #define MEMORY_LAYOUT(name, def, desc) \
+        if (*layout##name) \
+        { \
+            config.layout = ChargemapLayout::name; \
+        }
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 
-    if (*tiling4x8)
-    {
-        config.layout = ChargemapLayout::Tiling4x8;
-    }
+    #define CLUSTER_BUILDER(name, def, desc) \
+        if (*builder##name) \
+        { \
+            config.clusterbuilder = ClusterBuilder::name; \
+        }
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 
-    if (*tiling8x4)
-    {
-        config.layout = ChargemapLayout::Tiling8x4;
-    }
-
-    if (*scratchpad)
-    {
-        config.clusterbuilder = ClusterBuilder::ScratchPad;
-    }
-
-    config.halfPrecisionCharges = *halfs;
-    config.splitCharges = *splitCharges;
 
     DataSet clusters;
 
