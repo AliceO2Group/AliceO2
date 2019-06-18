@@ -238,4 +238,4 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
 
 BENCHMARK(BM_RelayMultipleRoutes);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();
