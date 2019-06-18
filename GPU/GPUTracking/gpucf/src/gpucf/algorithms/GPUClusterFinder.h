@@ -49,6 +49,7 @@ private:
         cl::Buffer peaks;
         cl::Buffer chargeMap;
         cl::Buffer peakMap;
+        cl::Buffer clusterNative;
         cl::Buffer cluster;
 
         cl::Buffer globalToLocalRow;
@@ -100,6 +101,7 @@ private:
         cl::Kernel countPeaks;
         cl::Kernel computeClusters;
         cl::Kernel resetMaps;
+        cl::Kernel nativeToRegular;
 
         DeviceMemory mem;
         StreamCompaction::Worker streamCompaction;
