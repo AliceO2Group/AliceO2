@@ -1,0 +1,10 @@
+input = [
+    { file = "in/scratchpad.json", label = "No deconvolution" }
+    { file = "in/split.json", label = "With deconvolution" }
+]
+
+type   = "bar"
+out    = "out/split.pdf"
+ylabel = "time [ms]"
+showLegend = true
+stepBlacklist = ["digitsToDevice", "clusterToHost"]
