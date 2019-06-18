@@ -162,6 +162,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   // Loop over hits
   for (const auto& hit : hits) {
+    const int qTotal = hit.GetCharge();
     pos[0] = hit.GetX();
     pos[1] = hit.GetY();
     pos[2] = hit.GetZ();
@@ -173,10 +174,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     // loc [2] -  time direction in amplification or drift volume
     gGeoManager->MasterToLocal(pos, loc);
 
-    const int qTotal = hit.GetCharge();
-
-    const int inDrift = std::strstr(gGeoManager->GetPath(), "/UK") ? 0 : 1;
-    if (inDrift) {
+    if (hit.isFromDriftRegion()) {
       loc[2] = loc[2] - kDrWidth / 2 - kAmWidth / 2;
     }
 

@@ -172,7 +172,7 @@ bool Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(xp, yp, zp);
     tof = tof * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(xp, yp, zp, tof, totalChargeDep, trackID, det);
+    addHit(xp, yp, zp, tof, totalChargeDep, trackID, det, drRegion);
     stack->addHit(GetDetId());
     return true;
   }
@@ -255,7 +255,7 @@ void Detector::createTRhit(int det)
     o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
-    addHit(x, y, z, tof, totalChargeDep, trackID, det);
+    addHit(x, y, z, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
     stack->addHit(GetDetId());
   }
 }
