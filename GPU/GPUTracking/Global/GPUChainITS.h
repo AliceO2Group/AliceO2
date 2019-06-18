@@ -23,7 +23,7 @@ class Cluster;
 class Road;
 class Cell;
 class TrackingFrameInfo;
-class TrackITS;
+class TrackITSExt;
 } // namespace its
 } // namespace o2
 
@@ -45,8 +45,8 @@ class GPUChainITS : public GPUChain
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
-  int PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITS>& tracks);
-  int RunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITS>& tracks);
+  int PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
+  int RunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
 
   o2::its::TrackerTraits* GetITSTrackerTraits() { return mITSTrackerTraits.get(); }
   o2::its::VertexerTraits* GetITSVertexerTraits() { return mITSVertexerTraits.get(); }
