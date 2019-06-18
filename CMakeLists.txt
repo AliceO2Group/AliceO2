@@ -57,7 +57,7 @@ else()
   message(STATUS "Geant4VMC_FOUND = ${Geant4VMC_FOUND}")
   message(STATUS "Pythia6_FOUND=${Pythia6_FOUND}")
   message(STATUS "PYTHIA8_FOUND=${PYTHIA8_FOUND}")
-  message(FATAL "stop")
+  message(FATAL_ERROR "stop")
 endif()
 
 
