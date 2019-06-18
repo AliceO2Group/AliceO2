@@ -2490,6 +2490,8 @@ o2_define_bucket(
     O2MIDBase
     O2MIDSimulation
     O2MIDClustering
+    O2MIDTracking
+    O2MIDTestingSimTools
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Simulation/src
