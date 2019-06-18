@@ -150,6 +150,8 @@ function(o2_find_dependencies_from_alibuild)
   protected_set_dir(benchmark benchmark googlebenchmark)
   protected_set_dir(Vc)
 
+  protected_set_root(cub)
+
   find_program(brew_CMD brew)
   if(brew_CMD)
     execute_process(COMMAND ${brew_CMD} --PREFIX glfw

@@ -5,7 +5,7 @@ o2_add_library(Device
                FairMQ::FairMQ
                O2::MemoryResources
                O2::Headers
-               ms_gsl
+               ms_gsl::ms_gsl
                AliceO2::Monitoring)
 
 o2_add_test(O2Device

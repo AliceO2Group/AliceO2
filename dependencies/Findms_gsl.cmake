@@ -9,9 +9,9 @@ endif()
 
 set(MS_GSL_FOUND TRUE)
 
-if(NOT TARGET ms_gsl)
-  add_library(ms_gsl INTERFACE IMPORTED)
-  set_target_properties(ms_gsl
+if(NOT TARGET ms_gsl::ms_gsl)
+  add_library(ms_gsl::ms_gsl INTERFACE IMPORTED)
+  set_target_properties(ms_gsl::ms_gsl
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                    ${MS_GSL_INCLUDE_DIR})
 endif()

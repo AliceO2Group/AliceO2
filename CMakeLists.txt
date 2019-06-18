@@ -2,9 +2,13 @@
 
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-# it's important to specify accurately the list of languages.
-# for instance C and C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
-project(O2 LANGUAGES C CXX VERSION 1.2.0) 
+# it's important to specify accurately the list of languages. for instance C and
+# C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
+project(O2 LANGUAGES C CXX VERSION 1.2.0)
+
+if(ENABLE_CUDA)
+  enable_language(CUDA)
+endif()
 
 include(CTest)
 

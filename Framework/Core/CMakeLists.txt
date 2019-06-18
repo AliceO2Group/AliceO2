@@ -87,7 +87,7 @@ o2_add_library(Framework
                                      O2::PCG
                                      RapidJSON::RapidJSON
                                      arrow_shared
-                                     ms_gsl
+                                     ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
                                      O2::DebugGUI)
 

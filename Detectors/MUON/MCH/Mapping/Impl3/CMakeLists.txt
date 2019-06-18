@@ -9,7 +9,7 @@ o2_add_library(MCHMappingImpl3
                        src/CathodeSegmentationCreator.h
                        src/CathodeSegmentationImpl3.cxx
                        src/CathodeSegmentationImpl3.h
-               PUBLIC_LINK_LIBRARIES Boost::boost O2::MCHMappingInterface ms_gsl
+               PUBLIC_LINK_LIBRARIES Boost::boost O2::MCHMappingInterface ms_gsl::ms_gsl
                TARGETVARNAME targetName)
 
 # We add all segmentation creators by default, but the final goal would be to

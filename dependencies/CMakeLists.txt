@@ -72,4 +72,3 @@ find_package(OpenMP)
 find_package(GLFW NAMES glfw3 CONFIG)
 find_package(AliRoot)
 
-include(O2CUDA)
