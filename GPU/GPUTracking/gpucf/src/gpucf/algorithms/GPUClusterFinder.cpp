@@ -346,7 +346,7 @@ void GPUClusterFinder::setup(
     this->config = conf;
     this->digits = digits;
 
-    if (config.usePackedDigits)
+    if (config.packedDigits)
     {
         fillPackedDigits(); 
     }
@@ -370,7 +370,7 @@ void GPUClusterFinder::setup(
      ************************************************************************/
 
     size_t digitsBufSize = 
-        ((config.usePackedDigits) ? sizeof(PackedDigit) : sizeof(Digit)) 
+        ((config.packedDigits) ? sizeof(PackedDigit) : sizeof(Digit)) 
         * digits.size();
     mem.digits = cl::Buffer(
             context,
@@ -412,7 +412,7 @@ void GPUClusterFinder::setup(
     log::Info() << "Found " << numOfRows << " rows";
 
     size_t chargeSize = 
-        (config.halfPrecisionCharges) ? sizeof(cl_half)
+        (config.halfs) ? sizeof(cl_half)
                                       : sizeof(cl_float);
 
     size_t mapEntries = numOfRows 
@@ -510,7 +510,7 @@ GPUClusterFinder::Result GPUClusterFinder::run()
                      << ", items: " << fragment->items
                      << ", future: " << fragment->future << "}";
 
-        if (config.usePackedDigits)
+        if (config.packedDigits)
         {
             worker.dispatch<PackedDigit>(
                     *fragment, 
@@ -618,45 +618,28 @@ void GPUClusterFinder::addDefines(ClEnv &env)
 {
     switch (config.layout)
     {
-    case ChargemapLayout::TimeMajor: 
-        break;
-    case ChargemapLayout::PadMajor: 
-        env.addDefine("CHARGEMAP_PAD_MAJOR_LAYOUT");
-        break;
-    case ChargemapLayout::Tiling4x4:
-        env.addDefine("CHARGEMAP_4x4_TILING_LAYOUT");
-        break;
-    case ChargemapLayout::Tiling4x8:
-        env.addDefine("CHARGEMAP_4x8_TILING_LAYOUT");
-        break;
-    case ChargemapLayout::Tiling8x4:
-        env.addDefine("CHARGEMAP_8x4_TILING_LAYOUT");
-        break;
+    #define MEMORY_LAYOUT(name, def, desc) \
+        case ChargemapLayout::name: \
+            env.addDefine(def); \
+            break;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
     }
 
     switch (config.clusterbuilder)
     {
-    case ClusterBuilder::Naive:
-        break;
-    case ClusterBuilder::ScratchPad:
-        env.addDefine("BUILD_CLUSTER_SCRATCH_PAD");
-        break;
+    #define CLUSTER_BUILDER(name, def, desc) \
+        case ClusterBuilder::name: \
+            env.addDefine(def); \
+            break;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
     }
 
-    if (config.usePackedDigits)
-    {
-        env.addDefine("USE_PACKED_DIGIT");
-    }
-
-    if (config.halfPrecisionCharges)
-    {
-        env.addDefine("CHARGEMAP_TYPE_HALF");
-    }
-
-    if (config.splitCharges)
-    {
-        env.addDefine("SPLIT_CHARGES");
-    }
+    #define CLUSTER_FINDER_FLAG(name, val, def, desc) \
+        if (config.name) \
+        { \
+            env.addDefine(def); \
+        }
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 }
 
 

@@ -24,14 +24,17 @@ private:
     OptStringFlag peakFile;
 
     std::unique_ptr<args::Group> cfconfig;
-    OptFlag tiling4x4;
-    OptFlag tiling4x8;
-    OptFlag tiling8x4;
-    OptFlag scratchpad;
-    OptFlag padMajor;
-    OptFlag halfs;
-    OptFlag splitCharges;
     OptFlag cpu;
+
+#define CLUSTER_FINDER_FLAG(name, val, def, desc) OptFlag name;
+#include <gpucf/algorithms/ClusterFinderFlags.def>
+
+#define MEMORY_LAYOUT(name, def, desc) OptFlag layout##name;
+#include <gpucf/algorithms/ClusterFinderFlags.def>
+
+#define CLUSTER_BUILDER(name, def, desc) OptFlag builder##name;
+#include <gpucf/algorithms/ClusterFinderFlags.def>
+
 };
 
 } // namespace gpucf
