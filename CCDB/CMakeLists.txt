@@ -1,6 +1,3 @@
-include(O2ProtobufGenerateCppDest.cmake)
-o2_protobuf_generate_cpp_dest("" PROTO_SRCS PROTO_HDRS src/request.proto)
-
 o2_add_library(CCDB
                SOURCES src/Backend.cxx
                        src/BackendOCDB.cxx
@@ -20,7 +17,7 @@ o2_add_library(CCDB
                        src/CcdbApi.cxx
                        src/ConditionsMQServer.cxx
                        src/ConditionsMQClient.cxx
-                       ${PROTO_SRCS}
+                       src/request.proto
                PUBLIC_LINK_LIBRARIES FairMQ::FairMQ
                                      protobuf::libprotobuf
                                      ROOT::Hist
@@ -29,7 +26,10 @@ o2_add_library(CCDB
                                      FairRoot::ParMQ
                                      O2::Device
                                      CURL::libcurl
-                                     Boost::thread)
+                                     Boost::thread
+               TARGETVARNAME targetName)
+
+protobuf_generate(TARGET ${targetName})
 
 o2_target_root_dictionary(CCDB
                           HEADERS include/CCDB/Backend.h
