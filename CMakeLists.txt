@@ -8,6 +8,8 @@ project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
 if(ENABLE_CUDA)
   enable_language(CUDA)
+  set(CMAKE_CUDA_STANDARD 14)
+  set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
 endif()
 
 include(CTest)
