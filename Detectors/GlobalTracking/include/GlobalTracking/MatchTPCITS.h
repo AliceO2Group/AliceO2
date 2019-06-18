@@ -195,6 +195,20 @@ class MatchTPCITS
     mITSTracksArrayInp = inp;
   }
 
+  ///< set input ITS tracks cluster indices received via DPL
+  void setITSTrackClusIdxInp(const std::vector<int>* inp)
+  {
+    assertDPLIO(true);
+    mITSTrackClusIdxInp = inp;
+  }
+
+  ///< set input ITS tracks cluster indices received via DPL
+  void setITSTrackClusIdxInp(gsl::span<const int> inp)
+  {
+    assertDPLIO(true);
+    mITSTrackClusIdxSPAN = inp;
+  }
+
   ///< set input ITS tracks ROF records received via DPL
   void setITSTrackROFRecInp(const std::vector<o2::itsmft::ROFRecord>* inp)
   {
@@ -536,6 +550,8 @@ class MatchTPCITS
   const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;       ///< input ITS tracks ROFRecord
   const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
   const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
+  gsl::span<const int> mITSTrackClusIdxSPAN;                                 ///< input ITS track cluster indices span from DPL
+  const std::vector<int>* mITSTrackClusIdxInp = nullptr;                     ///< input ITS track cluster indices
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
   const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
@@ -586,6 +602,7 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel> mOutTPCLabels; ///< TPC label of matched track
 
   std::string mITSTrackBranchName = "ITSTrack";          ///< name of branch containing input ITS tracks
+  std::string mITSTrackClusIdxBranchName = "ITSTrackClusIdx"; ///< name of branch containing input ITS tracks cluster indices
   std::string mITSTrackROFRecBranchName = "ITSTracksROF"; ///< name of branch containing input ITS tracks ROFRecords
   std::string mTPCTrackBranchName = "Tracks";            ///< name of branch containing input TPC tracks
   std::string mITSClusterBranchName = "ITSCluster";      ///< name of branch containing input ITS clusters

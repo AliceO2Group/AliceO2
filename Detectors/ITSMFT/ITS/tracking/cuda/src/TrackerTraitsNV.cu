@@ -491,7 +491,7 @@ void TrackerTraitsNV::computeLayerCells()
   }
 }
 
-void TrackerTraitsNV::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+void TrackerTraitsNV::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
 {
   PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
