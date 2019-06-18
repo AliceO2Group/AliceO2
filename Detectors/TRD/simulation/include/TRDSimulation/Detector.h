@@ -28,6 +28,13 @@ class HitType : public o2::BasicXYZQHit<float>
 {
  public:
   using BasicXYZQHit<float>::BasicXYZQHit;
+  HitType(float x, float y, float z, float tof, int charge, int trackId, int detId, bool drift)
+    : mInDrift(drift),
+      BasicXYZQHit(x, y, z, tof, charge, trackId, detId){};
+  bool isFromDriftRegion() const { return mInDrift; }
+
+ private:
+  bool mInDrift{ false };
 };
 } // namespace trd
 } // namespace o2
@@ -80,7 +87,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   // addHit
   template <typename T>
-  void addHit(T x, T y, T z, T tof, int charge, int trackId, int detId);
+  void addHit(T x, T y, T z, T tof, int charge, int trackId, int detId, bool drift = false);
 
   // Create TR hits
   void createTRhit(int);
@@ -104,9 +111,9 @@ class Detector : public o2::base::DetImpl<Detector>
 };
 
 template <typename T>
-void Detector::addHit(T x, T y, T z, T tof, int charge, int trackId, int detId)
+void Detector::addHit(T x, T y, T z, T tof, int charge, int trackId, int detId, bool drift)
 {
-  mHits->emplace_back(x, y, z, tof, charge, trackId, detId);
+  mHits->emplace_back(x, y, z, tof, charge, trackId, detId, drift);
 }
 
 } // namespace trd
