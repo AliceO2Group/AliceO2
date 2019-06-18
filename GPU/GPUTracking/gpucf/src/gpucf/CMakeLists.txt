@@ -1,6 +1,5 @@
 set(GPUCF_SRC
     "./ClusterChecker.cpp"
-    "./VectorAdd.cpp"
     
     "./common/ClEnv.cpp"
     "./common/Cluster.cpp"
@@ -29,6 +28,7 @@ set(GPUCF_SRC
     "./experiments/Experiment.cpp"
     "./experiments/TimeCf.cpp"
 
+    "./algorithms/VectorAdd.cpp"
     "./algorithms/GPUClusterFinder.cpp"
     "./algorithms/ReferenceClusterFinder.cpp"
     "./algorithms/StreamCompaction.cpp"

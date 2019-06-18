@@ -6,6 +6,7 @@
 #include <gpucf/common/RowInfo.h>
 
 #include <shared/tpc.h>
+#include <shared/ClusterNative.h>
 
 #include <cmath>
 #include <functional>
@@ -46,11 +47,12 @@ GPUClusterFinder::Worker::Worker(
             CL_QUEUE_PROFILING_ENABLE);
     log::Debug() << "finished creating cleanup queue.";
 
-    fillChargeMap    = cl::Kernel(program, "fillChargeMap");
-    findPeaks        = cl::Kernel(program, "findPeaks");
-    countPeaks       = cl::Kernel(program, "countPeaks");
-    computeClusters  = cl::Kernel(program, "computeClusters");
-    resetMaps        = cl::Kernel(program, "resetMaps");
+    fillChargeMap   = cl::Kernel(program, "fillChargeMap");
+    findPeaks       = cl::Kernel(program, "findPeaks");
+    countPeaks      = cl::Kernel(program, "countPeaks");
+    computeClusters = cl::Kernel(program, "computeClusters");
+    resetMaps       = cl::Kernel(program, "resetMaps");
+    nativeToRegular = cl::Kernel(program, "nativeToRegular");
 
     if (prev != nullptr)
     {
@@ -235,7 +237,7 @@ void GPUClusterFinder::Worker::run(
         computeClusters.setArg(2, mem.globalToLocalRow);
         computeClusters.setArg(3, mem.globalRowToCru);
         computeClusters.setArg(4, cl_uint(clusternum));
-        computeClusters.setArg(5, mem.cluster);
+        computeClusters.setArg(5, (config.clusterNative) ? mem.clusterNative : mem.cluster);
         computeClusters.setArg(6, mem.peakMap);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
@@ -271,6 +273,28 @@ void GPUClusterFinder::Worker::run(
             local,
             nullptr,
             zeroChargeMap.get());
+
+
+    /*************************************************************************
+     * Convert ClusterNative format back to regular clusters
+     ************************************************************************/
+    if (config.clusterNative)
+    {
+        ASSERT(config.chunks == 1); // This will explode with more than one worker.
+
+        nativeToRegular.setArg(0, mem.clusterNative);
+        nativeToRegular.setArg(1, mem.peaks);
+        nativeToRegular.setArg(2, mem.globalToLocalRow);
+        nativeToRegular.setArg(3, mem.globalRowToCru);
+        nativeToRegular.setArg(4, mem.cluster);
+        clustering.enqueueNDRangeKernel(
+                nativeToRegular,
+                cl::NullRange,
+                cl::NDRange(clusternum),
+                local,
+                nullptr,
+                nullptr);
+    }
 
 
     /*************************************************************************
@@ -408,6 +432,12 @@ void GPUClusterFinder::setup(
             context,
             CL_MEM_WRITE_ONLY,
             clusterBufSize);
+
+    size_t clusterNativeSize = digits.size() * sizeof(ClusterNative);
+    mem.clusterNative = cl::Buffer(
+            context,
+            CL_MEM_READ_WRITE,
+            clusterNativeSize);
 
     log::Info() << "Found " << numOfRows << " rows";
 

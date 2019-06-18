@@ -1,6 +1,6 @@
 #include "ClCanary.h"
 
-#include <gpucf/VectorAdd.h>
+#include <gpucf/algorithms/VectorAdd.h>
 #include <gpucf/common/log.h>
 
 
