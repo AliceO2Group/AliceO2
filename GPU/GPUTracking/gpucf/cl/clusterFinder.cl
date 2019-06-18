@@ -893,3 +893,34 @@ void computeClusters(
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;
 #endif
 }
+
+
+kernel
+void nativeToRegular(
+        global const ClusterNative *native,
+        global const Digit         *peaks,
+        global const int           *globalToLocalRow,
+        global const int           *globalRowToCru,
+        global       Cluster       *regular)
+{
+    size_t idx = get_global_linear_id();
+
+    ClusterNative cn = native[idx];
+    Digit peak       = peaks[idx];
+
+    Cluster c;
+    c.Q    = cn.qtot;
+    c.QMax = cn.qmax;
+
+    c.padMean = cnGetPad(&cn);
+    c.timeMean = cnGetTime(&cn);
+
+    c.padSigma = cnGetSigmaPad(&cn);
+    c.timeSigma = cnGetSigmaTime(&cn);
+
+    c.cru = globalRowToCru[peak.row];
+    c.row = globalToLocalRow[peak.row];
+
+    regular[idx] = c;
+}
+
