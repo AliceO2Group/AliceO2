@@ -82,6 +82,7 @@ class Data
   gsl::span<Cluster> mClusters;
   std::vector<o2::itsmft::ROFRecord> mClustersROF;
   std::vector<o2::its::TrackITS>* mTrackBuffer = nullptr;
+  std::vector<int>* mClIdxBuffer = nullptr;
   gsl::span<o2::its::TrackITS> mTracks;
   std::vector<o2::itsmft::ROFRecord> mTracksROF;
   void loadDigits();
@@ -205,6 +206,7 @@ void Data::setTracTree(TTree* tree)
     return;
   }
   tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
+  tree->SetBranchAddress("ITSTrackClusIdx", &mClIdxBuffer);
   mTracTree = tree;
 
   TTree* roft = (TTree*)gFile->Get("ITSTracksROF");
@@ -373,8 +375,9 @@ TEveElement* Data::getEveTracks()
     TEvePointSet* tpoints = new TEvePointSet("tclusters");
     tpoints->SetMarkerColor(kGreen);
     int nc = rec.getNumberOfClusters();
+    int idxRef = rec.getFirstClusterEntry();
     while (nc--) {
-      Int_t idx = rec.getClusterIndex(nc);
+      Int_t idx = (*mClIdxBuffer)[idxRef + nc];
       const Cluster& c = mClusters[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());

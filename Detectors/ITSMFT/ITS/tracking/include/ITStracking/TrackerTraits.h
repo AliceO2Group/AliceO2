@@ -40,8 +40,8 @@ class GPUChainITS;
 namespace its
 {
 
-class TrackITS;
-typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&)> FuncRunITSTrackFit_t;
+class TrackITSExt;
+typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {
@@ -59,7 +59,7 @@ class TrackerTraits
 
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
-  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&){};
+  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
