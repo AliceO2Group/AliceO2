@@ -23,6 +23,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testTimeStamp.cxx
+  test/testRangeRef.cxx
 )
 
 O2_GENERATE_TESTS(
