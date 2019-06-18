@@ -8,10 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(reconstruction)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(monitor)
-add_subdirectory(workflow)
-add_subdirectory(qc)
+o2_add_library(TPCQC
+               SOURCES src/PID.cxx
+               PUBLIC_LINK_LIBRARIES O2::TPCBase)
+
+
+
+o2_target_root_dictionary(TPCQC
+                          HEADERS include/TPCQC/PID.h)
+
+o2_add_test(PID
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCQC
+            SOURCES test/test_PID.cxx
+            LABELS tpc)
