@@ -12,6 +12,12 @@
 #define CN_TIME_MASK 0xFFFFFF
 #define CN_FLAG_MASK 0xFF000000
 
+#if IS_CL_DEVICE
+# define CAST(type, val) ((type) (val))
+#else
+# define CAST(type, val) static_cast<type>(val)
+#endif
+
 
 typedef struct ClusterNative_s
 {
@@ -26,22 +32,22 @@ typedef struct ClusterNative_s
 
 inline SHARED_USHORT cnPackPad(SHARED_FLOAT pad)
 {
-    return (SHARED_USHORT)(pad * CN_SCALE_PAD_PACKED + 0.5f);
+    return CAST(SHARED_USHORT, pad * CN_SCALE_PAD_PACKED + 0.5f);
 }
 
 inline SHARED_UINT cnPackTime(SHARED_FLOAT time)
 {
-    return (SHARED_UINT)(time * CN_SCALE_TIME_PACKED + 0.5f);
+    return CAST(SHARED_UINT, time * CN_SCALE_TIME_PACKED + 0.5f);
 }
 
 inline SHARED_FLOAT cnUnpackPad(SHARED_USHORT pad)
 {
-    return (SHARED_FLOAT)pad * (1.f / CN_SCALE_PAD_PACKED);
+    return CAST(SHARED_FLOAT, pad) * (1.f / CN_SCALE_PAD_PACKED);
 }
 
 inline SHARED_FLOAT cnUnpackTime(SHARED_UINT time)
 {
-    return (SHARED_FLOAT)time * (1.f / CN_SCALE_TIME_PACKED);
+    return CAST(SHARED_FLOAT, time) * (1.f / CN_SCALE_TIME_PACKED);
 }
 
 inline SHARED_UCHAR cnPackSigma(SHARED_FLOAT sigma, SHARED_FLOAT scale)
@@ -54,7 +60,7 @@ inline SHARED_FLOAT cnUnpackSigma(
         SHARED_UCHAR sigmaPacked, 
         SHARED_FLOAT scale)
 {
-    return (SHARED_FLOAT)sigmaPacked * (1.f / scale);
+    return CAST(SHARED_FLOAT, sigmaPacked) * (1.f / scale);
 }
 
 inline SHARED_UCHAR cnGetFlags(const ClusterNative *c)
@@ -72,7 +78,7 @@ inline void cnSetTimePackedFlags(
         SHARED_UINT timePacked, 
         SHARED_UCHAR flags)
 {
-    c->timeFlagsPacked = (timePacked & CN_TIME_MASK) | ((SHARED_UINT)flags) << 24;
+    c->timeFlagsPacked = (timePacked & CN_TIME_MASK) | CAST(SHARED_UINT, flags) << 24;
 }
 
 inline void cnSetTimePacked(ClusterNative *c, SHARED_UINT timePacked)
@@ -81,13 +87,13 @@ inline void cnSetTimePacked(ClusterNative *c, SHARED_UINT timePacked)
                         | (c->timeFlagsPacked & CN_FLAG_MASK);
 }
 
-inline void setFlags(ClusterNative *c, SHARED_UCHAR flags)
+inline void cnSetFlags(ClusterNative *c, SHARED_UCHAR flags)
 {
     c->timeFlagsPacked = (c->timeFlagsPacked & CN_TIME_MASK)
-                       | ((SHARED_UINT)flags << 24);
+                       | (CAST(SHARED_UINT, flags) << 24);
 }
 
-inline SHARED_FLOAT getTime(const ClusterNative *c)
+inline SHARED_FLOAT cnGetTime(const ClusterNative *c)
 {
     return cnUnpackTime(c->timeFlagsPacked & CN_TIME_MASK);
 }
@@ -104,7 +110,7 @@ inline void cnSetTimeFlags(
         SHARED_UCHAR flags)
 {
     c->timeFlagsPacked = (cnPackTime(time) & CN_TIME_MASK)
-                       | ((SHARED_UINT)flags << 24);
+                       | (CAST(SHARED_UINT, flags) << 24);
 }
 
 inline SHARED_FLOAT cnGetPad(const ClusterNative *c)

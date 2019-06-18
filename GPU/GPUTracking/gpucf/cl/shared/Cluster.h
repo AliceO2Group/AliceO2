@@ -3,6 +3,7 @@
 
 #include "types.h"
 
+
 typedef struct FloatCluster_s
 {
     SHARED_FLOAT Q;

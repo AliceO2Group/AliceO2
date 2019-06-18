@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gpucf/common/Digit.h>
 #include <gpucf/common/Object.h>
 
 #include <shared/Cluster.h>
