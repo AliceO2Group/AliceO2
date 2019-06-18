@@ -66,7 +66,7 @@ class MCCompLabel
       return -1;
     }
     int tr1 = getTrackID(), tr2 = other.getTrackID();
-    return (tr1 == tr2) ? 1 : ((tr1 = -tr2) ? 0 : -1);
+    return (tr1 == tr2) ? 1 : ((tr1 == -tr2) ? 0 : -1);
   }
 
   // conversion operator
@@ -104,7 +104,7 @@ class MCCompLabel
   static constexpr int maxTrackID() { return maskTrackID; }
   ClassDefNV(MCCompLabel, 1);
 };
-}
+} // namespace o2
 
 std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c);
 
