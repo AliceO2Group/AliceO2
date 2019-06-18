@@ -162,4 +162,4 @@ static void BM_ProcessMismatchedMetric(benchmark::State& state)
 
 BENCHMARK(BM_ProcessMismatchedMetric);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();

@@ -59,4 +59,4 @@ static void BM_ContextRegistryMultiGet(benchmark::State& state)
 
 BENCHMARK(BM_ContextRegistryMultiGet);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();

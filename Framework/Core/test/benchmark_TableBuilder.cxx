@@ -146,4 +146,4 @@ static void BM_TableBuilderComplex(benchmark::State& state)
 
 BENCHMARK(BM_TableBuilderComplex)->Range(8, 8 << 16);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();

@@ -99,4 +99,4 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
 
 BENCHMARK(BM_InputRecordGenericGetters);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();
