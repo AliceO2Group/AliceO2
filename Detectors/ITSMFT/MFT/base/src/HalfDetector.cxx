@@ -21,6 +21,7 @@
 #include "MFTBase/HalfDisk.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/HalfDetector.h"
+#include "MFTBase/PowerSupplyUnit.h"
 
 using namespace o2::mft;
 
@@ -29,12 +30,12 @@ ClassImp(o2::mft::HalfDetector);
 /// \brief Default constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr) {}
+HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr), mPSU(NULL){}
 
 /// \brief Constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg)
+HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg), mPSU(NULL)
 {
 
   Geometry* mftGeom = Geometry::instance();
@@ -46,6 +47,8 @@ HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullpt
   LOG(DEBUG) << Form("Creating : %s ", GetName());
 
   mHalfVolume = new TGeoVolumeAssembly(GetName());
+
+  mPSU        = new PowerSupplyUnit();
 
   createHalfDisks();
 }
