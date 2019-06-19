@@ -16,6 +16,8 @@
 
 #include "IrregularSpline2D3D.h"
 #include "IrregularSpline2D3DCalibrator.h"
+#include <cmath>
+#include <iostream>
 
 namespace GPUCA_NAMESPACE
 {
