@@ -16,8 +16,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
-#include "TRDSimulation/TRsim.h"
-
 class FairVolume;
 
 namespace o2
@@ -53,7 +51,9 @@ namespace o2
 {
 namespace trd
 {
+
 class TRDGeometry;
+class TRsim;
 
 class Detector : public o2::base::DetImpl<Detector>
 {

@@ -8,17 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDSimulation/Detector.h"
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 #include <vector>
+#include <stdexcept>
 #include "FairVolume.h"
 #include "FairRootManager.h"
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
 #include "CommonUtils/ShmAllocator.h"
-#include <stdexcept>
+#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDGeometry.h"
+#include "TRDSimulation/Detector.h"
+#include "TRDSimulation/TRsim.h"
 
 using namespace o2::trd;
 
