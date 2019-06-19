@@ -1,24 +1,43 @@
+# FIXME: this part should disappear when we merge all this new cmake stuff and
+# we change the o2.sh recipe accordingly.
+#
+# We "adapt" two things here :
+#
+# 1. we unset most of the -D variables that were passed to cmake so our auto-
+#   detection has a chance to work. Should not be needed in the long run if we
+#   use the correct -D set from the beginning
+#
+# 1. we patch those tests that require some environment (most notably the O2_ROOT
+#   variable) to convert from O2_ROOT pointing to build tree to O2_ROOT pointing
+#   to install tree. Should not be needed in the long run if we consider (as we
+#   should, I would argue) that tests are running off the build tree, before
+#   installation (and are not installed, as there's probably no point in doing
+#   so) Should not be needed in the long run if we consider (as we should, I
+#   would argue) that tests are running off the build tree, before installation
+#   (and are not installed, as there's probably no point in doing so)
+#
+
+message(STATUS "!!!!")
+message(STATUS "!!!! Using O2ReciperAdapter - this should be only temporary")
+message(STATUS "!!!!")
+
 if(ALICEO2_MODULAR_BUILD)
   #
-  # FIXME: this part should disappear when we merge all this new cmake stuff and
-  # we change the o2.sh recipe accordingly
-  #
   # we use the presence of ALICEO2_MODULAR_BUILD as a signal that we are using
-  # the old recipe and we assume BOOST_ROOT is defined and can be used to
+  # the old recipe and we assume Common_O2_ROOT is defined and can be used to
   # retrieve the ALIBUILD_BASEDIR
+  #
   if(NOT Common_O2_ROOT)
     message(FATAL_ERROR "Don't know how to adapt (yet) to this situation")
   endif()
   get_filename_component(ALIBUILD_BASEDIR ${Common_O2_ROOT}/../.. ABSOLUTE)
-  message(STATUS "!!!!")
   message(
     STATUS
       "!!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
     )
 
-  message(STATUS "!!!! Unsetting most of the -D options and detecting them instead !!!!")
-  message(STATUS "!!!! This should be only temporary !!!!")
-  message(STATUS "!!!!")
+  message(
+    STATUS "!!!! Unsetting most of the -D options and detecting them instead")
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -57,3 +76,16 @@ if(ALICEO2_MODULAR_BUILD)
   unset(CUB_ROOT)
 
 endif()
+
+if(DEFINED ENV{ALIBUILD_O2_TESTS})
+  message(STATUS "!!!!")
+  message(
+    STATUS
+      "!!!! ALIBUILD_O2_TESTS detected. Will patch my tests so they work off the install tree"
+    )
+  configure_file(${CMAKE_SOURCE_DIR}/tests/tmp-patch-tests-environment.sh.in
+                 tmp-patch-tests-environment.sh)
+  install(
+    CODE [[ execute_process(COMMAND bash tmp-patch-tests-environment.sh) ]])
+endif()
+message(STATUS "!!!!")
