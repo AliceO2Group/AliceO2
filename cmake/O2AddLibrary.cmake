@@ -6,6 +6,8 @@ include(O2NameTarget)
 # o2_add_library(target SOURCES c1.cxx c2.cxx .....) defines a new target of
 # type "library" composed of the given sources. It also defines an alias named
 # O2::target. The generated library will be called libO2[target].(dylib|so|.a)
+# (for exact naming see the o2_name_target function).
+#
 # The library will be static or shared depending on the BUILD_SHARED_LIBS option
 # (which is normally ON for O2 project)
 #
@@ -23,13 +25,15 @@ include(O2NameTarget)
 #   and that will be needed as well by the consumers of that library. By default
 #   the include subdirectory of the current source directory is taken into
 #   account, which should cover most of the use cases. Use this parameter only
-#   for special cases then.
+#   for special cases then. Note that if you do specify this parameter it
+#   replaces the default, it does not add to them.
 #
 # * PRIVATE_INCLUDE_DIRECTORIES (not needed in most cases) : the list of include
 #   directories where to find the include files needed to compile this library,
 #   but that will _not_ be needed by its consumers. But default we add the
 #   ${CMAKE_CURRENT_BINARY_DIR} here to cover use case of generated headers
-#   (e.g. by protobuf).
+#   (e.g. by protobuf). Note that if you do specify this parameter it replaces
+#   the default, it does not add to them.
 #
 function(o2_add_library)
 
@@ -113,6 +117,12 @@ function(o2_add_library)
     target_include_directories(
       ${target}
       PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+    get_filename_component(adir ${CMAKE_CURRENT_LIST_DIR}/src ABSOLUTE)
+    if(EXISTS ${adir})
+      target_include_directories(
+        ${target}
+        PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>)
+    endif()
   endif()
 
   if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName})
