@@ -39,6 +39,7 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <algorithm> // std::find
+#include <tuple>     // make_tuple
 
 namespace o2
 {
@@ -214,17 +215,16 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // in this workflow, the EOD is sent after the last real data, and all inputs will receive EOD,
   // so it is enough to check on the first occurence
   // FIXME: this will be changed once DPL can propagate control events like EOD
-  auto checkReady = [](o2::framework::DataRef const& ref, bool& isReady) {
+  auto checkReady = [](o2::framework::DataRef const& ref) {
     auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
     // sector number -1 indicates end-of-data
     if (tpcSectorHeader != nullptr) {
-      isReady = tpcSectorHeader->sector == -1;
-      // indicate normal processing if not ready and skip if ready
-      if (isReady) {
-        return MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing;
+      if (tpcSectorHeader->sector == -1) {
+        // indicate normal processing if not ready and skip if ready
+        return std::make_tuple(MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing, true);
       }
     }
-    return MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing;
+    return std::make_tuple(MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing, false);
   };
 
   // -------------------------------------------------------------------------------------------
