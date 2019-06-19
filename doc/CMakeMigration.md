@@ -41,9 +41,9 @@ The idea is to go in steps.
 
 1. rewrite all our main CMakeLists.txt to get a working build, but without taking care of the more difficult or less critical parts, like a) GPU stuff (critical and difficult) b) testing of Root macros (difficult) c) getting a proper O2Config.cmake produced (aka packaging). This first step is like a proof-of-concept, but almost full scale. Discuss the implementation choices at this stage.
 
-2 or 3. add Root macro testing
+2. add GPU/HIP/OpenCL stuff
 
-3 or 2. add GPU/HIP/OpenCL stuff
+3. add Root macro testing
 
 4. add creation of O2Config.cmake
 
@@ -65,7 +65,7 @@ The main changes with respect to the current/previous situation are highlighted 
 
 ### Preamble
 
-CMake 3.14 is now required. We could live without, but it's easier with that version. As we anyway compile our version, I guess that's not a big deal. Note that when out CMake 3.15 will bring some generator expressions features that we might want to take advantage of (e.g. [REMOVE_DUPLICATES](https://gitlab.kitware.com/cmake/cmake/issues/18210))
+CMake 3.13 is still the minimum version required. 3.14 would be interesting but is not critical. Note that when out CMake 3.15 will bring some generator expressions features that we might want to take advantage of (e.g. [REMOVE_DUPLICATES](https://gitlab.kitware.com/cmake/cmake/issues/18210)) and so might justify bumping the CMake version we use at that moment.
 
 ### Project wide setup
 
@@ -166,3 +166,13 @@ Then after the cmake configure stage (if using CMake >= 3.14) you'll get a list 
 ├── target-O2exe-ccdb-standalone-client-Debug-aaff2add767f9b354708.json
 
 ```
+
+## Step 2
+
+This step is trying to get the GPU targets back in business. There are three versionsto consider: [HIP](GPU/GPUTracking/Base/hip), [OpenCL](GPU/GPUTracking/Base/opencl) and CUDA (for [TPC](GPU/GPUTracking/Base/cuda) and [ITS](Detectors/ITSMFT/ITS/tracking/cuda)).
+
+In the `GPUTracking` all the AliRoot-specific references has been removed. They will need to be put back there if needed.
+
+This step was tested on a CentOS7 server with OpenCL, HIP and CUDA dev. kits installed.
+
+This step also brings a temporary [O2RecipeAdapter](dependencies/O2RecipeAdapter.cmake) cmake include to be able to test this without having to modify (too much at least) the existing o2 recipe and CI.
