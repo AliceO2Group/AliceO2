@@ -18,8 +18,9 @@ o2_add_executable(epn-receiver
                   PUBLIC_LINK_LIBRARIES O2::FLP2EPNex_distributed
                   COMPONENT_NAME example)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in
-               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn-distributed.sh)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn-distributed.sh)
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/test/testFLP2EPN-distributed.sh.in
   ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/o2-test-flp2epn-distributed.sh
@@ -46,11 +47,11 @@ install(
   FILES
     ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn-distributed.sh
     ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/o2-test-flp2epn-distributed.sh
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 install(
   FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn-prototype.json
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn-prototype-dds.json
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn-dds-topology.xml
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn-dds-hosts.cfg
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/config)
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/config)

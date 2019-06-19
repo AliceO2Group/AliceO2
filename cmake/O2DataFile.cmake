@@ -32,8 +32,16 @@ function(o2_data_file)
     message(FATAL_ERROR "DESTINATION should be a relative path")
   endif()
 
-  install(DIRECTORY ${A_COPY}
-          DESTINATION ${CMAKE_INSTALL_DATADIR}/${A_DESTINATION})
+  foreach(D IN LISTS A_COPY)
+    get_filename_component(adir ${D} ABSOLUTE)
+    if(IS_DIRECTORY ${adir})
+      install(DIRECTORY ${D}
+              DESTINATION ${CMAKE_INSTALL_DATADIR}/${A_DESTINATION})
+    else()
+
+      install(FILES ${D} DESTINATION ${CMAKE_INSTALL_DATADIR}/${A_DESTINATION})
+    endif()
+  endforeach()
 
   file(
     COPY ${A_COPY}

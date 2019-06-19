@@ -65,9 +65,9 @@ o2_add_executable(standalone-client
                   COMPONENT_NAME ccdb
                   PUBLIC_LINK_LIBRARIES O2::CCDB)
 
-install(FILES config/conditions-server.json config/conditions-client.json
-              example/fill_local_ocdb.C
-        DESTINATION bin/config)
+o2_data_file(COPY config/conditions-server.json config/conditions-client.json
+                  example/fill_local_ocdb.C
+             DESTINATION config)
 
 o2_add_test(WriteReadAny
             SOURCES test/testWriteReadAny.cxx

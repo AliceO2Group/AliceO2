@@ -55,9 +55,7 @@ o2_add_executable(tpc
                   SOURCES runTPC.cxx
                   PUBLIC_LINK_LIBRARIES allsim O2::TPCReconstruction)
 
-install(FILES o2simtopology.json DESTINATION ${CMAKE_INSTALL_DATADIR}/config)
-file(COPY o2simtopology.json
-     DESTINATION ${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR}/config)
+          o2_data_file(COPY o2simtopology.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
 #   perform

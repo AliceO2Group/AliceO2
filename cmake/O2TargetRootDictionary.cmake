@@ -172,6 +172,6 @@ function(o2_target_root_dictionary)
   get_filename_component(dict ${dictionaryFile} NAME_WE)
   install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${baseTargetName}.rootmap
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${dict}_rdict.pcm
-                DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+                DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endfunction()
