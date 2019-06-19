@@ -15,6 +15,10 @@
 #include <functional>
 #include "MemoryResources/observer_ptr.h"
 
+/// exclude from doxygen, TODO: we might want to do this on a higher level
+/// because of doxygen's autolinking of references, all 'A' are displayed as
+/// reference to this struct.
+/// @cond
 struct A {
   int i{ 2 };
   int get() const { return i; }
@@ -126,3 +130,4 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
     BOOST_CHECK(std::hash<o2::observer_ptr<int>>()(p) == std::hash<int*>()(p.get()));
   }
 }
+// @endcond
