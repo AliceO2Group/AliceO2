@@ -169,10 +169,10 @@ Then after the cmake configure stage (if using CMake >= 3.14) you'll get a list 
 
 ## Step 2
 
-This step is trying to get the GPU targets back in business. There are three versionsto consider: [HIP](GPU/GPUTracking/Base/hip), [OpenCL](GPU/GPUTracking/Base/opencl) and CUDA (for [TPC](GPU/GPUTracking/Base/cuda) and [ITS](Detectors/ITSMFT/ITS/tracking/cuda)).
+This step is trying to get the GPU targets back in business. There are three versionsto consider: [HIP](../GPU/GPUTracking/Base/hip), [OpenCL](../GPU/GPUTracking/Base/opencl) and CUDA (for [TPC](..GPU/GPUTracking/Base/cuda) and [ITS](../Detectors/ITSMFT/ITS/tracking/cuda)).
 
 In the `GPUTracking` all the AliRoot-specific references has been removed. They will need to be put back there if needed.
 
 This step was tested on a CentOS7 server with OpenCL, HIP and CUDA dev. kits installed.
 
-This step also brings a temporary [O2RecipeAdapter](dependencies/O2RecipeAdapter.cmake) cmake include to be able to test this without having to modify (too much at least) the existing o2 recipe and CI.
+This step also brings a temporary [O2RecipeAdapter](../dependencies/O2RecipeAdapter.cmake) cmake include to be able to test this without having to modify (too much at least) the existing o2 recipe and CI.
