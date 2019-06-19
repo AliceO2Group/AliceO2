@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <variant>
 #include <unordered_set>
+#include <tuple>
 
 namespace o2
 {
@@ -208,13 +209,12 @@ class MakeRootTreeWriterSpec
       SkipProcessing,
     };
     /// Callback to be checked before processing of an input object, return value determines whether to process
-    /// or skip inputs
-    /// @param [IN]  dataref  the DPL DataRef object
-    /// @param [OUT] isReady  indicate whether process is ready
-    /// @return TerminationCondition::Action
-    using CheckProcessing = std::function<TerminationCondition::Action(framework::DataRef const& data, bool&)>;
+    /// or skip inputs, and whether to consider an input as 'ready'
+    /// @param dataref  the DPL DataRef object
+    /// @return std::tuple of <TerminationCondition::Action, bool>
+    using CheckProcessing = std::function<std::tuple<TerminationCondition::Action, bool>(framework::DataRef const&)>;
     /// Callback to be checked after processing of an input object to check if process is ready
-    /// @param [IN]  dataref  the DPL DataRef object
+    /// @param dataref  the DPL DataRef object
     /// @return true if ready
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
 
@@ -337,16 +337,16 @@ class MakeRootTreeWriterSpec
 
         // if the termination condition contains function of type CheckProcessing, this is checked
         // before the processing, currently implemented logic:
-        // - processing is skipped if this is indicated at least one input
-        // - treated as 'ready' if this is  indicated at least one input
+        // - processing is skipped if this is indicated by at least one input
+        // - if input is 'ready' it is removed from the list of active inputs
         auto checkProcessing = [&terminationCondition, &activeInputs](auto const& inputs) {
           bool doProcessing = true;
           if (std::holds_alternative<TerminationCondition::CheckProcessing>(terminationCondition.check)) {
             auto& check = std::get<TerminationCondition::CheckProcessing>(terminationCondition.check);
             for (auto const& ref : inputs) {
-              bool ready = false;
               auto iter = activeInputs.find(ref.spec->binding);
-              if (check(ref, ready) == TerminationCondition::Action::SkipProcessing) {
+              auto [action, ready] = check(ref);
+              if (action == TerminationCondition::Action::SkipProcessing) {
                 // this condition tells us not to process the data any further
                 doProcessing = false;
               }
@@ -359,7 +359,8 @@ class MakeRootTreeWriterSpec
           return doProcessing;
         };
         // if the termination condition contains function of type CheckReady, this is checked
-        // after the processing, treated as 'ready' if indicated by at least one input
+        // after the processing. All inputs marked 'ready' are removed from the list of active inputs,
+        // process treated as 'ready' if no active inputs
         auto checkReady = [&terminationCondition, &activeInputs](auto const& inputs) {
           if (std::holds_alternative<TerminationCondition::CheckReady>(terminationCondition.check)) {
             auto& check = std::get<TerminationCondition::CheckReady>(terminationCondition.check);
