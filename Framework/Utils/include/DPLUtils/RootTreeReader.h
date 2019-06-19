@@ -52,40 +52,76 @@ struct DefaultKey {
 } // namespace rtr
 
 /// @class RootTreeReader
-/// A generic reader interface for ROOT TTrees
+/// @brief A generic reader interface for ROOT TTrees
 ///
 /// The reader interfaces one TTree specified by its name, and supports this
 /// tree to be distributed over multiple files.
 ///
 /// The class uses a KeyType to define sinks for specific branches, the default
-/// key type is DPL `Output`. Branches are defined for processing by pairs of
-/// key type and branch name.
-/// Note that `Output` is probably going to be changed to `OutputDesc`
+/// key type is DPL \ref framework::Output. Branches are defined for processing
+/// by pairs of key type and branch name.
 ///
-/// Usage (for the default KeyType):
-///   RootTreeReader(treename,
-///                  filename1, filename2, ...,
-///                  Output{...}, branchname1,
-///                  Output{...}, branchname2,
-///                 ) reader;
-///   auto processSomething = [] (auto& key, auto& object) {/*do something*/};
-///   while (reader.next()) {
-///     reader.process(processSomething);
-///   }
-///   // -- or --
-///   while ((++reader)(processSomething));
+/// \par Usage, with some KeyType:
+/// The first argument is the tree name, the list of files is variable, all files
+/// must be passed before the first key-branchname pair.
 ///
-/// In the DPL AlgorithmSpec, the processing lambda can simply look like
-///   auto processingFct = [reader](ProcessingContext& pc) {
-///     // increment the reader and invoke it for the processing context
-///     (++reader)(pc);
-///   };
+///     RootTreeReader(treename,
+///                    filename1, filename2, ...,
+///                    KeyType{...}, branchname1,
+///                    KeyType{...}, branchname2,
+///                   ) reader;
+///     auto processSomething = [] (auto& key, auto& object) {
+///       // do something
+///     };
+///     while (reader.next()) {
+///       reader.process(processSomething);
+///     }
 ///
+/// \par Further optional constructor arguments
+/// Optional arguments can follow in arbitrary sequence, but all arguments must be passed
+/// before the first branch definition.
+///    - number of entries \a n (\c int)
+///    - publishing mode, \ref PublishingMode
+///
+/// \par Integration into DPL:
+/// The class defines the functor operator which takes the DPL ProcessingContext
+/// as argument and optionally an argument pack of headers which inherit from BaseHeader,
+/// the latter will form the header stack of the message.
+///
+///     auto reader = std::make_shared<RootTreeReader>(treename,
+///                                                    filename1, filename2, ...,
+///                                                    Output{...}, branchname1,
+///                                                    Output{...}, branchname2,
+///                                                   );
+///     // In the DPL AlgorithmSpec, the processing lambda can simply look like:
+///     // (note that the shared pointer is propagated by copy)
+///     auto processingFct = [reader](ProcessingContext& pc) {
+///       // increment the reader and invoke it for the processing context
+///       if (reader->next()) {
+///         SomeHeader specificHeader;
+///         reader(pc, specificHeader);
+///       } else {
+///         // no more data
+///       }
+///     }
+///
+///     // another example, simply incrementing by operator++ and providing additional
+///     // custom header
+///     auto someOtherProcessingFct = [reader](ProcessingContext& pc) {
+///       // increment the reader and invoke it for the processing context
+///       SomeHeader specificHeader;
+///       if ((++reader)(pc, specificHeader) == false) {
+///         // no more data
+///       }
+///     }
+///
+/// \par Binary format:
 /// The reader supports the binary format of the RootTreeWriter as counterpart.
 /// Binary data is stored as vector of char alongside with a branch storing the
 /// size, as both indicator and consistency check.
 ///
-/// Note that `reader` has to be set up in the init callback and it must
+/// \note
+/// In the examples, `reader` has to be set up in the init callback and it must
 /// be static there to persist. It can also be a shared_pointer, which then
 /// requires additional dereferencing in the syntax. The processing lambda has
 /// to capture the shared pointer instance by copy.
@@ -100,8 +136,11 @@ class GenericRootTreeReader
   // with ROOT objects like the MC labels.
   using BinaryDataStoreType = std::vector<char>;
 
+  /// Publishing mode determines what to do when the number of entries in the tree is reached
   enum struct PublishingMode {
+    /// no more data after end of tree
     Single,
+    /// start over at entry 0
     Loop,
   };
   // the key must not be of type const char* to make sure that the variable argument
@@ -271,8 +310,7 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
-  /// this is the first part pasing all the file name, stops when the first key
-  /// is found
+  /// this is the first part passing all the file names before the first key
   template <typename... Args>
   void parseConstructorArgs(const char* fileName, Args&&... args)
   {
@@ -281,8 +319,7 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
-  /// handles the number-of-entries argument, stops when the first key
-  /// is found
+  /// handles the number-of-entries argument
   template <typename T, typename... Args>
   typename std::enable_if_t<std::is_same<T, int>::value == true> parseConstructorArgs(T nMaxEntries, Args&&... args)
   {
@@ -291,8 +328,7 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
-  /// handles the publishing mode argument, stops when the first key
-  /// is found
+  /// handles the publishing mode argument
   template <typename T, typename... Args>
   typename std::enable_if_t<std::is_same<T, PublishingMode>::value == true> parseConstructorArgs(T mode, Args&&... args)
   {
