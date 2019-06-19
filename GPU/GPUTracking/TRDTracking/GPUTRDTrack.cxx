@@ -203,6 +203,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   }
 }
 
+#ifndef GPUCA_GPUCODE
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -213,6 +214,7 @@ template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #ifdef GPUCA_O2_LIB // Instantiate O2 track version
 // Not yet existing
 #endif
-template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GPU track version
+template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GM track version
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+#endif

@@ -227,7 +227,7 @@ $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
 								
 $(WORKPATH)/hip/%.$(OBJ):		%.hip.cpp $(ALLDEP)
-								$(HIPCC) $(CLANGFLAGSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -c $< -o $@
+								$(HIPCC) $(CLANGFLAGSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-unused-private-field -c $< -o $@
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
 								$(ASM) $(COMPILEOUTPUT) $(ASMONLY) $<
