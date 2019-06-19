@@ -115,9 +115,9 @@ static void configITS(Detector* its)
   its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
-  const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
+  const double wrpRMin[kNWrapVol] = { 2.1, 19.3, 32.0 };
   const double wrpRMax[kNWrapVol] = { 14.0, 30.0, 46.0 };
-  const double wrpZSpan[kNWrapVol] = { 70., 95., 200. };
+  const double wrpZSpan[kNWrapVol] = { 70., 93., 160. };
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
