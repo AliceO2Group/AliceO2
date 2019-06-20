@@ -121,7 +121,15 @@ function(o2_target_root_dictionary)
   set(prop "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
   set(defs $<$<BOOL:${prop}>:-D$<JOIN:${prop}, -D>>)
 
-  get_filename_component(rlibpath ${ROOT_Core_LIBRARY} DIRECTORY)
+  # Build the LD_LIBRARY_PATH required to get rootcling running fine
+  #
+  # Need at least root core library
+  get_filename_component(LD_LIBRARY_PATH ${ROOT_Core_LIBRARY} DIRECTORY)
+  # and possibly toolchain libs if we are using a toolchain
+  if(DEFINED ENV{GCC_TOOLCHAIN_ROOT})
+    set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:$ENV{GCC_TOOLCHAIN_ROOT}/lib")
+    set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:$ENV{GCC_TOOLCHAIN_ROOT}/lib64")
+  endif()
 
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off
@@ -129,7 +137,7 @@ function(o2_target_root_dictionary)
     OUTPUT ${dictionaryFile}
     VERBATIM
     COMMAND
-    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${rlibpath}:${LD_LIBRARY_PATH} ${ROOT_rootcling_CMD}
+    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ${ROOT_rootcling_CMD}
       -f
       ${dictionaryFile}
       -inlineInputHeader
@@ -151,8 +159,8 @@ function(o2_target_root_dictionary)
 
   # add dictionary source to the target sources
   target_sources(${target} PRIVATE ${dictionaryFile})
-  
-  # a target that has a Root dictionary has to depend on ... Root 
+
+  # a target that has a Root dictionary has to depend on ... Root
   target_link_libraries(${target} PUBLIC ROOT::RIO)
 
   # Get the list of include directories that will be required to compile the
@@ -172,6 +180,6 @@ function(o2_target_root_dictionary)
   get_filename_component(dict ${dictionaryFile} NAME_WE)
   install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libO2${baseTargetName}.rootmap
                 ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${dict}_rdict.pcm
-                DESTINATION ${CMAKE_INSTALL_LIBDIR})
+          DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endfunction()
