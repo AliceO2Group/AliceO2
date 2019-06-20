@@ -304,9 +304,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} ${HDRS2} DESTINATION include/GPU)
-    install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
     install(DIRECTORY Standalone/utils DESTINATION include/GPU FILES_MATCHING PATTERN *.h)
-    install(DIRECTORY Standalone/utils DESTINATION include/AliTPCCommon FILES_MATCHING PATTERN *.h)
 
     set(TEST_SRCS
       ctest/testGPUTracking.cxx
