@@ -258,9 +258,8 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
   print("Looking for candidates between chamber ", ch1, " and ", ch2);
 
   double z1(0.), z2(0.), dZ(0.);
-  double nonBendingSlope(0.), nonBendingSlopeErr(0.), nonBendingImpactParam(0.), nonBendingImpactParamErr(0.);
-  double bendingSlope(0.), bendingSlopeErr(0.);
-  double bendingImpactParam(0.), bendingImpactParamErr(0.), bendingImpactParamErr2(0.);
+  double nonBendingSlope(0.), nonBendingImpactParam(0.), nonBendingImpactParamErr(0.);
+  double bendingSlope(0.), bendingImpactParam(0.), bendingImpactParamErr(0.), bendingImpactParamErr2(0.);
   double bendingMomentum(0.), bendingMomentumErr(0.);
   double bendingVertexDispersion2 = SBendingVertexDispersion * SBendingVertexDispersion;
 
