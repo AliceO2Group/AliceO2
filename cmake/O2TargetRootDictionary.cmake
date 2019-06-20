@@ -129,7 +129,7 @@ function(o2_target_root_dictionary)
     OUTPUT ${dictionaryFile}
     VERBATIM
     COMMAND
-    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${rlibpath} ${ROOT_rootcling_CMD}
+    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${rlibpath}:${LD_LIBRARY_PATH} ${ROOT_rootcling_CMD}
       -f
       ${dictionaryFile}
       -inlineInputHeader
