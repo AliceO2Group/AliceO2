@@ -104,11 +104,11 @@ constant uchar OUTER_TO_INNER[16] =
 };
 
 
-void toNative(const PartialCluster *cluster, charge_t qmax, ClusterNative *cn)
+void toNative(const PartialCluster *cluster, charge_t qmax, uchar flags, ClusterNative *cn)
 {
     cn->qmax = qmax;
     cn->qtot = cluster->Q;
-    cnSetTimeFlags(cn, cluster->timeMean, 0);
+    cnSetTimeFlags(cn, cluster->timeMean, flags);
     cnSetPad(cn, cluster->padMean);
     cnSetSigmaTime(cn, cluster->timeSigma);
     cnSetSigmaPad(cn, cluster->padSigma);
@@ -875,8 +875,11 @@ void computeClusters(
     finalize(&pc, &myDigit);
 
 #if defined(CLUSTER_NATIVE_OUTPUT)
+    bool isEdgeCluster = (myDigit.pad < 2 || myDigit.pad >= TPC_PADS_PER_ROW-2);
+
+    uchar flags = isEdgeCluster;
     ClusterNative myCluster;
-    toNative(&pc, myDigit.charge, &myCluster);
+    toNative(&pc, myDigit.charge, flags, &myCluster);
 #else
     Cluster myCluster;
     toRegular(

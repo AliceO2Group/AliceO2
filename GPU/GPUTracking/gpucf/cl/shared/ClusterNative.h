@@ -30,6 +30,14 @@ typedef struct ClusterNative_s
 } ClusterNative;
 
 
+enum CnFlag
+{
+    CN_FLAG_IS_EDGE_CLUSTER = (1 << 0),
+    CN_FLAG_SPLIT_IN_TIME   = (1 << 1),
+    CN_FLAG_SPLIT_IN_PAD    = (1 << 2),
+};
+
+
 inline SHARED_USHORT cnPackPad(SHARED_FLOAT pad)
 {
     return CAST(SHARED_USHORT, pad * CN_SCALE_PAD_PACKED + 0.5f);
