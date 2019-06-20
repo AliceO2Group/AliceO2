@@ -1,6 +1,6 @@
 o2_add_library(CommonDataFormat
                SOURCES src/InteractionRecord.cxx src/BunchFilling.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::CommonGPU
+               PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
                                      ROOT::Core FairRoot::Base)
 
 o2_target_root_dictionary(CommonDataFormat
@@ -13,9 +13,9 @@ o2_target_root_dictionary(CommonDataFormat
 o2_add_test(TimeStamp
             SOURCES test/testTimeStamp.cxx
             COMPONENT_NAME CommonDataFormat
-            PUBLIC_LINK_LIBRARIES CommonDataFormat)
+            PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
 
 o2_add_test(RangeRef
             SOURCES test/testRangeRef.cxx
             COMPONENT_NAME CommonDataFormat
-            PUBLIC_LINK_LIBRARIES CommonDataFormat)
+            PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
