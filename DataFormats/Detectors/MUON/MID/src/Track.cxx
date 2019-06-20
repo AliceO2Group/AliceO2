@@ -78,6 +78,9 @@ bool Track::propagateToZ(float zPosition)
   /// A linear extraplation is performed
 
   // Nothing to be done if we're already at zPosition
+  // Notice that the z position is typically the z of the cluster,
+  // which is provided in float precision as well.
+  // So it is typically a well defined value, hence the strict equality
   if (mPosition[2] == zPosition) {
     return false;
   }

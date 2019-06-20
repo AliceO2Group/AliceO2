@@ -215,7 +215,7 @@ bool Tracker::followTrack(const Track& track, bool isRight, bool isInward)
   for (int ich = 0; ich < 2; ++ich) {
     findNextCluster(track, isRight, isInward, chamberOrder[ich], 0, 8, bestTrack);
     if (bestTrack.getNDF() == 4) {
-      // We already have a track with 4 clusters: non need to search for a track with only one cluster
+      // We already have a track with 4 clusters: no need to search for a track with only one cluster
       // in the next chamber
       break;
     }
@@ -226,7 +226,7 @@ bool Tracker::followTrack(const Track& track, bool isRight, bool isInward)
     finalizeTrack(bestTrack);
 
     // Add the track if it is not compatible or better than the ones we already have
-    if (addTrack(bestTrack)) {
+    if (tryAddTrack(bestTrack)) {
       return true;
     }
   }
@@ -391,7 +391,7 @@ void Tracker::finalizeTrack(Track& track)
 }
 
 //______________________________________________________________________________
-bool Tracker::addTrack(const Track& track)
+bool Tracker::tryAddTrack(const Track& track)
 {
   /// Checks if the track is duplicated.
   /// If it is identical to another track (same clusters), reject it.

@@ -53,7 +53,7 @@ class Tracker
 
  private:
   bool processSide(bool isRight, bool isInward);
-  bool addTrack(const Track& track);
+  bool tryAddTrack(const Track& track);
   bool followTrack(const Track& track, bool isRight, bool isInward);
   bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
