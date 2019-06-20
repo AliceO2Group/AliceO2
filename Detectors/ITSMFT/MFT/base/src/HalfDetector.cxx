@@ -70,4 +70,8 @@ void HalfDetector::createHalfDisks()
     mHalfVolume->AddNode(halfDisk->getVolume(), halfDiskId, halfDiskSeg->getTransformation());
     delete halfDisk;
   }
+  TGeoVolumeAssembly* mHalfPSU = mPSU->create();
+  TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU",0,0.4, -72.6 + 46.0);
+  tHalfPSU->RegisterYourself();
+  mHalfVolume->AddNode(mHalfPSU,0,tHalfPSU);                   
 }
