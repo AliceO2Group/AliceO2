@@ -45,6 +45,7 @@
 #endif
 #include "utils/timer.h"
 
+#include "TPCFastTransform.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include <vector>
@@ -165,6 +166,14 @@ int ReadConfiguration(int argc, char** argv)
     printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n");
     return (1);
   }
+  if (configStandalone.configTF.nMerge) {
+    double len = configStandalone.configTF.nMerge - 1;
+    if (configStandalone.configTF.randomizeDistance)
+      len += 0.5;
+    if (configStandalone.configTF.shiftFirstEvent)
+      len += 0.5;
+    configStandalone.configTF.timeFrameLen = (len * configStandalone.configTF.averageDistance / GPUReconstructionTimeframe::TPCZ + 1) * GPUReconstructionTimeframe::DRIFT_TIME;
+  }
   if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {
     printf("Can only produce QA pdf output when input files are specified!\n");
     return (1);
@@ -232,11 +241,20 @@ int SetupReconstruction()
   if (configStandalone.constBz) {
     ev.constBz = true;
   }
-  if (configStandalone.cont) {
-    ev.continuousMaxTimeBin = -1;
+  if (configStandalone.configTF.nMerge || configStandalone.configTF.bunchSim) {
+    if (ev.continuousMaxTimeBin) {
+      printf("ERROR: requested to overlay continuous data - not supported\n");
+      return 1;
+    }
+    if (!configStandalone.cont) {
+      printf("Continuous mode forced\n");
+      configStandalone.cont = true;
+    }
+    if (chainTracking->GetTPCTransform()) {
+      ev.continuousMaxTimeBin = configStandalone.configTF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
+    }
   }
-  if (ev.continuousMaxTimeBin == 0 && (configStandalone.configTF.nMerge || configStandalone.configTF.bunchSim)) {
-    printf("Continuous mode forced\n");
+  if (configStandalone.cont && ev.continuousMaxTimeBin == 0) {
     ev.continuousMaxTimeBin = -1;
   }
   if (rec->GetDeviceType() == GPUReconstruction::DeviceType::CPU) {
@@ -320,6 +338,9 @@ int SetupReconstruction()
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, false);
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
   }
+  if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
+  }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
@@ -342,16 +363,10 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
-  bool convertRun2Raw = false;
-  for (int i = 0; i < chainTracking->NSLICES; i++) {
-    if (chainTracking->mIOPtrs.rawClusters[i]) {
-      convertRun2Raw = true;
-    }
-  }
-  if (convertRun2Raw) {
-    chainTracking->ConvertRun2RawToNative();
-  }
   if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
+    if (configStandalone.DebugLevel >= 2) {
+      printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
+    }
     chainTracking->ConvertNativeToClusterDataLegacy();
   }
   return 0;
@@ -422,7 +437,9 @@ int main(int argc, char** argv)
         }
         nEvents = nEventsInDirectory;
       }
-      nEvents /= (configStandalone.configTF.nMerge > 1 ? configStandalone.configTF.nMerge : 1);
+      if (configStandalone.configTF.nMerge > 1) {
+        nEvents /= configStandalone.configTF.nMerge;
+      }
     }
 
     for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
@@ -455,6 +472,16 @@ int main(int argc, char** argv)
             break;
           }
         }
+        for (int i = 0; i < chainTracking->NSLICES; i++) {
+          if (chainTracking->mIOPtrs.rawClusters[i]) {
+            if (configStandalone.DebugLevel >= 2) {
+              printf("Converting Legacy Raw Cluster to Native\n");
+            }
+            chainTracking->ConvertRun2RawToNative();
+            break;
+          }
+        }
+
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
 
         printf("Processing Event %d\n", iEvent);

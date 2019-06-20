@@ -186,6 +186,9 @@ class TPCFastTransform : public FlatObject
   /// Gives Z length of the TPC, side C
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
+  /// Return mVDrift in cm / time bin
+  GPUd() float getVDrift() const { return mVdrift; }
+
   /// Print method
   void Print() const;
 
