@@ -69,12 +69,14 @@ o2_data_file(COPY config/conditions-server.json config/conditions-client.json
                   example/fill_local_ocdb.C
              DESTINATION config)
 
-o2_add_test(WriteReadAny
-            SOURCES test/testWriteReadAny.cxx
-            COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES O2::CCDB)
+if(NOT APPLE)
+  o2_add_test(WriteReadAny
+              SOURCES test/testWriteReadAny.cxx
+              COMPONENT_NAME ccdb
+              PUBLIC_LINK_LIBRARIES O2::CCDB)
 
-o2_add_test(CcdbApi
-            SOURCES test/testCcdbApi.cxx
-            COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES O2::CCDB)
+  o2_add_test(CcdbApi
+              SOURCES test/testCcdbApi.cxx
+              COMPONENT_NAME ccdb
+              PUBLIC_LINK_LIBRARIES O2::CCDB)
+endif()
