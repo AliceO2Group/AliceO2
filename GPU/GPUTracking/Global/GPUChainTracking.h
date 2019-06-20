@@ -171,6 +171,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int PrepareProfile();
   int DoProfile();
 
+  bool ValidateSteps();
+
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
   GPUTrackingFlatObjects mFlatObjectsDevice; // flat objects that will be used on the GPU
@@ -182,7 +184,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
   bool mQAInitialized = false;
 
-  // Ptr to reconstruction detecto objects
+  // Ptr to reconstruction detector objects
   std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess; // Internal memory for clusterNativeAccess
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;         // Global TPC fast transformation object
   const TPCFastTransform* mTPCFastTransform = nullptr;          //

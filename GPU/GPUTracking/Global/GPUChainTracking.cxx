@@ -125,6 +125,72 @@ void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
   pageLockedHostMem = GPUCA_HOST_MEMORY_SIZE;
 }
 
+bool GPUChainTracking::ValidateSteps()
+{
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) {
+    printf("Invalid Reconstruction Step Setting: dEdx requires TPC Merger to be active\n");
+    return false;
+  }
+  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCdEdx) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging)) {
+    printf("Invalid GPU Reconstruction Step Setting: dEdx requires TPC Merger to be active\n");
+    return false;
+  }
+#ifndef GPUCA_ALIROOT_LIB
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
+    printf("Invalid Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
+    return false;
+  }
+  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion)) {
+    printf("Invalid GPU Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
+    return false;
+  }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters)) {
+    printf("Invalid Inputs, TPC Clusters required\n");
+    return false;
+  }
+#endif
+  if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion) ||
+       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) ||
+       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) ||
+       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx)) &&
+      !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters)) {
+    printf("Invalid Inputs, TPC Clusters required\n");
+    return false;
+  }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking))) {
+    printf("Input for TPC merger missing\n");
+    return false;
+  }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) && !((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCMergedTracks) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging))) {
+    printf("Input for TPC compressor missing\n");
+    return false;
+  }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) && (!((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCMergedTracks) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) || !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TRDTracklets))) {
+    printf("Input for TRD Tracker missing\n");
+    return false;
+  }
+  if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TRDTracklets)) {
+    printf("TPC Clusters / TRD Tracklets cannot be output\n");
+    return false;
+  }
+  if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking)) {
+    printf("No TPC Slice Tracker Output available\n");
+    return false;
+  }
+  if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCMergedTracks) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging)) {
+    printf("No TPC Merged Track Output available\n");
+    return false;
+  }
+  if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCCompressedClusters) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression)) {
+    printf("No TPC Compression Output available\n");
+    return false;
+  }
+  if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TRDTracks) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking)) {
+    printf("No TRD Tracker Output available\n");
+    return false;
+  }
+  return true;
+}
 int GPUChainTracking::Init()
 {
   if (GetDeviceProcessingSettings().debugLevel >= 1) {
@@ -138,6 +204,10 @@ int GPUChainTracking::Init()
       }
     }
     printf("\n");
+  }
+  if (!ValidateSteps()) {
+    printf("Invalid GPU Reconstruction Step / Input / Output configuration\n");
+    return 1;
   }
 
   if (GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay)) {
