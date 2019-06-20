@@ -59,5 +59,4 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} ${HDRS2} DESTINATION include/GPU)
-    install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
 endif()
