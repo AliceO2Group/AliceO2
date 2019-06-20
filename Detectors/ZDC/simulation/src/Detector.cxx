@@ -297,8 +297,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int pdgCode = fMC->TrackPid();
   float lightoutput = 0.;
   auto currentMediumid = fMC->CurrentMedium();
-  int ibeta = 0, iangle = 0, iradius = 0, nphe = 0;
+  int nphe = 0;
   if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
+    int ibeta = 0, iangle = 0, iradius = 0;
     Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
     if (isLightProduced) {
       int charge = 0;
