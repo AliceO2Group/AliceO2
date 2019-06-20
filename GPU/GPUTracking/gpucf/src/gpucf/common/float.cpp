@@ -20,7 +20,7 @@ static constexpr Bits fractionBitMask =
     ~static_cast<Bits>(0) >> (exponentBitCount + 1);
 static constexpr Bits exponentBitMask = ~(signBitMask | fractionBitMask);
 
-static constexpr size_t maxUlps = 1 << 16;
+static constexpr size_t maxUlps = 1 << 20;
 
 
 
