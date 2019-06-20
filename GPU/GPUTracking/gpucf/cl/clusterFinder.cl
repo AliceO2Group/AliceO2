@@ -142,6 +142,11 @@ void updateCluster(PartialCluster *cluster, charge_t charge, delta_t dp, delta_t
     cluster->timeSigma += charge*dt*dt;
 }
 
+bool isAtEdge(const Digit *d)
+{
+    return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW-2);
+}
+
 void addOuterCharge(
         global const charge_t       *chargeMap,
                      PartialCluster *cluster, 
@@ -607,6 +612,16 @@ void finalize(
 
     pc->padMean  += myDigit->pad;
     pc->timeMean += myDigit->time;
+
+#if defined(CORRECT_EDGE_CLUSTERS)
+    if (isAtEdge(myDigit) 
+            && fabs(pc->padMean - (charge_t)myDigit->pad) > 0.0f
+            && fabs(pc->timeMean - (charge_t)myDigit->time) > 0.0f)
+    {
+        pc->padMean = myDigit->pad; 
+        pc->timeMean = myDigit->time;
+    }
+#endif
 }
 
 char countPeaksAroundDigit(
@@ -875,7 +890,7 @@ void computeClusters(
     finalize(&pc, &myDigit);
 
 #if defined(CLUSTER_NATIVE_OUTPUT)
-    bool isEdgeCluster = (myDigit.pad < 2 || myDigit.pad >= TPC_PADS_PER_ROW-2);
+    bool isEdgeCluster = isAtEdge(&myDigit);
 
     uchar flags = isEdgeCluster;
     ClusterNative myCluster;

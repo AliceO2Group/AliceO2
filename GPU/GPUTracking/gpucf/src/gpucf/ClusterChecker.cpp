@@ -206,7 +206,7 @@ bool ClusterChecker::verify(
         FEQ_EPSILON_BIG,
         Cluster::Field_timeMean | Cluster::Field_padMean);
 
-    printDuplicates(clusters, Cluster::Field_all ^ Cluster::Field_QMax);
+    /* printDuplicates(clusters, Cluster::Field_all ^ Cluster::Field_QMax); */
 
     size_t brokenClusters = 0;
     size_t nansFound = 0;
