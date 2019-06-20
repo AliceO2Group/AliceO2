@@ -21,10 +21,10 @@ endif()
 
 mark_as_advanced(RapidJSON_INC)
 
+get_filename_component(incdir ${RapidJSON_INC}/.. ABSOLUTE)
+
 if(RapidJSON_FOUND AND NOT TARGET RapidJSON::RapidJSON)
   add_library(RapidJSON::RapidJSON IMPORTED INTERFACE)
   set_target_properties(RapidJSON::RapidJSON
-                        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                   "${RapidJSON_INC}/..")
-  message(STATUS "RapidJSON::RapidJSON target defined")
+                        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${incdir})
 endif()

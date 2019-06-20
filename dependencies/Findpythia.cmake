@@ -4,7 +4,6 @@ find_path(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR
 
 find_library(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED
              NAMES libpythia8.so libpythia8.dylib)
-# PATHS ${${CMAKE_FIND_PACKAGE_NAME}_ROOT}/lib)
 
 find_path(${CMAKE_FIND_PACKAGE_NAME}_DATA
           NAMES MainProgramSettings.xml
@@ -14,11 +13,12 @@ if(${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR
    AND ${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED
    AND ${CMAKE_FIND_PACKAGE_NAME}_DATA)
   add_library(pythia SHARED IMPORTED)
+  get_filename_component(incdir ${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR}/..
+                         ABSOLUTE)
   set_target_properties(pythia
                         PROPERTIES IMPORTED_LOCATION
                                    ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED}
-                                   INTERFACE_INCLUDE_DIRECTORIES
-                                   ${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR}/..)
+                                   INTERFACE_INCLUDE_DIRECTORIES ${incdir})
 endif()
 
 include(FindPackageHandleStandardArgs)

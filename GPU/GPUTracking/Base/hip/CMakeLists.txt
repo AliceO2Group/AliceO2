@@ -13,7 +13,7 @@ if(NOT EXISTS ${HIP_PATH})
 endif()
 
 set(hip_ROOT ${HIP_PATH})
-set(hcc_ROOT ${hip_ROOT}/../hcc)
+get_filename_component(hcc_ROOT ${hip_ROOT}/../hcc ABSOLUTE)
 
 find_package(hip REQUIRED)
 
