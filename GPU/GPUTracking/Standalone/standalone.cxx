@@ -311,14 +311,20 @@ int SetupReconstruction()
   if (configStandalone.configRec.runTRD != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
   }
-  if (!configStandalone.merger) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
-  }
   if (configStandalone.configRec.rundEdx != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
   }
+  if (!configStandalone.merger) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
+    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, false);
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
+  }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TRDTracks);
+  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
 
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
