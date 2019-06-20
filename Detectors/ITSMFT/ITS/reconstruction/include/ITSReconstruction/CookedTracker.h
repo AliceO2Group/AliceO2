@@ -54,10 +54,9 @@ class CookedTracker
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
 
-  void setVertices(std::vector<Vertex>& vertices)
+  void setVertices(const std::vector<Vertex>& vertices)
   {
-    mVertices.clear();
-    mVertices = std::move(vertices);
+    mVertices = &vertices;
   }
 
   Double_t getX() const { return mX; }
@@ -120,7 +119,7 @@ class CookedTracker
 
   Double_t mBz; ///< Effective Z-component of the magnetic field (kG)
 
-  std::vector<Vertex> mVertices;
+  const std::vector<Vertex>* mVertices = nullptr;
   Double_t mX = 0.; ///< X-coordinate of the primary vertex
   Double_t mY = 0.; ///< Y-coordinate of the primary vertex
   Double_t mZ = 0.; ///< Z-coordinate of the primary vertex
