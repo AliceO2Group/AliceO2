@@ -30,12 +30,12 @@ ClassImp(o2::mft::HalfDetector);
 /// \brief Default constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr), mPSU(NULL){}
+HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr), mPSU(nullptr) {}
 
 /// \brief Constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg), mPSU(NULL)
+HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg), mPSU(nullptr)
 {
 
   Geometry* mftGeom = Geometry::instance();
@@ -48,7 +48,7 @@ HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullpt
 
   mHalfVolume = new TGeoVolumeAssembly(GetName());
 
-  mPSU        = new PowerSupplyUnit();
+  mPSU = new PowerSupplyUnit();
 
   createHalfDisks();
 }
@@ -71,7 +71,7 @@ void HalfDetector::createHalfDisks()
     delete halfDisk;
   }
   TGeoVolumeAssembly* mHalfPSU = mPSU->create();
-  TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU",0,0.4, -72.6 + 46.0);
+  TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU", 0, 0.4, -72.6 + 46.0);
   tHalfPSU->RegisterYourself();
-  mHalfVolume->AddNode(mHalfPSU,0,tHalfPSU);                   
+  mHalfVolume->AddNode(mHalfPSU, 0, tHalfPSU);
 }

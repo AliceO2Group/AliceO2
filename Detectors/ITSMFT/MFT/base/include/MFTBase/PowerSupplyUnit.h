@@ -22,25 +22,24 @@
 
 namespace o2
 {
-  namespace mft
-  {
-    
-    class PowerSupplyUnit : public TNamed
-    {
-      
-    public:
-      PowerSupplyUnit();
-      //PowerSupplyUnit(Double_t Rwater, Double_t DRPipe, Double_t PowerSupplyUnitThickness, Double_t CarbonThickness);
-      
-      ~PowerSupplyUnit() override = default;
-      
-      TGeoVolumeAssembly* create();
-      
-    private:
+namespace mft
+{
 
-      ClassDefOverride(PowerSupplyUnit, 2);
-    };
-  }
-}
+class PowerSupplyUnit : public TNamed
+{
+
+ public:
+  PowerSupplyUnit();
+  //PowerSupplyUnit(Double_t Rwater, Double_t DRPipe, Double_t PowerSupplyUnitThickness, Double_t CarbonThickness);
+
+  ~PowerSupplyUnit() override = default;
+
+  TGeoVolumeAssembly* create();
+
+ private:
+  ClassDefOverride(PowerSupplyUnit, 2);
+};
+} // namespace mft
+} // namespace o2
 
 #endif
