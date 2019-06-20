@@ -310,43 +310,25 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
-  /// this is the first part passing all the file names before the first key
-  template <typename... Args>
-  void parseConstructorArgs(const char* fileName, Args&&... args)
+  template <typename U, typename V, typename... Args>
+  void parseConstructorArgs(U key, V&& arg, Args&&... args)
   {
-    addFile(fileName);
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// handles the number-of-entries argument
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, int>::value == true> parseConstructorArgs(T nMaxEntries, Args&&... args)
-  {
-    mMaxEntries = nMaxEntries;
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// handles the publishing mode argument
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, PublishingMode>::value == true> parseConstructorArgs(T mode, Args&&... args)
-  {
-    mPublishingMode = mode;
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// parse the branch definitions with key and branch name.
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, int>::value == false && std::is_same<T, PublishingMode>::value == false>
-    parseConstructorArgs(T key, const char* name, Args&&... args)
-  {
-    if (name != nullptr && *name != 0) {
-      // add branch spec if the name is not empty
-      addBranchSpec(KeyType{ key }, name);
+    if constexpr (std::is_same<U, const char*>::value) {
+      addFile(key);
+      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
+    } else if constexpr (std::is_same<U, int>::value) {
+      mMaxEntries = key;
+      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
+    } else if constexpr (std::is_same<U, PublishingMode>::value) {
+      mPublishingMode = key;
+      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
+    } else {
+      if (arg != nullptr && *arg != 0) {
+        // add branch spec if the name is not empty
+        addBranchSpec(KeyType{ key }, arg);
+      }
+      parseConstructorArgs(std::forward<Args>(args)...);
     }
-    parseConstructorArgs(std::forward<Args>(args)...);
   }
 
   // this terminates the argument parsing
