@@ -277,6 +277,7 @@ int GPUChainTracking::PrepareEvent()
       offset += mIOPtrs.nClusterData[iSlice];
     }
   }
+  printf("Event has %d TPC Clusters\n", offset);
   processors()->tpcCompressor.mMaxClusters = offset;
 
   if (mRec->IsGPU()) {
@@ -570,6 +571,9 @@ void GPUChainTracking::ConvertRun2RawToNative()
     mIOPtrs.rawClusters[i] = nullptr;
     mIOPtrs.nRawClusters[i] = 0;
     mIOMem.rawClusters[i].reset(nullptr);
+    mIOPtrs.clusterData[i] = nullptr;
+    mIOPtrs.nClusterData[i] = 0;
+    mIOMem.clusterData[i].reset(nullptr);
   }
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
 }
