@@ -436,7 +436,7 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
   std::vector<TrackITSExt> seeds;
   seeds.reserve(last - first + 1);
 
-  for (auto& vtx : mVertices) {
+  for (const auto& vtx : *mVertices) {
     mX = vtx.getX();
     mY = vtx.getY();
     mZ = vtx.getZ();
@@ -458,6 +458,10 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
   //--------------------------------------------------------------------
   // This is the main tracking function
   //--------------------------------------------------------------------
+  if (mVertices == nullptr || mVertices->empty()) {
+    LOG(INFO) << "Not a single primary vertex provided. Skipping...\n";
+    return;
+  }
   LOG(INFO) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads << '\n';
 
   auto start = std::chrono::system_clock::now();
