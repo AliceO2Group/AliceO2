@@ -1234,13 +1234,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
 void GPUTPCGMMerger::PrepareClustersForFit()
 {
   unsigned int maxId = 0;
-  if (mCAParam->rec.NonConsecutiveIDs) {
-    maxId = mNOutputTrackClusters;
-  } else {
-    for (int i = 0; i < NSLICES; i++) {
-      maxId += mSliceTrackers[i].NHitsTotal();
-    }
-  }
+  maxId = mCAParam->rec.NonConsecutiveIDs ? mNOutputTrackClusters : mNMaxClusters;
   if (maxId > mNMaxClusters) {
     throw std::runtime_error("mNMaxClusters too small");
   }
