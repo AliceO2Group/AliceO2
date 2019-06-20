@@ -17,9 +17,25 @@
 #   (and are not installed, as there's probably no point in doing so)
 #
 
-message(STATUS "!!!!")
-message(STATUS "!!!! Using O2ReciperAdapter - this should be only temporary")
-message(STATUS "!!!!")
+function(o2_show_env var)
+  if(DEFINED ENV{${var}})
+    file(TO_CMAKE_PATH $ENV{${var}} path)
+    message(STATUS "!!!")
+    message(STATUS "!!! ${var} is : ")
+    foreach(v IN LISTS path)
+      message(STATUS "!!! - ${v}")
+    endforeach()
+  endif()
+endfunction()
+
+macro(o2_unset var)
+  message(STATUS "!!! Unsetting ${var}=${${var}}")
+  unset(${var})
+endmacro()
+
+message(STATUS "!!!")
+message(STATUS "!!! Using O2ReciperAdapter - this should be only temporary")
+message(STATUS "!!!")
 
 if(ALICEO2_MODULAR_BUILD)
   #
@@ -27,65 +43,79 @@ if(ALICEO2_MODULAR_BUILD)
   # the old recipe and we assume Common_O2_ROOT is defined and can be used to
   # retrieve the ALIBUILD_BASEDIR
   #
+
+  message(STATUS "!!!")
+
   if(NOT Common_O2_ROOT)
     message(FATAL_ERROR "Don't know how to adapt (yet) to this situation")
   endif()
   get_filename_component(ALIBUILD_BASEDIR ${Common_O2_ROOT}/../.. ABSOLUTE)
   message(
     STATUS
-      "!!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
+      "!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
     )
 
   message(
-    STATUS "!!!! Unsetting most of the -D options and detecting them instead")
+    STATUS "!!! Unsetting most of the -D options and detecting them instead")
+  message(STATUS "!!!")
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-  unset(FairRoot_DIR)
-  unset(ALICEO2_MODULAR_BUILD)
-  unset(ROOTSYS)
-  unset(Pythia6_LIBRARY_DIR)
-  unset(Geant3_DIR)
-  unset(Geant4_DIR)
-  unset(VGM_DIR)
-  unset(GEANT4_VMC_DIR)
-  unset(FAIRROOTPATH)
-  unset(BOOST_ROOT)
-  unset(DDS_PATH)
-  unset(ZMQ_DIR)
-  unset(ZMQ_INCLUDE_DIR)
-  unset(ALIROOT)
-  unset(Protobuf_LIBRARY)
-  unset(Protobuf_LITE_LIBRARY)
-  unset(Protobuf_PROTOC_LIBRARY)
-  unset(Protobuf_INCLUDE_DIR)
-  unset(Protobuf_PROTOC_EXECUTABLE)
-  unset(GSL_DIR)
-  unset(PYTHIA8_INCLUDE_DIR)
-  unset(HEPMC3_DIR)
-  unset(MS_GSL_INCLUDE_DIR)
-  unset(ALITPCCOMMON_DIR)
-  unset(Monitoring_ROOT)
-  unset(Configuration_ROOT)
-  unset(InfoLogger_ROOT)
-  unset(Common_O2_ROOT)
-  unset(RAPIDJSON_INCLUDEDIR)
-  unset(ARROW_HOME)
-  unset(benchmark_DIR)
-  unset(GLFW_LOCATION)
-  unset(CUB_ROOT)
+  o2_unset(FairRoot_DIR)
+  o2_unset(ALICEO2_MODULAR_BUILD)
+  o2_unset(ROOTSYS)
+  o2_unset(Pythia6_LIBRARY_DIR)
+  o2_unset(Geant3_DIR)
+  o2_unset(Geant4_DIR)
+  o2_unset(VGM_DIR)
+  o2_unset(GEANT4_VMC_DIR)
+  o2_unset(FAIRROOTPATH)
+  o2_unset(BOOST_ROOT)
+  o2_unset(DDS_PATH)
+  o2_unset(ZMQ_DIR)
+  o2_unset(ZMQ_INCLUDE_DIR)
+  o2_unset(ALIROOT)
+  o2_unset(Protobuf_LIBRARY)
+  o2_unset(Protobuf_LITE_LIBRARY)
+  o2_unset(Protobuf_PROTOC_LIBRARY)
+  o2_unset(Protobuf_INCLUDE_DIR)
+  o2_unset(Protobuf_PROTOC_EXECUTABLE)
+  o2_unset(GSL_DIR)
+  o2_unset(PYTHIA8_INCLUDE_DIR)
+  o2_unset(HEPMC3_DIR)
+  o2_unset(MS_GSL_INCLUDE_DIR)
+  o2_unset(ALITPCCOMMON_DIR)
+  o2_unset(Monitoring_ROOT)
+  o2_unset(Configuration_ROOT)
+  o2_unset(InfoLogger_ROOT)
+  o2_unset(Common_O2_ROOT)
+  o2_unset(RAPIDJSON_INCLUDEDIR)
+  o2_unset(ARROW_HOME)
+  o2_unset(benchmark_DIR)
+  o2_unset(GLFW_LOCATION)
+  o2_unset(CUB_ROOT)
+
+  o2_show_env(LD_LIBRARY_PATH)
+  o2_show_env(PATH)
 
 endif()
 
 if(DEFINED ENV{ALIBUILD_O2_TESTS})
-  message(STATUS "!!!!")
+  message(STATUS "!!!")
   message(
     STATUS
-      "!!!! ALIBUILD_O2_TESTS detected. Will patch my tests so they work off the install tree"
+      "!!! ALIBUILD_O2_TESTS detected. Will patch my tests so they work off the install tree"
     )
   configure_file(${CMAKE_SOURCE_DIR}/tests/tmp-patch-tests-environment.sh.in
                  tmp-patch-tests-environment.sh)
   install(
     CODE [[ execute_process(COMMAND bash tmp-patch-tests-environment.sh) ]])
+
+    install(CODE
+            [[ execute_process(COMMAND ldd ${ROOT_rootcling_CMD}) ]])
+
+    install(CODE
+            [[ execute_process(COMMAND otool -L ${ROOT_rootcling_CMD}) ]])
 endif()
-message(STATUS "!!!!")
+
+message(STATUS "!!!")
