@@ -28,7 +28,9 @@ o2_add_test(GEMAmplification
             tpc
             SOURCES
             testTPCGEMAmplification.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            TIMEOUT 200
+            LABELS slow)
 
 o2_add_test(SAMPAProcessing
             LABELS
