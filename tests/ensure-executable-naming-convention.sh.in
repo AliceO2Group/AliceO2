@@ -40,7 +40,7 @@ fit its mch mid tpc \
 tpcits \
 flp heartbeat message epn \
 mergers \
-subframebuilder sync timeframe"
+subframebuilder sync timeframe framework"
 
 [[ -d @CMAKE_RUNTIME_OUTPUT_DIRECTORY@ ]] || exit 0
 
