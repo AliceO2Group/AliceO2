@@ -156,7 +156,6 @@ int TPCFastTransformGeo::Test() const
   float lx = 10.f, ly = 10.f, lz = 10.f;
   float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
   float gx = 0.f, gy = 0.f, gz = 0.f;
-  float gx1 = 0.f, gy1 = 0.f, gz1 = 0.f;
 
   convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
   convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
