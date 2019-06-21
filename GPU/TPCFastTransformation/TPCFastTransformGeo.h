@@ -142,6 +142,9 @@ class TPCFastTransformGeo
   /// Print method
   void Print() const;
 
+  /// Method for testing consistency
+  int Test() const;
+
  private:
   /// _______________  Data members  _______________________________________________
 

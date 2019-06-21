@@ -137,3 +137,64 @@ void TPCFastTransformGeo::Print() const
   }
 #endif
 }
+
+int TPCFastTransformGeo::Test() const
+{
+  /// Check consistency of the class
+
+  int error = 0;
+
+  if (!isConstructed())
+    error = -1;
+
+  if (mNumberOfRows <= 0 || mNumberOfRows >= MaxNumberOfRows)
+    error = -2;
+
+  int slice = 2;
+  int row = 10;
+
+  float lx = 10.f, ly = 10.f, lz = 10.f;
+  float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
+  float gx = 0.f, gy = 0.f, gz = 0.f;
+  float gx1 = 0.f, gy1 = 0.f, gz1 = 0.f;
+
+  convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
+  convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
+
+  if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-8)
+    error = -3;
+
+  float u = 10.f, v = 10.f;
+  float u1 = 0.f, v1 = 0.f;
+  convUVtoLocal(slice, u, v, ly, lz);
+  convLocalToUV(slice, ly, lz, u1, v1);
+
+  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-8)
+    error = -4;
+
+  float su = 0.f, sv = 0.f;
+
+  convUVtoScaledUV(slice, row, u, v, su, sv);
+
+  if (su < 0.f || su > 1.f || sv < 0.f || sv > 1.f)
+    error = -5;
+
+  convScaledUVtoUV(slice, row, su, sv, u1, v1);
+
+  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-8)
+    error = -6;
+
+  float pad = 0.f;
+  convUtoPad(row, u, pad);
+  convPadToU(row, pad, u1);
+
+  if (fabs(u1 - u) > 1.e-8)
+    error = -7;
+
+#if !defined(GPUCA_GPUCODE)
+  if (error != 0) {
+    std::cout << "TPC Fast Transformation Geometry: Internal ERROR " << error << std::endl;
+  }
+#endif
+  return error;
+}

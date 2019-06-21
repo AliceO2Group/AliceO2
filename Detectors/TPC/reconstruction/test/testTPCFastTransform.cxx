@@ -50,6 +50,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
   const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
+  BOOST_CHECK_EQUAL(geo.Test(), 0);
+
   BOOST_CHECK_EQUAL(geo.getNumberOfSlices(), Sector::MAXSECTOR);
   BOOST_CHECK_EQUAL(geo.getNumberOfRows(), mapper.getNumberOfRows());
 
@@ -69,8 +71,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
       float u = 0, v = 0;
-      int err = fastTransform.convPadTimeToUV(0, row, pad, 0, u, v, 0.);
-      BOOST_CHECK_EQUAL(err, 0);
+      fastTransform.convPadTimeToUV(0, row, pad, 0, u, v, 0.);
 
       double dx = x - c.X();
       double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
@@ -124,16 +125,11 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
           fastTransform->setApplyDistortionOff();
           float x0, y0, z0;
-          int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
           fastTransform->setApplyDistortionOn();
           float x1, y1, z1;
-          int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
-
-          if (err0 != 0 || err1 != 0) {
-            std::cout << "can not transform!!" << std::endl;
-            continue;
-          }
+          fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           // local 2 global
           float gx0, gy0, gz0;
