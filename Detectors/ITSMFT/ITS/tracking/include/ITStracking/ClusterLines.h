@@ -16,6 +16,7 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -57,8 +58,8 @@ inline GPU_HOST_DEVICE Line::Line(const float firstPoint[3], const float secondP
     cosinesDirector[i] = secondPoint[i] - firstPoint[i];
   }
 
-  float inverseNorm{ 1.f / MATH_SQRT(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                     cosinesDirector[2] * cosinesDirector[2]) };
+  float inverseNorm{ 1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                    cosinesDirector[2] * cosinesDirector[2]) };
 
   for (int index{ 0 }; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
@@ -74,8 +75,8 @@ inline GPU_HOST_DEVICE Line::Line(const Tracklet& tracklet, const Cluster* inner
   cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
   cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
 
-  float inverseNorm{ 1.f / MATH_SQRT(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                     cosinesDirector[2] * cosinesDirector[2]) };
+  float inverseNorm{ 1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                    cosinesDirector[2] * cosinesDirector[2]) };
 
   for (int index{ 0 }; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;

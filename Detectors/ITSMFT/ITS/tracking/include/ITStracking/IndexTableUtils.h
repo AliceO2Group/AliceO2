@@ -23,6 +23,7 @@
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -58,8 +59,8 @@ GPU_HOST_DEVICE inline int IndexTableUtils::getPhiBinIndex(const float currentPh
 
 GPU_HOST_DEVICE inline int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex)
 {
-  return MATH_MIN(phiIndex * constants::IndexTable::PhiBins + zIndex,
-                  constants::IndexTable::ZBins * constants::IndexTable::PhiBins);
+  return gpu::GPUCommonMath::Min(phiIndex * constants::IndexTable::PhiBins + zIndex,
+                                 constants::IndexTable::ZBins * constants::IndexTable::PhiBins);
 }
 
 GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(

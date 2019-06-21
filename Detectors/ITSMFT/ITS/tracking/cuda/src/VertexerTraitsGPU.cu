@@ -122,7 +122,7 @@ GPU_GLOBAL void trackleterKernel(
           for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
             const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
             const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
-            if (MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
+            if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
               if (storedTracklets < maxTrackletsPerCluster) {
                 if (layerOrder == LAYER0_TO_LAYER1) {
                   new (GPUtracklets + stride + storedTracklets) Tracklet(iNextLayerCluster, currentClusterIndex, nextCluster, currentCluster);
@@ -160,7 +160,7 @@ GPU_GLOBAL void trackletSelectionKernel(
     int validTracklets{ 0 };
     for (int iTracklet12{ 0 }; iTracklet12 < foundTracklets12[currentClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{ 0 }; iTracklet01 < foundTracklets01[currentClusterIndex] && validTracklets < maxTracklets; ++iTracklet01) {
-        const float deltaTanLambda{ MATH_ABS(GPUtracklets01[stride + iTracklet01].tanLambda - GPUtracklets12[stride + iTracklet12].tanLambda) };
+        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(GPUtracklets01[stride + iTracklet01].tanLambda - GPUtracklets12[stride + iTracklet12].tanLambda) };
         if (/*deltaTanLambda < tanLambdaCut*/ true) {
           new (destTracklets + stride + validTracklets) Line(GPUtracklets01[stride + iTracklet01], GPUclusters0, GPUclusters1);
           ++validTracklets;
@@ -328,7 +328,7 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
     for (int j{ 0 }; j < foundTracklets12_h[i]; ++j) {
       for (int k{ 0 }; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
-        const float deltaTanLambda{ MATH_ABS(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda) };
+        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda) };
         mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
                                                          mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
                                                          mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,

@@ -24,6 +24,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "GPUCommonMath.h"
+
 namespace o2
 {
 namespace its
@@ -77,13 +79,13 @@ void TrackerTraitsCPU::computeLayerTracklets()
           if (primaryVertexContext->isClusterUsed(iLayer + 1, nextCluster.clusterId))
             continue;
 
-          const float deltaZ{ MATH_ABS(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
-                                       currentCluster.zCoordinate - nextCluster.zCoordinate) };
-          const float deltaPhi{ MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
+          const float deltaZ{ gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
+                                                      currentCluster.zCoordinate - nextCluster.zCoordinate) };
+          const float deltaPhi{ gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
 
           if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
               (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
-               MATH_ABS(deltaPhi - constants::Math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+               gpu::GPUCommonMath::Abs(deltaPhi - constants::Math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
 
             if (iLayer > 0 &&
                 primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == constants::its::UnusedIndex) {

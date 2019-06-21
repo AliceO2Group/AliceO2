@@ -87,12 +87,11 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
 
           const Cluster& nextCluster { nextLayerClusters[iNextLayerCluster] };
 
-          const float deltaZ { MATH_ABS(
-              tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) + currentCluster.zCoordinate
-                  - nextCluster.zCoordinate) };
-          const float deltaPhi { MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
+          const float deltaZ{ gpu::GPUCommonMath::Abs(
+            tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) + currentCluster.zCoordinate - nextCluster.zCoordinate) };
+          const float deltaPhi{ gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
 
-          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || MATH_ABS(deltaPhi - constants::Math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
+          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || gpu::GPUCommonMath::Abs(deltaPhi - constants::Math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
 
             cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
             int currentIndex{};
@@ -152,15 +151,15 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
                   == nextLayerClusterIndex; ++iNextLayerTracklet) {
 
         const Tracklet& nextTracklet { devStore.getTracklets()[layerIndex + 1][iNextLayerTracklet] };
-        const float deltaTanLambda { MATH_ABS(currentTracklet.tanLambda - nextTracklet.tanLambda) };
-        const float deltaPhi { MATH_ABS(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate) };
+        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda) };
+        const float deltaPhi{ gpu::GPUCommonMath::Abs(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate) };
 
-        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || MATH_ABS(deltaPhi - constants::Math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
+        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || gpu::GPUCommonMath::Abs(deltaPhi - constants::Math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
 
           const float averageTanLambda { 0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda) };
           const float directionZIntersection { -averageTanLambda * firstCellCluster.rCoordinate
               + firstCellCluster.zCoordinate };
-          const float deltaZ { MATH_ABS(directionZIntersection - primaryVertex.z) };
+          const float deltaZ{ gpu::GPUCommonMath::Abs(directionZIntersection - primaryVertex.z) };
 
           if (deltaZ < kTrkPar.CellMaxDeltaZ[layerIndex]) {
 
@@ -176,11 +175,10 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
 
             float3 cellPlaneNormalVector { MathUtils::crossProduct(firstDeltaVector, secondDeltaVector) };
 
-            const float vectorNorm { MATH_SQRT(
-                cellPlaneNormalVector.x * cellPlaneNormalVector.x + cellPlaneNormalVector.y * cellPlaneNormalVector.y
-                    + cellPlaneNormalVector.z * cellPlaneNormalVector.z) };
+            const float vectorNorm{ gpu::GPUCommonMath::Sqrt(
+              cellPlaneNormalVector.x * cellPlaneNormalVector.x + cellPlaneNormalVector.y * cellPlaneNormalVector.y + cellPlaneNormalVector.z * cellPlaneNormalVector.z) };
 
-            if (!(vectorNorm < constants::Math::FloatMinThreshold || MATH_ABS(cellPlaneNormalVector.z) < constants::Math::FloatMinThreshold)) {
+            if (!(vectorNorm < constants::Math::FloatMinThreshold || gpu::GPUCommonMath::Abs(cellPlaneNormalVector.z) < constants::Math::FloatMinThreshold)) {
 
               const float inverseVectorNorm { 1.0f / vectorNorm };
               const float3 normalizedPlaneVector { cellPlaneNormalVector.x * inverseVectorNorm, cellPlaneNormalVector.y
@@ -189,13 +187,12 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
                   - (normalizedPlaneVector.y * secondCellCluster.yCoordinate - primaryVertex.y)
                   - normalizedPlaneVector.z * secondCellClusterQuadraticRCoordinate };
               const float normalizedPlaneVectorQuadraticZCoordinate { normalizedPlaneVector.z * normalizedPlaneVector.z };
-              const float cellTrajectoryRadius { MATH_SQRT(
-                  (1.0f - normalizedPlaneVectorQuadraticZCoordinate - 4.0f * planeDistance * normalizedPlaneVector.z)
-                      / (4.0f * normalizedPlaneVectorQuadraticZCoordinate)) };
+              const float cellTrajectoryRadius{ gpu::GPUCommonMath::Sqrt(
+                (1.0f - normalizedPlaneVectorQuadraticZCoordinate - 4.0f * planeDistance * normalizedPlaneVector.z) / (4.0f * normalizedPlaneVectorQuadraticZCoordinate)) };
               const float2 circleCenter { -0.5f * normalizedPlaneVector.x / normalizedPlaneVector.z, -0.5f
                   * normalizedPlaneVector.y / normalizedPlaneVector.z };
-              const float distanceOfClosestApproach { MATH_ABS(
-                  cellTrajectoryRadius - MATH_SQRT(circleCenter.x * circleCenter.x + circleCenter.y * circleCenter.y)) };
+              const float distanceOfClosestApproach{ gpu::GPUCommonMath::Abs(
+                cellTrajectoryRadius - gpu::GPUCommonMath::Sqrt(circleCenter.x * circleCenter.x + circleCenter.y * circleCenter.y)) };
 
               if (distanceOfClosestApproach
                   <= kTrkPar.CellMaxDCA[layerIndex]) {

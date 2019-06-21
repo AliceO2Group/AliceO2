@@ -21,6 +21,10 @@
 #include "ITStracking/Cell.h"
 #include "CommonConstants/MathConstants.h"
 
+#ifdef CA_DEBUG
+#include <cstdio>
+#endif
+
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
@@ -63,6 +67,12 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
   prop.SetFitInProjections(1);
   float bz = -5.f; // FIXME
 
+#ifdef CA_DEBUG
+  int roadCounters[4]{ 0, 0, 0, 0 };
+  int fitCounters[4]{ 0, 0, 0, 0 };
+  int backpropagatedCounters[4]{ 0, 0, 0, 0 };
+  int refitCounters[4]{ 0, 0, 0, 0 };
+#endif
   for (int iRoad = get_global_id(0); iRoad < Fitter.NumberOfRoads(); iRoad += get_global_size(0)) {
     Road& road = Fitter.roads()[iRoad];
     int clusters[7] = { o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex };
@@ -183,4 +193,10 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
+#ifdef CA_DEBUG
+  printf("Roads: %i %i %i %i\n", roadCounters[0], roadCounters[1], roadCounters[2], roadCounters[3]);
+  printf("Fitted tracks: %i %i %i %i\n", fitCounters[0], fitCounters[1], fitCounters[2], fitCounters[3]);
+  printf("Backpropagated tracks: %i %i %i %i\n", backpropagatedCounters[0], backpropagatedCounters[1], backpropagatedCounters[2], backpropagatedCounters[3]);
+  printf("Refitted tracks: %i %i %i %i\n", refitCounters[0], refitCounters[1], refitCounters[2], refitCounters[3]);
+#endif
 }

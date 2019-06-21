@@ -67,7 +67,7 @@ void trackleterKernelSerial(
         for (int iNextLayerClusterIndex{ firstRowClusterIndex }; iNextLayerClusterIndex <= maxRowClusterIndex && iNextLayerClusterIndex < (int)clustersNextLayer.size(); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{ clustersNextLayer[iNextLayerClusterIndex] };
           const char testMC{ !isMc || (nextLayerMClabels[iNextLayerClusterIndex] == currentLayerMClabels[iCurrentLayerClusterIndex] && nextLayerMClabels[iNextLayerClusterIndex] != -1) };
-          if (MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
+          if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (layerOrder == LAYER0_TO_LAYER1) {
                 Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
@@ -103,7 +103,7 @@ void trackletSelectionKernelSerial(
     int validTracklets{ 0 };
     for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
-        const float deltaTanLambda{ MATH_ABS(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
+        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
         if (deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
           // tlv.push_back(std::array<float, 7>{ deltaTanLambda,
@@ -346,7 +346,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
     //const int2 selectedBinsRect{ VertexerTraits::getPhiBins(1, cluster.phiCoordinate, mVrtParams.phiCut) };
     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
-      if (/*MATH_ABS(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut &&*/ labelsMC1[iNextLayerClusterIndex] == labelsMC0[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
+      if (/*GPUCommonMath::Abs(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut &&*/ labelsMC1[iNextLayerClusterIndex] == labelsMC0[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
           /*mEvent->getClusterLabels(0, cluster).getTrackID() == mEvent->getClusterLabels(1, nextCluster).getTrackID() && mEvent->getClusterLabels(0, cluster).getTrackID() != -1*/)
         mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, cluster, nextCluster);
     }
@@ -357,7 +357,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
     //const int2 selectedBinsRect{ VertexerTraits::getPhiBins(1, cluster.phiCoordinate, mVrtParams.phiCut) };
     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
-      if (/*MATH_ABS(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut && (*/ labelsMC1[iNextLayerClusterIndex] == labelsMC2[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
+      if (/*GPUCommonMath::Abs(cluster.phiCoordinate - nextCluster.phiCoordinate) < mVrtParams.phiCut && (*/ labelsMC1[iNextLayerClusterIndex] == labelsMC2[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1
           /*mEvent->getClusterLabels(2, cluster).getTrackID() == mEvent->getClusterLabels(1, nextCluster).getTrackID() && mEvent->getClusterLabels(2, cluster).getTrackID() != -1*/)
         mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, cluster);
     }
@@ -366,7 +366,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
   for (auto& trklet01 : mComb01) {
     for (auto& trklet12 : mComb12) {
       if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
-        const float deltaTanLambda{ MATH_ABS(trklet01.tanLambda - trklet12.tanLambda) };
+        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(trklet01.tanLambda - trklet12.tanLambda) };
         mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
                                                          mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
                                                          mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
