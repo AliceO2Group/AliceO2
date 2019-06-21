@@ -84,7 +84,16 @@ function(o2_add_executable)
 
   # add the executable with its sources
   add_executable(${target} ${A_SOURCES})
+
+  # set the executable output name
   set_property(TARGET ${target} PROPERTY OUTPUT_NAME ${exeName})
+
+  if(A_IS_TEST)
+    # tests go in a separate directory
+    get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests
+                           ABSOLUTE)
+    set_property(TARGET ${target} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+  endif()
 
   # use its dependencies
   foreach(lib IN LISTS A_PUBLIC_LINK_LIBRARIES)
@@ -100,10 +109,9 @@ function(o2_add_executable)
 
     if(A_IS_TEST)
       install(TARGETS ${target}
-              RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tests)
+              RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${testsDir})
     else()
-      install(TARGETS ${target}
-              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+      install(TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
   endif()
 
