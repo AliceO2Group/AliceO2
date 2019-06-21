@@ -34,7 +34,7 @@ macro(o2_unset var)
 endmacro()
 
 message(STATUS "!!!")
-message(STATUS "!!! Using O2ReciperAdapter - this should be only temporary")
+message(STATUS "!!! Using O2RecipeAdapter - this should be only temporary")
 message(STATUS "!!!")
 
 if(ALICEO2_MODULAR_BUILD)
