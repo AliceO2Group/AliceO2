@@ -51,7 +51,7 @@ namespace gpu
 #endif
 
 #ifdef __OPENCL__
-MEM_CLASS_PRE()
+MEM_CLASS_PRE() // Macro with some template magic for OpenCL 1.2
 #endif
 class GPUTPCTrack;
 class GPUTPCHitId;

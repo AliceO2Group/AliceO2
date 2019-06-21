@@ -281,6 +281,9 @@ int GPUChainTracking::PrepareEvent()
 
 int GPUChainTracking::Finalize()
 {
+  if (GetDeviceProcessingSettings().runQA && mQAInitialized) {
+    mQA->DrawQAHistograms();
+  }
   if (GetDeviceProcessingSettings().debugLevel >= 4) {
     mDebugFile.close();
   }

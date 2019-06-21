@@ -30,6 +30,7 @@ const char* HelpText[] = {
   "[x]                           Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])",
   "[.]                           Exclude rejected tracks",
   "[c]                           Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20",
+  "[z]                           Mark fake attached clusters",
   "[B]                           Mark clusters attached as adjacent",
   "[L] / [K]                     Draw single collisions (next / previous)",
   "[C]                           Colorcode clusters of different collisions",
@@ -57,7 +58,7 @@ const char* HelpText[] = {
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
-  // FREE: u z
+  // FREE: u
 };
 
 void GPUDisplay::PrintHelp()
@@ -169,23 +170,27 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Cluster flag highlight mask set to %d (%s)", mMarkClusters,
             mMarkClusters == 0 ? "off" : mMarkClusters == 1 ? "split pad" : mMarkClusters == 2 ? "split time" : mMarkClusters == 4 ? "edge" : mMarkClusters == 8 ? "singlePad" : mMarkClusters == 0x10 ? "reject distance" : "reject error");
     mUpdateDLList = true;
+  } else if (key == 'z') {
+    mMarkFakeClusters ^= 1;
+    SetInfo("Marking fake clusters: %s", mMarkFakeClusters ? "on" : "off");
+    mUpdateDLList = true;
   } else if (key == 'B') {
-    markAdjacentClusters++;
-    if (markAdjacentClusters == 5) {
-      markAdjacentClusters = 7;
+    mMarkAdjacentClusters++;
+    if (mMarkAdjacentClusters == 5) {
+      mMarkAdjacentClusters = 7;
     }
-    if (markAdjacentClusters == 9) {
-      markAdjacentClusters = 15;
+    if (mMarkAdjacentClusters == 9) {
+      mMarkAdjacentClusters = 15;
     }
-    if (markAdjacentClusters == 18) {
-      markAdjacentClusters = 0;
+    if (mMarkAdjacentClusters == 18) {
+      mMarkAdjacentClusters = 0;
     }
-    if (markAdjacentClusters == 17) {
-      SetInfo("Marking protected clusters (%d)", markAdjacentClusters);
-    } else if (markAdjacentClusters == 16) {
-      SetInfo("Marking removable clusters (%d)", markAdjacentClusters);
+    if (mMarkAdjacentClusters == 17) {
+      SetInfo("Marking protected clusters (%d)", mMarkAdjacentClusters);
+    } else if (mMarkAdjacentClusters == 16) {
+      SetInfo("Marking removable clusters (%d)", mMarkAdjacentClusters);
     } else {
-      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, (markAdjacentClusters & 1) ? "yes" : " no", (markAdjacentClusters & 2) ? "yes" : " no", (markAdjacentClusters & 4) ? "yes" : " no", (markAdjacentClusters & 8) ? "yes" : " no");
+      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", mMarkAdjacentClusters, (mMarkAdjacentClusters & 1) ? "yes" : " no", (mMarkAdjacentClusters & 2) ? "yes" : " no", (mMarkAdjacentClusters & 4) ? "yes" : " no", (mMarkAdjacentClusters & 8) ? "yes" : " no");
     }
     mUpdateDLList = true;
   } else if (key == 'C') {

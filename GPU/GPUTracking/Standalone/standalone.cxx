@@ -560,19 +560,11 @@ int main(int argc, char** argv)
   }
 breakrun:
 
-  if (configStandalone.qa) {
 #ifndef _WIN32
-    if (configStandalone.fpe) {
-      fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
-    }
-
-#endif
-    if (chainTracking->GetQA() == nullptr) {
-      printf("QA Unavailable\n");
-      return 1;
-    }
-    chainTracking->GetQA()->DrawQAHistograms();
+  if (configStandalone.qa && configStandalone.fpe) {
+    fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
+#endif
 
   rec->Finalize();
   rec->Exit();
