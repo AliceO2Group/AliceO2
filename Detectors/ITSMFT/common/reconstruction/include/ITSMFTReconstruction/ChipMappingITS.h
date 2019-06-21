@@ -205,7 +205,7 @@ class ChipMappingITS
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
  private:
-  static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = { 0x1 << 5, 0x1 << 6, 0x1 << 6 }; // prefixes for data GBT header byte
+  static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = {0x1 << 5, 0x1 << 6, 0x1 << 6}; // prefixes for data GBT header byte
 
   ///< N chips per cable of each sub-barrel
   static constexpr std::array<int, NSubB> NChipsPerCableSB = {1, 7, 7};

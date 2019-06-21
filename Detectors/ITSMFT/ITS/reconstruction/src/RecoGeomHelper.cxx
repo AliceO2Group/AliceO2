@@ -75,9 +75,11 @@ void RecoGeomHelper::RecoLadder::init()
 //_____________________________________________________________________
 void RecoGeomHelper::RecoLadder::print() const
 {
-  printf("Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips\n",
+  assert(overlapWithNext!=Undefined || chips.size()==0);  // make sure there are no undefined ladders after init is done
+  printf("Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips | OvlNext: %s\n",
          id, phiRange.min(), phiMean, phiRange.max(), dphiH,
-         xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size());
+         xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size(),
+	 overlapWithNext==Undefined ? "N/A" : ((overlapWithNext==NoOverlap ? "NO" : (overlapWithNext==Above ? "Above" : "Below") )) );
   for (const auto& ch : chips) {
     ch.print();
   }
@@ -146,6 +148,41 @@ void RecoGeomHelper::RecoLayer::init()
     lad.id = i;
     lad.init();
   }
+  // relate to its neighbour: is the egde at higher R than the edge of the next ladder and do we check for overlaps ?
+  for (int i = nLadders; i--;) {
+    auto& lad = ladders[i];
+    auto& plad = i>0 ? ladders[i-1] : ladders[nLadders-1];
+    if (nHStaves==2) { // on the OB the ladders of the same halfstave do not overlap
+      int tlay, tsta, tssta, tmod, tchipInMod;
+      int play, psta, pssta, pmod, pchipInMod;
+      gm->getChipId( lad.chips.front().id, tlay, tsta, tssta, tmod, tchipInMod);
+      gm->getChipId(plad.chips.front().id, play, psta, pssta, pmod, pchipInMod);
+      if (tsta==psta && tssta==pssta) { // these are 2 ladders of the same halfstave, no overlap
+	plad.overlapWithNext = RecoLadder::NoOverlap;
+	continue;
+      }
+    }
+    // need to compare the radius of the edge at lowest phi for this ladder with radius at highest phi of prev ladder
+    // find the radius of the edge at low phi
+    float phi0 = std::atan2(lad.xyEdges.getY0(),lad.xyEdges.getX0());
+    float phi1 = std::atan2(lad.xyEdges.getY1(),lad.xyEdges.getX1());
+    o2::utils::BringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
+    o2::utils::BringTo02Pi(phi1);
+    float r2This = (phi0<phi1 && phi1-phi0<o2::constants::math::PI) ?  // pick R of lowest angle
+      lad.xyEdges.getX0()*lad.xyEdges.getX0() + lad.xyEdges.getY0()*lad.xyEdges.getY0() :
+      lad.xyEdges.getX1()*lad.xyEdges.getX1() + lad.xyEdges.getY1()*lad.xyEdges.getY1();
+    //
+    phi0 = std::atan2(plad.xyEdges.getY0(),plad.xyEdges.getX0());
+    phi1 = std::atan2(plad.xyEdges.getY1(),plad.xyEdges.getX1());
+    o2::utils::BringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
+    o2::utils::BringTo02Pi(phi1);
+    float r2Prev = (phi0<phi1 && phi1-phi0<o2::constants::math::PI) ? // pick R of highest angle
+      plad.xyEdges.getX1()*plad.xyEdges.getX1() + plad.xyEdges.getY1()*plad.xyEdges.getY1() :
+      plad.xyEdges.getX0()*plad.xyEdges.getX0() + plad.xyEdges.getY0()*plad.xyEdges.getY0();
+      //      
+    plad.overlapWithNext = r2Prev > r2This ? RecoLadder::Above : RecoLadder::Below;
+  }
+  
   int ndiv = nLadders * 3; // number of bins for mapping
   phi2ladder.resize(ndiv);
   float dphi = o2::constants::math::TwoPI / ndiv;
