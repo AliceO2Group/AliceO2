@@ -348,7 +348,8 @@ class GPUDisplay
   int mHideRejectedClusters = 1;
   int mHideUnmatchedClusters = 0;
   int mHideRejectedTracks = 1;
-  int markAdjacentClusters = 0;
+  int mMarkAdjacentClusters = 0;
+  int mMarkFakeClusters = 0;
 
   vecpod<std::array<int, 37>> mCollisionClusters;
   int mNCollissions = 1;

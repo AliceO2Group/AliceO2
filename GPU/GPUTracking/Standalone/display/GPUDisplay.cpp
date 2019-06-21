@@ -656,20 +656,20 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
     }
     bool draw = mGlobalPos[cid].w == select;
 
-    if (markAdjacentClusters) {
+    if (mMarkAdjacentClusters) {
       const int attach = mMerger.ClusterAttachment()[cid];
       if (attach) {
-        if (markAdjacentClusters >= 16) {
-          if (mQA && mQA->clusterRemovable(cid, markAdjacentClusters == 17)) {
+        if (mMarkAdjacentClusters >= 16) {
+          if (mQA && mQA->clusterRemovable(cid, mMarkAdjacentClusters == 17)) {
             draw = select == tMARKED;
           }
-        } else if ((markAdjacentClusters & 2) && (attach & GPUTPCGMMerger::attachTube)) {
+        } else if ((mMarkAdjacentClusters & 2) && (attach & GPUTPCGMMerger::attachTube)) {
           draw = select == tMARKED;
-        } else if ((markAdjacentClusters & 1) && (attach & (GPUTPCGMMerger::attachGood | GPUTPCGMMerger::attachTube)) == 0) {
+        } else if ((mMarkAdjacentClusters & 1) && (attach & (GPUTPCGMMerger::attachGood | GPUTPCGMMerger::attachTube)) == 0) {
           draw = select == tMARKED;
-        } else if ((markAdjacentClusters & 4) && (attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
+        } else if ((mMarkAdjacentClusters & 4) && (attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
           draw = select == tMARKED;
-        } else if (markAdjacentClusters & 8) {
+        } else if (mMarkAdjacentClusters & 8) {
           if (fabsf(mMerger.OutputTracks()[attach & GPUTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) {
             draw = select == tMARKED;
           }
@@ -679,6 +679,9 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
       const short flags = tracker.ClusterData()[cidInSlice].flags;
       const bool match = flags & mMarkClusters;
       draw = (select == tMARKED) ? (match) : (draw && !match);
+    } else if (mMarkFakeClusters) {
+      const bool fake = (mQA && mQA->HitAttachStatus(cid));
+      draw = (select == tMARKED) ? (fake) : (draw && !fake);
     }
     if (draw) {
       mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y, mProjectXY ? 0 : mGlobalPos[cid].z);
@@ -1532,10 +1535,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         int slice = mMerger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].slice;
         unsigned int col = 0;
         if (mNCollissions > 1) {
-          int label = mQA ? mQA->GetMCLabel(i) : -1;
-          if (label != -1e9 && label < -1) {
-            label = -label - 2;
-          }
+          int label = mQA ? mQA->GetMCTrackLabel(i) : -1;
           while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < label) {
             col++;
           }
@@ -1825,7 +1825,10 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
       }
     }
-    if (mMarkClusters || markAdjacentClusters) {
+    if (mMarkClusters || mMarkAdjacentClusters || mMarkFakeClusters) {
+      if (mMarkFakeClusters) {
+        CHKERR(glPointSize(mCfg.pointSize * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1) * 3));
+      }
       SetColorMarked();
       LOOP_SLICE LOOP_COLLISION drawVertices(mGlDLPoints[iSlice][tMARKED][iCol], GL_POINTS);
     }
