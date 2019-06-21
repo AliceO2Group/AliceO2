@@ -33,6 +33,9 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mTimeDelayFromCDB = " << ((mTimeDelayFromCDB) ? "true" : "false");
   stream << "\nEMCal::SimParam.mTimeResolutionPar0 = " << mTimeResolutionPar0;
   stream << "\nEMCal::SimParam.mTimeResolutionPar1 = " << mTimeResolutionPar1;
+  stream << "\nEMCal::SimParam.mTimeResponseTau = " << mTimeResponseTau;
+  stream << "\nEMCal::SimParam.mTimeResponsePower = " << mTimeResponsePower;
+  stream << "\nEMCal::SimParam.mTimeResponseThreshold = " << mTimeResponseThreshold;
   stream << "\nEMCal::SimParam.mNADCEC = " << mNADCEC;
   stream << "\nEMCal::SimParam.mA = " << mA;
   stream << "\nEMCal::SimParam.mB = " << mB;
