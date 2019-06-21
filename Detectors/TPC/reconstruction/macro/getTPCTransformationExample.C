@@ -43,8 +43,8 @@ void getTPCTransformationExample()
   TH1F* hist = new TH1F("h", "h", 100, -1.e-4, 1.e-4);
 
   double statDiff = 0., statN = 0.;
-  
-  const o2::gpu::TPCFastTransformGeo &geo = fastTransform->getGeometry();
+
+  const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
     std::cout << "slice " << slice << " ... " << std::endl;
