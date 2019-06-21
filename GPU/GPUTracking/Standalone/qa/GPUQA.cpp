@@ -23,6 +23,7 @@
 #include "TPaveText.h"
 #include "TF1.h"
 #include "TFile.h"
+#include "TTree.h"
 #include "TStyle.h"
 #include "TLatex.h"
 #include <sys/stat.h>
@@ -38,6 +39,17 @@
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
 #include "GPUTPCClusterData.h"
+#include "GPUO2DataTypes.h"
+#ifdef GPUCA_O2_LIB
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/TrackReference.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "TPDGCode.h"
+#include "TParticlePDG.h"
+#include "TDatabasePDG.h"
+#endif
 #include <algorithm>
 #include <cstdio>
 
@@ -50,12 +62,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define QA_TIMING 0
 
 #ifdef GPUCA_MERGER_BY_MC_LABEL
-#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()                                                \
-  if (!unattached && mTrackMCLabels[id] != MC_LABEL_INVALID) {                              \
-    int mcLabel = mTrackMCLabels[id] >= 0 ? mTrackMCLabels[id] : (-mTrackMCLabels[id] - 2); \
-    if (mTrackMCLabelsReverse[mcLabel] != id) {                                             \
-      attach &= (~GPUTPCGMMerger::attachGoodLeg);                                           \
-    }                                                                                       \
+#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()         \
+  if (!unattached && mTrackMCLabels[id].isValid()) { \
+    int mcLabel = mTrackMCLabels[id].getTrackID());  \
+    if (mTrackMCLabelsReverse[mcLabel] != id) {      \
+      attach &= (~GPUTPCGMMerger::attachGoodLeg);    \
+    }                                                \
   }
 #else
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
@@ -137,13 +149,71 @@ static const GPUQA::configQA& GPUQA_GetConfig(GPUChainTracking* rec)
 #endif
 }
 
-GPUQA::GPUQA(GPUChainTracking* rec) : mRec(rec), mConfig(GPUQA_GetConfig(rec)) {}
+#ifdef GPUCA_TPC_GEOMETRY_O2
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
-static bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) { return (a.fMCID > b.fMCID); }
+inline unsigned int GPUQA::GetNMCCollissions()
+{
+  return mNColTracks.size();
+}
+inline unsigned int GPUQA::GetNMCTracks(int iCol) { return mNColTracks[iCol]; }
+inline unsigned int GPUQA::GetNMCLabels() { return mTracking->GetClusterNativeAccess()->clustersMCTruth ? mTracking->GetClusterNativeAccess()->clustersMCTruth->getIndexedSize() : 0; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[iCol][iTrk]; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[label.getEventID()][label.getTrackID()]; }
+inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i); }
+inline int GPUQA::GetMCLabelNID(const mcLabels_t& label) { return label.size(); }
+inline int GPUQA::GetMCLabelNID(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i).size(); }
+inline GPUQA::mcLabel_t GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j]; }
+inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getTrackID(); }
+inline int GPUQA::GetMCLabelID(const mcLabels_t& label, unsigned int j) { return label[j].getTrackID(); }
+inline int GPUQA::GetMCLabelID(const mcLabel_t& label) { return label.getTrackID(); }
+inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getEventID(); }
+inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1; }
+inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
+inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
+inline bool GPUQA::mcPresent() { return mTracking->GetClusterNativeAccess()->clustersMCTruth && mNColTracks.size(); }
+#else
+inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)
+{
+}
+inline bool GPUQA::mcLabelI_t::operator==(const GPUQA::mcLabel_t& l) { return AbsLabelID(track) == l.fMCID; }
+inline unsigned int GPUQA::GetNMCCollissions() { return 1; }
+inline unsigned int GPUQA::GetNMCTracks(int iCol) { return mTracking->mIOPtrs.nMCInfosTPC; }
+inline unsigned int GPUQA::GetNMCLabels() { return mTracking->mIOPtrs.nMCLabelsTPC; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mTracking->mIOPtrs.mcInfosTPC[AbsLabelID(iTrk)]; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return GetMCTrack(label.fMCID, 0); }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabelI_t& label) { return GetMCTrack(label.track, 0); }
+inline const GPUQA::mcLabels_t& GPUQA::GetMCLabel(unsigned int i) { return mTracking->mIOPtrs.mcLabelsTPC[i]; }
+inline const GPUQA::mcLabel_t& GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.mcLabelsTPC[i].fClusterID[j]; }
+inline int GPUQA::GetMCLabelNID(const mcLabels_t& label) { return 3; }
+inline int GPUQA::GetMCLabelNID(unsigned int i) { return 3; }
+inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID; }
+inline int GPUQA::GetMCLabelID(const mcLabels_t& label, unsigned int j) { return label.fClusterID[j].fMCID; }
+inline int GPUQA::GetMCLabelID(const mcLabel_t& label) { return label.fMCID; }
+inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return 0; }
+inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight; }
+inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return label.fClusterID[j].fWeight; }
+inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return label.fWeight; }
+inline int GPUQA::FakeLabelID(int id) { return id < 0 ? id : (-2 - id); }
+inline int GPUQA::AbsLabelID(int id) { return id >= 0 ? id : (-id - 2); }
+inline bool GPUQA::mcPresent() { return GetNMCLabels() && GetNMCTracks(0); }
+#endif
+template <class T>
+inline auto& GPUQA::GetMCTrackObj(T& obj, const GPUQA::mcLabelI_t& l)
+{
+  return obj[l.getEventID()][l.getTrackID()];
+}
+
+GPUQA::GPUQA(GPUChainTracking* rec) : mTracking(rec), mConfig(GPUQA_GetConfig(rec)) {}
+
+GPUQA::~GPUQA() = default;
+
+inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQA::GetMCLabelID(a) > GPUQA::GetMCLabelID(b)); }
 
 bool GPUQA::clusterRemovable(int cid, bool prot) const
 {
-  const GPUTPCGMMerger& merger = mRec->GetTPCMerger();
+  const GPUTPCGMMerger& merger = mTracking->GetTPCMerger();
   int attach = merger.ClusterAttachment()[cid];
   CHECK_CLUSTER_STATE_NOCOUNT();
   if (prot) {
@@ -224,11 +294,7 @@ void GPUQA::SetMCTrackRange(int min, int max)
   mMCTrackMax = max;
 }
 
-bool GPUQA::SuppressTrack(int iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }
-
-bool GPUQA::SuppressHit(int iHit) const { return (mConfig.matchMCLabels.size() && !mGoodHits[mNEvents - 1][iHit]); }
-
-int GPUQA::GetMCLabel(unsigned int trackId) const { return (trackId >= mTrackMCLabels.size() ? MC_LABEL_INVALID : mTrackMCLabels[trackId]); }
+int GPUQA::GetMCTrackLabel(unsigned int trackId) const { return (trackId >= mTrackMCLabels.size() ? MC_LABEL_INVALID : mTrackMCLabels[trackId].getTrackID()); }
 
 int GPUQA::InitQA()
 {
@@ -339,6 +405,88 @@ int GPUQA::InitQA()
 
   mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
+#ifdef GPUCA_O2_LIB
+  TFile* fileSim = new TFile("o2sim.root");
+  TTree* treeSim = (TTree*)fileSim->Get("o2sim");
+  std::vector<o2::MCTrack>* tracksX;
+  std::vector<o2::TrackReference>* trackRefsX;
+  if (treeSim == nullptr) {
+    printf("Error reading o2sim tree\n");
+    exit(1);
+  }
+  treeSim->SetBranchAddress("MCTrack", &tracksX);
+  treeSim->SetBranchAddress("TrackRefs", &trackRefsX);
+
+  int nSimEvents = treeSim->GetEntries();
+  mTrackMCLabelsReverse.resize(nSimEvents);
+  mRecTracks.resize(nSimEvents);
+  mFakeTracks.resize(nSimEvents);
+  mMCParam.resize(nSimEvents);
+  mMCInfos.resize(nSimEvents);
+  mNColTracks.resize(nSimEvents);
+  std::vector<int> refId;
+  for (int i = 0; i < nSimEvents; i++) {
+    treeSim->GetEntry(i);
+    const std::vector<o2::MCTrack>& tracks = *tracksX;
+    const std::vector<o2::TrackReference>& trackRefs = *trackRefsX;
+
+    refId.resize(tracks.size());
+    std::fill(refId.begin(), refId.end(), -1);
+    for (unsigned int j = 0; j < trackRefs.size(); j++) {
+      if (trackRefs[j].getDetectorId() == o2::detectors::DetID::TPC) {
+        int trkId = trackRefs[j].getTrackID();
+        if (refId[trkId] == -1) {
+          refId[trkId] = j;
+        }
+      }
+    }
+    mNColTracks[i] = tracks.size();
+    mMCInfos[i].resize(tracks.size());
+    for (unsigned int j = 0; j < tracks.size(); j++) {
+      auto& info = mMCInfos[i][j];
+      const auto& trk = tracks[j];
+      TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
+      Int_t pid = -1;
+      if (abs(trk.GetPdgCode()) == kElectron) {
+        pid = 0;
+      }
+      if (abs(trk.GetPdgCode()) == kMuonMinus) {
+        pid = 1;
+      }
+      if (abs(trk.GetPdgCode()) == kPiPlus) {
+        pid = 2;
+      }
+      if (abs(trk.GetPdgCode()) == kKPlus) {
+        pid = 3;
+      }
+      if (abs(trk.GetPdgCode()) == kProton) {
+        pid = 4;
+      }
+
+      info.charge = particle ? particle->Charge() : 0;
+      info.prim = 1;
+      info.primDaughters = 0;
+      info.pid = pid;
+      if (refId[j] >= 0) {
+        const auto& trkRef = trackRefs[refId[j]];
+        info.x = trkRef.X();
+        info.y = trkRef.Y();
+        info.z = trkRef.Z();
+        info.pX = trkRef.Px();
+        info.pY = trkRef.Py();
+        info.pZ = trkRef.Pz();
+        info.genRadius = std::sqrt(trk.GetStartVertexCoordinatesX() * trk.GetStartVertexCoordinatesX() + trk.GetStartVertexCoordinatesY() * trk.GetStartVertexCoordinatesY() + trk.GetStartVertexCoordinatesZ() * trk.GetStartVertexCoordinatesZ());
+      } else {
+        info.x = info.y = info.z = info.pX = info.pY = info.pZ = 0;
+        info.genRadius = 0;
+      }
+    }
+  }
+
+  fileSim->Close();
+  delete fileSim;
+#endif
+
   if (mConfig.matchMCLabels.size()) {
     unsigned int nFiles = mConfig.matchMCLabels.size();
     std::vector<TFile*> files(nFiles);
@@ -380,24 +528,31 @@ int GPUQA::InitQA()
       delete files[i];
     }
   }
+  mQAInitialized = true;
   return 0;
 }
 
 void GPUQA::RunQA(bool matchOnly)
 {
-  // Initialize Arrays
-  const GPUTPCGMMerger& merger = mRec->GetTPCMerger();
-  mTrackMCLabels.resize(merger.NOutputTracks());
-  mTrackMCLabelsReverse.resize(mRec->mIOPtrs.nMCInfosTPC);
-  mRecTracks.resize(mRec->mIOPtrs.nMCInfosTPC);
-  mFakeTracks.resize(mRec->mIOPtrs.nMCInfosTPC);
-  mMCParam.resize(mRec->mIOPtrs.nMCInfosTPC);
-  memset(mRecTracks.data(), 0, mRecTracks.size() * sizeof(mRecTracks[0]));
-  memset(mFakeTracks.data(), 0, mFakeTracks.size() * sizeof(mFakeTracks[0]));
-  for (size_t i = 0; i < mTrackMCLabelsReverse.size(); i++) {
-    mTrackMCLabelsReverse[i] = -1;
+  if (!mQAInitialized) {
+    return;
   }
-  mClusterParam.resize(mRec->mIOPtrs.nMCLabelsTPC);
+
+  // Initialize Arrays
+  const GPUTPCGMMerger& merger = mTracking->GetTPCMerger();
+  mTrackMCLabels.resize(merger.NOutputTracks());
+  for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+    mTrackMCLabelsReverse[iCol].resize(GetNMCTracks(iCol));
+    mRecTracks[iCol].resize(GetNMCTracks(iCol));
+    mFakeTracks[iCol].resize(GetNMCTracks(iCol));
+    mMCParam[iCol].resize(GetNMCTracks(iCol));
+    memset(mRecTracks[iCol].data(), 0, mRecTracks[iCol].size() * sizeof(mRecTracks[iCol][0]));
+    memset(mFakeTracks[iCol].data(), 0, mFakeTracks[iCol].size() * sizeof(mFakeTracks[iCol][0]));
+    for (size_t i = 0; i < mTrackMCLabelsReverse[iCol].size(); i++) {
+      mTrackMCLabelsReverse[iCol][i] = -1;
+    }
+  }
+  mClusterParam.resize(GetNMCLabels());
   memset(mClusterParam.data(), 0, mClusterParam.size() * sizeof(mClusterParam[0]));
   mNTotalFakes = 0;
   HighResTimer timer;
@@ -406,15 +561,15 @@ void GPUQA::RunQA(bool matchOnly)
   if (mConfig.writeMCLabels) {
     mcEffBuffer.resize(mNEvents);
     mcLabelBuffer.resize(mNEvents);
-    mcEffBuffer[mNEvents - 1].resize(mRec->mIOPtrs.nMCInfosTPC);
+    mcEffBuffer[mNEvents - 1].resize(GetNMCTracks(0));
     mcLabelBuffer[mNEvents - 1].resize(merger.NOutputTracks());
   }
   std::vector<int>& effBuffer = mcEffBuffer[mNEvents - 1];
   std::vector<int>& labelBuffer = mcLabelBuffer[mNEvents - 1];
 
-  bool mcAvail = mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC;
+  bool mcAvail = mcPresent();
 
-  if (mcAvail && mRec->GetParam().rec.NonConsecutiveIDs) {
+  if (mcAvail && mTracking->GetParam().rec.NonConsecutiveIDs) {
     printf("QA incompatible to non-consecutive MC labels\n");
     return;
   }
@@ -432,29 +587,29 @@ void GPUQA::RunQA(bool matchOnly)
       }
       int nClusters = 0;
       const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
-      std::vector<AliHLTTPCClusterMCWeight> labels;
+      std::vector<mcLabel_t> labels;
       for (unsigned int k = 0; k < track.NClusters(); k++) {
         if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
           continue;
         }
         nClusters++;
         unsigned int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
-        if (hitId >= mRec->mIOPtrs.nMCLabelsTPC) {
-          printf("Invalid hit id %u > %d\n", hitId, mRec->mIOPtrs.nMCLabelsTPC);
+        if (hitId >= GetNMCLabels()) {
+          printf("Invalid hit id %u > %d\n", hitId, GetNMCLabels());
           ompError = true;
           break;
         }
-        for (int j = 0; j < 3; j++) {
-          if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= (int)mRec->mIOPtrs.nMCInfosTPC) {
-            printf("Invalid label %d > %d\n", mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID, mRec->mIOPtrs.nMCInfosTPC);
+        for (int j = 0; j < GetMCLabelNID(hitId); j++) {
+          if (GetMCLabelID(hitId, j) >= (int)GetNMCTracks(GetMCLabelCol(hitId, j))) {
+            printf("Invalid label %d > %d\n", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)));
             ompError = true;
             break;
           }
-          if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= 0) {
+          if (GetMCLabelID(hitId, j) >= 0) {
             if (QA_DEBUG >= 3 && track.OK()) {
-              printf("Track %d Cluster %u Label %d: %d (%f)\n", i, k, j, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight);
+              printf("Track %d Cluster %u Label %d: %d (%f)\n", i, k, j, GetMCLabelID(hitId, j), GetMCLabelWeight(hitId, j));
             }
-            labels.push_back(mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j]);
+            labels.push_back(GetMCLabel(hitId, j));
           }
         }
         if (ompError) {
@@ -465,45 +620,49 @@ void GPUQA::RunQA(bool matchOnly)
         continue;
       }
       if (labels.size() == 0) {
-        mTrackMCLabels[i] = MC_LABEL_INVALID;
+        mTrackMCLabels[i].setNoise();
         mNTotalFakes++;
         continue;
       }
       std::sort(labels.data(), labels.data() + labels.size(), MCComp);
 
-      AliHLTTPCClusterMCWeight maxLabel;
-      AliHLTTPCClusterMCWeight cur = labels[0];
+      mcLabelI_t maxLabel;
+      mcLabelI_t cur = labels[0];
+      float curweight = GetMCLabelWeight(labels[0]);
+      float maxweight = 0.f;
       float sumweight = 0.f;
       int curcount = 1, maxcount = 0;
       if (QA_DEBUG >= 2 && track.OK()) {
         for (unsigned int k = 0; k < labels.size(); k++) {
-          printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
+          printf("\t%d %f\n", GetMCLabelID(labels[k]), GetMCLabelWeight(labels[k]));
         }
       }
       for (unsigned int k = 1; k <= labels.size(); k++) {
-        if (k == labels.size() || labels[k].fMCID != cur.fMCID) {
-          sumweight += cur.fWeight;
+        if (k == labels.size() || cur != labels[k]) {
+          sumweight += curweight;
           if (curcount > maxcount) {
             maxLabel = cur;
             maxcount = curcount;
+            maxweight = curweight;
           }
           if (k < labels.size()) {
             cur = labels[k];
+            curweight = GetMCLabelWeight(labels[k]);
             curcount = 1;
           }
         } else {
-          cur.fWeight += labels[k].fWeight;
+          curweight += GetMCLabelWeight(labels[k]);
           curcount++;
         }
       }
 
       if (maxcount < mConfig.recThreshold * nClusters) {
-        maxLabel.fMCID = -2 - maxLabel.fMCID;
+        maxLabel.setFakeFlag(true);
       }
-      mTrackMCLabels[i] = maxLabel.fMCID;
-      if (QA_DEBUG && track.OK() && mRec->mIOPtrs.nMCInfosTPC > maxLabel.fMCID) {
-        const GPUTPCMCInfo& mc = mRec->mIOPtrs.mcInfosTPC[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
-        printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float)maxcount / (float)nClusters,
+      mTrackMCLabels[i] = maxLabel;
+      if (QA_DEBUG && track.OK() && GetNMCTracks(maxLabel.getEventID()) > maxLabel.getTrackID()) {
+        const mcInfo_t& mc = GetMCTrack(maxLabel);
+        printf("Track %d label %d (fake %d) weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.getTrackID(), (int)(maxLabel.isFake()), maxweight, nClusters, track.NClustersFitted(), 100.f * maxweight / sumweight, 100.f * (float)maxcount / (float)nClusters,
                std::sqrt(mc.pX * mc.pX + mc.pY * mc.pY));
       }
     }
@@ -515,7 +674,7 @@ void GPUQA::RunQA(bool matchOnly)
       if (!track.OK()) {
         continue;
       }
-      if (mTrackMCLabels[i] == MC_LABEL_INVALID) {
+      if (!mTrackMCLabels[i].isValid()) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
           if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
@@ -524,16 +683,16 @@ void GPUQA::RunQA(bool matchOnly)
         }
         continue;
       }
-      int label = mTrackMCLabels[i] < 0 ? (-mTrackMCLabels[i] - 2) : mTrackMCLabels[i];
-      if (mMCTrackMin == -1 || (label >= mMCTrackMin && label < mMCTrackMax)) {
+      mcLabelI_t label = mTrackMCLabels[i];
+      if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
           if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
           }
           int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
           bool correct = false;
-          for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID == label) {
+          for (int j = 0; j < GetMCLabelNID(hitId); j++) {
+            if (label == GetMCLabel(hitId, j)) {
               correct = true;
               break;
             }
@@ -545,28 +704,28 @@ void GPUQA::RunQA(bool matchOnly)
           }
         }
       }
-      if (mTrackMCLabels[i] < 0) {
-        mFakeTracks[label]++;
+      if (mTrackMCLabels[i].isFake()) {
+        (GetMCTrackObj(mFakeTracks, label))++;
       } else {
-        mRecTracks[label]++;
-        if (mMCTrackMin == -1 || (label >= mMCTrackMin && label < mMCTrackMax)) {
-          int& revLabel = mTrackMCLabelsReverse[label];
+        GetMCTrackObj(mRecTracks, label)++;
+        if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
+          int& revLabel = GetMCTrackObj(mTrackMCLabelsReverse, label);
           if (revLabel == -1 || !merger.OutputTracks()[revLabel].OK() || (merger.OutputTracks()[i].OK() && fabsf(merger.OutputTracks()[i].GetParam().GetZ()) < fabsf(merger.OutputTracks()[revLabel].GetParam().GetZ()))) {
             revLabel = i;
           }
         }
       }
     }
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCLabelsTPC; i++) {
+    for (unsigned int i = 0; i < GetNMCLabels(); i++) {
       if (mClusterParam[i].attached == 0 && mClusterParam[i].fakeAttached == 0) {
         int attach = merger.ClusterAttachment()[i];
         if (attach & GPUTPCGMMerger::attachFlagMask) {
           int track = attach & GPUTPCGMMerger::attachTrackMask;
-          track = mTrackMCLabels[track] < 0 ? (-mTrackMCLabels[track] - 2) : mTrackMCLabels[track];
+          mcLabelI_t trackL = mTrackMCLabels[track];
           bool fake = true;
-          for (int j = 0; j < 3; j++) {
-            // printf("Attach %x Track %d / %d:%d\n", attach, track, j, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID);
-            if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID == track) {
+          for (int j = 0; j < GetMCLabelNID(i); j++) {
+            // printf("Attach %x Track %d / %d:%d\n", attach, track, j, GetMCLabelID(i, j));
+            if (trackL == GetMCLabel(i, j)) {
               fake = false;
               break;
             }
@@ -580,9 +739,9 @@ void GPUQA::RunQA(bool matchOnly)
       }
     }
     if (mConfig.matchMCLabels.size()) {
-      mGoodHits[mNEvents - 1].resize(mRec->mIOPtrs.nMCLabelsTPC);
-      std::vector<bool> allowMCLabels(mRec->mIOPtrs.nMCInfosTPC);
-      for (unsigned int k = 0; k < mRec->mIOPtrs.nMCInfosTPC; k++) {
+      mGoodHits[mNEvents - 1].resize(GetNMCLabels());
+      std::vector<bool> allowMCLabels(GetNMCTracks(0));
+      for (unsigned int k = 0; k < GetNMCTracks(0); k++) {
         allowMCLabels[k] = false;
       }
       for (int i = 0; i < merger.NOutputTracks(); i++) {
@@ -590,10 +749,10 @@ void GPUQA::RunQA(bool matchOnly)
           continue;
         }
         if (mConfig.matchDisplayMinPt > 0) {
-          if (mTrackMCLabels[i] == MC_LABEL_INVALID) {
+          if (!mTrackMCLabels[i].isValid()) {
             continue;
           }
-          const GPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[abs(mTrackMCLabels[i])];
+          const mcInfo_t& info = GetMCTrack(mTrackMCLabels[i]);
           if (info.pX * info.pX + info.pY * info.pY < mConfig.matchDisplayMinPt * mConfig.matchDisplayMinPt) {
             continue;
           }
@@ -602,15 +761,17 @@ void GPUQA::RunQA(bool matchOnly)
         const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
         for (unsigned int j = 0; j < track.NClusters(); j++) {
           int hitId = merger.Clusters()[track.FirstClusterRef() + j].num;
-          int mcID = mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[0].fMCID;
-          if (mcID >= 0) {
-            allowMCLabels[mcID] = true;
+          if (GetMCLabelNID(hitId)) {
+            int mcID = GetMCLabelID(hitId, 0);
+            if (mcID >= 0) {
+              allowMCLabels[mcID] = true;
+            }
           }
         }
       }
-      for (unsigned int i = 0; i < mRec->mIOPtrs.nMCLabelsTPC; i++) {
-        for (int j = 0; j < 3; j++) {
-          int mcID = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID;
+      for (unsigned int i = 0; i < GetNMCLabels(); i++) {
+        for (int j = 0; j < GetMCLabelNID(i); j++) {
+          int mcID = GetMCLabelID(i, j);
           if (mcID >= 0 && allowMCLabels[mcID]) {
             mGoodHits[mNEvents - 1][i] = true;
           }
@@ -628,20 +789,21 @@ void GPUQA::RunQA(bool matchOnly)
     timer.ResetStart();
 
     // Recompute fNWeightCls (might have changed after merging events into timeframes)
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCInfosTPC; i++) {
-      mMCParam[i].nWeightCls = 0.;
+    for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+      for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
+        mMCParam[iCol][i].nWeightCls = 0.;
+      }
     }
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCLabelsTPC; i++) {
-      const AliHLTTPCClusterMCLabel* labels = mRec->mIOPtrs.mcLabelsTPC;
+    for (unsigned int i = 0; i < GetNMCLabels(); i++) {
       float weightTotal = 0.f;
-      for (int j = 0; j < 3; j++) {
-        if (labels[i].fClusterID[j].fMCID >= 0) {
-          weightTotal += labels[i].fClusterID[j].fWeight;
+      for (int j = 0; j < GetMCLabelNID(i); j++) {
+        if (GetMCLabelID(i, j) >= 0) {
+          weightTotal += GetMCLabelWeight(i, j);
         }
       }
-      for (int j = 0; j < 3; j++) {
-        if (labels[i].fClusterID[j].fMCID >= 0) {
-          mMCParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
+      for (int j = 0; j < GetMCLabelNID(i); j++) {
+        if (GetMCLabelID(i, j) >= 0) {
+          GetMCTrackObj(mMCParam, GetMCLabel(i, j)).nWeightCls += GetMCLabelWeight(i, j) / weightTotal;
         }
       }
     }
@@ -653,94 +815,97 @@ void GPUQA::RunQA(bool matchOnly)
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCInfosTPC; i++) {
-      const GPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[i];
-      additionalMCParameters& mc2 = mMCParam[i];
-      mc2.pt = std::sqrt(info.pX * info.pX + info.pY * info.pY);
-      mc2.phi = M_PI + std::atan2(-info.pY, -info.pX);
-      float p = info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ;
-      if (p < 1e-18) {
-        mc2.theta = mc2.eta = 0.f;
-      } else {
-        mc2.theta = info.pZ == 0 ? (M_PI / 2) : (std::acos(info.pZ / std::sqrt(p)));
-        mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
-      }
-      if (mConfig.writeMCLabels) {
-        effBuffer[i] = mRecTracks[i] * 1000 + mFakeTracks[i];
+    for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+      for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
+        const mcInfo_t& info = GetMCTrack(i, iCol);
+        additionalMCParameters& mc2 = mMCParam[iCol][i];
+        mc2.pt = std::sqrt(info.pX * info.pX + info.pY * info.pY);
+        mc2.phi = M_PI + std::atan2(-info.pY, -info.pX);
+        float p = info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ;
+        if (p < 1e-18) {
+          mc2.theta = mc2.eta = 0.f;
+        } else {
+          mc2.theta = info.pZ == 0 ? (M_PI / 2) : (std::acos(info.pZ / std::sqrt(p)));
+          mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
+        }
+        if (mConfig.writeMCLabels) {
+          effBuffer[i] = mRecTracks[iCol][i] * 1000 + mFakeTracks[iCol][i];
+        }
       }
     }
-
     // Compute MC Track Parameters for MC Tracks
     // Fill Efficiency Histograms
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCInfosTPC; i++) {
-      if ((mMCTrackMin != -1 && (int)i < mMCTrackMin) || (mMCTrackMax != -1 && (int)i >= mMCTrackMax)) {
-        continue;
-      }
-      const GPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[i];
-      const additionalMCParameters& mc2 = mMCParam[i];
-      if (mc2.nWeightCls == 0.f) {
-        continue;
-      }
-      const float& mcpt = mc2.pt;
-      const float& mcphi = mc2.phi;
-      const float& mceta = mc2.eta;
+    for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+      for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
+        if ((mMCTrackMin != -1 && (int)i < mMCTrackMin) || (mMCTrackMax != -1 && (int)i >= mMCTrackMax)) {
+          continue;
+        }
+        const mcInfo_t& info = GetMCTrack(i, iCol);
+        const additionalMCParameters& mc2 = mMCParam[iCol][i];
+        if (mc2.nWeightCls == 0.f) {
+          continue;
+        }
+        const float& mcpt = mc2.pt;
+        const float& mcphi = mc2.phi;
+        const float& mceta = mc2.eta;
 
-      if (info.prim && info.primDaughters) {
-        continue;
-      }
-      if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
-        continue;
-      }
-      int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
-      if (info.pid < 0) {
-        continue;
-      }
-      if (info.charge == 0.f) {
-        continue;
-      }
-      if (mConfig.filterCharge && info.charge * mConfig.filterCharge < 0) {
-        continue;
-      }
-      if (mConfig.filterPID >= 0 && info.pid != mConfig.filterPID) {
-        continue;
-      }
+        if (info.prim && info.primDaughters) {
+          continue;
+        }
+        if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
+          continue;
+        }
+        int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
+        if (info.pid < 0) {
+          continue;
+        }
+        if (info.charge == 0.f) {
+          continue;
+        }
+        if (mConfig.filterCharge && info.charge * mConfig.filterCharge < 0) {
+          continue;
+        }
+        if (mConfig.filterPID >= 0 && info.pid != mConfig.filterPID) {
+          continue;
+        }
 
-      if (fabsf(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) {
-        continue;
-      }
+        if (fabsf(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) {
+          continue;
+        }
 
-      float alpha = std::atan2(info.y, info.x);
-      alpha /= M_PI / 9.f;
-      alpha = std::floor(alpha);
-      alpha *= M_PI / 9.f;
-      alpha += M_PI / 18.f;
+        float alpha = std::atan2(info.y, info.x);
+        alpha /= M_PI / 9.f;
+        alpha = std::floor(alpha);
+        alpha *= M_PI / 9.f;
+        alpha += M_PI / 18.f;
 
-      float c = std::cos(alpha);
-      float s = std::sin(alpha);
-      float localY = -info.x * s + info.y * c;
+        float c = std::cos(alpha);
+        float s = std::sin(alpha);
+        float localY = -info.x * s + info.y * c;
 
-      for (int j = 0; j < 4; j++) {
-        for (int k = 0; k < 2; k++) {
-          if (k == 0 && findable == 0) {
-            continue;
-          }
-
-          int val = (j == 0) ? (mRecTracks[i] ? 1 : 0) : (j == 1) ? (mRecTracks[i] ? mRecTracks[i] - 1 : 0) : (j == 2) ? mFakeTracks[i] : 1;
-
-          for (int l = 0; l < 5; l++) {
-            if (info.prim && mcpt < PT_MIN_PRIM) {
-              continue;
-            }
-            if (l != 3 && fabsf(mceta) > ETA_MAX2) {
-              continue;
-            }
-            if (l < 4 && mcpt < 1.f / mConfig.qpt) {
+        for (int j = 0; j < 4; j++) {
+          for (int k = 0; k < 2; k++) {
+            if (k == 0 && findable == 0) {
               continue;
             }
 
-            float pos = l == 0 ? localY : l == 1 ? info.z : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+            int val = (j == 0) ? (mRecTracks[iCol][i] ? 1 : 0) : (j == 1) ? (mRecTracks[iCol][i] ? mRecTracks[iCol][i] - 1 : 0) : (j == 2) ? mFakeTracks[iCol][i] : 1;
 
-            mEff[j][k][!info.prim][l][0]->Fill(pos, val);
+            for (int l = 0; l < 5; l++) {
+              if (info.prim && mcpt < PT_MIN_PRIM) {
+                continue;
+              }
+              if (l != 3 && fabsf(mceta) > ETA_MAX2) {
+                continue;
+              }
+              if (l < 4 && mcpt < 1.f / mConfig.qpt) {
+                continue;
+              }
+
+              float pos = l == 0 ? localY : l == 1 ? info.z : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+
+              mEff[j][k][!info.prim][l][0]->Fill(pos, val);
+            }
           }
         }
       }
@@ -761,16 +926,16 @@ void GPUQA::RunQA(bool matchOnly)
 
     for (int i = 0; i < merger.NOutputTracks(); i++) {
       if (mConfig.writeMCLabels) {
-        labelBuffer[i] = mTrackMCLabels[i];
+        labelBuffer[i] = mTrackMCLabels[i].getTrackID();
       }
-      if (mTrackMCLabels[i] < 0) {
+      if (mTrackMCLabels[i].isFake()) {
         continue;
       }
-      const GPUTPCMCInfo& mc1 = mRec->mIOPtrs.mcInfosTPC[mTrackMCLabels[i]];
-      const additionalMCParameters& mc2 = mMCParam[mTrackMCLabels[i]];
+      const mcInfo_t& mc1 = GetMCTrack(mTrackMCLabels[i]);
+      const additionalMCParameters& mc2 = GetMCTrackObj(mMCParam, mTrackMCLabels[i]);
       const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
 
-      if ((mMCTrackMin != -1 && mTrackMCLabels[i] < mMCTrackMin) || (mMCTrackMax != -1 && mTrackMCLabels[i] >= mMCTrackMax)) {
+      if ((mMCTrackMin != -1 && mTrackMCLabels[i].getTrackID() < mMCTrackMin) || (mMCTrackMax != -1 && mTrackMCLabels[i].getTrackID() >= mMCTrackMax)) {
         continue;
       }
 
@@ -800,7 +965,7 @@ void GPUQA::RunQA(bool matchOnly)
       } else if (mConfig.resPrimaries == 2 && (mc1.prim || mc1.primDaughters)) {
         continue;
       }
-      if (mTrackMCLabelsReverse[mTrackMCLabels[i]] != i) {
+      if (GetMCTrackObj(mTrackMCLabelsReverse, mTrackMCLabels[i]) != i) {
         continue;
       }
 
@@ -881,40 +1046,40 @@ void GPUQA::RunQA(bool matchOnly)
       if (!track.OK()) {
         continue;
       }
-      if (mTrackMCLabels[iTrk] == MC_LABEL_INVALID) {
+      if (!mTrackMCLabels[iTrk].isValid()) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
           if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
           }
           int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
           float totalWeight = 0.;
-          for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-              totalWeight += mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight;
+          for (int j = 0; j < GetMCLabelNID(hitId); j++) {
+            if (GetMCLabelID(hitId, j) >= 0 && GetMCTrackObj(mMCParam, GetMCLabel(hitId, j)).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              totalWeight += GetMCLabelWeight(hitId, j);
             }
           }
           int attach = merger.ClusterAttachment()[hitId];
           CHECK_CLUSTER_STATE_NOCOUNT();
           if (totalWeight > 0) {
             float weight = 1.f / (totalWeight * (mClusterParam[hitId].attached + mClusterParam[hitId].fakeAttached));
-            for (int j = 0; j < 3; j++) {
-              int label = mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID;
-              if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-                float pt = mMCParam[label].pt;
+            for (int j = 0; j < GetMCLabelNID(hitId); j++) {
+              mcLabelI_t label = GetMCLabel(hitId, j);
+              if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+                float pt = GetMCTrackObj(mMCParam, label).pt;
                 if (pt < PT_MIN_CLUST) {
                   pt = PT_MIN_CLUST;
                 }
-                mClusters[CL_fake]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
-                mClusters[CL_att_adj]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
-                if (mRecTracks[label]) {
-                  mClusters[CL_tracks]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
+                mClusters[CL_fake]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
+                mClusters[CL_att_adj]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
+                if (GetMCTrackObj(mRecTracks, label)) {
+                  mClusters[CL_tracks]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
                 }
-                mClusters[CL_all]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
+                mClusters[CL_all]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
                 if (protect || physics) {
-                  mClusters[CL_prot]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
+                  mClusters[CL_prot]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
                 }
                 if (physics) {
-                  mClusters[CL_physics]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight * weight);
+                  mClusters[CL_physics]->Fill(pt, GetMCLabelWeight(hitId, j) * weight);
                 }
               }
             }
@@ -934,8 +1099,8 @@ void GPUQA::RunQA(bool matchOnly)
         }
         continue;
       }
-      int label = mTrackMCLabels[iTrk] < 0 ? (-mTrackMCLabels[iTrk] - 2) : mTrackMCLabels[iTrk];
-      if (mMCTrackMin != -1 && (label < mMCTrackMin || label >= mMCTrackMax)) {
+      mcLabelI_t label = mTrackMCLabels[iTrk];
+      if (mMCTrackMin != -1 && (label.getTrackID() < mMCTrackMin || label.getTrackID() >= mMCTrackMax)) {
         continue;
       }
       for (unsigned int k = 0; k < track.NClusters(); k++) {
@@ -943,14 +1108,14 @@ void GPUQA::RunQA(bool matchOnly)
           continue;
         }
         int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
-        float pt = mMCParam[label].pt;
+        float pt = GetMCTrackObj(mMCParam, label).pt;
         if (pt < PT_MIN_CLUST) {
           pt = PT_MIN_CLUST;
         }
         float weight = 1.f / (mClusterParam[hitId].attached + mClusterParam[hitId].fakeAttached);
         bool correct = false;
-        for (int j = 0; j < 3; j++) {
-          if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID == label) {
+        for (int j = 0; j < GetMCLabelNID(hitId); j++) {
+          if (label == GetMCLabel(hitId, j)) {
             correct = true;
             break;
           }
@@ -973,8 +1138,8 @@ void GPUQA::RunQA(bool matchOnly)
         }
       }
     }
-    for (unsigned int i = 0; i < mRec->mIOPtrs.nMCLabelsTPC; i++) {
-      if ((mMCTrackMin != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID < mMCTrackMin) || (mMCTrackMax != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID >= mMCTrackMax)) {
+    for (unsigned int i = 0; i < GetNMCLabels(); i++) {
+      if ((mMCTrackMin != -1 && GetMCLabelID(i, 0) < mMCTrackMin) || (mMCTrackMax != -1 && GetMCLabelID(i, 0) >= mMCTrackMax)) {
         continue;
       }
       if (mClusterParam[i].attached || mClusterParam[i].fakeAttached) {
@@ -984,33 +1149,34 @@ void GPUQA::RunQA(bool matchOnly)
       CHECK_CLUSTER_STATE_NOCOUNT();
       if (mClusterParam[i].adjacent) {
         int label = merger.ClusterAttachment()[i] & GPUTPCGMMerger::attachTrackMask;
-        if (mTrackMCLabels[label] == MC_LABEL_INVALID) {
+        if (!mTrackMCLabels[label].isValid()) {
           float totalWeight = 0.;
-          for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-              totalWeight += mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight;
+          for (int j = 0; j < GetMCLabelNID(i); j++) {
+            mcLabelI_t labelT = GetMCLabel(i, j);
+            if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              totalWeight += GetMCLabelWeight(i, j);
             }
           }
           float weight = 1.f / totalWeight;
           if (totalWeight > 0) {
-            for (int j = 0; j < 3; j++) {
-              label = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID;
-              if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-                float pt = mMCParam[label].pt;
+            for (int j = 0; j < GetMCLabelNID(i); j++) {
+              mcLabelI_t labelT = GetMCLabel(i, j);
+              if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+                float pt = GetMCTrackObj(mMCParam, labelT).pt;
                 if (pt < PT_MIN_CLUST) {
                   pt = PT_MIN_CLUST;
                 }
-                if (mRecTracks[label]) {
-                  mClusters[CL_tracks]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
+                if (GetMCTrackObj(mRecTracks, labelT)) {
+                  mClusters[CL_tracks]->Fill(pt, GetMCLabelWeight(i, j) * weight);
                 }
-                mClusters[CL_att_adj]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
-                mClusters[CL_fakeAdj]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
-                mClusters[CL_all]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
+                mClusters[CL_att_adj]->Fill(pt, GetMCLabelWeight(i, j) * weight);
+                mClusters[CL_fakeAdj]->Fill(pt, GetMCLabelWeight(i, j) * weight);
+                mClusters[CL_all]->Fill(pt, GetMCLabelWeight(i, j) * weight);
                 if (protect || physics) {
-                  mClusters[CL_prot]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
+                  mClusters[CL_prot]->Fill(pt, GetMCLabelWeight(i, j) * weight);
                 }
                 if (physics) {
-                  mClusters[CL_physics]->Fill(pt, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight * weight);
+                  mClusters[CL_physics]->Fill(pt, GetMCLabelWeight(i, j) * weight);
                 }
               }
             }
@@ -1027,8 +1193,7 @@ void GPUQA::RunQA(bool matchOnly)
             }
           }
         } else {
-          label = mTrackMCLabels[label] < 0 ? (-mTrackMCLabels[label] - 2) : mTrackMCLabels[label];
-          float pt = mMCParam[label].pt;
+          float pt = GetMCTrackObj(mMCParam, mTrackMCLabels[label]).pt;
           if (pt < PT_MIN_CLUST) {
             pt = PT_MIN_CLUST;
           }
@@ -1044,27 +1209,28 @@ void GPUQA::RunQA(bool matchOnly)
         }
       } else {
         float totalWeight = 0.;
-        for (int j = 0; j < 3; j++) {
-          if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0 && mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-            totalWeight += mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight;
+        for (int j = 0; j < GetMCLabelNID(i); j++) {
+          mcLabelI_t labelT = GetMCLabel(i, j);
+          if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+            totalWeight += GetMCLabelWeight(i, j);
           }
         }
         if (totalWeight > 0) {
-          for (int j = 0; j < 3; j++) {
-            int label = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID;
-            if (label >= 0 && mMCParam[label].pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
-              float pt = mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt;
+          for (int j = 0; j < GetMCLabelNID(i); j++) {
+            mcLabelI_t label = GetMCLabel(i, j);
+            if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              float pt = GetMCTrackObj(mMCParam, label).pt;
               if (pt < PT_MIN_CLUST) {
                 pt = PT_MIN_CLUST;
               }
-              float weight = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight / totalWeight;
+              float weight = GetMCLabelWeight(i, j) / totalWeight;
               if (mClusterParam[i].fakeAdjacent) {
                 mClusters[CL_fakeAdj]->Fill(pt, weight);
               }
               if (mClusterParam[i].fakeAdjacent) {
                 mClusters[CL_att_adj]->Fill(pt, weight);
               }
-              if (mRecTracks[label]) {
+              if (GetMCTrackObj(mRecTracks, label)) {
                 mClusters[CL_tracks]->Fill(pt, weight);
               }
               mClusters[CL_all]->Fill(pt, weight);
@@ -1113,21 +1279,21 @@ void GPUQA::RunQA(bool matchOnly)
     mNCl->Fill(track.NClustersFitted());
   }
 
-  for (int i = 0; i < merger.MaxId(); i++) {
+  for (int i = 0; i < merger.NMaxClusters(); i++) {
     int attach = merger.ClusterAttachment()[i];
     CHECK_CLUSTER_STATE();
 
     if (mcAvail) {
       float totalWeight = 0, weight400 = 0, weight40 = 0;
-      for (int j = 0; j < 3; j++) {
-        auto& label = mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j];
-        if (label.fMCID >= 0) {
-          totalWeight += label.fWeight;
-          if (mMCParam[label.fMCID].pt >= 0.4) {
-            weight400 += label.fWeight;
+      for (int j = 0; j < GetMCLabelNID(i); j++) {
+        const auto& label = GetMCLabel(i, j);
+        if (GetMCLabelID(label) >= 0) {
+          totalWeight += GetMCLabelWeight(label);
+          if (GetMCTrackObj(mMCParam, label).pt >= 0.4) {
+            weight400 += GetMCLabelWeight(label);
           }
-          if (mMCParam[label.fMCID].pt <= 0.04) {
-            weight40 += label.fWeight;
+          if (GetMCTrackObj(mMCParam, label).pt <= 0.04) {
+            weight40 += GetMCLabelWeight(label);
           }
         }
       }
@@ -1139,17 +1305,17 @@ void GPUQA::RunQA(bool matchOnly)
             mNRecClustersFullFakeRemove400++;
           }
           /*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int) (mClusterParam[i].attached || mClusterParam[i].fakeAttached),
-                                            (int) lowPt, (int) ((attach & GPUTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & GPUTPCGMMerger::attachTube) && mev200),
-                                            (int) ((attach & GPUTPCGMMerger::attachHighIncl) != 0), (int) ((attach & GPUTPCGMMerger::attachTube) != 0), (int) ((attach & GPUTPCGMMerger::attachGood) == 0),
-                                            fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
-                                        for (int j = 0;j < 3;j++)
-                                        {
-                                            //if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID < 0) break;
-                                            printf(" - label%d %6d weight %5d", j, mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID, (int) mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fWeight);
-                                            if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID >= 0) printf(" - pt %7.2f", mMCParam[mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID].pt);
-                                            else printf("             ");
-                                        }
-                                        printf("\n");*/
+              (int) lowPt, (int) ((attach & GPUTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & GPUTPCGMMerger::attachTube) && mev200),
+              (int) ((attach & GPUTPCGMMerger::attachHighIncl) != 0), (int) ((attach & GPUTPCGMMerger::attachTube) != 0), (int) ((attach & GPUTPCGMMerger::attachGood) == 0),
+              fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
+          for (int j = 0;j < GetMCLabelNID(i);j++)
+          {
+              //if (GetMCLabelID(i, j) < 0) break;
+              printf(" - label%d %6d weight %5d", j, GetMCLabelID(i, j), (int) GetMCLabelWeight(i, j));
+              if (GetMCLabelID(i, j) >= 0) printf(" - pt %7.2f", mMCParam[GetMCLabelID(i, j)].pt);
+              else printf("             ");
+          }
+          printf("\n");*/
         }
         mNRecClustersAbove400++;
       }
@@ -1179,10 +1345,10 @@ void GPUQA::RunQA(bool matchOnly)
 
   // Create CSV DumpTrackHits
   if (mConfig.csvDump) {
-    int totalNCls = mRec->mIOPtrs.nMCLabelsTPC;
+    int totalNCls = GetNMCLabels();
     if (totalNCls == 0) {
       for (unsigned int iSlice = 0; iSlice < GPUChainTracking::NSLICES; iSlice++) {
-        totalNCls += mRec->mIOPtrs.nClusterData[iSlice];
+        totalNCls += mTracking->mIOPtrs.nClusterData[iSlice];
       }
     }
 
@@ -1211,16 +1377,16 @@ void GPUQA::RunQA(bool matchOnly)
     fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
     int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
     for (unsigned int iSlice = 0; iSlice < GPUChainTracking::NSLICES; iSlice++) {
-      for (unsigned int i = 0; i < mRec->mIOPtrs.nClusterData[iSlice]; i++) {
-        const auto& cl = mRec->mIOPtrs.clusterData[iSlice][i];
+      for (unsigned int i = 0; i < mTracking->mIOPtrs.nClusterData[iSlice]; i++) {
+        const auto& cl = mTracking->mIOPtrs.clusterData[iSlice][i];
         const int cid = cl.id;
         float x, y, z;
         merger.Param().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
         float totalWeight = 0.f;
-        if (mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC) {
-          for (int j = 0; j < 3; j++) {
-            if (mRec->mIOPtrs.mcLabelsTPC[cid].fClusterID[j].fMCID >= 0) {
-              totalWeight += mRec->mIOPtrs.mcLabelsTPC[cid].fClusterID[j].fWeight;
+        if (mcPresent()) {
+          for (int j = 0; j < GetMCLabelNID(cid); j++) {
+            if (GetMCLabelID(cid, j) >= 0) {
+              totalWeight += GetMCLabelWeight(cid, j);
             }
           }
         }
@@ -1229,11 +1395,11 @@ void GPUQA::RunQA(bool matchOnly)
         float p = 0.;
 
         if (totalWeight > 0) {
-          for (int j = 0; j < 3; j++) {
-            const AliHLTTPCClusterMCWeight label = mRec->mIOPtrs.mcLabelsTPC[cid].fClusterID[j];
-            if (label.fMCID >= 0 && label.fWeight > 0.3 * totalWeight) {
-              const GPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[label.fMCID];
-              const additionalMCParameters& mc2 = mMCParam[label.fMCID];
+          for (int j = 0; j < GetMCLabelNID(cid); j++) {
+            const mcLabelI_t label = GetMCLabel(cid, j);
+            if (!label.isFake() && GetMCLabelWeight(cid, j) > 0.3 * totalWeight) {
+              const mcInfo_t& info = GetMCTrack(label);
+              const additionalMCParameters& mc2 = GetMCTrackObj(mMCParam, label);
               const float pt = fabsf(mc2.pt);
               if (pt > maxPt) {
                 maxPt = pt;
@@ -1243,9 +1409,9 @@ void GPUQA::RunQA(bool matchOnly)
           }
         }
         int labels[3] = {};
-        if (mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC) {
-          for (int j = 0; j < 3; j++) {
-            labels[j] = mRec->mIOPtrs.mcLabelsTPC[cid].fClusterID[j].fMCID;
+        if (mcPresent()) {
+          for (int j = 0; j < GetMCLabelNID(cid); j++) {
+            labels[j] = GetMCLabelID(cid, j);
           }
         }
 
@@ -1267,15 +1433,17 @@ void GPUQA::RunQA(bool matchOnly)
       }
     }
     fclose(fp);
-    if (mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC) {
+    if (mcPresent()) {
       sprintf(fname, "dump_event.%d.csv", csvNum++);
       fp = fopen(fname, "w+");
       fprintf(fp, "trackLabel;trackMomentum;trackMomentumTransverse;trackMomentumZ\n\n");
-      for (unsigned int i = 0; i < mRec->mIOPtrs.nMCInfosTPC; i++) {
-        const GPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[i];
-        additionalMCParameters& mc2 = mMCParam[i];
-        if (mc2.nWeightCls > 0) {
-          fprintf(fp, "%u;%f;%f;%f\n", i, std::sqrt(info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ), mc2.pt, info.pZ);
+      for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
+        for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
+          const mcInfo_t& info = GetMCTrack(i, iCol);
+          additionalMCParameters& mc2 = mMCParam[iCol][i];
+          if (mc2.nWeightCls > 0) {
+            fprintf(fp, "%u;%f;%f;%f\n", i, std::sqrt(info.pX * info.pX + info.pY * info.pY + info.pZ * info.pZ), mc2.pt, info.pZ);
+          }
         }
       }
       fclose(fp);
@@ -1318,7 +1486,10 @@ T* GPUQA::GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput)
 
 int GPUQA::DrawQAHistograms()
 {
-  bool mcAvail = mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC;
+  if (!mQAInitialized) {
+    return 1;
+  }
+  bool mcAvail = mcPresent();
   char name[2048], fname[1024];
 
   const int nNewInput = mConfig.inputHistogramsOnly ? 0 : 1;

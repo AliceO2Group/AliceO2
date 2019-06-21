@@ -49,7 +49,8 @@ class GPUQA
   void SetMCTrackRange(int min, int max) {}
   bool SuppressTrack(int iTrack) const { return false; }
   bool SuppressHit(int iHit) const { return false; }
-  int GetMCLabel(unsigned int trackId) const { return -1; }
+  bool HitAttachStatus(int iHit) const { return false; }
+  int GetMCTrackLabel(unsigned int trackId) const { return -1; }
   bool clusterRemovable(int cid, bool prot) const { return false; }
   static bool QAAvailable() { return false; }
 };
@@ -61,17 +62,29 @@ class GPUQA
 #include "GPUTPCDef.h"
 #include <cmath>
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
+#include <gsl/span>
+#endif
+
+namespace o2
+{
+class MCCompLabel;
+}
+
+class AliHLTTPCClusterMCLabel;
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 class GPUChainTracking;
+class GPUTPCMCInfo;
 
 class GPUQA
 {
  public:
   GPUQA(GPUChainTracking* rec);
-  ~GPUQA() = default;
+  ~GPUQA();
 
   typedef GPUQAConfig configQA;
 
@@ -81,7 +94,8 @@ class GPUQA
   void SetMCTrackRange(int min, int max);
   bool SuppressTrack(int iTrack) const;
   bool SuppressHit(int iHit) const;
-  int GetMCLabel(unsigned int trackId) const;
+  bool HitAttachStatus(int iHit) const;
+  int GetMCTrackLabel(unsigned int trackId) const;
   bool clusterRemovable(int cid, bool prot) const;
   static bool QAAvailable() { return true; }
 
@@ -105,7 +119,59 @@ class GPUQA
   template <class T>
   T* GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput);
 
-  GPUChainTracking* mRec;
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  using mcLabels_t = gsl::span<const o2::MCCompLabel>;
+  using mcLabel_t = o2::MCCompLabel;
+  using mcLabelI_t = mcLabel_t;
+  using mcInfo_t = GPUTPCMCInfo;
+  mcLabels_t GetMCLabel(unsigned int i);
+  mcLabel_t GetMCLabel(unsigned int i, unsigned int j);
+#else
+  using mcLabels_t = AliHLTTPCClusterMCLabel;
+  using mcLabel_t = AliHLTTPCClusterMCWeight;
+  struct mcLabelI_t {
+    int getTrackID() const { return AbsLabelID(track); }
+    int getEventID() const { return 0; }
+    bool isFake() const { return track < 0; }
+    bool isValid() const { return track != MC_LABEL_INVALID; }
+    void invalidate() { track = MC_LABEL_INVALID; }
+    void setFakeFlag(bool v = true) { track = v ? FakeLabelID(track) : AbsLabelID(track); }
+    void setNoise() { track = MC_LABEL_INVALID; }
+    bool operator==(const mcLabel_t& l);
+    bool operator!=(const mcLabel_t& l) { return !(*this == l); }
+    mcLabelI_t() = default;
+    mcLabelI_t(const mcLabel_t& l);
+    int track = MC_LABEL_INVALID;
+  };
+  using mcInfo_t = GPUTPCMCInfo;
+  const mcLabels_t& GetMCLabel(unsigned int i);
+  const mcLabel_t& GetMCLabel(unsigned int i, unsigned int j);
+  const mcInfo_t& GetMCTrack(const mcLabelI_t& label);
+  static int FakeLabelID(const int id);
+  static int AbsLabelID(const int id);
+#endif
+  template <class T>
+  static auto& GetMCTrackObj(T& obj, const mcLabelI_t& l);
+
+  unsigned int GetNMCCollissions();
+  unsigned int GetNMCTracks(int iCol);
+  unsigned int GetNMCLabels();
+  const mcInfo_t& GetMCTrack(unsigned int iTrk, unsigned int iCol);
+  const mcInfo_t& GetMCTrack(const mcLabel_t& label);
+  int GetMCLabelNID(const mcLabels_t& label);
+  int GetMCLabelNID(unsigned int i);
+  int GetMCLabelID(unsigned int i, unsigned int j);
+  int GetMCLabelCol(unsigned int i, unsigned int j);
+  static int GetMCLabelID(const mcLabels_t& label, unsigned int j);
+  static int GetMCLabelID(const mcLabel_t& label);
+  float GetMCLabelWeight(unsigned int i, unsigned int j);
+  float GetMCLabelWeight(const mcLabels_t& label, unsigned int j);
+  float GetMCLabelWeight(const mcLabel_t& label);
+  bool mcPresent();
+
+  static bool MCComp(const mcLabel_t& a, const mcLabel_t& b);
+
+  GPUChainTracking* mTracking;
   const configQA& mConfig;
 
   //-------------------------: Some compile time settings....
@@ -121,12 +187,21 @@ class GPUQA
   const char* str_perf_figure_2 = "2015, MC Pb-Pb, #sqrt{s_{NN}} = 5.02 TeV";
   //-------------------------
 
-  std::vector<int> mTrackMCLabels;
-  std::vector<int> mTrackMCLabelsReverse;
-  std::vector<int> mRecTracks;
-  std::vector<int> mFakeTracks;
+  std::vector<mcLabelI_t> mTrackMCLabels;
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  std::vector<std::vector<int>> mTrackMCLabelsReverse;
+  std::vector<std::vector<int>> mRecTracks;
+  std::vector<std::vector<int>> mFakeTracks;
+  std::vector<std::vector<additionalMCParameters>> mMCParam;
+  std::vector<std::vector<mcInfo_t>> mMCInfos;
+  std::vector<int> mNColTracks;
+#else
+  std::vector<int> mTrackMCLabelsReverse[1];
+  std::vector<int> mRecTracks[1];
+  std::vector<int> mFakeTracks[1];
+  std::vector<additionalMCParameters> mMCParam[1];
+#endif
   std::vector<additionalClusterParameters> mClusterParam;
-  std::vector<additionalMCParameters> mMCParam;
   int mNTotalFakes = 0;
 
   TH1F* mEff[4][2][2][5][2]; // eff,clone,fake,all - findable - secondaries - y,z,phi,eta,pt - work,result
@@ -176,6 +251,7 @@ class GPUQA
   TLegend* mLNCl;
 
   int mNEvents = 0;
+  bool mQAInitialized = false;
   std::vector<std::vector<int>> mcEffBuffer;
   std::vector<std::vector<int>> mcLabelBuffer;
   std::vector<std::vector<bool>> mGoodTracks;
@@ -234,6 +310,11 @@ class GPUQA
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };
+
+inline bool GPUQA::SuppressTrack(int iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }
+inline bool GPUQA::SuppressHit(int iHit) const { return (mConfig.matchMCLabels.size() && !mGoodHits[mNEvents - 1][iHit]); }
+inline bool GPUQA::HitAttachStatus(int iHit) const { return (mClusterParam.size() && mClusterParam[iHit].fakeAttached ? (mClusterParam[iHit].attached ? 1 : 2) : 0); }
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

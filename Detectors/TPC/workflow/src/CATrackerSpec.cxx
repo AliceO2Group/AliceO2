@@ -91,15 +91,16 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // This should go away eventually.
 
       // Default Settings
-      float solenoidBz = 5.00668;  // B-field
-      float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;     // time frame data v.s. triggered events
-      int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;         // use a GPU for processing, if false uses GPU
-      int debugLevel = 0;          // Enable additional debug output
-      bool dump = false;           // create memory dump of processed events for standalone runs
-      char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
-      GPUDisplayBackend* display = nullptr;
+      float solenoidBz = 5.00668;           // B-field
+      float refX = 83.;                     // transport tracks to this x after tracking, >500 for disabling
+      bool continuous = false;              // time frame data v.s. triggered events
+      int nThreads = 1;                     // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
+      bool useGPU = false;                  // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;                   // Enable additional debug output
+      bool dump = false;                    // create memory dump of processed events for standalone runs
+      char gpuType[1024] = "CUDA";          // Type of GPU device, if useGPU is set to true
+      GPUDisplayBackend* display = nullptr; // Ptr to display backend (enables event display)
+      bool qa = false;                      // Run the QA after tracking
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -136,6 +137,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 #else
             printf("Standalone Event Display not enabled at build time!\n");
 #endif
+          } else if (strncmp(optPtr, "qa", optLen) == 0) {
+            qa = true;
+            printf("Enabling TPC Standalone QA\n");
           } else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
             sscanf(optPtr + 3, "%f", &solenoidBz);
             printf("Using solenoid field %f\n", solenoidBz);
@@ -172,7 +176,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
 
       config.configDeviceProcessing.nThreads = nThreads;
-      config.configDeviceProcessing.runQA = false;          // Run QA after tracking
+      config.configDeviceProcessing.runQA = qa;             // Run QA after tracking
       config.configDeviceProcessing.eventDisplay = display; // Ptr to event display backend, for running standalone OpenGL event display
                                                             // config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendX11;
 
