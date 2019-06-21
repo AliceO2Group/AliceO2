@@ -158,8 +158,9 @@ int GPUReconstructionCPU::RunChains()
   }
 
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->RunChain()) {
-      return 1;
+    int retVal = mChains[i]->RunChain();
+    if (retVal) {
+      return retVal;
     }
   }
 
