@@ -469,7 +469,7 @@ int main(int argc, char** argv)
 
           int tmpRetVal = rec->RunChains();
 
-          if (tmpRetVal == 0) {
+          if (tmpRetVal == 0 || tmpRetVal == 2) {
             int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
             for (int k = 0; k < chainTracking->GetTPCMerger().NOutputTracks(); k++) {
               if (chainTracking->GetTPCMerger().OutputTracks()[k].OK()) {
