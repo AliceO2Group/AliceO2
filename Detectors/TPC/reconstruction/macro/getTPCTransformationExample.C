@@ -61,16 +61,11 @@ void getTPCTransformationExample()
 
           fastTransform->setApplyDistortionOff();
           float x0 = 0., y0 = 0., z0 = 0.;
-          int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
           fastTransform->setApplyDistortionOn();
           float x1 = 0., y1 = 0., z1 = 0.;
-          int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
-
-          if (err0 != 0 || err1 != 0) {
-            std::cout << "can not transform!!" << std::endl;
-            continue;
-          }
+          fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           // local 2 global
           float gx0, gy0, gz0;
