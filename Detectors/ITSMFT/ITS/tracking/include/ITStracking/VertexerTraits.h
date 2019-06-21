@@ -24,6 +24,8 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
+#include "GPUCommonMath.h"
+
 namespace o2
 {
 
@@ -141,9 +143,9 @@ inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentC
     return getEmptyBinsRect();
   }
 
-  return int4{ MATH_MAX(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{ gpu::GPUCommonMath::Max(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
-               MATH_MIN(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               gpu::GPUCommonMath::Min(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 
@@ -167,9 +169,9 @@ inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& cu
     return getEmptyBinsRect();
   }
 
-  return int4{ MATH_MAX(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{ gpu::GPUCommonMath::Max(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
-               MATH_MIN(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               gpu::GPUCommonMath::Min(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 extern "C" VertexerTraits* createVertexerTraits();
