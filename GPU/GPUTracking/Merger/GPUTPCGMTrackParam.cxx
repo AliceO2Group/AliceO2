@@ -64,6 +64,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
   prop.SetPolynomialField(merger->pField());
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
+  prop.SetMatLUT(merger->MatLUT());
   ShiftZ(merger->pField(), clusters, param, N);
 
   int nWays = param.rec.NWays;
