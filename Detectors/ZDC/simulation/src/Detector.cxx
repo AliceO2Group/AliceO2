@@ -310,7 +310,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       }
 
       //look into the light tables if the particle is charged
-      if (TMath::Abs(charge)>0){
+      if (TMath::Abs(charge) > 0){
         if (detector == 1 || detector == 4) {
           iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
           lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
@@ -361,7 +361,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       mTotLightPMQ += nphe;
     }
     float incenloss = curHit.GetEnergyLoss() + eDep;
-    if(incenloss>0 || nphe>0){
+    if(incenloss > 0 || nphe > 0){
       curHit.SetEnergyLoss(incenloss);
       curHit.setPMCLightYield(mTotLightPMC);
       curHit.setPMQLightYield(mTotLightPMQ);
@@ -464,7 +464,7 @@ void Detector::createMaterials()
 
   // field integration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
   Int_t inofld = 0; // Max. field value (no field)
-  Int_t ifld = 2; //TODO: ????CHECK!!!! secondo me va -1!!!!!
+  Int_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
   Float_t nofieldm = 0.;
 
   Float_t maxnofld = 0.; // max field value (no field)
@@ -512,7 +512,9 @@ void Detector::createAsideBeamLine()
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };
   Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15]={0.,};
+  Double_t conpar[15]={
+    0.,
+  };
 
   Float_t zA = 1910.2;
 
@@ -1164,7 +1166,9 @@ void Detector::createCsideBeamLine()
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };
   Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15] = {0.,};
+  Double_t conpar[15] = {
+    0.,
+  };
 
   Float_t zC = 1947.2;
   Float_t zCompensator = 1974.;
@@ -1501,7 +1505,7 @@ void Detector::createCsideBeamLine()
   TGeoVolume* pQCLext = new TGeoVolume("QCLext", pOutTrousersC, medZDCFeLowTh);
   pQCLext->SetLineColor(kAzure);
   pQCLext->SetVisLeaves(kTRUE);
-   //
+  //
   TGeoTranslation* tr1c = new TGeoTranslation(0., 0., (Double_t)-conpar[0] - 0.95 - zC);
   //
   pZDCC->AddNode(pQCLext, 1, tr1c);
