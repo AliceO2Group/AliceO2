@@ -18,7 +18,7 @@ o2_add_library(DebugGUI
                PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation ${GUI_TARGET})
 
 if(GLFW_FOUND)
-  o2_add_executable(ImGUI
+  o2_add_executable(imgui
                     SOURCES
                     SOURCES test/test_ImGUI.cpp test/imgui_demo.cpp
                     PUBLIC_LINK_LIBRARIES O2::DebugGUI
