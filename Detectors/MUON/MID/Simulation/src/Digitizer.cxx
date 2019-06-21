@@ -90,6 +90,9 @@ bool Digitizer::hitToDigits(const Hit& hit)
 {
   /// Generate digits from the hit
 
+  // Clear
+  mDigits.clear();
+
   // Convert point from global to local coordinates
   auto midPt = hit.middlePoint();
   int deId = hit.GetDetectorID();
@@ -105,7 +108,6 @@ bool Digitizer::hitToDigits(const Hit& hit)
   }
 
   // Digitize if the RPC was efficient
-  mDigits.clear();
   double prob = mRandom(mGenerator);
 
   if (isEfficientBP) {
@@ -137,7 +139,6 @@ bool Digitizer::hitToDigits(const Hit& hit)
 void Digitizer::process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer)
 {
   /// Generate digits from a vector of hits
-  // mMCTruthContainer.clear();
   digitStore.clear();
   mcContainer.clear();
   int firstStrip = 0, lastStrip = 0;
