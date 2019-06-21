@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <TTree.h>
+#include <TSystem.h>
 #include <cassert>
 
 #include "FairLogger.h"
@@ -15,7 +16,6 @@
 #include "Field/MagFieldFast.h"
 #include "ITSBase/GeometryTGeo.h"
 
-#include "DetectorsBase/Propagator.h"
 #include "CommonUtils/TreeStream.h"
 
 #include "DataFormatsTPC/Defs.h"
@@ -83,6 +83,10 @@ void MatchTPCITS::run()
   if (!mInitDone) {
     LOG(FATAL) << "init() was not done yet";
   }
+  ProcInfo_t procInfoStart, procInfoStop;
+  gSystem->GetProcInfo(&procInfoStart);
+  constexpr uint64_t kMB = 1024 * 1024;
+  printf("Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
 
   mTimerTot.Start();
 
@@ -118,6 +122,7 @@ void MatchTPCITS::run()
   mDBGOut.reset();
 #endif
 
+  gSystem->GetProcInfo(&procInfoStop);
   mTimerTot.Stop();
 
   printf("Timing:\n");
@@ -125,12 +130,15 @@ void MatchTPCITS::run()
   mTimerTot.Print();
   printf("Data IO:      ");
   mTimerIO.Print();
-  printf("Registration: ");
-  mTimerReg.Print();
   printf("Refits      : ");
   mTimerRefit.Print();
   printf("DBG trees:    ");
   mTimerDBG.Print();
+
+  printf("Memory (GB) at exit: RSS: %.3f VMem: %.3f\n", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
+  printf("Memory increment: RSS: %.3f VMem: %.3f\n",
+         float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
+         float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
 }
 
 //______________________________________________
@@ -222,12 +230,10 @@ void MatchTPCITS::init()
     mTimerTot.Stop();
     mTimerIO.Stop();
     mTimerDBG.Stop();
-    mTimerReg.Stop();
     mTimerRefit.Stop();
     mTimerTot.Reset();
     mTimerIO.Reset();
     mTimerDBG.Reset();
-    mTimerReg.Reset();
     mTimerRefit.Reset();
   }
 
@@ -853,9 +859,7 @@ void MatchTPCITS::doMatching(int sec)
       if (rejFlag != Accept) {
         continue;
       }
-      mTimerReg.Start(false);
       registerMatchRecordTPC(cacheITS[iits], cacheTPC[itpc], chi2); // register matching candidate
-      mTimerReg.Stop();
       nMatchesControl++;
     }
   }
@@ -1155,7 +1159,7 @@ void MatchTPCITS::addTrackCloneForNeighbourSector(const TrackLocITS& src, int se
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
-                                                           2., 0)) {
+                                                           2., o2::base::Propagator::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
@@ -1174,7 +1178,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   bool refReached = false;
   refReached = XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
   while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged,
-                                                              MaxSnp, 2., 1)) {
+                                                              MaxSnp, 2., mUseMatCorrFlag)) {
     if (refReached) {
       break;
     }
@@ -1245,7 +1249,6 @@ void MatchTPCITS::refitWinners()
   bool loopInITS = false; //true;  // TODO decide final loop
 
   mTimerRefit.Start(false);
-
   LOG(INFO) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   if (loopInITS) {
@@ -1268,10 +1271,13 @@ void MatchTPCITS::refitWinners()
   /*
   */
   // flush last tracks
-  if (mMatchedTracks.size() && mOutputTree) {
-    mOutputTree->Fill();
-  }
   mTimerRefit.Stop();
+
+  if (mMatchedTracks.size() && mOutputTree) {
+    mTimerIO.Start(false);
+    mOutputTree->Fill();
+    mTimerIO.Stop();
+  }
 }
 
 //______________________________________________
@@ -1280,7 +1286,6 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   ///< refit in inward direction the pair of TPC and ITS tracks
 
   const float maxStep = 2.f; // max propagation step (TODO: tune)
-  const int matCorr = 1;     // material correction method
 
   const auto& tITS = mITSWork[iITS];
   if (isDisabledITS(tITS)) {
@@ -1291,9 +1296,11 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   const auto& tTPC = mTPCWork[iTPC];
 
   if (!mDPLIO) {
+    mTimerRefit.Stop(); // stop during IO
     loadITSTracksChunk(tITS.source.getEvent());
     loadTPCTracksChunk(tTPC.source.getEvent());
     loadTPCClustersChunk(tTPC.source.getEvent());
+    mTimerRefit.Start(false);
   }
   auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
@@ -1326,7 +1333,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
         // note: since we are at small R, we can use field BZ component at origin rather than 3D field
         // !propagator->PropagateToXBxByBz(trfit, x, o2::constants::physics::MassPionCharged,
         !propagator->propagateToX(trfit, x, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  MaxSnp, maxStep, matCorr, &trfit.getLTIntegralOut())) {
+                                  MaxSnp, maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       break;
     }
     chi2 += trfit.getPredictedChi2(static_cast<const o2::BaseCluster<float>&>(clus));
@@ -1348,7 +1355,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   // we need to update the LTOF integral by the distance to the "primary vertex"
   const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, matCorr, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1388,7 +1395,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
     // TODO: consider propagating in empty space till TPC entrance in large step, and then in more detailed propagation with mat. corrections
 
     // propagate to 1st cluster X
-    if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., 1, &trfit.getLTIntegralOut())) {
+    if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
@@ -1427,7 +1434,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., 0, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1443,7 +1450,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
     // propagate to the outer edge of the TPC, TODO: check outer radius
     // Note: it is allowed to not reach the requested radius
     propagator->PropagateToXBxByBz(tracOut, XTPCOuterRef, o2::constants::physics::MassPionCharged, MaxSnp,
-                                   10., 1, &trfit.getLTIntegralOut());
+                                   10., mUseMatCorrFlag, &trfit.getLTIntegralOut());
 
     //    LOG(INFO) << "Refitted with chi2 = " << chi2Out;
   }
@@ -1470,7 +1477,6 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   ///< refit in inward direction the pair of TPC and ITS tracks
 
   const float maxStep = 2.f; // max propagation step (TODO: tune)
-  const int matCorr = 1;     // material correction method
 
   const auto& tTPC = mTPCWork[iTPC];
   if (isDisabledTPC(tTPC)) {
@@ -1481,9 +1487,11 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   const auto& tITS = mITSWork[iITS];
 
   if (!mDPLIO) {
+    mTimerRefit.Stop(); // stop during IO
     loadITSTracksChunk(tITS.source.getEvent());
     loadTPCTracksChunk(tTPC.source.getEvent());
     loadTPCClustersChunk(tTPC.source.getEvent());
+    mTimerRefit.Start(false);
   }
   auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
@@ -1516,7 +1524,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
         // note: since we are at small R, we can use field BZ component at origin rather than 3D field
         // !propagator->PropagateToXBxByBz(trfit, x, o2::constants::physics::MassPionCharged,
         !propagator->propagateToX(trfit, x, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  MaxSnp, maxStep, matCorr, &trfit.getLTIntegralOut())) {
+                                  MaxSnp, maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       break;
     }
     chi2 += trfit.getPredictedChi2(static_cast<const o2::BaseCluster<float>&>(clus));
@@ -1538,7 +1546,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   // we need to update the LTOF integral by the distance to the "primary vertex"
   const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, matCorr, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1578,7 +1586,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     // TODO: consider propagating in empty space till TPC entrance in large step, and then in more detailed propagation with mat. corrections
 
     // propagate to 1st cluster X
-    if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., 1, &trfit.getLTIntegralOut())) {
+    if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
@@ -1617,7 +1625,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., 0, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1633,7 +1641,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     // propagate to the outer edge of the TPC, TODO: check outer radius
     // Note: it is allowed to not reach the requested radius
     propagator->PropagateToXBxByBz(tracOut, XTPCOuterRef, o2::constants::physics::MassPionCharged, MaxSnp,
-                                   10., 1, &trfit.getLTIntegralOut());
+                                   10., mUseMatCorrFlag, &trfit.getLTIntegralOut());
 
     //    LOG(INFO) << "Refitted with chi2 = " << chi2Out;
   }
@@ -1661,9 +1669,9 @@ void MatchTPCITS::loadTPCClustersChunk(int chunk)
   if (mCurrTPCClustersTreeEntry != chunk) {
     mTimerIO.Start(false);
     mTPCClusterReader->read(mCurrTPCClustersTreeEntry = chunk);
+    mTimerIO.Stop();
     mTPCClusterReader->fillIndex(*mTPCClusterIdxStructOwn.get(), mTPCClusterBufferOwn, mTPCClusterMCBufferOwn);
     mTPCClusterIdxStruct = mTPCClusterIdxStructOwn.get();
-    mTimerIO.Stop();
   }
 }
 
@@ -1707,7 +1715,7 @@ int MatchTPCITS::prepareTPCTracksAfterBurner()
       // which should be good assumption....
       float xTgt;
       if (!tTPC.getXatLabR(outerLr.rRange.max(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
-          !propagator->PropagateToXBxByBz(tTPC, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., 0)) {
+          !propagator->PropagateToXBxByBz(tTPC, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
         continue;
       }
       mTPCABIndexCache.push_back(iTPC);
@@ -2184,6 +2192,16 @@ void MatchTPCITS::dumpWinnerMatches()
                << "\n";
   }
   mTimerDBG.Stop();
+}
+
+//_________________________________________________________
+void MatchTPCITS::setUseMatCorrFlag(int f)
+{
+  ///< set flag to select material correction type
+  mUseMatCorrFlag = f;
+  if (f < o2::base::Propagator::USEMatCorrNONE || f > o2::base::Propagator::USEMatCorrLUT) {
+    LOG(FATAL) << "Invalid MatCorr flag" << f;
+  }
 }
 
 #endif

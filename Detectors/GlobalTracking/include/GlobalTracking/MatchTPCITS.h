@@ -24,6 +24,7 @@
 #include <string>
 #include <TStopwatch.h>
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "MathUtils/Bracket.h"
@@ -359,6 +360,12 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel>& getMatchedITSLabels() { return mOutITSLabels; }
   std::vector<o2::MCCompLabel>& getMatchedTPCLabels() { return mOutTPCLabels; }
 
+  //>>> ====================== options =============================>>>
+  void setUseMatCorrFlag(int f);
+  int getUseMatCorrFlag() const { return mUseMatCorrFlag; }
+
+  //<<< ====================== options =============================<<<
+
   //>>> ====================== cuts ================================>>>
 
   ///< set cuts on absolute difference of ITS vs TPC track parameters
@@ -520,6 +527,7 @@ class MatchTPCITS
   bool mMCTruthON = true;         ///< flag availability of MC truth
   o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  int mUseMatCorrFlag = o2::base::Propagator::USEMatCorrTGeo;
 
   bool mITSTriggered = false; ///< ITS readout is triggered
 
@@ -672,7 +680,6 @@ class MatchTPCITS
   TStopwatch mTimerTot;
   TStopwatch mTimerIO;
   TStopwatch mTimerDBG;
-  TStopwatch mTimerReg;
   TStopwatch mTimerRefit;
 
   ClassDefNV(MatchTPCITS, 1);
