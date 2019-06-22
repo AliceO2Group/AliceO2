@@ -27,6 +27,12 @@ private:
     };
 
 public:
+    enum class CompType
+    {
+        Digit,
+        Cluster,
+    };
+
     class Worker
     {
 
@@ -58,9 +64,12 @@ public:
         size_t     scanTopWorkGroupSize;
 
         cl::Kernel nativeScanDown;
-        cl::Kernel compactArr;
+        cl::Kernel compactDigit;
+        cl::Kernel compactCluster;
 
         DeviceMemory mem;
+
+        CompType type;
 
         std::vector<std::vector<int>> sumsDump;
 
@@ -72,13 +81,13 @@ public:
 
         size_t stepnum(const Fragment &) const;
 
-        Worker(cl::Program, cl::Device, DeviceMemory);
+        Worker(cl::Program, cl::Device, DeviceMemory, CompType);
 
         void dumpBuffer(cl::CommandQueue, cl::Buffer, size_t);
 
     };
 
-    void setup(ClEnv &, size_t, size_t); 
+    void setup(ClEnv &, CompType, size_t, size_t); 
 
     void setDigitNum(size_t, size_t);
 
@@ -96,6 +105,8 @@ private:
     size_t workernum = 0;
 
     size_t digitNum = 0;
+
+    CompType type = CompType::Digit;
 
 };
 

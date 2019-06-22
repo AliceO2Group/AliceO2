@@ -12,13 +12,16 @@ using namespace gpucf;
 StreamCompaction::Worker::Worker(
         cl::Program prg, 
         cl::Device device, 
-        DeviceMemory mem)
+        DeviceMemory mem,
+        CompType type)
     : nativeScanUpStart(prg, "nativeScanUpStart")
     , nativeScanUp(prg, "nativeScanUp")
     , nativeScanTop(prg, "nativeScanTop")
     , nativeScanDown(prg, "nativeScanDown")
-    , compactArr(prg, "compactArr")
+    , compactDigit(prg, "compactDigit")
+    , compactCluster(prg, "compactClusterNative")
     , mem(mem)
+    , type(type)
 {
     nativeScanUpStart.getWorkGroupInfo(
             device,
@@ -47,21 +50,26 @@ StreamCompaction::Worker::Worker(
 
     ASSERT(scanDownWorkGroupSize == scanUpWorkGroupSize);
 
-    size_t compactArrWorkGroupSize;
-    compactArr.getWorkGroupInfo(
+    size_t compactDigitWorkGroupSize;
+    compactDigit.getWorkGroupInfo(
             device,
             CL_KERNEL_WORK_GROUP_SIZE,
-            &compactArrWorkGroupSize);
+            &compactDigitWorkGroupSize);
 
-    ASSERT(compactArrWorkGroupSize == scanDownWorkGroupSize);
+    ASSERT(compactDigitWorkGroupSize == scanDownWorkGroupSize);
     
 
     log::Debug() << "scanTopWorkGroupSize = " << scanTopWorkGroupSize;
 }
 
 
-void StreamCompaction::setup(ClEnv &env, size_t workernum, size_t digitnum)
+void StreamCompaction::setup(
+        ClEnv &env, 
+        StreamCompaction::CompType type,
+        size_t workernum, size_t digitnum)
 {
+    this->type = type;
+
     prg = env.buildFromSrc("streamCompaction.cl");  
 
     context = env.getContext();
@@ -250,13 +258,25 @@ size_t StreamCompaction::Worker::run(
     offset = offsets.front();
     digitnum = digitnums.front();
 
-    compactArr.setArg(0, digits);
-    compactArr.setArg(1, digitsOut);
-    compactArr.setArg(2, predicate);
-    compactArr.setArg(3, mem.incrBufs[0]);
-    compactArr.setArg(4, mem.incrBufs[1]);
+    cl::Kernel compact;
+
+    switch (type)
+    {
+    case CompType::Digit: 
+        compact = compactDigit; 
+        break;
+    case CompType::Cluster:
+        compact = compactCluster;
+        break;
+    }
+
+    compact.setArg(0, digits);
+    compact.setArg(1, digitsOut);
+    compact.setArg(2, predicate);
+    compact.setArg(3, mem.incrBufs[0]);
+    compact.setArg(4, mem.incrBufs[1]);
     queue.enqueueNDRangeKernel(
-            compactArr,
+            compact,
             cl::NDRange(offset),
             cl::NDRange(digitnum),
             cl::NDRange(scanUpWorkGroupSize),
@@ -275,6 +295,7 @@ size_t StreamCompaction::Worker::run(
             nullptr,
             readNewDigitNum.get());
 
+    ASSERT(size_t(newDigitNum) <= digitnum);
 
     return newDigitNum;
 }
@@ -332,7 +353,7 @@ StreamCompaction::Worker StreamCompaction::worker()
     DeviceMemory mem = mems.top();
     mems.pop();
 
-    return Worker(*prg, device, mem);
+    return Worker(*prg, device, mem, type);
 }
 
 

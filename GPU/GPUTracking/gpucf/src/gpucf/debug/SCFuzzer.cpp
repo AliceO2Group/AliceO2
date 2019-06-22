@@ -22,7 +22,7 @@ void SCFuzzer::setup(ClEnv &env)
     context = env.getContext();
     device  = env.getDevice();
 
-    streamCompaction.setup(env, 1, 10);
+    streamCompaction.setup(env, StreamCompaction::CompType::Digit, 1, 10);
 }
 
 bool SCFuzzer::run(size_t runs)
