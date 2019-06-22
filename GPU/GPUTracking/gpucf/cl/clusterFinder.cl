@@ -36,8 +36,9 @@ typedef struct ChargePos_s
 
 typedef short2 local_id;
 
-constant charge_t CHARGE_THRESHOLD = 2;
-constant charge_t OUTER_CHARGE_THRESHOLD = 0;
+constant charge_t CHARGE_THRESHOLD = 2.f;
+constant charge_t OUTER_CHARGE_THRESHOLD = 0.f;
+constant charge_t QTOT_THRESHOLD = 0.f;
 
 constant delta2_t INNER_NEIGHBORS[8] =
 {
@@ -852,11 +853,8 @@ void computeClusters(
         global const int           *globalToLocalRow,
         global const int           *globalRowToCru,
                      uint           clusternum,
-#if defined(CLUSTER_NATIVE_OUTPUT)
         global       ClusterNative *clusters,
-#else
-        global       Cluster       *clusters,
-#endif
+        global       uchar         *aboveQTotCutoff,
         global       uchar         *peakMap)
 {
     uint idx = get_global_linear_id();
@@ -889,26 +887,23 @@ void computeClusters(
 
     finalize(&pc, &myDigit);
 
-#if defined(CLUSTER_NATIVE_OUTPUT)
-    bool isEdgeCluster = isAtEdge(&myDigit);
 
+    bool isEdgeCluster = isAtEdge(&myDigit);
     uchar flags = isEdgeCluster;
+
     ClusterNative myCluster;
     toNative(&pc, myDigit.charge, flags, &myCluster);
-#else
-    Cluster myCluster;
-    toRegular(
-            &pc, 
-            &myDigit,
-            globalToLocalRow, 
-            globalRowToCru, 
-            &myCluster);
-#endif
 
     clusters[idx] = myCluster;
 
 #if defined(SPLIT_CHARGES)
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;
+#endif
+
+#if defined(CUT_QTOT)
+    aboveQTotCutoff[idx] = (pc.Q > QTOT_THRESHOLD);
+#else
+    aboveQTotCutoff[idx] = true;
 #endif
 }
 
@@ -941,4 +936,3 @@ void nativeToRegular(
 
     regular[idx] = c;
 }
-

@@ -46,10 +46,12 @@ private:
     {
         cl::Buffer digits;
         cl::Buffer isPeak;
+        cl::Buffer aboveQTotCutoff;
         cl::Buffer peaks;
         cl::Buffer chargeMap;
         cl::Buffer peakMap;
         cl::Buffer clusterNative;
+        cl::Buffer clusterNativeCutoff;
         cl::Buffer cluster;
 
         cl::Buffer globalToLocalRow;
@@ -104,7 +106,8 @@ private:
         cl::Kernel nativeToRegular;
 
         DeviceMemory mem;
-        StreamCompaction::Worker streamCompaction;
+        StreamCompaction::Worker digitCompaction;
+        StreamCompaction::Worker clusterCompaction;
 
         cl::CommandQueue clustering;
         cl::CommandQueue cleanup;
@@ -122,6 +125,7 @@ private:
                 cl::Program, 
                 DeviceMemory, 
                 ClusterFinderConfig,
+                StreamCompaction::Worker,
                 StreamCompaction::Worker,
                 Worker *);
 
@@ -169,7 +173,8 @@ private:
 
     std::vector<Worker> workers;
 
-    StreamCompaction streamCompaction;
+    StreamCompaction digitCompaction;
+    StreamCompaction clusterCompaction;
 
     cl::Context context;
     cl::Device device;

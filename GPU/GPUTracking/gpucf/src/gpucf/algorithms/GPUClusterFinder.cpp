@@ -27,10 +27,12 @@ GPUClusterFinder::Worker::Worker(
         cl::Program program,
         DeviceMemory mem,
         ClusterFinderConfig config,
-        StreamCompaction::Worker streamCompaction,
+        StreamCompaction::Worker digitCompaction,
+        StreamCompaction::Worker clusterCompaction,
         Worker *prev)
     : mem(mem)
-    , streamCompaction(streamCompaction)
+    , digitCompaction(digitCompaction)
+    , clusterCompaction(clusterCompaction)
     , config(config)
 {
 
@@ -189,7 +191,7 @@ void GPUClusterFinder::Worker::run(
      * Compact peaks
      ************************************************************************/
 
-    size_t clusternum = streamCompaction.run(
+    size_t clusternum = digitCompaction.run(
             range,
             clustering,
             mem.digits,
@@ -237,8 +239,9 @@ void GPUClusterFinder::Worker::run(
         computeClusters.setArg(2, mem.globalToLocalRow);
         computeClusters.setArg(3, mem.globalRowToCru);
         computeClusters.setArg(4, cl_uint(clusternum));
-        computeClusters.setArg(5, (config.clusterNative) ? mem.clusterNative : mem.cluster);
-        computeClusters.setArg(6, mem.peakMap);
+        computeClusters.setArg(5, mem.clusterNative);
+        computeClusters.setArg(6, mem.aboveQTotCutoff);
+        computeClusters.setArg(7, mem.peakMap);
         clustering.enqueueNDRangeKernel(
                 computeClusters,
                 offset,
@@ -246,6 +249,13 @@ void GPUClusterFinder::Worker::run(
                 local,
                 nullptr,
                 computingClusters.get());
+
+        clusternum = clusterCompaction.run(
+                {0, 0, clusternum, 0},
+                clustering,
+                mem.clusterNative,
+                mem.clusterNativeCutoff,
+                mem.aboveQTotCutoff);
     }
     
     if (prev)
@@ -278,23 +288,20 @@ void GPUClusterFinder::Worker::run(
     /*************************************************************************
      * Convert ClusterNative format back to regular clusters
      ************************************************************************/
-    if (config.clusterNative)
-    {
-        ASSERT(config.chunks == 1); // This will explode with more than one worker.
+    ASSERT(config.chunks == 1); // This will explode with more than one worker.
 
-        nativeToRegular.setArg(0, mem.clusterNative);
-        nativeToRegular.setArg(1, mem.peaks);
-        nativeToRegular.setArg(2, mem.globalToLocalRow);
-        nativeToRegular.setArg(3, mem.globalRowToCru);
-        nativeToRegular.setArg(4, mem.cluster);
-        clustering.enqueueNDRangeKernel(
-                nativeToRegular,
-                cl::NullRange,
-                cl::NDRange(clusternum),
-                local,
-                nullptr,
-                nullptr);
-    }
+    nativeToRegular.setArg(0, mem.clusterNativeCutoff);
+    nativeToRegular.setArg(1, mem.peaks);
+    nativeToRegular.setArg(2, mem.globalToLocalRow);
+    nativeToRegular.setArg(3, mem.globalRowToCru);
+    nativeToRegular.setArg(4, mem.cluster);
+    clustering.enqueueNDRangeKernel(
+            nativeToRegular,
+            cl::NullRange,
+            cl::NDRange(clusternum),
+            local,
+            nullptr,
+            nullptr);
 
 
     /*************************************************************************
@@ -377,7 +384,17 @@ void GPUClusterFinder::setup(
 
     addDefines(env);
 
-    streamCompaction.setup(env, config.chunks, digits.size());
+    digitCompaction.setup(
+            env, 
+            StreamCompaction::CompType::Digit, 
+            config.chunks, 
+            digits.size());
+
+    clusterCompaction.setup(
+            env, 
+            StreamCompaction::CompType::Cluster, 
+            config.chunks, 
+            digits.size());
 
     context = env.getContext(); 
     device  = env.getDevice();
@@ -427,6 +444,11 @@ void GPUClusterFinder::setup(
             CL_MEM_READ_WRITE, 
             isPeakBufSize);
 
+    mem.aboveQTotCutoff = cl::Buffer(
+            context, 
+            CL_MEM_READ_WRITE, 
+            isPeakBufSize);
+
     size_t clusterBufSize = digits.size() * sizeof(Cluster);
     mem.cluster = cl::Buffer(
             context,
@@ -435,6 +457,11 @@ void GPUClusterFinder::setup(
 
     size_t clusterNativeSize = digits.size() * sizeof(ClusterNative);
     mem.clusterNative = cl::Buffer(
+            context,
+            CL_MEM_READ_WRITE,
+            clusterNativeSize);
+
+    mem.clusterNativeCutoff = cl::Buffer(
             context,
             CL_MEM_READ_WRITE,
             clusterNativeSize);
@@ -470,7 +497,8 @@ void GPUClusterFinder::setup(
                 cfprg,
                 mem,
                 config,
-                streamCompaction.worker(),
+                digitCompaction.worker(),
+                clusterCompaction.worker(),
                 (i == 0) ? nullptr : &workers.back());
     }
 
@@ -682,7 +710,7 @@ std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
         (config.splitCharges) 
             ? Step{"countPeaks", p.countingPeaks}
             : Step{"countPeaks", 0, 0, 0, 0},
-        p.streamCompaction.asStep("compactPeaks"),
+        p.digitCompaction.asStep("compactPeaks"),
         {"computeCluster", p.computingClusters},
         {"resetMaps", p.zeroChargeMap},
         {"clusterToHost", p.clustersToHost},
