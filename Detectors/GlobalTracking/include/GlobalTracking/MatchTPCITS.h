@@ -452,6 +452,7 @@ class MatchTPCITS
   void loadTPCTracksChunk(int chunk);
 
   void fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int rofStart, int nROFs = 1);
+  void cleanAfterBurnerClusRefCache(int currentIC, int& startIC);
   void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
 
   void doMatching(int sec);
@@ -676,6 +677,7 @@ class MatchTPCITS
   static constexpr float Cos70I2 = 1. + Tan70 * Tan70; // 1/cos^2(70) = 1 + tan^2(70)
   static constexpr float MaxSnp = 0.9;                 // max snp of ITS or TPC track at xRef to be matched
   static constexpr float MaxTgp = 2.064;               // max tg corresponting to MaxSnp = MaxSnp/std::sqrt(1.-MaxSnp^2)
+  static constexpr float MinTBToCleanCache = 600.;     // keep in AB ITS cluster refs cache at most this number of TPC bins
 
   TStopwatch mTimerTot;
   TStopwatch mTimerIO;
@@ -762,6 +764,22 @@ inline void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
     mITSClustersFlags[rofOffset + (*mITSTrackClusIdxInp)[clEntry++]] = 1;
+  }
+}
+
+//______________________________________________
+inline void MatchTPCITS::cleanAfterBurnerClusRefCache(int currentIC, int& startIC)
+{
+  // check if some of cached cluster reference from tables startIC to currentIC can be released,
+  // they will be necessarily in front slots of the mITSChipClustersRefs
+  while (startIC < currentIC && mInteractions[currentIC].timeBins.min() - mInteractions[startIC].timeBins.max() > MinTBToCleanCache) {
+    LOG(INFO) << "CAN REMOVE CACHE FOR " << startIC << " curent IC=" << currentIC;
+    while (mInteractions[startIC].clRefPtr == &mITSChipClustersRefs.front()) {
+      LOG(INFO) << "Reset cache pointer" << mInteractions[startIC].clRefPtr << " for IC=" << startIC;
+      mInteractions[startIC++].clRefPtr = nullptr;
+    }
+    LOG(INFO) << "Reset cache slot " << &mITSChipClustersRefs.front();
+    mITSChipClustersRefs.pop_front();
   }
 }
 }

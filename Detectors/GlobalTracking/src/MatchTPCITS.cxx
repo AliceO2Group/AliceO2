@@ -1763,7 +1763,6 @@ int MatchTPCITS::prepareInteractionTimes()
 //______________________________________________
 void MatchTPCITS::runAfterBurner()
 {
-  const float MinTBToCleanCache = 600.; // clean ITS clusters cache when they precede TPC track by this amount of timeBins
   int nIntCand = prepareInteractionTimes();
   int nTPCCand = prepareTPCTracksAfterBurner();
   LOG(INFO) << "AfterBurner will check " << nIntCand << " interaction candindates for " << nTPCCand << " TPC tracks";
@@ -1776,16 +1775,7 @@ void MatchTPCITS::runAfterBurner()
     const auto& tTPC = mTPCWork[mTPCABIndexCache[itr]];
     // find 1st interaction candidate compatible with time brackets of this track
     while ((iCRes = tTPC.timeBins.isOutside(mInteractions[iC].timeBins)) < 0 && ++iC < nIntCand) { // interaction precedes the track time-bracket
-      // check if some cached cluster references can be released, they will be necessarily in front slots of the mITSChipClustersRefs
-      while (iCClean < iC && mInteractions[iC].timeBins.min() - mInteractions[iCClean].timeBins.max() > MinTBToCleanCache) {
-        LOG(INFO) << "CAN REMOVE CACHE FOR " << iCClean << " curent IC=" << iC;
-        while (mInteractions[iCClean].clRefPtr == &mITSChipClustersRefs.front()) {
-          LOG(INFO) << "Reset cache pointer" << mInteractions[iCClean].clRefPtr << " for ICClean=" << iCClean;
-          mInteractions[iCClean++].clRefPtr = nullptr;
-        }
-        LOG(INFO) << "Reset cache slot " << &mITSChipClustersRefs.front();
-        mITSChipClustersRefs.pop_front();
-      }
+      cleanAfterBurnerClusRefCache(iC, iCClean);                                                   // if possible, clean unneeded cached cluster references
     }
     if (iCRes == 0) {
       int iCC = iC; // check all interaction candidates matching to this this TPC track
@@ -1798,14 +1788,14 @@ void MatchTPCITS::runAfterBurner()
           printf("loaded %d clusters at cache at %p\n", ncl, mInteractions[iCC].clRefPtr);
         }
 
-        auto lbl = mTPCLblWork[mTPCABIndexCache[itr]];
+	auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
         runAfterBurner(tTPC, mInteractions[iCC]);
-        lbl.print();
+        lbl.print(); // tmp
       } while (++iCC < nIntCand && !tTPC.timeBins.isOutside(mInteractions[iCC].timeBins));
     } else if (iCRes > 0) {
       continue; // TPC track precedes the intercation (means orphan track?), no need to check it
     } else {
-      LOG(INFO) << "All interation candidates precede track " << itr << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "]";
+      LOG(INFO) << "All interaction candidates precede track " << itr << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "]";
       break; // all interaction candidates precede TPC track
     }
   }
