@@ -2,6 +2,8 @@
 
 #include "debug.h"
 
+#include "shared/ClusterNative.h"
+
 
 /* kernel */
 /* void harrissScan( */
@@ -89,39 +91,41 @@ void nativeScanDown(
 }
 
 
-kernel
-void compactArr(
-        global const Digit *digits,
-        global       Digit *digitsOut,
-        global const uchar *predicate, 
-        global       int   *newIdx,
-        global const int   *incr)
-{
-    int gid = get_group_id(0) - 1;
-    int idx = get_global_id(0);
+#define COMPACT_ARR(type) \
+    kernel \
+    void compact ## type( \
+            global const type  *in, \
+            global       type  *out, \
+            global const uchar *predicate,  \
+            global       int   *newIdx, \
+            global const int   *incr) \
+    { \
+        int gid = get_group_id(0) - 1; \
+        int idx = get_global_id(0); \
+        \
+        int lastItem = get_global_size(0) - 1; \
+        \
+        uchar pred = predicate[idx]; \
+        int scanRes = work_group_scan_inclusive_add(pred); \
+        \
+        if (pred || idx == lastItem) \
+        { \
+            int compIdx = scanRes + incr[gid]; \
+            \
+            if (pred) \
+            { \
+                out[compIdx-1] = in[idx]; \
+            } \
+            \
+            if (idx == lastItem) \
+            { \
+                newIdx[idx] = compIdx; \
+            } \
+            \
+        } \
+        \
+    } \
+    void anonymousFunction()
 
-    int lastItem = get_global_size(0) - 1;
-
-    uchar pred = predicate[idx];
-    int scanRes = work_group_scan_inclusive_add(pred);
-
-    if (pred || idx == lastItem)
-    {
-        int compIdx = scanRes + incr[gid];
-
-        if (pred)
-        {
-            digitsOut[compIdx-1] = digits[idx];
-        }
-
-        if (idx == lastItem)
-        {
-            /* DBGPR_2("compact: groups = %d, gid = %d", groups, gid); */
-            /* DBGPR_2("compact: global = %d, local = %d", globalsize, localsize); */
-            /* DBGPR_3("compact: idx = %d, newIdx = %d, incr = %d", idx, newIdx[idx], incr[gid]); */
-            newIdx[idx] = compIdx;
-        }
-
-    }
-
-}
+COMPACT_ARR(Digit);
+COMPACT_ARR(ClusterNative);
