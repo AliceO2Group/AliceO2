@@ -1788,7 +1788,7 @@ void MatchTPCITS::runAfterBurner()
           printf("loaded %d clusters at cache at %p\n", ncl, mInteractions[iCC].clRefPtr);
         }
 
-	auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
+        auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
         runAfterBurner(tTPC, mInteractions[iCC]);
         lbl.print(); // tmp
       } while (++iCC < nIntCand && !tTPC.timeBins.isOutside(mInteractions[iCC].timeBins));
@@ -1827,6 +1827,7 @@ bool MatchTPCITS::runAfterBurner(const TrackLocTPC& tTPC, InteractionCandidate& 
   o2::utils::CircleXY trcCircle;
   o2::utils::IntervalXY trcLinPar; // line parameters fpr B OFF data
   int nMissed = 0;
+  std::vector<int> chipSelClusters; // preliminary cluster candidates //RS TODO do we keep this local / consider array instead of vector
   for (int ilr = mRGHelper.getNLayers(); ilr--;) {
     if (ilr != 6)
       break;
@@ -1897,50 +1898,22 @@ bool MatchTPCITS::runAfterBurner(const TrackLocTPC& tTPC, InteractionCandidate& 
         float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
         float tolerZ = errZ * nSigmaZ, tolerY = errYcalp * nSigmaY;
         float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp; // track-chip crossing Y in chip frame
-
+        // select candidate clusters for this chip
+        if (!preselectChipClusters(chipSelClusters, clRange, clRefs, yTrack, zCross, tolerY, tolerZ, lblTrc)) {
+          continue;
+        }
         auto trcLC = trc; // tmp
         if (!trcLC.rotate(chipC.alp) || !trcLC.propagateTo(chipC.xRef, propagator->getNominalBz())) {
           LOG(INFO) << " failed to rotate to alpha=" << chipC.alp << " or prop to X=" << chipC.xRef;
           trcLC.print();
           continue;
         }
-
-        int icID = clRange.getFirstEntry();
-        for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
-          int clID = clRefs.clusterID[icID++];         // so, we go in clusterID increasing direction
-          const auto cls = (*mITSClustersArrayInp)[clID];
-
-          float dz = zCross - cls.getZ();
-
-          auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
-          if (label != lblTrc)
-            continue; // tmp
-
-          LOG(INFO) << "cl" << icl << '/' << clID << " " << label
-                    << " Z: " << cls.getZ() << " [" << tolerZ << "|" << trcLC.getZ() - zCross << "] Y: " << cls.getY() << " [" << tolerY << "]";
-
-          if (dz > tolerZ) {
-            float clsZ = cls.getZ();
-            LOG(INFO) << "Skip the rest since " << zCross << " > " << clsZ << "\n";
-            break;
-          } else if (dz < -tolerZ) {
-            LOG(INFO) << "Skip cluster dz=" << dz << " Ztr=" << zCross << " zCl=" << cls.getZ()
-                      << " true track: y=" << trcLC.getY() << " erry=" << std::sqrt(trcLC.getSigmaY2()) * nSigmaY
-                      << " z=" << trcLC.getZ() << " errz=" << std::sqrt(trcLC.getSigmaZ2()) * nSigmaZ << "\n";
-            continue;
-          }
-          if (fabs(yTrack - cls.getY()) > tolerY) {
-            LOG(INFO) << "Skip cluster dy= " << yTrack - cls.getY() << " Ytr=" << yTrack << " yCl=" << cls.getY()
-                      << " true track: y=" << trcLC.getY() << " erry=" << std::sqrt(trcLC.getSigmaY2()) * nSigmaY
-                      << " z=" << trcLC.getZ() << " errz=" << std::sqrt(trcLC.getSigmaZ2()) * nSigmaZ << "\n";
-            continue;
-          }
-
-          int aside = tpcTrOrig.hasASideClustersOnly();
-          float zc = cls.getZ(), ztlc = trcLC.getZ();
-          float pt = trc.getPt();
-          (*mDBGOut) << "ab"
-                     << "sideA=" << aside << "pt=" << pt << "zt=" << zCross << "zc=" << zc << "ztl=" << ztlc << "lbl=" << label << "trc0=" << trc << "trcL= " << trcLC << "\n";
+        int cntc = 0;
+        for (auto clID : chipSelClusters) {
+          const auto& cls = (*mITSClustersArrayInp)[clID];
+          auto chi2 = trcLC.getPredictedChi2(cls);
+          const auto lab = mITSClsLabels->getLabels(clID)[0];
+          LOG(INFO) << "cl " << cntc << "ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2; // tmp
         }
       }
     }

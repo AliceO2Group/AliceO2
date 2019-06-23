@@ -451,6 +451,9 @@ class MatchTPCITS
   void loadTPCClustersChunk(int chunk);
   void loadTPCTracksChunk(int chunk);
 
+  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
+                            float trackY, float trackZ, float tolerY, float tolerZ,
+                            const o2::MCCompLabel& lblTrc) const;
   void fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int rofStart, int nROFs = 1);
   void cleanAfterBurnerClusRefCache(int currentIC, int& startIC);
   void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
@@ -765,6 +768,39 @@ inline void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int
   for (int icl = track.getNumberOfClusters(); icl--;) {
     mITSClustersFlags[rofOffset + (*mITSTrackClusIdxInp)[clEntry++]] = 1;
   }
+}
+//__________________________________________________________
+inline int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
+                                              float trackY, float trackZ, float tolerY, float tolerZ,
+                                              const o2::MCCompLabel& lblTrc) const
+{
+  clVecOut.clear();
+  int icID = clRange.getFirstEntry();
+  for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
+    int clID = clRefs.clusterID[icID++];         // so, we go in clusterID increasing direction
+    const auto& cls = (*mITSClustersArrayInp)[clID];
+    float dz = trackZ - cls.getZ();
+    auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
+    if (!(label == lblTrc)) {
+      continue; // tmp
+    }
+    LOG(INFO) << "cl" << icl << '/' << clID << " " << label
+              << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
+    if (dz > tolerZ) {
+      float clsZ = cls.getZ();
+      LOG(INFO) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      break;
+    } else if (dz < -tolerZ) {
+      LOG(INFO) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
+      continue;
+    }
+    if (fabs(trackY - cls.getY()) > tolerY) {
+      LOG(INFO) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
+      continue;
+    }
+    clVecOut.push_back(clID);
+  }
+  return clVecOut.size();
 }
 
 //______________________________________________
