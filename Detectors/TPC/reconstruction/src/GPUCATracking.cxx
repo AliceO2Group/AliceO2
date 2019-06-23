@@ -244,6 +244,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   }
 
   data->compressedClusters = ptrs.tpcCompressedClusters;
+  mTrackingCAO2Interface->Clear(false);
 
   return (retVal);
 }

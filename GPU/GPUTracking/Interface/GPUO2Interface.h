@@ -56,6 +56,7 @@ class GPUTPCO2Interface
   void Deinitialize();
 
   int RunTracking(GPUTrackingInOutPointers* data);
+  void Clear(bool clearOutputs);
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;

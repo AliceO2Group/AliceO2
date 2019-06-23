@@ -94,6 +94,11 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   return (0);
 }
 
+void GPUTPCO2Interface::Clear(bool clearOutputs)
+{
+  mRec->ClearAllocatedMemory(clearOutputs);
+}
+
 void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   if (!mInitialized) {
