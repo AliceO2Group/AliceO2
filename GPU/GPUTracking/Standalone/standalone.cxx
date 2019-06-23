@@ -525,6 +525,7 @@ int main(int argc, char** argv)
               printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
           }
+          rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {
             configStandalone.continueOnError = 0; // Forced exit from event display loop
