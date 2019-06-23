@@ -38,15 +38,17 @@ GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int 
     if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL) {
 #ifdef GPUCA_SORT_STARTHITS
       GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletTmpStartHits() + s.mIRow * GPUCA_MAX_ROWSTARTHITS;
-      int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
-      if (nextRowStartHits >= GPUCA_MAX_ROWSTARTHITS)
+      unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
+      CONSTEXPR int errCode = GPUCA_ERROR_ROWSTARTHIT_OVERFLOW;
+      if (nextRowStartHits + 1 >= GPUCA_MAX_ROWSTARTHITS)
 #else
       GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletStartHits();
-      int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
-      if (nextRowStartHits >= GPUCA_MAX_TRACKLETS)
+      unsigned int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
+      CONSTEXPR int errCode = GPUCA_ERROR_TRACKLET_OVERFLOW;
+      if (nextRowStartHits + 1 >= tracker.NMaxStartHits())
 #endif
       {
-        tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACKLET_OVERFLOW;
+        tracker.CommonMemory()->kernelError = errCode;
         CAMath::AtomicExch(tracker.NTracklets(), 0);
         break;
       }
@@ -57,15 +59,12 @@ GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int 
 
 #ifdef GPUCA_SORT_STARTHITS
   if (iThread == 0) {
-    int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.mNRowStartHits);
-    (void)nOffset; // Suppress compiler warning
-#ifdef GPUCA_GPUCODE
+    unsigned int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.mNRowStartHits);
     tracker.RowStartHitCountOffset()[s.mIRow] = s.mNRowStartHits;
-    if (nOffset + s.mNRowStartHits >= GPUCA_MAX_TRACKLETS) {
-      tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACKLET_OVERFLOW;
+    if (nOffset + s.mNRowStartHits >= tracker.NMaxStartHits()) {
+      tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACKLET_OVERFLOW;
       CAMath::AtomicExch(tracker.NTracklets(), 0);
     }
-#endif
   }
 #endif
 }

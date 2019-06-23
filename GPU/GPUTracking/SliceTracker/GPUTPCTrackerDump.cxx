@@ -151,9 +151,6 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   if (nTracklets < 0) {
     nTracklets = 0;
   }
-  if (nTracklets > GPUCA_MAX_TRACKLETS) {
-    nTracklets = GPUCA_MAX_TRACKLETS;
-  }
   out << "Tracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
   if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
     GPUTPCHitId* tmpIds = new GPUTPCHitId[nTracklets];
@@ -173,7 +170,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
           if (tmpTracklets[i].NHits()) {
             for (int k = tmpTracklets[i].FirstRow(); k <= tmpTracklets[i].LastRow(); k++) {
               const int pos = k * nTracklets + j;
-              if (pos < 0 || pos >= GPUCA_MAX_TRACKLETS * GPUCA_ROW_COUNT) {
+              if (pos < 0 || pos >= (int)mNMaxTracklets * GPUCA_ROW_COUNT) {
                 printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
               } else {
                 mTrackletRowHits[pos] = tmpHits[k * nTracklets + i];

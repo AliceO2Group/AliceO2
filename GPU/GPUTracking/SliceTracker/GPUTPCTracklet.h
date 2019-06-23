@@ -44,11 +44,11 @@ class GPUTPCTracklet
   GPUhd() int HitWeight() const { return mHitWeight; }
   GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }
 #ifndef GPUCA_EXTERN_ROW_HITS
-  GPUhd() int RowHit(int i) const
+  GPUhd() calink RowHit(int i) const
   {
     return mRowHits[i];
   }
-  GPUhd() const int* RowHits() const { return (mRowHits); }
+  GPUhd() const calink* RowHits() const { return (mRowHits); }
   GPUhd() void SetRowHit(int irow, int ih) { mRowHits[irow] = ih; }
 #endif // GPUCA_EXTERN_ROW_HITS
 

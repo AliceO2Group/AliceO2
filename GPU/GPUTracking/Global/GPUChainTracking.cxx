@@ -652,7 +652,7 @@ int GPUChainTracking::GlobalTracking(int iSlice, int threadId)
   }
 
   timerTPCtracking[iSlice][8].Start();
-  processors()->tpcTrackers[iSlice].PerformGlobalTracking(processors()->tpcTrackers[sliceLeft], processors()->tpcTrackers[sliceRight], GPUCA_MAX_TRACKS, GPUCA_MAX_TRACKS);
+  processors()->tpcTrackers[iSlice].PerformGlobalTracking(processors()->tpcTrackers[sliceLeft], processors()->tpcTrackers[sliceRight]);
   timerTPCtracking[iSlice][8].Stop();
 
   mSliceLeftGlobalReady[sliceLeft] = 1;
@@ -697,14 +697,16 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSliceTracking;
 
   bool streamInit[GPUCA_MAX_STREAMS] = { false };
+  for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    *processors()->tpcTrackers[iSlice].NTracklets() = 0;
+    *processors()->tpcTrackers[iSlice].NTracks() = 0;
+    *processors()->tpcTrackers[iSlice].NTrackHits() = 0;
+    processors()->tpcTrackers[iSlice].CommonMemory()->kernelError = 0;
+  }
   if (doGPU) {
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       processorsShadow()->tpcTrackers[iSlice].GPUParametersConst()->gpumem = (char*)mRec->DeviceMemoryBase();
       // Initialize Startup Constants
-      *processors()->tpcTrackers[iSlice].NTracklets() = 0;
-      *processors()->tpcTrackers[iSlice].NTracks() = 0;
-      *processors()->tpcTrackers[iSlice].NTrackHits() = 0;
-      processors()->tpcTrackers[iSlice].GPUParameters()->gpuError = 0;
       processors()->tpcTrackers[iSlice].GPUParameters()->nextTracklet = ((ConstructorBlockCount() + NSLICES - 1 - iSlice) / NSLICES) * ConstructorThreadCount();
       processorsShadow()->tpcTrackers[iSlice].SetGPUTextureBase(mRec->DeviceMemoryBase());
     }
@@ -1073,10 +1075,10 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   }
 
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    if (processors()->tpcTrackers[iSlice].GPUParameters()->gpuError != 0) {
+    if (processors()->tpcTrackers[iSlice].CommonMemory()->kernelError != 0) {
       const char* errorMsgs[] = GPUCA_ERROR_STRINGS;
-      const char* errorMsg = (unsigned)processors()->tpcTrackers[iSlice].GPUParameters()->gpuError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[processors()->tpcTrackers[iSlice].GPUParameters()->gpuError];
-      GPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", processors()->tpcTrackers[iSlice].GPUParameters()->gpuError, errorMsg, iSlice, processors()->tpcTrackers[iSlice].Data().NumberOfHits());
+      const char* errorMsg = (unsigned)processors()->tpcTrackers[iSlice].CommonMemory()->kernelError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[processors()->tpcTrackers[iSlice].CommonMemory()->kernelError];
+      GPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", processors()->tpcTrackers[iSlice].CommonMemory()->kernelError, errorMsg, iSlice, processors()->tpcTrackers[iSlice].Data().NumberOfHits());
       return (1);
     }
   }

@@ -78,7 +78,7 @@
 #define GPUCA_MAX_CLUSTERS (1024 * 1024 * 1024)                        //Maximum number of TPC clusters
 #define GPUCA_MAX_TRACKLETS 65536                                      //Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define GPUCA_MAX_TRACKS 32768                                         //Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
-#define GPUCA_MAX_ROWSTARTHITS 20000                                   //Maximum number of start hits per row
+#define GPUCA_MAX_ROWSTARTHITS 32768                                   //Maximum number of start hits per row
 
 #define GPUCA_TRACKER_CONSTANT_MEM 65000                               //Amount of Constant Memory to reserve
 
@@ -110,13 +110,13 @@
 
 //Error Codes for GPU Tracker
 #define GPUCA_ERROR_NONE 0
-#define GPUCA_ERROR_ROWBLOCK_TRACKLET_OVERFLOW 1
+#define GPUCA_ERROR_ROWSTARTHIT_OVERFLOW 1
 #define GPUCA_ERROR_TRACKLET_OVERFLOW 2
 #define GPUCA_ERROR_TRACK_OVERFLOW 3
-#define GPUCA_ERROR_SCHEDULE_COLLISION 4
-#define GPUCA_ERROR_WRONG_ROW 5
-#define GPUCA_ERROR_STARTHIT_OVERFLOW 6
-#define GPUCA_ERROR_STRINGS {"GPUCA_ERROR_NONE", "GPUCA_ERROR_ROWBLOCK_TRACKLET_OVERFLOW", "GPUCA_ERROR_TRACKLET_OVERFLOW", "GPUCA_ERROR_TRACK_OVERFLOW", "GPUCA_ERROR_SCHEDULE_COLLISION", "GPUCA_ERROR_WRONG_ROW", "GPUCA_ERROR_STARTHIT_OVERFLOW"}
+#define GPUCA_ERROR_TRACK_HIT_OVERFLOW 4
+#define GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW 5
+#define GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW 6
+#define GPUCA_ERROR_STRINGS {"GPUCA_ERROR_NONE", "GPUCA_ERROR_ROWSTARTHIT_OVERFLOW", "GPUCA_ERROR_TRACKLET_OVERFLOW", "GPUCA_ERROR_TRACK_OVERFLOW", "GPUCA_ERROR_TRACK_HIT_OVERFLOW", "GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW", "GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW"}
 
 // clang-format on
 #endif

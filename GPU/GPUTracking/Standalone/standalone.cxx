@@ -512,15 +512,15 @@ int main(int argc, char** argv)
               nClustersTotal += nClusters;
               nEventsProcessed++;
             }
-          }
 
-          if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
-            int nTracklets = 0;
-            for (int k = 0; k < chainTracking->GetTRDTracker()->NTracks(); k++) {
-              auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
-              nTracklets += trk.GetNtracklets();
+            if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
+              int nTracklets = 0;
+              for (int k = 0; k < chainTracking->GetTRDTracker()->NTracks(); k++) {
+                auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
+                nTracklets += trk.GetNtracklets();
+              }
+              printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
-            printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
           }
 
           if (tmpRetVal == 2) {
