@@ -166,6 +166,9 @@ int ReadConfiguration(int argc, char** argv)
     printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n");
     return (1);
   }
+  if (configStandalone.configTF.bunchSim > 1) {
+    configStandalone.configTF.timeFrameLen = 1.e9 * configStandalone.configTF.bunchSim / configStandalone.configTF.interactionRate;
+  }
   if (configStandalone.configTF.nMerge) {
     double len = configStandalone.configTF.nMerge - 1;
     if (configStandalone.configTF.randomizeDistance)
