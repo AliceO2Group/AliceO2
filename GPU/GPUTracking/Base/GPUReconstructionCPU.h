@@ -86,16 +86,14 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args)
 #endif
   {
+    int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) : 0;
     if (mDeviceProcessingSettings.debugLevel >= 3) {
-      printf("Running %s Stream %d (Range %d/%d)\n", typeid(S).name(), x.stream, y.start, y.num);
+      printf("Running %s (Stream %d, Range %d/%d) on %s\n", typeid(S).name(), x.stream, y.start, y.num, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
     }
     if (t && mDeviceProcessingSettings.debugLevel) {
       t->Start();
     }
-    if (IsGPU() && (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) {
-      if (mDeviceProcessingSettings.debugLevel >= 4) {
-        printf("Running unsupported kernel on CPU: %s\n", typeid(S).name());
-      }
+    if (cpuFallback) {
       if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
         return 1;
       }
