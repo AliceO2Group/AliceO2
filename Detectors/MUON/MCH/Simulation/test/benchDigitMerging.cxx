@@ -25,7 +25,7 @@ std::vector<Digit> createDigits(int N)
   std::srand(std::time(nullptr)); // use current time as seed for random generator
   float dummytime{ 0.0 };
   int dummydetID = 100; //to be improved, timing depending on that
-  
+
   for (auto i = 0; i < N; i++) {
     int randomPadID = std::rand() * N;
     digits.emplace_back(dummytime, dummydetID, randomPadID, dummyadc);

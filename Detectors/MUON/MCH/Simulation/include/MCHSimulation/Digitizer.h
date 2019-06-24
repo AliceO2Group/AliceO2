@@ -76,9 +76,8 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
   int processHit(const Hit& hit, int detID, double event_time);
-
 };
- 
+
 } // namespace mch
 } // namespace o2
 #endif

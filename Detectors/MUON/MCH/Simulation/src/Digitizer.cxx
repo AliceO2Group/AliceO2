@@ -68,11 +68,10 @@ Response& response(bool isStation1)
 
 int getGlobalDigit(int detID, int padID)
 {
-  //calculate global index                                                                                                                                                                                            
+  //calculate global index
   return detID * 100000 + padID;
 }
 
-  
 } // namespace
 
 Digitizer::Digitizer(int) {}
@@ -147,7 +146,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -173,7 +172,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
-      return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
+    return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
   auto sortedDigits = [&digits, &indices](int i) {
