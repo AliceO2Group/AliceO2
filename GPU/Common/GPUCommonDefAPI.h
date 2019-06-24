@@ -85,7 +85,7 @@
       #undef CONSTEXPR
     #endif
     #if defined(__OPENCLCPP__)
-      #define CONSTEXPR __global constexpr
+      #define CONSTEXPR constexpr
     #else
       #define CONSTEXPR const
     #endif
