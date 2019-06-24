@@ -69,6 +69,8 @@ BeginSubConfig(structConfigRec, configRec, configStandalone, "REC", 0, "Reconstr
 AddOption(globalTracking, bool, true, "globalTracking", 0, "Enable global tracking")
 AddOption(runTRD, int, -1, "trd", 0, "Enable TRD processing")
 AddOption(rundEdx, int, 1, "dEdx", 0, "Enable dEdx processing")
+AddOption(runCompression, int, 1, "compression", 0, "Enable TPC Compression")
+AddOption(runTransformation, int, 1, "transformation", 0, "Enable TPC Transformation")
 AddOption(disableRefitAttachment, int, 0, "refitAttachmentMask", 0, "Mask to disable certain attachment steps during refit")
 AddOption(tpcReject, int, 0, "tpcReject", 0, "Enable rejection of TPC clusters for compression (1 = strategy A, 2 = strategy B)")
 AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold to reject clusters of TPC tracks")
