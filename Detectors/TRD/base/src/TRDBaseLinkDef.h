@@ -31,4 +31,7 @@
 #pragma link C++ class o2::trd::TRDArrayADC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
 
+#pragma link C++ class o2::trd::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::trd::MCLabel> + ;
+
 #endif

@@ -93,6 +93,7 @@ class TRDDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
+    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
@@ -110,14 +111,18 @@ class TRDDPLDigitizerTask
         retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits; // digits which get filled
-        mDigitizer.process(hits, digits);
+        std::vector<o2::trd::Digit> digits;                         // digits which get filled
+        o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+        mDigitizer.process(hits, digits, labels);
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        labelsAccum.mergeAtBack(labels);
       }
     }
 
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
+    LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
+    pc.outputs().snapshot(Output{ "TRD", "LABELS", 0, Lifetime::Timeframe }, labelsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
 
@@ -145,6 +150,7 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
 
     Outputs{ OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe },
+             OutputSpec{ "TRD", "LABELS", 0, Lifetime::Timeframe },
              OutputSpec{ "TRD", "ROMode", 0, Lifetime::Timeframe } },
 
     AlgorithmSpec{ adaptFromTask<TRDDPLDigitizerTask>() },
