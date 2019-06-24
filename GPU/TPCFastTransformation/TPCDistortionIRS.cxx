@@ -35,10 +35,28 @@ TPCDistortionIRS::TPCDistortionIRS()
   // Default Constructor: creates an empty uninitialized object
 }
 
+TPCDistortionIRS::~TPCDistortionIRS()
+{
+  /// Destructor
+  destroy();
+}
+
+void TPCDistortionIRS::releaseConstructionMemory()
+{
+  // release temporary arrays
+#if !defined(GPUCA_GPUCODE)
+  delete[] mConstructionRowSplineInfos;
+  delete[] mConstructionScenarios;
+#endif
+  mConstructionRowSplineInfos = nullptr;
+  mConstructionScenarios = nullptr;
+}
+
 void TPCDistortionIRS::destroy()
 {
-  mConstructionRowSplineInfos.reset();
-  mConstructionScenarios.reset();
+  releaseConstructionMemory();
+  mConstructionRowSplineInfos = nullptr;
+  mConstructionScenarios = nullptr;
   mNumberOfScenarios = 0;
   mRowSplineInfoPtr = nullptr;
   mScenarioPtr = nullptr;
@@ -71,8 +89,7 @@ void TPCDistortionIRS::cloneFromObject(const TPCDistortionIRS& obj, char* newFla
 
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
-  mConstructionRowSplineInfos.reset();
-  mConstructionScenarios.reset();
+  releaseConstructionMemory();
 
   mNumberOfScenarios = obj.mNumberOfScenarios;
 
@@ -143,8 +160,13 @@ void TPCDistortionIRS::startConstruction(const TPCFastTransformGeo& geo, int num
   mGeo = geo;
   mNumberOfScenarios = numberOfSplineScenarios;
 
-  mConstructionRowSplineInfos.reset(new RowSplineInfo[mGeo.getNumberOfRows()]);
-  mConstructionScenarios.reset(new IrregularSpline2D3D[mNumberOfScenarios]);
+  releaseConstructionMemory();
+
+  mConstructionRowSplineInfos = new RowSplineInfo[mGeo.getNumberOfRows()];
+  mConstructionScenarios = new IrregularSpline2D3D[mNumberOfScenarios];
+
+  assert(mConstructionRowSplineInfos != nullptr);
+  assert(mConstructionScenarios != nullptr);
 
   for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
     mConstructionRowSplineInfos[i].splineScenarioID = -1;
@@ -243,8 +265,7 @@ void TPCDistortionIRS::finishConstruction()
 
   mSplineData = reinterpret_cast<char*>(mFlatBufferPtr + sliceDataOffset);
 
-  mConstructionRowSplineInfos.reset();
-  mConstructionScenarios.reset();
+  releaseConstructionMemory();
 
   mTimeStamp = -1;
 

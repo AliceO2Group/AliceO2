@@ -110,7 +110,7 @@ void TPCFastTransformGeo::setTPCrow(int iRow, float x, int nPads, float padWidth
   row.x = x;
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
-  row.u0 = -uWidth / 2;
+  row.u0 = -uWidth / 2.;
   row.scaleUtoSU = 1. / uWidth;
   row.scaleSUtoU = uWidth;
 }
@@ -165,35 +165,44 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
   convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
 
-  if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-8)
+  if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-6) {
+    std::cout << "Error local <-> global: y " << ly << " y diff " << ly1 - ly << " z " << lz << " z diff " << lz1 - lz << std::endl;
     error = -3;
-
+  }
   float u = 0.f, v = 0.f;
   convLocalToUV(slice, ly, lz, u, v);
   convUVtoLocal(slice, u, v, ly1, lz1);
 
-  if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-8)
+  if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-6) {
+    std::cout << "Error local <-> UV: y " << ly << " y diff " << ly1 - ly << " z " << lz << " z diff " << lz1 - lz << std::endl;
     error = -4;
+  }
 
   float su = 0.f, sv = 0.f;
 
   convUVtoScaledUV(slice, row, u, v, su, sv);
 
-  if (su < 0.f || su > 1.f || sv < 0.f || sv > 1.f)
+  if (su < 0.f || su > 1.f) {
+    std::cout << "Error scaled U range: u " << u << " su " << su << std::endl;
     error = -5;
+  }
 
   float u1 = 0.f, v1 = 0.f;
   convScaledUVtoUV(slice, row, su, sv, u1, v1);
 
-  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-8)
+  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-6) {
+    std::cout << "Error UV<->scaled UV: u " << u << " u diff " << u1 - u << " v " << v << " v diff " << v1 - v << std::endl;
     error = -6;
+  }
 
   float pad = 0.f;
   convUtoPad(row, u, pad);
   convPadToU(row, pad, u1);
 
-  if (fabs(u1 - u) > 1.e-8)
+  if (fabs(u1 - u) > 1.e-6) {
+    std::cout << "Error U<->Pad: u " << u << " pad " << pad << " u diff " << u1 - u << std::endl;
     error = -7;
+  }
 
 #if !defined(GPUCA_GPUCODE)
   if (error != 0) {

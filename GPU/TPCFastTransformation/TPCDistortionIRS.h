@@ -57,7 +57,7 @@ class TPCDistortionIRS : public FlatObject
   TPCDistortionIRS& operator=(const TPCDistortionIRS&) CON_DELETE;
 
   /// Destructor
-  ~TPCDistortionIRS() CON_DEFAULT;
+  ~TPCDistortionIRS();
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -129,14 +129,17 @@ class TPCDistortionIRS : public FlatObject
   void print() const;
 
  private:
+  /// relocate buffer pointers
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
+  /// release temporary memory used during construction
+  void releaseConstructionMemory();
 
   /// _______________  Data members  _______________________________________________
 
   /// _______________  Construction control  _______________________________________________
 
-  std::unique_ptr<RowSplineInfo[]> mConstructionRowSplineInfos;  ///< Temporary container of the row infos during construction
-  std::unique_ptr<IrregularSpline2D3D[]> mConstructionScenarios; ///< Temporary container for spline scenarios
+  RowSplineInfo* mConstructionRowSplineInfos = nullptr;  ///< Temporary container of the row infos during construction
+  IrregularSpline2D3D* mConstructionScenarios = nullptr; ///< Temporary container for spline scenarios
 
   /// _______________  Geometry  _______________________________________________
 
