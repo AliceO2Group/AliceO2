@@ -75,9 +75,6 @@ GPUg() void runKernelCUDAMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.device == krnlDeviceType::CPU) {
-    return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  }
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
@@ -220,6 +217,8 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUInfo(" ");
   }
   mCoreCount = cudaDeviceProp.multiProcessorCount;
+  mDeviceName = cudaDeviceProp.name;
+  mDeviceName += " (CUDA GPU)";
 
   if (cudaDeviceProp.major < 3) {
     GPUError("Unsupported CUDA Device");

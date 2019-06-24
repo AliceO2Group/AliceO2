@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <memory>
 #include <fstream>
 #include <vector>
@@ -243,6 +244,8 @@ class GPUReconstruction
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
   InOutTypeField mRecoStepsInputs = 0;
   InOutTypeField mRecoStepsOutputs = 0;
+
+  std::string mDeviceName = "CPU";
 
   // Ptrs to host and device memory;
   void* mHostMemoryBase = nullptr;

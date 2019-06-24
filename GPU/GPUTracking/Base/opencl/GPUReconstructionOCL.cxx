@@ -37,9 +37,6 @@ constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(ui
 template <class T, int I, typename... Args>
 int GPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.device == krnlDeviceType::CPU) {
-    return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  }
   cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
   if (y.num == -1) {
     if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
@@ -241,6 +238,8 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
 #endif
 
+  mDeviceName = device_name;
+  mDeviceName += " (OpenCL)";
   mCoreCount = shaders;
 
   mInternals->context = clCreateContext(nullptr, count, mInternals->devices, nullptr, nullptr, &ocl_error);

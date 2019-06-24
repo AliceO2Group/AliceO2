@@ -66,9 +66,6 @@ GPUg() void runKernelHIPMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount,
 template <class T, int I, typename... Args>
 int GPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args... args)
 {
-  if (x.device == krnlDeviceType::CPU) {
-    return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  }
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
@@ -189,8 +186,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     GPUInfo("multiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
     GPUInfo(" ");
   }
-
   mCoreCount = hipDeviceProp_t.multiProcessorCount;
+  mDeviceName = hipDeviceProp_t.name;
+  mDeviceName += " (HIP GPU)";
 
   if (hipDeviceProp_t.major < 3) {
     GPUError("Unsupported HIP Device");
