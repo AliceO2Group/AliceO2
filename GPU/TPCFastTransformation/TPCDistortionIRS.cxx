@@ -162,8 +162,10 @@ void TPCDistortionIRS::startConstruction(const TPCFastTransformGeo& geo, int num
 
   releaseConstructionMemory();
 
+#if !defined(GPUCA_GPUCODE)
   mConstructionRowSplineInfos = new RowSplineInfo[mGeo.getNumberOfRows()];
   mConstructionScenarios = new IrregularSpline2D3D[mNumberOfScenarios];
+#endif
 
   assert(mConstructionRowSplineInfos != nullptr);
   assert(mConstructionScenarios != nullptr);

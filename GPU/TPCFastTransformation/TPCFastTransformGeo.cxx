@@ -26,7 +26,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 TPCFastTransformGeo::TPCFastTransformGeo()
 {
   // Default Constructor: creates an empty uninitialized object
-  double dAlpha = 2. * M_PI / NumberOfSlices;
+  double dAlpha = 2. * M_PI / (NumberOfSlicesA);
   for (int i = 0; i < NumberOfSlices; i++) {
     SliceInfo& s = mSliceInfos[i];
     double alpha = dAlpha * (i + 0.5);
@@ -102,7 +102,7 @@ void TPCFastTransformGeo::setTPCrow(int iRow, float x, int nPads, float padWidth
 
   // Make scaled U = area between the geometrical sector borders
 
-  const double sectorAngle = 2. * M_PI / NumberOfSlices;
+  const double sectorAngle = 2. * M_PI / NumberOfSlicesA;
   const double scaleXtoRowWidth = 2. * tan(0.5 * sectorAngle);
   double uWidth = x * scaleXtoRowWidth; // distance to the sector border
 
@@ -165,8 +165,8 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
   convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
 
-  if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-6) {
-    std::cout << "Error local <-> global: y " << ly << " y diff " << ly1 - ly << " z " << lz << " z diff " << lz1 - lz << std::endl;
+  if (fabs(lx1 - lx) > 1.e-4 || fabs(ly1 - ly) > 1.e-4 || fabs(lz1 - lz) > 1.e-7) {
+    std::cout << "Error local <-> global: x " << lx << " dx " << lx1 - lx << " y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz << std::endl;
     error = -3;
   }
   float u = 0.f, v = 0.f;
@@ -174,7 +174,7 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   convUVtoLocal(slice, u, v, ly1, lz1);
 
   if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-6) {
-    std::cout << "Error local <-> UV: y " << ly << " y diff " << ly1 - ly << " z " << lz << " z diff " << lz1 - lz << std::endl;
+    std::cout << "Error local <-> UV: y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz << std::endl;
     error = -4;
   }
 
@@ -190,8 +190,8 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   float u1 = 0.f, v1 = 0.f;
   convScaledUVtoUV(slice, row, su, sv, u1, v1);
 
-  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-6) {
-    std::cout << "Error UV<->scaled UV: u " << u << " u diff " << u1 - u << " v " << v << " v diff " << v1 - v << std::endl;
+  if (fabs(u1 - u) > 1.e-5 + fabs(v1 - v) > 1.e-5) {
+    std::cout << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v << std::endl;
     error = -6;
   }
 
@@ -199,8 +199,8 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   convUtoPad(row, u, pad);
   convPadToU(row, pad, u1);
 
-  if (fabs(u1 - u) > 1.e-6) {
-    std::cout << "Error U<->Pad: u " << u << " pad " << pad << " u diff " << u1 - u << std::endl;
+  if (fabs(u1 - u) > 1.e-7) {
+    std::cout << "Error U<->Pad: u " << u << " pad " << pad << " du " << u1 - u << std::endl;
     error = -7;
   }
 
