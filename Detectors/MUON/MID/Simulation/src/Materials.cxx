@@ -56,10 +56,6 @@ const float kDensAluminium = 2.699;
 const float kZSulfur = 16.;
 const float kASulfur = 32.06;
 
-// Argon
-const float kZArgon = 18.;
-const float kAArgon = 39.948;
-
 // Chromium
 const float kZChromium = 24.;
 const float kAChromium = 51.9961;
@@ -102,14 +98,14 @@ void createMaterials()
 
   auto& mgr = o2::base::MaterialManager::Instance();
 
-  /// Trigger gas : Ar - Isobutane(C4 H10) - C2 H2 F4 - SF6 (49%+7%+40%+4%)
-  const int nGas = 5;
-  float aGas[nGas] = { kAArgon, kACarbon, kAHydrogen, kAFluorine, kASulfur };
-  float zGas[nGas] = { kZArgon, kZCarbon, kZHydrogen, kZFluorine, kZSulfur };
-  float wGas[nGas] = { 49, 7 * 4 + 40 * 2, 7 * 10 + 40 * 2, 4 * 40 + 6 * 4, 4 };
+  /// Trigger gas : C2 H2 F4 - Isobutane(C4 H10) - SF6 (89.7%+10%+0.3%)
+  const int nGas = 4;
+  float aGas[nGas] = { kACarbon, kAHydrogen, kAFluorine, kASulfur };
+  float zGas[nGas] = { kZCarbon, kZHydrogen, kZFluorine, kZSulfur };
+  float wGas[nGas] = { 89.7 * 2 + 10 * 4, 89.7 * 2 + 10 * 4, 89.7 * 4 + 0.3 * 6, 0.3 };
   float dGas = 0.0031463;
 
-  mgr.Mixture(kModuleName, ++imat, "Ar(49%)-Isobutane(7%)-C2H2F4(40%)-SF6(4%)", aGas, zGas, dGas, -nGas, wGas);
+  mgr.Mixture(kModuleName, ++imat, "Gas", aGas, zGas, dGas, -nGas, wGas);
   mgr.Medium(kModuleName, Medium::Gas, "Gas", imat, 1, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
 
