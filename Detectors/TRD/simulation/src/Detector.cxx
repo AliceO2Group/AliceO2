@@ -175,8 +175,6 @@ bool Detector::ProcessHits(FairVolume* v)
     const int trackID = stack->GetCurrentTrackNumber();
     double pos[3] = { xp, yp, zp };
     double loc[3] = { -99, -99, -99 };
-    gGeoManager->SetCurrentPoint(pos);
-    gGeoManager->FindNode();
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     const float locC = loc[0], locR = loc[1], locT = loc[2];
     addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
@@ -265,8 +263,6 @@ void Detector::createTRhit(int det)
     // prepare local coordinates
     double pos[3] = { x, y, z };
     double loc[3] = { -99, -99, -99 };
-    gGeoManager->SetCurrentPoint(pos);
-    gGeoManager->FindNode();
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     const float locC = loc[0], locR = loc[1], locT = loc[2];
     addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
