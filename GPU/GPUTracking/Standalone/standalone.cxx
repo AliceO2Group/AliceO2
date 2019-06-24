@@ -135,7 +135,6 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.fpe) {
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
-
 #else
   if (configStandalone.affinity != -1) {
     printf("Affinity setting not supported on Windows\n");
@@ -149,6 +148,9 @@ int ReadConfiguration(int argc, char** argv)
     printf("FPE not supported on Windows\n");
     return (1);
   }
+#endif
+#ifndef HAVE_O2HEADERS
+  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = 0;
 #endif
 #ifndef BUILD_QA
   if (configStandalone.qa || configStandalone.eventGenerator) {
@@ -337,6 +339,9 @@ int SetupReconstruction()
   }
   if (configStandalone.configRec.runCompression != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
+  }
+  if (configStandalone.configRec.runTransformation != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCConversion, configStandalone.configRec.runTransformation > 0);
   }
   if (!configStandalone.merger) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);

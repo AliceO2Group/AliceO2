@@ -135,15 +135,19 @@ bool GPUChainTracking::ValidateSteps()
     printf("Invalid GPU Reconstruction Step Setting: dEdx requires TPC Merger to be active\n");
     return false;
   }
+#ifdef GPUCA_O2_LIB
+  if (param().continuousMaxTimeBin) {
+    if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
+      printf("Invalid Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
+      return false;
+    }
+    if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion)) {
+      printf("Invalid GPU Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
+      return false;
+    }
+  }
+#endif
 #ifndef GPUCA_ALIROOT_LIB
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) {
-    printf("Invalid Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
-    return false;
-  }
-  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion)) {
-    printf("Invalid GPU Reconstruction Step Setting: Tracking requires TPC Conversion to be active\n");
-    return false;
-  }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters)) {
     printf("Invalid Inputs, TPC Clusters required\n");
     return false;
