@@ -88,18 +88,18 @@ int Track::getNClustersInCommon(const Track& track, int stMin, int stMax) const
 
   int chMin = 2 * stMin;
   int chMax = 2 * stMax + 1;
-  int ch1(0), ch2(0), nClustersInCommon(0);
+  int nClustersInCommon(0);
 
   for (const auto& param1 : *this) {
 
-    ch1 = param1.getClusterPtr()->getChamberId();
+    int ch1 = param1.getClusterPtr()->getChamberId();
     if (ch1 < chMin || ch1 > chMax) {
       continue;
     }
 
     for (const auto& param2 : track) {
 
-      ch2 = param2.getClusterPtr()->getChamberId();
+      int ch2 = param2.getClusterPtr()->getChamberId();
       if (ch2 < chMin || ch2 > chMax) {
         continue;
       }
@@ -131,13 +131,13 @@ void Track::tagRemovableClusters(uint8_t requestedStationMask)
   /// with the only requirements to have at least 1 cluster per requested station
   /// and at least 2 chambers over 4 in stations 4 & 5 that contain cluster(s)
 
-  int currentCh(-1), previousCh(-1), currentSt(-1), previousSt(-1), nChHitInSt45(0);
+  int previousCh(-1), previousSt(-1), nChHitInSt45(0);
   TrackParam* previousParam(nullptr);
 
   for (auto& param : *this) {
 
-    currentCh = param.getClusterPtr()->getChamberId();
-    currentSt = currentCh / 2;
+    int currentCh = param.getClusterPtr()->getChamberId();
+    int currentSt = currentCh / 2;
 
     // set the cluster as removable if the station is not requested or if it is not alone in the station
     if (((1 << currentSt) & requestedStationMask) == 0) {
@@ -162,10 +162,11 @@ void Track::tagRemovableClusters(uint8_t requestedStationMask)
   if (nChHitInSt45 < 3) {
 
     previousCh = -1;
+    previousParam = nullptr;
 
     for (auto itParam = this->rbegin(); itParam != this->rend(); ++itParam) {
 
-      currentCh = itParam->getClusterPtr()->getChamberId();
+      int currentCh = itParam->getClusterPtr()->getChamberId();
 
       if (currentCh < 6) {
         break;

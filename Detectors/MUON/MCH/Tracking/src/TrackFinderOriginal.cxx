@@ -257,10 +257,6 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
 
   print("Looking for candidates between chamber ", ch1, " and ", ch2);
 
-  double z1(0.), z2(0.), dZ(0.);
-  double nonBendingSlope(0.), nonBendingImpactParam(0.), nonBendingImpactParamErr(0.);
-  double bendingSlope(0.), bendingImpactParam(0.), bendingImpactParamErr(0.), bendingImpactParamErr2(0.);
-  double bendingMomentum(0.), bendingMomentumErr(0.);
   double bendingVertexDispersion2 = SBendingVertexDispersion * SBendingVertexDispersion;
 
   // maximum impact parameter dispersion**2 due to MCS in chambers
@@ -274,7 +270,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
 
   for (const auto& cluster1 : mClusters->at(ch1)) {
 
-    z1 = cluster1.getZ();
+    double z1 = cluster1.getZ();
 
     for (const auto& cluster2 : mClusters->at(ch2)) {
 
@@ -283,34 +279,31 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
         continue;
       }
 
-      z2 = cluster2.getZ();
-      dZ = z1 - z2;
+      double z2 = cluster2.getZ();
+      double dZ = z1 - z2;
 
       // check if non bending impact parameter is within tolerances
-      nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
-      nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
-      nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEx2() + z2 * z2 * cluster1.getEx2()) / dZ / dZ + impactMCS2);
+      double nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
+      double nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
+      double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEx2() + z2 * z2 * cluster1.getEx2()) / dZ / dZ + impactMCS2);
       if ((nonBendingImpactParam - SSigmaCutForTracking * nonBendingImpactParamErr) > (3. * SNonBendingVertexDispersion)) {
         continue;
       }
 
-      bendingSlope = (cluster1.getY() - cluster2.getY()) / dZ;
+      double bendingSlope = (cluster1.getY() - cluster2.getY()) / dZ;
       if (TrackExtrap::isFieldON()) { // depending whether the field is ON or OFF
         // check if bending momentum is within tolerances
-        bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
-        bendingImpactParamErr2 = (z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2;
-        bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
-        bendingMomentumErr = TMath::Sqrt((bendingVertexDispersion2 + bendingImpactParamErr2) /
-                                           bendingImpactParam / bendingImpactParam +
-                                         0.01) *
-                             bendingMomentum;
+        double bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
+        double bendingImpactParamErr2 = (z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2;
+        double bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
+        double bendingMomentumErr = TMath::Sqrt((bendingVertexDispersion2 + bendingImpactParamErr2) / bendingImpactParam / bendingImpactParam + 0.01) * bendingMomentum;
         if ((bendingMomentum + 3. * bendingMomentumErr) < SMinBendingMomentum) {
           continue;
         }
       } else {
         // or check if bending impact parameter is within tolerances
-        bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
-        bendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2);
+        double bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
+        double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2);
         if ((bendingImpactParam - SSigmaCutForTracking * bendingImpactParamErr) > (3. * SBendingVertexDispersion)) {
           continue;
         }
@@ -331,12 +324,9 @@ bool TrackFinderOriginal::areUsed(const Cluster& cl1, const Cluster& cl2)
 {
   /// Return true if the 2 clusters are already part of a track
 
-  bool cl1Used(false), cl2Used(false);
-
   for (const auto& track : mTracks) {
 
-    cl1Used = false;
-    cl2Used = false;
+    bool cl1Used(false), cl2Used(false);
 
     for (auto itParam = track.rbegin(); itParam != track.rend(); ++itParam) {
 
@@ -500,18 +490,15 @@ void TrackFinderOriginal::removeDuplicateTracks()
 
   print("Remove duplicated tracks");
 
-  int nClustersInCommon(0), nClusters1(0), nClusters2(0);
-  bool track1Removed(false);
-
   for (auto itTrack1 = mTracks.begin(); itTrack1 != mTracks.end();) {
 
-    nClusters1 = itTrack1->getNClusters();
-    track1Removed = false;
+    int nClusters1 = itTrack1->getNClusters();
+    bool track1Removed(false);
 
     for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.end();) {
 
-      nClusters2 = itTrack2->getNClusters();
-      nClustersInCommon = itTrack2->getNClustersInCommon(*itTrack1);
+      int nClusters2 = itTrack2->getNClusters();
+      int nClustersInCommon = itTrack2->getNClustersInCommon(*itTrack1);
 
       if (nClustersInCommon == nClusters2) {
         print("Removing candidate at position #", getTrackIndex(itTrack2));
@@ -543,12 +530,9 @@ void TrackFinderOriginal::removeConnectedTracks(int stMin, int stMax)
 
   print("Remove connected tracks in stations [", stMin, ", ", stMax, "]");
 
-  int nClusters1(0), nClusters2(0);
-  bool track1Removed(false);
-
   for (auto itTrack1 = mTracks.begin(); itTrack1 != mTracks.end();) {
 
-    track1Removed = false;
+    bool track1Removed(false);
 
     for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.end();) {
 
@@ -649,7 +633,6 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   TrackParam extrapTrackParamAtCluster1{};
   TrackParam extrapTrackParamAtCluster2{};
   TrackParam extrapTrackParam{};
-  bool foundSecondCluster(false);
 
   // Order the chambers according to the propagation direction (tracking starts with ch2):
   // - nextStation == station(1...) 5 => forward propagation
@@ -695,7 +678,6 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
   // Prepare to remember the clusters used in ch1 in combination with a cluster in ch2
   std::vector<bool> clusterCh1Used(mClusters->at(ch1).size(), false);
-  int iCluster1(-1);
 
   // Look for cluster candidates in chamber 2
   for (const auto& clusterCh2 : mClusters->at(ch2)) {
@@ -739,11 +721,11 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
     }
 
     //Extrapolate the track candidate to chamber 1
-    foundSecondCluster = false;
+    bool foundSecondCluster(false);
     if (TrackExtrap::extrapToZCov(&extrapTrackParam, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
 
       // look for second cluster candidates in chamber 1
-      iCluster1 = -1;
+      int iCluster1(-1);
       for (const auto& clusterCh1 : mClusters->at(ch1)) {
 
         ++iCluster1;
@@ -805,7 +787,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   }
 
   // look for cluster candidates not already used in chamber 1
-  iCluster1 = -1;
+  int iCluster1(-1);
   for (const auto& clusterCh1 : mClusters->at(ch1)) {
 
     ++iCluster1;
@@ -1025,10 +1007,9 @@ std::list<Track>::iterator TrackFinderOriginal::recoverTrack(std::list<Track>::i
   print("Try to recover the track candidate #", getTrackIndex(itTrack), " in station ", nextStation);
 
   // Look for the cluster to remove
-  auto itParam = itTrack->begin();
   auto itWorstParam = itTrack->end();
-  double localChi2(-1.), worstLocalChi2(-1.);
-  for (; itParam != itTrack->end(); ++itParam) {
+  double worstLocalChi2(-1.);
+  for (auto itParam = itTrack->begin(); itParam != itTrack->end(); ++itParam) {
 
     // Check if the current cluster is in the previous station
     if (itParam->getClusterPtr()->getChamberId() / 2 != nextStation + 1) {
@@ -1046,9 +1027,8 @@ std::list<Track>::iterator TrackFinderOriginal::recoverTrack(std::list<Track>::i
     }
 
     // Pick up the cluster with the worst chi2
-    localChi2 = itParam->getLocalChi2();
-    if (localChi2 > worstLocalChi2) {
-      worstLocalChi2 = localChi2;
+    if (itParam->getLocalChi2() > worstLocalChi2) {
+      worstLocalChi2 = itParam->getLocalChi2();
       itWorstParam = itParam;
     }
   }
@@ -1059,7 +1039,7 @@ std::list<Track>::iterator TrackFinderOriginal::recoverTrack(std::list<Track>::i
   }
 
   // Remove the worst cluster
-  itParam = itTrack->removeParamAtCluster(itWorstParam);
+  auto itParam = itTrack->removeParamAtCluster(itWorstParam);
 
   // refit the track from the second cluster as currently done in AliRoot
   //itParam = std::next(itTrack->begin());
@@ -1096,10 +1076,7 @@ bool TrackFinderOriginal::completeTracks()
 
   print("Complete tracks");
 
-  int deId(-1);
-  double chi2AtCluster(-1.), bestChi2AtCluster(-1.);
-  bool trackCompleted(false), completionOccurred(false);
-  TrackParam* param(nullptr);
+  bool completionOccurred(false);
   TrackParam paramAtCluster{};
   TrackParam bestParamAtCluster{};
 
@@ -1108,20 +1085,19 @@ bool TrackFinderOriginal::completeTracks()
 
   for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
 
-    trackCompleted = false;
+    bool trackCompleted(false);
 
-    for (auto itParam = itTrack->begin(), itPrevParam = itTrack->begin(), itNextParam = itTrack->begin();
-         itParam != itTrack->end();) {
+    for (auto itParam = itTrack->begin(), itPrevParam = itTrack->begin(); itParam != itTrack->end();) {
 
       // Prepare access to the next trackParam before adding new cluster as it can be added in-between
-      itNextParam = std::next(itParam);
+      auto itNextParam = std::next(itParam);
 
       // Never test new clusters starting from parameters at last cluster because the covariance matrix is meaningless
-      param = (itNextParam == itTrack->end()) ? &*itPrevParam : &*itParam;
+      TrackParam* param = (itNextParam == itTrack->end()) ? &*itPrevParam : &*itParam;
 
       // Look for a second cluster candidate in the same chamber
-      deId = itParam->getClusterPtr()->getDEId();
-      bestChi2AtCluster = mTrackFitter.getMaxChi2();
+      int deId = itParam->getClusterPtr()->getDEId();
+      double bestChi2AtCluster = mTrackFitter.getMaxChi2();
       for (const auto& cluster : mClusters->at(itParam->getClusterPtr()->getChamberId())) {
 
         // In another detection element
@@ -1141,16 +1117,14 @@ bool TrackFinderOriginal::completeTracks()
 
         // Compute the new track parameters including the cluster using the Kalman filter
         try {
-          chi2AtCluster = paramAtCluster.getTrackChi2();
           mTrackFitter.runKalmanFilter(paramAtCluster);
-          chi2AtCluster = paramAtCluster.getTrackChi2() - chi2AtCluster;
         } catch (exception const&) {
           continue;
         }
 
         // Keep the best cluster
-        if (chi2AtCluster < bestChi2AtCluster) {
-          bestChi2AtCluster = chi2AtCluster;
+        if (paramAtCluster.getTrackChi2() < bestChi2AtCluster) {
+          bestChi2AtCluster = paramAtCluster.getTrackChi2();
           bestParamAtCluster = paramAtCluster;
         }
       }
@@ -1202,13 +1176,12 @@ void TrackFinderOriginal::improveTracks()
     return;
   }
 
-  double localChi2(-1.), worstLocalChi2(-1.);
-  bool removeTrack(false);
-
   // Maximum chi2 to keep a cluster (the factor 2 is for the 2 degrees of freedom: x and y)
   double maxChi2OfCluster = 2. * SSigmaCutForImprovement * SSigmaCutForImprovement;
 
   for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+
+    bool removeTrack(false);
 
     // At the first step, only run the smoother
     auto itStartingParam = std::prev(itTrack->rend());
@@ -1227,19 +1200,17 @@ void TrackFinderOriginal::improveTracks()
       itTrack->tagRemovableClusters(requestedStationMask());
 
       // Look for the cluster with the worst local chi2
-      worstLocalChi2 = -1.;
+      double worstLocalChi2(-1.);
       auto itWorstParam(itTrack->end());
       for (auto itParam = itTrack->begin(); itParam != itTrack->end(); ++itParam) {
-        localChi2 = itParam->getLocalChi2();
-        if (localChi2 > worstLocalChi2) {
-          worstLocalChi2 = localChi2;
+        if (itParam->getLocalChi2() > worstLocalChi2) {
+          worstLocalChi2 = itParam->getLocalChi2();
           itWorstParam = itParam;
         }
       }
 
       // If the worst chi2 is under requirement then the track is improved
       if (worstLocalChi2 < maxChi2OfCluster) {
-        removeTrack = false;
         break;
       }
 
