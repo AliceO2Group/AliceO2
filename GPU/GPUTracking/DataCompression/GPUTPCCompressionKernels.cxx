@@ -175,14 +175,13 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
   const ClusterNativeAccessExt* clusters = processors.tpcConverter.getClustersNative();
   GPUTPCCompression& compressor = processors.tpcCompressor;
   GPUParam& param = processors.param;
-  GPUshared() unsigned int nCount;
   unsigned int* sortBuffer = compressor.mClusterSortBuffer + iBlock * compressor.mNMaxClusterSliceRow;
   for (int iSliceRow = iBlock; iSliceRow < GPUCA_NSLICES * GPUCA_ROW_COUNT; iSliceRow += nBlocks) {
     const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
     const int iRow = iSliceRow % GPUCA_ROW_COUNT;
     const int idOffset = clusters->clusterOffset[iSlice][iRow];
     if (iThread == 0) {
-      nCount = 0;
+      smem.nCount = 0;
     }
     GPUbarrier();
 
@@ -211,27 +210,27 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
           continue;
         }
       }
-      int cidx = CAMath::AtomicAddShared(&nCount, 1);
+      int cidx = CAMath::AtomicAddShared(&smem.nCount, 1);
       sortBuffer[cidx] = i;
     }
     GPUbarrier();
 
     if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
       if (param.rec.tpcCompressionSortOrder == GPUSettings::SortZPadTime) {
-        CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSlice][iRow]));
+        CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSlice][iRow]));
       } else if (param.rec.tpcCompressionSortOrder == GPUSettings::SortZTimePad) {
-        CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortZTimePad>(clusters->clusters[iSlice][iRow]));
+        CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortZTimePad>(clusters->clusters[iSlice][iRow]));
       } else if (param.rec.tpcCompressionSortOrder == GPUSettings::SortPad) {
-        CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortPad>(clusters->clusters[iSlice][iRow]));
+        CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortPad>(clusters->clusters[iSlice][iRow]));
       } else {
-        CAAlgo::sortInBlock(sortBuffer, sortBuffer + nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortTime>(clusters->clusters[iSlice][iRow]));
+        CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortTime>(clusters->clusters[iSlice][iRow]));
       }
       GPUbarrier();
     }
 
     unsigned int lastTime = 0;
     unsigned short lastPad = 0;
-    for (unsigned int i = 0; i < nCount; i++) {
+    for (unsigned int i = 0; i < smem.nCount; i++) {
       int cidx = idOffset + i;
       const ClusterNative& orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
@@ -256,8 +255,8 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
       c.flagsU[cidx] = orgCl.getFlags();
     }
     if (iThread == 0) {
-      c.nSliceRowClusters[iSlice * GPUCA_ROW_COUNT + iRow] = nCount;
-      CAMath::AtomicAdd(&compressor.mMemory->nStoredUnattachedClusters, nCount);
+      c.nSliceRowClusters[iSlice * GPUCA_ROW_COUNT + iRow] = smem.nCount;
+      CAMath::AtomicAdd(&compressor.mMemory->nStoredUnattachedClusters, smem.nCount);
     }
     GPUbarrier();
   }
