@@ -60,13 +60,8 @@ class GPUTPCNeighboursFinder
     int mIRowUp;  // next row number
     int mIRowDn;  // previous row number
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-#if defined(GPUCA_GPUCODE)
     float2 mA[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
     calink mB[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-#else
-    float2 mA[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-    calink mB[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-#endif
 #endif // GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
     MEM_LG(GPUTPCRow)
     mRow, mRowUp, mRowDown;

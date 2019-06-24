@@ -77,12 +77,6 @@
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define GPUCA_REPRODUCIBLE_CLUSTER_SORTING
 
-#ifdef GPUCA_GPUCODE
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
-#else
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP GPUCA_MAXN
-#endif // GPUCA_GPUCODE
-
 //#define GPUCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.
 //#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME							//Propagate Pad, Row, Time cluster information to GM
 //#define GPUCA_GM_USE_FULL_FIELD						//Use offline magnetic field during GMPropagator prolongation

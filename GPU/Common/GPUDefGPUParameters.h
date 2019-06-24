@@ -103,9 +103,15 @@
   //Do not cache Row Hits during Tracklet selection in Registers for CPU Tracker
   #undef GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE
   #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 0
+
+  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 0
 #else
-  //Sort start hits for GPU tracker
-  #define GPUCA_SORT_STARTHITS
+  #define GPUCA_SORT_STARTHITS // Sort start hits for GPU tracker
+  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+#endif
+
+#ifdef GPUCA_NOCOMPAT
+  static_assert(GPUCA_MAXN > GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP);
 #endif
 
 //Error Codes for GPU Tracker
