@@ -335,6 +335,9 @@ int SetupReconstruction()
   if (configStandalone.configRec.rundEdx != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
   }
+  if (configStandalone.configRec.runCompression != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
+  }
   if (!configStandalone.merger) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
@@ -366,7 +369,7 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
-  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
+  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge || !configStandalone.configRec.runTransformation)) {
     if (configStandalone.DebugLevel >= 2) {
       printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
     }
@@ -475,13 +478,17 @@ int main(int argc, char** argv)
             break;
           }
         }
-        for (int i = 0; i < chainTracking->NSLICES; i++) {
-          if (chainTracking->mIOPtrs.rawClusters[i]) {
-            if (configStandalone.DebugLevel >= 2) {
-              printf("Converting Legacy Raw Cluster to Native\n");
+        if (!configStandalone.configRec.runTransformation) {
+          chainTracking->mIOPtrs.clustersNative = nullptr;
+        } else {
+          for (int i = 0; i < chainTracking->NSLICES; i++) {
+            if (chainTracking->mIOPtrs.rawClusters[i]) {
+              if (configStandalone.DebugLevel >= 2) {
+                printf("Converting Legacy Raw Cluster to Native\n");
+              }
+              chainTracking->ConvertRun2RawToNative();
+              break;
             }
-            chainTracking->ConvertRun2RawToNative();
-            break;
           }
         }
 
