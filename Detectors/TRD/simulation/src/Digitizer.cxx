@@ -129,7 +129,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   int timeBinTRFend = 0;
   double padSignal[kNpad];
   double signalOld[kNpad];
-  double locC, locR, locT; // the local coordinate system
 
   // Get the detector wise mCalib objects
   // const TRDCalDet* calVdriftDet = mCalib->GetVdriftDet();    PLEASE FIX ME when CCDB is ready
@@ -179,9 +178,9 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       region), meaning locT = 0, and is negative for hits coming from the
       drift region.
     */
-    locC = hit.getLocalC(); // col direction in amplification or drift volume
-    locR = hit.getLocalR(); // row direction in amplification or drift volume
-    locT = hit.getLocalT(); // time direction in amplification or drift volume
+    double locC = hit.getLocalC(); // col direction in amplification or drift volume
+    double locR = hit.getLocalR(); // row direction in amplification or drift volume
+    double locT = hit.getLocalT(); // time direction in amplification or drift volume
 
     if (hit.isFromDriftRegion()) {
       locT = locT - kDrWidth / 2 - kAmWidth / 2;
