@@ -6,7 +6,7 @@
 #include "shared/tpc.h"
 
 
-#if 0
+#if 1
 # define IF_DBG_INST if (get_global_linear_id() == 0)
 # define IF_DBG_GROUP if (get_group_id(0) == 0)
 #else
@@ -231,55 +231,55 @@ void reset(PartialCluster *clus)
 }
 
 
-void fillScratchPad(
-        global   const charge_t  *chargeMap,
-                       uint       wgSize,
-                       local_id   lid,
-                       uint       offset,
-                       uint       N,
-        constant       delta2_t  *neighbors,
-        local          ChargePos *posBcast,
-        local          charge_t  *buf)
-{
-    int i = 0;
-	__attribute__((opencl_unroll_hint(1)))
-    for (; i < wgSize-N; i += N)
-    {
-        ChargePos readFrom = posBcast[i + lid.y];
+#define DECL_FILL_SCRATCH_PAD(type, accessFunc) \
+    void fillScratchPad_##type( \
+            global   const type      *chargeMap, \
+                           uint       wgSize, \
+                           local_id   lid, \
+                           uint       offset, \
+                           uint       N, \
+            constant       delta2_t  *neighbors, \
+            local          ChargePos *posBcast, \
+            local          type      *buf) \
+    { \
+        int i = 0; \
+        __attribute__((opencl_unroll_hint(1))) \
+        for (; i < wgSize-N; i += N) \
+        { \
+            ChargePos readFrom = posBcast[i + lid.y]; \
+            \
+            delta2_t d = neighbors[lid.x + offset]; \
+            delta_t dp = d.x; \
+            delta_t dt = d.y; \
+            \
+            uint writeTo = N * (i + lid.y) + lid.x; \
+            \
+            buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
+        } \
+        \
+        if (i + lid.y <= wgSize) \
+        { \
+            ChargePos readFrom = posBcast[i + lid.y]; \
+            \
+            delta2_t d = neighbors[lid.x + offset]; \
+            delta_t dp = d.x; \
+            delta_t dt = d.y; \
+            \
+            /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */ \
+            \
+            uint writeTo = N * (i + lid.y) + lid.x; \
+            \
+            /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */ \
+            \
+            buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
+        } \
+        \
+        work_group_barrier(CLK_LOCAL_MEM_FENCE); \
+    } \
+    void anonymousFunction()
 
-        delta2_t d = neighbors[lid.x + offset];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
-
-        /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */
-        
-        uint writeTo = N * (i + lid.y) + lid.x;
-
-        /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */
-
-        buf[writeTo] = CHARGE(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
-    }
-
-    // load last batch of values seperately as wgSize might not be divisible by N
-    if (i + lid.y <= wgSize)
-    {
-        ChargePos readFrom = posBcast[i + lid.y];
-
-        delta2_t d = neighbors[lid.x + offset];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
-
-        /* IF_DBG_INST DBGPR_2("delta = (%d, %d)", dp, dt); */
-        
-        uint writeTo = N * (i + lid.y) + lid.x;
-
-        /* IF_DBG_INST DBGPR_1("writeTo = %d", writeTo); */
-
-        buf[writeTo] = CHARGE(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
-    }
-
-    work_group_barrier(CLK_LOCAL_MEM_FENCE);
-}
+DECL_FILL_SCRATCH_PAD(charge_t, CHARGE);
+DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
 
 void updateClusterScratchpadInner(
                     ushort          lid,
@@ -373,7 +373,7 @@ void buildClusterScratchPad(
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
-    fillScratchPad(
+    fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
@@ -385,7 +385,7 @@ void buildClusterScratchPad(
 
     updateClusterScratchpadInner(ll, N, buf, myCluster, innerAboveThreshold);
 
-    fillScratchPad(
+    fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE, 
             lid, 
@@ -396,7 +396,7 @@ void buildClusterScratchPad(
             buf);
     updateClusterScratchpadOuter(ll, N, 0, buf, innerAboveThreshold, myCluster);
 
-    fillScratchPad(
+    fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
@@ -504,7 +504,7 @@ bool isPeakScratchPad(
     posBcast[ll] = pos;
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
-    fillScratchPad(
+    fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             lid,
@@ -653,6 +653,18 @@ char countPeaksAroundDigit(
     return peakCount;
 }
 
+char countPeaksScratchpad(
+                    ushort  ll,
+        local const uchar  *isPeak)
+{
+    char peaks = 0;
+    for (uchar i = 0; i < 8; i++)
+    {
+        peaks += isPeak[ll * 8 + i];
+    }
+
+    return peaks;
+}
 
 ushort partition(
                     ushort     ll, 
@@ -665,8 +677,8 @@ ushort partition(
 {
     bool participates = ll < partSize;
 
-    ushort lpos = work_group_scan_inclusive_add( pred && participates);
-    ushort rpos = work_group_scan_inclusive_add(!pred && participates);
+    ushort lpos = work_group_scan_inclusive_add(!pred && participates);
+    ushort rpos = work_group_scan_inclusive_add( pred && participates);
 
     ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
 
@@ -762,6 +774,8 @@ void countPeaks(
 {
     size_t idx = get_global_linear_id();
 
+    printf("TEST \n");
+
     bool iamDummy = (idx >= digitnum);
     /* idx = select(idx, (size_t)(digitnum-1), (size_t)iamDummy); */
     idx = iamDummy ? digitnum-1 : idx;
@@ -775,16 +789,23 @@ void countPeaks(
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
     ushort ll = get_local_linear_id();
 
+    const ushort N = 8;
+
     local ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     local ChargePos posBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
     local charge_t  chargeBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     local charge_t  chargeBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
     local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
 
-    posBcast1[ll]    = {gpad, myDigit.time};
+    DBGPR_0("Filling Bcast.");
+
+    posBcast1[ll]    = (ChargePos){gpad, myDigit.time};
     chargeBcast1[ll] = myDigit.charge;
 
-    // TODO find number of dummies
+    int numOfDummies = work_group_reduce_add((int) iamDummy);
+
+
+    IF_DBG_INST DBGPR_0("Partition 1.");
 
     ushort in3x3 = partition(
             ll, 
@@ -795,13 +816,18 @@ void countPeaks(
             chargeBcast2, 
             posBcast2);
 
-    fillScratchPad(isPeak, in3x3, lid, 0, N, INNER_NEIGHBORS, posBcast2, buf);
+
+    local_id lid = {ll % N, ll / N};
+    IF_DBG_INST DBGPR_0("Fill LDS 1.");
+    fillScratchPad_uchar(isPeak, in3x3, lid, 0, N, INNER_NEIGHBORS, posBcast2, buf);
     if (ll < in3x3)
     {
-        peakCount = countPeaksScratchPadInner();
+        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
+        peakCount = countPeaksScratchpad(ll, buf);
         chargeBcast2[ll] /= peakCount;
     }
 
+    IF_DBG_INST DBGPR_0("Partition 2.");
     ushort in5x5 = partition(
             ll,
             peakCount > 0,
@@ -811,22 +837,26 @@ void countPeaks(
             chargeBcast1,
             posBcast1);
 
-    fillScratchPad(isPeak, in5x5, lid, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
+    IF_DBG_INST DBGPR_0("Fill LDS 2.");
+    fillScratchPad_uchar(isPeak, in5x5, lid, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
     if (ll < in5x5)
     {
-        peakCount = countPeaksScratchPad();
+        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
+        peakCount = countPeaksScratchpad(ll, buf);
     }
 
-    fillScratchPad(isPeak, in5x5, lid, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
+    IF_DBG_INST DBGPR_0("Fill LDS 3.");
+    fillScratchPad_uchar(isPeak, in5x5, lid, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
     if (ll < in5x5)
     {
-        peakCount += countPeaksScratchPad();
-        chargeBcast1[ll] /= peakCount;
+        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
+        peakCount += countPeaksScratchpad(ll, buf);
+        chargeBcast1[ll] /= -peakCount;
     }
 
     ChargePos pos = posBcast1[ll];
-    CHARGE(chargeMap, pos.pad, pos.time) = chargeBcast[ll];
-
+    IF_DBG_INST DBGPR_0("Write results back.");
+    CHARGE(chargeMap, pos.gpad, pos.time) = chargeBcast1[ll];
 #else
     peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
 

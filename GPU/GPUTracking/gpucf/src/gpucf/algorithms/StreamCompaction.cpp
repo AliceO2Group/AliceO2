@@ -171,6 +171,8 @@ size_t StreamCompaction::Worker::run(
         digitnums.push_back(digitnum);
         offsets.push_back(offset);
 
+        DBG(i);
+
         if (i == 1)
         {
             nativeScanUpStart.setArg(0, predicate);
@@ -263,12 +265,15 @@ size_t StreamCompaction::Worker::run(
     switch (type)
     {
     case CompType::Digit: 
+        log::Debug() << "Compact digits.";
         compact = compactDigit; 
         break;
     case CompType::Cluster:
         compact = compactCluster;
         break;
     }
+
+    log::Debug() << "Run compaction kernel.";
 
     compact.setArg(0, digits);
     compact.setArg(1, digitsOut);
