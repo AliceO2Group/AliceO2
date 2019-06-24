@@ -310,7 +310,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       }
 
       //look into the light tables if the particle is charged
-      if (TMath::Abs(charge) > 0){
+      if (TMath::Abs(charge) > 0) {
         if (detector == 1 || detector == 4) {
           iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
           lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
@@ -361,7 +361,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       mTotLightPMQ += nphe;
     }
     float incenloss = curHit.GetEnergyLoss() + eDep;
-    if(incenloss > 0 || nphe > 0){
+    if(incenloss > 0 || nphe > 0) {
       curHit.SetEnergyLoss(incenloss);
       curHit.setPMCLightYield(mTotLightPMC);
       curHit.setPMQLightYield(mTotLightPMQ);
@@ -512,9 +512,7 @@ void Detector::createAsideBeamLine()
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };
   Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15]={
-    0.,
-  };
+  Double_t conpar[15] = { 0. };  // all elements will be 0
 
   Float_t zA = 1910.2;
 
