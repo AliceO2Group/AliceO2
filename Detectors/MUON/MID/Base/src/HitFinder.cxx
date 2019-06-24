@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include "MIDBase/Constants.h"
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
@@ -36,12 +37,12 @@ Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int ch
 {
   /// Get the intersection point in the default chamber plane
   double defaultZ = Constants::sDefaultChamberZ[chamber];
-  double linePar = ((track.getPosition().z() - defaultZ) * mTanTheta - track.getPosition().y()) /
-                   (track.getDirection().y() - track.getDirection().z() * mTanTheta);
+  double linePar = ((track.getPositionZ() - defaultZ) * mTanTheta - track.getPositionY()) /
+                   (track.getDirectionY() - track.getDirectionZ() * mTanTheta);
   Point3D<double> point;
-  point.SetX(track.getPosition().x() + linePar * track.getDirection().x());
-  point.SetY(track.getPosition().y() + linePar * track.getDirection().y());
-  point.SetZ(track.getPosition().z() + linePar * track.getDirection().z());
+  point.SetX(track.getPositionX() + linePar * track.getDirectionX());
+  point.SetY(track.getPositionY() + linePar * track.getDirectionY());
+  point.SetZ(track.getPositionZ() + linePar * track.getDirectionZ());
   return point;
 }
 
@@ -50,7 +51,7 @@ Point3D<float> HitFinder::getIntersect(const Track& track, int deId) const
 {
   /// Get the intersection point in the specified detection elements
   /// The point is expressed in local coordinates
-  Point3D<float> localPoint = mGeometryTransformer.globalToLocal(deId, track.getPosition());
+  Point3D<float> localPoint = mGeometryTransformer.globalToLocal(deId, track.getPositionX(), track.getPositionY(), track.getPositionZ());
 
   // Track localTrack(track);
   // localTrack.propagateToZ(localTrack.getPosition().z() + 20.);
@@ -59,13 +60,14 @@ Point3D<float> HitFinder::getIntersect(const Track& track, int deId) const
   // float dZ = localPoint2.z() - localPoint.z();
   // localTrack.setDirection((localPoint2.x() - localPoint.x()) / dZ, (localPoint2.y() - localPoint.y()) / dZ, 1.);
 
-  Vector3D<float> localDirection = mGeometryTransformer.globalToLocal(deId, track.getDirection());
+  Vector3D<float> localDirection = mGeometryTransformer.globalToLocal(deId, Vector3D<float>(track.getDirectionX(), track.getDirectionY(), track.getDirectionZ()));
   Track localTrack;
   localTrack.setPosition(localPoint.x(), localPoint.y(), localPoint.z());
   localTrack.setDirection(localDirection.x() / localDirection.z(), localDirection.y() / localDirection.z(), 1.);
 
   localTrack.propagateToZ(0);
-  return localTrack.getPosition();
+  Point3D<float> point(localTrack.getPositionX(), localTrack.getPositionY(), localTrack.getPositionZ());
+  return std::move(point);
 }
 
 //______________________________________________________________________________

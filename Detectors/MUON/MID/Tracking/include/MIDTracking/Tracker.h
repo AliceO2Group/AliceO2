@@ -17,6 +17,7 @@
 #define O2_MID_TRACKER_H
 
 #include <vector>
+#include <gsl/gsl>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/Track.h"
@@ -41,25 +42,23 @@ class Tracker
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
-  bool process(const std::vector<Cluster2D>& clusters);
+  bool process(gsl::span<const Cluster2D> clusters);
   bool init();
 
   /// Gets the array of reconstructes tracks
   const std::vector<Track>& getTracks() { return mTracks; }
 
-  /// Gets the number of reconstructed tracks
-  unsigned long int getNTracks() { return mNTracks; }
+  /// Gets the array of associated clusters
+  const std::vector<Cluster3D>& getClusters() { return mClusters; }
 
  private:
   bool processSide(bool isRight, bool isInward);
-  bool addTrack(const Track& track);
+  bool tryAddTrack(const Track& track);
   bool followTrack(const Track& track, bool isRight, bool isInward);
-  bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC,
-                       int& nFiredChambers, double& bestChi2, Track& bestTrack, double chi2 = 0., int depth = 1) const;
-  int getClusterId(int id, int deId) const;
+  bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
   int getLastNeighbourRPC(int rpc) const;
-  bool loadClusters(const std::vector<Cluster2D>& clusters);
+  bool loadClusters(gsl::span<const Cluster2D>& clusters);
   bool makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D& cl2) const;
   void reset();
   double runKalmanFilter(Track& track, const Cluster3D& cluster) const;
@@ -70,11 +69,10 @@ class Tracker
   float mSigmaCut = 5.;         ///< Number of sigmas cut
   float mMaxChi2 = 1.e6;        ///< Maximum cut on chi2
 
-  std::vector<Cluster3D> mClusters[72]; ///< Ordered arrays of clusters
-  unsigned long int mNClusters[72];     ///< Number of clusters per RPC
+  std::vector<int> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
+  std::vector<Cluster3D> mClusters;     ///< 3D clusters
 
-  std::vector<Track> mTracks;     ///< Array of tracks
-  unsigned long int mNTracks = 0; ///< Number of tracks
+  std::vector<Track> mTracks; ///< Array of tracks
 
   GeometryTransformer mTransformer; ///< Geometry transformer
 };

@@ -17,9 +17,6 @@
 
 #include <array>
 #include <ostream>
-#include <boost/serialization/split_member.hpp>
-#include <boost/serialization/array.hpp>
-#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
@@ -29,20 +26,22 @@ namespace mid
 class Track
 {
  public:
-  Track();
-  virtual ~Track() = default;
+  /// Gets the track x position
+  float getPositionX() const { return mPosition[0]; }
+  /// Gets the track y position
+  float getPositionY() const { return mPosition[1]; }
+  /// Gets the track z position
+  float getPositionZ() const { return mPosition[2]; }
 
-  Track(const Track&) = default;
-  Track& operator=(const Track&) = default;
-  Track(Track&&) = default;
-  Track& operator=(Track&&) = default;
-
-  /// Gets the track starting position
-  const Point3D<float> getPosition() const { return mPosition; }
   void setPosition(float xPos, float yPos, float zPos);
 
-  /// Gets the track direction parameters
-  const Vector3D<float> getDirection() const { return mDirection; }
+  /// Gets the track x direction
+  float getDirectionX() const { return mDirection[0]; }
+  /// Gets the track y direction
+  float getDirectionY() const { return mDirection[1]; }
+  /// Gets the track z direction
+  float getDirectionZ() const { return mDirection[2]; }
+
   void setDirection(float xDir, float yDir, float zDir);
 
   enum class CovarianceParamIndex : int {
@@ -84,46 +83,19 @@ class Track
   /// Sets the number of degrees of freedom of the track
   void setNDF(int ndf) { mNDF = ndf; }
   /// Returns the normalized chi2 of the track
-  float getChi2OverNDF() const { return mChi2 / (float)mNDF; }
+  float getChi2OverNDF() const { return mChi2 / static_cast<float>(mNDF); }
 
   bool isCompatible(const Track& track, float chi2Cut) const;
 
   friend std::ostream& operator<<(std::ostream& stream, const Track& track);
 
  private:
-  Point3D<float> mPosition;                   ///< Position
-  Vector3D<float> mDirection;                 ///< Direction
-  std::array<float, 6> mCovarianceParameters; ///< Covariance parameters
-  std::array<int, 4> mClusterMatched;         ///< Matched cluster index
-  float mChi2;                                ///< Chi2 of track
-  int mNDF;                                   ///< Number of degree of freedom for chi2
-
-  friend class boost::serialization::access;
-
-  /// Serializes the track
-  template <class Archive>
-  void save(Archive& ar, const unsigned int version) const
-  {
-    ar& mPosition.x() & mPosition.y() & mPosition.z();
-    ar& mDirection.x() & mDirection.y() & mDirection.z();
-    ar& mCovarianceParameters;
-    ar& mClusterMatched;
-  }
-
-  /// Deserializes the track
-  template <class Archive>
-  void load(Archive& ar, const unsigned int version)
-  {
-    float xp, yp, zp, xd, yd, zd;
-    ar& xp& yp& zp;
-    mPosition.SetXYZ(xp, yp, zp);
-    ar& xd& yd& zd;
-    mDirection.SetXYZ(xd, yd, zd);
-    ar& mCovarianceParameters;
-    ar& mClusterMatched;
-  }
-
-  BOOST_SERIALIZATION_SPLIT_MEMBER()
+  std::array<float, 3> mPosition = {};             ///< Position
+  std::array<float, 3> mDirection = {};            ///< Direction
+  std::array<float, 6> mCovarianceParameters = {}; ///< Covariance parameters
+  std::array<int, 4> mClusterMatched = {};         ///< Matched cluster index
+  float mChi2 = 0.;                                ///< Chi2 of track
+  int mNDF = 0;                                    ///< Number of chi2 degrees of freedom
 };
 } // namespace mid
 } // namespace o2

@@ -31,8 +31,6 @@
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 
-#include "FairLogger.h"
-
 namespace o2
 {
 namespace mid
@@ -110,7 +108,6 @@ std::vector<TrackClusters> getTrackClusters(int nTracks)
 
 BOOST_DATA_TEST_CASE_F(MyFixture, TestMultipleTracks, boost::unit_test::data::xrange(1, 9), nTracksPerEvent)
 {
-  // fair::Logger::SetConsoleSeverity(fair::Severity::debug);
   float chi2Cut = tracker.getSigmaCut() * tracker.getSigmaCut();
   int nTotFakes = 0, nTotReconstructible = 0;
   for (int ievt = 0; ievt < 1000; ++ievt) {
@@ -136,17 +133,17 @@ BOOST_DATA_TEST_CASE_F(MyFixture, TestMultipleTracks, boost::unit_test::data::xr
 
     // Further strings for debugging
     ss << "  Reconstructed tracks:\n";
-    for (int ireco = 0; ireco < tracker.getNTracks(); ++ireco) {
+    for (size_t ireco = 0; ireco < tracker.getTracks().size(); ++ireco) {
       ss << "  " << tracker.getTracks()[ireco] << "\n";
     }
 
     // Check that all reconstructible tracks are reconstructed
-    int nReconstructible = 0;
+    size_t nReconstructible = 0;
     itr = -1;
     for (auto& trCl : trackClusters) {
       ++itr;
       bool isReco = false;
-      for (int ireco = 0; ireco < tracker.getNTracks(); ++ireco) {
+      for (size_t ireco = 0; ireco < tracker.getTracks().size(); ++ireco) {
         if (tracker.getTracks()[ireco].isCompatible(trCl.track, chi2Cut)) {
           isReco = true;
           break;
@@ -168,7 +165,7 @@ BOOST_DATA_TEST_CASE_F(MyFixture, TestMultipleTracks, boost::unit_test::data::xr
       }
     } // loop on input tracks
     nTotReconstructible += nReconstructible;
-    int nFakes = tracker.getNTracks() - nReconstructible;
+    int nFakes = tracker.getTracks().size() - nReconstructible;
     if (nFakes > 0) {
       ++nTotFakes;
     }

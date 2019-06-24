@@ -15,16 +15,12 @@
 
 #include "DataFormatsMID/Track.h"
 
+#include <iostream>
+
 namespace o2
 {
 namespace mid
 {
-
-//______________________________________________________________________________
-Track::Track() : mPosition(), mDirection(), mCovarianceParameters(), mClusterMatched(), mChi2(0.), mNDF(0)
-{
-  /// Default constructor
-}
 
 //______________________________________________________________________________
 void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, float slopeYErr2, float covXSlopeX,
@@ -43,14 +39,14 @@ void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, 
 void Track::setDirection(float xDir, float yDir, float zDir)
 {
   /// Sets the track direction parameters
-  mDirection.SetXYZ(xDir, yDir, zDir);
+  mDirection = { xDir, yDir, zDir };
 }
 
 //______________________________________________________________________________
 void Track::setPosition(float xPos, float yPos, float zPos)
 {
   /// Sets the track starting position
-  mPosition.SetXYZ(xPos, yPos, zPos);
+  mPosition = { xPos, yPos, zPos };
 }
 
 //______________________________________________________________________________
@@ -82,14 +78,17 @@ bool Track::propagateToZ(float zPosition)
   /// A linear extraplation is performed
 
   // Nothing to be done if we're already at zPosition
-  if (mPosition.z() == zPosition) {
+  // Notice that the z position is typically the z of the cluster,
+  // which is provided in float precision as well.
+  // So it is typically a well defined value, hence the strict equality
+  if (mPosition[2] == zPosition) {
     return false;
   }
 
   // Propagate the track position parameters
-  float dZ = zPosition - mPosition.z();
-  float newX = mPosition.x() + mDirection.x() * dZ;
-  float newY = mPosition.y() + mDirection.y() * dZ;
+  float dZ = zPosition - mPosition[2];
+  float newX = mPosition[0] + mDirection[0] * dZ;
+  float newY = mPosition[1] + mDirection[1] * dZ;
   setPosition(newX, newY, zPosition);
 
   // Propagate the covariance matrix
@@ -116,9 +115,9 @@ bool Track::propagateToZ(float zPosition)
 bool Track::isCompatible(const Track& track, float chi2Cut) const
 {
   /// Check if tracks are compatible within uncertainties
-  if (track.getPosition().z() != getPosition().z()) {
+  if (track.mPosition[2] != mPosition[2]) {
     Track copyTrack(track);
-    copyTrack.propagateToZ(getPosition().z());
+    copyTrack.propagateToZ(mPosition[2]);
     return isCompatible(copyTrack, chi2Cut);
   }
 
@@ -147,9 +146,9 @@ bool Track::isCompatible(const Track& track, float chi2Cut) const
 
   // method 2: apply the cut on each parameter
   // This method avoids the issue of method 1
-  double p1[4] = { getPosition().x(), getPosition().y(), getDirection().x(), getDirection().y() };
-  double p2[4] = { track.getPosition().x(), track.getPosition().y(), track.getDirection().x(),
-                   track.getDirection().y() };
+  double p1[4] = { mPosition[0], mPosition[1], mDirection[0], mDirection[1] };
+  double p2[4] = { track.mPosition[0], track.mPosition[1], track.mDirection[0],
+                   track.mDirection[1] };
   for (int ipar = 0; ipar < 4; ++ipar) {
     double diff = p1[ipar] - p2[ipar];
     if (diff * diff / (mCovarianceParameters[ipar] + track.mCovarianceParameters[ipar]) > chi2Cut) {
@@ -163,8 +162,9 @@ bool Track::isCompatible(const Track& track, float chi2Cut) const
 std::ostream& operator<<(std::ostream& stream, const Track& track)
 {
   /// Overload ostream operator
-  stream << "Position: " << track.mPosition << "  Direction: " << track.mDirection
-         << " Covariance (X, Y, SlopeX, SlopeY, X-SlopeX, Y-SlopeY): (";
+  stream << "Position: (" << track.mPosition[0] << ", " << track.mPosition[1] << ", " << track.mPosition[2] << ")";
+  stream << " Direction: (" << track.mDirection[0] << ", " << track.mDirection[1] << ", " << track.mDirection[2] << ")";
+  stream << " Covariance (X, Y, SlopeX, SlopeY, X-SlopeX, Y-SlopeY): (";
   for (int ival = 0; ival < 6; ++ival) {
     stream << track.mCovarianceParameters[ival];
     stream << ((ival == 5) ? ")" : ", ");
