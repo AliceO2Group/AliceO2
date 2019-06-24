@@ -77,9 +77,8 @@ class Digitizer
 
   int processHit(const Hit& hit, int detID, double event_time);
 
-  int getGlobalDigit(int detID, int padID);
 };
-
+ 
 } // namespace mch
 } // namespace o2
 #endif

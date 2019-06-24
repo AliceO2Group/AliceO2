@@ -66,6 +66,13 @@ Response& response(bool isStation1)
   return resp[isStation1];
 }
 
+int getGlobalDigit(int detID, int padID)
+{
+  //calculate global index                                                                                                                                                                                            
+  return detID * 100000 + padID;
+}
+
+  
 } // namespace
 
 Digitizer::Digitizer(int) {}
@@ -250,10 +257,4 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   }
 
   mMCTruthOutputContainer.clear();
-}
-//______________________________________________________________________
-int Digitizer::getGlobalDigit(int detID, int padID)
-{
-  //calculate global index
-  return detID * 100000 + padID;  
 }
