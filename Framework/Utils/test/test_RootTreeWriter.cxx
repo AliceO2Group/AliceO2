@@ -21,8 +21,8 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
-#include "Utils/RootTreeWriter.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/RootTreeWriter.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "../../Core/test/TestClasses.h"
 #include <vector>
 #include <memory>

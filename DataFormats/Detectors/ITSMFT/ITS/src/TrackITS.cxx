@@ -68,34 +68,6 @@ void TrackITS::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Floa
   ip[1] = getZ() + getTgl() / rp4 * TMath::ASin(f2 * r1 - f1 * r2) - z;
 }
 
-void TrackITS::resetClusters()
-{
-  //------------------------------------------------------------------
-  // Reset the array of attached clusters.
-  //------------------------------------------------------------------
-  mChi2 = -1.;
-  mNClusters = 0;
-}
-
-void TrackITS::setClusterIndex(Int_t l, Int_t i)
-{
-  //--------------------------------------------------------------------
-  // Set the cluster index
-  //--------------------------------------------------------------------
-  Int_t idx = (l << 28) + i;
-  mIndex[mNClusters++] = idx;
-}
-
-void TrackITS::setExternalClusterIndex(Int_t layer, Int_t idx, bool newCluster)
-{
-  //--------------------------------------------------------------------
-  // Set the cluster index within an external cluster array
-  //--------------------------------------------------------------------
-  if (newCluster)
-    mNClusters++;
-  mIndex[layer] = idx;
-}
-
 Bool_t TrackITS::propagate(Float_t alpha, Float_t x, Float_t bz)
 {
   if (rotate(alpha))
@@ -105,53 +77,18 @@ Bool_t TrackITS::propagate(Float_t alpha, Float_t x, Float_t bz)
   return kFALSE;
 }
 
-Bool_t TrackITS::update(const Cluster& c, Float_t chi2, Int_t idx)
+Bool_t TrackITS::update(const Cluster& c, Float_t chi2)
 {
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
-  if (!o2::track::TrackParCov::update(static_cast<const o2::BaseCluster<float>&>(c)))
+  if (!o2::track::TrackParCov::update(static_cast<const o2::BaseCluster<float>&>(c))) {
     return kFALSE;
-
+  }
   mChi2 += chi2;
-  mIndex[mNClusters++] = idx;
-
   return kTRUE;
 }
 
-/*
-Bool_t TrackITS::getPhiZat(Float_t r, Float_t &phi, Float_t &z) const
-{
-  //------------------------------------------------------------------
-  // This function returns the global cylindrical (phi,z) of the track
-  // position estimated at the radius r.
-  // The track curvature is neglected.
-  //------------------------------------------------------------------
-  Float_t d=GetD(0., 0., GetBz());
-  if (TMath::Abs(d) > r) {
-    if (r>1e-1) return kFALSE;
-    r = TMath::Abs(d);
-  }
-
-  Float_t rcurr=TMath::Sqrt(GetX()*GetX() + GetY()*GetY());
-  if (TMath::Abs(d) > rcurr) return kFALSE;
-  Float_t globXYZcurr[3]; GetXYZ(globXYZcurr);
-  Float_t phicurr=TMath::ATan2(globXYZcurr[1],globXYZcurr[0]);
-
-  if (GetX()>=0.) {
-    phi=phicurr+TMath::ASin(d/r)-TMath::ASin(d/rcurr);
-  } else {
-    phi=phicurr+TMath::ASin(d/r)+TMath::ASin(d/rcurr)-TMath::Pi();
-  }
-
-  // return a phi in [0,2pi[
-  if (phi<0.) phi+=2.*TMath::Pi();
-  else if (phi>=2.*TMath::Pi()) phi-=2.*TMath::Pi();
-  z=GetZ()+GetTgl()*(TMath::Sqrt((r-d)*(r+d))-TMath::Sqrt((rcurr-d)*(rcurr+d)));
-
-  return kTRUE;
-}
-*/
 
 Bool_t TrackITS::isBetter(const TrackITS& best, Float_t maxChi2) const
 {

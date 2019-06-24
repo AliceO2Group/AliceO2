@@ -185,6 +185,8 @@ class GPUReconstruction
 
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
   RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
+  InOutTypeField GetRecoStepsInputs() const { return mRecoStepsInputs; }
+  InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
 
   // Registration of GPU Processors
   template <class T>

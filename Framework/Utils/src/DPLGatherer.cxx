@@ -13,7 +13,7 @@
 ///
 /// \author Gabriele Gaetano Fronzé, gfronze@cern.ch
 
-#include "../include/Utils/Utils.h"
+#include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
 #include <vector>
 

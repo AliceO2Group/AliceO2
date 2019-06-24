@@ -44,7 +44,7 @@ class TrackerTraitsCPU : public TrackerTraits
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;
-  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks) final;
+  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks) final;
 
  protected:
   std::vector<std::vector<Tracklet>> mTracklets;

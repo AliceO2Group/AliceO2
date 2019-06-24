@@ -380,14 +380,17 @@ o2_define_bucket(
 )
 
 o2_define_bucket(
-        NAME
-        DPLUtils_bucket
+    NAME
+    DPLUtils_bucket
 
-        DEPENDENCIES
-        O2FrameworkCore_bucket
-        Core
-        O2Headers
-        O2Framework
+    DEPENDENCIES
+    O2FrameworkCore_bucket
+    Core
+    O2Headers
+    O2Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Utils/include
 )
 
 o2_define_bucket(
@@ -2241,6 +2244,7 @@ o2_define_bucket(
     data_format_its_bucket
 
     DEPENDENCIES
+    data_format_common_bucket
     data_format_reconstruction_bucket
     #
     O2ReconstructionDataFormats
