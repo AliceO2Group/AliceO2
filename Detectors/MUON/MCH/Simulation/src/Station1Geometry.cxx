@@ -13,11 +13,6 @@
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   16 may 2018
 
-/// TODO :
-/// * finish the createQuadrant function
-/// * clean the createFrame function
-/// * see if the quadrant placements can be improved
-
 #include "Materials.h"
 #include "Station1Geometry.h"
 
@@ -41,25 +36,25 @@ namespace mch
 
 /// Constants
 
-// Chamber z positions (from AliMUONConstants)
-const float kChamberZpos[2] = { -526.16, -545.24 };
+// chamber z position (from AliMUONConstants)
+const float kChamberZPos[2] = { -526.16, -545.24 };
 
-// Quadrant z position w.r.t the chamber center
-const float kQuadZpos = 7.5 / 2;
+// quadrant z position w.r.t the chamber center
+const float kQuadrantZPos = 7.5 / 2;
 
-// Thickness
-const float kHzPadPlane = 0.0148 / 2.; // Pad plane
-const float kHzFoam = 2.503 / 2.;      // Foam of mechanicalplane
-const float kHzFR4 = 0.062 / 2.;       // FR4 of mechanical plane
+// thickness
+const float kHzPadPlane = 0.0148 / 2; // pad plane
+const float kHzFoam = 2.503 / 2;      // foam of mechanical plane
+const float kHzFR4 = 0.062 / 2;       // FR4 of mechanical plane
 const float kTotalHzPlane = kHzFoam + kHzFR4;
-const float kHzSnPb = 0.0091 / 2.;        // Pad/Kapton connection (66 pt)
-const float kHzKapton = 0.0122 / 2.;      // Kapton
-const float kHzBergPlastic = 0.3062 / 2.; // Berg connector
-const float kHzBergCopper = 0.1882 / 2.;  // Berg connector
-const float kHzDaughter = 0.0156 / 2.;    // Daughter board
-const float kHzGas = 0.42 / 2.;           // Gas thickness
+const float kHzSnPb = 0.0091 / 2;        // pad / kapton connection (66 pt)
+const float kHzKapton = 0.0122 / 2;      // kapton
+const float kHzBergPlastic = 0.3062 / 2; // Berg connector
+const float kHzBergCopper = 0.1882 / 2;  // Berg connector
+const float kHzDaughter = 0.0156 / 2;    // daughter board
+const float kHzGas = 0.42 / 2;           // gas
 
-// Spacers
+// spacers
 const float kHxBoxSpacer = 0.51;
 const float kHySpacer5A = 0.17;
 const float kHzSpacer5A = 1.1515;
@@ -68,7 +63,7 @@ const float kHzSpacer6 = 0.1;
 const float kRSpacer7A = 0.3;
 const float kHzSpacer7A = 0.1;
 
-/// Quadrant Mother volume
+// quadrant mother volume
 const float kMotherPhiL = 0.;
 const float kMotherPhiU = 90.;
 
@@ -80,45 +75,45 @@ const float kMotherThick1 = 6.5 / 2;
 // TUBS2 - near and far layers of model
 const float kMotherIR2 = 20.7;
 const float kMotherOR2 = 100.073;
-const float kMotherThick2 = 3 / 2.;
+const float kMotherThick2 = 1.5;
 
-/// Sensitive copper pads, foam layer, PCB and electronics model parameters
-const float kHxHole = 1.5 / 2.;
-const float kHyHole = 6. / 2.;
-const float kHxBergPlastic = 0.74 / 2.;
-const float kHyBergPlastic = 5.09 / 2.;
-const float kHxBergCopper = 0.25 / 2.;
-const float kHyBergCopper = 3.6 / 2.;
-const float kHxKapton = 0.8 / 2.;
-const float kHyKapton = 5.7 / 2.;
-const float kHxDaughter = 2.3 / 2.;
-const float kHyDaughter = 6.3 / 2.;
+// sensitive copper pads, foam layer, PCB and electronics model parameters
+const float kHxHole = 1.5 / 2;
+const float kHyHole = 3.;
+const float kHxBergPlastic = 0.74 / 2;
+const float kHyBergPlastic = 5.09 / 2;
+const float kHxBergCopper = 0.25 / 2;
+const float kHyBergCopper = 3.6 / 2;
+const float kHxKapton = 0.4;
+const float kHyKapton = 5.7 / 2;
+const float kHxDaughter = 2.3 / 2;
+const float kHyDaughter = 6.3 / 2;
 const float kOffsetX = 1.46;
 const float kOffsetY = 0.71;
 const float kDeltaFilleEtamX = 1.;
 const float kDeltaFilleEtamY = 0.051;
 
-/// Lateral positionners parameters
-const float kLateralPosXshift = 92.175;
-const float kLateralPosYshift = 5.;
+// lateral positionner parameters
+const float kLateralXPosShift = 92.175;
+const float kLateralYPosShift = 5.;
 
-// Trapezoid angles
+// trapezoid angles
 const float kThetaTrap = 0.;
 const float kPhiTrap = 0.;
 
-/// Parameters relative to the LHC beam pipe
+// parameters relative to the LHC beam pipe
 const float kNearFarLHC = 2.4;   // Near and Far TUBS Origin wrt LHC Origin
 const float kDeltaQuadLHC = 2.6; // LHC Origin wrt Quadrant Origin
 const float kFrameOffset = 5.2;
 
-// Pad planes offsets
+// pad plane offsets
 const float kPadXOffsetBP = 0.50 - 0.63 / 2; // = 0.185
 const float kPadYOffsetBP = 0.31 + 0.42 / 2; // = 0.52
 const int kFoamBoxNameOffset = 200;
 const int kFR4BoxNameOffset = 400;
 const int kDaughterCopyNoOffset = 1000;
 
-// Volume names
+// volume names
 const char* kHoleName = "SCHL";
 const char* kDaughterName = "SCDB";
 const char* kQuadrantMLayerName = "SQM";
@@ -174,16 +169,16 @@ void createInnerLayers()
   double vx[nv] = { 0., 0., xy2, maxXY, maxXY, dxy1 };
   double vy[nv] = { dxy1, maxXY, maxXY, xy2, 0., 0. };
 
-  // Layers parameters
+  // layer parameters
   const auto kGasMed = assertMedium(Medium::Gas);
   const auto kPadMed = assertMedium(Medium::Copper);
 
-  const int kNofLayers = 3;
-  const std::string kLayerName[kNofLayers] = { "SA1G", "SA2G", "SA1C" };
-  const std::array<const TGeoMedium*, kNofLayers> kLayerMedium = { kGasMed, kGasMed, kPadMed };
-  const double kLayerZpos[kNofLayers] = { kHzGas, kHzGas, kHzPadPlane };
+  const int kNLayers = 3;
+  const std::string kLayerName[kNLayers] = { "SA1G", "SA2G", "SA1C" };
+  const std::array<const TGeoMedium*, kNLayers> kLayerMedium = { kGasMed, kGasMed, kPadMed };
+  const double kLayerZpos[kNLayers] = { kHzGas, kHzGas, kHzPadPlane };
 
-  for (int i = 0; i < kNofLayers; i++) {
+  for (int i = 0; i < kNLayers; i++) {
     TGeoXtru* xtruS = new TGeoXtru(nz);
     xtruS->SetName(Form("xtruS%d", i + 1));
     xtruS->DefinePolygon(nv, vx, vy);
@@ -252,47 +247,47 @@ void createFrame(int chamber)
   auto MFlayer = new TGeoVolumeAssembly(Form("%s%d", kQuadrantMFLayerName, chamber));
   auto Nlayer = new TGeoVolumeAssembly(Form("%s%d", kQuadrantNLayerName, chamber));
 
-  //   Rotation matrices
+  // rotation matrices
   auto rot1 = new TGeoRotation("rot1", 90., 90., 90., 180., 0., 0.); // +90 deg in x-y plane
   auto rot4 = new TGeoRotation("rot4", 90., 315., 90., 45., 0., 0.); // -45 deg in x-y plane
 
-  // ___________________Volume thicknesses________________________
+  /// Volume thicknesses
 
-  const float kHzFrameThickness = 1.59 / 2.;  // equivalent thickness
-  const float kHzOuterFrameEpoxy = 1.19 / 2.; // equivalent thickness
-  const float kHzOuterFrameInox = 0.1 / 2.;   // equivalent thickness
-  const float kHzFoam2 = 2.083 / 2.;          // evaluated elsewhere
+  const float kHzFrameThickness = 1.59 / 2;
+  const float kHzOuterFrameEpoxy = 1.19 / 2;
+  const float kHzOuterFrameInox = 0.1 / 2;
+  const float kHzFoam2 = 2.083 / 2;
 
   // Pertaining to the top outer area
-  const float kHzTopAnodeSteel1 = 0.185 / 2.;    // equivalent thickness
-  const float kHzTopAnodeSteel2 = 0.51 / 2.;     // equivalent thickness
-  const float kHzAnodeFR4 = 0.08 / 2.;           // equivalent thickness
-  const float kHzTopEarthFaceCu = 0.364 / 2.;    // equivalent thickness
-  const float kHzTopEarthProfileCu = 1.1 / 2.;   // equivalent thickness
-  const float kHzTopPositionerSteel = 1.45 / 2.; // should really be 2.125/2.;
-  const float kHzTopGasSupportAl = 0.85 / 2.;    // equivalent thickness
+  const float kHzTopAnodeSteel1 = 0.185 / 2;
+  const float kHzTopAnodeSteel2 = 0.51 / 2;
+  const float kHzAnodeFR4 = 0.08 / 2;
+  const float kHzTopEarthFaceCu = 0.364 / 2;
+  const float kHzTopEarthProfileCu = 1.1 / 2;
+  const float kHzTopPositionerSteel = 1.45 / 2; // should really be 2.125/2.;
+  const float kHzTopGasSupportAl = 0.85 / 2;
 
   // Pertaining to the vertical outer area
-  const float kHzVerticalCradleAl = 0.8 / 2.;      // equivalent thickness
-  const float kHzLateralSightAl = 0.975 / 2.;      // equivalent thickness
-  const float kHzLateralPosnInoxFace = 2.125 / 2.; // equivalent thickness
-  const float kHzLatPosInoxProfM = 6.4 / 2.;       // equivalent thickness
-  const float kHzLatPosInoxProfNF = 1.45 / 2.;     // equivalent thickness
-  const float kHzLateralPosnAl = 0.5 / 2.;         // equivalent thickness
-  const float kHzVertEarthFaceCu = 0.367 / 2.;     // equivalent thickness
-  const float kHzVertBarSteel = 0.198 / 2.;        // equivalent thickness
-  const float kHzVertEarthProfCu = 1.1 / 2.;       // equivalent thickness
+  const float kHzVerticalCradleAl = 0.8 / 2;
+  const float kHzLateralSightAl = 0.975 / 2;
+  const float kHzLateralPosnInoxFace = 2.125 / 2;
+  const float kHzLatPosInoxProfM = 6.4 / 2;
+  const float kHzLatPosInoxProfNF = 1.45 / 2;
+  const float kHzLateralPosnAl = 0.5 / 2;
+  const float kHzVertEarthFaceCu = 0.367 / 2;
+  const float kHzVertBarSteel = 0.198 / 2;
+  const float kHzVertEarthProfCu = 1.1 / 2;
 
-  //_______________Parameter definitions in sequence _________
+  // parameter definitions in sequence
 
   // InVFrame parameters
-  const float kHxInVFrame = 1.85 / 2.;
-  const float kHyInVFrame = 73.95 / 2.;
+  const float kHxInVFrame = 1.85 / 2;
+  const float kHyInVFrame = 73.95 / 2;
   const float kHzInVFrame = kHzFrameThickness;
 
   // Flat 7.5mm vertical section
-  const float kHxV1mm = 0.75 / 2.;
-  const float kHyV1mm = 1.85 / 2.;
+  const float kHxV1mm = 0.75 / 2;
+  const float kHyV1mm = 1.85 / 2;
   const float kHzV1mm = kHzFrameThickness;
 
   // OuterTopFrame Structure
@@ -319,70 +314,69 @@ void createFrame(int chamber)
   // to a system of sights places on the cradles;
 
   // TopFrameAnode parameters - cuboid, 2 layers
-  const float kHxTFA = 34.1433 / 2.;
-  const float kHyTFA = 7.75 / 2.;
+  const float kHxTFA = 34.1433 / 2;
+  const float kHyTFA = 7.75 / 2;
   const float kHzTFAE = kHzOuterFrameEpoxy; // layer 1 thickness
   const float kHzTFAI = kHzOuterFrameInox;  // layer 3 thickness
 
-  // TopFrameAnode parameters - 2 trapezoids, 2 layers
-  // (redefined with TGeoXtru shape)
-  const float kH1FAA = 8.7 / 2.;
-  const float kTl1FAB = 4.35 / 2.;
-  const float kTl1FAA = 7.75 / 2.;
+  // TopFrameAnode parameters - 2 trapezoids, 2 layers (redefined with TGeoXtru shape)
+  const float kH1FAA = 8.7 / 2;
+  const float kTl1FAB = 4.35 / 2;
+  const float kTl1FAA = 7.75 / 2;
 
   // TopAnode parameters - cuboid (part 1 of 3 parts)
-  const float kHxTA1 = 16.2 / 2.;
-  const float kHyTA1 = 3.5 / 2.;
+  const float kHxTA1 = 16.2 / 2;
+  const float kHyTA1 = 3.5 / 2;
   const float kHzTA11 = kHzTopAnodeSteel1; // layer 1
   const float kHzTA12 = kHzAnodeFR4;       // layer 2
 
   // TopAnode parameters - trapezoid 1 (part 2 of 3 parts)
   const float kHzTA21 = kHzTopAnodeSteel2; // layer 1
   const float kHzTA22 = kHzAnodeFR4;       // layer 2
-  const float kHTA2 = 7.268 / 2.;
-  const float kBlTA2 = 2.03 / 2.;
-  const float kTlTA2 = 3.5 / 2.;
+  const float kHTA2 = 7.268 / 2;
+  const float kBlTA2 = 2.03 / 2;
+  const float kTlTA2 = 3.5 / 2;
   const float kAlpTA2 = 5.78;
 
   // TopAnode parameters - trapezoid 2 (part 3 of 3 parts)
   const float kHzTA3 = kHzAnodeFR4; // layer 1
-  const float kHTA3 = 7.268 / 2.;
+  const float kHTA3 = 7.268 / 2;
   const float kBlTA3 = 0.;
-  const float kTlTA3 = 2.03 / 2.;
+  const float kTlTA3 = 2.03 / 2;
   const float kAlpTA3 = 7.95;
 
   // TopEarthFace parameters - single trapezoid
   const float kHzTEF = kHzTopEarthFaceCu;
-  const float kHTEF = 1.2 / 2.;
-  const float kBlTEF = 21.323 / 2.;
-  const float kTlTEF = 17.963 / 2.;
+  const float kHTEF = 1.2 / 2;
+  const float kBlTEF = 21.323 / 2;
+  const float kTlTEF = 17.963 / 2;
   const float kAlpTEF = -54.46;
 
   // TopEarthProfile parameters - single trapezoid
   const float kHzTEP = kHzTopEarthProfileCu;
-  const float kHTEP = 0.4 / 2.;
-  const float kBlTEP = 31.766 / 2.;
-  const float kTlTEP = 30.535 / 2.;
+  const float kHTEP = 0.2;
+  const float kBlTEP = 31.766 / 2;
+  const float kTlTEP = 30.535 / 2;
   const float kAlpTEP = -56.98;
 
   // TopPositioner parameters - single Stainless Steel trapezoid
   const float kHzTP = kHzTopPositionerSteel;
-  const float kHTP = 3 / 2.;
-  const float kBlTP = 7.023 / 2.;
-  const float kTlTP = 7.314 / 2.;
+  const float kHTP = 1.5;
+  const float kBlTP = 7.023 / 2;
+  const float kTlTP = 7.314 / 2;
   const float kAlpTP = 2.78;
 
   // TopGasSupport parameters - single cuboid
-  const float kHxTGS = 8.5 / 2.;
-  const float kHyTGS = 3 / 2.;
+  const float kHxTGS = 8.5 / 2;
+  const float kHyTGS = 1.5;
   const float kHzTGS = kHzTopGasSupportAl;
 
   // OutEdgeFrame parameters - 4 trapezoidal sections, 2 layers of material (redefined with TGeoXtru shape)
-  const float kH1OETF = 7.196 / 2.;   // common to all 4 trapezoids
-  const float kTl1OETF1 = 3.996 / 2.; // Trapezoid 1
-  const float kTl1OETF2 = 3.75 / 2;   // Trapezoid 2
-  const float kTl1OETF3 = 3.01 / 2.;  // Trapezoid 3
-  const float kTl1OETF4 = 1.77 / 2.;  // Trapezoid 4
+  const float kH1OETF = 7.196 / 2;   // common to all 4 trapezoids
+  const float kTl1OETF1 = 3.996 / 2; // Trapezoid 1
+  const float kTl1OETF2 = 3.75 / 2;  // Trapezoid 2
+  const float kTl1OETF3 = 3.01 / 2;  // Trapezoid 3
+  const float kTl1OETF4 = 1.77 / 2;  // Trapezoid 4
 
   /// Frame Structure (OutVFrame):
 
@@ -393,72 +387,72 @@ void createFrame(int chamber)
   // ALIGNMENT (LateralSightSupport, LateralSight)
 
   // OutVFrame parameters - cuboid
-  const float kHxOutVFrame = 1.85 / 2.;
-  const float kHyOutVFrame = 46.23 / 2.;
+  const float kHxOutVFrame = 1.85 / 2;
+  const float kHyOutVFrame = 46.23 / 2;
   const float kHzOutVFrame = kHzFrameThickness;
 
   // OutVFrame corner parameters - trapezoid
   const float kHzOCTF = kHzFrameThickness;
-  const float kHOCTF = 1.85 / 2.;
+  const float kHOCTF = 1.85 / 2;
   const float kBlOCTF = 0.;
-  const float kTlOCTF = 3.66 / 2.;
+  const float kTlOCTF = 3.66 / 2;
   const float kAlpOCTF = 44.67;
 
   // VertEarthFaceCu parameters - single trapezoid
   const float kHzVFC = kHzVertEarthFaceCu;
-  const float kHVFC = 1.2 / 2.;
-  const float kBlVFC = 46.11 / 2.;
-  const float kTlVFC = 48.236 / 2.;
+  const float kHVFC = 0.6;
+  const float kBlVFC = 46.11 / 2;
+  const float kTlVFC = 48.236 / 2;
   const float kAlpVFC = 41.54;
 
   // VertEarthSteel parameters - single trapezoid
   const float kHzVES = kHzVertBarSteel;
-  const float kHVES = 1.2 / 2.;
-  const float kBlVES = 30.486 / 2.;
-  const float kTlVES = 32.777 / 2.;
+  const float kHVES = 0.6;
+  const float kBlVES = 30.486 / 2;
+  const float kTlVES = 32.777 / 2;
   const float kAlpVES = 43.67;
 
   // VertEarthProfCu parameters - single trapezoid
   const float kHzVPC = kHzVertEarthProfCu;
-  const float kHVPC = 0.4 / 2.;
-  const float kBlVPC = 29.287 / 2.;
-  const float kTlVPC = 30.091 / 2.;
+  const float kHVPC = 0.2;
+  const float kBlVPC = 29.287 / 2;
+  const float kTlVPC = 30.091 / 2;
   const float kAlpVPC = 45.14;
 
   // SuppLateralPositionner - single cuboid
-  const float kHxSLP = 2.8 / 2.;
-  const float kHySLP = 5 / 2.;
+  const float kHxSLP = 1.4;
+  const float kHySLP = 2.5;
   const float kHzSLP = kHzLateralPosnAl;
 
   // LateralPositionner - squared off U bend, face view
-  const float kHxLPF = 5.2 / 2.;
-  const float kHyLPF = 3 / 2.;
+  const float kHxLPF = 2.6;
+  const float kHyLPF = 1.5;
   const float kHzLPF = kHzLateralPosnInoxFace;
 
   // LateralPositionner - squared off U bend, profile view
-  const float kHxLPP = 0.425 / 2.;
-  const float kHyLPP = 3 / 2.;
+  const float kHxLPP = 0.425 / 2;
+  const float kHyLPP = 1.5;
   const float kHzLPP = kHzLatPosInoxProfM;   // middle layer
   const float kHzLPNF = kHzLatPosInoxProfNF; // near and far layers
 
   // VertCradle, 3 layers (copies), each composed of 4 trapezoids (redefined with TGeoXtru shape)
-  const float kH1VC1 = 10.25 / 2.;  // all cradles
-  const float kBl1VC1 = 3.7 / 2.;   // VertCradleA
-  const float kBl1VC2 = 6.266 / 2.; // VertCradleB
-  const float kBl1VC3 = 7.75 / 2.;  // VertCradleC
+  const float kH1VC1 = 10.25 / 2;  // all cradles
+  const float kBl1VC1 = 3.7 / 2;   // VertCradleA
+  const float kBl1VC2 = 6.266 / 2; // VertCradleB
+  const float kBl1VC3 = 7.75 / 2;  // VertCradleC
 
   // VertCradleD
   const float kHzVC4 = kHzVerticalCradleAl;
-  const float kHVC4 = 10.27 / 2.;
-  const float kBlVC4 = 8.273 / 2.;
-  const float kTlVC4 = 7.75 / 2.;
+  const float kHVC4 = 10.27 / 2;
+  const float kBlVC4 = 8.273 / 2;
+  const float kTlVC4 = 7.75 / 2;
   const float kAlpVC4 = -1.46;
 
   // LateralSightSupport - single trapezoid
   const float kHzVSS = kHzLateralSightAl;
-  const float kHVSS = 5 / 2.;
+  const float kHVSS = 2.5;
   const float kBlVSS = 7.747 / 2;
-  const float kTlVSS = 7.188 / 2.;
+  const float kTlVSS = 7.188 / 2;
   const float kAlpVSS = -3.2;
 
   // LateralSight (reference point) - 3 per quadrant, only 1 programmed for now
@@ -467,13 +461,13 @@ void createFrame(int chamber)
   const float kVSLen = kHzFrameThickness;
 
   // InHFrame parameters
-  const float kHxInHFrame = 75.8 / 2.;
-  const float kHyInHFrame = 1.85 / 2.;
+  const float kHxInHFrame = 75.8 / 2;
+  const float kHyInHFrame = 1.85 / 2;
   const float kHzInHFrame = kHzFrameThickness;
 
   // Flat 7.5mm horizontal section
-  const float kHxH1mm = 1.85 / 2.;
-  const float kHyH1mm = 0.75 / 2.;
+  const float kHxH1mm = 1.85 / 2;
+  const float kHyH1mm = 0.75 / 2;
   const float kHzH1mm = kHzFrameThickness;
 
   // InArcFrame parameters
@@ -485,39 +479,35 @@ void createFrame(int chamber)
 
   // ScrewsInFrame parameters HEAD
   const float kSCRUHMI = 0.;
-  const float kSCRUHMA = 0.69 / 2.;
-  const float kSCRUHLE = 0.4 / 2.;
+  const float kSCRUHMA = 0.69 / 2;
+  const float kSCRUHLE = 0.2;
   // ScrewsInFrame parameters MIDDLE
   const float kSCRUMMI = 0.;
-  const float kSCRUMMA = 0.39 / 2.;
+  const float kSCRUMMA = 0.39 / 2;
   const float kSCRUMLE = kHzFrameThickness;
   // ScrewsInFrame parameters NUT
   const float kSCRUNMI = 0.;
-  const float kSCRUNMA = 0.78 / 2.;
-  const float kSCRUNLE = 0.8 / 2.;
-
-  // Materials
-  const auto kEpoxyMed = assertMedium(Medium::Epoxy);
-  const auto kInoxMed = assertMedium(Medium::Inox);
-  const auto kCopperMed = assertMedium(Medium::Copper);
-  const auto kAluMed = assertMedium(Medium::Aluminium);
-  const auto kFR4Med = assertMedium(Medium::FR4);
-
-  // ___________________Make volumes________________________
+  const float kSCRUNMA = 0.78 / 2;
+  const float kSCRUNLE = 0.4;
 
   const int npar = 11;
   float par[npar];
 
   if (chamber == 1) {
+    // materials
+    const auto kEpoxyMed = assertMedium(Medium::Epoxy);
+    const auto kInoxMed = assertMedium(Medium::Inox);
+    const auto kCopperMed = assertMedium(Medium::Copper);
+    const auto kAluMed = assertMedium(Medium::Aluminium);
+    const auto kFR4Med = assertMedium(Medium::FR4);
+
     // InVFrame
     new TGeoVolume("SQ00", new TGeoBBox(kHxInVFrame, kHyInVFrame, kHzInVFrame), kEpoxyMed);
 
     // Flat 1mm vertical section
     new TGeoVolume("SQ01", new TGeoBBox(kHxV1mm, kHyV1mm, kHzV1mm), kEpoxyMed);
 
-    /// OutTopFrame
-
-    // 3 components (a cuboid and 2 trapezes) and 2 layers (Epoxy/Inox)
+    /// OutTopFrame - 3 components (a cuboid and 2 trapezes) and 2 layers (Epoxy/Inox)
 
     // TopFrameAnode - layer 1 of 2
     new TGeoVolume("SQ02", new TGeoBBox(kHxTFA, kHyTFA, kHzTFAE), kEpoxyMed);
@@ -525,11 +515,9 @@ void createFrame(int chamber)
     // TopFrameAnode - layer 2 of 2
     new TGeoVolume("SQ03", new TGeoBBox(kHxTFA, kHyTFA, kHzTFAI), kInoxMed);
 
-    // Common declarations for TGeoXtru parameters
-    double dx, dx0, dx1, dx2, dx3;
-    double dy, dy1, dy2, dy3, dy4;
-    double vx[16];
-    double vy[16];
+    // common declarations for TGeoXtru parameters
+    double dx, dx0, dx1, dx2, dx3, dy, dy1, dy2, dy3, dy4;
+    double vx[16], vy[16];
     int nz = 2, nv = 5;
 
     // SQ04to06 and SQ05to07
@@ -549,10 +537,10 @@ void createFrame(int chamber)
     vx[4] = dx;
     vy[4] = 0.;
 
-    // Shift center in the middle
+    // shift center in the middle
     for (int i = 0; i < nv; i++) {
       vx[i] -= dx;
-      vy[i] -= dy1 / 2.;
+      vy[i] -= dy1 / 2;
     }
 
     TGeoXtru* xtruS5 = new TGeoXtru(nz);
@@ -585,15 +573,11 @@ void createFrame(int chamber)
     par[8] = kBlTA2;
     par[9] = kTlTA2;
     par[10] = kAlpTA2;
-    new TGeoVolume("SQ10",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kInoxMed);
+    gGeoManager->Volume("SQ10", "TRAP", kInoxMed->GetId(), par, npar);
 
     // TopAnode2 -  layer 2 of 2
     par[0] = kHzTA22;
-    new TGeoVolume("SQ11",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kFR4Med);
+    gGeoManager->Volume("SQ11", "TRAP", kFR4Med->GetId(), par, npar);
 
     // TopAnode3 -  layer 1 of 1
     par[0] = kHzTA3;
@@ -605,9 +589,7 @@ void createFrame(int chamber)
     par[8] = kBlTA3;
     par[9] = kTlTA3;
     par[10] = kAlpTA3;
-    new TGeoVolume("SQ12",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kFR4Med);
+    gGeoManager->Volume("SQ12", "TRAP", kFR4Med->GetId(), par, npar);
 
     // TopEarthFace
     par[0] = kHzTEF;
@@ -619,9 +601,7 @@ void createFrame(int chamber)
     par[8] = kBlTEF;
     par[9] = kTlTEF;
     par[10] = kAlpTEF;
-    new TGeoVolume("SQ13",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kCopperMed);
+    gGeoManager->Volume("SQ13", "TRAP", kCopperMed->GetId(), par, npar);
 
     // TopEarthProfile
     par[0] = kHzTEP;
@@ -633,9 +613,7 @@ void createFrame(int chamber)
     par[8] = kBlTEP;
     par[9] = kTlTEP;
     par[10] = kAlpTEP;
-    new TGeoVolume("SQ14",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kCopperMed);
+    gGeoManager->Volume("SQ14", "TRAP", kCopperMed->GetId(), par, npar);
 
     // TopGasSupport
     new TGeoVolume("SQ15", new TGeoBBox(kHxTGS, kHyTGS, kHzTGS), assertMedium(Medium::Aluminium));
@@ -650,12 +628,9 @@ void createFrame(int chamber)
     par[8] = kBlTP;
     par[9] = kTlTP;
     par[10] = kAlpTP;
-    new TGeoVolume("SQ16",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kInoxMed);
+    gGeoManager->Volume("SQ16", "TRAP", kInoxMed->GetId(), par, npar);
 
-    // OutEdgeTrapFrame Epoxy = (4 trapezes)*2 copies*2 layers (Epoxy/Inox)
-    // (redefined with TGeoXtru shape )
+    // OutEdgeTrapFrame Epoxy = (4 trapezes)*2 copies*2 layers (Epoxy/Inox) (redefined with TGeoXtru shape )
 
     dx = 2 * kH1OETF;
     dy1 = 2 * kTl1OETF4;
@@ -698,9 +673,9 @@ void createFrame(int chamber)
     vx[15] = -3 * dx;
     vy[15] = 0.;
 
-    // Shift center in the middle
+    // shift center in the middle
     for (int i = 0; i < nv; i++)
-      vy[i] += dy4 / 2.;
+      vy[i] += dy4 / 2;
 
     TGeoXtru* xtruS1 = new TGeoXtru(nz);
     xtruS1->DefinePolygon(nv, vx, vy);
@@ -729,9 +704,7 @@ void createFrame(int chamber)
     par[8] = kBlOCTF;
     par[9] = kTlOCTF;
     par[10] = kAlpOCTF;
-    new TGeoVolume("SQ26",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kEpoxyMed);
+    gGeoManager->Volume("SQ26", "TRAP", kEpoxyMed->GetId(), par, npar);
 
     // EarthFaceCu trapezoid
     par[0] = kHzVFC;
@@ -743,9 +716,7 @@ void createFrame(int chamber)
     par[8] = kBlVFC;
     par[9] = kTlVFC;
     par[10] = kAlpVFC;
-    new TGeoVolume("SQ27",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kCopperMed);
+    gGeoManager->Volume("SQ27", "TRAP", kCopperMed->GetId(), par, npar);
 
     // VertEarthSteel trapezoid
     par[0] = kHzVES;
@@ -757,9 +728,7 @@ void createFrame(int chamber)
     par[8] = kBlVES;
     par[9] = kTlVES;
     par[10] = kAlpVES;
-    new TGeoVolume("SQ28",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kInoxMed);
+    gGeoManager->Volume("SQ28", "TRAP", kInoxMed->GetId(), par, npar);
 
     // VertEarthProfCu trapezoid
     par[0] = kHzVPC;
@@ -771,9 +740,7 @@ void createFrame(int chamber)
     par[8] = kBlVPC;
     par[9] = kTlVPC;
     par[10] = kAlpVPC;
-    new TGeoVolume("SQ29",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kCopperMed);
+    gGeoManager->Volume("SQ29", "TRAP", kCopperMed->GetId(), par, npar);
 
     // SuppLateralPositionner cuboid
     new TGeoVolume("SQ30", new TGeoBBox(kHxSLP, kHySLP, kHzSLP), kAluMed);
@@ -792,8 +759,7 @@ void createFrame(int chamber)
     dx2 = 2 * kBl1VC2;
     dx3 = 2 * kBl1VC1;
 
-    // VertCradle
-    // (Trapezoids SQ34 to SQ36 or SQ37 redefined with TGeoXtru shape)
+    // VertCradle (trapezoids SQ34 to SQ36 or SQ37 redefined with TGeoXtru shape)
 
     nz = 2;
     nv = 7;
@@ -812,9 +778,9 @@ void createFrame(int chamber)
     vx[6] = dx1;
     vy[6] = 0.;
 
-    // Shift center in the middle
+    // shift center in the middle
     for (int i = 0; i < nv; i++) {
-      vx[i] -= dx1 / 2.;
+      vx[i] -= dx1 / 2;
       vy[i] -= 1.5 * dy;
     }
 
@@ -824,8 +790,7 @@ void createFrame(int chamber)
     xtruS3->DefineSection(1, kHzVerticalCradleAl, 0., 0., 1.);
     new TGeoVolume("SQ34to36", xtruS3, kAluMed);
 
-    // Trapezoids SQ34 to SQ37;
-    // (keeping the same coordinate system as for SQ34to36)
+    // Trapezoids SQ34 to SQ37 (keeping the same coordinate system as for SQ34to36)
 
     nz = 2;
     nv = 9;
@@ -848,9 +813,9 @@ void createFrame(int chamber)
     vx[8] = dx0;
     vy[8] = -dy;
 
-    // Shift center in the middle (of SQ34to36!!)
+    // shift center in the middle (of SQ34to36!!)
     for (int i = 0; i < nv; i++) {
-      vx[i] -= dx1 / 2.;
+      vx[i] -= dx1 / 2;
       vy[i] -= 1.5 * dy;
     }
 
@@ -870,9 +835,7 @@ void createFrame(int chamber)
     par[8] = kBlVC4;
     par[9] = kTlVC4;
     par[10] = kAlpVC4;
-    new TGeoVolume("SQ37",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kAluMed);
+    gGeoManager->Volume("SQ37", "TRAP", kAluMed->GetId(), par, npar);
 
     // LateralSightSupport trapezoid
     par[0] = kHzVSS;
@@ -884,9 +847,7 @@ void createFrame(int chamber)
     par[8] = kBlVSS;
     par[9] = kTlVSS;
     par[10] = kAlpVSS;
-    new TGeoVolume("SQ38",
-                   new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
-                   kAluMed);
+    gGeoManager->Volume("SQ38", "TRAP", kAluMed->GetId(), par, npar);
 
     // LateralSight
     new TGeoVolume("SQ39", new TGeoTube(kVSInRad, kVSOutRad, kVSLen), kEpoxyMed);
@@ -911,7 +872,7 @@ void createFrame(int chamber)
     new TGeoVolume("SQ45", new TGeoTube(kSCRUNMI, kSCRUNMA, kSCRUNLE), kInoxMed);
   }
 
-  // __________________Place volumes in the quadrant ____________
+  /// Place volumes in the quadrant
 
   // InVFrame
   float x = kHxInVFrame;
@@ -919,31 +880,30 @@ void createFrame(int chamber)
   float z = 0.;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ00"), 1, new TGeoTranslation(x, y, z));
 
-  // keep memory of the mid position. Used for placing screws
-  const float kMidVposX = x;
-  const float kMidVposY = y;
-  const float kMidVposZ = z;
+  // keep memory of the mid position (to place screws)
+  const float kMidVXPos = x;
+  const float kMidVYPos = y;
+  const float kMidVZPos = z;
 
   // Flat 7.5mm vertical section
   x = 2 * kHxInVFrame + kHxV1mm;
   y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyV1mm;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ01"), 1, new TGeoTranslation(x, y, z));
 
-  // TopFrameAnode place 2 layers of TopFrameAnode cuboids
+  // TopFrameAnode - place 2 layers of TopFrameAnode cuboids
   x = kHxTFA;
   y = 2 * (kHyInHFrame + kHyH1mm + kHyInVFrame) + kIAF + kHyTFA;
   z = kHzOuterFrameInox;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ02"), 1, new TGeoTranslation(x, y, -z));
   Mlayer->AddNode(gGeoManager->GetVolume("SQ03"), 1, new TGeoTranslation(x, y, z));
 
-  // TopFrameAnode - place 2 layers of 2 trapezoids
-  // (SQ04 - SQ07)
+  // TopFrameAnode - place 2 layers of 2 trapezoids (SQ04 - SQ07)
   x += kHxTFA + 2 * kH1FAA;
   z = kHzOuterFrameInox;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ04toSQ06"), 1, new TGeoTranslation(x, y, -z));
   Mlayer->AddNode(gGeoManager->GetVolume("SQ05toSQ07"), 1, new TGeoTranslation(x, y, z));
 
-  // TopAnode1 place 2 layers
+  // TopAnode1 - place 2 layers
   x = 6.8 + kDeltaQuadLHC;
   y = 99.85 + kDeltaQuadLHC;
   z = -kHzAnodeFR4;
@@ -951,7 +911,7 @@ void createFrame(int chamber)
   z = kHzTopAnodeSteel1;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ09"), 1, new TGeoTranslation(x, y, z));
 
-  // TopAnode2 place 2 layers
+  // TopAnode2 - place 2 layers
   x = 18.534 + kDeltaQuadLHC;
   y = 99.482 + kDeltaQuadLHC;
   z = -kHzAnodeFR4;
@@ -961,7 +921,7 @@ void createFrame(int chamber)
   z = kHzTopAnodeSteel2;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ11"), 1, new TGeoCombiTrans(x, y, z, rot1));
 
-  // TopAnode3 place 1 layer
+  // TopAnode3 - place 1 layer
   x = 25.804 + kDeltaQuadLHC;
   y = 98.61 + kDeltaQuadLHC;
   z = 0.;
@@ -996,12 +956,10 @@ void createFrame(int chamber)
   Mlayer->AddNode(gGeoManager->GetVolume("SQ16"), 2, new TGeoTranslation(x, y, -z));
 
   // OutEdgeFrame
-
   z = -kHzOuterFrameInox;
-  // float xCenterAll = 70.6615;
-  float xCenterAll = 70.5;
-  float yCenterAll = 70.35;
+  float xCenterAll = 70.5, yCenterAll = 70.35;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ17to23"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, z, rot4));
+
   z = kHzOuterFrameEpoxy;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ18to24"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, z, rot4));
 
@@ -1011,13 +969,13 @@ void createFrame(int chamber)
   z = 0.;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ25"), 1, new TGeoTranslation(x, y, z));
 
-  // keep memory of the mid position. Used for placing screws
-  const float kMidOVposX = x;
-  const float kMidOVposY = y;
-  const float kMidOVposZ = z;
+  // keep memory of the mid position (to place screws)
+  const float kMidOVXPos = x;
+  const float kMidOVYPos = y;
+  const float kMidOVZPos = z;
 
   // OutVFrame corner
-  y += kHyOutVFrame + (kBlOCTF + kTlOCTF) / 2.;
+  y += kHyOutVFrame + (kBlOCTF + kTlOCTF) / 2;
   // shift to solve overlap with SQ17to23 and SQ18to24
   x += 0.02;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ26"), 1, new TGeoCombiTrans(x, y, z, rot1));
@@ -1045,7 +1003,7 @@ void createFrame(int chamber)
 
   // SuppLateralPositionner - 2 copies
   x = 90.2 - kNearFarLHC;
-  y = kLateralPosYshift - kNearFarLHC;
+  y = kLateralYPosShift - kNearFarLHC;
   z = kHzLateralPosnAl - kMotherThick2;
   Flayer->AddNode(gGeoManager->GetVolume("SQ30"), 1, new TGeoTranslation(x, y, z));
   Nlayer->AddNode(gGeoManager->GetVolume("SQ30"), 2, new TGeoTranslation(x, y, -z));
@@ -1053,43 +1011,41 @@ void createFrame(int chamber)
   /// Lateral positionners
 
   // Face view
-  x = kLateralPosXshift - kNearFarLHC - 2 * kHxLPP;
-  y = kLateralPosYshift - kNearFarLHC;
+  x = kLateralXPosShift - kNearFarLHC - 2 * kHxLPP;
+  y = kLateralYPosShift - kNearFarLHC;
   z = 2 * kHzLateralPosnAl + kHzLateralPosnInoxFace - kMotherThick2;
   Flayer->AddNode(gGeoManager->GetVolume("SQ31"), 1, new TGeoTranslation(x, y, z));
   Nlayer->AddNode(gGeoManager->GetVolume("SQ31"), 2, new TGeoTranslation(x, y, -z));
 
   // Profile view
-  x = kLateralPosXshift + kDeltaQuadLHC + kHxLPF - kHxLPP;
-  y = kLateralPosYshift + kDeltaQuadLHC;
+  x = kLateralXPosShift + kDeltaQuadLHC + kHxLPF - kHxLPP;
+  y = kLateralYPosShift + kDeltaQuadLHC;
   z = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ32"), 1, new TGeoTranslation(x, y, z)); // middle layer
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ32"), 1, new TGeoTranslation(x, y, z));
 
-  x = kLateralPosXshift - kNearFarLHC + kHxLPF - kHxLPP;
-  y = kLateralPosYshift - kNearFarLHC;
+  x = kLateralXPosShift - kNearFarLHC + kHxLPF - kHxLPP;
+  y = kLateralYPosShift - kNearFarLHC;
   z = kMotherThick2 - kHzLPNF;
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ33"), 1, new TGeoTranslation(x, y, z));  // near layer
-  Flayer->AddNode(gGeoManager->GetVolume("SQ33"), 2, new TGeoTranslation(x, y, -z)); // far layer
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ33"), 1, new TGeoTranslation(x, y, z));
+  Flayer->AddNode(gGeoManager->GetVolume("SQ33"), 2, new TGeoTranslation(x, y, -z));
 
   // VertCradle - 3 (or 4 ) trapezoids redefined with TGeoXtru shape
   const float kVertCradleX = 97.29;
   const float kVertCradleXshift = 1.39311;
   const float kVertCradleY = 23.02;
 
-  x = kVertCradleX + kDeltaQuadLHC;
-  x += kVertCradleXshift;
+  x = kVertCradleX + kDeltaQuadLHC + kVertCradleXshift;
   y = kVertCradleY + kDeltaQuadLHC;
   z = 0.;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ34to37"), 2, new TGeoTranslation(x, y, z));
 
-  x = kVertCradleX - kNearFarLHC;
-  x += kVertCradleXshift;
+  x = kVertCradleX - kNearFarLHC + kVertCradleXshift;
   y = kVertCradleY - kNearFarLHC;
   z = 2 * kHzLateralSightAl + kHzVerticalCradleAl - kMotherThick2;
   Nlayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 1, new TGeoTranslation(x, y, z));
   Flayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 3, new TGeoTranslation(x, y, -z));
 
-  // OutVertCradleD  4th Trapeze - 3 copies
+  // OutVertCradleD 4th Trapeze - 3 copies
   x = 98.81 + kDeltaQuadLHC;
   y = 2.52 + kDeltaQuadLHC;
   z = kMotherThick1 - kHzVerticalCradleAl;
@@ -1100,11 +1056,11 @@ void createFrame(int chamber)
   x = 98.33 - kNearFarLHC;
   y = 10 - kNearFarLHC;
   z = kHzLateralSightAl - kMotherThick2;
-  // Fix (3) of extrusion SQ38 from SQN1, SQN2, SQF1, SQF2 (was x = 98.53 ...)
+
   Nlayer->AddNode(gGeoManager->GetVolume("SQ38"), 1, new TGeoTranslation(x, y, z));
   Flayer->AddNode(gGeoManager->GetVolume("SQ38"), 2, new TGeoTranslation(x, y, -z));
 
-  // Mire placement
+  // mire placement
   x = 92.84 + kDeltaQuadLHC;
   y = 8.13 + kDeltaQuadLHC;
   z = 0.;
@@ -1115,12 +1071,12 @@ void createFrame(int chamber)
   y = kHyInHFrame;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ40"), 1, new TGeoTranslation(x, y, z));
 
-  // keep memory of the mid position. Used for placing screws
-  const float kMidHposX = x;
-  const float kMidHposY = y;
-  const float kMidHposZ = z;
+  // keep memory of the mid position (to place screws)
+  const float kMidHXPos = x;
+  const float kMidHYPos = y;
+  const float kMidHZPos = z;
 
-  // Flat 7.5mm horizontal section
+  // flat 7.5 mm horizontal section
   x = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxH1mm;
   y = 2 * kHyInHFrame + kHyH1mm;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ41"), 1, new TGeoTranslation(x, y, z));
@@ -1130,46 +1086,43 @@ void createFrame(int chamber)
   y = 2 * (kHyInHFrame + kHyH1mm);
   Mlayer->AddNode(gGeoManager->GetVolume("SQ42"), 1, new TGeoTranslation(x, y, z));
 
-  // keep memory of the mid position. Used for placing screws
-  const float kMidArcposX = x;
-  const float kMidArcposY = y;
-  const float kMidArcposZ = z;
+  // keep memory of the mid position (to place screws)
+  const float kMidArcXPos = x;
+  const float kMidArcYPos = y;
+  const float kMidArcZPos = z;
 
   // ScrewsInFrame - in sensitive volume
-  const int kNofScrews = 64;
+  const int kNScrews = 64;
 
-  float scruX[kNofScrews];
-  float scruY[kNofScrews];
+  float scruX[kNScrews], scruY[kNScrews];
+  // screw volumes
+  auto vol43 = gGeoManager->GetVolume("SQ43"), vol44 = gGeoManager->GetVolume("SQ44"), vol45 = gGeoManager->GetVolume("SQ45");
 
   const float kSpecScrewPos = -2.23;
 
-  // Screws on IHEpoxyFrame
-  const int kNofScrewsIH = 14; // no. of screws on the IHEpoxyFrame
-  const float kOffX = 5.;      // inter-screw distance
+  // screws on IHEpoxyFrame
+  const int kNScrewsIH = 14; // number of screws on the IHEpoxyFrame
+  const float kOffX = 5.;    // inter-screw distance
 
   // first screw coordinates
   scruX[0] = 21.07;
   scruY[0] = kSpecScrewPos;
   // other screw coordinates
-  for (int i = 1; i < kNofScrewsIH; i++) {
+  for (int i = 1; i < kNScrewsIH; i++) {
     scruX[i] = scruX[i - 1] + kOffX;
     scruY[i] = scruY[0];
   }
 
-  // Position the volumes on the frames
+  // place the volumes on the frames
   z = 0.;
-  for (int i = 0; i < kNofScrewsIH; i++) {
+  for (int i = 0; i < kNScrewsIH; i++) {
     x = kDeltaQuadLHC + scruX[i] + 0.1;
     y = kDeltaQuadLHC + scruY[i] + 0.1;
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + 1,
-                    new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(vol43, i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ40")->AddNode(
-        gGeoManager->GetVolume("SQ44"), i + 1,
-        new TGeoTranslation(x - kMidHposX, y - kMidHposY, z - kMidHposZ));
+      gGeoManager->GetVolume("SQ40")->AddNode(vol44, i + 1, new TGeoTranslation(x - kMidHXPos, y - kMidHYPos, z - kMidHZPos));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + 1,
-                    new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(vol45, i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 
   // special screw coordinates
@@ -1179,19 +1132,16 @@ void createFrame(int chamber)
   y = kDeltaQuadLHC + scruY[63] + 0.1;
   z = 0.;
 
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), kNofScrews, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+  Mlayer->AddNode(vol43, kNScrews, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
   if (chamber == 1)
-    gGeoManager->GetVolume("SQ40")->AddNode(gGeoManager->GetVolume("SQ44"), kNofScrews,
-                                            new TGeoTranslation(x - kMidHposX, y - kMidHposY, z - kMidHposZ));
+    gGeoManager->GetVolume("SQ40")->AddNode(vol44, kNScrews, new TGeoTranslation(x - kMidHXPos, y - kMidHYPos, z - kMidHZPos));
 
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), kNofScrews, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
+  Mlayer->AddNode(vol45, kNScrews, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
 
-  // Screws on the IVEpoxyFrame
-  const int kNofScrewsIV = 15; // no. of screws on the IVEpoxyFrame
-  const float kOffY = 5.;      // inter-screw distance
-  int firstScrew = 58;
-  int lastScrew = 44;
+  // screws on the IVEpoxyFrame
+  const float kOffY = 5.; // inter-screw distance
+  int firstScrew = 58, lastScrew = 44;
 
   // first (special) screw coordinates
   scruX[firstScrew - 1] = kSpecScrewPos;
@@ -1210,25 +1160,22 @@ void createFrame(int chamber)
     x = kDeltaQuadLHC + scruX[i - 1] + 0.1;
     y = kDeltaQuadLHC + scruY[i - 1] + 0.1;
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(vol43, i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ00")->AddNode(gGeoManager->GetVolume("SQ44"), i,
-                                              new TGeoTranslation(x - kMidVposX, y - kMidVposY, z - kMidVposZ));
+      gGeoManager->GetVolume("SQ00")->AddNode(vol44, i, new TGeoTranslation(x - kMidVXPos, y - kMidVYPos, z - kMidVZPos));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(vol45, i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 
-  // Screws on the OVEpoxyFrame
-  const int kNofScrewsOV = 10; // no. of screws on the OVEpoxyFrame
+  // screws on the OVEpoxyFrame
 
   firstScrew = 15;
   lastScrew = 25;
 
   // first (repetitive) screw coordinates
-  // notes: 1st screw should be placed in volume 40 (InnerHorizFrame)
   scruX[firstScrew - 1] = 90.9;
-  scruY[firstScrew - 1] = kSpecScrewPos; // true value
+  scruY[firstScrew - 1] = kSpecScrewPos;
 
   // other screw coordinates
   for (int i = firstScrew; i < lastScrew; i++) {
@@ -1237,31 +1184,26 @@ void createFrame(int chamber)
   }
 
   z = 0.;
-  for (int i = 1; i < kNofScrewsOV; i++) {
-    x = kDeltaQuadLHC + scruX[i + firstScrew - 1] + 0.1;
-    y = kDeltaQuadLHC + scruY[i + firstScrew - 1] + 0.1;
+  for (int i = 1 + firstScrew; i < lastScrew; i++) {
+    x = kDeltaQuadLHC + scruX[i - 1] + 0.1;
+    y = kDeltaQuadLHC + scruY[i - 1] + 0.1;
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + firstScrew,
-                    new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(vol43, i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ25")->AddNode(
-        gGeoManager->GetVolume("SQ44"), i + firstScrew,
-        new TGeoTranslation(x - kMidOVposX, y - kMidOVposY, z - kMidOVposZ));
+      gGeoManager->GetVolume("SQ25")->AddNode(vol44, i, new TGeoTranslation(x - kMidOVXPos, y - kMidOVYPos, z - kMidOVZPos));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + firstScrew,
-                    new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(vol45, i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 
   // special case for 1st screw, inside the horizontal frame (volume 40)
-  x = kDeltaQuadLHC + scruX[firstScrew - 1] + 0.1 - kMidHposX;
-  y = kDeltaQuadLHC + scruY[firstScrew - 1] + 0.1 - kMidHposY;
-  z = -kMidHposZ;
+  x = kDeltaQuadLHC + scruX[firstScrew - 1] + 0.1 - kMidHXPos;
+  y = kDeltaQuadLHC + scruY[firstScrew - 1] + 0.1 - kMidHYPos;
+  z = -kMidHZPos;
 
   if (chamber == 1)
-    gGeoManager->GetVolume("SQ40")->AddNode(gGeoManager->GetVolume("SQ44"), firstScrew,
-                                            new TGeoTranslation(x, y, z));
+    gGeoManager->GetVolume("SQ40")->AddNode(vol44, firstScrew, new TGeoTranslation(x, y, z));
 
-  // Inner Arc of Frame, screw positions and numbers-1
+  // inner arc of Frame, screw positions and numbers
   firstScrew = 58;
   scruX[62] = 16.009;
   scruY[62] = 1.401;
@@ -1279,25 +1221,24 @@ void createFrame(int chamber)
     x = kDeltaQuadLHC + scruX[i] + 0.1;
     y = kDeltaQuadLHC + scruY[i] + 0.1;
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(vol43, i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ42")->AddNode(gGeoManager->GetVolume("SQ44"), i + 1,
-                                              new TGeoTranslation(x - kMidArcposX, y - kMidArcposY, z - kMidArcposZ));
+      gGeoManager->GetVolume("SQ42")->AddNode(vol44, i + 1, new TGeoTranslation(x - kMidArcXPos, y - kMidArcYPos, z - kMidArcZPos));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(vol45, i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 }
 
 //______________________________________________________________________________
-TGeoVolume* createPlaneSegment(int iSegment, float dim[2], int nofHoles)
+TGeoVolume* createPlaneSegment(int iSegment, float halfLength, float halfHeight, int nHoles)
 {
-  /// Create a segment of a plane (this includes a foam layer,holes in the foam to feed the kaptons through, kapton connectors and the mother board.)
+  /// create a plane segment (this includes a foam layer, holes in the foam to feed the kaptons through, kapton connectors and the mother board)
 
   auto segment = new TGeoVolumeAssembly(Form("S%d", iSegment));
 
   // variables
-  float halfLength = dim[0] / 2., halfHeight = dim[1] / 2., x = 0., y = 0., z = 0.;
+  float x = 0., y = 0., z = 0.;
 
   // foam layer
   const int kFoamNumber = iSegment + kFoamBoxNameOffset;
@@ -1305,7 +1246,7 @@ TGeoVolume* createPlaneSegment(int iSegment, float dim[2], int nofHoles)
 
   auto foam = gGeoManager->MakeBox(kFoamBoxName, assertMedium(Medium::St1Rohacell), halfLength, halfHeight, kHzFoam);
 
-  // Place spacer in the concrete plane segments:
+  // place spacers in the concrete plane segments:
   // S225 (in S025), S267 (in S067) in chamber1 and S309 (in S109). S351(in S151) in chamber2
   // The segments were found as those which caused overlaps when we placed the spacer in global coordinates via PlaceSpacer0
 
@@ -1348,16 +1289,18 @@ TGeoVolume* createPlaneSegment(int iSegment, float dim[2], int nofHoles)
 
   y = 0.;
   z = 0.;
-  for (int holeNum = 0; holeNum < nofHoles; holeNum++) {
-    x = ((2 * holeNum + 1) / nofHoles - 1) * dim[0];
 
-    foam->AddNode(gGeoManager->GetVolume(kHoleName), 1, new TGeoTranslation(x, y, z));
+  auto hole = gGeoManager->GetVolume(kHoleName);
+  for (int holeNum = 0; holeNum < nHoles; holeNum++) {
+    x = ((2 * holeNum + 1) / nHoles - 1) * halfLength;
+
+    foam->AddNode(hole, holeNum, new TGeoTranslation(x, y, z));
   }
 
   z = -kTotalHzPlane + kHzFoam; // - kHzFR4
   segment->AddNode(foam, 1, new TGeoTranslation(0., 0., z));
 
-  // mechanical plane FR4 layer
+  // mechanical plane (FR4 layer)
   z = kHzFoam;
   segment->AddNode(gGeoManager->MakeBox(Form("S%d", iSegment + kFR4BoxNameOffset), assertMedium(Medium::FR4), halfLength, halfHeight, kHzFR4),
                    1, new TGeoTranslation(0., 0., z));
@@ -1374,12 +1317,10 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
   /// The lines with comments COMMENT OUT BEGIN/END indicates blocks
   /// which can be commented out in order to reduce the number of volumes
   /// in a sector to the plane segments corresponding to regular motifs only.
-
   static Int_t segNum = 1;
   Int_t sgn;
   Int_t reflZ;
   Int_t rotMat;
-
   if (!reflectZ) {
     sgn = 1;
     reflZ = 0;                                            // no reflection along z... nothing
@@ -1389,38 +1330,25 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
     fMUON->AliMatrix(reflZ, 90., 0., 90, 90., 180., 0.);    // reflection along z
     fMUON->AliMatrix(rotMat, 90., 90., 90, 180., 180., 0.); // 90� rotation around z AND reflection along z
   }
-
   GReal_t x, y, z;
-
   TArrayI alreadyDone(20);
   Int_t nofAlreadyDone = 0;
-
   for (Int_t irow = 0; irow < sector->GetNofRows(); irow++) { // for each row
     AliMpRow* row = sector->GetRow(irow);
-
     for (Int_t iseg = 0; iseg < row->GetNofRowSegments(); iseg++) { // for each row segment
       AliMpVRowSegment* seg = row->GetRowSegment(iseg);
-
       Long_t value = specialMap.GetValue(seg->GetMotifPositionId(0));
-
       if (value == 0) { //if this is a normal segment (ie. not part of <specialMap>)
-
         // create the cathode part
-        float dimensions[2] = {seg->GetDimensionX(), seg->GetDimensionY()};
-        auto segment = createPlaneSegment(segNum, dimensions,seg->GetNofMotifs());
-
+        auto segment = createPlaneSegment(segNum, seg->GetDimensionX()/2,seg->GetDimensionY()/2,seg->GetNofMotifs());
         x = where.X() + seg->GetPositionX();
         y = where.Y() + seg->GetPositionY();
         z = where.Z() + sgn * (kTotalHzPlane + kHzGas + 2. * kHzPadPlane);
-
         auto MLayer = gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber));
         MLayer->AddNode(segment,1,new TGeoCombiTrans(x, y, z, reflZ));
-
         // and place all the daughter boards of this segment
-
         // COMMENT OUT BEGIN
         for (Int_t motifNum = 0; motifNum < seg->GetNofMotifs(); motifNum++) {
-
           // Copy number
           Int_t motifPosId = seg->GetMotifPositionId(motifNum);
           AliMpMotifPosition* motifPos =
@@ -1428,7 +1356,6 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
           Int_t copyNo = motifPosId;
           if (sector->GetDirection() == AliMp::kX)
             copyNo += kDaughterCopyNoOffset;
-
           // Position
           x = where.X() + motifPos->GetPositionX() + fgkOffsetX;
           y = where.Y() + motifPos->GetPositionY() + fgkOffsetY;
@@ -1436,17 +1363,12 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
           TVirtualMC::GetMC()->Gspos(kDaughterName, copyNo, QuadrantMLayerName(chamber), x, y, z, reflZ, "ONLY");
         }
         // COMMENT OUT END
-
         segNum++;
-
       } else {
-
         // COMMENT OUT BEGIN
         // if this is a special segment
         for (Int_t motifNum = 0; motifNum < seg->GetNofMotifs(); motifNum++) { // for each motif
-
           Int_t motifPosId = seg->GetMotifPositionId(motifNum);
-
           Bool_t isDone = false;
           Int_t i = 0;
           while (i < nofAlreadyDone && !isDone) {
@@ -1456,20 +1378,15 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
           }
           if (isDone)
             continue; // don't treat the same motif twice
-
           AliMUONSt1SpecialMotif spMot = *((AliMUONSt1SpecialMotif*)specialMap.GetValue(motifPosId));
           AliDebugStream(2) << chamber << " processing special motif: " << motifPosId << endl;
-
           AliMpMotifPosition* motifPos = sector->GetMotifMap()->FindMotifPosition(motifPosId);
-
           // Copy number
           Int_t copyNo = motifPosId;
           if (sector->GetDirection() == AliMp::kX)
             copyNo += kDaughterCopyNoOffset;
-
           // place the hole for the motif, wrt the requested rotation angle
           Int_t rot = (spMot.GetRotAngle() < 0.1) ? reflZ : rotMat;
-
           x = where.X() + motifPos->GetPositionX() + spMot.GetDelta().X();
           y = where.Y() + motifPos->GetPositionY() + spMot.GetDelta().Y();
           z = where.Z() + sgn * (kTotalHzPlane + kHzGas + 2. * kHzPadPlane);
@@ -1479,7 +1396,6 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
             y -= 0.1;
           }
           TVirtualMC::GetMC()->Gspos(kHoleName, copyNo, QuadrantMLayerName(chamber), x, y, z, rot, "ONLY");
-
           // then place the daughter board for the motif, wrt the requested rotation angle
           x = x + kDeltaFilleEtamX;
           y = y + kDeltaFilleEtamY;
@@ -1490,15 +1406,12 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
           }
           z = where.Z() + sgn * (kMotherThick1 - TotalHzDaughter());
           TVirtualMC::GetMC()->Gspos(kDaughterName, copyNo, QuadrantMLayerName(chamber), x, y, z, rot, "ONLY");
-
           if (nofAlreadyDone == alreadyDone.GetSize())
             alreadyDone.Set(2 * nofAlreadyDone);
           alreadyDone.AddAt(motifPosId, nofAlreadyDone++);
-
           AliDebugStream(2) << chamber << " processed motifPosId: " << motifPosId << endl;
         }
         // COMMENT OUT END
-
       } // end of special motif case
     }
   }
@@ -1508,11 +1421,9 @@ void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& w
 
 void placeInnerLayers(int chamber)
 {
-  /// Place the gas and copper layers for the specified chamber.
+  /// place the gas and the copper layers for the specified chamber.
 
-  float x = kDeltaQuadLHC;
-  float y = kDeltaQuadLHC;
-  float zc = kHzGas + kHzPadPlane;
+  float x = kDeltaQuadLHC, y = kDeltaQuadLHC, zc = kHzGas + kHzPadPlane;
   int dpos = 2 * (chamber - 1);
 
   auto layer = gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber));
@@ -1522,9 +1433,9 @@ void placeInnerLayers(int chamber)
 }
 
 //______________________________________________________________________________
-TGeoVolume* createQuadrant(int chamber)
+TGeoVolumeAssembly* createQuadrant(int chamber)
 {
-  /// Create the quadrant (bending and non-bending planes) for the given chamber
+  /// create the quadrant (bending and non-bending planes) for the given chamber
   auto quadrant = new TGeoVolumeAssembly(Form("Quadrant (chamber %d)", chamber));
 
   createFrame(chamber);
@@ -1534,24 +1445,20 @@ TGeoVolume* createQuadrant(int chamber)
   specialMap.Add(76, (Long_t) new AliMUONSt1SpecialMotif(TVector2(0.1, 0.72), 90.));
   specialMap.Add(75, (Long_t) new AliMUONSt1SpecialMotif(TVector2(0.7, 0.36)));
   specialMap.Add(47, (Long_t) new AliMUONSt1SpecialMotif(TVector2(1.01, 0.36)));
-
   // Load mapping from OCDB
   if (!AliMpSegmentation::Instance()) {
     AliFatal("Mapping has to be loaded first !");
   }
-
   const AliMpSector* kSector1 =
     AliMpSegmentation::Instance()->GetSector(100, AliMpDEManager::GetCathod(100, AliMp::kBendingPlane));
   if (!kSector1) {
     AliFatal("Could not access sector segmentation !");
   }
-
   // Bool_t reflectZ = true;
   Bool_t reflectZ = false;
   // TVector3 where = TVector3(2.5+0.1+0.56+0.001, 2.5+0.1+0.001, 0.);
   TVector3 where = TVector3(fgkDeltaQuadLHC + fgkPadXOffsetBP, fgkDeltaQuadLHC + fgkPadYOffsetBP, 0.);
   PlaceSector(kSector1, specialMap, where, reflectZ, chamber);
-
   int nb = AliMpConstants::ManuMask(AliMp::kNonBendingPlane);
   TExMapIter it(&specialMap);
   #if (defined(ROOT_SVN_REVISION) && ROOT_SVN_REVISION >= 29598) || \
@@ -1562,7 +1469,6 @@ TGeoVolume* createQuadrant(int chamber)
   Long_t key;
   Long_t value;
   #endif
-
   while (it.Next(key, value) == kTRUE) {
     delete reinterpret_cast<AliMUONSt1SpecialMotif*>(value);
   }
@@ -1575,13 +1481,11 @@ TGeoVolume* createQuadrant(int chamber)
   specialMap.Add(74 | nb, (Long_t) new AliMUONSt1SpecialMotif(TVector2(0.405, -0.10)));
   // Fix (7) - overlap of SQ42 with MCHL (after moving the whole sector
   // in the true position)
-
   const AliMpSector* kSector2 =
     AliMpSegmentation::Instance()->GetSector(100, AliMpDEManager::GetCathod(100, AliMp::kNonBendingPlane));
   if (!kSector2) {
     AliFatal("Could not access sector !");
   }
-
   // reflectZ = false;
   reflectZ = true;
   TVector2 offset = TVector2(kSector2->GetPositionX(), kSector2->GetPositionY());
@@ -1590,7 +1494,6 @@ TGeoVolume* createQuadrant(int chamber)
   // (The shift is defined in the mapping as sector offset)
   // Fix (4) - was TVector3(where.X()+0.63/2, ... - now it is -0.63/2
   PlaceSector(kSector2, specialMap, where, reflectZ, chamber);
-
   it.Reset();
   while (it.Next(key, value) == kTRUE) {
     delete reinterpret_cast<AliMUONSt1SpecialMotif*>(value);
@@ -1598,17 +1501,15 @@ TGeoVolume* createQuadrant(int chamber)
   specialMap.Delete();
   */
 
-  // Place gas volumes
+  // place gas volumes
   placeInnerLayers(chamber);
 
-  // Middle layers
-  float x = -(kDeltaQuadLHC + kPadXOffsetBP);
-  float y = -(kDeltaQuadLHC + kPadYOffsetBP);
-  float z = 0.;
+  // middle layers
+  float x = -(kDeltaQuadLHC + kPadXOffsetBP), y = -(kDeltaQuadLHC + kPadYOffsetBP), z = 0.;
   quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
   quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMFLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
 
-  // Near/far layers
+  // near/far layers
   x += kFrameOffset;
   y += kFrameOffset;
   quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantFLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
@@ -1623,44 +1524,44 @@ TGeoVolume* createQuadrant(int chamber)
 void createStation1Geometry(TGeoVolume& topVolume)
 {
 
-  // Create basic volumes
+  // create basic volumes
   createHole();
   createDaughterBoard();
   createInnerLayers();
   createSpacer();
 
-  const int kNofQuad = 4;
+  const int kNQuadrants = 4;
 
   auto rot0 = new TGeoRotation();
   auto rot1 = new TGeoRotation("reflXZ", 90., 180., 90., 90., 180., 0.);
   auto rot2 = new TGeoRotation("reflXY", 90., 180., 90., 270., 0., 0.);
   auto rot3 = new TGeoRotation("reflYZ", 90., 0., 90., -90., 180., 0.);
-  std::array<TGeoRotation*, kNofQuad> rot = { rot0, rot1, rot2, rot3 };
+  std::array<TGeoRotation*, kNQuadrants> rot = { rot0, rot1, rot2, rot3 };
 
-  // Initialize quadrant positions
-  float x[kNofQuad] = { -1, 1, 1, -1 };
-  float y[kNofQuad] = { -1, -1, 1, 1 };
+  // initialize the quadrant positions
+  float x[kNQuadrants] = { -1, 1, 1, -1 };
+  float y[kNQuadrants] = { -1, -1, 1, 1 };
 
-  for (int i = 0; i < kNofQuad; i++) {
+  for (int i = 0; i < kNQuadrants; i++) {
     x[i] *= kPadXOffsetBP;
     y[i] *= kPadYOffsetBP;
   }
 
-  // Build the two chambers
+  // build the two chambers
   int detElemID = 0;
-  float z = kQuadZpos;
+  float z = kQuadrantZPos;
 
   for (int ich = 1; ich < 3; ich++) {
 
-    // create two half-chambers (new compared to AliRoot !)
-    auto in = new TGeoVolumeAssembly(Form("SC0%dI", ich));
-    auto out = new TGeoVolumeAssembly(Form("SC0%dO", ich));
+    // create two half-chambers
+    auto* in = new TGeoVolumeAssembly(Form("SC0%dI", ich));
+    auto* out = new TGeoVolumeAssembly(Form("SC0%dO", ich));
 
-    // Create quadrant volume
-    auto quadrant = createQuadrant(ich);
+    // create a quadrant volume
+    auto* quadrant = createQuadrant(ich);
 
-    // Place the quadrant in the half-chambers
-    for (int i = 0; i < kNofQuad; i++) {
+    // place the quadrants in the half-chambers
+    for (int i = 0; i < kNQuadrants; i++) {
       // alternate the z position
       z *= -1.;
 
@@ -1674,8 +1575,8 @@ void createStation1Geometry(TGeoVolume& topVolume)
     }
 
     // place the half-chambers in the top volume
-    topVolume.AddNode(in, 2 * (ich - 1), new TGeoTranslation(0., 0., kChamberZpos[ich - 1]));
-    topVolume.AddNode(out, 2 * ich - 1, new TGeoTranslation(0., 0., kChamberZpos[ich - 1]));
+    topVolume.AddNode(in, 2 * (ich - 1), new TGeoTranslation(0., 0., kChamberZPos[ich - 1]));
+    topVolume.AddNode(out, 2 * ich - 1, new TGeoTranslation(0., 0., kChamberZPos[ich - 1]));
 
   } // end of the chamber loop
 }
@@ -1683,7 +1584,7 @@ void createStation1Geometry(TGeoVolume& topVolume)
 //______________________________________________________________________________
 std::vector<TGeoVolume*> getStation1SensitiveVolumes()
 {
-  /// Create a vector containing the sensitive volume's name of the quadrants for the Detector class
+  /// Create a vector containing the sensitive volume name of the quadrants for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
   for (int i = 1; i <= 2; i++) {

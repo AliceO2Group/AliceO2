@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   Station2Geometry.cxx
-/// \brief  Implementation of the station 2 geometry (copied and adapted from AliMUONSt2GeometryBuilderv2)
+/// \brief  Implementation of the station 2 geometry
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   23 may 2018
 
@@ -31,166 +31,129 @@ namespace o2
 namespace mch
 {
 
-/// Constants (to be checked !!!!)
+/// Constants
 
-// Chamber z positions (from AliMUONConstants)
-const double kChamberZpos[2] = { -676.4, -695.4 };
+// chamber z position
+const double kChamberZPos[2] = { -676.4, -695.4 };
 
-// Quadrant z position w.r.t the chamber center
-const double kQuadZpos = 6.8 / 2.;
+// quadrant z position w.r.t the chamber center
+const double kQuadrantZPos = 3.9;
 
-// Thickness
-const double kGasWidth = 2 * 0.25;
-const double kCathodeWidth = 0.005;                  // Effective copper width in the PCB (to be checked !)
-const double kPCBWidth = 0.04;                       // Total width of the PCB (checked)
-const double kInsuWidth = kPCBWidth - kCathodeWidth; // PCB insulator width, computed like this to ensure the total PCB width
-const double kRohaWidth = 2.5;                       // Rohacell (checked)
-const double kMEBWidth = 0.04;                       // Mechanical exit board (checked)
-const double kEERBWidth = 0.04;                      // Effective electronic readout board (seems to be a very big value, should be the same than for station 1, to be investigated)
+// thickness
+const double kGasHalfThickness = 0.25;
+const double kCathodeHalfThickness = 0.005 / 2; // effective copper thickness in the PCB (to be checked !)
+const double kPCBHalfThickness = 0.04 / 2;
+const double kInsuHalfThickness = kPCBHalfThickness - kCathodeHalfThickness;
+const double kRohaHalfThickness = 2.5 / 2;
+const double kMEBHalfThickness = 0.04 / 2;
+const double kEERBHalfThickness = 0.04 / 2; // effective electronic readout board (seems to be a very big value, should be the same than for station 1, to be investigated)
 
-// Polygon shape parameters
+// polygon shape parameters
 const double kStartAngle = 0.;
 const double kStopAngle = 90.;
-const int kNofPlanes = 2;
-const int kNofEdges = 5;
-const double kFirstInnerRadius = 20.6;
-const double kSecondInnerRadius = 23.1;
-const double kOuterRadius = 117.6;
-const double kSecondOuterRadius = 120.6;
+const int kNPlanes = 2;
+const int kNEdges = 5;
 
 /// Segments
-const int kNofSeg = 3;
-const double kSeg0HalfLength = 94.5 / 2.;
-const double kSeg0HalfHeight = 1.2 / 2.;
+const int kNSegments = 3;
 
-const double kSeg2HalfLength = 1 / 2.;
-const double kSeg2HalfHeight = 95.5 / 2.;
+const double kSegmentRadius[2] = { 23.1, 117.6 };
 
-const double kSegHalfLength[kNofSeg] = { kSeg0HalfLength, 0., kSeg2HalfLength };
-const double kSegHalfHeight[kNofSeg] = { kSeg0HalfHeight, 0., kSeg2HalfHeight };
+// box segment dimensions
+const double kBoxSegHalfLength[kNSegments] = { 95.5 / 2, 0., 0.5 };
+const double kBoxSegHalfHeight[kNSegments] = { 0.6, 0., 95.5 / 2 };
 
 /// Frames
-const int kNofFrames = 8;
-const double kFrameLength[kNofFrames] = {
-  101.,
-  4.,
+const int kNFrames = 8;
+const double kFrameHalfLength[kNFrames] = { 101. / 2, 2., 0., 0.5, 2.7 / 2, 0.5, 0., 2.5 / 2 };
+const double kFrameHalfHeight[kNFrames] = { 2.5 / 2, 0.6, 0., 2., 101. / 2, 2.5 / 2, 0., 0.6 };
+
+const double kRibHalfLength[kNFrames] = {
+  kFrameHalfLength[0],
+  kFrameHalfLength[1] - 0.5,
   0.,
-  1.,
-  2.7,
-  1.,
+  kFrameHalfLength[3],
+  0.8 / 2,
+  kFrameHalfLength[5],
   0.,
-  2.5
+  kFrameHalfLength[7] - 0.5
 };
-const double kFrameHeight[kNofFrames] = {
-  2.5,
-  1.2,
+const double kRibHalfHeight[kNFrames] = {
+  0.3,
+  kFrameHalfHeight[1],
   0.,
-  4.,
-  101.,
-  2.5,
+  kFrameHalfHeight[3] - 0.5,
+  kFrameHalfHeight[4],
+  1.5 / 2,
   0.,
-  1.2
+  kFrameHalfHeight[7]
 };
 
-const double kRibLength[kNofFrames] = {
-  kFrameLength[0],
-  kFrameLength[1] - 0.5,
-  0.,
-  kFrameLength[3],
-  0.8,
-  kFrameLength[5],
-  0.,
-  kFrameLength[7] - 0.5
-};
-const double kRibHeight[kNofFrames] = {
-  0.6,
-  0.6,
-  0.,
-  kFrameHeight[3] - 0.5,
-  kFrameHeight[4],
-  1.5,
-  0.,
-  kFrameHeight[7]
-};
+const double kFrame3Radius[2] = { kSegmentRadius[1], 121.6 };
+const double kRib3Radius[2] = { kSegmentRadius[1], 120.6 };
 
-const double kFrame3OuterRadius = 121.6;
-const double kRib3OuterRadius = 120.6;
-const double kRib7InnerRadius = 21.6;
+const double kFrame7Radius[2] = { 20.6, kSegmentRadius[0] };
+const double kRib7Radius[2] = { 21.6, kSegmentRadius[0] };
 
-const double kFrameWidth = 5.;  // checked
-const double kGlueWidth = 0.02; // new ! this value is temporary (= to the one in Station345Geometry)
-const double kRibWidth = 1.;    // changed w.r.t AliMUONSt2GeometryBuilderv2
+const double kEpoxyHalfThickness = 2.;
+const double kRibHalfThickness = 0.5;
 
 //______________________________________________________________________________
-TGeoVolume* createSegment(int iSeg)
+TGeoVolume* createSegment(int i)
 {
 
   /// Function creating a segment for the quadrant volume
-  /// A segment is a pile-up of layers defining the detection area :
-  /// gas + PCB (cathode + insulator) + rohacell + mech exit board + eff. electronic exit board
+  /// A segment is a pile-up of layers defining the detection area:
+  /// gas + PCB (cathode + insulator) + rohacell + mech. exit board + eff. electronic exit board
 
-  // materials
-  const auto kGasMed = assertMedium(Medium::Gas);
-  const auto kCathodeMed = assertMedium(Medium::Copper);
-  const auto kInsuMed = assertMedium(Medium::FR4);
-  const auto kRohacellMed = assertMedium(Medium::Rohacell);
-  const auto kMEBMed = assertMedium(Medium::Epoxy); // changed w.r.t AliMUONSt2GeometryBuilderv2 after investigation
-  const auto kEERBMed = assertMedium(Medium::Copper);
+  const char* segmentName = Form("Segment %d", i);
+  auto segment = new TGeoVolumeAssembly(segmentName);
 
-  const int kNofLayers = 6;
+  const int kNLayers = 6;
 
-  const std::string kLayerName[kNofLayers] = { "gas", "cathode", "insulator", "rohacell", "MEB", "EERB" };
-  const std::array<const TGeoMedium*, kNofLayers> kLayerMedium = { kGasMed, kCathodeMed, kInsuMed, kRohacellMed, kMEBMed, kEERBMed };
-  const double kLayerWidth[kNofLayers] = { kGasWidth, kCathodeWidth, kInsuWidth, kRohaWidth, kMEBWidth, kEERBWidth };
-
-  auto segment = new TGeoVolumeAssembly(Form("Segment %d", iSeg));
+  const std::string kLayerName[kNLayers] = { "gas", "cathode", "insulator", "rohacell", "MEB", "EERB" };
+  const std::array<TGeoMedium*, kNLayers> kLayerMedium = { assertMedium(Medium::Gas), assertMedium(Medium::Copper), assertMedium(Medium::FR4), assertMedium(Medium::Rohacell), assertMedium(Medium::Epoxy), assertMedium(Medium::Copper) };
+  const double kLayerHalfThickness[kNLayers] = { kGasHalfThickness, kCathodeHalfThickness, kInsuHalfThickness, kRohaHalfThickness, kMEBHalfThickness, kEERBHalfThickness };
 
   // volume dimensions
-  double halfLength = kSegHalfLength[iSeg];
-  double halfHeight = kSegHalfHeight[iSeg];
-  double halfWidth = 0.001; //random value just to initialize the variable
+  double halfLength = kBoxSegHalfLength[i], halfHeight = kBoxSegHalfHeight[i], halfThickness = kLayerHalfThickness[0];
 
   double z = 0.; // increment this variable when adding a new layer
 
-  switch (iSeg) {
+  switch (i) {
     case 1: // polygon
 
       // parameters
       double par[10];
-      par[0] = kStartAngle;        // initial angle
-      par[1] = kStopAngle;         // increment in angle starting from initial angle
-      par[2] = kNofEdges;          // number of sides
-      par[3] = kNofPlanes;         // number of planes
-      par[4] = -halfWidth;         // z-position of the first plane
-      par[5] = kSecondInnerRadius; // inner radius first plane
-      par[6] = kOuterRadius;       // outer radious first plane
-      par[7] = halfWidth;          // z-position of the second plane
-      par[8] = par[5];             // inner radius of second plane
-      par[9] = par[6];             // outer radious of second plane
+      par[0] = kStartAngle;       // initial angle
+      par[1] = kStopAngle;        // increment in angle starting from initial angle
+      par[2] = kNEdges;           // number of edges
+      par[3] = kNPlanes;          // number of planes
+      par[4] = -halfThickness;    // z-position of the first plane
+      par[5] = kSegmentRadius[0]; // inner radius first plane
+      par[6] = kSegmentRadius[1]; // outer radius first plane
+      par[7] = halfThickness;     // z-position of the second plane
+      par[8] = par[5];            // inner radius of second plane
+      par[9] = par[6];            // outer radius of second plane
 
       // create and place the layers in the segment
 
-      // start with gas
-      halfWidth = kLayerWidth[0] / 2.;
+      segment->AddNode(new TGeoVolume(Form("%s %s", segmentName, kLayerName[0].data()), new TGeoPgon(par), kLayerMedium[0]), 1);
 
-      par[4] = -halfWidth;
-      par[7] = halfWidth;
-      segment->AddNode(new TGeoVolume(Form("Segment %d %s", iSeg, kLayerName[0].data()), new TGeoPgon(par), kLayerMedium[0]), 1);
+      z = halfThickness;
 
-      z = halfWidth;
+      for (int j = 1; j < kNLayers; j++) {
 
-      for (int j = 1; j < kNofLayers; j++) {
+        halfThickness = kLayerHalfThickness[j];
 
-        halfWidth = kLayerWidth[j] / 2.;
+        par[4] = -halfThickness;
+        par[7] = halfThickness;
+        auto layer = new TGeoVolume(Form("Segment %d %s", i, kLayerName[j].data()), new TGeoPgon(par), kLayerMedium[j]);
 
-        par[4] = -halfWidth;
-        par[7] = halfWidth;
-        auto layer = new TGeoVolume(Form("Segment %d %s", iSeg, kLayerName[j].data()), new TGeoPgon(par), kLayerMedium[j]);
-
-        z += halfWidth;
+        z += halfThickness;
         segment->AddNode(layer, 1, new TGeoTranslation(0., 0., z));
         segment->AddNode(layer, 2, new TGeoTranslation(0., 0., -z));
-        z += halfWidth;
+        z += halfThickness;
 
       } // end of the layer loop
       break;
@@ -199,25 +162,22 @@ TGeoVolume* createSegment(int iSeg)
       // create and place the layers in the segment
 
       // start with gas
-      halfWidth = kLayerWidth[0] / 2.;
+      halfThickness = kLayerHalfThickness[0];
 
-      segment->AddNode(new TGeoVolume(Form("Segment %d %s", iSeg, kLayerName[0].data()),
-                                      new TGeoBBox(halfLength, halfHeight, halfWidth), kLayerMedium[0]),
-                       1);
+      segment->AddNode(gGeoManager->MakeBox(Form("%s %s", segmentName, kLayerName[0].data()), kLayerMedium[0], halfLength, halfHeight, halfThickness), 1);
 
-      z = halfWidth;
+      z = halfThickness;
 
-      for (int j = 1; j < kNofLayers; j++) {
+      for (int j = 1; j < kNLayers; j++) {
 
-        halfWidth = kLayerWidth[j] / 2.;
+        halfThickness = kLayerHalfThickness[j];
 
-        auto layer = new TGeoVolume(Form("Segment %d %s", iSeg, kLayerName[j].data()),
-                                    new TGeoBBox(halfLength, halfHeight, halfWidth), kLayerMedium[j]);
+        auto layer = gGeoManager->MakeBox(Form("%s %s", segmentName, kLayerName[j].data()), kLayerMedium[j], halfLength, halfHeight, halfThickness);
 
-        z += halfWidth;
+        z += halfThickness;
         segment->AddNode(layer, 1, new TGeoTranslation(0., 0., z));
         segment->AddNode(layer, 2, new TGeoTranslation(0., 0., -z));
-        z += halfWidth;
+        z += halfThickness;
 
       } // end of the layer loop
 
@@ -232,141 +192,127 @@ void createFrames()
 {
 
   // materials
-  const auto kFrameMed = assertMedium(Medium::Epoxy); // to be changed ? PEEK GF-30 in CERN-THESIS-2008-170
-  const auto kGlueMed = assertMedium(Medium::Glue);
+  const auto kFrameMed = assertMedium(Medium::Epoxy);  // to be changed ? PEEK GF-30 in CERN-THESIS-2008-170
   const auto kRibMed = assertMedium(Medium::Rohacell); // to be changed ? PEEK GF-30 in CERN-THESIS-2008-170
 
+  // rib position on the frame
+  const double kRibXPos[kNFrames] = {
+    0.,
+    -kFrameHalfLength[1] + kRibHalfLength[1], // left edge
+    0.,
+    0.,
+    kFrameHalfLength[4] - kRibHalfLength[4], // right edge
+    0.,
+    0.,
+    kFrameHalfLength[7] - kRibHalfLength[7] // right edge
+  };
+
+  const double kRibYPos[kNFrames] = {
+    kFrameHalfHeight[0] - kRibHalfHeight[0], // upper edge
+    0.,
+    0.,
+    -kFrameHalfHeight[3] + kRibHalfHeight[3], // lower edge
+    0.,
+    kFrameHalfHeight[5] - kRibHalfHeight[5], // upper edge
+    0.,
+    0.
+  };
+
   // useful variables
-  double halfLength = 0., halfHeight = 0., halfWidth = 0., x = 0., y = 0., z = 0.;
+  double halfThickness = 0., z = 0.;
 
-  // position of the rib w.r.t the frame
-  const double kRibXPos[kNofFrames] = { 0., -0.5, 0., 0., (kFrameLength[4] - kRibLength[4]) / 2., 0., 0., -0.5 };
-  const double kRibYPos[kNofFrames] = { (kFrameHeight[0] - kRibHeight[0]) / 2., 0., 0., -0.5, 0., 0.5, 0., 0. };
-
-  for (int i = 1; i <= kNofFrames; i++) {
+  for (int i = 1; i <= kNFrames; i++) {
 
     // in this loop, we only create box frames
     if (i == 3 || i == 7)
       continue; // go to next frame
 
     // create the frame
-    halfWidth = kFrameWidth / 2.;
-    auto frame = gGeoManager->MakeBox(Form("Frame %d", i), kFrameMed, kFrameLength[i - 1] / 2., kFrameHeight[i - 1] / 2., halfWidth);
-    z = halfWidth;
+    auto frame = new TGeoVolumeAssembly(Form("Frame %d", i));
 
-    halfLength = kRibLength[i - 1] / 2.;
-    halfHeight = kRibHeight[i - 1] / 2.;
-
-    // create a glue layer between the frame and the rib (new !)
-    halfWidth = kGlueWidth / 2.;
-    auto glue = gGeoManager->MakeBox(Form("Glue %d", i), kGlueMed, halfLength, halfHeight, halfWidth);
-
-    x = kRibXPos[i - 1];
-    y = kRibYPos[i - 1];
-
-    z += halfWidth;
-    frame->AddNode(glue, 1, new TGeoTranslation(x, y, z));
-    frame->AddNode(glue, 2, new TGeoTranslation(x, y, -z));
-    z += halfWidth;
+    // create the epoxy
+    halfThickness = kEpoxyHalfThickness;
+    frame->AddNode(gGeoManager->MakeBox(Form("Epoxy %d", i), kFrameMed, kFrameHalfLength[i - 1], kFrameHalfHeight[i - 1], halfThickness), 1);
+    z = halfThickness;
 
     // create the rib
-    halfWidth = kRibWidth / 2.;
-    auto rib = gGeoManager->MakeBox(Form("Rib %d", i), kRibMed, halfLength, halfHeight, halfWidth);
+    halfThickness = kRibHalfThickness;
+    auto rib = gGeoManager->MakeBox(Form("Rib %d", i), kRibMed, kRibHalfLength[i - 1], kRibHalfHeight[i - 1], halfThickness);
 
-    z += halfWidth;
-    frame->AddNode(rib, 1, new TGeoTranslation(x, y, z));
-    frame->AddNode(rib, 2, new TGeoTranslation(x, y, -z));
+    z += halfThickness;
+    frame->AddNode(rib, 1, new TGeoTranslation(kRibXPos[i - 1], kRibYPos[i - 1], z));
+    frame->AddNode(rib, 2, new TGeoTranslation(kRibXPos[i - 1], kRibYPos[i - 1], -z));
   }
 
   /// Polygon shape frames
 
   // parameters
-
   double par[10];
   par[0] = kStartAngle;
   par[1] = kStopAngle;
-  par[2] = kNofEdges;
-  par[3] = kNofPlanes;
+  par[2] = kNEdges;
+  par[3] = kNPlanes;
 
   // Frame 3
+  auto frame3 = new TGeoVolumeAssembly("Frame 3");
 
-  // frame layer
-  halfWidth = kFrameWidth / 2.;
+  // epoxy layer
+  halfThickness = kEpoxyHalfThickness;
   z = 0.;
 
-  par[4] = -halfWidth;
-  par[5] = kOuterRadius;
-  par[6] = kFrame3OuterRadius;
-  par[7] = halfWidth;
+  par[4] = -halfThickness;
+  par[5] = kFrame3Radius[0];
+  par[6] = kFrame3Radius[1];
+  par[7] = halfThickness;
   par[8] = par[5];
   par[9] = par[6];
-  auto frame3 = new TGeoVolume("Frame 3", new TGeoPgon(par), kFrameMed);
 
-  z = halfWidth;
-
-  // glue layer
-  halfWidth = kGlueWidth / 2.;
-  par[4] = -halfWidth;
-  par[6] = kRib3OuterRadius;
-  par[7] = halfWidth;
-  par[9] = par[6];
-
-  auto glue3 = new TGeoVolume("Glue 3", new TGeoPgon(par), kGlueMed);
-
-  z += halfWidth;
-  frame3->AddNode(glue3, 1, new TGeoTranslation(0., 0., z));
-  frame3->AddNode(glue3, 2, new TGeoTranslation(0., 0., -z));
-  z += halfWidth;
+  frame3->AddNode(new TGeoVolume("Epoxy 3", new TGeoPgon(par), kFrameMed), 1);
+  z += halfThickness;
 
   // rib
-  halfWidth = kRibWidth / 2.;
-  par[4] = -halfWidth;
-  par[7] = halfWidth;
+  halfThickness = kRibHalfThickness;
+  par[4] = -halfThickness;
+  par[5] = kRib3Radius[0];
+  par[6] = kRib3Radius[1];
+  par[7] = halfThickness;
+  par[8] = par[5];
+  par[9] = par[6];
 
   auto rib3 = new TGeoVolume("Rib 3", new TGeoPgon(par), kRibMed);
 
-  z += halfWidth;
+  z += halfThickness;
   frame3->AddNode(rib3, 1, new TGeoTranslation(0., 0., z));
   frame3->AddNode(rib3, 2, new TGeoTranslation(0., 0., -z));
 
   // Frame 7
+  auto frame7 = new TGeoVolumeAssembly("Frame 7");
 
-  // frame layer
-  halfWidth = kFrameWidth / 2.;
+  // epoxy layer
+  halfThickness = kEpoxyHalfThickness;
   z = 0.;
 
-  par[4] = -halfWidth;
-  par[5] = kFirstInnerRadius;
-  par[6] = kSecondInnerRadius;
-  par[7] = halfWidth;
+  par[4] = -halfThickness;
+  par[5] = kFrame7Radius[0];
+  par[6] = kFrame7Radius[1];
+  par[7] = halfThickness;
   par[8] = par[5];
   par[9] = par[6];
-  auto frame7 = new TGeoVolume("Frame 7", new TGeoPgon(par), kFrameMed);
-
-  z = halfWidth;
-
-  // glue layer
-  halfWidth = kGlueWidth / 2.;
-  par[4] = -halfWidth;
-  par[5] = kRib7InnerRadius;
-  par[7] = halfWidth;
-  par[8] = par[5];
-
-  auto glue7 = new TGeoVolume("Glue 7", new TGeoPgon(par), kGlueMed);
-
-  z += halfWidth;
-  frame7->AddNode(glue7, 1, new TGeoTranslation(0., 0., z));
-  frame7->AddNode(glue7, 2, new TGeoTranslation(0., 0., -z));
-  z += halfWidth;
+  frame3->AddNode(new TGeoVolume("Epoxy 7", new TGeoPgon(par), kFrameMed), 1);
+  z += halfThickness;
 
   // rib
-  halfWidth = kRibWidth / 2.;
-  par[4] = -halfWidth;
-  par[7] = halfWidth;
+  halfThickness = kRibHalfThickness;
+  par[4] = -halfThickness;
+  par[5] = kRib7Radius[0];
+  par[6] = kRib7Radius[1];
+  par[7] = halfThickness;
+  par[8] = par[5];
+  par[9] = par[6];
 
   auto rib7 = new TGeoVolume("Rib 7", new TGeoPgon(par), kRibMed);
 
-  z += halfWidth;
+  z += halfThickness;
   frame7->AddNode(rib7, 1, new TGeoTranslation(0., 0., z));
   frame7->AddNode(rib7, 2, new TGeoTranslation(0., 0., -z));
 }
@@ -378,37 +324,40 @@ TGeoVolume* createQuadrant()
   /// Create a quadrant, a volume assembly containing all the different elements, identical for each chamber
   auto quadrant = new TGeoVolumeAssembly("Station 2 quadrant");
 
-  /// Create and place the segments in the quadrant volume
-  const double kSegXPos[kNofSeg] = { kSegHalfLength[0] + kSecondInnerRadius, 0., -kSegHalfLength[2] };
-  const double kSegYPos[kNofSeg] = { -kSegHalfHeight[0], 0., kSegHalfHeight[2] + kSecondInnerRadius };
+  // create and place the segments in the quadrant
+  const double kSegXPos[kNSegments] = { kSegmentRadius[0] + kBoxSegHalfLength[0], 0., -kBoxSegHalfLength[2] };
+  const double kSegYPos[kNSegments] = { -kBoxSegHalfHeight[0], 0., kSegmentRadius[0] + kBoxSegHalfHeight[2] };
 
-  for (int i = 0; i < kNofSeg; i++)
+  for (int i = 0; i < kNSegments; i++)
     quadrant->AddNode(createSegment(i), 0, new TGeoTranslation(kSegXPos[i], kSegYPos[i], 0.));
 
-  /// Create and place the frames in the quadrant
+  // create and place the frames in the quadrant
   createFrames();
 
   // positions
-  const double kFrameShift = 3.7;
-  const double kFrameXPos[kNofFrames] = { kFrameLength[0] / 2. + kFirstInnerRadius,
-                                          kFrameLength[1] / 2. + kOuterRadius,
-                                          0.,
-                                          -kFrameLength[3] / 2.,
-                                          kFrameLength[4] / 2. - kFrameShift,
-                                          -kFrameLength[5] / 2.,
-                                          0.,
-                                          kFrameLength[7] / 2. + kFirstInnerRadius };
+  const double kFrameXPos[kNFrames] = {
+    kSegXPos[0],                                                  // frame n°1 aligned with the segment 0
+    kSegXPos[0] + kBoxSegHalfLength[0] + kFrameHalfLength[2 - 1], // frame n°2 at the right of the segment 0
+    0.,
+    kSegXPos[2],                                                  // frame n°4 aligned with the segment 2
+    kSegXPos[2] - kBoxSegHalfLength[2] - kFrameHalfLength[5 - 1], // frame n°5 at the left of the segment 2
+    kSegXPos[2],                                                  // frame n°6 aligned with the segment 2
+    0.,
+    kSegXPos[0] - kBoxSegHalfLength[0] - kFrameHalfLength[8 - 1], // frame n°8 at the left of the segment 0
+  };
 
-  const double kFrameYPos[kNofFrames] = { kFrameHeight[0] / 2. - kFrameShift,
-                                          -kFrameHeight[1] / 2.,
-                                          0.,
-                                          kFrameHeight[3] / 2. + kOuterRadius,
-                                          kFrameHeight[4] / 2. + kFirstInnerRadius,
-                                          kFrameHeight[5] / 2. + kFirstInnerRadius,
-                                          0.,
-                                          -kFrameHeight[7] / 2. };
+  const double kFrameYPos[kNFrames] = {
+    kSegYPos[0] - kBoxSegHalfHeight[0] - kFrameHalfHeight[1 - 1], // frame n°1 below the segment 0
+    kSegYPos[0],                                                  // frame n°2 aligned with the segment 0
+    0.,
+    kSegYPos[2] + kBoxSegHalfHeight[2] + kFrameHalfHeight[4 - 1], // frame n°4 above the segment 2
+    kSegYPos[2],                                                  // frame n°5 aligned with the segment 2
+    kSegYPos[2] - kBoxSegHalfHeight[2] - kFrameHalfHeight[6 - 1], // frame n°6 below the segment 2
+    0.,
+    kSegYPos[0], // frame n°8 aligned with the segment 0
+  };
 
-  for (int i = 1; i <= kNofFrames; i++)
+  for (int i = 1; i <= kNFrames; i++)
     quadrant->AddNode(gGeoManager->GetVolume(Form("Frame %d", i)), 1,
                       new TGeoTranslation(kFrameXPos[i - 1], kFrameYPos[i - 1], 0.));
 
@@ -432,18 +381,18 @@ void createStation2Geometry(TGeoVolume& topVolume)
   auto rot3 = new TGeoRotation("reflYZ", 90., 0., 90., -90., 180., 0.);
   std::array<TGeoRotation*, kNQuad> rot = { rot0, rot1, rot2, rot3 };
 
-  // Build the two chambers
-  double z = kQuadZpos;
+  // build the two chambers
+  double z = kQuadrantZPos;
   int detElemID = 0;
   const int kFirstChamberNumber = 3;
 
   for (int ich = kFirstChamberNumber; ich < kFirstChamberNumber + 2; ich++) {
 
-    // create two half-chambers (new compared to AliRoot !)
+    // create two half-chambers
     auto in = new TGeoVolumeAssembly(Form("SC0%dI", ich));
     auto out = new TGeoVolumeAssembly(Form("SC0%dO", ich));
 
-    // Place the quadrant in the half-chambers
+    // place the quadrants in the half-chambers
     for (int i = 0; i < kNQuad; i++) {
       // alternate the z position
       z *= -1.;
@@ -458,8 +407,8 @@ void createStation2Geometry(TGeoVolume& topVolume)
     }
 
     // place the half-chambers in the top volume
-    topVolume.AddNode(in, 2 * (ich - 1), new TGeoTranslation(0., 0., kChamberZpos[ich - kFirstChamberNumber]));
-    topVolume.AddNode(out, 2 * ich - 1, new TGeoTranslation(0., 0., kChamberZpos[ich - kFirstChamberNumber]));
+    topVolume.AddNode(in, 2 * (ich - 1), new TGeoTranslation(0., 0., kChamberZPos[ich - kFirstChamberNumber]));
+    topVolume.AddNode(out, 2 * ich - 1, new TGeoTranslation(0., 0., kChamberZPos[ich - kFirstChamberNumber]));
 
   } // end of the chamber loop
 }
@@ -470,7 +419,7 @@ std::vector<TGeoVolume*> getStation2SensitiveVolumes()
   /// Create a vector containing the sensitive volume's name of the quadrants for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
-  for (int i = 0; i < kNofSeg; i++) {
+  for (int i = 0; i < kNSegments; i++) {
 
     auto vol = gGeoManager->GetVolume(Form("Segment %d gas", i));
 
