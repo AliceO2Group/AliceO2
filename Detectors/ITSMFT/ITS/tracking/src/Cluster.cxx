@@ -66,11 +66,27 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
   // Nothing to do
 }
 
-TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF,
-                                     std::array<float, 3>&& covTF)
-  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha }, positionTrackingFrame{ posTF }, covarianceTrackingFrame{ covTF }
+TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
+                                     GPUArray<float, 3>&& covTF)
+  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha },
+#ifdef __OPENCL__
+    positionTrackingFrame{ posTF },
+    covarianceTrackingFrame
+{
+  covTF
+}
+#else
+    positionTrackingFrame{},
+    covarianceTrackingFrame
+{
+}
+#endif
 {
   // Nothing to do
+#ifdef __OPENCL__
+  positionTrackingFrame.copy(posTF);
+  covarianceTrackingFrame.copy(covTF);
+#endif
 }
 } // namespace its
 } // namespace o2

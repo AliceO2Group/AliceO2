@@ -140,10 +140,13 @@ class TPCFastTransformGeo
   GPUd() void convUtoPad(int row, float u, float& pad) const;
 
   /// Print method
-  void Print() const;
+  void print() const;
 
   /// Method for testing consistency
-  int Test() const;
+  int test(int slice, int row, float ly, float lz ) const;
+
+  /// Method for testing consistency
+  int test() const;
 
  private:
   /// _______________  Data members  _______________________________________________

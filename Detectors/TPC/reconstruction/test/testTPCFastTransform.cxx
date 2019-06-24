@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
   const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
-  BOOST_CHECK_EQUAL(geo.Test(), 0);
+  BOOST_CHECK_EQUAL(geo.test(), 0);
 
   BOOST_CHECK_EQUAL(geo.getNumberOfSlices(), Sector::MAXSECTOR);
   BOOST_CHECK_EQUAL(geo.getNumberOfRows(), mapper.getNumberOfRows());

@@ -185,9 +185,19 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       { outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
         outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
         outerPar.C[12], outerPar.C[13], outerPar.C[14] }));
-    oTrack.resetClusterReferences(tracks[i].NClusters());
-    std::vector<std::pair<MCCompLabel, unsigned int>> labels;
+    int nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
+      if (!(trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject)) {
+        nOutCl++;
+      }
+    }
+    oTrack.resetClusterReferences(nOutCl);
+    std::vector<std::pair<MCCompLabel, unsigned int>> labels;
+    nOutCl = 0;
+    for (int j = 0; j < tracks[i].NClusters(); j++) {
+      if (trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject) {
+        continue;
+      }
       int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
@@ -196,7 +206,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
         regionNumber++;
       CRU cru(sector, regionNumber);
-      oTrack.setClusterReference(j, sector, globalRow, clusterId);
+      oTrack.setClusterReference(nOutCl++, sector, globalRow, clusterId);
       if (outputTracksMCTruth) {
         for (const auto& element : clusters.clustersMCTruth[sector][globalRow]->getLabels(clusterId)) {
           bool found = false;
@@ -224,8 +234,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
           }
         }
         MCCompLabel& bestLabel = labels[bestLabelNum].first;
-        if (bestLabelCount < (1.f - sTrackMCMaxFake) * tracks[i].NClusters())
+        if (bestLabelCount < (1.f - sTrackMCMaxFake) * nOutCl) {
           bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
+        }
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
     }

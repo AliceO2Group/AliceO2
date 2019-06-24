@@ -122,7 +122,7 @@ void TPCFastTransformGeo::finishConstruction()
   mConstructionMask = (unsigned int)ConstructionState::Constructed; // clear all other construction flags
 }
 
-void TPCFastTransformGeo::Print() const
+void TPCFastTransformGeo::print() const
 {
   /// Prints the geometry
 #if !defined(GPUCA_GPUCODE)
@@ -138,46 +138,43 @@ void TPCFastTransformGeo::Print() const
 #endif
 }
 
-int TPCFastTransformGeo::Test() const
+int TPCFastTransformGeo::test(int slice, int row, float ly, float lz ) const
 {
   /// Check consistency of the class
 
   int error = 0;
-
+  
   if (!isConstructed())
     error = -1;
 
   if (mNumberOfRows <= 0 || mNumberOfRows >= MaxNumberOfRows)
     error = -2;
 
-  int slice = 2;
-  int row = 10;
-
-  float lx = 10.f, ly = 10.f, lz = 10.f;
+  float lx = getRowInfo( row ).x;
   float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
   float gx = 0.f, gy = 0.f, gz = 0.f;
-
+  
   convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
   convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
 
   if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-8)
     error = -3;
+  
+  float u = 0.f, v = 0.f;
+  convLocalToUV(slice, ly, lz, u, v);
+  convUVtoLocal(slice, u, v, ly1, lz1);
 
-  float u = 10.f, v = 10.f;
-  float u1 = 0.f, v1 = 0.f;
-  convUVtoLocal(slice, u, v, ly, lz);
-  convLocalToUV(slice, ly, lz, u1, v1);
-
-  if (fabs(u1 - u) + fabs(v1 - v) > 1.e-8)
+  if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-8)
     error = -4;
-
+ 
   float su = 0.f, sv = 0.f;
 
   convUVtoScaledUV(slice, row, u, v, su, sv);
 
   if (su < 0.f || su > 1.f || sv < 0.f || sv > 1.f)
     error = -5;
-
+  
+  float u1 = 0.f, v1 = 0.f;
   convScaledUVtoUV(slice, row, su, sv, u1, v1);
 
   if (fabs(u1 - u) + fabs(v1 - v) > 1.e-8)
@@ -196,4 +193,11 @@ int TPCFastTransformGeo::Test() const
   }
 #endif
   return error;
+}
+
+int TPCFastTransformGeo::test() const
+{
+  /// Check consistency of the class
+  
+  retirn test( 2, 5, 10., 10.); // test at an arbitrary position
 }

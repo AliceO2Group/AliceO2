@@ -55,7 +55,7 @@ if (NOT ROOT_VERSION_MAJOR EQUAL 5)
         ../Common/FlatObject.h
         IrregularSpline1D.h
         IrregularSpline2D3D.h
-	SemiregularSpline2D3D.h	
+	SemiregularSpline2D3D.h
  	IrregularSpline2D3DCalibrator.h
         RegularSpline1D.h
         TPCFastTransformGeo.h
@@ -114,7 +114,6 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} DESTINATION include/GPU)
-    install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
 #    set(TEST_SRCS
 #      ctest/testGPUTracking.cxx

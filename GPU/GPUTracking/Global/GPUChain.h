@@ -59,6 +59,8 @@ class GPUChain
 
   GPUReconstruction::RecoStepField GetRecoSteps() const { return mRec->GetRecoSteps(); }
   GPUReconstruction::RecoStepField GetRecoStepsGPU() const { return mRec->GetRecoStepsGPU(); }
+  GPUReconstruction::InOutTypeField GetRecoStepsInputs() const { return mRec->GetRecoStepsInputs(); }
+  GPUReconstruction::InOutTypeField GetRecoStepsOutputs() const { return mRec->GetRecoStepsOutputs(); }
 
  protected:
   GPUReconstructionCPU* mRec;

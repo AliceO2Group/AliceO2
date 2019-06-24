@@ -19,7 +19,7 @@ EndConfig()
 
 BeginSubConfig(structConfigTF, configTF, configStandalone, "TF", 't', "Timeframe settings")
 AddOption(nMerge, int, 0, "merge", 0, "Merge n events in a timeframe", min(0))
-AddOption(averageDistance, float, 50., "mergeDist", 0, "Average distance of events merged into timeframe", min(0.f))
+AddOption(averageDistance, float, 50., "mergeDist", 0, "Average distance in cm of events merged into timeframe", min(0.f))
 AddOption(randomizeDistance, bool, true, "mergeRand", 0, "Randomize distance around average distance of merged events")
 AddOption(shiftFirstEvent, bool, true, "mergeFirst", 0, "Also shift the first event in z when merging events to a timeframe")
 AddOption(bunchSim, bool, false, "simBunches", 0, "Simulate correct bunch interactions instead of placing only the average number of events, ignores the merge parameters")
@@ -33,6 +33,7 @@ AddOption(noBorder, bool, false, "noBorder", 0, "Do not simulate border effects 
 AddOption(noEventRepeat, int, 0, "noEventRepeat", 0, "0: Place random events, 1: Place events in timeframe one after another, 2: Place random events but do not repat", def(1))
 AddOption(nTotalInTFEvents, int, 0, "nTotal", 0, "Total number of collisions to be placed in the interior of all time frames (excluding borders)")
 AddOption(eventStride, int, 0, "eventStride", 0, "Do not select random event, but walk over array of events in stride steps")
+AddOption(overlayRaw, bool, false, "overlayRaw", 0, "Overlay raw TPC data instead of spatial clusters")
 AddHelp("help", 'h')
 EndConfig()
 

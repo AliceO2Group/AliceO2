@@ -17,6 +17,7 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
+#include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
@@ -159,6 +160,10 @@ class TPCDPLDigitizerTask
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults();
+    if (!gSystem->AccessPathName("GainMap.root")) {
+      LOG(INFO) << "TPC: Using gain map from 'GainMap.root'" << FairLogger::endl;
+      cdb.setGainMapFromFile("GainMap.root");
+    }
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");

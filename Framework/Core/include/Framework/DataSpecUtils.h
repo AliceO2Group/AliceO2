@@ -15,6 +15,8 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Output.h"
 
+#include <optional>
+
 namespace o2
 {
 namespace framework
@@ -85,6 +87,9 @@ struct DataSpecUtils {
   /// For the moment this is trivial as the OutputSpec does not allow
   /// for wildcards.
   static ConcreteDataMatcher asConcreteDataMatcher(OutputSpec const& spec);
+
+  /// Get the subspec, if available.
+  static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);
 };
 
 } // namespace framework

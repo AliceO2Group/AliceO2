@@ -48,13 +48,8 @@ include_directories(${MS_GSL_INCLUDE_DIR})
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
-find_package(FairMQInFairRoot) # DEPRECATED: This looks for FairMQ embedded in old FairRoot versions,
-                               # before FairMQ and FairLogger have moved to separate repos.
-                               # Remove this line, once we require FairMQ 1.2+.
-if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we require FairMQ 1.2+
-  find_package(FairMQ REQUIRED)
-  find_package(FairLogger REQUIRED)
-endif()
+find_package(FairMQ REQUIRED)
+find_package(FairLogger REQUIRED)
 find_package(DDS)
 cmake_policy(SET CMP0077 NEW)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -327,11 +322,23 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    O2FrameworkLogger_bucket
+
+    DEPENDENCIES
+    FairLogger::FairLogger
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Logger/include
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
     arrow_bucket
     O2FrameworkFoundation_bucket
+    O2FrameworkLogger_bucket
     common_utils_bucket
     ROOTDataFrame
     ROOTVecOps
@@ -373,14 +380,17 @@ o2_define_bucket(
 )
 
 o2_define_bucket(
-        NAME
-        DPLUtils_bucket
+    NAME
+    DPLUtils_bucket
 
-        DEPENDENCIES
-        O2FrameworkCore_bucket
-        Core
-        O2Headers
-        O2Framework
+    DEPENDENCIES
+    O2FrameworkCore_bucket
+    Core
+    O2Headers
+    O2Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Utils/include
 )
 
 o2_define_bucket(
@@ -576,12 +586,6 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
 )
 
-if(FairLogger_FOUND)
-  # DEPRECATED: Remove this variable and use the value directly,
-  # once we require FairMQ 1.2+
-  set(FairLogger_DEP FairLogger::FairLogger)
-endif()
-
 # module DataFormats/MemoryResources
 o2_define_bucket(
     NAME
@@ -600,10 +604,9 @@ o2_define_bucket(
     FairTools
     Base GeoBase ParBase Geom Core VMC Tree
     common_boost_bucket
-    ${FairLogger_DEP}
+    O2FrameworkLogger_bucket
 
     INCLUDE_DIRECTORIES
-    ${FairLogger_INCDIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
@@ -623,10 +626,9 @@ o2_define_bucket(
     Boost::serialization
     pthread
     O2MemoryResources
-    ${FairLogger_DEP}
+    O2FrameworkLogger_bucket
 
     INCLUDE_DIRECTORIES
-    ${FairLogger_INCDIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
 
@@ -810,11 +812,10 @@ o2_define_bucket(
     Geom
     common_boost_bucket
     Boost::unit_test_framework
-    ${FairLogger_DEP}
+    O2FrameworkLogger_bucket
     rapidjson_bucket
 
     INCLUDE_DIRECTORIES
-    ${FairLogger_INCDIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
 
@@ -1234,7 +1235,6 @@ o2_define_bucket(
     ${Vc_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${FairLogger_INCDIR}
 )
 
 o2_define_bucket(
@@ -2244,6 +2244,7 @@ o2_define_bucket(
     data_format_its_bucket
 
     DEPENDENCIES
+    data_format_common_bucket
     data_format_reconstruction_bucket
     #
     O2ReconstructionDataFormats

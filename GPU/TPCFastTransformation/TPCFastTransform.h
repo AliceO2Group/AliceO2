@@ -150,6 +150,9 @@ class TPCFastTransform : public FlatObject
   /// Gives the time stamp of the current calibaration parameters
   long int getTimeStamp() const { return mTimeStamp; }
 
+  /// Return mVDrift in cm / time bin
+  GPUd() float getVDrift() const { return mVdrift; }
+
   /// Print method
   void Print() const;
 
