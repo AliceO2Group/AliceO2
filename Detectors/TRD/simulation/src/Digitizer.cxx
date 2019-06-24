@@ -52,7 +52,7 @@ Digitizer::Digitizer()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont)
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   // (WIP) Implementation for digitization
 
@@ -60,6 +60,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
   SignalContainer_t adcMapCont;
+  mLabels.clear();
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -95,6 +96,11 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // Finalize
   Digit::convertMapToVectors(adcMapCont, digitCont);
+
+  // MC labels
+  for (int i = 0; i < mLabels.size(); ++i) {
+    labels.addElement(i, mLabels[i]);
+  }
 }
 
 void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
@@ -162,6 +168,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   // Loop over hits
   for (const auto& hit : hits) {
+    bool isDigit = false;
     const int qTotal = hit.GetCharge();
     pos[0] = hit.GetX();
     pos[1] = hit.GetY();
@@ -359,10 +366,12 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Update the final signal
           adcMapCont[key][iTimeBin] = signalOld[iPad];
+          isDigit = true;
         } // Loop: pads
       }   // Loop: time bins
     }     // end of loop over electrons
-  }       // end of loop over hits
+    mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
+  } // end of loop over hits
   return true;
 }
 
