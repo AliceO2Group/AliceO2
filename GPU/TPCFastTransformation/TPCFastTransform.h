@@ -154,7 +154,7 @@ class TPCFastTransform : public FlatObject
   GPUd() float getVDrift() const { return mVdrift; }
 
   /// Print method
-  void Print() const;
+  void print() const;
 
  private:
   /// Enumeration of possible initialization states

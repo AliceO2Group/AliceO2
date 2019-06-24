@@ -134,7 +134,7 @@ void TPCFastTransform::finishConstruction()
   mDistortion.moveBufferTo(mFlatBufferPtr);
 }
 
-void TPCFastTransform::Print() const
+void TPCFastTransform::print() const
 {
 #if !defined(GPUCA_GPUCODE)
   std::cout << "TPC Fast Transformation: " << std::endl;
@@ -146,6 +146,6 @@ void TPCFastTransform::Print() const
   std::cout << "mLdriftCorr = " << mLdriftCorr << std::endl;
   std::cout << "mTOFcorr = " << mTOFcorr << std::endl;
   std::cout << "mPrimVtxZ = " << mPrimVtxZ << std::endl;
-  mDistortion.Print();
+  mDistortion.print();
 #endif
 }

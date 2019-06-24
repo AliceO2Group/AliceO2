@@ -123,6 +123,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
         for (float time = 0; time < 1000; time += 30) {
           //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
+          BOOST_CHECK_EQUAL(geo.test(slice, row, pad, time), 0);
+
           fastTransform->setApplyDistortionOff();
           float x0, y0, z0;
           fastTransform->Transform(slice, row, pad, time, x0, y0, z0);

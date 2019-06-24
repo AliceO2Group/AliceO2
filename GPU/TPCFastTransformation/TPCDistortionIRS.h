@@ -126,7 +126,7 @@ class TPCDistortionIRS : public FlatObject
   GPUd() const RowSplineInfo& getRowSplineInfo(int row) const { return mRowSplineInfoPtr[row]; }
 
   /// Print method
-  void Print() const;
+  void print() const;
 
  private:
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);

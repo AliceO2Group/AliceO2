@@ -96,7 +96,15 @@ void TPCFastTransformGeo::setTPCrow(int iRow, float x, int nPads, float padWidth
   assert(nPads > 1);
   assert(padWidth > 0.);
 
-  double uWidth = (nPads - 1) * padWidth;
+  // Make scaled U = area between centers of the first and the last pad
+
+  // double uWidth = (nPads - 1) * padWidth;
+
+  // Make scaled U = area between the geometrical sector borders
+
+  const double sectorAngle = 2. * M_PI / NumberOfSlices;
+  const double scaleXtoRowWidth = 2. * tan(0.5 * sectorAngle);
+  double uWidth = x * scaleXtoRowWidth; // distance to the sector border
 
   RowInfo& row = mRowInfos[iRow];
   row.x = x;
@@ -198,6 +206,6 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz ) const
 int TPCFastTransformGeo::test() const
 {
   /// Check consistency of the class
-  
-  retirn test( 2, 5, 10., 10.); // test at an arbitrary position
+
+  return test(2, 5, 10., 10.); // test at an arbitrary position
 }

@@ -262,11 +262,11 @@ void TPCDistortionIRS::finishConstruction()
   }
 }
 
-void TPCDistortionIRS::Print() const
+void TPCDistortionIRS::print() const
 {
 #if !defined(GPUCA_GPUCODE)
   std::cout << " TPC DistortionIRS: " << std::endl;
-  mGeo.Print();
+  mGeo.print();
   std::cout << "  mNumberOfScenarios = " << mNumberOfScenarios << std::endl;
   std::cout << "  mTimeStamp = " << mTimeStamp << std::endl;
   std::cout << "  mSliceDataSizeBytes = " << mSliceDataSizeBytes << std::endl;
@@ -277,7 +277,7 @@ void TPCDistortionIRS::Print() const
   }
   for (int i = 0; i < mNumberOfScenarios; i++) {
     std::cout << " SplineScenario " << i << ": " << std::endl;
-    mScenarioPtr[i].Print();
+    mScenarioPtr[i].print();
   }
   std::cout << " Spline Data: " << std::endl;
   for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
