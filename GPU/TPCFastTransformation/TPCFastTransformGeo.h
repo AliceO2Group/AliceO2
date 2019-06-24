@@ -143,7 +143,7 @@ class TPCFastTransformGeo
   void print() const;
 
   /// Method for testing consistency
-  int test(int slice, int row, float ly, float lz ) const;
+  int test(int slice, int row, float ly, float lz) const;
 
   /// Method for testing consistency
   int test() const;

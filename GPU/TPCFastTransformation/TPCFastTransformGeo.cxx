@@ -146,42 +146,42 @@ void TPCFastTransformGeo::print() const
 #endif
 }
 
-int TPCFastTransformGeo::test(int slice, int row, float ly, float lz ) const
+int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
 {
   /// Check consistency of the class
 
   int error = 0;
-  
+
   if (!isConstructed())
     error = -1;
 
   if (mNumberOfRows <= 0 || mNumberOfRows >= MaxNumberOfRows)
     error = -2;
 
-  float lx = getRowInfo( row ).x;
+  float lx = getRowInfo(row).x;
   float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
   float gx = 0.f, gy = 0.f, gz = 0.f;
-  
+
   convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
   convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
 
   if (fabs(lx1 - lx) + fabs(ly1 - ly) + fabs(ly1 - ly) > 1.e-8)
     error = -3;
-  
+
   float u = 0.f, v = 0.f;
   convLocalToUV(slice, ly, lz, u, v);
   convUVtoLocal(slice, u, v, ly1, lz1);
 
   if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-8)
     error = -4;
- 
+
   float su = 0.f, sv = 0.f;
 
   convUVtoScaledUV(slice, row, u, v, su, sv);
 
   if (su < 0.f || su > 1.f || sv < 0.f || sv > 1.f)
     error = -5;
-  
+
   float u1 = 0.f, v1 = 0.f;
   convScaledUVtoUV(slice, row, su, sv, u1, v1);
 
