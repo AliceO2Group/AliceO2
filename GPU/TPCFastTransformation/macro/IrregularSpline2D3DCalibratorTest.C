@@ -325,11 +325,11 @@ int IrregularSpline2D3DCalibratorTest()
       canv->Update();
 
     std::cout << " input spline: " << std::endl;
-    splineF.getGrid(0).Print();
-    splineF.getGrid(1).Print();
+    splineF.getGrid(0).print();
+    splineF.getGrid(1).print();
     std::cout << " output spline: " << std::endl;
-    finder.getSpline().getGrid(0).Print();
-    finder.getSpline().getGrid(1).Print();
+    finder.getSpline().getGrid(0).print();
+    finder.getSpline().getGrid(1).print();
     cout << "seed = " << seed << std::endl;
 
     if (kAsk)
