@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   double statDiff = 0., statN = 0.;
 
   for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
-    std::cout << "slice " << slice << " ... " << std::endl;
+    // std::cout << "slice " << slice << " ... " << std::endl;
 
     const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
