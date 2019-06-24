@@ -199,21 +199,21 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using CUDA Device %s with Properties:", cudaDeviceProp.name);
-    GPUInfo("totalGlobalMem = %lld", (unsigned long long int)cudaDeviceProp.totalGlobalMem);
-    GPUInfo("sharedMemPerBlock = %lld", (unsigned long long int)cudaDeviceProp.sharedMemPerBlock);
-    GPUInfo("regsPerBlock = %d", cudaDeviceProp.regsPerBlock);
-    GPUInfo("warpSize = %d", cudaDeviceProp.warpSize);
-    GPUInfo("memPitch = %lld", (unsigned long long int)cudaDeviceProp.memPitch);
-    GPUInfo("maxThreadsPerBlock = %d", cudaDeviceProp.maxThreadsPerBlock);
-    GPUInfo("maxThreadsDim = %d %d %d", cudaDeviceProp.maxThreadsDim[0], cudaDeviceProp.maxThreadsDim[1], cudaDeviceProp.maxThreadsDim[2]);
-    GPUInfo("maxGridSize = %d %d %d", cudaDeviceProp.maxGridSize[0], cudaDeviceProp.maxGridSize[1], cudaDeviceProp.maxGridSize[2]);
-    GPUInfo("totalConstMem = %lld", (unsigned long long int)cudaDeviceProp.totalConstMem);
-    GPUInfo("major = %d", cudaDeviceProp.major);
-    GPUInfo("minor = %d", cudaDeviceProp.minor);
-    GPUInfo("clockRate = %d", cudaDeviceProp.clockRate);
-    GPUInfo("memoryClockRate = %d", cudaDeviceProp.memoryClockRate);
-    GPUInfo("multiProcessorCount = %d", cudaDeviceProp.multiProcessorCount);
-    GPUInfo("textureAlignment = %lld", (unsigned long long int)cudaDeviceProp.textureAlignment);
+    GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)cudaDeviceProp.totalGlobalMem);
+    GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)cudaDeviceProp.sharedMemPerBlock);
+    GPUInfo("\tregsPerBlock = %d", cudaDeviceProp.regsPerBlock);
+    GPUInfo("\twarpSize = %d", cudaDeviceProp.warpSize);
+    GPUInfo("\tmemPitch = %lld", (unsigned long long int)cudaDeviceProp.memPitch);
+    GPUInfo("\tmaxThreadsPerBlock = %d", cudaDeviceProp.maxThreadsPerBlock);
+    GPUInfo("\tmaxThreadsDim = %d %d %d", cudaDeviceProp.maxThreadsDim[0], cudaDeviceProp.maxThreadsDim[1], cudaDeviceProp.maxThreadsDim[2]);
+    GPUInfo("\tmaxGridSize = %d %d %d", cudaDeviceProp.maxGridSize[0], cudaDeviceProp.maxGridSize[1], cudaDeviceProp.maxGridSize[2]);
+    GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)cudaDeviceProp.totalConstMem);
+    GPUInfo("\tmajor = %d", cudaDeviceProp.major);
+    GPUInfo("\tminor = %d", cudaDeviceProp.minor);
+    GPUInfo("\tclockRate = %d", cudaDeviceProp.clockRate);
+    GPUInfo("\tmemoryClockRate = %d", cudaDeviceProp.memoryClockRate);
+    GPUInfo("\tmultiProcessorCount = %d", cudaDeviceProp.multiProcessorCount);
+    GPUInfo("\ttextureAlignment = %lld", (unsigned long long int)cudaDeviceProp.textureAlignment);
     GPUInfo(" ");
   }
   mCoreCount = cudaDeviceProp.multiProcessorCount;
