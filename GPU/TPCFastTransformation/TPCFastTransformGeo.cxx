@@ -190,7 +190,7 @@ int TPCFastTransformGeo::test(int slice, int row, float ly, float lz) const
   float u1 = 0.f, v1 = 0.f;
   convScaledUVtoUV(slice, row, su, sv, u1, v1);
 
-  if (fabs(u1 - u) > 1.e-5 + fabs(v1 - v) > 1.e-5) {
+  if (fabs(u1 - u) > 1.e-4 + fabs(v1 - v) > 1.e-4) {
     std::cout << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v << std::endl;
     error = -6;
   }
