@@ -111,6 +111,7 @@ int ReadConfiguration(int argc, char** argv)
 
 #ifndef _WIN32
   setlocale(LC_ALL, "");
+  setlocale(LC_NUMERIC, "");
   if (configStandalone.affinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
