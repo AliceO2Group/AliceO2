@@ -16,8 +16,8 @@
 #ifndef O2_MID_CLUSTER3D_H
 #define O2_MID_CLUSTER3D_H
 
+#include <ostream>
 #include <cstdint>
-#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
@@ -25,12 +25,21 @@ namespace mid
 {
 /// 3D cluster structure for MID
 struct Cluster3D {
-  uint16_t id;             ///< Unique Id of the cluster in the detection element
-  uint8_t deId;            ///< Index of the detection element
-  Point3D<float> position; ///< Global position
-  float sigmaX2;           ///< Dispersion along x
-  float sigmaY2;           ///< Dispersion along y
+  uint8_t deId;  ///< Index of the detection element
+  float xCoor;   ///< x coordinate
+  float yCoor;   ///< y coordinate
+  float zCoor;   ///< z coordinate
+  float sigmaX2; ///< Dispersion along x
+  float sigmaY2; ///< Dispersion along y
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Cluster3D& data)
+{
+  /// Overload ostream operator
+  os << "deId: " << static_cast<int>(data.deId) << "  position: (" << data.xCoor << ", " << data.yCoor << ", " << data.zCoor << ")  variance: (" << data.sigmaX2 << ", " << data.sigmaY2 << ")";
+  return os;
+}
+
 } // namespace mid
 } // namespace o2
 
