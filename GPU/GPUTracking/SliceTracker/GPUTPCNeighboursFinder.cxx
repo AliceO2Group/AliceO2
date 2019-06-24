@@ -114,12 +114,10 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
   if ((iBlock <= 1) || (iBlock >= GPUCA_ROW_COUNT - 2)) {
     return;
   }
-
 #else
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
     return;
   }
-
 #endif
 
   float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
@@ -222,7 +220,6 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
 #else
             float2 yzup = yzUp[iUp];
 #endif
-
             float dy = yzdn.x - yzup.x;
             float dz = yzdn.y - yzup.y;
             float d = dy * dy + dz * dz;
