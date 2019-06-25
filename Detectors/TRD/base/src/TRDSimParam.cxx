@@ -82,7 +82,7 @@ TRDSimParam::TRDSimParam()
     mTRFbin(0),
     mTRFlo(0.0),
     mTRFhi(0.0),
-    mTRFwid(0.0),
+    mInvTRFwid(0.0),
     mCTOn(false),
     mCTsmp(nullptr),
     mPadCoupling(0.0),
@@ -193,7 +193,7 @@ void TRDSimParam::ReInit()
   } else {
     LOG(FATAL) << "Not a valid gas mixture!\n";
   }
-  mTRFwid = (mTRFhi - mTRFlo) / ((float)mTRFbin);
+  mInvTRFwid = ((float)mTRFbin) / (mTRFhi - mTRFlo); // Inverse of the bin width of the integrated TRF
 
   // Create the sampled TRF
   SampleTRF();
@@ -246,10 +246,10 @@ void TRDSimParam::SampleTRF()
   // time bins are 0.02, 0.06, 0.10, ...., 1.90, 1.94, 1.98 microseconds
   const int kNpasaAr = 50;
   float xtalkAr[kNpasaAr];
-  float signalAr[kNpasaAr] = { -0.01, 0.01,  0.00,  0.00,  0.01, -0.01, 0.01, 2.15, 22.28, 55.53, 68.52, 58.21, 40.92,
-                               27.12, 18.49, 13.42, 10.48, 8.67, 7.49,  6.55, 5.71, 5.12,  4.63,  4.22,  3.81,  3.48,
-                               3.20,  2.94,  2.77,  2.63,  2.50, 2.37,  2.23, 2.13, 2.03,  1.91,  1.83,  1.75,  1.68,
-                               1.63,  1.56,  1.49,  1.50,  1.49, 1.29,  1.19, 1.21, 1.21,  1.20,  1.10 };
+  float signalAr[kNpasaAr] = { -0.01, 0.01, 0.00, 0.00, 0.01, -0.01, 0.01, 2.15, 22.28, 55.53, 68.52, 58.21, 40.92,
+                               27.12, 18.49, 13.42, 10.48, 8.67, 7.49, 6.55, 5.71, 5.12, 4.63, 4.22, 3.81, 3.48,
+                               3.20, 2.94, 2.77, 2.63, 2.50, 2.37, 2.23, 2.13, 2.03, 1.91, 1.83, 1.75, 1.68,
+                               1.63, 1.56, 1.49, 1.50, 1.49, 1.29, 1.19, 1.21, 1.21, 1.20, 1.10 };
   // Normalization to maximum
   for (ipasa = 0; ipasa < kNpasaAr; ipasa++) {
     signalAr[ipasa] /= 68.52;
@@ -293,40 +293,5 @@ void TRDSimParam::SampleTRF()
       mTRFsmp[iBin] = signalAr[iBin];
       mCTsmp[iBin] = xtalkAr[iBin];
     }
-  }
-}
-
-//_____________________________________________________________________________
-double TRDSimParam::TimeResponse(double time) const
-{
-  //
-  // Applies the preamp shaper time response
-  // (We assume a signal rise time of 0.2us = fTRFlo/2.
-  //
-
-  double rt = (time - .5 * mTRFlo) / mTRFwid;
-  int iBin = (int)rt;
-  double dt = rt - iBin;
-  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
-    return mTRFsmp[iBin] + (mTRFsmp[iBin + 1] - mTRFsmp[iBin]) * dt;
-  } else {
-    return 0.0;
-  }
-}
-
-//_____________________________________________________________________________
-double TRDSimParam::CrossTalk(double time) const
-{
-  //
-  // Applies the pad-pad capacitive cross talk
-  //
-
-  double rt = (time - mTRFlo) / mTRFwid;
-  int iBin = (int)rt;
-  double dt = rt - iBin;
-  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
-    return mCTsmp[iBin] + (mCTsmp[iBin + 1] - mCTsmp[iBin]) * dt;
-  } else {
-    return 0.0;
   }
 }
