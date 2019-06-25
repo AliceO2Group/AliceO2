@@ -11,15 +11,11 @@ SET(SRCS
   src/TRDSimParam.cxx
   src/PadResponse.cxx
   src/Digit.cxx
-  src/TRDArrayADC.cxx
-  src/TRDArrayDictionary.cxx
-  src/TRDArraySignal.cxx
   src/TRDCalPadStatus.cxx
   src/TRDCalSingleChamberStatus.cxx
   src/CalDet.cxx
   src/CalROC.cxx
   src/TRDFeeParam.cxx
-  src/TRDSignalIndex.cxx
 )
 
 SET(HEADERS
@@ -32,16 +28,11 @@ SET(HEADERS
   include/${MODULE_NAME}/PadResponse.h
   include/${MODULE_NAME}/Digit.h
   include/${MODULE_NAME}/MCLabel.h
-  include/${MODULE_NAME}/TRDDigitsParam.h
-  include/${MODULE_NAME}/TRDArrayADC.h
-  include/${MODULE_NAME}/TRDArrayDictionary.h
-  include/${MODULE_NAME}/TRDArraySignal.h
   include/${MODULE_NAME}/TRDCalPadStatus.h
   include/${MODULE_NAME}/TRDCalSingleChamberStatus.h
   include/${MODULE_NAME}/CalDet.h
   include/${MODULE_NAME}/CalROC.h
   include/${MODULE_NAME}/TRDFeeParam.h
-  include/${MODULE_NAME}/TRDSignalIndex.h
 )
 
 SET(LINKDEF src/TRDBaseLinkDef.h)

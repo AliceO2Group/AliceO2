@@ -21,14 +21,11 @@
 #pragma link C++ class o2::trd::TRDSimParam + ;
 #pragma link C++ class o2::trd::Digit + ;
 #pragma link C++ class std::vector<o2::trd::Digit> + ;
-#pragma link C++ class o2::trd::TRDDigitsParam +;
 #pragma link C++ class o2::trd::TRDFeeParam + ;
-#pragma link C++ class o2::trd::TRDSignalIndex + ;
 #pragma link C++ class o2::trd::TRDCalSingleChamberStatus + ;
 #pragma link C++ class o2::trd::TRDCalPadStatus + ;
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
-#pragma link C++ class o2::trd::TRDArrayADC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
 
 #pragma link C++ class o2::trd::MCLabel + ;
