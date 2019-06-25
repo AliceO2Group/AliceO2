@@ -200,7 +200,7 @@ void IrregularSpline1D::constructRegular(int numberOfKnots)
   construct(numberOfKnots, knots.data(), numberOfKnots);
 }
 
-void IrregularSpline1D::Print() const
+void IrregularSpline1D::print() const
 {
 #if !defined(GPUCA_GPUCODE)
   std::cout << " Irregular Spline 1D: " << std::endl;

@@ -48,18 +48,22 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
   const Mapper& mapper = Mapper::instance();
 
-  BOOST_CHECK_EQUAL(fastTransform.getNumberOfSlices(), Sector::MAXSECTOR);
-  BOOST_CHECK_EQUAL(fastTransform.getNumberOfRows(), mapper.getNumberOfRows());
+  const TPCFastTransformGeo& geo = fastTransform.getGeometry();
+
+  BOOST_CHECK_EQUAL(geo.test(), 0);
+
+  BOOST_CHECK_EQUAL(geo.getNumberOfSlices(), Sector::MAXSECTOR);
+  BOOST_CHECK_EQUAL(geo.getNumberOfRows(), mapper.getNumberOfRows());
 
   double maxDx = 0, maxDy = 0;
 
-  for (int row = 0; row < fastTransform.getNumberOfRows(); row++) {
+  for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-    int nPads = fastTransform.getRowInfo(row).maxPad + 1;
+    int nPads = geo.getRowInfo(row).maxPad + 1;
 
     BOOST_CHECK_EQUAL(nPads, mapper.getNumberOfPadsInRowSector(row));
 
-    double x = fastTransform.getRowInfo(row).x;
+    double x = geo.getRowInfo(row).x;
 
     // check if calculated pad positions are equal to the real ones
 
@@ -67,8 +71,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
       float u = 0, v = 0;
-      int err = fastTransform.convPadTimeToUV(0, row, pad, 0, u, v, 0.);
-      BOOST_CHECK_EQUAL(err, 0);
+      fastTransform.convPadTimeToUV(0, row, pad, 0, u, v, 0.);
 
       double dx = x - c.X();
       double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
@@ -102,41 +105,39 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
-  std::cout << "mark 1" << std::endl;
+  const TPCFastTransformGeo& geo = fastTransform->getGeometry();
+
   double statDiff = 0., statN = 0.;
 
-  for (int slice = 0; slice < fastTransform->getNumberOfSlices(); slice += 1) {
-    std::cout << "slice " << slice << " ... " << std::endl;
+  for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
+    // std::cout << "slice " << slice << " ... " << std::endl;
 
-    const TPCFastTransform::SliceInfo& sliceInfo = fastTransform->getSliceInfo(slice);
+    const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    for (int row = 0; row < fastTransform->getNumberOfRows(); row++) {
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-      int nPads = fastTransform->getRowInfo(row).maxPad + 1;
+      int nPads = geo.getRowInfo(row).maxPad + 1;
 
       for (int pad = 0; pad < nPads; pad += 10) {
 
         for (float time = 0; time < 1000; time += 30) {
           //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
-          fastTransform->setApplyDistortionFlag(0);
+          fastTransform->setApplyDistortionOff();
           float x0, y0, z0;
-          int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
-          fastTransform->setApplyDistortionFlag(1);
+          BOOST_CHECK_EQUAL(geo.test(slice, row, y0, z0), 0);
+
+          fastTransform->setApplyDistortionOn();
           float x1, y1, z1;
-          int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
-
-          if (err0 != 0 || err1 != 0) {
-            std::cout << "can not transform!!" << std::endl;
-            continue;
-          }
+          fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           // local 2 global
           float gx0, gy0, gz0;
-          fastTransform->convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
+          geo.convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
           float gx1, gy1, gz1;
-          fastTransform->convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
+          geo.convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
 
           double xyz[3] = { gx0, gy0, gz0 };
           double d[3] = { 0, 0, 0 };
