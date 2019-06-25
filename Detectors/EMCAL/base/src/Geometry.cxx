@@ -760,6 +760,23 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
   return GetAbsCellId(nSupMod, std::get<2>(indexmod), nIphi, nIeta);
 }
 
+std::tuple<int, int> Geometry::GlobalColRowFromIndex(int cellID) const
+{
+  return std::make_tuple<int, int>(GlobalCol(cellID), GlobalRow(cellID));
+}
+
+int Geometry::GlobalCol(int cellID) const
+{
+  int neta = mNZ * 2; // 2 supermodules in eta
+  return cellID % neta;
+}
+
+int Geometry::GlobalRow(int cellID) const
+{
+  int neta = mNZ * 2;
+  return cellID / neta;
+}
+
 Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
 {
   if (TMath::Abs(eta) > mEtaMaxOfTRD1)
