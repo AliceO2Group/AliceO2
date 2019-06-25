@@ -32,7 +32,7 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       DataHeader dh;
       dh.dataOrigin = spec.origin;
       dh.dataDescription = spec.description;
-      dh.subSpecification = dbh->linkId;
+      dh.subSpecification = spec.subSpec;
       dh.payloadSize = dbh->dataSize;
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
