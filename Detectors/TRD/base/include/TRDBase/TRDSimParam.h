@@ -80,8 +80,37 @@ class TRDSimParam
   bool CTOn() const { return mCTOn; }
   bool TimeStructOn() const { return mTimeStructOn; }
   bool PRFOn() const { return mPRFOn; }
-  double TimeResponse(double time) const;
-  double CrossTalk(double time) const;
+  inline double TimeResponse(double time) const
+  {
+    //
+    // Applies the preamp shaper time response
+    // (We assume a signal rise time of 0.2us = fTRFlo/2.
+    //
+
+    double rt = (time - .5 * mTRFlo) * mInvTRFwid;
+    int iBin = (int)rt;
+    double dt = rt - iBin;
+    if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
+      return mTRFsmp[iBin] + (mTRFsmp[iBin + 1] - mTRFsmp[iBin]) * dt;
+    } else {
+      return 0.0;
+    }
+  }
+  inline double CrossTalk(double time) const
+  {
+    //
+    // Applies the pad-pad capacitive cross talk
+    //
+
+    double rt = (time - mTRFlo) * mInvTRFwid;
+    int iBin = (int)rt;
+    double dt = rt - iBin;
+    if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
+      return mCTsmp[iBin] + (mCTsmp[iBin + 1] - mCTsmp[iBin]) * dt;
+    } else {
+      return 0.0;
+    }
+  }
 
   const int getNumberOfPadsInPadResponse() const { return kNPadsInPadResponse; }
 
@@ -106,12 +135,12 @@ class TRDSimParam
   int mElAttachOn;     //  Switch for the electron attachment
   float mElAttachProp; //  Propability for electron attachment (for 1m)
 
-  int mTRFOn;     //  Switch for the time response
-  float* mTRFsmp; //! Integrated time response
-  int mTRFbin;    //  Number of bins for the TRF
-  float mTRFlo;   //  Lower boundary of the TRF
-  float mTRFhi;   //  Higher boundary of the TRF
-  float mTRFwid;  //  Bin width of the integrated TRF
+  int mTRFOn;       //  Switch for the time response
+  float* mTRFsmp;   //! Integrated time response
+  int mTRFbin;      //  Number of bins for the TRF
+  float mTRFlo;     //  Lower boundary of the TRF
+  float mTRFhi;     //  Higher boundary of the TRF
+  float mInvTRFwid; //  Inverse of the bin width of the integrated TRF
 
   int mCTOn;     //  Switch for cross talk
   float* mCTsmp; //! Integrated cross talk
