@@ -30,16 +30,16 @@ class Digit : public DigitBase
 {
  public:
   Digit() = default;
-  
+
   Digit(double time, int detid, int pad, double adc);
   ~Digit() = default;
-  
+
   int getDetID() const { return mDetID; }
   void setDetID(int detid) { mDetID = detid; }
-  
+
   int getPadID() const { return mPadID; }
   void setPadID(int pad) { mPadID = pad; }
-  
+
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
 
