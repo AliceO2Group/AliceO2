@@ -70,7 +70,7 @@ void StreamCompaction::setup(
 {
     this->type = type;
 
-    prg = env.buildFromSrc("streamCompaction.cl");  
+    prg = env.getProgram();
 
     context = env.getContext();
     device = env.getDevice();

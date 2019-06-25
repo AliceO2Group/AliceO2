@@ -9,8 +9,9 @@ using namespace gpucf;
 namespace fs = filesystem;
 
 
-Experiment::Experiment(fs::path base)
-    : baseDir(base)
+Experiment::Experiment(fs::path base, ClusterFinderConfig cfg)
+    : cfg(cfg)
+    , baseDir(base)
 {
 }
 
