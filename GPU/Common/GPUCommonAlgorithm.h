@@ -39,7 +39,7 @@ class GPUCommonAlgorithm
  private:
   //Quicksort implementation
   template <class T>
-  GPUd() static void SortSwap(T* v1, T* v2);
+  GPUd() static void SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2);
   template <class T>
   GPUd() static T* QuicksortPartition(T* left, T* right);
   template <class T>
@@ -61,7 +61,7 @@ class GPUCommonAlgorithm
 };
 
 template <class T>
-GPUdi() void GPUCommonAlgorithm::SortSwap(T* v1, T* v2)
+GPUdi() void GPUCommonAlgorithm::SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2)
 {
   T tmp = *v1;
   *v1 = *v2;
