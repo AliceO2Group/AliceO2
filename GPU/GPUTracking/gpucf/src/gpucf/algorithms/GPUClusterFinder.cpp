@@ -469,8 +469,7 @@ void GPUClusterFinder::setup(
     log::Info() << "Found " << numOfRows << " rows";
 
     size_t chargeSize = 
-        (config.halfs) ? sizeof(cl_half)
-                                      : sizeof(cl_float);
+        (config.halfs) ? sizeof(cl_half) : sizeof(cl_float);
 
     size_t mapEntries = numOfRows 
         * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED;
@@ -488,7 +487,7 @@ void GPUClusterFinder::setup(
 
     workers.clear();
 
-    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
+    cl::Program cfprg = env.getProgram();
     for (size_t i = 0; i < config.chunks; i++)
     {
         workers.emplace_back(
@@ -672,32 +671,32 @@ void GPUClusterFinder::fillPackedDigits()
     }
 }
 
-void GPUClusterFinder::addDefines(ClEnv &env)
+void GPUClusterFinder::addDefines(ClEnv &)
 {
-    switch (config.layout)
-    {
-    #define MEMORY_LAYOUT(name, def, desc) \
-        case ChargemapLayout::name: \
-            env.addDefine(def); \
-            break;
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-    }
+    /* switch (config.layout) */
+    /* { */
+    /* #define MEMORY_LAYOUT(name, def, desc) \ */
+    /*     case ChargemapLayout::name: \ */
+    /*         env.addDefine(def); \ */
+    /*         break; */
+    /* #include <gpucf/algorithms/ClusterFinderFlags.def> */
+    /* } */
 
-    switch (config.clusterbuilder)
-    {
-    #define CLUSTER_BUILDER(name, def, desc) \
-        case ClusterBuilder::name: \
-            env.addDefine(def); \
-            break;
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-    }
+    /* switch (config.clusterbuilder) */
+    /* { */
+    /* #define CLUSTER_BUILDER(name, def, desc) \ */
+    /*     case ClusterBuilder::name: \ */
+    /*         env.addDefine(def); \ */
+    /*         break; */
+    /* #include <gpucf/algorithms/ClusterFinderFlags.def> */
+    /* } */
 
-    #define CLUSTER_FINDER_FLAG(name, val, def, desc) \
-        if (config.name) \
-        { \
-            env.addDefine(def); \
-        }
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
+    /* #define CLUSTER_FINDER_FLAG(name, val, def, desc) \ */
+    /*     if (config.name) \ */
+    /*     { \ */
+    /*         env.addDefine(def); \ */
+    /*     } */
+    /* #include <gpucf/algorithms/ClusterFinderFlags.def> */
 }
 
 

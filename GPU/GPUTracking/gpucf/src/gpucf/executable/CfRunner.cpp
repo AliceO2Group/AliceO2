@@ -80,7 +80,6 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 int CfRunner::mainImpl()
 {
-    ClEnv env(*envFlags); 
 
     DataSet digitSet;
     digitSet.read(args::get(*digitFile));
@@ -113,12 +112,13 @@ int CfRunner::mainImpl()
     {
         ReferenceClusterFinder cf(config);    
 
-        std::vector<Cluster> res = cf.run(digits);
-        clusters.serialize(res);
+        auto res = cf.run(digits);
+        clusters.serialize(res.cluster);
     }
     else
     {
         GPUClusterFinder cf;
+        ClEnv env(*envFlags, config); 
         cf.setup(config, env, digits);
         auto cfRes = cf.run();
         clusters.serialize(cfRes.clusters);

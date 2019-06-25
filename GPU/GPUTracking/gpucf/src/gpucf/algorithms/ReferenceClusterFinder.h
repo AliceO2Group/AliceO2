@@ -15,9 +15,15 @@ class ReferenceClusterFinder
 {
 
 public:
+    struct Result
+    {
+        std::vector<Cluster> cluster;
+        std::vector<Digit>  peaks;    
+    };
+
     ReferenceClusterFinder(ClusterFinderConfig);
 
-    std::vector<Cluster> run(nonstd::span<const Digit>);
+    Result run(nonstd::span<const Digit>);
 
 private:
 

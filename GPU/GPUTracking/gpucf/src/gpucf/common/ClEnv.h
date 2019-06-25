@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gpucf/algorithms/ClusterFinderConfig.h>
+
 #include <CL/cl2.hpp>
 
 #include <args/args.hxx>
@@ -35,9 +37,9 @@ public:
     };
 
 
-    ClEnv(const filesystem::path &srcDir, size_t gpuId=0);
-    ClEnv(Flags &flags) 
-        : ClEnv(args::get(flags.clSrcDir), args::get(flags.gpuId)) 
+    ClEnv(const filesystem::path &srcDir, ClusterFinderConfig cfg, size_t gpuid=0);
+    ClEnv(Flags &flags, ClusterFinderConfig cfg) 
+        : ClEnv(args::get(flags.clSrcDir), cfg, args::get(flags.gpuId)) 
     {
     }
 
@@ -46,18 +48,20 @@ public:
         return context; 
     }
 
+    cl::Program getProgram() const
+    {
+        return program;
+    }
+
     cl::Device  getDevice()  const 
     { 
         return devices[gpuId]; 
     }
 
-    cl::Program buildFromSrc(const filesystem::path &);
-            
-    cl::Program::Sources loadSrc(const filesystem::path &srcFile);
-
-    void addDefine(const std::string &);
 
 private:
+    static const std::vector<filesystem::path> srcs;
+
     std::vector<cl::Platform> platforms;
     std::vector<cl::Device> devices;
 
@@ -66,8 +70,16 @@ private:
     size_t gpuId;
 
     cl::Context context;
+    cl::Program program;
 
     filesystem::path sourceDir;
+
+
+    cl::Program buildFromSrc();
+            
+    cl::Program::Sources loadSrc(const std::vector<filesystem::path> &srcFiles);
+
+    void addDefine(const std::string &);
 };
 
 }

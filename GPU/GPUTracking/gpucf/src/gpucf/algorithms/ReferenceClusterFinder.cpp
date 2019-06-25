@@ -13,7 +13,7 @@ ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
 {
 }
 
-std::vector<Cluster> ReferenceClusterFinder::run(
+ReferenceClusterFinder::Result ReferenceClusterFinder::run(
         nonstd::span<const Digit> digits)
 {
     Map<float> chargemap(digits, [](const Digit &d) { return d.charge; }, 0.f);
@@ -49,7 +49,7 @@ std::vector<Cluster> ReferenceClusterFinder::run(
                     return clusterize(d, chargemap, peakcount); });
     }
 
-    return clusters;
+    return {clusters, peaks};
 }
 
 
