@@ -422,8 +422,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   // for (int row = 0; row < nRowMax; row++) {
   //   for (int col = 0; col < nColMax; col++) {
   for (auto& adcMapIter : adcMapCont) {
+    const int row = Digit::getRowFromKey(adcMapIter.first); // for the next line, when ccdb is ready
     const int col = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
-    const int row = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
     // halfchamber masking
     int iMcm = (int)(col / 18);               // current group of 18 col pads
     int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
@@ -463,8 +463,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       } else {
         adc = TMath::Nint(signalAmp * adcConvert);
       }
-      // Saving all digits
-      // digits->SetData(row, col, tb, adc);
+      // update the adc array value
       adcArrayVal = adc;
     } // for: tb
   }
