@@ -35,6 +35,8 @@
   #define GPUshared()
   #define GPUglobal()
   #define GPUconstant()
+  #define GPUprivate()
+  #define GPUgeneric()
   #define GPUbarrier()
   #define GPUAtomic(type) type
 
@@ -65,6 +67,8 @@
   #define GPUshared() __local
   #define GPUglobal() __global
   #define GPUconstant() __constant //TODO: possibly add const __restrict where possible later!
+  #define GPUprivate() __private
+  #define GPUgeneric() __generic
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
@@ -103,6 +107,8 @@
   #define GPUshared() __shared__
   #define GPUglobal()
   #define GPUconstant()
+  #define GPUprivate()
+  #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
   #define GPUAtomic(type) type
 #elif defined(__HIPCC__) //Defines for HIP
@@ -118,7 +124,9 @@
   #define GPUshared() __shared__
   #define GPUglobal()
   #define GPUconstant()
-  #define GPUbarrier() __syncthreads()
+  #define GPUprivate()
+  #define GPUgeneric()
+#define GPUbarrier() __syncthreads()
   #define GPUAtomic(type) type
 #endif
 
