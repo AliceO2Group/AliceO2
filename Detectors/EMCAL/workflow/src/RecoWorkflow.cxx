@@ -94,25 +94,15 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   // so it is enough to check on the first occurence
   // FIXME: this will be changed once DPL can propagate control events like EOD
   auto checkReady = [](o2::framework::DataRef const& ref, bool& isReady) {
-    LOG(DEBUG) << "[checkReady] called";
     auto const* emcalheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(ref);
     // sector number -1 indicates end-of-data
     if (emcalheader != nullptr) {
-      if (emcalheader->mPayloadType == o2::emcal::EMCALBlockHeader::PayloadType_t::kDigits) {
-        LOG(DEBUG) << "[checkReady] Payload is digits";
-      } else if (emcalheader->mPayloadType == o2::emcal::EMCALBlockHeader::PayloadType_t::kNoPayload) {
-        LOG(DEBUG) << "[checkReady] Payload is undefined";
-      }
-      isReady = emcalheader->mPayloadType == o2::emcal::EMCALBlockHeader::PayloadType_t::kNoPayload;
+      isReady = !emcalheader->mHasPayload;
       // indicate normal processing if not ready and skip if ready
       if (isReady) {
-        LOG(DEBUG) << "[checkReady] No longer ready";
         return o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing;
       }
-    } else {
-      LOG(DEBUG) << "[checkReady] No header received";
     }
-    LOG(DEBUG) << "[checkReady] Ready - do normal processing ...";
     return o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing;
   };
 
@@ -139,7 +129,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                    "o2sim",
                                    BranchDefinition<DigitOutputType>{ o2::framework::InputSpec{ "data", "EMC", "DIGITS", 0 },
                                                                       "EMCDigit",
-                                                                      "digitmc-branch-name" },
+                                                                      "digit-branch-name" },
                                    BranchDefinition<MCLabelContainer>{ o2::framework::InputSpec{ "mc", "EMC", "DIGITSMCTR", 0 },
                                                                        "EMCDigitMCTruth",
                                                                        "digitmc-branch-name" })());

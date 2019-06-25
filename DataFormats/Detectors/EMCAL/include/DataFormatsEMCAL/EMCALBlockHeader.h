@@ -12,9 +12,11 @@
 
 #include "Headers/DataHeader.h"
 
-namespace o2 {
+namespace o2
+{
 
-namespace emcal {
+namespace emcal
+{
 
 /// @struct EMCALBlockHeader
 /// @brief Header for EMCAL flagging the following EMCAL payload
@@ -23,18 +25,9 @@ struct EMCALBlockHeader : public o2::header::BaseHeader {
   constexpr static const o2::header::HeaderType sHeaderType = "EMCBlkH";
   static const uint32_t sVersion = 1;
 
-  /// @enum PayloadType_t
-  /// @brief Type of payload in the data block
-  enum class PayloadType_t {
-    kNoPayload,       ///< No payload
-    kDigits,          ///< Digits payload
-    kClusters,        ///< Clusters payload
-    kRaw              ///< Raw data payload
-  };
+  EMCALBlockHeader(bool hasPayload) : BaseHeader(sizeof(EMCALBlockHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), mHasPayload(hasPayload) {}
 
-  EMCALBlockHeader(PayloadType_t payloadType) : BaseHeader(sizeof(EMCALBlockHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), mPayloadType(payloadType) {}
-
-  PayloadType_t         mPayloadType;                   ///< Type of the payload in the data block of the message
+  bool mHasPayload; ///< Field specifying whether the data block has payload
 };
 
 } // namespace emcal

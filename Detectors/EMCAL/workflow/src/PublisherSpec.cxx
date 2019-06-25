@@ -76,23 +76,10 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
       }
 
       auto publish = [&processAttributes, &pc, propagateMC]() {
-        o2::emcal::EMCALBlockHeader::PayloadType_t payloadType(o2::emcal::EMCALBlockHeader::PayloadType_t::kNoPayload);
-        LOG(DEBUG) << "[publish] Data type:" << processAttributes->datatype;
-        if (processAttributes->datatype.find("EMCALDigit") != std::string::npos) {
-          LOG(DEBUG) << "[publish] Publishing digits";
-          payloadType = o2::emcal::EMCALBlockHeader::PayloadType_t::kDigits;
-        } else if (processAttributes->datatype.find("EMCCluster") != std::string::npos) {
-          LOG(DEBUG) << "[publish] Publishing clusters";
-          payloadType = o2::emcal::EMCALBlockHeader::PayloadType_t::kClusters;
-        } else {
-          LOG(DEBUG) << "[publish] Undefined payload";
-        }
-        o2::emcal::EMCALBlockHeader emcheader(payloadType);
+        o2::emcal::EMCALBlockHeader emcheader(true);
         if (processAttributes->reader->next()) {
-          LOG(DEBUG) << "[publish] Has next entry ...";
           (*processAttributes->reader)(pc, emcheader);
         } else {
-          LOG(DEBUG) << "[publish] No more entries ...";
           processAttributes->reader.reset();
           return false;
         }
@@ -103,15 +90,13 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
       if (!publish()) {
         active = false;
         // Send dummy header with no payload option
-        o2::emcal::EMCALBlockHeader dummyheader(o2::emcal::EMCALBlockHeader::PayloadType_t::kNoPayload);
-        LOG(DEBUG) << "[process] Setting dummy header with undefined payload ...";
+        o2::emcal::EMCALBlockHeader dummyheader(false);
         pc.outputs().snapshot(o2::framework::OutputRef{ "output", 0, { dummyheader } }, 0);
         if (propagateMC) {
           pc.outputs().snapshot(o2::framework::OutputRef{ "outputMC", 0, { dummyheader } }, 0);
         }
       }
       if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
-        LOG(DEBUG) << "[process] Setting ready to quit ..." << std::endl;
         pc.services().get<o2::framework::ControlService>().readyToQuit(false);
       }
     };

@@ -26,7 +26,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinter
       LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
       auto dataref = pc.inputs().get("digits");
       auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-      if (emcheader->mPayloadType == o2::emcal::EMCALBlockHeader::PayloadType_t::kNoPayload) {
+      if (!emcheader->mHasPayload) {
         LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
         pc.services().get<o2::framework::ControlService>().readyToQuit(false);
         return;
