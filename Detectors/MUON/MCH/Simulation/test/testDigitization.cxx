@@ -166,11 +166,11 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   int rep2 = 9;
 
   for (int i = 0; i < rep1; i++) {
-    digits.emplace_back(digits.at(0).getTimeStamp(), digits.at(0).getPadID(), digits.at(0).getADC());
+    digits.emplace_back(digits.at(0).getTimeStamp(), digits.at(0).getDetID(), digits.at(0).getPadID(), digits.at(0).getADC());
     labels.emplace_back(labels.at(0).getTrackID(), labels.at(0).getEventID(), labels.at(0).getSourceID());
   }
   for (int i = 0; i < rep2; i++) {
-    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(0).getDetID(), digits.at(1).getPadID(), digits.at(1).getADC());
     labels.emplace_back(labels.at(1).getTrackID(), labels.at(1).getEventID(), labels.at(1).getSourceID());
   }
 

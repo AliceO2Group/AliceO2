@@ -31,8 +31,11 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(double time, int pad, double adc);
+  Digit(double time, int detid, int pad, double adc);
   ~Digit() = default;
+
+  int getDetID() const { return mDetID; }
+  void setDetID(int detid) { mDetID = detid; }
 
   int getPadID() const { return mPadID; }
   void setPadID(int pad) { mPadID = pad; }
@@ -41,6 +44,7 @@ class Digit : public DigitBase
   void setADC(double adc) { mADC = adc; }
 
  private:
+  int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
   double mADC; /// Amplitude of signal
 

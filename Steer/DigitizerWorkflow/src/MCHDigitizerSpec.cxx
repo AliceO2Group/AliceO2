@@ -120,6 +120,7 @@ class MCHDPLDigitizerTask
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
           LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
