@@ -12,17 +12,25 @@ namespace gpucf
 class Experiment
 {
 public:
-    Experiment(filesystem::path);
+    Experiment(filesystem::path, ClusterFinderConfig cfg);
 
     virtual ~Experiment();
 
     virtual void run(ClEnv &) = 0;
 
+    ClusterFinderConfig getConfig() const 
+    {
+        return cfg;
+    }
+
 protected:
+    ClusterFinderConfig cfg;
+
     void save(filesystem::path, const Measurements &);
 
 private:
     filesystem::path baseDir;
+
 };
 
 } // namespace gpucf

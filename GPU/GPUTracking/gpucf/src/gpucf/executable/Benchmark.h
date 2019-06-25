@@ -32,7 +32,7 @@ private:
 
     void registerExperiments();
 
-    void runExperiments(ClEnv &);
+    void runExperiments();
 };
 
 } // namespace gpucf
