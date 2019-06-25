@@ -19,16 +19,19 @@ set(GPUCF_SRC
 
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
-    "./executable/ClCanary.cpp"
+    # "./executable/ClCanary.cpp"
     "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
-    "./executable/SubGroupInfo.cpp"
-    "./executable/RunSCFuzzer.cpp"
+    # "./executable/SubGroupInfo.cpp"
+    # "./executable/RunSCFuzzer.cpp"
 
     "./experiments/Experiment.cpp"
     "./experiments/TimeCf.cpp"
 
-    "./algorithms/VectorAdd.cpp"
+    "./algorithms/ClusterFinder.cpp"
+    "./algorithms/ClusterFinderState.cpp"
+    "./algorithms/ClusterFinderTest.cpp"
+    # "./algorithms/VectorAdd.cpp"
     "./algorithms/GPUClusterFinder.cpp"
     "./algorithms/ReferenceClusterFinder.cpp"
     "./algorithms/StreamCompaction.cpp"

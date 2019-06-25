@@ -14,10 +14,9 @@ TimeCf::TimeCf(
         nonstd::span<const Digit> d, 
         size_t N, 
         fs::path baseDir)
-    : Experiment(baseDir)
+    : Experiment(baseDir, conf)
     , name(n)
     , tgtFile(tgt)
-    , config(conf)
     , repeats(N)
     , digits(d)
 {
@@ -34,7 +33,7 @@ void TimeCf::run(ClEnv &env)
     {
         ClEnv envCopy = env;
         GPUClusterFinder cf; 
-        cf.setup(config, envCopy, digits);
+        cf.setup(cfg, envCopy, digits);
 
         auto res = cf.run();
 

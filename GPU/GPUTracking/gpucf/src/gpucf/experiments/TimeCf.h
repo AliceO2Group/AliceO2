@@ -26,7 +26,6 @@ private:
     std::string name;
     filesystem::path tgtFile;
 
-    ClusterFinderConfig config;
     size_t repeats;
     nonstd::span<const Digit> digits;
 };

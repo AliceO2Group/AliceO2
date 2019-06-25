@@ -12,7 +12,13 @@ using namespace gpucf;
 namespace fs = filesystem;
 
 
-ClEnv::ClEnv(const fs::path &srcDir, size_t gid) 
+const std::vector<fs::path> ClEnv::srcs = {
+    "clusterFinder.cl",
+    "streamCompaction.cl",
+};
+
+
+ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid)
     : gpuId(gid) 
     , sourceDir(srcDir) 
 {
@@ -41,15 +47,42 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     getDevice().getInfo(CL_DEVICE_NAME, &deviceName);
     log::Info() << "Running on device " << deviceName;
 
+
+    switch (cfg.layout)
+    {
+    #define MEMORY_LAYOUT(name, def, desc) \
+        case ChargemapLayout::name: \
+            addDefine(def); \
+            break;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+    }
+
+    switch (cfg.clusterbuilder)
+    {
+    #define CLUSTER_BUILDER(name, def, desc) \
+        case ClusterBuilder::name: \
+            addDefine(def); \
+            break;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+    }
+
+    #define CLUSTER_FINDER_FLAG(name, val, def, desc) \
+        if (cfg.name) \
+        { \
+            addDefine(def); \
+        }
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+
 #if defined(NDEBUG)
     addDefine("NDEBUG");
 #endif
 
+    program = buildFromSrc();
 }
 
-cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
+cl::Program ClEnv::buildFromSrc()
 {
-    cl::Program::Sources src = loadSrc(srcFile);
+    cl::Program::Sources src = loadSrc(srcs);
 
     cl::Program prg(context, src);
 
@@ -81,22 +114,30 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
     return prg;
 }
 
-cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) 
+cl::Program::Sources ClEnv::loadSrc(const std::vector<fs::path> &srcFiles) 
 {
-    fs::path file = sourceDir / srcFile; 
+    std::vector<std::string> codes;
 
-    log::Info() << "Opening cl-source " << file;
-
-    if (!file.exists()) 
+    for (const fs::path &srcFile : srcFiles)
     {
-        throw FileNotFoundError(file);
+
+        fs::path file = sourceDir / srcFile; 
+
+        log::Info() << "Opening cl-source " << file;
+
+        if (!file.exists()) 
+        {
+            throw FileNotFoundError(file);
+        }
+
+        std::ifstream src(file.str());
+        std::string code( (std::istreambuf_iterator<char>(src)),
+                std::istreambuf_iterator<char>());
+
+        codes.push_back(code);
     }
 
-    std::ifstream src(file.str());
-    std::string code( (std::istreambuf_iterator<char>(src)),
-            std::istreambuf_iterator<char>());
-
-    cl::Program::Sources source({code});
+    cl::Program::Sources source(codes);
 
     return source;
 }

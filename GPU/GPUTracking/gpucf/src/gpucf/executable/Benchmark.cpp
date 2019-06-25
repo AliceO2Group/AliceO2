@@ -58,8 +58,7 @@ int Benchmark::mainImpl()
 
     registerExperiments();
 
-    ClEnv env(*envFlags); 
-    runExperiments(env);
+    runExperiments();
 
     return 0;
 }
@@ -222,12 +221,12 @@ void Benchmark::registerExperiments()
 
 }
 
-void Benchmark::runExperiments(ClEnv &env)
+void Benchmark::runExperiments()
 {
     for (auto &experiment : experiments)
     {
-        ClEnv currEnv = env;
-        experiment->run(currEnv); 
+        ClEnv env(*envFlags, experiment->getConfig());
+        experiment->run(env); 
     }
 }
 
