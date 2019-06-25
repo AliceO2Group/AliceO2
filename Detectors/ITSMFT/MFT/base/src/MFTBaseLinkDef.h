@@ -30,5 +30,6 @@
 #pragma link C++ class o2::mft::Support+;
 #pragma link C++ class o2::mft::HeatExchanger+;
 #pragma link C++ class o2::mft::HalfCone+;
+#pragma link C++ class o2::mft::PowerSupplyUnit+;
 
 #endif

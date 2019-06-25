@@ -18,6 +18,7 @@
 
 #include "TNamed.h"
 #include "TGeoVolume.h"
+#include "MFTBase/PowerSupplyUnit.h"
 
 namespace o2
 {
@@ -25,7 +26,7 @@ namespace mft
 {
 class HalfSegmentation;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -49,11 +50,14 @@ class HalfDetector : public TNamed
 
  private:
   HalfSegmentation* mSegmentation; ///< \brief Pointer to the half-MFT segmentation
+
+  PowerSupplyUnit* mPSU;
+
   void createHalfDisks();
 
   ClassDefOverride(HalfDetector, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif
