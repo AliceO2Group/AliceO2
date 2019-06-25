@@ -1483,6 +1483,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    emcal_calib_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    Hist
+    O2EMCALBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/calib/include
+)
+
+o2_define_bucket(
+    NAME
     tof_simulation_bucket
 
     DEPENDENCIES

@@ -151,7 +151,7 @@ class Geometry
   /// \param[out] absId absolute ID number
   /// \param[out] vimpact TVector3 of impact coordinates?
   ///
-  void ImpactOnEmcal(const Point3D<double> &vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const;
+  void ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const;
 
   ///
   /// Checks whether point is inside the EMCal volume
@@ -353,6 +353,21 @@ class Geometry
   ///
   int GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const;
 
+  /// \brief get (Column,Row) pair of cell in global numbering scheme
+  /// \param cellID Absolute cell ID
+  /// \return tuple with position in global numbering scheme (0 - row, 1 - column)
+  std::tuple<int, int> GlobalRowColFromIndex(int cellID) const;
+
+  /// \brief Get column number of cell in global numbering scheme
+  /// \param cellID Absolute cell ID
+  /// \return Column number in global numbering scheme
+  int GlobalCol(int cellID) const;
+
+  /// \brief Get row number of cell in global numbering scheme
+  /// \param cellID Absolute cell ID
+  /// \return Row number in global numbering scheme
+  int GlobalRow(int cellID) const;
+
   ///
   /// Given a global eta/phi point check if it belongs to a supermodule covered region.
   ///
@@ -411,7 +426,7 @@ class Geometry
   /// \param nIeta[in] index in phi direction in module
   /// \return tuple (index in phi direction in super module, index in eta direction in super module)
   ///
-  std::tuple<double, double> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
+  std::tuple<int, int> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
 
   ///
   /// \brief Get cell SM,  from absolute ID number
@@ -565,13 +580,13 @@ class Geometry
   /// Init function of previous class EMCGeometry
   void DefineEMC(std::string_view mcname, std::string_view mctitle);
 
-  std::string mGeoName;       ///< Geometry name string
-  Int_t mKey110DEG;           ///< For calculation abs cell id; 19-oct-05
-  Int_t mnSupModInDCAL;       ///< For calculation abs cell id; 06-nov-12
-  Int_t mNCellsInSupMod;      ///< Number cell in super module
-  Int_t mNETAdiv;             ///< Number eta division of module
-  Int_t mNPHIdiv;             ///< Number phi division of module
-  Int_t mNCellsInModule;      ///< Number cell in module
+  std::string mGeoName;                     ///< Geometry name string
+  Int_t mKey110DEG;                         ///< For calculation abs cell id; 19-oct-05
+  Int_t mnSupModInDCAL;                     ///< For calculation abs cell id; 06-nov-12
+  Int_t mNCellsInSupMod;                    ///< Number cell in super module
+  Int_t mNETAdiv;                           ///< Number eta division of module
+  Int_t mNPHIdiv;                           ///< Number phi division of module
+  Int_t mNCellsInModule;                    ///< Number cell in module
   std::vector<Double_t> mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
   std::vector<Double_t> mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
   std::vector<Double_t> mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
@@ -581,22 +596,22 @@ class Geometry
   std::vector<Double_t> mCentersOfCellsEtaDir; ///< Size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
   std::vector<Double_t> mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
   std::vector<Double_t>
-    mEtaCentersOfCells; ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
-  Int_t mNCells;        ///< Number of cells in calo
-  Int_t mNPhi;          ///< Number of Towers in the PHI direction
-  std::vector<Double_t> mCentersOfCellsXDir;   ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
-  Float_t mEnvelop[3];           ///< The GEANT TUB for the detector
-  Float_t mArm1EtaMin;           ///< Minimum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1EtaMax;           ///< Maximum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1PhiMin;           ///< Minimum angular position of EMCAL in Phi (degrees)
-  Float_t mArm1PhiMax;           ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mEtaMaxOfTRD1;         ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
-  Float_t mDCALPhiMin;           ///< Minimum angular position of DCAL in Phi (degrees)
-  Float_t mDCALPhiMax;           ///< Maximum angular position of DCAL in Phi (degrees)
-  Float_t mEMCALPhiMax;          ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mDCALStandardPhiMax;   ///< Special edge for the case that DCAL contian extension
-  Float_t mDCALInnerExtandedEta; ///< DCAL inner edge in Eta (with some extension)
-  Float_t mDCALInnerEdge;        ///< Inner edge for DCAL
+    mEtaCentersOfCells;                                     ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
+  Int_t mNCells;                                            ///< Number of cells in calo
+  Int_t mNPhi;                                              ///< Number of Towers in the PHI direction
+  std::vector<Double_t> mCentersOfCellsXDir;                ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
+  Float_t mEnvelop[3];                                      ///< The GEANT TUB for the detector
+  Float_t mArm1EtaMin;                                      ///< Minimum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1EtaMax;                                      ///< Maximum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1PhiMin;                                      ///< Minimum angular position of EMCAL in Phi (degrees)
+  Float_t mArm1PhiMax;                                      ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mEtaMaxOfTRD1;                                    ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
+  Float_t mDCALPhiMin;                                      ///< Minimum angular position of DCAL in Phi (degrees)
+  Float_t mDCALPhiMax;                                      ///< Maximum angular position of DCAL in Phi (degrees)
+  Float_t mEMCALPhiMax;                                     ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mDCALStandardPhiMax;                              ///< Special edge for the case that DCAL contian extension
+  Float_t mDCALInnerExtandedEta;                            ///< DCAL inner edge in Eta (with some extension)
+  Float_t mDCALInnerEdge;                                   ///< Inner edge for DCAL
   std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
   Float_t mParSM[3];                                        ///< SM sizes as in GEANT (TRD1)
   Float_t mPhiModuleSize;                                   ///< Phi -> X
@@ -657,6 +672,6 @@ inline Bool_t Geometry::CheckAbsCellId(Int_t absId) const
   else
     return kTRUE;
 }
-}
-}
+} // namespace emcal
+} // namespace o2
 #endif
