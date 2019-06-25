@@ -24,6 +24,7 @@
 #undef NDEBUG
 #endif
 #include <cassert>
+#include <set>
 
 using namespace o2::base;
 
@@ -223,8 +224,10 @@ void MaterialManager::printMedia() const
 {
   for (auto& p : mMediumMap) {
     auto name = p.first;
-    std::cout << "Materials for key " << name << "\n";
+    std::cout << "Tracking media for key " << name << "\n";
     for (auto& e : p.second) {
+      auto medname = getMediumNameFromMediumID(e.second);
+      std::cout << medname << " ";
       std::cout << "internal id " << e.first << " to " << e.second << "\n";
     }
   }
@@ -415,6 +418,244 @@ void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const ch
       }
     }
   } // end loop over lines
+}
+
+/// Set cuts per medium providing the module name and the local ID of the medium.
+/// To ignore a certain cut to be set explicitly (default or Geant settings will be used in that case) use
+/// o2::base::MaterialManager::NOPROCESS
+void MaterialManager::SpecialCuts(const char* modname, int localindex,
+                                  const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
+{
+  int globalindex = getMediumID(modname, localindex);
+  if (globalindex != -1) {
+    Cuts(ESpecial::kTRUE, globalindex, parIDValMap);
+  }
+}
+
+void MaterialManager::SpecialCut(const char* modname, int localindex, ECut parID, Float_t val)
+{
+  int globalindex = getMediumID(modname, localindex);
+  if (globalindex != -1) {
+    Cut(ESpecial::kTRUE, globalindex, parID, val);
+  }
+}
+
+/// Custom setting of process or cut given parameter name and value
+void MaterialManager::SpecialProcess(const char* modname, int localindex, EProc parID, int val)
+{
+  int globalindex = getMediumID(modname, localindex);
+  if (globalindex != -1) {
+    Process(ESpecial::kTRUE, globalindex, parID, val);
+  }
+}
+
+int MaterialManager::getMaterialID(const char* modname, int imat) const
+{
+  auto lookupiter = mMaterialMap.find(modname);
+  if (lookupiter == mMaterialMap.end()) {
+    return -1;
+  }
+  auto lookup = lookupiter->second;
+
+  auto iter = lookup.find(imat);
+  if (iter != lookup.end()) {
+    return iter->second;
+  }
+  return -1;
+}
+
+int MaterialManager::getMediumID(const char* modname, int imed) const
+{
+  auto lookupiter = mMediumMap.find(modname);
+  if (lookupiter == mMediumMap.end()) {
+    return -1;
+  }
+  auto lookup = lookupiter->second;
+
+  auto iter = lookup.find(imed);
+  if (iter != lookup.end()) {
+    return iter->second;
+  }
+  return -1;
+}
+
+// fill the medium index mapping into a standard vector
+// the vector gets sized properly and will be overridden
+void MaterialManager::getMediumIDMappingAsVector(const char* modname, std::vector<int>& mapping) const
+{
+  mapping.clear();
+
+  auto lookupiter = mMediumMap.find(modname);
+  if (lookupiter == mMediumMap.end()) {
+    return;
+  }
+  auto lookup = lookupiter->second;
+
+  // get the biggest mapped value (maps are sorted in keys)
+  auto maxkey = lookup.rbegin()->first;
+  // resize mapping and initialize with -1 by default
+  mapping.resize(maxkey + 1, -1);
+  // fill vector with entries from map
+  for (auto& p : lookup) {
+    mapping[p.first] = p.second;
+  }
+}
+
+void MaterialManager::getMediaWithSpecialProcess(EProc process, std::vector<int>& mediumProcessVector) const
+{
+  // clear
+  mediumProcessVector.clear();
+  // resize to maximum number of global IDs for which special processes are set. In case process is not
+  // implemented for a certain medium, value is -1
+  mediumProcessVector.resize(mMediumProcessMap.size(), -1);
+  // find media
+  for (auto& m : mMediumProcessMap) {
+    // loop over processes in medium
+    for (auto& p : m.second) {
+      // push medium ID if process is there
+      if (p.first == process) {
+        mediumProcessVector[m.first] = p.second;
+        break;
+      }
+    }
+  }
+}
+
+void MaterialManager::getMediaWithSpecialCut(ECut cut, std::vector<Float_t>& mediumCutVector) const
+{
+  // clear
+  mediumCutVector.clear();
+  // resize to maximum number of global IDs for which special cuts are set. In case cut is not implemented
+  // for a certain medium, value is -1.
+  mediumCutVector.resize(mMediumCutMap.size(), -1.);
+  // find media
+  for (auto& m : mMediumCutMap) {
+    // loop over cuts in medium
+    for (auto& c : m.second) {
+      // push medium ID if cut is there
+      if (c.first == cut) {
+        mediumCutVector[m.first] = c.second;
+        break;
+      }
+    }
+  }
+}
+
+/// Fill vector with default processes
+void MaterialManager::getDefaultProcesses(std::vector<std::pair<EProc, int>>& processVector)
+{
+  processVector.clear();
+  for (auto& m : mDefaultProcessMap) {
+    processVector.emplace_back(m.first, m.second);
+  }
+}
+/// Fill vector with default cuts
+void MaterialManager::getDefaultCuts(std::vector<std::pair<ECut, Float_t>>& cutVector)
+{
+  cutVector.clear();
+  for (auto& m : mDefaultCutMap) {
+    cutVector.emplace_back(m.first, m.second);
+  }
+}
+/// Get special processes for global medium ID
+void MaterialManager::getSpecialProcesses(int globalindex, std::vector<std::pair<EProc, int>>& processVector)
+{
+  processVector.clear();
+  if (mMediumProcessMap.find(globalindex) != mMediumProcessMap.end()) {
+    for (auto& m : mMediumProcessMap[globalindex]) {
+      processVector.emplace_back(m.first, m.second);
+    }
+  }
+}
+/// Interface for module name and local medium ID
+void MaterialManager::getSpecialProcesses(const char* modname, int localindex, std::vector<std::pair<EProc, int>>& processVector)
+{
+  int globalindex = getMediumID(modname, localindex);
+  if (globalindex != -1) {
+    getSpecialProcesses(globalindex, processVector);
+  }
+}
+/// Get special cuts for global medium ID
+void MaterialManager::getSpecialCuts(int globalindex, std::vector<std::pair<ECut, Float_t>>& cutVector)
+{
+  cutVector.clear();
+  if (mMediumCutMap.find(globalindex) != mMediumCutMap.end()) {
+    for (auto& m : mMediumCutMap[globalindex]) {
+      cutVector.emplace_back(m.first, m.second);
+    }
+  }
+}
+/// Interface for module name and local medium ID
+void MaterialManager::getSpecialCuts(const char* modname, int localindex, std::vector<std::pair<ECut, Float_t>>& cutVector)
+{
+  int globalindex = getMediumID(modname, localindex);
+  if (globalindex != -1) {
+    getSpecialCuts(globalindex, cutVector);
+  }
+}
+
+const char* MaterialManager::getModuleFromMediumID(int globalindex) const
+{
+  // loop over module names and corresponding local<->global mapping
+  for (auto& m : mMediumMap) {
+    for (auto& i : m.second) {
+      // is the global index there?
+      if (i.second == globalindex) {
+        // \note maybe unsafe in case mMediumMap is altered in the same scope where the returned C string is used
+        // since that points to memory of string it was derived from.
+        return m.first.c_str();
+      }
+    }
+  }
+  // module is UNKNOWN if global medium ID could not be found.
+  return "UNKNOWN";
+}
+
+/// Get medium name from global medium ID
+const char* MaterialManager::getMediumNameFromMediumID(int globalindex) const
+{
+  // Get the name of the medium.
+  // TODO: avoid linear search
+  for (auto& n : mMediumNameToGlobalIndexMap) {
+    if (n.second == globalindex) {
+      // \note maybe unsafe in case mMediumMap is altered in the same scope where the returned C string is used since
+      // that points to memory of string it was derived from.
+      return n.first.c_str();
+    }
+  }
+  return "UNKNOWN";
+}
+
+/// print all tracking media inside a logical volume (specified by name)
+/// and all of its daughters
+void MaterialManager::printContainingMedia(std::string const& volumename)
+{
+  auto vol = gGeoManager->FindVolumeFast(volumename.c_str());
+  if (vol == nullptr) {
+    LOG(WARN) << "No volume found; Cannot query medias";
+  }
+  std::set<TGeoMedium const*> media;
+
+  // a little well encapsulated helper to code the recursive visitor
+  // pure lambda cannot be recursive
+  std::function<void(TGeoVolume const* vol, std::set<TGeoMedium const*>& mediumset)> recursivevisitor;
+  recursivevisitor = [&recursivevisitor](TGeoVolume const* vol, std::set<TGeoMedium const*>& mediumset) {
+    // exclude assemblies
+    if (!vol->IsAssembly()) {
+      mediumset.insert(vol->GetMedium());
+    }
+    const int n = vol->GetNdaughters();
+    for (int i = 0; i < n; ++i) {
+      auto daughter = vol->GetNode(i)->GetVolume();
+      recursivevisitor(daughter, mediumset);
+    }
+  };
+  recursivevisitor(vol, media);
+
+  // simply print the media
+  for (auto m : media) {
+    std::cout << m->GetName() << "\n";
+  }
 }
 
 ClassImp(o2::base::MaterialManager)
