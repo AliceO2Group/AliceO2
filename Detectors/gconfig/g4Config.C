@@ -55,7 +55,7 @@ void Config()
                                  // one and all of its secondaries have been transported
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
 
-  auto runConfiguration = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT+optical", "stepLimiter+specialCuts",
+  auto runConfiguration = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT+optical+biasing", "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
 
   /// Create the G4 VMC
