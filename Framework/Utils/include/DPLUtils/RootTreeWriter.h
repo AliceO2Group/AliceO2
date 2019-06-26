@@ -217,6 +217,19 @@ class RootTreeWriter
     }
   }
 
+  /// Set the maximum vector size
+  /// If a value is set, all data of type std::vector is split to multiple fill operations
+  /// This will involve a copy.
+  /// Note: be aware of that this will give the entry of the tree structure a different meaning
+  /// @param size  the maximum number of ellements to write at once
+  void setMaxVectorSize(size_t size)
+  {
+    // TODO: can do this for a particular branch
+    for (auto& spec : mBranchSpecs) {
+      spec.maxVectorSize = size;
+    }
+  }
+
   /// process functor
   /// It expects a context which is used by lambda capture in the snapshot function.
   /// Recursively process all inputs and fill branches individually from extracted
@@ -269,6 +282,7 @@ class RootTreeWriter
     TClass* classinfo = nullptr;
     IndexExtractor getIndex;
     BranchNameMapper getName;
+    size_t maxVectorSize = std::numeric_limits<size_t>::max();
   };
 
   using InputContext = InputRecord;
@@ -387,8 +401,9 @@ class RootTreeWriter
     // specialization for trivial structs or serialized objects without a TClass interface
     // the extracted object is copied to store variable
     template <typename T, typename std::enable_if_t<std::is_same<T, value_type>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, const char* key, BranchSpec const& spec, size_t branchIdx)
     {
+      TBranch* branch = spec.branches.at(branchIdx);
       auto data = context.get<typename std::add_pointer<value_type>::type>(key);
       mStore[branchIdx] = *data;
       branch->Fill();
@@ -399,20 +414,40 @@ class RootTreeWriter
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
     template <typename T, typename std::enable_if_t<std::is_same<T, value_type*>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, const char* key, BranchSpec const& spec, size_t branchIdx)
     {
+      TBranch* branch = spec.branches.at(branchIdx);
+      // we get back a smart pointer when requesting a pointer type from the input
       auto data = context.get<typename std::add_pointer<value_type>::type>(key);
-      // this is ugly but necessary because of the TTree API does not allow a const
-      // object as input. Have to rely on that ROOT treats the object as const
-      mStore[branchIdx] = const_cast<value_type*>(data.get());
-      branch->Fill();
+      if constexpr (is_specialization<value_type, std::vector>::value == false) {
+        // this is ugly but necessary because of the TTree API does not allow a const
+        // object as input. Have to rely on that ROOT treats the object as const
+        mStore[branchIdx] = const_cast<value_type*>(data.get());
+        branch->Fill();
+      } else {
+	const size_t vectorChunkSize = spec.maxVectorSize;
+	value_type chunk;
+	for (size_t pos = 0, end = data->size(); pos < end; pos += vectorChunkSize) {
+	  if (pos == 0 && end <= vectorChunkSize) {
+	    // there is only one chunk to write and we use the original input
+	    mStore[branchIdx] = const_cast<value_type*>(data.get());
+	  } else {
+	    // split into chunks, a copy is unavoidable
+	    chunk.clear();
+	    chunk.assign(data->begin() + pos, pos + vectorChunkSize < end ? data->begin() + pos + vectorChunkSize : data->end());
+	    mStore[branchIdx] = &chunk;
+	  }
+	  branch->Fill();
+	}
+      }
     }
 
     // specialization for binary buffers using const char*
     // this writes both the data branch and a size branch
     template <typename T, typename std::enable_if_t<std::is_same<T, BinaryBranchStoreType<char>>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, const char* key, BranchSpec const& spec, size_t branchIdx)
     {
+      TBranch* branch = spec.branches.at(branchIdx);
       auto data = context.get<gsl::span<char>>(key);
       std::get<2>(mStore.at(branchIdx)) = data.size();
       std::get<1>(mStore.at(branchIdx))->Fill();
@@ -440,7 +475,7 @@ class RootTreeWriter
             continue;
           }
         }
-        fillData<store_type>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
+        fillData<store_type>(context, key.c_str(), spec, branchIdx);
       }
     }
 

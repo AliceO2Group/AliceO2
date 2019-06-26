@@ -316,6 +316,10 @@ class MakeRootTreeWriterSpec
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
         processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
+      auto maxVectorSize = ic.options().get<int>("maxVectorSize");
+      if (maxVectorSize > 0) {
+	processAttributes->writer->setMaxVectorSize(maxVectorSize);
+      }
       processAttributes->writer->init(filename.c_str(), treename.c_str());
 
       // the callback to be set as hook at stop of processing for the framework
@@ -394,6 +398,7 @@ class MakeRootTreeWriterSpec
       {"outfile", VariantType::String, mDefaultFileName.c_str(), {"Name of the output file"}},
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
+      {"maxVectorSize", VariantType::Int, 0, {"Number of elements written at once for large std vectors"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
     for (size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
