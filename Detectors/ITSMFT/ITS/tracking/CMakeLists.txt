@@ -14,6 +14,7 @@ set(SRC
 set(HEADERS
     include/${MODULE_NAME}/ClusterLines.h
     include/${MODULE_NAME}/Tracklet.h
+    include/${MODULE_NAME}/DBScan.h
 )
 
 Set(LINKDEF src/TrackingLinkDef.h)
@@ -22,6 +23,8 @@ Set(LINKDEF src/TrackingLinkDef.h)
 set(NO_DICT_SRCS # sources not for the dictionary
     src/Cluster.cxx
     src/ROframe.cxx
+    src/Graph.cxx
+    src/DBScan.cxx
     src/IOUtils.cxx
     src/Label.cxx
     src/PrimaryVertexContext.cxx
