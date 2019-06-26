@@ -15,6 +15,7 @@ set(SRCS
     IrregularSpline2D3D.cxx
     SemiregularSpline2D3D.cxx
     IrregularSpline2D3DCalibrator.cxx
+    TPCFastTransformGeo.cxx
     TPCDistortionIRS.cxx
     TPCFastTransform.cxx
 )
@@ -57,6 +58,7 @@ if (NOT ROOT_VERSION_MAJOR EQUAL 5)
 	SemiregularSpline2D3D.h
  	IrregularSpline2D3DCalibrator.h
         RegularSpline1D.h
+        TPCFastTransformGeo.h
         TPCFastTransform.h
         TPCDistortionIRS.h
     )

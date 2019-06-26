@@ -17,6 +17,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCDISTORTIONIRS_H
 
 #include "IrregularSpline2D3D.h"
+#include "TPCFastTransformGeo.h"
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
 
@@ -39,11 +40,7 @@ class TPCDistortionIRS : public FlatObject
   ///
   /// \brief The struct contains necessary info for TPC padrow
   ///
-  struct RowInfo {
-    float x;                ///< x coordinate of the row [cm]
-    float U0;               ///< min. u coordinate
-    float scaleUtoSU;       ///< scale for su coordinate
-    float scaleSUtoU;       ///< scale for u coordinate
+  struct RowSplineInfo {
     int splineScenarioID;   ///< scenario index (which of IrregularSpline2D3D splines to use)
     size_t dataOffsetBytes; ///< offset for the spline data withing a TPC slice
   };
@@ -60,7 +57,7 @@ class TPCDistortionIRS : public FlatObject
   TPCDistortionIRS& operator=(const TPCDistortionIRS&) CON_DELETE;
 
   /// Destructor
-  ~TPCDistortionIRS() CON_DEFAULT;
+  ~TPCDistortionIRS();
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -87,16 +84,13 @@ class TPCDistortionIRS : public FlatObject
   /// _______________  Construction interface  ________________________
 
   /// Starts the construction procedure, reserves temporary memory
-  void startConstruction(int numberOfRows, int numberOfScenarios);
+  void startConstruction(const TPCFastTransformGeo& geo, int numberOfSplineScenarios);
 
   /// Initializes a TPC row
-  void setTPCrow(int iRow, float x, int nPads, float padWidth, int iScenario);
-
-  /// Sets TPC geometry
-  void setTPCgeometry(float tpcLengthSideA, float tpcLengthSideC);
+  void setRowScenarioID(int iRow, int iScenario);
 
   /// Sets approximation scenario
-  void setApproximationScenario(int scenarioIndex, const IrregularSpline2D3D& spline);
+  void setSplineScenario(int scenarioIndex, const IrregularSpline2D3D& spline);
 
   /// Finishes construction: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
@@ -115,11 +109,6 @@ class TPCDistortionIRS : public FlatObject
   /// Gives pointer to spline data
   GPUd() const float* getSplineData(int slice, int row) const;
 
-  /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
-
-  /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
 
   /// _______________ The main method: cluster distortion  _______________________
   ///
@@ -127,55 +116,39 @@ class TPCDistortionIRS : public FlatObject
 
   /// _______________  Utilities  _______________________________________________
 
-  /// Gives number of TPC slices
-  static int getNumberOfSlices() { return NumberOfSlices; }
-
-  /// Gives number of TPC rows
-  int getNumberOfRows() const { return mNumberOfRows; }
+  /// TPC geometry information
+  GPUd() const TPCFastTransformGeo& getGeometry() const { return mGeo; }
 
   /// Gives the time stamp of the current calibaration parameters
   long int getTimeStamp() const { return mTimeStamp; }
 
   /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
-
-  GPUd() int convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const;
-  GPUd() int convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const;
+  GPUd() const RowSplineInfo& getRowSplineInfo(int row) const { return mRowSplineInfoPtr[row]; }
 
   /// Print method
-  void Print() const;
+  void print() const;
 
  private:
+  /// relocate buffer pointers
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
-
-  /// Enumeration of construction states
-  enum ConstructionExtraState : unsigned int {
-    GeometryIsSet = 0x4 ///< geometry is set
-  };
+  /// release temporary memory used during construction
+  void releaseConstructionMemory();
 
   /// _______________  Data members  _______________________________________________
 
-  static constexpr int NumberOfSlices = 36; ///< Number of TPC slices ( slice = inner + outer sector )
-
   /// _______________  Construction control  _______________________________________________
 
-  int mConstructionCounterRows;                                  ///< counter for constructed members
-  int mConstructionCounterScenarios;                             ///< counter for constructed members
-  std::unique_ptr<RowInfo[]> mConstructionRowInfos;              ///< Temporary container of the row infos during construction
-  std::unique_ptr<IrregularSpline2D3D[]> mConstructionScenarios; ///< Temporary container for spline scenarios
+  RowSplineInfo* mConstructionRowSplineInfos = nullptr;  ///< Temporary container of the row infos during construction
+  IrregularSpline2D3D* mConstructionScenarios = nullptr; ///< Temporary container for spline scenarios
 
   /// _______________  Geometry  _______________________________________________
 
-  int mNumberOfRows;      ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
+  TPCFastTransformGeo mGeo; ///< TPC geometry information
+
   int mNumberOfScenarios; ///< Number of approximation spline scenarios
 
-  RowInfo* mRowInfoPtr;              ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
+  RowSplineInfo* mRowSplineInfoPtr;  ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
   IrregularSpline2D3D* mScenarioPtr; ///< Pointer to spline scenarios
-
-  float mScaleVtoSVsideA; ///< scale for v->sv for TPC side A
-  float mScaleVtoSVsideC; ///< scale for v->sv for TPC side C
-  float mScaleSVtoVsideA; ///< scale for sv->v for TPC side A
-  float mScaleSVtoVsideC; ///< scale for sv->v for TPC side C
 
   /// _______________  Calibration data  _______________________________________________
 
@@ -189,36 +162,12 @@ class TPCDistortionIRS : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-GPUdi() int TPCDistortionIRS::convUVtoSUV(int slice, int row, float u, float v, float& su, float& sv) const
-{
-  const RowInfo& rowInfo = getRowInfo(row);
-  su = (u - rowInfo.U0) * rowInfo.scaleUtoSU;
-  if (slice < 18) {
-    sv = v * mScaleVtoSVsideA;
-  } else {
-    sv = v * mScaleVtoSVsideC;
-  }
-  return 0;
-}
-
-GPUdi() int TPCDistortionIRS::convSUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const
-{
-  const RowInfo& rowInfo = getRowInfo(row);
-  u = rowInfo.U0 + su * rowInfo.scaleSUtoU;
-  if (slice < 18) {
-    v = sv * mScaleSVtoVsideA;
-  } else {
-    v = sv * mScaleSVtoVsideC;
-  }
-  return 0;
-}
-
 GPUdi() int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
 {
   const IrregularSpline2D3D& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
   float su = 0, sv = 0;
-  convUVtoSUV(slice, row, u, v, su, sv);
+  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
   spline.getSplineVec(splineData, su, sv, dx, du, dv);
   return 0;
 }
@@ -226,23 +175,24 @@ GPUdi() int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v
 GPUdi() const IrregularSpline2D3D& TPCDistortionIRS::getSpline(int slice, int row) const
 {
   /// Gives pointer to spline
-  const RowInfo& rowInfo = mRowInfoPtr[row];
+  const RowSplineInfo& rowInfo = mRowSplineInfoPtr[row];
   return mScenarioPtr[rowInfo.splineScenarioID];
 }
 
 GPUdi() float* TPCDistortionIRS::getSplineDataNonConst(int slice, int row)
 {
   /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfoPtr[row];
+  const RowSplineInfo& rowInfo = mRowSplineInfoPtr[row];
   return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
 }
 
 GPUdi() const float* TPCDistortionIRS::getSplineData(int slice, int row) const
 {
   /// Gives pointer to spline data
-  const RowInfo& rowInfo = mRowInfoPtr[row];
+  const RowSplineInfo& rowInfo = mRowSplineInfoPtr[row];
   return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
 }
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
