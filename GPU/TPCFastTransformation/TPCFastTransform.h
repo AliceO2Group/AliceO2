@@ -145,7 +145,7 @@ class TPCFastTransform : public FlatObject
   /// _______________  Utilities  _______________________________________________
 
   /// TPC geometry information
-  const TPCFastTransformGeo& getGeometry() const { return mDistortion.getGeometry(); }
+  GPUd() const TPCFastTransformGeo& getGeometry() const { return mDistortion.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
   long int getTimeStamp() const { return mTimeStamp; }

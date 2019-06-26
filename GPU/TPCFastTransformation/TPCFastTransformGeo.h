@@ -17,7 +17,9 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMGEO_H
 
 #include "GPUCommonDef.h"
+#ifndef __OPENCL__
 #include <memory>
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -93,10 +95,10 @@ class TPCFastTransformGeo
   /// _______________  Getters _________________________________
 
   /// Gives number of TPC slices
-  static constexpr int getNumberOfSlices() { return NumberOfSlices; }
+  GPUd() static constexpr int getNumberOfSlices() { return NumberOfSlices; }
 
   /// Gives number of TPC slices in A side
-  static constexpr int getNumberOfSlicesA() { return NumberOfSlicesA; }
+  GPUd() static constexpr int getNumberOfSlicesA() { return NumberOfSlicesA; }
 
   /// Gives number of TPC rows
   GPUd() int getNumberOfRows() const { return mNumberOfRows; }
