@@ -48,15 +48,23 @@ O2_FRAMEWORK_WORKFLOW(
         SOURCES src/Utils.cxx test/test_DPLOutputTest.cxx test/DPLOutputTest.cxx
 )
 
-set(TEST_SRCS
-    #  test/test_RootTreeReader.cxx
-      test/test_RootTreeWriter.cxx
-    #  test/test_RootTreeWriterWorkflow.cxx
-   )
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS
+  test/test_RootTreeWriter.cxx
+
+  TIMEOUT 60
+)
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
+  TEST_SRCS
+  test/test_RootTreeReader.cxx
+  test/test_RootTreeWriterWorkflow.cxx
+
   TIMEOUT 60
+  COMMAND_LINE_ARGS
+  --run
 )

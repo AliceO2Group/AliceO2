@@ -22,32 +22,49 @@
 #include "Headers/DataHeader.h"
 #include "../../Core/test/TestClasses.h"
 #include "FairMQLogger.h"
-#include <TSystem.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <vector>
+#include <stdexcept>
+// note: std filesystem is first supported in gcc 8
+#include <boost/filesystem.hpp>
 
 using namespace o2::framework;
 
-#define ASSERT_ERROR(condition)                                   \
-  if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
-  }
-
+// a helper class to do the checking at the end of the program when
+// the destructor of the class is called.
 class StaticChecker
 {
  public:
   StaticChecker() = default;
-  ~StaticChecker()
+  // have to throw an exception in the destructor if checking fails
+  // this is ok in this cae because no other instances which would require proper
+  // cleanup are expected
+  ~StaticChecker() noexcept(false)
   {
     for (auto const& check : mChecks) {
       TFile* file = TFile::Open(check.first.c_str());
-      assert(file != nullptr);
-      TTree* tree = file != nullptr ? reinterpret_cast<TTree*>(file->GetObjectChecked("testtree", "TTree")) : nullptr;
-      assert(tree != nullptr);
-      if (tree) {
-        assert(tree->GetEntries() == check.second);
+      if (file == nullptr) {
+        setError(std::string("missing file ") + check.first.c_str());
+        continue;
       }
+      TTree* tree = reinterpret_cast<TTree*>(file->GetObjectChecked("testtree", "TTree"));
+      if (tree) {
+        if (tree->GetEntries() != check.second) {
+          setError(std::string("inconsistent number of entries in 'testtree' of file ") + check.first.c_str() + " expecting " + std::to_string(check.second) + " got " + std::to_string(tree->GetEntries()));
+        }
+      } else {
+        setError(std::string("can not find tree 'testtree' in file ") + check.first.c_str());
+      }
+      file->Close();
+      // TODO: keeping this as a note because this is not understood
+      // files should get deleted at this point, but if this line is in, the files are already deleted when entering
+      // the loop. Not clear if there is some out-of-order execution
+      // could not test with std filesystem, because the is first supported in gcc 8
+      //boost::filesystem::remove(check.first.c_str());
+    }
+    if (mErrorMessage.empty() == false) {
+      throw std::runtime_error(mErrorMessage);
     }
   }
 
@@ -56,8 +73,17 @@ class StaticChecker
     mChecks.emplace_back(filename, entries);
   }
 
+  template <typename T>
+  void setError(T const& message)
+  {
+    if (mErrorMessage.empty()) {
+      mErrorMessage = message;
+    }
+  }
+
  private:
   std::vector<std::pair<std::string, int>> mChecks;
+  std::string mErrorMessage;
 };
 static StaticChecker sChecker;
 
@@ -93,7 +119,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  std::string fileName = gSystem->TempDirectory();
+  std::string fileName = boost::filesystem::temp_directory_path().string();
   fileName += "/test_RootTreeWriter";
   std::string altFileName = fileName + "_alt.root";
   fileName += ".root";
