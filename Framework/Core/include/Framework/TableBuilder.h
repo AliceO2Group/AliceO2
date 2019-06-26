@@ -13,6 +13,9 @@
 
 #include "Framework/ASoA.h"
 
+// Apparently needs to be on top of the arrow includes.
+#include <sstream>
+
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
 #include <arrow/table.h>

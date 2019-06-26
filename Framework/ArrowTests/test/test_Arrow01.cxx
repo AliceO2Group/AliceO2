@@ -28,6 +28,18 @@ class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
   {
     return arrow::Status::OK();
   }
+
+#pragma GCC diagnostic push
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
+#endif // __clang__
+  virtual std::shared_ptr<arrow::DataType> out_type() const
+  {
+    return mType;
+  }
+#pragma GCC diagnostic pop
+
+  std::shared_ptr<arrow::DataType> mType;
 };
 
 BOOST_AUTO_TEST_CASE(TestArrow01)

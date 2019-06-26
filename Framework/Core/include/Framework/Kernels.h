@@ -51,8 +51,20 @@ class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
                      arrow::compute::Datum const& table,
                      arrow::compute::Datum* hashes) override;
 
+#pragma GCC diagnostic push
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
+#endif // __clang__
+
+  virtual std::shared_ptr<arrow::DataType> out_type() const
+  {
+    return mType;
+  }
+#pragma GCC diagnostic pop
+
  private:
   HashByColumnOptions mOptions;
+  std::shared_ptr<arrow::DataType> mType;
 };
 
 struct ARROW_EXPORT GroupByOptions {
@@ -67,9 +79,15 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
   arrow::Status Call(arrow::compute::FunctionContext* ctx,
                      arrow::compute::Datum const& table,
                      arrow::compute::Datum* outputRanges) override;
-  //virtual std::shared_ptr<arrow::DataType> out_type() const override {
-  //  return mType;
-  //}
+#pragma GCC diagnostic push
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
+#endif // __clang__
+  virtual std::shared_ptr<arrow::DataType> out_type() const
+  {
+    return mType;
+  }
+#pragma GCC diagnostic pop
 
  private:
   std::shared_ptr<arrow::DataType> mType;

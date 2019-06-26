@@ -23,6 +23,7 @@
 #include <arrow/ipc/writer.h>
 #include <arrow/io/interfaces.h>
 #include <arrow/table.h>
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework::readers
 {
