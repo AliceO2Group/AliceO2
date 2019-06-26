@@ -43,7 +43,7 @@ class Tracker
   inline float getSigmaCut() const { return mSigmaCut; }
 
   bool process(gsl::span<const Cluster2D> clusters);
-  bool init();
+  bool init(bool keepAll = false);
 
   /// Gets the array of reconstructes tracks
   const std::vector<Track>& getTracks() { return mTracks; }
@@ -54,7 +54,9 @@ class Tracker
  private:
   bool processSide(bool isRight, bool isInward);
   bool tryAddTrack(const Track& track);
-  bool followTrack(const Track& track, bool isRight, bool isInward);
+  bool followTrackKeepAll(const Track& track, bool isRight, bool isInward);
+  bool followTrackKeepBest(const Track& track, bool isRight, bool isInward);
+  bool findAllClusters(Track& track, int clIdx, bool isRight, bool isInward, int chamber, int irpc);
   bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
   int getLastNeighbourRPC(int rpc) const;
@@ -69,12 +71,15 @@ class Tracker
   float mSigmaCut = 5.;         ///< Number of sigmas cut
   float mMaxChi2 = 1.e6;        ///< Maximum cut on chi2
 
-  std::vector<int> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
-  std::vector<Cluster3D> mClusters;     ///< 3D clusters
+  std::vector<std::pair<int, bool>> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
+  std::vector<Cluster3D> mClusters;                      ///< 3D clusters
 
   std::vector<Track> mTracks; ///< Array of tracks
 
   GeometryTransformer mTransformer; ///< Geometry transformer
+
+  typedef bool (Tracker::*TrackerMemFn)(const Track&, bool, bool);
+  TrackerMemFn mFollowTrack{ nullptr }; ///! Choice of the function to follow the track
 };
 } // namespace mid
 } // namespace o2
