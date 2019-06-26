@@ -68,7 +68,7 @@ class TPCFastTransformHelperO2
 
   /// _______________  Utilities   ________________________
 
-  void testGeometry(const TPCFastTransform& fastTransform) const;
+  void testGeometry(const TPCFastTransformGeo& fastTransform) const;
 
  private:
   /// initialization
@@ -79,7 +79,7 @@ class TPCFastTransformHelperO2
   static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
   bool mIsInitialized = 0;                                                                     ///< initialization flag
   std::function<void(const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
-  TPCFastTransform mGeoTransform;                                                              ///< helper to store geometry parameters
+  TPCFastTransformGeo mGeo;                                                                    ///< geometry parameters
 
   ClassDefNV(TPCFastTransformHelperO2, 2);
 };

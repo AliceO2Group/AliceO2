@@ -39,6 +39,7 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
 								Global/GPUChainTrackingDebugAndProfiling.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \
+								TPCFastTransformation/TPCFastTransformGeo.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \
 								TPCFastTransformation/IrregularSpline2D3D.cxx
 

@@ -146,13 +146,13 @@ void IrregularSpline2D3D::constructRegular(int numberOfKnotsU, int numberOfKnots
   mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
 }
 
-void IrregularSpline2D3D::Print() const
+void IrregularSpline2D3D::print() const
 {
 #if !defined(GPUCA_GPUCODE)
   std::cout << " Irregular Spline 2D3D: " << std::endl;
   std::cout << " grid U: " << std::endl;
-  mGridU.Print();
+  mGridU.print();
   std::cout << " grid V: " << std::endl;
-  mGridV.Print();
+  mGridV.print();
 #endif
 }

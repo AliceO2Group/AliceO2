@@ -34,7 +34,7 @@ o2::tpc::SpaceCharge* sc = 0;
 using namespace o2::tpc;
 using namespace o2::gpu;
 
-void generateTPCDistortion()
+void generateTPCDistortionNTuple()
 {
   // open file with space-charge density histograms
   // location: alien:///alice/cern.ch/user/e/ehellbar/TPCSpaceCharge/RUN3/ SCDensityHistograms/InputSCDensityHistograms.root
@@ -78,6 +78,7 @@ void generateTPCDistortion()
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   o2::gpu::TPCDistortionIRS& dist = fastTransform->getDistortionNonConst();
+  const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   TFile* f = new TFile("tpcDistortion.root", "RECREATE");
   TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
@@ -85,21 +86,21 @@ void generateTPCDistortion()
   int nSlices = 1; //fastTransform->getNumberOfSlices();
   //for( int slice=0; slice<nSlices; slice++){
   for (int slice = 0; slice < 1; slice++) {
-    const o2::gpu::TPCFastTransform::SliceInfo& sliceInfo = fastTransform->getSliceInfo(slice);
+    const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    for (int row = 0; row < fastTransform->getNumberOfRows(); row++) {
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-      float x = fastTransform->getRowInfo(row).x;
+      float x = geo.getRowInfo(row).x;
 
       for (float su = 0.; su <= 1.; su += 0.01) {
         for (float sv = 0.; sv <= 1.; sv += 0.01) {
           float u, v, y = 0, z = 0;
-          dist.convSUVtoUV(slice, row, su, sv, u, v);
-          fastTransform->convUVtoYZ(slice, row, x, u, v, y, z);
+          geo.convScaledUVtoUV(slice, row, su, sv, u, v);
+          geo.convUVtoLocal(slice, u, v, y, z);
 
           // local 2 global
           float gx, gy, gz;
-          fastTransform->convLocalToGlobal(slice, x, y, z, gx, gy, gz);
+          geo.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
 
           o2::tpc::GlobalPosition3D positionCorrected(gx, gy, gz);
           sc->correctElectron(positionCorrected);
@@ -109,9 +110,9 @@ void generateTPCDistortion()
 
           // global to local
           float x1, y1, z1;
-          fastTransform->convGlobalToLocal(slice, gx, gy, gz, x1, y1, z1);
+          geo.convGlobalToLocal(slice, gx, gy, gz, x1, y1, z1);
           float u1 = 0, v1 = 0;
-          fastTransform->convYZtoUV(slice, row, x1, y1, z1, u1, v1);
+          geo.convLocalToUV(slice, y1, z1, u1, v1);
 
           float dx = x1 - x;
           float du = u1 - u;

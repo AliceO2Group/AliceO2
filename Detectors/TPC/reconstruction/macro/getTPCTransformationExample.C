@@ -44,37 +44,34 @@ void getTPCTransformationExample()
 
   double statDiff = 0., statN = 0.;
 
-  for (int slice = 0; slice < fastTransform->getNumberOfSlices(); slice += 1) {
+  const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
+
+  for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
     std::cout << "slice " << slice << " ... " << std::endl;
 
-    const TPCFastTransform::SliceInfo& sliceInfo = fastTransform->getSliceInfo(slice);
+    const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    for (int row = 0; row < fastTransform->getNumberOfRows(); row++) {
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-      int nPads = fastTransform->getRowInfo(row).maxPad + 1;
+      int nPads = geo.getRowInfo(row).maxPad + 1;
 
       for (int pad = 0; pad < nPads; pad += 10) {
 
         for (float time = 0; time < 1000; time += 30) {
 
-          fastTransform->setApplyDistortionFlag(0);
+          fastTransform->setApplyDistortionOff();
           float x0 = 0., y0 = 0., z0 = 0.;
-          int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+          fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
-          fastTransform->setApplyDistortionFlag(1);
+          fastTransform->setApplyDistortionOn();
           float x1 = 0., y1 = 0., z1 = 0.;
-          int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
-
-          if (err0 != 0 || err1 != 0) {
-            std::cout << "can not transform!!" << std::endl;
-            continue;
-          }
+          fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
           // local 2 global
           float gx0, gy0, gz0;
-          fastTransform->convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
+          geo.convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
           float gx1, gy1, gz1;
-          fastTransform->convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
+          geo.convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
 
           // compare the original correction to the difference ( transformation with correction - transformation without correction )
 

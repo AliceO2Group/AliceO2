@@ -183,7 +183,7 @@ class IrregularSpline2D3D : public FlatObject
   size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Print method
-  void Print() const;
+  void print() const;
 
  private:
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);

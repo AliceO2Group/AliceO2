@@ -54,20 +54,17 @@ void TPCFastTransformHelperO2::init()
 
   const int nRows = mapper.getNumberOfRows();
 
-  mGeoTransform.startConstruction(nRows);
-
-  TPCDistortionIRS& distortion = mGeoTransform.getDistortionNonConst();
-
-  distortion.startConstruction(nRows, 1);
+  mGeo.startConstruction(nRows);
 
   auto& detParam = ParameterDetector::Instance();
   float tpcZlengthSideA = detParam.TPClength;
   float tpcZlengthSideC = detParam.TPClength;
 
-  mGeoTransform.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
-  distortion.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
+  mGeo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
 
-  for (int iRow = 0; iRow < mGeoTransform.getNumberOfRows(); iRow++) {
+  mGeo.setTPCalignmentZ(0.);
+
+  for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
     Sector sector = 0;
     int regionNumber = 0;
     while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
@@ -82,31 +79,13 @@ void TPCFastTransformHelperO2::init()
     const PadCentre& padCentre = mapper.padCentre(pad);
     float xRow = padCentre.X();
 
-    mGeoTransform.setTPCrow(iRow, xRow, nPads, padWidth);
-    int scenario = 0;
-    distortion.setTPCrow(iRow, xRow, nPads, padWidth, scenario);
+    mGeo.setTPCrow(iRow, xRow, nPads, padWidth);
   }
 
-  // set calibration parameters to 0., the object is used only for geometrical transformations
-  const float t0 = 0.f;
-  const float vDrift = 0.f;
-  const float vdCorrY = 0.f;
-  const float ldCorr = 0.f;
-  const float tpcAlignmentZ = 0.f;
-  const float tofCorr = 0.f;
-  const float primVtxZ = 0.f;
-  const long int initTimeStamp = -1;
-  mGeoTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
-
-  IrregularSpline2D3D spline;
-  spline.constructRegular(5, 5);
-  distortion.setApproximationScenario(0, spline);
-
-  distortion.finishConstruction();
-  mGeoTransform.finishConstruction();
+  mGeo.finishConstruction();
 
   // check if calculated pad geometry is consistent with the map
-  testGeometry(mGeoTransform);
+  testGeometry(mGeo);
 
   mIsInitialized = 1;
 }
@@ -115,100 +94,97 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 {
   /// initializes TPCFastTransform object
 
-  std::unique_ptr<TPCFastTransform> fastTransformPtr(new TPCFastTransform);
-
-  TPCFastTransform& fastTransform = *fastTransformPtr;
-  TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
-
-  // tell the transformation to apply the space charge distortions
-
-  // FIXME: this is the awful initialization flag
-  constexpr int fastTransformFlag = 1;
-  fastTransform.setApplyDistortionFlag(fastTransformFlag);
+  // init geometry
 
   if (!mIsInitialized) {
     init();
   }
 
-  const int nRows = mGeoTransform.getNumberOfRows();
-  const int nDistortionScenarios = nRows / 10 + 1;
-  fastTransform.startConstruction(nRows);
-  distortion.startConstruction(nRows, nDistortionScenarios);
+  TPCDistortionIRS distortion;
 
-  fastTransform.setTPCgeometry(mGeoTransform.getTPCzLengthA(), mGeoTransform.getTPCzLengthC());
-  distortion.setTPCgeometry(mGeoTransform.getTPCzLengthA(), mGeoTransform.getTPCzLengthC());
+  { // create the distortion map
 
-  // init rows
-  for (int row = 0; row < mGeoTransform.getNumberOfRows(); row++) {
-    const TPCFastTransform::RowInfo& info = mGeoTransform.getRowInfo(row);
-    fastTransform.setTPCrow(row, info.x, info.maxPad + 1, info.padWidth);
-    int scenario = row / 10;
-    if (scenario >= nDistortionScenarios)
-      scenario = nDistortionScenarios - 1;
-    distortion.setTPCrow(row, info.x, info.maxPad + 1, info.padWidth, scenario);
-  }
+    const int nRows = mGeo.getNumberOfRows();
+    const int nDistortionScenarios = nRows / 10 + 1;
 
-  // set some initial values, will be reinitialised later int updateCalibration()
-  const float t0 = 0.;
-  const float vDrift = 0.f;
-  const float vdCorrY = 0.;
-  const float ldCorr = 0.;
-  const float tpcAlignmentZ = 0.;
-  const float tofCorr = 0.;
-  const float primVtxZ = 0.;
-  const long int initTimeStamp = -1;
-  fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
+    distortion.startConstruction(mGeo, nDistortionScenarios);
 
-  // adjust the number of knots and the knot positions for the TPC distortion splines
-
-  IrregularSpline2D3DCalibrator calibrator;
-  calibrator.setRasterSize(41, 41);
-  calibrator.setMaxNKnots(21, 21);
-  calibrator.setMaximalDeviation(0.01);
-
-  IrregularSpline2D3D raster;
-  raster.constructRegular(101, 101);
-  std::vector<float> rasterData(3 * raster.getNumberOfKnots());
-
-  for (int scenario = 0; scenario < nDistortionScenarios; scenario++) {
-    int row = scenario * 10;
-    if (row >= nRows)
-      break;
-    IrregularSpline2D3D spline;
-
-    if (!mSpaceChargeCorrection) {
-      spline.constructRegular(21, 21);
-    } else {
-      // create the input function
-      for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {
-        float su = 0.f, sv = 0.f;
-        raster.getKnotUV(knot, su, sv);
-        float dx = 0.f, du = 0.f, dv = 0.f;
-        const int slice = 0;
-        getSpaceChargeCorrection(slice, row, su, sv, dx, du, dv);
-        rasterData[3 * knot + 0] = dx;
-        rasterData[3 * knot + 1] = du;
-        rasterData[3 * knot + 2] = dv;
+    // init rows
+    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      int scenario = row / 10;
+      if (scenario >= nDistortionScenarios) {
+        scenario = nDistortionScenarios - 1;
       }
-      raster.correctEdges(rasterData.data());
-
-      std::function<void(float, float, float&, float&, float&)> f;
-      f = [&raster, &rasterData](float su, float sv, float& dx, float& du, float& dv) {
-        raster.getSpline(rasterData.data(), su, sv, dx, du, dv);
-      };
-
-      calibrator.calibrateSpline(spline, f);
-      std::cout << "calibrated spline for scenario " << scenario << ", TPC row " << row << ": knots u "
-                << spline.getGridU().getNumberOfKnots() << ", v "
-                << spline.getGridV().getNumberOfKnots() << std::endl;
+      distortion.setRowScenarioID(row, scenario);
     }
-    distortion.setApproximationScenario(scenario, spline);
-  }
-  distortion.finishConstruction();
-  fastTransform.finishConstruction();
 
-  // check if calculated pad geometry is consistent with the map
-  testGeometry(fastTransform);
+    // adjust the number of knots and the knot positions for the TPC distortion splines
+
+    IrregularSpline2D3DCalibrator calibrator;
+    calibrator.setRasterSize(41, 41);
+    calibrator.setMaxNKnots(21, 21);
+    calibrator.setMaximalDeviation(0.01);
+
+    IrregularSpline2D3D raster;
+    raster.constructRegular(101, 101);
+    std::vector<float> rasterData(3 * raster.getNumberOfKnots());
+
+    for (int scenario = 0; scenario < nDistortionScenarios; scenario++) {
+      int row = scenario * 10;
+      IrregularSpline2D3D spline;
+      if (!mSpaceChargeCorrection || row >= nRows) {
+        spline.constructRegular(21, 21);
+      } else {
+        // create the input function
+        for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {
+          float su = 0.f, sv = 0.f;
+          raster.getKnotUV(knot, su, sv);
+          float dx = 0.f, du = 0.f, dv = 0.f;
+          const int slice = 0;
+          getSpaceChargeCorrection(slice, row, su, sv, dx, du, dv);
+          rasterData[3 * knot + 0] = dx;
+          rasterData[3 * knot + 1] = du;
+          rasterData[3 * knot + 2] = dv;
+        }
+        raster.correctEdges(rasterData.data());
+        std::function<void(float, float, float&, float&, float&)> f;
+        f = [&raster, &rasterData](float su, float sv, float& dx, float& du, float& dv) {
+          raster.getSpline(rasterData.data(), su, sv, dx, du, dv);
+        };
+
+        calibrator.calibrateSpline(spline, f);
+        std::cout << "calibrated spline for scenario " << scenario << ", TPC row " << row << ": knots u "
+                  << spline.getGridU().getNumberOfKnots() << ", v "
+                  << spline.getGridV().getNumberOfKnots() << std::endl;
+      }
+      distortion.setSplineScenario(scenario, spline);
+    }
+    distortion.finishConstruction();
+  } // .. create the distortion map
+
+  std::unique_ptr<TPCFastTransform> fastTransformPtr(new TPCFastTransform);
+
+  TPCFastTransform& fastTransform = *fastTransformPtr;
+
+  { // create the fast transform object
+
+    fastTransform.startConstruction(distortion);
+
+    // tell the transformation to apply the space charge distortions
+    fastTransform.setApplyDistortionOn();
+
+    // set some initial calibration values, will be reinitialised later int updateCalibration()
+    const float t0 = 0.;
+    const float vDrift = 0.f;
+    const float vdCorrY = 0.;
+    const float ldCorr = 0.;
+    const float tofCorr = 0.;
+    const float primVtxZ = 0.;
+    const long int initTimeStamp = -1;
+    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+
+    fastTransform.finishConstruction();
+  }
 
   updateCalibration(fastTransform, TimeStamp);
 
@@ -269,12 +245,10 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   const double vdCorrY = 0.;
   const double ldCorr = 0.;
-  const double tpcAlignmentZ = 0.;
-
   const double tofCorr = 0.;
   const double primVtxZ = 0.;
 
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
+  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
 
   // now calculate distortion map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
 
@@ -282,8 +256,8 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // for the future: switch TOF correction off for a while
 
-  for (int slice = 0; slice < distortion.getNumberOfSlices(); slice++) {
-    for (int row = 0; row < distortion.getNumberOfRows(); row++) {
+  for (int slice = 0; slice < distortion.getGeometry().getNumberOfSlices(); slice++) {
+    for (int row = 0; row < distortion.getGeometry().getNumberOfRows(); row++) {
       const IrregularSpline2D3D& spline = distortion.getSpline(slice, row);
       float* data = distortion.getSplineDataNonConst(slice, row);
 
@@ -323,23 +297,21 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
     return 0;
   }
 
-  const TPCDistortionIRS& distortion = mGeoTransform.getDistortion();
-
-  const TPCFastTransform::RowInfo& rowInfo = mGeoTransform.getRowInfo(row);
+  const TPCFastTransformGeo::RowInfo& rowInfo = mGeo.getRowInfo(row);
 
   float x = rowInfo.x;
 
   // x, u, v cordinates of the (su,sv) point (local cartesian coord. of slice towards central electrode )
   float u = 0, v = 0;
-  distortion.convSUVtoUV(slice, row, su, sv, u, v);
+  mGeo.convScaledUVtoUV(slice, row, su, sv, u, v);
 
   // nominal x,y,z coordinates of the knot (without distortions and time-of-flight correction)
   float y = 0, z = 0;
-  mGeoTransform.convUVtoYZ(slice, row, x, u, v, y, z);
+  mGeo.convUVtoLocal(slice, u, v, y, z);
 
   // global coordinates of the knot
   float gx, gy, gz;
-  mGeoTransform.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
+  mGeo.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
   float gx1 = gx, gy1 = gy, gz1 = gz;
   {
     double xyz[3] = { gx, gy, gz };
@@ -352,11 +324,11 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
 
   // corrections in the local coordinates
   float x1, y1, z1;
-  mGeoTransform.convGlobalToLocal(slice, gx1, gy1, gz1, x1, y1, z1);
+  mGeo.convGlobalToLocal(slice, gx1, gy1, gz1, x1, y1, z1);
 
   // distortion corrections in u,v
   float u1 = 0, v1 = 0;
-  mGeoTransform.convYZtoUV(slice, row, x1, y1, z1, u1, v1);
+  mGeo.convLocalToUV(slice, y1, z1, u1, v1);
 
   dx = x1 - x;
   du = u1 - u;
@@ -364,40 +336,37 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   return 0;
 }
 
-void TPCFastTransformHelperO2::testGeometry(const TPCFastTransform& fastTransform) const
+void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) const
 {
   const Mapper& mapper = Mapper::instance();
 
-  if (fastTransform.getNumberOfSlices() != Sector::MAXSECTOR) {
-    LOG(FATAL) << "Wrong number of sectors :" << fastTransform.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
+  if (geo.getNumberOfSlices() != Sector::MAXSECTOR) {
+    LOG(FATAL) << "Wrong number of sectors :" << geo.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
   }
 
-  if (fastTransform.getNumberOfRows() != mapper.getNumberOfRows()) {
-    LOG(FATAL) << "Wrong number of rows :" << fastTransform.getNumberOfRows() << " instead of " << mapper.getNumberOfRows() << std::endl;
+  if (geo.getNumberOfRows() != mapper.getNumberOfRows()) {
+    LOG(FATAL) << "Wrong number of rows :" << geo.getNumberOfRows() << " instead of " << mapper.getNumberOfRows() << std::endl;
   }
 
   double maxDx = 0, maxDy = 0;
 
-  for (int row = 0; row < fastTransform.getNumberOfRows(); row++) {
+  for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-    const int nPads = fastTransform.getRowInfo(row).maxPad + 1;
+    const int nPads = geo.getRowInfo(row).maxPad + 1;
 
     if (nPads != mapper.getNumberOfPadsInRowSector(row)) {
       LOG(FATAL) << "Wrong number of pads :" << nPads << " instead of " << mapper.getNumberOfPadsInRowSector(row) << std::endl;
     }
 
-    const double x = fastTransform.getRowInfo(row).x;
+    const double x = geo.getRowInfo(row).x;
 
     // check if calculated pad positions are equal to the real ones
 
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      float u = 0, v = 0;
-      int err = fastTransform.convPadTimeToUV(0, row, pad, 10., u, v, 0.);
-      if (err != 0) {
-        LOG(FATAL) << "Can not transform a cluster: row " << row << " pad " << pad << " time 10. : error " << err << std::endl;
-      }
+      float u = 0;
+      geo.convPadToU(row, pad, u);
 
       const double dx = x - c.X();
       const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map

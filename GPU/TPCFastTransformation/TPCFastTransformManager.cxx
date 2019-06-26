@@ -65,70 +65,106 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
 
   fLastTimeBin = rec->GetLastBin();
 
-  fastTransform.startConstruction(tpcParam->GetNRowLow() + tpcParam->GetNRowUp());
+  const int nRows = tpcParam->GetNRowLow() + tpcParam->GetNRowUp();
 
-  TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
+  TPCFastTransformGeo geo;
 
-  distortion.startConstruction(tpcParam->GetNRowLow() + tpcParam->GetNRowUp(), 1);
+  { // construct the geometry
+    geo.startConstruction(nRows);
 
-  float tpcZlengthSideA = tpcParam->GetZLength(0);
-  float tpcZlengthSideC = tpcParam->GetZLength(TPCFastTransform::getNumberOfSlices() / 2);
+    float tpcZlengthSideA = tpcParam->GetZLength(0);
+    float tpcZlengthSideC = tpcParam->GetZLength(TPCFastTransformGeo::getNumberOfSlices() / 2);
 
-  fastTransform.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
-  distortion.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
+    geo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
+    geo.setTPCalignmentZ(-mOrigTransform->GetDeltaZCorrTime());
 
-  for (int iRow = 0; iRow < fastTransform.getNumberOfRows(); iRow++) {
-    int sector = 0, secrow = 0;
-    AliHLTTPCGeometry::Slice2Sector(0, iRow, sector, secrow);
-    Int_t nPads = tpcParam->GetNPads(sector, secrow);
-    float xRow = tpcParam->GetPadRowRadii(sector, secrow);
-    float padWidth = tpcParam->GetInnerPadPitchWidth();
-    if (iRow >= tpcParam->GetNRowLow()) {
-      padWidth = tpcParam->GetOuterPadPitchWidth();
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+      int slice = 0, sector = 0, secrow = 0;
+      AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
+      Int_t nPads = tpcParam->GetNPads(sector, secrow);
+      float xRow = tpcParam->GetPadRowRadii(sector, secrow);
+      float padWidth = tpcParam->GetInnerPadPitchWidth();
+      if (row >= tpcParam->GetNRowLow()) {
+        padWidth = tpcParam->GetOuterPadPitchWidth();
+      }
+      geo.setTPCrow(row, xRow, nPads, padWidth);
     }
-    fastTransform.setTPCrow(iRow, xRow, nPads, padWidth);
-    distortion.setTPCrow(iRow, xRow, nPads, padWidth, 0);
+    geo.finishConstruction();
   }
 
-  fastTransform.setCalibration(-1, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+  TPCDistortionIRS distortion;
 
-  IrregularSpline2D3D spline;
-  {
-    int nKnotsU = 15;
-    int nAxisTicksU = tpcParam->GetNPads(0, 10);
-    int nKnotsV = 20;
-    int nAxisTicksV = fLastTimeBin + 1;
-    float knotsU[nKnotsU];
-    float knotsV[nKnotsV];
-    for (int i = 0; i < nKnotsU; i++) {
-      knotsU[i] = 1. / (nKnotsU - 1) * i;
-    }
-    for (int i = 0; i < nKnotsV; i++) {
-      knotsV[i] = 1. / (nKnotsV - 1) * i;
+  { // create the distortion map
+
+    const int nDistortionScenarios = 1;
+
+    distortion.startConstruction(geo, nDistortionScenarios);
+
+    IrregularSpline2D3D spline;
+
+    { // adjust the number of knots and the knot positions for the TPC distortion splines
+      // make bining similar to old HLT transformation
+      // TODO: use IrregularSpline2D3DCaibrator similar to O2 code
+
+      int nKnotsU = 15;
+      int nAxisTicksU = tpcParam->GetNPads(0, 10);
+      int nKnotsV = 20;
+      int nAxisTicksV = fLastTimeBin + 1;
+      float knotsU[nKnotsU];
+      float knotsV[nKnotsV];
+      for (int i = 0; i < nKnotsU; i++) {
+        knotsU[i] = 1. / (nKnotsU - 1) * i;
+      }
+      for (int i = 0; i < nKnotsV; i++) {
+        knotsV[i] = 1. / (nKnotsV - 1) * i;
+      }
+
+      double d1 = 0.6;
+      double d2 = 0.9 - d1;
+      double d3 = 1. - d2 - d1;
+
+      for (int i = 0; i < 5; i++) { // 5 bins in first 6% of drift
+        knotsV[i] = i / 4. * d1;
+      }
+      for (int i = 0; i < 10; i++) { // 10 bins for 6% <-> 90%
+        knotsV[4 + i] = d1 + i / 9. * d2;
+      }
+      for (int i = 0; i < 5; i++) { // 5 bins for last 90% <-> 100%
+        knotsV[13 + i] = d1 + d2 + i / 4. * d3;
+      }
+
+      spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
+    } // spline
+
+    int scenario = 0;
+    distortion.setSplineScenario(scenario, spline);
+
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+      distortion.setRowScenarioID(row, scenario);
     }
 
-    // make bining similar to old HLT transformation
-    // TODO: adjust to binning in the calibration
+    distortion.finishConstruction();
+  } // .. create the distortion map
 
-    double d1 = 0.6;
-    double d2 = 0.9 - d1;
-    double d3 = 1. - d2 - d1;
+  { // create the fast transform object
 
-    for (int i = 0; i < 5; i++) { // 5 bins in first 6% of drift
-      knotsV[i] = i / 4. * d1;
-    }
-    for (int i = 0; i < 10; i++) { // 10 bins for 6% <-> 90%
-      knotsV[4 + i] = d1 + i / 9. * d2;
-    }
-    for (int i = 0; i < 5; i++) { // 5 bins for last 90% <-> 100%
-      knotsV[13 + i] = d1 + d2 + i / 4. * d3;
-    }
+    fastTransform.startConstruction(distortion);
 
-    spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
+    // tell the transformation to apply the space charge distortions
+    fastTransform.setApplyDistortionOn();
+
+    // set some initial calibration values, will be reinitialised later int updateCalibration()
+    const float t0 = 0.;
+    const float vDrift = 0.f;
+    const float vdCorrY = 0.;
+    const float ldCorr = 0.;
+    const float tofCorr = 0.;
+    const float primVtxZ = 0.;
+    const long int initTimeStamp = -1;
+    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+
+    fastTransform.finishConstruction();
   }
-  distortion.setApproximationScenario(0, spline);
-  distortion.finishConstruction();
-  fastTransform.finishConstruction();
 
   return updateCalibration(fastTransform, TimeStamp);
 }
@@ -219,8 +255,6 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
   double vdCorrY = vDrift * vdCorrectionTimeGY;
   double ldCorr = -time0CorrTime + 3 * tpcParam->GetZSigma();
 
-  double tpcAlignmentZ = -mOrigTransform->GetDeltaZCorrTime();
-
   double tofCorr = (0.01 * tpcParam->GetDriftV()) / TMath::C();
   double primVtxZ = mOrigTransform->GetPrimVertex()[2];
 
@@ -230,9 +264,11 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
     tofCorr = 0;
   }
 
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
+  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
 
-  // now calculate distortion map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
+  // now calculate the distortion map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
+
+  const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
   TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
 
@@ -240,11 +276,11 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
   recoParam->SetUseTOFCorrection(kFALSE);
 
-  for (int slice = 0; slice < distortion.getNumberOfSlices(); slice++) {
+  for (int slice = 0; slice < geo.getNumberOfSlices(); slice++) {
 
-    for (int row = 0; row < distortion.getNumberOfRows(); row++) {
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
-      const TPCFastTransform::RowInfo& rowInfo = fastTransform.getRowInfo(row);
+      const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
       const IrregularSpline2D3D& spline = distortion.getSpline(slice, row);
 
@@ -265,15 +301,16 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
         // x, u, v cordinates of the knot (local cartesian coord. of slice towards central electrode )
         float u = 0, v = 0;
-        distortion.convSUVtoUV(slice, row, su, sv, u, v);
+        geo.convScaledUVtoUV(slice, row, su, sv, u, v);
 
         // row, pad, time coordinates of the knot
-        float pad = 0, time = 0;
-        fastTransform.convUVtoPadTime(slice, row, u, v, pad, time);
+        float vertexTime = 0.f;
+        float pad = 0.f, time = 0.f;
+        fastTransform.convUVtoPadTime(slice, row, u, v, pad, time, vertexTime);
 
         // nominal x,y,z coordinates of the knot (without distortions and time-of-flight correction)
         float y = 0, z = 0;
-        fastTransform.convUVtoYZ(slice, row, x, u, v, y, z);
+        geo.convUVtoLocal(slice, u, v, y, z);
 
         // original TPC transformation (row,pad,time) -> (x,y,z) without time-of-flight correction
         float ox = 0, oy = 0, oz = 0;
@@ -289,7 +326,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
         }
         // convert to u,v
         float ou = 0, ov = 0;
-        fastTransform.convYZtoUV(slice, row, ox, oy, oz, ou, ov);
+        geo.convLocalToUV(slice, oy, oz, ou, ov);
 
         // distortions in x,u,v:
         float dx = ox - x;
