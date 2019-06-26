@@ -327,6 +327,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    O2FrameworkLogger_bucket
+
+    DEPENDENCIES
+    FairLogger::FairLogger
+    fmt::fmt
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Logger/include
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
