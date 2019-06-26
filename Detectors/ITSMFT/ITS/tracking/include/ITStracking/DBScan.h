@@ -120,7 +120,7 @@ std::vector<std::vector<int>> DBScan<T>::computeClusters()
     if (!usedVertices[cores[core]]) {
       std::vector<unsigned char> clusterFlags = this->getCluster(cores[core]);
       std::transform(usedVertices.begin(), usedVertices.end(), clusterFlags.begin(), usedVertices.begin(), std::logical_or<>());
-      clusters.emplace_back(this->getClusterIndices(clusterFlags));
+      clusters.emplace_back(std::move(this->getClusterIndices(clusterFlags)));
     }
   }
   return clusters;
