@@ -17,6 +17,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 
 #include "FlatObject.h"
+#include "TPCFastTransformGeo.h"
 #include "TPCDistortionIRS.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
@@ -58,19 +59,6 @@ namespace gpu
 class TPCFastTransform : public FlatObject
 {
  public:
-  /// The struct contains necessary info for TPC slice
-  struct SliceInfo {
-    float sinAlpha;
-    float cosAlpha;
-  };
-
-  /// The struct contains necessary info for TPC padrow
-  struct RowInfo {
-    float x;        ///< x coordinate of the row [cm]
-    int maxPad;     ///< maximal pad number = n pads - 1
-    float padWidth; ///< width of pads [cm]
-  };
-
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object
@@ -112,21 +100,13 @@ class TPCFastTransform : public FlatObject
   /// _______________  Construction interface  ________________________
 
   /// Starts the initialization procedure, reserves temporary memory
-  void startConstruction(int numberOfRows);
-
-  /// Initializes a TPC row
-  void setTPCrow(int iRow, float x, int nPads, float padWidth);
-
-  /// Sets TPC geometry
-  ///
-  /// It must be called once during initialization
-  void setTPCgeometry(float tpcZlengthSideA, float tpcZlengthSideC);
+  void startConstruction(const TPCDistortionIRS& distortion);
 
   /// Sets all drift calibration parameters and the time stamp
   ///
   /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
-  void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ, float tpcAlignmentZ);
+  void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ);
 
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
@@ -145,58 +125,41 @@ class TPCFastTransform : public FlatObject
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// taking calibration + alignment into account.
   ///
-  GPUd() int Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
-  GPUd() int TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
+  GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
+  GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
 
-  GPUdi() int convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz);
-  GPUdi() int convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz);
+  GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
 
-  GPUd() int convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
-  GPUd() int convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const;
-  GPUd() int getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
+  GPUd() void convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
+  GPUd() void convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const;
 
-  GPUd() int convYZtoUV(int slice, int row, float x, float y, float z, float& u, float& v) const;
-  GPUd() int convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time) const;
+  GPUd() void convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time, float vertexTime) const;
+  GPUd() void convUVtoPadTimeInTimeFrame(int slice, int row, float u, float v, float& pad, float& time, float maxTimeBin) const;
 
-  GPUd() int convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const;
+  GPUd() void getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
-  void setApplyDistortionFlag(bool flag) { mApplyDistortion = flag; }
-  bool getApplyDistortionFlag() { return mApplyDistortion; }
+  void setApplyDistortionOn() { mApplyDistortion = 1; }
+  void setApplyDistortionOff() { mApplyDistortion = 0; }
+  bool isDistortionApplied() { return mApplyDistortion; }
 
   /// _______________  Utilities  _______________________________________________
 
-  /// Gives number of TPC slices
-  static int getNumberOfSlices() { return NumberOfSlices; }
-
-  /// Gives number of TPC rows
-  int getNumberOfRows() const { return mNumberOfRows; }
+  /// TPC geometry information
+  GPUd() const TPCFastTransformGeo& getGeometry() const { return mDistortion.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
   long int getTimeStamp() const { return mTimeStamp; }
-
-  /// Gives slice info
-  GPUd() const SliceInfo& getSliceInfo(int slice) const { return mSliceInfos[slice]; }
-
-  /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
-
-  /// Gives Z length of the TPC, side A
-  GPUd() float getTPCzLengthA() const { return mTPCzLengthA; }
-
-  /// Gives Z length of the TPC, side C
-  GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
   /// Return mVDrift in cm / time bin
   GPUd() float getVDrift() const { return mVdrift; }
 
   /// Print method
-  void Print() const;
+  void print() const;
 
  private:
   /// Enumeration of possible initialization states
   enum ConstructionExtraState : unsigned int {
-    GeometryIsSet = 0x4,   ///< the TPC geometry is set
-    CalibrationIsSet = 0x8 ///< the drift calibration is set
+    CalibrationIsSet = 0x4 ///< the drift calibration is set
   };
 
   /// _______________  Utilities  _______________________________________________
@@ -205,23 +168,7 @@ class TPCFastTransform : public FlatObject
 
   /// _______________  Data members  _______________________________________________
 
-  static constexpr int NumberOfSlices = 36; ///< Number of TPC slices ( slice = inner + outer sector )
-
-  /// _______________  Construction control  _______________________________________________
-
-  int mConstructionCounter;                              ///< counter for initialized parameters
-  std::unique_ptr<RowInfo[]> mConstructionRowInfoBuffer; ///< Temporary container of the row infos during initialization
-
-  /// _______________  Geometry  _______________________________________________
-
-  SliceInfo mSliceInfos[NumberOfSlices]; ///< array of slice information [fixed size]
-
-  int mNumberOfRows = 0; ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
-
-  const RowInfo* mRowInfoPtr; ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
-
-  float mTPCzLengthA; ///< Z length of the TPC, side A
-  float mTPCzLengthC; ///< Z length of the TPC, side C
+  TPCFastTransformGeo mGeo; ///< TPC geometry information
 
   /// _______________  Calibration data. See Transform() method  ________________________________
 
@@ -257,59 +204,18 @@ class TPCFastTransform : public FlatObject
   float mTOFcorr;
 
   float mPrimVtxZ;      ///< Z of the primary vertex, needed for the Time-Of-Flight correction
-  float mTPCalignmentZ; ///< Global Z shift of the TPC detector. It is applied at the end of the transformation.
 };
 
 // =======================================================================
 //              Inline implementations of some methods
 // =======================================================================
 
-inline void TPCFastTransform::setTPCrow(int iRow, float x, int nPads, float padWidth)
+GPUdi() void TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const
 {
-  /// Initializes a TPC row
-  assert(mConstructionMask & ConstructionState::InProgress);
-  assert(iRow >= 0 && iRow < mNumberOfRows);
-  RowInfo& row = mConstructionRowInfoBuffer[iRow];
-  row.x = x;
-  row.maxPad = nPads - 1;
-  row.padWidth = padWidth;
-  mConstructionCounter++;
-}
+  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
 
-GPUdi() int TPCFastTransform::convLocalToGlobal(int slice, float lx, float ly, float lz, float& gx, float& gy, float& gz)
-{
-  if (slice < 0 || slice >= NumberOfSlices) {
-    return -1;
-  }
-  const SliceInfo& sliceInfo = getSliceInfo(slice);
-  gx = lx * sliceInfo.cosAlpha - ly * sliceInfo.sinAlpha;
-  gy = lx * sliceInfo.sinAlpha + ly * sliceInfo.cosAlpha;
-  gz = lz;
-  return 0;
-}
-
-GPUdi() int TPCFastTransform::convGlobalToLocal(int slice, float gx, float gy, float gz, float& lx, float& ly, float& lz)
-{
-  if (slice < 0 || slice >= NumberOfSlices) {
-    return -1;
-  }
-  const SliceInfo& sliceInfo = getSliceInfo(slice);
-  lx = gx * sliceInfo.cosAlpha + gy * sliceInfo.sinAlpha;
-  ly = -gx * sliceInfo.sinAlpha + gy * sliceInfo.cosAlpha;
-  lz = gz;
-  return 0;
-}
-
-GPUdi() int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const
-{
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-
-  bool sideC = (slice >= NumberOfSlices / 2);
-
-  const RowInfo& rowInfo = getRowInfo(row);
-  const SliceInfo& sliceInfo = getSliceInfo(slice);
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
   float x = rowInfo.x;
   u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
@@ -318,111 +224,54 @@ GPUdi() int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, flo
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
 
   v = (time - mT0 - vertexTime) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
-  return 0;
 }
 
-GPUdi() int TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
+GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-
-  bool sideC = (slice >= NumberOfSlices / 2);
-
-  const RowInfo& rowInfo = getRowInfo(row);
-  const SliceInfo& sliceInfo = getSliceInfo(slice);
-
-  float x = rowInfo.x;
-  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
-
-  float y = sideC ? -u : u; // pads are mirrorred on C-side
-  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
-
-  v = (time - mT0 - maxTimeBin) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
-
-  if (sideC) {
-    v += mTPCzLengthC;
+  convPadTimeToUV(slice, row, pad, time, u, v, maxTimeBin);
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    v += getGeometry().getTPCzLengthA();
   } else {
-    v += mTPCzLengthA;
+    v += getGeometry().getTPCzLengthC();
   }
-
-  return 0;
 }
 
-GPUdi() int TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time) const
+GPUdi() void TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time, float vertexTime) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
+  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
 
-  bool sideC = (slice >= NumberOfSlices / 2);
-
-  const RowInfo& rowInfo = getRowInfo(row);
-  const SliceInfo& sliceInfo = getSliceInfo(slice);
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
   pad = u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
 
   float x = rowInfo.x;
   float y = sideC ? -u : u; // pads are mirrorred on C-side
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
-  time = mT0 + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
-  return 0;
+  time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
 }
 
-GPUdi() int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const
+GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int slice, int row, float u, float v, float& pad, float& time, float maxTimeBin) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-
-  bool sideC = (slice >= NumberOfSlices / 2);
-
-  if (sideC) {
-    y = -u;               // pads are mirrorred on C-side
-    z = v - mTPCzLengthC; // drift direction is mirrored on C-side
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    v -= getGeometry().getTPCzLengthA();
   } else {
-    y = u;
-    z = mTPCzLengthA - v;
+    v -= getGeometry().getTPCzLengthC();
   }
-
-  // global TPC alignment
-  z += mTPCalignmentZ;
-  return 0;
+  convUVtoPadTime(slice, row, u, v, pad, time, maxTimeBin);
 }
 
-GPUdi() int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y, float z, float& u, float& v) const
-{
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-
-  bool sideC = (slice >= NumberOfSlices / 2);
-
-  z = z - mTPCalignmentZ;
-  if (sideC) {
-    u = -y;
-    v = z + mTPCzLengthC;
-  } else {
-    u = y;
-    v = mTPCzLengthA - z;
-  }
-  return 0;
-}
-
-GPUdi() int TPCFastTransform::getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const
+GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x, float y, float z, float& dz) const
 {
   // calculate time of flight correction for  z coordinate
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-  bool sideC = (slice >= NumberOfSlices / 2);
+
+  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
   float distZ = z - mPrimVtxZ;
   float dv = -sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
   dz = sideC ? dv : -dv;
-  return 0;
 }
 
-GPUdi() int TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
 {
   /// _______________ The main method: cluster transformation _______________________
   ///
@@ -430,11 +279,8 @@ GPUdi() int TPCFastTransform::Transform(int slice, int row, float pad, float tim
   /// taking calibration + alignment into account.
   ///
 
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
 
-  const RowInfo& rowInfo = getRowInfo(row);
   // const SliceInfo &sliceInfo = getSliceInfo( slice );
   // bool sideC = ( slice >= NumberOfSlices / 2 );
 
@@ -450,15 +296,14 @@ GPUdi() int TPCFastTransform::Transform(int slice, int row, float pad, float tim
     v += dv;
   }
 
-  convUVtoYZ(slice, row, x, u, v, y, z);
+  getGeometry().convUVtoLocal(slice, u, v, y, z);
 
   float dzTOF = 0;
   getTOFcorrection(slice, row, x, y, z, dzTOF);
   z += dzTOF;
-  return 0;
 }
 
-GPUdi() int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
+GPUdi() void TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
 {
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
@@ -466,18 +311,21 @@ GPUdi() int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad
   /// Distortions and Time-Of-Flight correction are not alpplied.
   ///
 
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
-    return -1;
-  }
-
-  const RowInfo& rowInfo = getRowInfo(row);
-
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   x = rowInfo.x;
   float u = 0, v = 0;
-  convPadTimeToUVInTimeFrame(slice, row, pad, time, u, v, maxTimeBin);
-  convUVtoYZ(slice, row, x, u, v, y, z);
-  return 0;
+  convPadTimeToUVinTimeFrame(slice, row, pad, time, u, v, maxTimeBin);
+  getGeometry().convUVtoLocal(slice, u, v, y, z);
 }
+
+GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const
+{
+  /// Inverse transformation to TransformInTimeFrame
+  float u = 0, v = 0;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  convUVtoPadTimeInTimeFrame(slice, row, u, v, pad, time, maxTimeBin);
+}
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
