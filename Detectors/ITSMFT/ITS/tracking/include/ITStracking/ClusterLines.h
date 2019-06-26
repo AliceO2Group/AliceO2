@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
-#define O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
+#ifndef O2_ITSMFT_TRACKING_LINE_H_
+#define O2_ITSMFT_TRACKING_LINE_H_
 
 #include <array>
 #include <vector>
@@ -107,4 +107,4 @@ class ClusterLines final
 
 } // namespace its
 } // namespace o2
-#endif /* O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_ */
+#endif /* O2_ITSMFT_TRACKING_LINE_H_ */
