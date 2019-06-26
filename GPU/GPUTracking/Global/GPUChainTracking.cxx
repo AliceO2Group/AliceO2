@@ -20,6 +20,8 @@
 #include "GPUTPCSliceOutCluster.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUTPCTrack.h"
+#include "GPUTPCHitId.h"
 #include "GPUTRDTrackletWord.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
@@ -1104,6 +1106,12 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (DoProfile()) {
     return (1);
   }
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    mIOPtrs.nSliceOutTracks[i] = *processors()->tpcTrackers[i].NTracks();
+    mIOPtrs.sliceOutTracks[i] = processors()->tpcTrackers[i].Tracks();
+    mIOPtrs.nSliceOutClusters[i] = *processors()->tpcTrackers[i].NTrackHits();
+    mIOPtrs.sliceOutClusters[i] = processors()->tpcTrackers[i].TrackHits();
+  }
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
@@ -1289,6 +1297,8 @@ int GPUChainTracking::RunTPCCompression()
 
   SynchronizeGPU();
 
+  mIOPtrs.tpcCompressedClusters = &Compressor.mOutput;
+
   ReleaseThreadContext();
 #endif
   return 0;
@@ -1342,6 +1352,9 @@ int GPUChainTracking::RunTRDTracking()
   }
 
   Tracker.DoTracking();
+
+  mIOPtrs.nTRDTracks = Tracker.NTracks();
+  mIOPtrs.trdTracks = Tracker.Tracks();
 
   return 0;
 }

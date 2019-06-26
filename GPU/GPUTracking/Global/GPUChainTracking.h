@@ -83,15 +83,15 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
-    std::unique_ptr<GPUTPCSliceOutTrack[]> sliceOutTracks[NSLICES];
-    std::unique_ptr<GPUTPCSliceOutCluster[]> sliceOutClusters[NSLICES];
+    std::unique_ptr<GPUTPCTrack[]> sliceOutTracks[NSLICES];
+    std::unique_ptr<GPUTPCHitId[]> sliceOutClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
     std::unique_ptr<GPUTPCMCInfo[]> mcInfosTPC;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
-    std::unique_ptr<GPUTRDTrack[]> trdTracks;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDTrackletLabels[]> trdTrackletsMC;
+    std::unique_ptr<GPUTRDTrack[]> trdTracks;
   } mIOMem;
 
   // Read / Dump / Clear Data
