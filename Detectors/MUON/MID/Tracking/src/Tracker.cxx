@@ -15,7 +15,8 @@
 #include "MIDTracking/Tracker.h"
 
 #include <cmath>
-#include "FairLogger.h"
+#include <functional>
+#include "fairlogger/Logger.h"
 #include "MIDBase/Constants.h"
 
 namespace o2
@@ -30,7 +31,7 @@ Tracker::Tracker(const GeometryTransformer& geoTrans) : mTransformer(geoTrans)
 }
 
 //______________________________________________________________________________
-bool Tracker::init()
+bool Tracker::init(bool keepAll)
 {
   /// Initializes the task
 
@@ -44,6 +45,12 @@ bool Tracker::init()
 
   // Prepare storage of tracks
   mTracks.reserve(30);
+
+  if (keepAll) {
+    mFollowTrack = &Tracker::followTrackKeepAll;
+  } else {
+    mFollowTrack = &Tracker::followTrackKeepBest;
+  }
 
   return true;
 }
@@ -84,7 +91,7 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
   for (auto& currData : clusters) {
     int deId = currData.deId;
     // This needs to be done before adding the element to mClusters
-    mClusterIndexes[deId].emplace_back(mClusters.size());
+    mClusterIndexes[deId].emplace_back(mClusters.size(), false);
     const auto& position = mTransformer.localToGlobal(deId, currData.xCoor, currData.yCoor);
     mClusters.push_back({ currData.deId,
                           position.x(), position.y(), position.z(),
@@ -134,12 +141,11 @@ bool Tracker::processSide(bool isRight, bool isInward)
 
   // loop on RPCs in first plane
   Track track;
-  track.setNDF(2);
   for (int irpc = 0; irpc < 9; ++irpc) {
     int deId1 = rpcOffset1 + irpc;
     for (size_t icl1 = 0; icl1 < mClusterIndexes[deId1].size(); ++icl1) {
       // loop on clusters of the RPC in the first plane
-      auto& cl1 = mClusters[mClusterIndexes[deId1][icl1]];
+      auto& cl1 = mClusters[mClusterIndexes[deId1][icl1].first];
       int firstRpc = getFirstNeighbourRPC(irpc);
       int lastRpc = getLastNeighbourRPC(irpc);
       for (int irpc2 = firstRpc; irpc2 <= lastRpc; ++irpc2) {
@@ -147,20 +153,19 @@ bool Tracker::processSide(bool isRight, bool isInward)
         int deId2 = rpcOffset2 + irpc2;
         for (size_t icl2 = 0; icl2 < mClusterIndexes[deId2].size(); ++icl2) {
           // loop on clusters of the RPC in the second plane
-          auto& cl2 = mClusters[mClusterIndexes[deId2][icl2]];
+          auto& cl2 = mClusters[mClusterIndexes[deId2][icl2].first];
 
           if (!makeTrackSeed(track, cl1, cl2)) {
             continue;
           }
 
-          track.setClusterMatched(firstCh, mClusterIndexes[deId1][icl1]);
-          track.setClusterMatched(secondCh, mClusterIndexes[deId2][icl2]);
+          track.setClusterMatched(firstCh, mClusterIndexes[deId1][icl1].first);
+          track.setClusterMatched(secondCh, mClusterIndexes[deId2][icl2].first);
           track.setClusterMatched(3 - firstCh, -1);
           track.setClusterMatched(3 - secondCh, -1);
-          LOG(DEBUG) << "Seed: ";
-          LOG(DEBUG) << "Track seed: " << deId1 << " - " << deId2 << "  Position: (" << track.getPositionX() << ", " << track.getPositionY() << ", " << track.getPositionZ() << ")";
+          LOG(DEBUG) << "Track seed: " << mClusterIndexes[deId1][icl1].first << " - " << mClusterIndexes[deId2][icl2].first << "  Position: (" << track.getPositionX() << ", " << track.getPositionY() << ", " << track.getPositionZ() << ")";
           // LOG(DEBUG) << "Covariance: " << track.getCovarianceParameters();
-          followTrack(track, isRight, isInward);
+          std::invoke(mFollowTrack, this, track, isRight, isInward);
         } // loop on clusters in second plane
       }   // loop on RPCs in second plane
     }     // loop on clusters in first plane
@@ -200,28 +205,83 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D&
 }
 
 //______________________________________________________________________________
-bool Tracker::followTrack(const Track& track, bool isRight, bool isInward)
+bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward)
 {
   /// Follows the track segment in the other station
+  /// Adds all possible matches
+  ///
+  /// This algorithm keeps all of the tracks that can be obtained by pairing
+  /// all of the clusters in the two stations (if they pass the chi2 cut).
+  /// Tests show that this method allows to correctly reconstruct all real tracks
+  /// even when the track multiplicty is large.
+  /// However, the method is of course more time consuming and also reconstruct
+  /// a larger number of fake tracks.
+  std::array<int, 2> chamberOrder;
+  chamberOrder[0] = isInward ? 1 : 2;
+  chamberOrder[1] = isInward ? 0 : 3;
+
+  Track copyTrack;
+
+  bool isAdded = false;
+
+  // loop on next two chambers
+  for (int ich = 0; ich < 2; ++ich) {
+    int rpcOffset = Constants::getDEId(isRight, chamberOrder[ich], 0);
+    for (int irpc = 0; irpc <= 8; ++irpc) {
+      int deId = rpcOffset + irpc;
+      for (auto& clIdx : mClusterIndexes[deId]) {
+        if (ich == 1 && clIdx.second) {
+          // If the cluster in the last chamber was already used as a fourth cluster of a track
+          // do not try to attach it standalone
+          continue;
+        }
+        copyTrack = track;
+        if (findAllClusters(copyTrack, clIdx.first, isRight, isInward, chamberOrder[ich], irpc)) {
+          // Extrapolate to first cluster in MT11 and compute the chi2
+          finalizeTrack(copyTrack);
+          // Add the track if it is not compatible or better than the ones we already have
+          tryAddTrack(copyTrack);
+          isAdded = true;
+        }
+      }
+    }
+  }
+  return isAdded;
+}
+
+//______________________________________________________________________________
+bool Tracker::followTrackKeepBest(const Track& track, bool isRight, bool isInward)
+{
+  /// Follows the track segment in the other station
+  /// Adds only the best track
+
+  // This algorithm is works generally well,
+  // but tests show that it can fail reconstructing the generated track
+  // in case of two tracks close in space.
+  // The main issue is that we do not have charge distribution information, and the strips are large,
+  // so it can happen that the track obtained by combining the hits of the first track in MT1
+  // and of the second track in MT2 can sometimes have a better chi2 of the real tracks.
+  // Since this algorithm only keeps the best track, it might chose the fake instead of the real track.
+  // The algorithm is however fast, so it should be preferred in case of low tracks multiplicity
+
   std::array<int, 2> chamberOrder;
   chamberOrder[0] = isInward ? 1 : 2;
   chamberOrder[1] = isInward ? 0 : 3;
 
   Track bestTrack;
   bestTrack.setChi2(2. * mSigmaCut * mSigmaCut);
-  bestTrack.setNDF(2);
 
   // loop on next two chambers
   for (int ich = 0; ich < 2; ++ich) {
     findNextCluster(track, isRight, isInward, chamberOrder[ich], 0, 8, bestTrack);
-    if (bestTrack.getNDF() == 4) {
+    if (bestTrack.getNDF() == 2) {
       // We already have a track with 4 clusters: no need to search for a track with only one cluster
       // in the next chamber
       break;
     }
   }
 
-  if (bestTrack.getNDF() > 2) {
+  if (bestTrack.getNDF() > 0) {
     // Extrapolate to first cluster in MT11 and compute the chi2
     finalizeTrack(bestTrack);
 
@@ -245,15 +305,15 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
   for (int irpc = firstRPC; irpc <= lastRPC; ++irpc) {
     int deId = rpcOffset + irpc;
     for (size_t icl = 0; icl < mClusterIndexes[deId].size(); ++icl) {
-      auto& cl = mClusters[mClusterIndexes[deId][icl]];
+      auto& cl = mClusters[mClusterIndexes[deId][icl].first];
       double addChi2AtCluster = tryOneCluster(track, cl, newTrack);
       newTrack.setChi2(track.getChi2() + addChi2AtCluster);
       if (newTrack.getChi2() > bestTrack.getChi2()) {
         continue;
       }
-      newTrack.setClusterMatched(Constants::getChamber(cl.deId), mClusterIndexes[deId][icl]);
+      newTrack.setClusterMatched(Constants::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
       newTrack.setNDF(track.getNDF() + 1);
-      LOG(DEBUG) << "Attach cluster number " << newTrack.getNDF() << ": DeId " << deId << "  cluster " << icl;
+      LOG(DEBUG) << "Attach cluster number " << newTrack.getNDF() << ": DeId " << deId << "  cluster " << mClusterIndexes[deId][icl].first;
       if (nextChamber >= 0 && nextChamber <= 3) {
         // We found a cluster in the first chamber of the station
         // We search for a cluster in the last chamber, this time limiting to the RPC above and below this one
@@ -262,12 +322,65 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       if (newTrack.getNDF() >= bestTrack.getNDF() && newTrack.getChi2OverNDF() < bestTrack.getChi2OverNDF()) {
         // Prefer tracks with a larger number of attached clusters, even if the chi2 is worse
         bestTrack = newTrack;
-        LOG(DEBUG) << "Selected track with clusters: " << newTrack.getClusterMatched(0) << " " << newTrack.getClusterMatched(1) << " " << newTrack.getClusterMatched(2) << " " << newTrack.getClusterMatched(3);
+        LOG(DEBUG) << "Selected track with clusters: " << bestTrack.getClusterMatched(0) << " " << bestTrack.getClusterMatched(1) << " " << bestTrack.getClusterMatched(2) << " " << bestTrack.getClusterMatched(3) << "  chi2: " << bestTrack.getChi2OverNDF() << "  NDF: " << bestTrack.getNDF();
       }
     } // loop on clusters
   }   // loop on RPC
 
   return (bestTrack.getNDF() > 2);
+}
+
+//______________________________________________________________________________
+bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInward, int chamber, int irpc)
+{
+  /// Try to attach the cluster and follow the track in the next chamber
+  Track newTrack;
+  double addChi2AtCluster = tryOneCluster(track, mClusters[clIdx], newTrack);
+  if (addChi2AtCluster > mMaxChi2) {
+    return false;
+  }
+
+  newTrack.setChi2(track.getChi2() + addChi2AtCluster);
+  newTrack.setClusterMatched(chamber, clIdx);
+  newTrack.setNDF(track.getNDF() + 1);
+  track = newTrack;
+  LOG(DEBUG) << "Attach cluster number " << track.getNDF() << ": DeId " << static_cast<int>(mClusters[clIdx].deId) << "  cluster " << clIdx;
+
+  // We found a cluster in the first chamber of the station
+  // We search for a cluster in the last chamber, limiting to the RPC above and below this one
+  int nextChamber = (isInward) ? chamber - 1 : chamber + 1;
+  if (nextChamber >= 0 && nextChamber <= 3) {
+    double bestChi2AtCluster = mMaxChi2;
+    int bestClusterIdx = -1;
+    int bestClusterDE = -1;
+    int rpcOffset = Constants::getDEId(isRight, nextChamber, 0);
+    Track bestTrack;
+    for (int jrpc = getFirstNeighbourRPC(irpc); jrpc <= getLastNeighbourRPC(irpc); ++jrpc) {
+      int deId2 = rpcOffset + jrpc;
+      for (size_t idx = 0; idx < mClusterIndexes[deId2].size(); ++idx) {
+        addChi2AtCluster = tryOneCluster(track, mClusters[mClusterIndexes[deId2][idx].first], newTrack);
+        if (addChi2AtCluster < bestChi2AtCluster) {
+          bestChi2AtCluster = addChi2AtCluster;
+          bestClusterIdx = idx;
+          bestClusterDE = deId2;
+          bestTrack = newTrack;
+        }
+      }
+    }
+
+    if (bestClusterIdx >= 0) {
+      bestTrack.setChi2(track.getChi2() + bestChi2AtCluster);
+      bestTrack.setClusterMatched(nextChamber, mClusterIndexes[bestClusterDE][bestClusterIdx].first);
+      bestTrack.setNDF(track.getNDF() + 1);
+      mClusterIndexes[bestClusterDE][bestClusterIdx].second = true;
+      track = bestTrack;
+      LOG(DEBUG) << "Attach cluster number " << track.getNDF() << ": DeId " << bestClusterDE << "  cluster " << mClusterIndexes[bestClusterDE][bestClusterIdx].first;
+    }
+  }
+
+  LOG(DEBUG) << "Selected track with clusters: " << track.getClusterMatched(0) << " " << track.getClusterMatched(1) << " " << track.getClusterMatched(2) << " " << track.getClusterMatched(3) << "  chi2/NDF: " << track.getChi2OverNDF() << "  NDF: " << track.getNDF();
+
+  return true;
 }
 
 //______________________________________________________________________________
@@ -415,7 +528,7 @@ bool Tracker::tryAddTrack(const Track& track)
     if (nCommonClusters == 4) {
       return false;
     }
-    if (track.isCompatible(checkTrack, chi2Cut)) {
+    if (nCommonClusters == 3 && track.isCompatible(checkTrack, chi2Cut)) {
       // The new track is compatible with an existing one
       if (chi2OverNDF < checkTrack.getChi2OverNDF()) {
         // The new track is more precise than the old one: replace it!
