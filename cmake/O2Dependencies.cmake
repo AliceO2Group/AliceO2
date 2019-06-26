@@ -50,6 +50,7 @@ find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(FairLogger REQUIRED)
+find_package(fmt)
 find_package(DDS)
 cmake_policy(SET CMP0077 NEW)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -326,6 +327,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     FairLogger::FairLogger
+    fmt::fmt
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Framework/Logger/include
