@@ -152,6 +152,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   std::string altFileName = fileName + "_alt.root";
   fileName += ".root";
 
+  // clean up before the running the workflow. Somehow this is not possible in the destructor of
+  // the checker
+  if (boost::filesystem::exists(fileName.c_str())) {
+    boost::filesystem::remove(fileName.c_str());
+  }
+  if (boost::filesystem::exists(altFileName.c_str())) {
+    boost::filesystem::remove(altFileName.c_str());
+  }
+
   sChecker.addCheck(fileName, 1);
   sChecker.addCheck(altFileName, sTreeSize);
 
