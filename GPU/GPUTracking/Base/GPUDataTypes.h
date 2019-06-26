@@ -50,9 +50,8 @@ namespace gpu
 #define GPUCA_RECO_STEP GPUDataTypes
 #endif
 
-class GPUTPCSliceOutput;
-class GPUTPCSliceOutTrack;
-class GPUTPCSliceOutCluster;
+class GPUTPCTrack;
+class GPUTPCHitId;
 class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
 class GPUTRDTrackletWord;
@@ -112,9 +111,9 @@ struct GPUTrackingInOutPointers {
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
   unsigned int nRawClusters[NSLICES] = { 0 };
   const o2::tpc::ClusterNativeAccessFullTPC* clustersNative = nullptr;
-  const GPUTPCSliceOutTrack* sliceOutTracks[NSLICES] = { nullptr };
+  const GPUTPCTrack* sliceOutTracks[NSLICES] = { nullptr };
   unsigned int nSliceOutTracks[NSLICES] = { 0 };
-  const GPUTPCSliceOutCluster* sliceOutClusters[NSLICES] = { nullptr };
+  const GPUTPCHitId* sliceOutClusters[NSLICES] = { nullptr };
   unsigned int nSliceOutClusters[NSLICES] = { 0 };
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
   unsigned int nMCLabelsTPC = 0;
@@ -124,13 +123,13 @@ struct GPUTrackingInOutPointers {
   unsigned int nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
   unsigned int nMergedTrackHits = 0;
-  const GPUTRDTrack* trdTracks = nullptr;
   const o2::tpc::CompressedClusters* tpcCompressedClusters = nullptr;
-  unsigned int nTRDTracks = 0;
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   unsigned int nTRDTracklets = 0;
   const GPUTRDTrackletLabels* trdTrackletsMC = nullptr;
   unsigned int nTRDTrackletsMC = 0;
+  const GPUTRDTrack* trdTracks = nullptr;
+  unsigned int nTRDTracks = 0;
   friend class GPUReconstruction;
 };
 #endif
