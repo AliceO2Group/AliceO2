@@ -137,11 +137,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
             double orig[3] = { static_cast<Double_t>(iRow), pad, time };
             float fast[3];
             origTransform->Transform(orig, is, 0, 1);
-            int errF = fastTransform.Transform(slice, slicerow, pad, time, fast[0], fast[1], fast[2]);
-            if (errF) {
-              storeError(-3, "AliHLTTPCFastTransform::WriteQATree: fast transformation failed!!");
-              continue;
-            }
+            fastTransform.Transform(slice, slicerow, pad, time, fast[0], fast[1], fast[2]);
             float entry[] = { (float)iSec, (float)iRow, pad, time, (float)orig[0], (float)orig[1], (float)orig[2], fast[0], fast[1], fast[2] };
             nt->Fill(entry);
           }
