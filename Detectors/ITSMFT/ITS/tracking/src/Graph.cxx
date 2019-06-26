@@ -7,15 +7,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file Graph.cxx
+/// \brief
+///
 
-#ifdef __CLING__
+#include "ITStracking/Graph.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+namespace o2
+{
+namespace its
+{
 
-#pragma link C++ class o2::its::ClusterLines + ;
-#pragma link C++ class o2::its::Tracklet + ;
-#pragma link C++ class o2::its::Centroid + ;
+void Barrier::Wait()
+{
+  std::unique_lock<std::mutex> lock(mutex);
+  if (--count == 0) {
+    condition.notify_all();
+  } else {
+    condition.wait(lock, [this] { return count == 0; });
+  }
+}
 
-#endif
+} // namespace its
+} // namespace o2
