@@ -50,6 +50,9 @@ namespace gpu
 #define GPUCA_RECO_STEP GPUDataTypes
 #endif
 
+#ifdef __OPENCL__
+MEM_CLASS_PRE()
+#endif
 class GPUTPCTrack;
 class GPUTPCHitId;
 class GPUTPCGMMergedTrack;
