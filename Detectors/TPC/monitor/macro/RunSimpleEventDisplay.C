@@ -38,7 +38,7 @@
 #include <memory>
 #endif
 using namespace std;
-using namespace o2::TPC;
+using namespace o2::tpc;
 /*
 .L RunSimpleEventDisplay.C+
 RunSimpleEventDisplay("GBTx0_Run005:0:0;GBTx1_Run005:1:0")

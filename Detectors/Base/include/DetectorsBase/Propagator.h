@@ -20,6 +20,8 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "MathUtils/Cartesian3D.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsBase/GeometryManager.h"
 
 namespace o2
 {
@@ -38,6 +40,10 @@ namespace base
 class Propagator
 {
  public:
+  static constexpr int USEMatCorrNONE = 0; // flag to not use material corrections
+  static constexpr int USEMatCorrTGeo = 1; // flag to use TGeo for material queries
+  static constexpr int USEMatCorrLUT = 2;  // flag to use LUT for material queries (user must provide a pointer
+
   static Propagator* Instance()
   {
     static Propagator instance;
@@ -46,15 +52,15 @@ class Propagator
 
   bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x, float mass = o2::constants::physics::MassPionCharged,
                           float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1,
-                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0);
+                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
   bool propagateToX(o2::track::TrackParCov& track, float x, float bZ, float mass = o2::constants::physics::MassPionCharged,
                     float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1,
-                    o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0);
+                    o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
   bool propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCov& track, float bZ,
                       float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, int matCorr = 1,
-                      o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0, float maxD = 999.f);
+                      o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0, float maxD = 999.f) const;
 
   Propagator(Propagator const&) = delete;
   Propagator(Propagator&&) = delete;
@@ -64,6 +70,9 @@ class Propagator
   // Bz at the origin
   float getNominalBz() const { return mBz; }
 
+  void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
+  const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
+
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp);
   static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP");
 
@@ -71,8 +80,15 @@ class Propagator
   Propagator();
   ~Propagator() = default;
 
+  MatBudget getMatBudget(int corrType, const Point3D<float>& p0, const Point3D<float>& p1) const
+  {
+    return (corrType == USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+  }
+
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field
+
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr; // externally set LUT
 
   ClassDef(Propagator, 0);
 };

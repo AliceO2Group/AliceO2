@@ -22,11 +22,11 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
-ClassImp(o2::ITSMFT::TopologyDictionary)
+ClassImp(o2::itsmft::TopologyDictionary)
 
   namespace o2
 {
-  namespace ITSMFT
+  namespace itsmft
   {
 
   TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{ -1 } {}
@@ -166,5 +166,5 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
       return mVectorOfGroupIDs[n].mFrequency - mVectorOfGroupIDs[n - 1].mFrequency;
     }
   }
-  } // namespace ITSMFT
+  } // namespace itsmft
 }

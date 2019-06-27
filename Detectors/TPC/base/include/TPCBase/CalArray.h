@@ -27,7 +27,7 @@ using boost::format;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// Class to hold calibration data on a pad level
@@ -297,7 +297,7 @@ inline const CalArray<T>& CalArray<T>::operator/=(const T& val)
 }
 
 using CalROC = CalArray<float>;
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

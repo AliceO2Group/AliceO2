@@ -18,7 +18,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME digitizer-workflow
+  EXE_NAME o2-sim-digitizer-workflow
 
   SOURCES
   src/SimpleDigitizerWorkflow.cxx
@@ -40,6 +40,7 @@ O2_GENERATE_EXECUTABLE(
   src/HMPIDDigitizerSpec.cxx
   src/MCHDigitizerSpec.cxx
   src/TRDDigitizerSpec.cxx
+  src/ZDCDigitizerSpec.cxx
   src/GRPUpdaterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}

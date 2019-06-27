@@ -23,7 +23,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace o2::EventVisualisation;
+using namespace o2::event_visualisation;
 
 //#include <AliLog.h>  // logging will come soon to O2
 

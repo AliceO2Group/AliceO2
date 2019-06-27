@@ -27,7 +27,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 
@@ -193,7 +193,7 @@ class CalibPulser : public CalibRawBase
     void resetEvent() final {}
 };
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif

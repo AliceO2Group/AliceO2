@@ -22,13 +22,13 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
                       std::string digBranchName = "ITSDigit",                       // name of the digits branch
                       std::string rofRecName = "ITSDigitROF",                       // name of the ROF records tree and its branch
                       uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff,                  // seq.ID of 1st and last RU (stave) to convert
-                      uint8_t superPageSize = o2::ITSMFT::NCRUPagesPerSuperpage / 2 // CRU superpage size, max = 256
+                      uint8_t superPageSize = o2::itsmft::NCRUPagesPerSuperpage / 2 // CRU superpage size, max = 256
 )
 {
   TStopwatch swTot;
   swTot.Start();
-  using ROFR = o2::ITSMFT::ROFRecord;
-  using ROFRVEC = std::vector<o2::ITSMFT::ROFRecord>;
+  using ROFR = o2::itsmft::ROFRecord;
+  using ROFRVEC = std::vector<o2::itsmft::ROFRecord>;
 
   ///-------> input
   TChain digTree(digTreeName.c_str());
@@ -37,7 +37,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
   digTree.AddFile(inpName.c_str());
   rofTree.AddFile(inpName.c_str());
 
-  std::vector<o2::ITSMFT::Digit> digiVec, *digiVecP = &digiVec;
+  std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   if (!digTree.GetBranch(digBranchName.c_str())) {
     LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
@@ -63,10 +63,10 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
   } else {
     LOG(INFO) << "opened raw data output file " << outName;
   }
-  o2::ITSMFT::PayLoadCont outBuffer;
+  o2::itsmft::PayLoadCont outBuffer;
   ///-------< output
 
-  o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
   rawReader.setPadding128(true);
   rawReader.setVerbosity(0);
 
@@ -82,14 +82,14 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
     uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
     if (ru.ruInfo->layer < 3) {
       for (int il = 0; il < 3; il++) { // create links
-        ru.links[il] = std::make_unique<o2::ITSMFT::RULink>();
+        ru.links[il] = std::make_unique<o2::itsmft::GBTLink>();
         ru.links[il]->lanes = lanes & ((0x1 << 3) - 1) << (3 * il); // each link will read 3 lanes==chips
         LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
                   << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, il)
                   << " reads lanes " << std::bitset<9>(ru.links[il]->lanes);
       }
     } else { // note: we are not obliged to do this if only 1 link per RU is used
-      ru.links[0] = std::make_unique<o2::ITSMFT::RULink>();
+      ru.links[0] = std::make_unique<o2::itsmft::GBTLink>();
       ru.links[0]->lanes = lanes; // single link reads all lanes
       LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
                 << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, 0)
@@ -139,7 +139,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
   // flush the rest
   int flushed = 0;
   do {
-    flushed = rawReader.flushSuperPages(o2::ITSMFT::NCRUPagesPerSuperpage, outBuffer);
+    flushed = rawReader.flushSuperPages(o2::itsmft::NCRUPagesPerSuperpage, outBuffer);
     fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
     if (flushed) {
       LOG(INFO) << "Flushed final " << flushed << " CRU pages";

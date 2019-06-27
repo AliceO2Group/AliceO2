@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class TrackResiduals
@@ -512,7 +512,7 @@ inline int TrackResiduals::getZ2XBin(float z2x) const
   return (bz < mNZ2XBins) ? bz : mNZ2XBins - 1;
 }
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 
@@ -523,7 +523,7 @@ struct dts_t {                                   // struct for basic local resid
   Double32_t dy;                                 //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
   Double32_t dz;                                 //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
   Double32_t tgSlp;                              //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
-  UChar_t bvox[o2::TPC::TrackResiduals::VoxDim]; // voxel bin info: VoxF,VoxX,VoxZ
+  UChar_t bvox[o2::tpc::TrackResiduals::VoxDim]; // voxel bin info: VoxF,VoxX,VoxZ
   //
   dts_t() { memset(this, 0, sizeof(dts_t)); }
 };

@@ -16,6 +16,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
+#include "ITSSimulation/V3Services.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -47,9 +48,9 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::ITSMFT::Hit;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
-using namespace o2::ITS;
+using o2::itsmft::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
+using namespace o2::its;
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("ITS", kTRUE),
@@ -63,7 +64,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -110,13 +111,13 @@ static void configITS(Detector* its)
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
-  its->setStaveModelOB(o2::ITS::Detector::kOBModel2);
+  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+  its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
-  const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
+  const double wrpRMin[kNWrapVol] = { 2.1, 19.3, 32.0 };
   const double wrpRMax[kNWrapVol] = { 14.0, 30.0, 46.0 };
-  const double wrpZSpan[kNWrapVol] = { 70., 95., 200. };
+  const double wrpZSpan[kNWrapVol] = { 70., 93., 160. };
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
@@ -152,7 +153,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -176,6 +177,7 @@ Detector::Detector(Bool_t active)
       mGeometry[j] = nullptr;
     }
   }
+  mServicesGeometry = nullptr;
 
   for (int i = sNumberOfWrapperVolumes; i--;) {
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
@@ -198,7 +200,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {
@@ -823,10 +825,41 @@ void Detector::constructDetectorGeometry()
     }
     mGeometry[j]->createLayer(dest);
   }
-  createServiceBarrel(kTRUE, wrapVols[0]);
+
+  // Finally create the services
+  mServicesGeometry = new V3Services();
+
+  createInnerBarrelServices(wrapVols[0]);
+
+  // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
+  //  createServiceBarrel(kTRUE, wrapVols[0]);
   createServiceBarrel(kFALSE, wrapVols[2]);
 
   delete[] wrapVols; // delete pointer only, not the volumes
+}
+
+void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
+{
+  //
+  // Creates the Inner Barrel Service structures
+  //
+  // Input:
+  //         motherVolume : the volume hosting the services
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      15 May 2019  Mario Sitta
+  //               (partially based on P.Namwongsa implementation in AliRoot)
+  //
+
+  Double_t zpos;
+
+  // Create the End Wheels on Side C
+  TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();
+
+  motherVolume->AddNode(endWheelsC, 1, nullptr);
 }
 
 // Service Barrel
@@ -1125,4 +1158,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::ITS::Detector)
+ClassImp(o2::its::Detector)

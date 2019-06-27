@@ -41,15 +41,15 @@
 #include <cstring> // for strstr, strlen
 
 using namespace TMath;
-using namespace o2::ITS;
+using namespace o2::its;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
-ClassImp(o2::ITS::GeometryTGeo);
+ClassImp(o2::its::GeometryTGeo);
 
-std::unique_ptr<o2::ITS::GeometryTGeo> GeometryTGeo::sInstance;
+std::unique_ptr<o2::its::GeometryTGeo> GeometryTGeo::sInstance;
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
@@ -61,13 +61,13 @@ std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::ITS)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::ITS)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl;
-    // throw std::runtime_error("Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists");
+    LOG(FATAL) << "Invalid use of public constructor: o2::its::GeometryTGeo instance exists" << FairLogger::endl;
+    // throw std::runtime_error("Invalid use of public constructor: o2::its::GeometryTGeo instance exists");
   }
 
   for (int i = MAXLAYERS; i--;) {
@@ -83,9 +83,9 @@ void GeometryTGeo::adopt(GeometryTGeo* raw)
 {
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   if (sInstance) {
-    LOG(FATAL) << "No adoption: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl;
+    LOG(FATAL) << "No adoption: o2::its::GeometryTGeo instance exists" << FairLogger::endl;
   }
-  sInstance = std::unique_ptr<o2::ITS::GeometryTGeo>(raw);
+  sInstance = std::unique_ptr<o2::its::GeometryTGeo>(raw);
 }
 
 //__________________________________________________________________________

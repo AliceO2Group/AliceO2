@@ -17,5 +17,5 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  return std::move(o2::ITS::RawPixelWorkflow::getWorkflow());
+  return std::move(o2::its::RawPixelWorkflow::getWorkflow());
 }

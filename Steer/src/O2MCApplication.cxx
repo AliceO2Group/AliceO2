@@ -23,6 +23,9 @@
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
+#include <TGeoManager.h>
+#include <fstream>
+#include <FairVolume.h>
 
 namespace o2
 {
@@ -71,6 +74,44 @@ void O2MCApplicationBase::PreTrack()
 {
   // dispatch first to function in FairRoot
   FairMCApplication::PreTrack();
+}
+
+void O2MCApplicationBase::ConstructGeometry()
+{
+  // fill the mapping
+  mModIdToName.clear();
+  for (int i = 0; i < fModules->GetEntries(); ++i) {
+    auto mod = static_cast<FairModule*>(fModules->At(i));
+    if (mod) {
+      mModIdToName[mod->GetModId()] = mod->GetName();
+    }
+  }
+
+  FairMCApplication::ConstructGeometry();
+
+  std::ofstream voltomodulefile("MCStepLoggerVolMap.dat");
+  // construct the volume name to module name mapping useful for StepAnalysis
+  auto vollist = gGeoManager->GetListOfVolumes();
+  for (int i = 0; i < vollist->GetEntries(); ++i) {
+    auto vol = static_cast<TGeoVolume*>(vollist->At(i));
+    auto iter = fModVolMap.find(vol->GetNumber());
+    voltomodulefile << vol->GetName() << ":" << mModIdToName[iter->second] << "\n";
+  }
+}
+
+void O2MCApplicationBase::InitGeometry()
+{
+  FairMCApplication::InitGeometry();
+  // now the sensitive volumes are set up in fVolMap and we can query them
+  for (auto e : fVolMap) {
+    // since fVolMap contains multiple entries (if multiple copies), this may
+    // write to the same entry multiple times
+    mSensitiveVolumes[e.first] = e.second->GetName();
+  }
+  std::ofstream sensvolfile("MCStepLoggerSenVol.dat");
+  for (auto e : mSensitiveVolumes) {
+    sensvolfile << e.first << ":" << e.second << "\n";
+  }
 }
 
 void O2MCApplicationBase::finishEventCommon()

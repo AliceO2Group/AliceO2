@@ -17,12 +17,12 @@
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 
-#include "FITBase/Digit.h"
+#include "DataFormatsFITT0/Digit.h"
 #include "T0Simulation/Detector.h" // for HitType
 #include "FITSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FITBase/MCLabel.h"
+#include "DataFormatsFITT0/MCLabel.h"
 
 namespace o2
 {
@@ -60,15 +60,15 @@ class DigitizerTask : public FairTask
   const std::vector<o2::t0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
   TBranch* mQEDBranch = nullptr;                                //! optional special branch of hits from QED collitions
-  const std::vector<o2::fit::HitType>* mHitsArrayQED = nullptr; //! array of MC hits from ED
+  const std::vector<o2::t0::HitType>* mHitsArrayQED = nullptr;  //! array of MC hits from ED
   float mQEDEntryTimeBinNS = 0.f;                               ///< every entry in the QED branch integrates QED for so many nanosec.
   double mLastQEDTimeNS = 0.;                                   ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
   int mLastQEDEntry = -1;                                       ///< last used QED entry
   UChar_t mQEDSourceID = 0;                                     ///< MC ID source of the QED (stored in the labels)
 
-  o2::fit::Digit* mEventDigit = nullptr;
-  o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCTruthArray;                      //! Labels containter
-  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
+  o2::t0::Digit* mEventDigit = nullptr;
+  o2::dataformats::MCTruthContainer<o2::t0::MCLabel> mMCTruthArray;                      //! Labels containter
+  o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
 
   ClassDefOverride(DigitizerTask, 1);
 };

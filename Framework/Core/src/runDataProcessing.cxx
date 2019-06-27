@@ -39,8 +39,10 @@
 #include "DeviceSpecHelpers.h"
 #include "DriverControl.h"
 #include "DriverInfo.h"
+#include "DataProcessorInfo.h"
 #include "GraphvizHelpers.h"
 #include "SimpleResourceManager.h"
+#include "WorkflowSerializationHelpers.h"
 
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
@@ -67,26 +69,32 @@
 #include <string>
 #include <type_traits>
 #include <chrono>
+#include <utility>
+
+#include <netinet/ip.h>
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <netinet/ip.h>
 
 using namespace o2::monitoring;
 using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
+using DataProcessorInfos = std::vector<DataProcessorInfo>;
 using DeviceExecutions = std::vector<DeviceExecution>;
 using DeviceSpecs = std::vector<DeviceSpec>;
 using DeviceInfos = std::vector<DeviceInfo>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
+
+template class std::vector<DeviceSpec>;
 
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 
@@ -250,12 +258,19 @@ static void handle_sigchld(int) { sigchld_requested = true; }
 
 /// This will start a new device by forking and executing a
 /// new child
-void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInfo, DeviceControl& control,
-                 DeviceExecution& execution, std::vector<DeviceInfo>& deviceInfos, int& maxFd, fd_set& childFdset)
+void spawnDevice(std::string const& forwardedStdin,
+                 DeviceSpec const& spec,
+                 std::map<int, size_t>& socket2DeviceInfo,
+                 DeviceControl& control,
+                 DeviceExecution& execution,
+                 std::vector<DeviceInfo>& deviceInfos,
+                 int& maxFd, fd_set& childFdset)
 {
+  int childstdin[2];
   int childstdout[2];
   int childstderr[2];
 
+  maxFd = createPipes(maxFd, childstdin);
   maxFd = createPipes(maxFd, childstdout);
   maxFd = createPipes(maxFd, childstderr);
 
@@ -269,17 +284,19 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
     // We allow being debugged and do not terminate on SIGTRAP
     signal(SIGTRAP, SIG_IGN);
 
-    // We do not start the process if control.noStart is set.
-    if (control.stopped) {
-      kill(getpid(), SIGSTOP);
-    }
 
-    // This is the child. We close the read part of the pipe, stdout
-    // and dup2 the write part of the pipe on it. Then we can restart.
+    // This is the child.
+    // For stdout / stderr, we close the read part of the pipe, the
+    // old descriptor, and then replace it with the write part of the pipe.
+    // For stdin, we close the write part of the pipe, the old descriptor,
+    // and then we replace it with the read part of the pipe.
+    close(childstdin[1]);
     close(childstdout[0]);
     close(childstderr[0]);
+    close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
+    dup2(childstdin[0], STDIN_FILENO);
     dup2(childstdout[1], STDOUT_FILENO);
     dup2(childstderr[1], STDERR_FILENO);
     execvp(execution.args[0], execution.args.data());
@@ -297,7 +314,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
     exit(1);
   }
 
-  std::cout << "Starting " << spec.id << " on pid " << id << "\n";
+  LOG(INFO) << "Starting " << spec.id << " on pid " << id << "\n";
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -315,8 +332,15 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 
+  close(childstdin[0]);
   close(childstdout[1]);
   close(childstderr[1]);
+  size_t result = write(childstdin[1], forwardedStdin.data(), forwardedStdin.size());
+  if (result != forwardedStdin.size()) {
+    LOG(ERROR) << "Unable to pass configuration to children";
+  }
+  close(childstdin[1]); // Not allowing further communication...
+
   FD_SET(childstdout[0], &childFdset);
   FD_SET(childstderr[0], &childFdset);
 }
@@ -649,18 +673,30 @@ void pruneGUI(std::vector<DriverState>& states)
   }
 }
 
+struct WorkflowInfo {
+  std::string executable;
+  std::vector<std::string> args;
+  std::vector<ConfigParamSpec> options;
+};
+
 // This is the handler for the parent inner loop.
-int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverControl, DriverInfo& driverInfo,
-                    std::vector<DeviceMetricsInfo>& metricsInfos, std::string frameworkId)
+int runStateMachine(DataProcessorSpecs const& workflow,
+                    WorkflowInfo const& workflowInfo,
+                    DataProcessorInfos const& previousDataProcessorInfos,
+                    DriverControl& driverControl,
+                    DriverInfo& driverInfo,
+                    std::vector<DeviceMetricsInfo>& metricsInfos,
+                    std::string frameworkId)
 {
   DeviceSpecs deviceSpecs;
   DeviceInfos infos;
   DeviceControls controls;
   DeviceExecutions deviceExecutions;
+  DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
   auto resourceManager = std::make_unique<SimpleResourceManager>(driverInfo.startPort, driverInfo.portRange);
 
   void* window = nullptr;
-  decltype(gui::getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   if (driverInfo.batch == false && frameworkId.empty()) {
@@ -677,6 +713,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
+  DriverState previous;
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
@@ -711,6 +748,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       driverInfo.states.push_back(DriverState::GUI);
     }
     if (driverInfo.states.empty() == false) {
+      previous = current;
       current = driverInfo.states.back();
     } else {
       current = DriverState::UNKNOWN;
@@ -739,23 +777,66 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
         break;
+      case DriverState::IMPORT_CURRENT_WORKFLOW:
+        // This state is needed to fill the metadata structure
+        // which contains how to run the current workflow
+        dataProcessorInfos = previousDataProcessorInfos;
+        for (auto const& device : deviceSpecs) {
+          auto exists = std::find_if(dataProcessorInfos.begin(),
+                                     dataProcessorInfos.end(),
+                                     [id = device.id](DataProcessorInfo const& info) -> bool { return info.name == id; });
+          if (exists != dataProcessorInfos.end()) {
+            continue;
+          }
+          dataProcessorInfos.push_back(
+            DataProcessorInfo{
+              device.id,
+              workflowInfo.executable,
+              workflowInfo.args,
+              workflowInfo.options });
+        }
+        break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
+                                                            driverInfo.channelPolicies,
+                                                            driverInfo.completionPolicies,
+                                                            deviceSpecs,
+                                                            resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
           return 1;
+        } catch (...) {
+          std::cerr << "Unknown error while materialising workflow";
+          return 1;
         }
         break;
       case DriverState::DO_CHILD:
+        // We do not start the process if by default we are stopped.
+        if (driverControl.defaultStopped) {
+          kill(getpid(), SIGSTOP);
+        }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv, spec);
           }
         }
-        LOG(ERROR) << "Unable to find component with id " << frameworkId;
+        {
+          std::ostringstream ss;
+          for (auto& processor : workflow) {
+            ss << " - " << processor.name << "\n";
+          }
+          for (auto& spec : deviceSpecs) {
+            ss << " - " << spec.name << "(" << spec.id << ")"
+               << "\n";
+          }
+          LOG(ERROR) << "Unable to find component with id "
+                     << frameworkId << ". Available options:\n"
+                     << ss.str();
+          driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
+        }
         break;
       case DriverState::REDEPLOY_GUI:
         // The callback for the GUI needs to be recalculated every time
@@ -764,10 +845,10 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
-          debugGUICallback = gui::getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl);
+          debugGUICallback = gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
         }
         break;
-      case DriverState::SCHEDULE:
+      case DriverState::SCHEDULE: {
         // FIXME: for the moment modifying the topology means we rebuild completely
         //        all the devices and we restart them. This is also what DDS does at
         //        a larger scale. In principle one could try to do a delta and only
@@ -776,17 +857,22 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         controls.resize(deviceSpecs.size());
         deviceExecutions.resize(deviceSpecs.size());
 
-        DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv, driverControl.defaultQuiet,
-                                            driverControl.defaultStopped, deviceSpecs,
-                                            driverInfo.workflowOptions, deviceExecutions, controls);
+        DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
+                                            driverControl.defaultStopped,
+                                            dataProcessorInfos,
+                                            deviceSpecs,
+                                            deviceExecutions, controls);
+        std::ostringstream forwardedStdin;
+        WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
-          spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
+          spawnDevice(forwardedStdin.str(),
+                      deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
         }
         driverInfo.maxFd += 1;
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
-        break;
+      } break;
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI
@@ -876,20 +962,69 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         return calculateExitCode(infos);
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
-          callback(deviceSpecs, deviceExecutions);
+          callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
         }
         driverControl.callbacks.clear();
         driverInfo.states.push_back(DriverState::GUI);
         break;
       default:
-        LOG(ERROR) << "Driver transitioned in an unknown state. Shutting down.";
+        LOG(ERROR) << "Driver transitioned in an unknown state("
+                   << "current: " << (int)current
+                   << ", previous: " << (int)previous
+                   << "). Shutting down.";
         driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
     }
   }
 }
 
+// Print help
+void printHelp(bpo::variables_map const& varmap,
+               bpo::options_description const& executorOptions,
+               std::vector<DataProcessorSpec> const& physicalWorkflow,
+               std::vector<ConfigParamSpec> const& currentWorkflowOptions)
+{
+  auto mode = varmap["help"].as<std::string>();
+  bpo::options_description helpOptions;
+  if (mode == "full" || mode == "short" || mode == "executor") {
+    helpOptions.add(executorOptions);
+  }
+  // this time no veto is applied, so all the options are added for printout
+  if (mode == "executor") {
+    // nothing more
+  } else if (mode == "workflow") {
+    // executor options and workflow options, skip the actual workflow
+    o2::framework::WorkflowSpec emptyWorkflow;
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(emptyWorkflow, currentWorkflowOptions));
+  } else if (mode == "full" || mode == "short") {
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, currentWorkflowOptions,
+                                                                  bpo::options_description(),
+                                                                  mode));
+  } else {
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, {},
+                                                                  bpo::options_description(),
+                                                                  mode));
+  }
+  if (helpOptions.options().size() == 0) {
+    // the specified argument is invalid, add at leat the executor options
+    mode += " is an invalid argument, please use correct argument for";
+    helpOptions.add(executorOptions);
+  }
+  std::cout << "ALICE O2 DPL workflow driver"        //
+            << " (" << mode << " help)" << std::endl //
+            << helpOptions << std::endl;             //
+}
+
+// Helper to find out if stdout is actually attached to a pipe.
+bool isOutputToPipe()
+{
+  struct stat s;
+  fstat(STDOUT_FILENO, &s);
+  return ((s.st_mode & S_IFIFO) != 0);
+}
+
 /// Helper function to initialise the controller from the command line options.
-void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& control)
+void initialiseDriverControl(bpo::variables_map const& varmap,
+                             DriverControl& control)
 {
   // Control is initialised outside the main loop because
   // command line options are really affecting control.
@@ -904,37 +1039,49 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 
   if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
-    control.callbacks = { [](DeviceSpecs const& specs, DeviceExecutions const&) {
+    control.callbacks = { [](WorkflowSpec const& workflow,
+                             DeviceSpecs const& specs,
+                             DeviceExecutions const&,
+                             DataProcessorInfos&) {
       GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
     } };
     control.forcedTransitions = {
-      DriverState::EXIT,                //
-      DriverState::PERFORM_CALLBACKS,   //
-      DriverState::MATERIALISE_WORKFLOW //
+      DriverState::EXIT,                    //
+      DriverState::PERFORM_CALLBACKS,       //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if (varmap["dds"].as<bool>()) {
     // Dump a DDS representation of what I will do.
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = { [](DeviceSpecs const& specs, DeviceExecutions const& executions) {
+    control.callbacks = { [](WorkflowSpec const& workflow,
+                             DeviceSpecs const& specs,
+                             DeviceExecutions const& executions,
+                             DataProcessorInfos&) {
       dumpDeviceSpec2DDS(std::cout, specs, executions);
     } };
     control.forcedTransitions = {
-      DriverState::EXIT,                //
-      DriverState::PERFORM_CALLBACKS,   //
-      DriverState::SCHEDULE,            //
-      DriverState::MATERIALISE_WORKFLOW //
+      DriverState::EXIT,                    //
+      DriverState::PERFORM_CALLBACKS,       //
+      DriverState::SCHEDULE,                //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if (varmap["o2-control"].as<bool>()) {
-    control.callbacks = { [](DeviceSpecs const specs, DeviceExecutions const& executions) {
+    control.callbacks = { [](WorkflowSpec const& workflow,
+                             DeviceSpecs const& specs,
+                             DeviceExecutions const& executions,
+                             DataProcessorInfos&) {
       dumpDeviceSpec2O2Control(std::cout, specs, executions);
     } };
     control.forcedTransitions = {
-      DriverState::EXIT,                //
-      DriverState::PERFORM_CALLBACKS,   //
-      DriverState::SCHEDULE,            //
-      DriverState::MATERIALISE_WORKFLOW //
+      DriverState::EXIT,                    //
+      DriverState::PERFORM_CALLBACKS,       //
+      DriverState::SCHEDULE,                //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if (varmap.count("id")) {
     // FIXME: for the time being each child needs to recalculate the workflow,
@@ -942,14 +1089,31 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
     //        a bad idea. In the future we should have the client be pushed
     //        it's own configuration by the driver.
     control.forcedTransitions = {
-      DriverState::DO_CHILD,            //
-      DriverState::MATERIALISE_WORKFLOW //
+      DriverState::DO_CHILD,                //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
+    };
+  } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
+    control.callbacks = { [](WorkflowSpec const& workflow,
+                             DeviceSpecs const devices,
+                             DeviceExecutions const&,
+                             DataProcessorInfos& dataProcessorInfos) {
+      WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
+      // FIXME: this is to avoid trailing garbage..
+      exit(0);
+    } };
+    control.forcedTransitions = {
+      DriverState::EXIT,                    //
+      DriverState::PERFORM_CALLBACKS,       //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
     };
   } else {
     // By default we simply start the main loop of the driver.
     control.forcedTransitions = {
-      DriverState::INIT,                //
-      DriverState::MATERIALISE_WORKFLOW //
+      DriverState::INIT,                    //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
     };
   }
 }
@@ -966,9 +1130,20 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
            std::vector<CompletionPolicy> const& completionPolicies,
-           std::vector<ConfigParamSpec> const& workflowOptions,
+           std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
+  std::vector<std::string> currentArgs;
+  for (size_t ai = 1; ai < argc; ++ai) {
+    currentArgs.push_back(argv[ai]);
+  }
+
+  WorkflowInfo currentWorkflow{
+    argv[0],
+    currentArgs,
+    currentWorkflowOptions
+  };
+
   enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
@@ -985,6 +1160,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")          //
+    ("dump-workflow", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")     //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")          //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -1000,11 +1177,57 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   visibleOptions.add(executorOptions);
 
   auto physicalWorkflow = workflow;
+  std::map<std::string, size_t> rankIndex;
+  // We remove the duplicates because for the moment child get themself twice:
+  // once from the actual definition in the child, a second time from the
+  // configuration they get passed by their parents.
+  // Notice that we do not know in which order we will get the workflows, so
+  // while we keep the order of DataProcessors we reshuffle them based on
+  // some hopefully unique hash.
+  size_t workflowHashA = 0;
+  std::hash<std::string> hash_fn;
+
+  for (auto& dp : workflow) {
+    workflowHashA += hash_fn(dp.name);
+  }
+
+  for (auto& dp : workflow) {
+    rankIndex.insert(std::make_pair(dp.name, workflowHashA));
+  }
+
+  std::vector<DataProcessorInfo> dataProcessorInfos;
+  if (isatty(STDIN_FILENO) == false) {
+    std::vector<DataProcessorSpec> importedWorkflow;
+    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos);
+
+    size_t workflowHashB = 0;
+    for (auto& dp : importedWorkflow) {
+      workflowHashB += hash_fn(dp.name);
+    }
+
+    // FIXME: Streamline...
+    // We remove the duplicates because for the moment child get themself twice:
+    // once from the actual definition in the child, a second time from the
+    // configuration they get passed by their parents.
+    for (auto& dp : importedWorkflow) {
+      auto found = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(),
+                                [& name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
+      if (found == physicalWorkflow.end()) {
+        physicalWorkflow.push_back(dp);
+        rankIndex.insert(std::make_pair(dp.name, workflowHashB));
+      }
+    }
+  }
+
   WorkflowHelpers::injectServiceDevices(physicalWorkflow);
+  std::stable_sort(physicalWorkflow.begin(), physicalWorkflow.end(), [&rankIndex](DataProcessorSpec const& a, DataProcessorSpec const& b) {
+    return rankIndex[a.name] < rankIndex[b.name];
+  });
+
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions, gHiddenDeviceOptions));
+  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, currentWorkflowOptions, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -1016,43 +1239,14 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   try {
     bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
   } catch (std::exception const& e) {
-    std::cout << "Error: " << e.what() << std::endl;
+    std::cerr << "Error: " << e.what() << std::endl;
     exit(1);
   }
 
   if (varmap.count("help")) {
-    auto mode = varmap["help"].as<std::string>();
-    bpo::options_description helpOptions;
-    if (mode == "full" || mode == "short" || mode == "executor") {
-      helpOptions.add(executorOptions);
-    }
-    // this time no veto is applied, so all the options are added for printout
-    if (mode == "executor") {
-      // nothing more
-    } else if (mode == "workflow") {
-      // executor options and workflow options, skip the actual workflow
-      o2::framework::WorkflowSpec emptyWorkflow;
-      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(emptyWorkflow, workflowOptions));
-    } else if (mode == "full" || mode == "short") {
-      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions,
-                                                                    bpo::options_description(),
-                                                                    mode));
-    } else {
-      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, {},
-                                                                    bpo::options_description(),
-                                                                    mode));
-    }
-    if (helpOptions.options().size() == 0) {
-      // the specified argument is invalid, add at leat the executor options
-      mode += " is an invalid argument, please use correct argument for";
-      helpOptions.add(executorOptions);
-    }
-    std::cout << "ALICE O2 DPL workflow driver"        //
-              << " (" << mode << " help)" << std::endl //
-              << helpOptions << std::endl;             //
+    printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
     exit(0);
   }
-
   DriverControl driverControl;
   initialiseDriverControl(varmap, driverControl);
 
@@ -1071,7 +1265,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.startPort = varmap["start-port"].as<unsigned short>();
   driverInfo.portRange = varmap["port-range"].as<unsigned short>();
-  driverInfo.workflowOptions = workflowOptions;
+  // FIXME: should use the whole dataProcessorInfos, actually...
+  driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
 
   std::string frameworkId;
@@ -1087,5 +1282,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     driverInfo.startPort = finder.port();
     driverInfo.portRange = finder.range();
   }
-  return runStateMachine(physicalWorkflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
+  return runStateMachine(physicalWorkflow,
+                         currentWorkflow,
+                         dataProcessorInfos,
+                         driverControl,
+                         driverInfo,
+                         gDeviceMetricsInfos,
+                         frameworkId);
 }

@@ -10,8 +10,8 @@
 #include "FairLogger.h"
 
 #include "T0Reconstruction/CollisionTimeRecoTask.h"
-#include "T0Reconstruction/RecPoints.h"
-#include "FITBase/Digit.h"
+#include "DataFormatsFITT0/RecPoints.h"
+#include "DataFormatsFITT0/Digit.h"
 #endif
 
 void run_reco_t0(std::string inpudDig = "t0digits.root",
@@ -31,12 +31,11 @@ void run_reco_t0(std::string inpudDig = "t0digits.root",
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   digTree->Print();
-  std::vector<o2::fit::Digit>* digits = new std::vector<o2::fit::Digit>;
+  std::vector<o2::t0::Digit>* digits = new std::vector<o2::t0::Digit>;
   digTree->SetBranchAddress("T0Digit", &digits);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   std::cout << "Found " << nevD << " events with digits " << std::endl;
 
-  //std::vector<o2::fit::RecPoints> recPoints;
   std::vector<o2::t0::RecPoints>* recPointsP = new std::vector<o2::t0::RecPoints>;
 
   TFile outFile(outName.c_str(), "recreate");

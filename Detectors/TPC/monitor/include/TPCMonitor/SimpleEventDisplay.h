@@ -24,7 +24,7 @@ class TH2D;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Mapper;
@@ -100,7 +100,7 @@ class SimpleEventDisplay : public CalibRawBase
   void initHistograms();
 };
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif

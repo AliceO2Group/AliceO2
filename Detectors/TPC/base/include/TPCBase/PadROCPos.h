@@ -19,7 +19,7 @@
 #include "TPCBase/PadPos.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \brief  Pad and row inside a ROC
 ///

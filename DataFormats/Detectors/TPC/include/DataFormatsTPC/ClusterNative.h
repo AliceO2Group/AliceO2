@@ -13,9 +13,12 @@
 /// \author David Rohr
 #ifndef ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
+#ifndef __OPENCL__
 #include <cstdint>
 #include <cstddef>   // for size_t
+#endif
 #include "DataFormatsTPC/Constants.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -29,7 +32,7 @@ class MCTruthContainer;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /**
  * \struct ClusterNative
@@ -59,32 +62,41 @@ struct ClusterNative {
   uint16_t qMax;            //< QMax of the cluster
   uint16_t qTot;            //< Total charge of the cluster
 
-  uint8_t getFlags() const { return timeFlagsPacked >> 24; }
-  uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
-  void setTimePackedFlags(uint32_t timePacked, uint8_t flags)
+  GPUd() static uint16_t packPad(float pad) { return (uint16_t)(pad * scalePadPacked + 0.5); }
+  GPUd() static uint32_t packTime(float time) { return (uint32_t)(time * scaleTimePacked + 0.5); }
+  GPUd() static float unpackPad(uint16_t pad) { return float(pad) * (1.f / scalePadPacked); }
+  GPUd() static float unpackTime(uint32_t time) { return float(time) * (1.f / scaleTimePacked); }
+
+  GPUdDefault() ClusterNative() CON_DEFAULT;
+  GPUd() ClusterNative(uint32_t time, uint8_t flags, uint16_t pad, uint8_t sigmaTime, uint8_t sigmaPad, uint16_t qmax, uint16_t qtot) : padPacked(pad), sigmaTimePacked(sigmaTime), sigmaPadPacked(sigmaPad), qMax(qmax), qTot(qtot)
+  {
+    setTimePackedFlags(time, flags);
+  }
+
+  GPUd() uint8_t getFlags() const { return timeFlagsPacked >> 24; }
+  GPUd() uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
+  GPUd() void setTimePackedFlags(uint32_t timePacked, uint8_t flags)
   {
     timeFlagsPacked = (timePacked & 0xFFFFFF) | (uint32_t)flags << 24;
   }
-  void setTimePacked(uint32_t timePacked)
+  GPUd() void setTimePacked(uint32_t timePacked)
   {
     timeFlagsPacked = (timePacked & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);
   }
-  void setFlags(uint8_t flags) { timeFlagsPacked = (timeFlagsPacked & 0xFFFFFF) | ((uint32_t)flags << 24); }
-  float getTime() const { return float(timeFlagsPacked & 0xFFFFFF) / scaleTimePacked; }
-  void setTime(float time)
+  GPUd() void setFlags(uint8_t flags) { timeFlagsPacked = (timeFlagsPacked & 0xFFFFFF) | ((uint32_t)flags << 24); }
+  GPUd() float getTime() const { return unpackTime(timeFlagsPacked & 0xFFFFFF); }
+  GPUd() void setTime(float time)
   {
-    timeFlagsPacked =
-      (((decltype(timeFlagsPacked))(time * scaleTimePacked + 0.5)) & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);
+    timeFlagsPacked = (packTime(time) & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);
   }
-  void setTimeFlags(float time, uint8_t flags)
+  GPUd() void setTimeFlags(float time, uint8_t flags)
   {
-    timeFlagsPacked = (((decltype(timeFlagsPacked))(time * scaleTimePacked + 0.5)) & 0xFFFFFF) |
-                      ((decltype(timeFlagsPacked))flags << 24);
+    timeFlagsPacked = (packTime(time) & 0xFFFFFF) | ((decltype(timeFlagsPacked))flags << 24);
   }
-  float getPad() const { return float(padPacked) / scalePadPacked; }
-  void setPad(float pad) { padPacked = (decltype(padPacked))(pad * scalePadPacked + 0.5); }
-  float getSigmaTime() const { return float(sigmaTimePacked) / scaleSigmaTimePacked; }
-  void setSigmaTime(float sigmaTime)
+  GPUd() float getPad() const { return unpackPad(padPacked); }
+  GPUd() void setPad(float pad) { padPacked = packPad(pad); }
+  GPUd() float getSigmaTime() const { return float(sigmaTimePacked) * (1.f / scaleSigmaTimePacked); }
+  GPUd() void setSigmaTime(float sigmaTime)
   {
     uint32_t tmp = sigmaTime * scaleSigmaTimePacked + 0.5;
     if (tmp > 0xFF) {
@@ -92,8 +104,8 @@ struct ClusterNative {
     }
     sigmaTimePacked = tmp;
   }
-  float getSigmaPad() const { return float(sigmaPadPacked) / scaleSigmaPadPacked; }
-  void setSigmaPad(float sigmaPad)
+  GPUd() float getSigmaPad() const { return float(sigmaPadPacked) * (1.f / scaleSigmaPadPacked); }
+  GPUd() void setSigmaPad(float sigmaPad)
   {
     uint32_t tmp = sigmaPad * scaleSigmaPadPacked + 0.5;
     if (tmp > 0xFF) {
@@ -102,12 +114,22 @@ struct ClusterNative {
     sigmaPadPacked = tmp;
   }
 
-  bool operator<(const ClusterNative& rhs) const
+  GPUd() bool operator<(const ClusterNative& rhs) const
   {
     if (this->getTimePacked() != rhs.getTimePacked()) {
       return (this->getTimePacked() < rhs.getTimePacked());
-    } else {
+    } else if (this->padPacked != rhs.padPacked) {
       return (this->padPacked < rhs.padPacked);
+    } else if (this->sigmaTimePacked != rhs.sigmaTimePacked) {
+      return (this->sigmaTimePacked < rhs.sigmaTimePacked);
+    } else if (this->sigmaPadPacked != rhs.sigmaPadPacked) {
+      return (this->sigmaPadPacked < rhs.sigmaPadPacked);
+    } else if (this->qMax != rhs.qMax) {
+      return (this->qMax < rhs.qMax);
+    } else if (this->qTot != rhs.qTot) {
+      return (this->qTot < rhs.qTot);
+    } else {
+      return (this->getFlags() < rhs.getFlags());
     }
   }
 };
@@ -115,10 +137,10 @@ struct ClusterNative {
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccessFullTPC {
-  const ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
-  unsigned int nClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::TPC::Constants::MAXSECTOR]
-                                                                     [o2::TPC::Constants::MAXGLOBALPADROW];
+  const ClusterNative* clusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  unsigned int nClusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::tpc::Constants::MAXSECTOR]
+                                                                     [o2::tpc::Constants::MAXGLOBALPADROW];
 };
 }
 }

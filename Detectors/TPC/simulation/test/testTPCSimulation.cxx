@@ -23,7 +23,7 @@ template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
   /// \brief Trivial test of the initialization of a Point and its getters
   /// Precision: 1E-12 %

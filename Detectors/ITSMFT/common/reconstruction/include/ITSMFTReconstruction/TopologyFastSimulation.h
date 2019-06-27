@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class TopologyFastSimulation
 {
@@ -41,7 +41,7 @@ class TopologyFastSimulation
 
   ClassDefNV(TopologyFastSimulation, 1);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

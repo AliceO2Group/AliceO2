@@ -49,19 +49,20 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "CommonDataFormat/InteractionRecord.h"
-
+#include <chrono>
+#include <thread>
 
 using namespace o2::framework;
 
 namespace o2
 {
-	namespace ITS
+	namespace its
 	{
 
 		class RawPixelReader : public Task
 		{
-			using ChipPixelData = o2::ITSMFT::ChipPixelData;
-			using PixelReader = o2::ITSMFT::PixelReader;
+			using ChipPixelData = o2::itsmft::ChipPixelData;
+			using PixelReader = o2::itsmft::PixelReader;
 
 			public:
 			RawPixelReader() = default;
@@ -72,20 +73,74 @@ namespace o2
 			{
 				mChips.resize(n);
 			}
+			std::vector<std::string> GetFName(std::string folder);
 
 			private:
 			std::unique_ptr<TFile> mFile = nullptr;
-			o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
-			o2::ITSMFT::ChipPixelData chipData;
+			o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
+			o2::itsmft::ChipPixelData chipData;
 			std::size_t rofEntry = 0, nrofdig = 0;
 			std::unique_ptr<TFile> outFileDig;
 			std::unique_ptr<TTree> outTreeDig; // output tree with digits
 			std::unique_ptr<TTree> outTreeROF; // output tree with ROF records
 			std::vector<ChipPixelData> mChips;
-			std::vector<o2::ITSMFT::Digit> mDigits;
+			std::vector<o2::itsmft::Digit> mDigits;
+			std::vector<o2::itsmft::Digit> mMultiDigits;
+
 			ChipPixelData* mChipData = nullptr; 
 			std::string inpName = "Split9.bin";
+			int IndexPush;
+			int PixelSize;
+			std::vector<int> NDigits;
+			std::vector<std::string> FolderNames;
+			std::vector<std::vector<std::string>> FileNames;
+			std::string workdir;
+			std::vector<std::string> NowFolderNames;
+			std::vector<std::vector<std::string>> NowFileNames;
+			std::vector<std::string> DiffFolderName;
+			std::vector<std::string> DiffFileNamePush;
+			std::vector<std::vector<std::string>> DiffFileNames;
+			int ResetCommand;
+			std::string RunID;
+			int NEvent;
+			int EventPerPush;
+			int EventRegistered;
+			int TotalPixelSize;
+			static constexpr int  NError = 11;
+//			unsigned int Error[NError];
+			std::array<unsigned int,NError> Error;
+			int pos;
+			int j;
+			std::vector<std::array<unsigned int,NError>> ErrorVec;
+			std::vector<std::string>  NewNextFold;
+			int FileDone;
+			int FileID;
+			int RunName;
+			int TrackError;
+			int NEventPre;
+			double PercentDone;
+			int IndexPushEx;
+			int FileRemain;
+			int FileInfo;
+			int RunType;
+			int TimeCounter;
+			std::chrono::time_point<std::chrono::high_resolution_clock> startDecoder;
+			std::chrono::time_point<std::chrono::high_resolution_clock> endDecoder;
+			int differenceDecoder;
 
+			std::chrono::time_point<std::chrono::high_resolution_clock> start;
+			std::chrono::time_point<std::chrono::high_resolution_clock> end;
+			int difference;
+			int Printed;
+			
+			//Immediate Injection Variables//
+
+			int NewFileInj;
+			int	NewFileInjAction;
+			std::vector<o2::itsmft::Digit> mDigitsTest;
+			std::vector<o2::itsmft::Digit> mMultiDigitsTest;
+			std::vector<std::array<unsigned int,NError>> ErrorVecTest;	
+			int MaxPixelSize;
 		};
 
 		/// create a processor spec
@@ -96,3 +151,4 @@ namespace o2
 } // namespace o2
 
 #endif /* O2_ITS_DIGITREADER */
+

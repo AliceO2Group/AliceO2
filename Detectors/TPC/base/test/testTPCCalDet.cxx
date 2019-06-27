@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 //templated euqality check

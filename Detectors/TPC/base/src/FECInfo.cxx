@@ -13,7 +13,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 std::ostream& FECInfo::print(std::ostream& out) const
 {
@@ -23,10 +23,10 @@ std::ostream& FECInfo::print(std::ostream& out) const
   return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const TPC::FECInfo& fec)
+std::ostream& operator<<(std::ostream& out, const tpc::FECInfo& fec)
 {
   fec.print(out);
   return out;
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

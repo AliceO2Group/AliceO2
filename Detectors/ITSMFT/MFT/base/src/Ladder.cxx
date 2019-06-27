@@ -30,11 +30,11 @@
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
 
-using namespace o2::ITSMFT;
-using namespace o2::MFT;
-using AlpideChip = o2::ITSMFT::AlpideChip;
+using namespace o2::itsmft;
+using namespace o2::mft;
+using AlpideChip = o2::itsmft::AlpideChip;
 
-ClassImp(o2::MFT::Ladder);
+ClassImp(o2::mft::Ladder);
 
 // Units are cm
 const Double_t Ladder::sLadderDeltaY = SegmentationAlpide::SensorSizeRows + 2. * Geometry::sSensorTopOffset;

@@ -293,43 +293,52 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     ccdbBackend.outputs.emplace_back(output);
   }
 
+  std::vector<DataProcessorSpec> extraSpecs;
+
   if (ccdbBackend.outputs.empty() == false) {
-    workflow.push_back(ccdbBackend);
+    extraSpecs.push_back(ccdbBackend);
   }
   if (transientStore.outputs.empty() == false) {
-    workflow.push_back(transientStore);
+    extraSpecs.push_back(transientStore);
   }
   if (qaStore.outputs.empty() == false) {
-    workflow.push_back(qaStore);
+    extraSpecs.push_back(qaStore);
   }
   if (aodReader.outputs.empty() == false) {
-    workflow.push_back(aodReader);
+    extraSpecs.push_back(aodReader);
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
   }
   if (run2Converter.outputs.empty() == false) {
-    workflow.push_back(run2Converter);
+    extraSpecs.push_back(run2Converter);
     auto concrete = DataSpecUtils::asConcreteDataMatcher(run2Converter.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
   }
 
   if (timer.outputs.empty() == false) {
-    workflow.push_back(timer);
+    extraSpecs.push_back(timer);
   }
+
+  // FIXME: I should insert more things here.
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+
   /// This will inject a file sink so that any dangling
   /// output is actually written to it.
   auto danglingOutputsInputs = computeDanglingOutputs(workflow);
+
+  extraSpecs.clear();
 
   std::vector<InputSpec> unmatched;
   if (danglingOutputsInputs.size() > 0) {
     auto fileSink = CommonDataProcessors::getGlobalFileSink(danglingOutputsInputs, unmatched);
     if (unmatched.size() != danglingOutputsInputs.size()) {
-      workflow.push_back(fileSink);
+      extraSpecs.push_back(fileSink);
     }
   }
   if (unmatched.size() > 0) {
-    workflow.push_back(CommonDataProcessors::getDummySink(unmatched));
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
   }
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 }
 
 void
@@ -442,14 +451,21 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
                            doForward});
   };
 
-  auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
+  auto errorDueToMissingOutputFor = [&workflow, &constOutputs](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
     str << "No matching output found for "
-        << DataSpecUtils::describe(input) << "\n";
+        << DataSpecUtils::describe(input) << ". Candidates:\n";
+
+    for (auto& output : constOutputs) {
+      str << " - " << output.origin.str << "/"
+          << output.description.str << "/"
+          << output.subSpec
+          << "\n";
+    }
+
     throw std::runtime_error(str.str());
   };
-
 
   // Whenever we have a set of forwards, we need to append it
   // the the global list of outputs, so that they can be matched

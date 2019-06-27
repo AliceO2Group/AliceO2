@@ -19,7 +19,7 @@
 #include <TEnv.h>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
     
 /// Configuration Manager allows an easy access to the config file.
 ///

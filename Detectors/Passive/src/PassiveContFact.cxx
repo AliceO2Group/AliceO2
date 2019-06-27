@@ -40,9 +40,9 @@
 
 
 using namespace std;
-using namespace o2::Passive;
+using namespace o2::passive;
 
-ClassImp(o2::Passive::PassiveContFact)
+ClassImp(o2::passive::PassiveContFact)
 
 static PassiveContFact gPassiveContFact;
 

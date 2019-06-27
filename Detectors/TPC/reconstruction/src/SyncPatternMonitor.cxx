@@ -14,7 +14,7 @@
 #include "TPCReconstruction/SyncPatternMonitor.h"
 #include <iostream>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 constexpr std::array<short,32> SyncPatternMonitor::SYNC_PATTERN;
 
 SyncPatternMonitor::SyncPatternMonitor()

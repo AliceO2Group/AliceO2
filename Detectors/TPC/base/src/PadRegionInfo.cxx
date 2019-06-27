@@ -13,7 +13,7 @@
 #include "TPCBase/PadRegionInfo.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 
 PadRegionInfo::PadRegionInfo(const unsigned char region,

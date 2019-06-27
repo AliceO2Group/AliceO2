@@ -17,7 +17,7 @@
 #include <array>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class HalfSAMPAData
 /// \brief Class to store data from one half SAMPA

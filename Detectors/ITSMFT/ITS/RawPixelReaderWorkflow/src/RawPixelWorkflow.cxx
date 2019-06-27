@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 namespace RawPixelWorkflow
@@ -28,9 +28,9 @@ framework::WorkflowSpec getWorkflow()
   framework::WorkflowSpec specs;
 
 
-  specs.emplace_back(o2::ITS::getRawPixelReaderSpec());
+  specs.emplace_back(o2::its::getRawPixelReaderSpec());
   LOG(INFO) << "DONE READING BRO ";
-  specs.emplace_back(o2::ITS::getRawPixelGetterSpec());
+  specs.emplace_back(o2::its::getRawPixelGetterSpec());
 
   return specs;
 }

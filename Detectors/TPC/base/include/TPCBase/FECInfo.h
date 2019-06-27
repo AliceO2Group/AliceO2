@@ -15,7 +15,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class FECInfo
@@ -91,7 +91,7 @@ class FECInfo
   // unsigned char mChannel      {0};   ///< Channel on the FEC -> Can be deduced from mSampaChip and mSampaChannel
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif

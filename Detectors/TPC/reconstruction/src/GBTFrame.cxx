@@ -14,7 +14,7 @@
 #include "TPCReconstruction/GBTFrame.h"
 #include <iostream>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 GBTFrame::GBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
                    short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,

@@ -96,6 +96,10 @@ class Detector : public FairDetector
       return mDensityFactor;
     }
 
+    /// implements interface of FairModule;
+    /// generic implementation for O2 detectors
+    void SetSpecialPhysicsCuts() override;
+
     /// declare alignable volumes of detector
     virtual void addAlignableVolumes() const;
     
@@ -408,6 +412,7 @@ class DetImpl : public o2::base::Detector
   void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override
   {
     int probe = 0;
+    bool* busy = nullptr;
     using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     while (name.size() > 0) {
@@ -425,20 +430,20 @@ class DetImpl : public o2::base::Detector
         }
       } else {
         // for each branch name we extract/decode hits from the message parts ...
-        bool* busy;
         auto hitsptr = decodeShmMessage<Hit_t>(parts, index++, busy);
-        LOG(DEBUG2) << "GOT " << hitsptr->size() << " HITS ";
         // ... and fill the tree branch
         auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
         br->SetAddress(static_cast<void*>(&hitsptr));
         br->Fill();
         br->ResetAddress();
-
-        // he we are done so unset the busy flag
-        *busy = false;
       }
       // next name
       name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+    }
+    // there is only one busy flag per detector so we need to clear it only
+    // at the end (after all branches have been treated)
+    if (busy) {
+      *busy = false;
     }
   }
 

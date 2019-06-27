@@ -286,7 +286,12 @@ inline Double_t MCTrackT<T>::GetRapidity() const
 template <typename T>
 inline const char* MCTrackT<T>::getProdProcessAsString() const
 {
-  return TMCProcessName[getProcess()];
+  auto procID = getProcess();
+  if (procID >= 0) {
+    return TMCProcessName[procID];
+  } else {
+    return TMCProcessName[TMCProcess::kPNoProcess];
+  }
 }
 
 using MCTrack = MCTrackT<float>;

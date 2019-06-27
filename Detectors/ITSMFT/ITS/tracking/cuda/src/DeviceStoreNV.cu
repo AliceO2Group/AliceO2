@@ -20,7 +20,7 @@
 
 namespace {
 
-using namespace o2::ITS;
+using namespace o2::its;
 
 __device__ void fillIndexTables(GPU::DeviceStoreNV &primaryVertexContext, const int layerIndex)
 {
@@ -56,8 +56,8 @@ __device__ void fillIndexTables(GPU::DeviceStoreNV &primaryVertexContext, const 
 
     if (currentClusterIndex == nextLayerClustersNum - 1) {
 
-      for (int iBin { currentBinIndex + 1 }; iBin <= Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins;
-          iBin++) {
+      for (int iBin{ currentBinIndex + 1 }; iBin <= o2::its::constants::IndexTable::ZBins * o2::its::constants::IndexTable::PhiBins;
+           iBin++) {
 
         primaryVertexContext.getIndexTables()[layerIndex][iBin] = nextLayerClustersNum;
       }
@@ -95,12 +95,12 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV &primaryVertexContext, c
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
-  if (layerIndex < Constants::ITS::CellsPerRoad) {
+  if (layerIndex < o2::its::constants::its::CellsPerRoad) {
 
     fillTrackletsPerClusterTables(primaryVertexContext, layerIndex);
   }
 
-  if (layerIndex < Constants::ITS::CellsPerRoad - 1) {
+  if (layerIndex < o2::its::constants::its::CellsPerRoad - 1) {
 
     fillCellsPerClusterTables(primaryVertexContext, layerIndex);
   }
@@ -109,7 +109,7 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV &primaryVertexContext, c
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 namespace GPU
 {
@@ -119,31 +119,31 @@ DeviceStoreNV::DeviceStoreNV()
   // Nothing to do
 }
 
-UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3 &primaryVertex,
-    const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber> &clusters,
-    const std::array<std::vector<Tracklet>, Constants::ITS::TrackletsPerRoad> &tracklets,
-    const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad> &cells,
-    const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1> &cellsLookupTable)
+UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVertex,
+                                                       const std::array<std::vector<Cluster>, constants::its::LayersNumber>& clusters,
+                                                       const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& tracklets,
+                                                       const std::array<std::vector<Cell>, constants::its::CellsPerRoad>& cells,
+                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable)
 {
   mPrimaryVertex = UniquePointer<float3>{ primaryVertex };
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
 
     this->mClusters[iLayer] =
         Vector<Cluster> { &clusters[iLayer][0], static_cast<int>(clusters[iLayer].size()) };
 
-    if (iLayer < Constants::ITS::TrackletsPerRoad) {
+    if (iLayer < constants::its::TrackletsPerRoad) {
       this->mTracklets[iLayer].reset(tracklets[iLayer].capacity());
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad) {
+    if (iLayer < constants::its::CellsPerRoad) {
 
       this->mTrackletsLookupTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mTrackletsPerClusterTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mCells[iLayer].reset(static_cast<int>(cells[iLayer].capacity()));
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad - 1) {
+    if (iLayer < constants::its::CellsPerRoad - 1) {
 
       this->mCellsLookupTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
       this->mCellsPerTrackletTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
@@ -152,9 +152,9 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3 &primaryVert
 
   UniquePointer<DeviceStoreNV> gpuContextDevicePointer { *this };
 
-  std::array<Stream, Constants::ITS::LayersNumber> streamArray;
+  std::array<Stream, constants::its::LayersNumber> streamArray;
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
 
     const int nextLayerClustersNum = static_cast<int>(clusters[iLayer + 1].size());
 

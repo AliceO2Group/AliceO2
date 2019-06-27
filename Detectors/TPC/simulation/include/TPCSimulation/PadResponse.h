@@ -20,7 +20,7 @@
 #include "TPCBase/Mapper.h"
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 /// \class PadResponse
 /// This class deals with the induction of the signal on the pad plane.

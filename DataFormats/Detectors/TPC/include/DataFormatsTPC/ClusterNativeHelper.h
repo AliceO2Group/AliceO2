@@ -30,7 +30,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
@@ -97,7 +97,7 @@ class ClusterNativeHelper
   ClusterNativeHelper() = default;
   ~ClusterNativeHelper() = default;
 
-  constexpr static size_t NSectors = o2::TPC::Constants::MAXSECTOR;
+  constexpr static size_t NSectors = o2::tpc::Constants::MAXSECTOR;
 
   /// convert clusters stored in binary cluster native format to a tree and write to root file
   /// the cluster parameters are stored in the tree together with sector and padrow numbers.
@@ -258,6 +258,6 @@ class ClusterNativeHelper
     int mEvent = -1;
   };
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif // CLUSTERNATIVEHELPER_H

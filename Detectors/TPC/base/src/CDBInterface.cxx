@@ -26,7 +26,7 @@
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //______________________________________________________________________________
 const CalPad& CDBInterface::getPedestals()
@@ -101,7 +101,7 @@ const CalPad& CDBInterface::getGainMap()
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {
-    return ParameterDetector::defaultInstance();
+    return ParameterDetector::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -112,7 +112,7 @@ const ParameterDetector& CDBInterface::getParameterDetector()
 const ParameterElectronics& CDBInterface::getParameterElectronics()
 {
   if (mUseDefaults) {
-    return ParameterElectronics::defaultInstance();
+    return ParameterElectronics::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -123,7 +123,7 @@ const ParameterElectronics& CDBInterface::getParameterElectronics()
 const ParameterGas& CDBInterface::getParameterGas()
 {
   if (mUseDefaults) {
-    return ParameterGas::defaultInstance();
+    return ParameterGas::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -134,7 +134,7 @@ const ParameterGas& CDBInterface::getParameterGas()
 const ParameterGEM& CDBInterface::getParameterGEM()
 {
   if (mUseDefaults) {
-    return ParameterGEM::defaultInstance();
+    return ParameterGEM::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -257,8 +257,8 @@ void CDBInterface::createDefaultGainMap()
       if (random < minGain) {
         random = minGain;
       }
-      if (random > minGain) {
-        random = minGain;
+      if (random > maxGain) {
+        random = maxGain;
       }
       val = random;
     }

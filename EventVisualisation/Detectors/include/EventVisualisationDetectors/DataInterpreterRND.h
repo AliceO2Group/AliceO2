@@ -20,7 +20,7 @@
 #include "EventVisualisationBase/VisualisationConstants.h"
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
   
 /// DataInterpreterRND prepares random events
 ///

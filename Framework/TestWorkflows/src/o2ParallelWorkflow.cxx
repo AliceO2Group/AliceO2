@@ -41,27 +41,25 @@ using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProcessor()
 {
-  return DataProcessorSpec{
-    "some-processor",
-    {
-      InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
-    },
-    {
-      OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
-    },
-    // The producer is stateful, we use a static for the state in this
-    // particular case, but a Singleton or a captured new object would
-    // work as well.
-    AlgorithmSpec{ [](InitContext& setup) {
-      srand(setup.services().get<ParallelContext>().index1D());
-      return [](ProcessingContext& ctx) {
-        // Create a single output.
-        size_t index = ctx.services().get<ParallelContext>().index1D();
-        auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
-        std::this_thread::sleep_for(std::chrono::seconds(rand() % 5));
-      };
-    } }
-  };
+  return DataProcessorSpec{ "some-processor", {
+                                                InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
+                                              },
+                            {
+                              OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
+                            },
+                            // The producer is stateful, we use a static for the state in this
+                            // particular case, but a Singleton or a captured new object would
+                            // work as well.
+                            AlgorithmSpec{ [](InitContext& setup) {
+                              srand(setup.services().get<ParallelContext>().index1D());
+                              return [](ProcessingContext& ctx) {
+                                // Create a single output.
+                                size_t index = ctx.services().get<ParallelContext>().index1D();
+                                auto aData = ctx.outputs().make<int>(
+                                  Output{ "TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
+                                std::this_thread::sleep_for(std::chrono::seconds(rand() % 5));
+                              };
+                            } } };
 }
 
 // This is a simple consumer / producer workflow where both are
@@ -86,17 +84,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     outputSpecs.emplace_back("TST", "A", ssi);
   }
 
-  workflow.push_back(DataProcessorSpec{
-    "reader",
-    {},
-    outputSpecs,
-    AlgorithmSpec{ [jobs](InitContext& initCtx) {
-      return [jobs](ProcessingContext& ctx) {
-        for (size_t ji = 0; ji < jobs; ++ji) {
-          ctx.outputs().make<int>(Output{ "TST", "A", ji }, 1);
-        }
-      };
-    } } });
+  workflow.push_back(DataProcessorSpec{ "reader", {}, outputSpecs, AlgorithmSpec{ [jobs](InitContext& initCtx) {
+                                          return [jobs](ProcessingContext& ctx) {
+                                            for (size_t ji = 0; ji < jobs; ++ji) {
+                                              ctx.outputs().make<int>(Output{ "TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(ji) },
+                                                                      1);
+                                            }
+                                          };
+                                        } } });
   workflow.push_back(timePipeline(DataProcessorSpec{
                                     "merger",
                                     mergeInputs(InputSpec{ "x", "TST", "P" },

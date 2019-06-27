@@ -24,7 +24,7 @@ class TGeoCompositeShape;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Support : public TNamed

@@ -14,9 +14,9 @@ Note: The format of the raw pages is preliminary and does not reflect what is cu
 The workflow consists of the following DPL processors:
 
 * `tpc-digit-reader` -> using tool [o2::framework::RootTreeReader](../../../Framework/Utils/include/Utils/RootTreeReader.h)
-* `tpc-clusterer` -> interfaces [o2::TPC::HwClusterer](../reconstruction/include/TPCReconstruction/HwClusterer.h)
-* `tpc-cluster-decoder` -> interfaces [o2::TPC::HardwareClusterDecoder](../reconstruction/include/TPCReconstruction/HardwareClusterDecoder.h)
-* `tpc-tracker`	-> interfaces [o2::TPC::TPCCATracking](../reconstruction/include/TPCReconstruction/TPCCATracking.h)
+* `tpc-clusterer` -> interfaces [o2::tpc::HwClusterer](../reconstruction/include/TPCReconstruction/HwClusterer.h)
+* `tpc-cluster-decoder` -> interfaces [o2::tpc::HardwareClusterDecoder](../reconstruction/include/TPCReconstruction/HardwareClusterDecoder.h)
+* `tpc-tracker`	-> interfaces [o2::tpc::GPUCATracking](../reconstruction/include/TPCReconstruction/GPUCATracking.h)
 * `tpc-track-writer` -> implements simple writing to ROOT file
 
 Depending on the input and output types the default workflow is extended by the following readers and writers:
@@ -34,14 +34,14 @@ The digitizer workflow produces the file `tpcdigits.root` by default, data is st
 all sectors.
 
 The workflow can be run starting from digits, raw clusters, or (native) clusters, or directly attached to the
-`digitizer-workflow`, see comment on inputs types below.
+`o2-sim-digitizer-workflow`, see comment on inputs types below.
 
 ### Quickstart running the reconstruction workflow
-The workflow is implemented in the `tpc-reco-workflow` executable.
+The workflow is implemented in the `o2-tpc-reco-workflow` executable.
 
 Display all options
 ```
-tpc-reco-workflow --help
+o2-tpc-reco-workflow --help
 ```
 
 Important options for the `tpc-digit-reader` as initial publisher
@@ -69,11 +69,11 @@ Options for the `tpc-track-writer` process
 
 Examples:
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --tracker-options "cont refX=83 bz=-5.0068597793"
+o2-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ```
-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
+o2-tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-17 --disable-mc 1 --tracker-options "cont refX=83 bz=-5.0068597793"
 ```
 
 ### Global workflow options:
@@ -121,7 +121,7 @@ By default, all TPC sectors are processed by the workflow, option `--tpc-sectors
 ### Processor options
 
 #### TPC CA tracker
-The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::TPC::TPCCATracking](../reconstruction/include/TPCReconstruction/TPCCATracking.h)
+The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::tpc::GPUCATracking](../reconstruction/include/TPCReconstruction/GPUCATracking.h)
 worker class which can be initialized using an option string. The processor spec defines the option `--tracker-option`. Currently, the tracker
 should be run with options:
 ```

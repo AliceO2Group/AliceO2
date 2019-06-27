@@ -13,7 +13,7 @@
 
 #include "ITSMFTReconstruction/PayLoadCont.h"
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 constexpr size_t PayLoadCont::MinCapacity;
 

@@ -26,9 +26,9 @@
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Geometry.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::HeatExchanger);
+ClassImp(o2::mft::HeatExchanger);
 
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger()
@@ -3640,12 +3640,12 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 void HeatExchanger::initParameters()
 {
 
-  mHalfDiskRotation = new TGeoRotation**[Constants::DisksNumber];
-  mHalfDiskTransformation = new TGeoCombiTrans**[Constants::DisksNumber];
-  for (Int_t idisk = 0; idisk < Constants::DisksNumber; idisk++) {
-    mHalfDiskRotation[idisk] = new TGeoRotation*[Constants::HalvesNumber];
-    mHalfDiskTransformation[idisk] = new TGeoCombiTrans*[Constants::HalvesNumber];
-    for (Int_t ihalf = 0; ihalf < Constants::HalvesNumber; ihalf++) {
+  mHalfDiskRotation = new TGeoRotation**[constants::DisksNumber];
+  mHalfDiskTransformation = new TGeoCombiTrans**[constants::DisksNumber];
+  for (Int_t idisk = 0; idisk < constants::DisksNumber; idisk++) {
+    mHalfDiskRotation[idisk] = new TGeoRotation*[constants::HalvesNumber];
+    mHalfDiskTransformation[idisk] = new TGeoCombiTrans*[constants::HalvesNumber];
+    for (Int_t ihalf = 0; ihalf < constants::HalvesNumber; ihalf++) {
       mHalfDiskRotation[idisk][ihalf] = new TGeoRotation(Form("rotation%d%d", idisk, ihalf), 0., 0., 0.);
       mHalfDiskTransformation[idisk][ihalf] =
         new TGeoCombiTrans(Form("transformation%d%d", idisk, ihalf), 0., 0., 0., mHalfDiskRotation[idisk][ihalf]);
@@ -3682,10 +3682,10 @@ void HeatExchanger::initParameters()
   mZPlan[3] = 0;
   mZPlan[4] = 0;
 
-  mSupportXDimensions = new Double_t*[Constants::DisksNumber];
-  mSupportYDimensions = new Double_t*[Constants::DisksNumber];
+  mSupportXDimensions = new Double_t*[constants::DisksNumber];
+  mSupportYDimensions = new Double_t*[constants::DisksNumber];
 
-  for (Int_t i = 0; i < Constants::DisksNumber; i++) {
+  for (Int_t i = 0; i < constants::DisksNumber; i++) {
     mSupportXDimensions[i] = new double[mNPart[i]];
     mSupportYDimensions[i] = new double[mNPart[i]];
   }

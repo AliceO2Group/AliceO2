@@ -23,8 +23,8 @@
 
 void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
 {
-  using namespace o2::ITSMFT;
-  using namespace o2::ITS;
+  using namespace o2::itsmft;
+  using namespace o2::its;
 
   TFile* f = TFile::Open("CheckTracks.root", "recreate");
   TNtuple* nt = new TNtuple("ntt", "track ntuple",
@@ -68,8 +68,9 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
   recTree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
-  Int_t tf = 0, nrec = 0;
-  Int_t lastEventID = -1;
+  Int_t nrec = 0;
+  Int_t lastEventIDcl = -1, cf = 0;
+  Int_t lastEventIDtr = -1, tf = 0;
   Int_t nev = mcTree->GetEntries();
 
   Int_t nb = 100;
@@ -91,19 +92,30 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     Int_t nmc = mcArr->size();
     Int_t nmcrefs = mcTrackRefs->size();
 
-    while ((n > lastEventID) && (tf < recTree->GetEntries())) { // Cache a new reconstructed TF
-      clusTree->GetEvent(tf);
+    while ((n > lastEventIDtr) && (tf < recTree->GetEntries())) { // Cache a new reconstructed entry
       recTree->GetEvent(tf);
       nrec = recArr->size();
-      for (int i = 0; i < nrec; i++) { // Find the last MC event within this reconstructed TF
+      for (int i = 0; i < nrec; i++) { // Find the last MC event within this reconstructed entry
         auto mclab = (trkLabArr->getLabels(i))[0];
         auto id = mclab.getEventID();
-        if (id > lastEventID)
-          lastEventID = id;
+        if (id > lastEventIDtr)
+          lastEventIDtr = id;
       }
       if (nrec > 0)
-        std::cout << "Caching TF #" << tf << ", with the last event ID=" << lastEventID << std::endl;
+        std::cout << "Caching track entry #" << tf << ", with the last event ID=" << lastEventIDtr << std::endl;
       tf++;
+    }
+    while ((n > lastEventIDcl) && (cf < clusTree->GetEntries())) { // Cache a new reconstructed entry
+      clusTree->GetEvent(cf);
+      for (int i = 0; i < clusArr->size(); i++) { // Find the last MC event within this reconstructed entry
+        auto mclab = (clusLabArr->getLabels(i))[0];
+        auto id = mclab.getEventID();
+        if (id > lastEventIDcl)
+          lastEventIDcl = id;
+      }
+      if (nrec > 0)
+        std::cout << "Caching cluster entry #" << cf << ", with the last event ID=" << lastEventIDcl << std::endl;
+      cf++;
     }
 
     while (nmc--) {

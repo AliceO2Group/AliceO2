@@ -41,15 +41,15 @@
 #include <cstring> // for strstr, strlen
 
 using namespace TMath;
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using AlpideSegmentation = o2::ITSMFT::SegmentationAlpide;
+using AlpideSegmentation = o2::itsmft::SegmentationAlpide;
 
-ClassImp(o2::MFT::GeometryTGeo);
+ClassImp(o2::mft::GeometryTGeo);
 
-std::unique_ptr<o2::MFT::GeometryTGeo> GeometryTGeo::sInstance;
+std::unique_ptr<o2::mft::GeometryTGeo> GeometryTGeo::sInstance;
 
 std::string GeometryTGeo::sVolumeName = "MFT";       ///<
 std::string GeometryTGeo::sHalfName = "MFT_H";       ///<
@@ -61,13 +61,13 @@ std::string GeometryTGeo::sSensorName = "MFTSensor"; ///<
 GeometryTGeo::~GeometryTGeo() = default; // Instantiate explicitly to avoid missing symbol
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::MFT)
+GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::GeometryTGeo(DetID::MFT)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::MFT::GeometryTGeo instance exists";
-    // throw std::runtime_error("Invalid use of public constructor: o2::MFT::GeometryTGeo instance exists");
+    LOG(FATAL) << "Invalid use of public constructor: o2::mft::GeometryTGeo instance exists";
+    // throw std::runtime_error("Invalid use of public constructor: o2::mft::GeometryTGeo instance exists");
   }
 
   if (build) {

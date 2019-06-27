@@ -20,16 +20,18 @@
 
 void run_CRUDataSkimming_its(std::string inpName = "rawits.bin",
                              std::string outName = "rawits_skimmed.bin",
+                             int nTriggersToCache = 1025, // number of triggers per link to cache (> N 8KB CRU pages per superpage)
                              int verbose = 0)
 {
 
-  o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
   rawReader.openInput(inpName);
   rawReader.setPadding128(false);
+  rawReader.setMinTriggersToCache(nTriggersToCache);
   rawReader.setVerbosity(verbose);
 
   std::fstream outFile(outName, std::ios::out | std::ios::binary);
-  o2::ITSMFT::PayLoadCont outBuffer(1000000); // book 1 MB buffer
+  o2::itsmft::PayLoadCont outBuffer(1000000); // book 1 MB buffer
 
   TStopwatch sw, swIO;
   sw.Start();
@@ -47,14 +49,16 @@ void run_CRUDataSkimming_its(std::string inpName = "rawits.bin",
 
   const auto& MAP = rawReader.getMapping();
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
-    const auto* ruStat = rawReader.getRUDecodingStatSW(ir);
-    if (ruStat && ruStat->nPackets) {
-      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
-      ruStat->print();
+    for (int il = 0; il < o2::itsmft::MaxLinksPerRU; il++) {
+      const auto ruStat = rawReader.getRUDecodingStatSW(ir, il);
+      if (ruStat && ruStat->nPackets) {
+        printf("\nStatistics for RU%3d (HWID:0x%4x) GBTLink%d\n", ir, MAP.RUSW2FEEId(ir, il), il);
+        ruStat->print();
+      }
     }
   }
-
   rawReader.getDecodingStat().print();
+
   printf("Total time spent on skimming: ");
   sw.Print();
   printf("Time spent on writing output: ");

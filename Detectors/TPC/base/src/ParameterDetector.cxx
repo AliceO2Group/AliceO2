@@ -14,6 +14,5 @@
 
 #include "TPCBase/ParameterDetector.h"
 
-using namespace o2::TPC;
-
-ParameterDetector::ParameterDetector() : mTPClength(250.f), mPadCapacitance(0.1f), mTmaxTriggered(550) {}
+using namespace o2::tpc;
+O2ParamImpl(o2::tpc::ParameterDetector);

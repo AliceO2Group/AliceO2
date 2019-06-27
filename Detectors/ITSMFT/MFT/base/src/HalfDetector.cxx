@@ -22,9 +22,9 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/HalfDetector.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::HalfDetector);
+ClassImp(o2::mft::HalfDetector);
 
 /// \brief Default constructor
 

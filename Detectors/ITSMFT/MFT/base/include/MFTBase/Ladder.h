@@ -21,14 +21,14 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class LadderSegmentation;
 }
 }
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class Flex;
 }
@@ -36,7 +36,7 @@ class Flex;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Ladder : public TNamed

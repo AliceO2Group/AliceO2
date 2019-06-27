@@ -24,7 +24,7 @@ using boost::format;
 using boost::str;
 using o2::math_utils::math_base::median;
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //______________________________________________________________________________
 void CalibTreeDump::dumpToFile(const std::string filename)

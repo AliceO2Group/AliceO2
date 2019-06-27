@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "ITSMFTSimulation/DPLDigitizerParam.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
 #include <TGeoManager.h>
@@ -35,7 +36,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ITSMFTDPLDigitizerTask
@@ -75,11 +76,11 @@ class ITSMFTDPLDigitizerTask
     }
 
     // configure digitizer
-    o2::ITSMFT::GeometryTGeo* geom = nullptr;
+    o2::itsmft::GeometryTGeo* geom = nullptr;
     if (mID == o2::detectors::DetID::ITS) {
-      geom = o2::ITS::GeometryTGeo::Instance();
+      geom = o2::its::GeometryTGeo::Instance();
     } else {
-      geom = o2::MFT::GeometryTGeo::Instance();
+      geom = o2::mft::GeometryTGeo::Instance();
     }
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
@@ -260,16 +261,16 @@ class ITSMFTDPLDigitizerTask
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::ITSMFT::Digitizer mDigitizer;
-  std::vector<o2::ITSMFT::Digit> mDigits;
-  std::vector<o2::ITSMFT::Digit> mDigitsAccum;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecords;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecordsAccum;
-  std::vector<o2::ITSMFT::Hit> mHits;
-  std::vector<o2::ITSMFT::Hit>* mHitsP = &mHits;
+  o2::itsmft::Digitizer mDigitizer;
+  std::vector<o2::itsmft::Digit> mDigits;
+  std::vector<o2::itsmft::Digit> mDigitsAccum;
+  std::vector<o2::itsmft::ROFRecord> mROFRecords;
+  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
+  std::vector<o2::itsmft::Hit> mHits;
+  std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::ITSMFT::MC2ROFRecord> mMC2ROFRecordsAccum;
+  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
   TChain mQEDChain = { "o2sim" };
 
@@ -296,12 +297,13 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   }
   void setDigitizationOptions() override
   {
-    auto& dopt = o2::ITSMFT::DPLDigitizerParam<DETID>::Instance();
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(dopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(dopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(dopt.strobeLength);   // Strobe length in ns
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -329,12 +331,13 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
 
   void setDigitizationOptions() override
   {
-    auto& dopt = o2::ITSMFT::DPLDigitizerParam<DETID>::Instance();
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(dopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(dopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(dopt.strobeLength);   // Strobe length in ns
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -352,7 +355,10 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
   auto detOrig = ITSDPLDigitizerTask::DETOR;
   std::stringstream parHelper;
-  parHelper << "Params as " << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value; ..";
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -376,7 +382,11 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::DETID);
   auto detOrig = MFTDPLDigitizerTask::DETOR;
   std::stringstream parHelper;
-  parHelper << "Params as " << o2::ITSMFT::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value; ..";
+
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
                             Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                                static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
@@ -390,10 +400,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                             Options{
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
-                            } };
+                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } } } };
 }
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2

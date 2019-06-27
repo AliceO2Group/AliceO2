@@ -13,7 +13,7 @@
 
 #include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void DigitalCurrentClusterIntegrator::clear()
 {

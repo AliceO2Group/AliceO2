@@ -19,10 +19,8 @@
 #include <TGeoMatrix.h>
 #include <TGeoMedium.h>
 #include <TGeoPcon.h>
-#include <TGeoPgon.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
-#include <TGeoXtru.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -69,14 +67,6 @@ void Dipole::createMaterials()
   Float_t zcoil[3] = { 13., 1., 8. };
   Float_t wcoil[3] = { .66, .226, .114 };
 
-  Float_t aresi[3] = { 1.01, 12.011, 16. };
-  Float_t zresi[3] = { 1., 6., 8. };
-  Float_t wresi[3] = { .0644, .7655, .1701 };
-
-  Float_t aG10[5] = { 1.01, 12.011, 16., 28.085, 79.904 };
-  Float_t zG10[5] = { 1., 6., 8., 14., 35. };
-  Float_t wG10[5] = { .02089, .22338, .28493, .41342, .05738 };
-
   // AIR
   Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
   Float_t zAir[4] = { 6., 7., 8., 18. };
@@ -104,14 +94,6 @@ void Dipole::createMaterials()
   matmgr.Medium("DIPO", 29, "ALU_C1", 29, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Material("DIPO", 49, "ALUMINIUM2", 26.98, 13., 2.7, 8.9, 37.2);
   matmgr.Medium("DIPO", 49, "ALU_C2", 49, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //    Iron
-  matmgr.Material("DIPO", 10, "IRON0", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("DIPO", 10, "FE_C0", 10, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Material("DIPO", 30, "IRON1", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("DIPO", 30, "FE_C1", 30, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Material("DIPO", 50, "IRON2", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("DIPO", 50, "FE_C2", 50, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     Air
   matmgr.Mixture("DIPO", 15, "AIR0", aAir, zAir, dAir, 4, wAir);
@@ -147,36 +129,12 @@ void Dipole::createMaterials()
   matmgr.Medium("DIPO", 34, "Coil_C2", 34, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("DIPO", 54, "Coil_C3", 54, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
-  //    Resin
-  matmgr.Mixture("DIPO", 13, "RESIN0", aresi, zresi, 1.05, 3, wresi);
-  matmgr.Mixture("DIPO", 33, "RESIN1", aresi, zresi, 1.05, 3, wresi);
-  matmgr.Mixture("DIPO", 53, "RESIN2", aresi, zresi, 1.05, 3, wresi);
-  matmgr.Medium("DIPO", 13, "RESIN_C0", 13, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 33, "RESIN_C1", 33, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 53, "RESIN_C2", 53, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //    G10
-  matmgr.Mixture("DIPO", 11, "G100", aG10, zG10, 1.7, 5, wG10);
-  matmgr.Mixture("DIPO", 31, "G101", aG10, zG10, 1.7, 5, wG10);
-  matmgr.Mixture("DIPO", 51, "G102", aG10, zG10, 1.7, 5, wG10);
-  matmgr.Medium("DIPO", 11, "G10_C0", 11, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 31, "G10_C1", 31, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 51, "G10_C2", 51, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //    Copper
-  matmgr.Material("DIPO", 17, "COPPER0", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Material("DIPO", 37, "COPPER1", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Material("DIPO", 57, "COPPER2", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Medium("DIPO", 17, "Cu_C0", 17, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 37, "Cu_C1", 37, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("DIPO", 57, "Cu_C2", 57, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Dipole::ConstructGeometry()
 {
   createMaterials();
   createSpectrometerDipole();
-  createCompensatorDipole();
 }
 
 #define kDegrad TMath::DegToRad()
@@ -561,203 +519,6 @@ void Dipole::createSpectrometerDipole()
 
   top->AddNode(asDipole, 1, new TGeoCombiTrans(0., dipoleL / 2. * TMath::Tan(alhc * kDegrad), -kZDipole, rotxzlhc));
   top->AddNode(voDDIP, 1, new TGeoCombiTrans(0., 0., 0., rotxz));
-}
-
-void Dipole::createCompensatorDipole()
-{
-  auto top = gGeoManager->GetVolume("cave");
-  top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1075.));
-}
-
-TGeoVolume* Dipole::createMagnetYoke()
-{
-  TGeoVolumeAssembly* voMagnet = new TGeoVolumeAssembly("DCM0");
-  voMagnet->SetName("DCM0");
-  TGeoRotation* Ry180 = new TGeoRotation("Ry180", 180., 180., 0.);
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  auto kMedAlu = matmgr.getTGeoMedium("DIPO_ALU_C0");
-  auto kMedCooper = matmgr.getTGeoMedium("DIPO_Cu_C0");
-  auto kMedIron = matmgr.getTGeoMedium("DIPO_FE_C0");
-
-  new TGeoBBox("shMagnetYokeOuter", 116.4 / 2.0, 90.2 / 2.0, 250.0 / 2.0);
-  new TGeoBBox("shMagnetYokeInnerUp", 8.0 / 2.0, 32.2 / 2.0, 250.0 / 1.0);
-  new TGeoBBox("shMagnetYokeInnerDw", 46.0 / 2.0, 23.0 / 2.0, 250.0 / 1.0);
-  (new TGeoTranslation("trMagnetYokeOuter", 0.0, -29.1, 0.0))->RegisterYourself();
-  (new TGeoTranslation("trMagnetYokeInnerUp", 0.0, 0.0, 0.0))->RegisterYourself();
-  (new TGeoTranslation("trMagnetYokeInnerDw", 0.0, -27.5, 0.0))->RegisterYourself();
-
-  TGeoCompositeShape* shMagnetYoke =
-    new TGeoCompositeShape("shMagnet",
-                           "shMagnetYokeOuter:trMagnetYokeOuter-(shMagnetYokeInnerUp:trMagnetYokeInnerUp+"
-                           "shMagnetYokeInnerDw:trMagnetYokeInnerDw)");
-  TGeoVolume* voMagnetYoke = new TGeoVolume("voMagnetYoke", shMagnetYoke, kMedIron);
-
-  // Make the coils:
-  TGeoVolume* voCoilH = gGeoManager->MakeBox("voCoilH", kMedCooper, 12.64 / 2.0, 21.46 / 2.0, 310.5 / 2.0);
-  TGeoVolume* voCoilV = gGeoManager->MakeBox("voCoilV", kMedCooper, 12.64 / 2.0, 35.80 / 2.0, 26.9 / 2.0);
-
-  // Make the top coil supports:
-  // Polygone Coordinates (x,y)
-  Double_t x, y;
-  const Double_t kDegToRad = TMath::Pi() / 180.;
-  const Double_t AngleInner = 4.5 * kDegToRad;
-  const Double_t AngleOuter = 56.0 * kDegToRad;
-  const Double_t ArcStart = 90. - AngleOuter / kDegToRad;
-  const Double_t ArcEnd = 90. + AngleInner / kDegToRad;
-  const Double_t b = 13.6;
-  const Double_t Lx = 37.2;
-  const Double_t Ly = 25.7;
-  const Double_t LxV = 14.9;
-  const Double_t R = 9.50;
-  const Double_t dz = 2.00 / 2.0;
-  const Int_t npoints = 8;
-  Double_t CenterX;
-  Double_t CenterY;
-  Double_t PointsX[npoints] = { 0. };
-  Double_t PointsY[npoints] = { 0. };
-  Int_t ip = 0;
-  // Start point:
-  x = 0.0;
-  y = 0.0;
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 1st step:
-  x = 0.00;
-  y = 1.95;
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 2nd step:
-  x += b;
-  y += b * TMath::Tan(AngleInner);
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // Center of Arc:
-  x += R * TMath::Sin(AngleInner);
-  y -= R * TMath::Cos(AngleInner);
-  CenterX = x;
-  CenterY = y;
-  TGeoTubeSeg* shPolygonArc = new TGeoTubeSeg("shPolygonArc", R - 2.0, R, dz, ArcStart, ArcEnd);
-  (new TGeoTranslation("trPolygonArc", x, y, 0.))->RegisterYourself();
-  // 3rd Step:
-  x += R * TMath::Sin(AngleOuter);
-  y += R * TMath::Cos(AngleOuter);
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 4th Step:
-  Double_t a = Lx - b - R * TMath::Sin(AngleInner) - R * TMath::Sin(AngleOuter);
-  x = Lx;
-  y -= a * TMath::Tan(AngleOuter);
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 5th Step:
-  x = Lx;
-  y = -Ly;
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 6th Step:
-  x = LxV;
-  y = -Ly;
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  // 7th Step:
-  x = LxV;
-  y = 0.0;
-  PointsX[ip] = x;
-  PointsY[ip] = y;
-  ip++;
-  //
-  //
-  //
-  TGeoXtru* shPolygon = new TGeoXtru(2);
-  shPolygon->SetNameTitle("shPolygon", "shPolygon");
-  shPolygon->DefinePolygon(npoints, PointsX, PointsY);
-  shPolygon->DefineSection(0, -dz, 0., 0., 1.0); // index, Z position, offset (x,y) and scale for first section
-  shPolygon->DefineSection(1, +dz, 0., 0., 1.0); // idem, second section
-
-  TGeoCompositeShape* shCoilSupportV = new TGeoCompositeShape("shCoilSupportV", "shPolygon+shPolygonArc:trPolygonArc");
-  TGeoVolume* voCoilSupportV = new TGeoVolume("voCoilSupportV", shCoilSupportV, kMedAlu);
-
-  const Double_t MagCoilDx = 12.64 / 2.;
-  const Double_t MagCoilDy = 21.46 / 2.;
-  const Double_t SqOuterDx = MagCoilDx + 2.8;
-  const Double_t SqInnerDx = MagCoilDx + 0.6;
-  const Double_t SqOuterDy = 29.2 / 2.;
-  const Double_t SqInnerDy = 24.8 / 2.;
-  const Double_t SqOuterDz = 15.5 / 2.;
-  const Double_t SqInnerDz = SqOuterDz * 2.;
-  TGeoBBox* shCoilSupportSqOuter = new TGeoBBox("shCoilSupportSqOuter", SqOuterDx, SqOuterDy, SqOuterDz);
-  TGeoBBox* shCoilSupportSqInner = new TGeoBBox("shCoilSupportSqInner", SqInnerDx, SqInnerDy, SqInnerDz);
-  TGeoCompositeShape* shCoilSupportSq =
-    new TGeoCompositeShape("shCoilSupportSq", "shCoilSupportSqOuter - shCoilSupportSqInner");
-  TGeoVolume* voCoilSupportSq = new TGeoVolume("voCoilSupportSq", shCoilSupportSq, kMedAlu);
-
-  const Double_t HSuppDx = (Lx - LxV + 0.6) / 2.0;
-  const Double_t HSuppDy = 2.2 / 2.0;
-  const Double_t HSuppDz = SqOuterDz;
-
-  TGeoVolume* voCoilSupportH = gGeoManager->MakeBox("voCoilSupportH", kMedAlu, HSuppDx, HSuppDy, HSuppDz);
-
-  TGeoVolumeAssembly* voCoilSupport = new TGeoVolumeAssembly("voCoilSupport");
-  voCoilSupportV->SetLineColor(kViolet + 9);
-  voCoilSupportSq->SetLineColor(kBlue - 5);
-  voCoilSupportH->SetLineColor(kPink);
-  // voCoilSupportH  -> SetTransparency(16);
-  voCoilSupport->AddNode(voCoilSupportV, 1, new TGeoTranslation(SqOuterDx - LxV, SqOuterDy, 0.));
-  voCoilSupport->AddNode(voCoilSupportSq, 1, new TGeoTranslation(0., 0., 0.));
-  voCoilSupport->AddNode(voCoilSupportH, 1, new TGeoTranslation(SqOuterDx + HSuppDx, SqOuterDy - Ly - HSuppDy, 0.));
-
-  // Make the Top Support for Geodesic reference points:
-  TGeoVolume* voSupportHTop = gGeoManager->MakeBox("voSupportHTop", kMedAlu, 66.0 / 2.0, 2.0 / 2.0, 17.0 / 2.0);
-  TGeoVolume* voSupportHBot = gGeoManager->MakeBox("voSupportHBot", kMedAlu, 14.0 / 2.0, 2.0 / 2.0, 17.0 / 2.0);
-  TGeoVolume* voSupportVert = gGeoManager->MakeBox("voSupportVert", kMedAlu, 3.0 / 2.0, 25.0 / 2.0, 17.0 / 2.0);
-
-  TGeoVolumeAssembly* voSupportGeoRefPoint = new TGeoVolumeAssembly("voSupportGeoRefPoint");
-  voSupportHTop->SetLineColor(kGreen);
-  voSupportHBot->SetLineColor(kGreen);
-  voSupportVert->SetLineColor(kGreen);
-  voSupportGeoRefPoint->AddNode(voSupportHTop, 1, new TGeoTranslation(0.0, 28.0, 0.));
-  voSupportGeoRefPoint->AddNode(voSupportHBot, 1, new TGeoTranslation(+33.0, 1.0, 0.));
-  voSupportGeoRefPoint->AddNode(voSupportHBot, 2, new TGeoTranslation(-33.0, 1.0, 0.));
-  voSupportGeoRefPoint->AddNode(voSupportVert, 1, new TGeoTranslation(+31.5, 14.5, 0.));
-  voSupportGeoRefPoint->AddNode(voSupportVert, 2, new TGeoTranslation(-31.5, 14.5, 0.));
-
-  // Add some color:
-  voMagnetYoke->SetLineColor(kAzure - 7);
-  voCoilH->SetLineColor(kOrange - 3);
-  voCoilV->SetLineColor(kOrange - 3);
-  // Assembling:
-
-  voMagnet->AddNode(voMagnetYoke, 1, new TGeoTranslation(0., 0., 0.0));
-  voMagnet->AddNode(voCoilH, 1, new TGeoTranslation(+16.14, +29.83, 0.0));
-  voMagnet->AddNode(voCoilH, 2, new TGeoTranslation(-16.14, +29.83, 0.0));
-  voMagnet->AddNode(voCoilH, 3, new TGeoTranslation(+16.14, -27.43, 0.0));
-  voMagnet->AddNode(voCoilH, 4, new TGeoTranslation(-16.14, -27.43, 0.0));
-  voMagnet->AddNode(voCoilV, 1, new TGeoTranslation(+16.14, 1.20, +141.8));
-  voMagnet->AddNode(voCoilV, 2, new TGeoTranslation(-16.14, 1.20, +141.8));
-  voMagnet->AddNode(voCoilV, 3, new TGeoTranslation(+16.14, 1.20, -141.8));
-  voMagnet->AddNode(voCoilV, 4, new TGeoTranslation(-16.14, 1.20, -141.8));
-  Double_t zGeoRef = 74.0 / 2. + SqOuterDz + 9.0 + 17.0 / 2.0;
-  voMagnet->AddNode(voSupportGeoRefPoint, 1, new TGeoTranslation(0., 16.0, +zGeoRef));
-  voMagnet->AddNode(voSupportGeoRefPoint, 2, new TGeoTranslation(0., 16.0, -zGeoRef));
-  Double_t zCoilSupp = 29.83 - MagCoilDy - 0.6 + SqInnerDy;
-  voMagnet->AddNode(voCoilSupport, 1, new TGeoTranslation(+16.14, zCoilSupp, 74.0 * 0.5));
-  voMagnet->AddNode(voCoilSupport, 2, new TGeoTranslation(+16.14, zCoilSupp, -74.0 * 0.5));
-  voMagnet->AddNode(voCoilSupport, 3, new TGeoTranslation(+16.14, zCoilSupp, 74.0 * 1.5));
-  voMagnet->AddNode(voCoilSupport, 4, new TGeoTranslation(+16.14, zCoilSupp, -74.0 * 1.5));
-  //
-  voMagnet->AddNode(voCoilSupport, 5, new TGeoCombiTrans(-16.14, zCoilSupp, 74.0 * 0.5, Ry180));
-  voMagnet->AddNode(voCoilSupport, 6, new TGeoCombiTrans(-16.14, zCoilSupp, -74.0 * 0.5, Ry180));
-  voMagnet->AddNode(voCoilSupport, 7, new TGeoCombiTrans(-16.14, zCoilSupp, 74.0 * 1.5, Ry180));
-  voMagnet->AddNode(voCoilSupport, 8, new TGeoCombiTrans(-16.14, zCoilSupp, -74.0 * 1.5, Ry180));
-
-  return (TGeoVolume*)voMagnet;
 }
 
 FairModule* Dipole::CloneModule() const { return new Dipole(*this); }

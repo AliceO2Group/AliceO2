@@ -57,17 +57,17 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::ios_base;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;
   }
 }
 
 // forward default constructor
-Detector::Detector() : o2::TPC::Detector(kTRUE) {}
+Detector::Detector() : o2::tpc::Detector(kTRUE) {}
 
 Detector::Detector(const Detector& rhs)
   : o2::base::DetImpl<Detector>(rhs),
@@ -77,7 +77,7 @@ Detector::Detector(const Detector& rhs)
     mGeoFileName(rhs.mGeoFileName)
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;new std::vector<o2::tpc::HitGroup>;
   }
 }
 
@@ -144,10 +144,10 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "tpc::ProcessHits" << FairLogger::endl;
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -210,22 +210,22 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // ---| number of primary ionisations per cm |---
   const double primaryElectronsPerCM =
-    gasParam.getNprim() * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.getBetheBlochParam(0),
-                                          gasParam.getBetheBlochParam(1), gasParam.getBetheBlochParam(2),
-                                          gasParam.getBetheBlochParam(3), gasParam.getBetheBlochParam(4));
+    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
   // ---| mean number of collisions and random for this event |---
   const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
   const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
   // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.getExp(); // NA49/G3 value
+  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
   const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.getIpot();
-  const double eMax = gasParam.getEend();
+  const double eMin = gasParam.Ipot;
+  const double eMax = gasParam.Eend;
   const double kMin = TMath::Power(eMin, alpha_p1);
   const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.getWion();
+  const double wIon = gasParam.Wion;
 
   for (Int_t n = 0; n < nColl; n++) {
     // Use GEANT3 / NA49 expression:
@@ -239,7 +239,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     numberOfElectrons += nel_step;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "Eloss: "
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
   //<< numberOfElectrons << FairLogger::endl;
 
@@ -271,7 +271,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     groupCounter = 0;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
@@ -1564,7 +1564,7 @@ void Detector::ConstructTPCGeometry()
   Double_t xmin, xmax;
   // 1
   xmin = 9.65 * tga + 12.3742;
-  xmax = 10.5 * tga + 12.3742;
+  xmax = 10.05 * tga + 12.3742;
   //
   auto* ib1 = new TGeoTrd1(xmin, xmax, 2.06, 0.2);
   auto* ib1v = new TGeoVolume("TPC_IRB1", ib1, m3);
@@ -1608,7 +1608,7 @@ void Detector::ConstructTPCGeometry()
   }
   for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
-    in >> x >> z >> ang;
+    in >> ang >> x >> z;
     //
     ang = -ang;
     z -= 1102.; // changing the reference frame from the beam to the volume
@@ -3116,4 +3116,4 @@ std::string Detector::getHitBranchNames(int probe) const
   return std::string();
 }
 
-ClassImp(o2::TPC::Detector)
+ClassImp(o2::tpc::Detector)

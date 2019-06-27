@@ -30,7 +30,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 class PadSecPos
 {
@@ -52,6 +52,6 @@ class PadSecPos
   Sector mSector{};
   PadPos mPadPos{};
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

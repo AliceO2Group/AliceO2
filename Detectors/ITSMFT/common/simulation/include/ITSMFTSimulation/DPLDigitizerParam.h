@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 template <int N>
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
@@ -31,9 +31,6 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   bool continuous = true;          ///< flag for continuous simulation
   float noisePerPixel = 1.e-7;     ///< ALPIDE Noise per channel
-  float roFrameLength = 6000.;     ///< length of RO frame in ns
-  float strobeDelay = 100.;        ///< strobe start (in ns) wrt ROF start
-  float strobeLength = 6000. - 100; ///< length of the strobe in ns (sig. over threshold checked in this window only)
   float strobeFlatTop = 7500.;     ///< strobe shape flat top
   float strobeMaxRiseTime = 1100.; ///< strobe max rise time
   float strobeQRiseTime0 = 450.;   ///< q @ which strobe rise time is 0
@@ -54,7 +51,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 template <int N>
 DPLDigitizerParam<N> DPLDigitizerParam<N>::sInstance;
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

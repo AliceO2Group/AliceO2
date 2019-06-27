@@ -28,16 +28,53 @@
 #include <TH1F.h>
 #include <chrono>
 #include <CommonUtils/StringUtils.h>
+#include <TMessage.h>
+#include <TStreamerInfo.h>
+#include <TGraph.h>
+#include <TTree.h>
 
 using namespace std;
 using namespace o2::ccdb;
+namespace utf = boost::unit_test;
+namespace tt = boost::test_tools;
 
+static string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+bool hostReachable = false;
+
+/**
+ * Global fixture, ie general setup and teardown
+ */
+struct Fixture {
+  Fixture()
+  {
+    CcdbApi api;
+    api.init(ccdbUrl);
+    hostReachable = api.isHostReachable();
+    cout << "Is host reachable ? --> " << hostReachable << endl;
+  }
+  ~Fixture() = default;
+};
+BOOST_GLOBAL_FIXTURE(Fixture);
+
+/**
+ * Just an accessor to the hostReachable variable to be used to determine whether tests can be ran or not.
+ */
+struct if_reachable {
+  tt::assertion_result operator()(utf::test_unit_id)
+  {
+    return hostReachable;
+  }
+};
+
+/**
+ * Fixture for the tests, i.e. code is ran in every test that uses it, i.e. it is like a setup and teardown for tests.
+ */
 struct test_fixture {
   test_fixture()
   {
-    api.init("http://ccdb-test.cern.ch:8080");
+    api.init(ccdbUrl);
+    std::cout << "*** " << boost::unit_test::framework::current_test_case().p_name << " ***" << std::endl;
   }
-
   ~test_fixture() = default;
 
   CcdbApi api;
@@ -63,27 +100,95 @@ long getCurrentTimestamp()
   return value.count();
 }
 
-BOOST_AUTO_TEST_CASE(store_test)
+BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  auto h1 = new TH1F("th1name", "th1name", 100, 0, 99);
+  h1->FillRandom("gaus", 10000);
+  BOOST_CHECK_EQUAL(h1->ClassName(), "TH1F");
+  f.api.storeAsTFile(h1, "Test/th1", f.metadata);
+
+  auto graph = new TGraph(10);
+  graph->SetPoint(0, 2, 3);
+  f.api.storeAsTFile(graph, "Test/graph", f.metadata);
+
+  auto tree = new TTree("mytree", "mytree");
+  int a = 4;
+  tree->Branch("det", &a, "a/I");
+  tree->Fill();
+  f.api.storeAsTFile(tree, "Test/tree", f.metadata);
+}
+
+BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  TObject* obj = f.api.retrieveFromTFile("Test/th1", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TH1F");
+  auto h1 = dynamic_cast<TH1F*>(obj);
+  BOOST_CHECK_NE(h1, nullptr);
+  BOOST_CHECK_EQUAL(obj->GetName(), "th1name");
+  delete obj;
+
+  obj = f.api.retrieveFromTFile("Test/graph", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TGraph");
+  auto graph = dynamic_cast<TGraph*>(obj);
+  BOOST_CHECK_NE(graph, nullptr);
+  double x, y;
+  int ret = graph->GetPoint(0, x, y);
+  BOOST_CHECK_EQUAL(ret, 0);
+  BOOST_CHECK_EQUAL(x, 2);
+  BOOST_CHECK_EQUAL(graph->GetN(), 10);
+  delete graph;
+
+  obj = f.api.retrieveFromTFile("Test/tree", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
+  auto tree = dynamic_cast<TTree*>(obj);
+  BOOST_CHECK_NE(tree, nullptr);
+  BOOST_CHECK_EQUAL(tree->GetName(), "mytree");
+  delete obj;
+
+  // wrong url
+  obj = f.api.retrieveFromTFile("Wrong/wrong", f.metadata);
+  BOOST_CHECK_EQUAL(obj, nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  f.api.store(h1, "Test/Detector", f.metadata);
+  h1->FillRandom("gaus", 10000);
+  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
 }
 
-BOOST_AUTO_TEST_CASE(retrieve_test)
+BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
+{
+  test_fixture f;
+
+  TObject* obj = f.api.retrieveFromTFile("Test/Detector", f.metadata);
+  BOOST_CHECK_EQUAL(obj, nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
   auto h1 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
-  BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  if (h1 != nullptr) {
+    BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  }
 
   auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
   BOOST_CHECK(h2 == nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(truncate_test)
+BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -94,7 +199,7 @@ BOOST_AUTO_TEST_CASE(truncate_test)
   BOOST_CHECK(h1 == nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(delete_test)
+BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -141,7 +246,7 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   }
 }
 
-BOOST_AUTO_TEST_CASE(list_test)
+BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 

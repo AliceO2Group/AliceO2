@@ -1,10 +1,10 @@
 Set(Exe_Names
-  o2sim_serial
-  runTPC
-  O2SimDeviceRunner
-  O2PrimaryServerDeviceRunner
-  O2HitMergerRunner
-  o2sim
+  o2-sim-serial
+  o2-sim-tpc
+  o2-sim-device-runner
+  o2-sim-primary-server-device-runner
+  o2-sim-hit-merger-runner
+  o2-sim
 )
 
 Set(Exe_Source
@@ -44,7 +44,7 @@ if (HAVESIMULATION)
     DONT_FAIL_ON_TIMEOUT
     MAX_ATTEMPTS 2
     TIMEOUT 400
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant4 -o o2simG4)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim -n 2 -j 2 -e TGeant4 -o o2simG4)
   set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            FIXTURES_SETUP G4)
   set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT "ALICE_O2SIM_DUMPLOG=ON")
@@ -55,7 +55,7 @@ if (HAVESIMULATION)
     DONT_FAIL_ON_TIMEOUT
     MAX_ATTEMPTS 2
     TIMEOUT 400
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 1 -e TGeant4 --isMT on -o o2simG4MT)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim-serial -n 1 -e TGeant4 --isMT on -o o2simG4MT)
   set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
   add_test_wrap(NAME o2sim_checksimkinematics_G4
@@ -66,7 +66,7 @@ if (HAVESIMULATION)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
     MAX_ATTEMPTS 3
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant3 -o o2simG3)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim -n 2 -j 2 -e TGeant3 -o o2simG3)
 
   # set properties for G3 ... we use fixtures to force execution after G4 (since they require multiple CPUs)
   set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"

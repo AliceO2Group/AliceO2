@@ -22,6 +22,7 @@
 #include "CommonConstants/LHCConstants.h"
 
 #include "TMath.h"
+#include "TRandom.h"
 
 using namespace o2::globaltracking;
 
@@ -83,6 +84,11 @@ void CalibTOF::init()
   std::fill_n(mCalibChannelOffset, o2::tof::Geo::NCHANNELS, 0);
   std::fill_n(mCalibChannelOffsetErr, o2::tof::Geo::NCHANNELS, -1);
   std::fill_n(mInitialCalibChannelOffset, o2::tof::Geo::NCHANNELS, 0);
+
+  // this is only to test random offsets!!!!
+  for (int i = 0; i < o2::tof::Geo::NCHANNELS; i++) {
+    mInitialCalibChannelOffset[i] = gRandom->Rndm() * 25000 - 12500;
+  }
 
   // load better knoldge of channel offset (from CCDB?)
   // to be done
@@ -152,7 +158,9 @@ void CalibTOF::run(int flag, int sector)
         calibTimePad[ipad] = nullptr;
     }
 
-    TF1* funcChOffset = new TF1(Form("fTOFchOffset_%02d", sector), "gaus");
+    TF1* funcChOffset = new TF1(Form("fTOFchOffset_%02d", sector), "[0]*TMath::Gaus((x-[1])*(x-[1] < 12500 && x-[1] > -12500) + (x-[1]+25000)*(x-[1] < -12500) + (x-[1]-25000)*(x-[1] > 12500),0,[2])*(x > -12500 && x < 12500)", -12500, 12500);
+    funcChOffset->SetParLimits(1, -12500, 12500);
+    funcChOffset->SetParLimits(2, 50, 2000);
 
     TH2F* histoChTimeSlewingTemp = new TH2F(Form("hTOFchTimeSlewingTemp_%02d", sector), Form("Sector %02d;tot (ns);t - t_{exp} - t_{offset} (ps)", sector), 5000, 0., 250., 1000, -24400., 24400.);
 
@@ -196,8 +204,7 @@ void CalibTOF::run(int flag, int sector)
           int channelInSector = (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
 
           mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
-          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, funcChOffset->GetParameter(2));
-          mTimeSlewingObj->setSigmaErrPeak(sector, channelInSector, funcChOffset->GetParError(2));
+          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, abs(funcChOffset->GetParameter(2)));
 
           // now fill 2D histo for time-slewing using current channel offset
 
@@ -303,7 +310,7 @@ void CalibTOF::fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFs
 
   for (auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++) {
     double dtime = infotof->getDeltaTimePi();
-    dtime -= int(dtime * bc_inv + 0.5) * bc;
+    dtime -= (int(dtime * bc_inv + 5.5) - 5) * bc; // do truncation far (by 5 units) from zero to avoid truncation of negative numbers
 
     mHistoLHCphase->Fill(dtime, infotof->getTimestamp());
   }
@@ -348,7 +355,7 @@ void CalibTOF::fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFsh
 
   for (auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++) {
     double dtime = infotof->getDeltaTimePi() - offset; // removing existing offset
-    dtime -= int(dtime * bc_inv + 0.5) * bc;
+    dtime -= (int(dtime * bc_inv + 5.5) - 5) * bc;     // do truncation far (by 5 units) from zero to avoid truncation of negative numbers
 
     histo->Fill(dtime);
     if (calibTimePad)
@@ -368,7 +375,7 @@ void CalibTOF::fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, 
   for (auto infotof = calibTimePad->begin(); infotof != calibTimePad->end(); infotof++) {
     double dtime = infotof->getDeltaTimePi() - offset; // removing the already calculated offset; this is needed to
                                                        // fill the time slewing histogram in the correct range
-    dtime -= int(dtime * bc_inv + 0.5) * bc;
+    dtime -= (int(dtime * bc_inv + 5.5) - 5) * bc;     // do truncation far (by 5 units) from zero to avoid truncation of negative numbers
 
     histo->Fill(TMath::Min(double(infotof->getTot()), 249.9), dtime);
     mHistoChTimeSlewingAll->Fill(infotof->getTot(), dtime);
@@ -380,20 +387,55 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
 {
   // calibrate single channel from histos - offsets
 
-  FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
+  float integral = histo->Integral();
+  if (!integral)
+    return -1; // we skip directly the channels that were switched off online, the PHOS holes...
+
+  int resfit = FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
+
+  // return a number greater than zero to distinguish bad fit from empty channels(fraction=0)
+  if (resfit)
+    return 0.0001; // fit was not good
 
   float mean = funcChOffset->GetParameter(1);
   float sigma = funcChOffset->GetParameter(2);
   float intmin = mean - 5 * sigma;
   float intmax = mean + 5 * sigma;
+  float intmin2 = -25000;
+  float intmax2 = -25000;
+
+  // if peak is at the border of our bunch-crossing window (-12.5:12.5 ns)
+  // continue to extrapolate gaussian integral from the other border
+  float addduetoperiodicity = 0;
+  if (intmin < -12500) { // at left border
+    intmin2 = intmin + 25000;
+    intmin = -12500;
+    intmax2 = 12500;
+    if (intmin2 > intmax) {
+      int binmin2 = histo->FindBin(intmin2);
+      int binmax2 = histo->FindBin(intmax2);
+      addduetoperiodicity = histo->Integral(binmin2, binmax2);
+    }
+  } else if (intmax > 12500) { // at right border
+    intmax2 = intmax - 25000;
+    intmax = 12500;
+    intmin2 = -12500;
+    if (intmax2 < intmin) {
+      int binmin2 = histo->FindBin(intmin2);
+      int binmax2 = histo->FindBin(intmax2);
+      addduetoperiodicity = histo->Integral(binmin2, binmax2);
+    }
+  }
+
   int binmin = histo->FindBin(intmin);
   int binmax = histo->FindBin(intmax);
 
-  float fraction = 0;
-  float integral = histo->Integral();
-  if (integral)
-    fraction = histo->Integral(binmin, binmax) / integral;
-  return fraction;
+  if (binmin < 1)
+    binmin = 1; // avoid to take the underflow bin (can happen in case the sigma is too large)
+  if (binmax > histo->GetNbinsX())
+    binmax = histo->GetNbinsX(); // avoid to take the overflow bin (can happen in case the sigma is too large)
+
+  return (histo->Integral(binmin, binmax) + addduetoperiodicity) / integral;
 }
 //______________________________________________
 
@@ -502,30 +544,58 @@ Int_t CalibTOF::FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigma
    */
 
   Double_t fitCent = h->GetBinCenter(h->GetMaximumBin());
+  if (fitCent < -12500) {
+    printf("fitCent = %f (%s). This is wrong, please check!\n", fitCent, h->GetName());
+    fitCent = -12500;
+  }
+  if (fitCent > 12500) {
+    printf("fitCent = %f (%s). This is wrong, please check!\n", fitCent, h->GetName());
+    fitCent = 12500;
+  }
   Double_t fitMin = fitCent - nSigmaMin * startSigma;
   Double_t fitMax = fitCent + nSigmaMax * startSigma;
-  if (fitMin < h->GetXaxis()->GetXmin())
-    fitMin = h->GetXaxis()->GetXmin();
-  if (fitMax > h->GetXaxis()->GetXmax())
-    fitMax = h->GetXaxis()->GetXmax();
+  if (fitMin < -12500)
+    fitMin = -12500;
+  if (fitMax > 12500)
+    fitMax = 12500;
+  fitFunc->SetParLimits(1, fitMin, fitMax);
   fitFunc->SetParameter(0, 100);
   fitFunc->SetParameter(1, fitCent);
   fitFunc->SetParameter(2, startSigma);
   Int_t fitres = h->Fit(fitFunc, "WWq0", "", fitMin, fitMax);
+  //printf("%s) init: %f %f\n ",h->GetName(),fitMin,fitMax);
   if (fitres != 0)
     return fitres;
   /* refit with better range */
   for (Int_t i = 0; i < 3; i++) {
     fitCent = fitFunc->GetParameter(1);
-    fitMin = fitCent - nSigmaMin * fitFunc->GetParameter(2);
-    fitMax = fitCent + nSigmaMax * fitFunc->GetParameter(2);
-    if (fitMin < h->GetXaxis()->GetXmin())
-      fitMin = h->GetXaxis()->GetXmin();
-    if (fitMax > h->GetXaxis()->GetXmax())
-      fitMax = h->GetXaxis()->GetXmax();
+    fitMin = fitCent - nSigmaMin * abs(fitFunc->GetParameter(2));
+    fitMax = fitCent + nSigmaMax * abs(fitFunc->GetParameter(2));
+    if (fitMin < -12500)
+      fitMin = -12500;
+    if (fitMax > 12500)
+      fitMax = 12500;
+    if (fitMin >= fitMax)
+      printf("%s) step%i: %f %f\n ", h->GetName(), i, fitMin, fitMax);
+    fitFunc->SetParLimits(1, fitMin, fitMax);
     fitres = h->Fit(fitFunc, "q0", "", fitMin, fitMax);
-    if (fitres != 0)
+    if (fitres != 0) {
+      printf("%s) step%i: %f in %f - %f\n ", h->GetName(), i, fitCent, fitMin, fitMax);
+
+      if (mDebugMode > 1) {
+        char* filename = Form("TOFDBG_%s.root", h->GetName());
+        if (hdbg)
+          filename = Form("TOFDBG_%s_%s.root", hdbg->GetName(), debuginfo);
+        //    printf("write %s\n", filename);
+        TFile ff(filename, "RECREATE");
+        h->Write();
+        if (hdbg)
+          hdbg->Write();
+        ff.Close();
+      }
+
       return fitres;
+    }
   }
 
   if (mDebugMode > 1 && fitFunc->GetParError(1) > 100) {
@@ -571,4 +641,80 @@ void CalibTOF::merge(const char* name)
   *mTimeSlewingObj += *timeSlewingObj;
   *mLHCphaseObj += *LHCphaseObj;
   f->Close();
+}
+//______________________________________________
+
+void CalibTOF::flagProblematics()
+{
+
+  // method to flag problematic channels: Fraction, Sigma -> all negative if channel is bad (otherwise all positive)
+
+  TH1F* hsigmapeak = new TH1F("hsigmapeak", ";#sigma_{peak} (ps)", 1000, 0, 1000);
+  TH1F* hfractionpeak = new TH1F("hfractionpeak", ";fraction under peak", 1001, 0, 1.01);
+
+  int ipad;
+  float sigmaMin, sigmaMax, fractionMin;
+
+  int nActiveChannels = 0;
+  int nGoodChannels = 0;
+
+  TF1* fFuncSigma = new TF1("fFuncSigma", "TMath::Gaus(x,[1],[2])*[0]*(x<[1]) + TMath::Gaus(x,[1],[3])*[0]*(x>[1])");
+  fFuncSigma->SetParameter(0, 1000);
+  fFuncSigma->SetParameter(1, 200);
+  fFuncSigma->SetParameter(2, 200);
+  fFuncSigma->SetParameter(3, 200);
+
+  TF1* fFuncFraction = new TF1("fFuncFraction", "TMath::Gaus(x,[1],[2])*[0]*(x<[1]) + TMath::Gaus(x,[1],[3])*[0]*(x>[1])");
+  fFuncFraction->SetParameter(0, 1000);
+  fFuncFraction->SetParameter(1, 0.8);
+  fFuncFraction->SetParameter(2, 0.1);
+  fFuncFraction->SetParameter(3, 0.1);
+
+  // we group pads according to the z-coordinate since we noted a z-dependence in sigmas and fraction-under-peak
+  for (int iz = 0; iz < o2::tof::Geo::NSTRIPXSECTOR * 2; iz++) {
+    hsigmapeak->Reset();
+    hfractionpeak->Reset();
+
+    for (int k = 0; k < o2::tof::Geo::NPADX; k++) {
+      ipad = 48 * iz + k;
+
+      for (int i = 0; i < 18; i++) {
+        // exclude channel without entries
+        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0)
+          continue;
+
+        nActiveChannels++;
+
+        hsigmapeak->Fill(mTimeSlewingObj->getSigmaPeak(i, ipad));
+        hfractionpeak->Fill(mTimeSlewingObj->getFractionUnderPeak(i, ipad));
+      }
+    }
+
+    hsigmapeak->Fit(fFuncSigma, "WWq0");
+    hfractionpeak->Fit(fFuncFraction, "WWq0");
+
+    sigmaMin = fFuncSigma->GetParameter(1) - mNsigmaSigmaProblematicCut * abs(fFuncSigma->GetParameter(2));
+    sigmaMax = fFuncSigma->GetParameter(1) + mNsigmaSigmaProblematicCut * abs(fFuncSigma->GetParameter(3));
+    fractionMin = fFuncFraction->GetParameter(1) - mNsigmaFractionProblematicCut * abs(fFuncFraction->GetParameter(2));
+
+    for (int k = 0; k < o2::tof::Geo::NPADX; k++) {
+      ipad = 48 * iz + k;
+
+      for (int i = 0; i < 18; i++) {
+        // exclude channel without entries
+        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0)
+          continue;
+
+        if (mTimeSlewingObj->getSigmaPeak(i, ipad) < sigmaMin ||
+            mTimeSlewingObj->getSigmaPeak(i, ipad) > sigmaMax ||
+            mTimeSlewingObj->getFractionUnderPeak(i, ipad) < fractionMin) {
+          mTimeSlewingObj->setFractionUnderPeak(i, ipad, -mTimeSlewingObj->getFractionUnderPeak(i, ipad));
+          mTimeSlewingObj->setSigmaPeak(i, ipad, -mTimeSlewingObj->getSigmaPeak(i, ipad));
+        } else
+          nGoodChannels++;
+      }
+    }
+  }
+
+  Printf("Check for TOF problematics: nActiveChannels=%d - nGoodChannels=%d - fractionGood = %f", int(nActiveChannels), int(nGoodChannels), nGoodChannels * 1. / nActiveChannels);
 }

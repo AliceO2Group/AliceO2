@@ -25,7 +25,7 @@ void findLabels(int itrk, int ientry)
   // getting the TPC tracks
   TFile* ftracksTPC = new TFile("tpctracks.root");
   TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
-  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::TPC::TrackTPC>;
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
   tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTPC = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   tpcTree->SetBranchAddress("TPCTracksMCTruth", &mcTPC);
@@ -33,7 +33,7 @@ void findLabels(int itrk, int ientry)
   // getting the ITS tracks
   TFile* ftracksITS = new TFile("o2trac_its.root");
   TTree* itsTree = (TTree*)ftracksITS->Get("o2sim");
-  std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = new std::vector<o2::ITS::TrackITS>;
+  std::vector<o2::its::TrackITS>* mITSTracksArrayInp = new std::vector<o2::its::TrackITS>;
   itsTree->SetBranchAddress("ITSTrack", &mITSTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcITS = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   itsTree->SetBranchAddress("ITSTrackMCTruth", &mcITS);

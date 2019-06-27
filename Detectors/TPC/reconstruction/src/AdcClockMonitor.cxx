@@ -14,7 +14,7 @@
 #include "TPCReconstruction/AdcClockMonitor.h"
 #include <iostream>
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 AdcClockMonitor::AdcClockMonitor()
   : AdcClockMonitor(-1)

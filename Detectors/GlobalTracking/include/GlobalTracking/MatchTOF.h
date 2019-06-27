@@ -50,7 +50,7 @@ namespace globaltracking
 ///< original track in the currently loaded TPC-ITS reco output
 struct TrackLocTPCITS : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  timeBracket timeBins;                      ///< bracketing time-bins
+  TimeBracket timeBins;                      ///< bracketing time-bins
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (none if MinusOne) of TOF matchTOF struct in the mMatchesTOF
@@ -63,6 +63,7 @@ class MatchTOF
 {
   using Geo = o2::tof::Geo;
   using Cluster = o2::tof::Cluster;
+  using evIdx = o2::dataformats::EvIndex<int, int>;
 
  public:
   ///< perform matching for provided input
@@ -203,7 +204,7 @@ class MatchTOF
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
-  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
   std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
@@ -224,14 +225,14 @@ class MatchTOF
   std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
 
   ///<array of track-TOFCluster pairs from the matching
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
+  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
+  std::vector<std::pair<evIdx, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
   std::vector<o2::MCCompLabel> mOutTOFLabels;                                ///< TOF label of matched tracks
   std::vector<o2::MCCompLabel> mOutTPCLabels;                                ///< TPC label of matched tracks
   std::vector<o2::MCCompLabel> mOutITSLabels;                                ///< ITS label of matched tracks

@@ -23,6 +23,7 @@
 #include <iosfwd>
 #include <memory>
 #include <utility>
+#include <functional>
 
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
@@ -32,8 +33,15 @@
 
 namespace o2
 {
-namespace ITS
+namespace gpu
 {
+class GPUChainITS;
+}
+namespace its
+{
+
+class TrackITSExt;
+typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {
@@ -43,8 +51,15 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
+  void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
+  {
+    mChainRunITSTrackFit = funcRunITSTrackFit;
+    mChain = chain;
+  }
+
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
+  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
@@ -52,6 +67,9 @@ class TrackerTraits
  protected:
   PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
+
+  o2::gpu::GPUChainITS* mChain = nullptr;
+  FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
 
 inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar)
@@ -67,15 +85,15 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
   const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
-  if (zRangeMax < -Constants::ITS::LayersZCoordinate()[layerIndex + 1] ||
-      zRangeMin > Constants::ITS::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+  if (zRangeMax < -constants::its::LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > constants::its::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
 
     return getEmptyBinsRect();
   }
 
   return int4{ MATH_MAX(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
-               MATH_MIN(Constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               MATH_MIN(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 }

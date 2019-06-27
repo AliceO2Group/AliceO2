@@ -36,7 +36,7 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace o2::ITS;
+using namespace o2::its;
 
 // General Parameters
 const Int_t V1Layer::sNumberOmInnerLayers = 3;

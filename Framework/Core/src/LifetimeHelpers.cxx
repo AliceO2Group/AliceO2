@@ -42,26 +42,28 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> void {
-    return;
+  return [](TimesliceIndex&) -> TimesliceSlot {
+    return { TimesliceSlot::INVALID };
   };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step)
 {
   auto last = std::make_shared<size_t>(start);
-  return [start, end, step, last](TimesliceIndex& index) -> void {
+  return [start, end, step, last](TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
-        return;
+        return TimesliceSlot{ TimesliceSlot::INVALID };
       }
       auto slot = TimesliceSlot{ si };
       if (index.isValid(slot) == false) {
         TimesliceId timestamp{ *last };
         *last += step;
         index.associate(timestamp, slot);
+        return slot;
       }
     }
+    return TimesliceSlot{ TimesliceSlot::INVALID };
   };
 }
 
@@ -70,12 +72,12 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
-  return [last, period](TimesliceIndex& index) -> void {
+  return [last, period](TimesliceIndex& index) -> TimesliceSlot {
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta < period.count()) {
-      return;
+      return TimesliceSlot{ TimesliceSlot::INVALID };
     }
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
@@ -86,14 +88,14 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
         continue;
       }
       if (index.getTimesliceForSlot(slot).value == current) {
-        return;
+        return TimesliceSlot{ TimesliceSlot::INVALID };
       }
     }
     // If we are here the timer has expired and a new slice needs
     // to be created.
     *last = current;
     data_matcher::VariableContext newContext;
-    newContext.put({ 0, current });
+    newContext.put({ 0, static_cast<uint64_t>(current) });
     newContext.commit();
     auto [action, slot] = index.replaceLRUWith(newContext);
     switch (action) {
@@ -105,7 +107,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       case TimesliceIndex::ActionTaken::DropObsolete:
         break;
     }
-    return;
+    return slot;
   };
 }
 

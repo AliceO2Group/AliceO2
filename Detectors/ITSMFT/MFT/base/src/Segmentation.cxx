@@ -19,9 +19,9 @@
 #include "MFTBase/HalfSegmentation.h"
 #include "MFTBase/Segmentation.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Segmentation);
+ClassImp(o2::mft::Segmentation);
 
 //_____________________________________________________________________________
 Segmentation::Segmentation() : TNamed(), mHalves(nullptr) {}
@@ -32,7 +32,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullp
 
   // constructor
 
-  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", NumberOfHalves);
+  mHalves = new TClonesArray("o2::mft::HalfSegmentation", NumberOfHalves);
   mHalves->SetOwner(kTRUE);
 
   auto* halfBottom = new HalfSegmentation(nameGeomFile, Bottom);

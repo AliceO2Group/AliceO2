@@ -143,7 +143,8 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{ "TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -161,8 +162,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
-  auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
+  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{ "TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) },
+    collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

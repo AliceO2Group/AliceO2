@@ -15,6 +15,8 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Output.h"
 
+#include <optional>
+
 namespace o2
 {
 namespace framework
@@ -54,6 +56,7 @@ struct DataSpecUtils {
   /// of the InputSpec API, because there is no unique way a description should
   /// be done, so we keep this outside.
   static std::string describe(InputSpec const& spec);
+
   /// Provide a unique label for the input spec. Again this is outside because there
   /// is no standard way of doing it, so better not to pollute the API.
   static std::string label(InputSpec const& spec);
@@ -65,6 +68,9 @@ struct DataSpecUtils {
   /// Given an InputSpec, manipulate it so that it will match only the given
   /// subSpec.
   static void updateMatchingSubspec(InputSpec& in, header::DataHeader::SubSpecificationType subSpec);
+  /// Given an OutputSpec, manipulate it so that it will match only the given
+  /// subSpec.
+  static void updateMatchingSubspec(OutputSpec& in, header::DataHeader::SubSpecificationType subSpec);
 
   /// Validates the given InputSpec @a in
   static bool validate(InputSpec const& in);
@@ -81,6 +87,9 @@ struct DataSpecUtils {
   /// For the moment this is trivial as the OutputSpec does not allow
   /// for wildcards.
   static ConcreteDataMatcher asConcreteDataMatcher(OutputSpec const& spec);
+
+  /// Get the subspec, if available.
+  static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);
 };
 
 } // namespace framework

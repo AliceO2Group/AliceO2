@@ -15,6 +15,7 @@
 #define ALICEO2_MATCHINFOTOF_H
 
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
+#include "CommonDataFormat/EvIndex.h"
 
 namespace o2
 {
@@ -22,11 +23,15 @@ namespace dataformats
 {
 class MatchInfoTOF
 {
+  using evIdx = o2::dataformats::EvIndex<int, int>;
+
  public:
-  MatchInfoTOF(int indexTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT) : mTOFClIndex(indexTOFCl), mChi2(chi2), mIntLT(trkIntLT){};
+  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT){};
   MatchInfoTOF() = default;
-  void setTOFClIndex(int index) { mTOFClIndex = index; }
-  int getTOFClIndex() const { return mTOFClIndex; }
+  void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
+  evIdx getEvIdxTOFCl() const { return mEvIdxTOFCl; }
+  int getEventTOFClIndex() const { return mEvIdxTOFCl.getEvent(); }
+  int getTOFClIndex() const { return mEvIdxTOFCl.getIndex(); }
 
   void setChi2(int chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
@@ -35,9 +40,9 @@ class MatchInfoTOF
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
 
  private:
-  int mTOFClIndex; // index of the TOF cluster used for the matching
   float mChi2;     // chi2 of the pair track-TOFcluster
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
+  evIdx mEvIdxTOFCl;                 ///< EvIdx for TOF cluster (first: ev index; second: cluster index)
 
   //  ClassDefNV(MatchInfoTOF, 1);
 };

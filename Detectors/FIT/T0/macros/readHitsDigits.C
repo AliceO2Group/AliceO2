@@ -1,13 +1,13 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "FITBase/Digit.h"
-#include "FITSimulation/HitType.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/HitType.h"
 #include <TH2F.h>
 #include <TTree.h>
 #include <TFile.h>
 void readHitsDigits()
 {
-  using namespace o2::fit;
-  //  using namespace o2::fit::Digit;
+  using namespace o2::t0;
+  //  using namespace o2::t0::Digit;
 
   // Create histograms
   TDirectory* cwd = gDirectory;
@@ -23,7 +23,7 @@ void readHitsDigits()
 
   TFile* fhit = new TFile("o2sim.root");
   TTree* hitTree = (TTree*)fhit->Get("o2sim");
-  std::vector<o2::fit::HitType>* hitArray = nullptr;
+  std::vector<o2::t0::HitType>* hitArray = nullptr;
   hitTree->SetBranchAddress("T0Hit", &hitArray);
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
   // std::cout << "Found " << nevH << " events with hits " << std::endl;
@@ -55,7 +55,7 @@ void readHitsDigits()
   TFile* fdig = TFile::Open("t0digits.root");
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
-  std::vector<o2::fit::Digit>* digArr = new std::vector<Digit>;
+  std::vector<o2::t0::Digit>* digArr = new std::vector<Digit>;
   digTree->SetBranchAddress("T0Digit", &digArr);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   // std::cout << "Found " << nevD << " events with digits " << std::endl;

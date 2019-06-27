@@ -15,8 +15,6 @@
 #include "MCHSimulation/Response.h"
 #include "TGeoManager.h"
 #include "TMath.h"
-#include "TProfile2D.h"
-#include "TRandom.h"
 #include <algorithm>
 #include <cassert>
 #include <fairlogger/Logger.h>
@@ -85,19 +83,18 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    //index for this hit
     int detID = hit.GetDetectorID();
     int ndigits = processHit(hit, detID, mEventTime);
-    //TODO need one label per Digit
-    // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
     for (int i = 0; i < ndigits; ++i) {
       int digitIndex = mDigits.size() - ndigits + i;
-      mTrackLabels.addElementRandomAccess(digitIndex, label);
+      mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
 
-  fillOutputContainer(digits);
+  //merge Digits
+  mergeDigits(mDigits, mTrackLabels);
+  fillOutputContainer(digits, mTrackLabels);
 }
 //______________________________________________________________________
 int Digitizer::processHit(const Hit& hit, int detID, double event_time)
@@ -108,7 +105,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  auto time = hit.GetTime(); //to be used for pile-up
+  auto time = event_time + hit.GetTime();
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
@@ -143,7 +140,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits ](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -157,14 +154,55 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(padid, signal);
+    digits.emplace_back(time, padid, signal);
     ++ndigits;
   });
   return ndigits;
 }
-
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
+void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
+{
+
+  std::vector<int> indices(digits.size());
+  std::iota(begin(indices), end(indices), 0);
+  std::sort(indices.begin(), indices.end(), [&digits](int a, int b) {
+    return digits[a].getPadID() < digits[b].getPadID();
+  });
+
+  auto sortedDigits = [&digits, &indices](int i) {
+    return digits[indices[i]];
+  };
+
+  auto sortedLabels = [&labels, &indices](int i) {
+    return labels[indices[i]];
+  };
+
+  mDigits.clear();
+  mDigits.reserve(digits.size());
+  mTrackLabels.clear();
+  mTrackLabels.reserve(labels.size());
+  int count = 0;
+
+  int i = 0;
+  while (i < indices.size()) {
+    int j = i + 1;
+    while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
+      j++;
+    }
+    float adc{ 0 };
+    for (int k = i; k < j; k++) {
+      adc += sortedDigits(k).getADC();
+    }
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getPadID(), adc);
+    mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
+    i = j;
+    ++count;
+  }
+  mDigits.resize(mDigits.size());
+  mTrackLabels.resize(mTrackLabels.size());
+}
+//______________________________________________________________________
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
 {
   // filling the digit container
   if (mDigits.empty())
@@ -177,8 +215,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   }
   mDigits.erase(itBeg, iter);
   mMCTruthOutputContainer.clear();
-  for (int index = 0; index < mTrackLabels.getIndexedSize(); ++index) {
-    mMCTruthOutputContainer.addElements(index, mTrackLabels.getLabels(index));
+  for (int index = 0; index < trackLabels.size(); ++index) {
+    mMCTruthOutputContainer.addElement(index, trackLabels.at(index));
   }
 }
 //______________________________________________________________________

@@ -17,7 +17,7 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
 #include "T0Base/Geometry.h"
-#include "FITSimulation/HitType.h"
+#include "DataFormatsFITT0/HitType.h"
 
 class FairModule;
 
@@ -70,11 +70,11 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v) override;
-  o2::fit::HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
+  o2::t0::HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
 
   void Register() override;
 
-  std::vector<o2::fit::HitType>* getHits(Int_t iColl)
+  std::vector<o2::t0::HitType>* getHits(Int_t iColl)
   {
     if (iColl == 0) {
       return mHits;
@@ -130,7 +130,7 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  std::vector<o2::fit::HitType>* mHits = nullptr;
+  std::vector<o2::t0::HitType>* mHits = nullptr;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();

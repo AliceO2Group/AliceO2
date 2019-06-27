@@ -40,7 +40,9 @@ const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName =
   { EProc::kDCAY, "DCAY" },
   { EProc::kLOSS, "LOSS" },
   { EProc::kMULS, "MULS" },
-  { EProc::kCKOV, "CKOV" }
+  { EProc::kCKOV, "CKOV" },
+  { EProc::kRAYL, "RAYL" },
+  { EProc::kLABS, "LABS" }
 };
 
 const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
@@ -321,6 +323,98 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
   auto med = gGeoManager->GetMedium(mediumname);
   assert(med != nullptr);
   return med;
+}
+
+void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const char* filename)
+{
+  // Implementation of a method to set cuts and processes as done in AliRoot.
+  // The file is expected to contain columns of the form
+  // MODNAME LOCALMEDIUMID CUT0 ... CUT9 FLAG0 ... FLAG11
+  // where cuts and flags correspond to keys denoted in cutnames and procnames below.
+
+  const int NCUTS = 10;  // number of cut columns expected in file
+  const int NFLAGS = 12; // number of process flag columns expected in file
+
+  /// list of cut enumerated in ascending column mode as written in file
+  using namespace o2::base;
+  ECut cutnames[NCUTS] = { ECut::kCUTGAM,
+                           ECut::kCUTELE,
+                           ECut::kCUTNEU,
+                           ECut::kCUTHAD,
+                           ECut::kCUTMUO,
+                           ECut::kBCUTE,
+                           ECut::kBCUTM,
+                           ECut::kDCUTE,
+                           ECut::kDCUTM,
+                           ECut::kPPCUTM };
+
+  /// list of process flags enumerated in ascending column mode as written in file
+  // missing STRA for the moment
+  EProc procnames[NFLAGS - 1] = { EProc::kANNI,
+                                  EProc::kBREM,
+                                  EProc::kCOMP,
+                                  EProc::kDCAY,
+                                  EProc::kDRAY,
+                                  EProc::kHADR,
+                                  EProc::kLOSS,
+                                  EProc::kMULS,
+                                  EProc::kPAIR,
+                                  EProc::kPHOT,
+                                  EProc::kRAYL };
+
+  std::ifstream cutfile(filename);
+
+  if (!cutfile.is_open()) {
+    LOG(WARN) << "File " << filename << " does not exist; Cannot apply cuts";
+    return;
+  }
+
+  // reading from file
+  float cut[NCUTS]; // to store cut values
+  int flag[NFLAGS]; // to store flags
+  int itmed, iret;
+  char line[256];
+  char detName[7];
+
+  while (cutfile.getline(line, 256)) {
+    // Initialise cuts and flags for this line
+    for (int i = 0; i < NCUTS; i++) {
+      cut[i] = -99;
+    }
+    for (int i = 0; i < NFLAGS; i++) {
+      flag[i] = -99;
+    }
+    if (strlen(line) == 0) {
+      continue;
+    }
+    // ignore comments marked by *
+    if (line[0] == '*') {
+      continue;
+    }
+    // Read the numbers
+    iret = sscanf(line, "%6s %d %f %f %f %f %f %f %f %f %f %f %d %d %d %d %d %d %d %d %d %d %d %d",
+                  detName, &itmed, &cut[0], &cut[1], &cut[2], &cut[3], &cut[4], &cut[5], &cut[6], &cut[7], &cut[8],
+                  &cut[9], &flag[0], &flag[1], &flag[2], &flag[3], &flag[4], &flag[5], &flag[6], &flag[7],
+                  &flag[8], &flag[9], &flag[10], &flag[11]);
+    if (!iret) {
+      // nothing read
+      continue;
+    }
+
+    // apply cuts via material manager interface
+    for (int i = 0; i < NCUTS; ++i) {
+      if (cut[i] >= 0.) {
+        SpecialCut(modname, itmed, cutnames[i], cut[i]);
+      }
+    }
+
+    // apply process flags
+    for (int i = 0; i < NFLAGS - 1; ++i) {
+      if (flag[i] >= 0) {
+        SpecialProcess(modname, itmed, procnames[i], flag[i]);
+      }
+    }
+  } // end loop over lines
 }
 
 ClassImp(o2::base::MaterialManager)

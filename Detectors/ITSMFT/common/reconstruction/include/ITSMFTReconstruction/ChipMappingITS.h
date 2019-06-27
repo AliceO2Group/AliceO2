@@ -23,7 +23,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ChipMappingITS
@@ -64,6 +64,9 @@ class ChipMappingITS
     ruOnLr = feeID & 0x3f;
     link = (feeID >> 8) & 0x3;
   }
+
+  ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
+  void imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW);
 
   ///< modify linkID field in FEEId
   uint16_t modifyLinkInFEEId(uint16_t feeID, uint16_t linkID) const

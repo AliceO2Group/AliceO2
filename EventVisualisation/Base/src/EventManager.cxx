@@ -30,7 +30,7 @@
 using namespace std;
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 EventManager& EventManager::getInstance()
 {

@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class DigitPos
@@ -45,6 +45,6 @@ class DigitPos
   PadPos mPadPos{}; /// Pad position in the local partition coordinates: row starts from 0 for each partition
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

@@ -17,7 +17,7 @@
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 using RDH = o2::header::RAWDataHeader;
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
 std::istream& operator>>(std::istream& input, RDH& rdh);

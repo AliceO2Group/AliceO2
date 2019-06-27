@@ -47,7 +47,8 @@ class _ParamHelper
                                                           std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
   static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
-                                std::map<std::string, std::pair<std::type_info const&, void*>>*);
+                                std::map<std::string, std::pair<std::type_info const&, void*>>*,
+                                EnumRegistry*);
 
   static void printWarning(std::type_info const&);
 
@@ -131,7 +132,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
       _ParamHelper::printWarning(typeid(P));
       return;
     }
-    _ParamHelper::fillKeyValuesImpl(getName(), cl, (void*)this, tree, sKeyToStorageMap);
+    _ParamHelper::fillKeyValuesImpl(getName(), cl, (void*)this, tree, sKeyToStorageMap, sEnumRegistry);
   }
 
   // ----------------------------------------------------------------

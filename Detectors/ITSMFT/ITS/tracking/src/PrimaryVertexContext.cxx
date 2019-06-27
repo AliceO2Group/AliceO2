@@ -18,15 +18,15 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
   mPrimaryVertex = { pVtx[0], pVtx[1], pVtx[2] };
 
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
 
     const auto& currentLayer{ cl[iLayer] };
     const int clustersNum{ static_cast<int>(currentLayer.size()) };
@@ -48,7 +48,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       });
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad) {
+    if (iLayer < constants::its::CellsPerRoad) {
 
       mCells[iLayer].clear();
       float cellsMemorySize =
@@ -62,7 +62,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad - 1) {
+    if (iLayer < constants::its::CellsPerRoad - 1) {
 
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
@@ -70,7 +70,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
           std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
                      cl[iLayer + 1].size()) *
                     cl[iLayer + 2].size()),
-        Constants::ITS::UnusedIndex);
+        constants::its::UnusedIndex);
 
       mCellsNeighbours[iLayer].clear();
     }
@@ -78,7 +78,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
 
     const int clustersNum = static_cast<int>(mClusters[iLayer].size());
 
@@ -107,7 +107,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < Constants::ITS::TrackletsPerRoad) {
+    if (iLayer < constants::its::TrackletsPerRoad) {
 
       mTracklets[iLayer].clear();
 
@@ -121,13 +121,13 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad) {
+    if (iLayer < constants::its::CellsPerRoad) {
 
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), Constants::ITS::UnusedIndex);
+      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
     }
   }
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

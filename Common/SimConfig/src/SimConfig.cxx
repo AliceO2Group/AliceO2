@@ -41,7 +41,9 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
-    "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")("chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
+    "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
+    "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
+    "chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
@@ -63,6 +65,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     active.emplace_back("HALL");
     active.emplace_back("MAG");
     active.emplace_back("DIPO");
+    active.emplace_back("COMP");
     active.emplace_back("PIPE");
     active.emplace_back("ABSO");
     active.emplace_back("SHIL");
@@ -90,6 +93,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mLogSeverity = vm["logseverity"].as<std::string>();
   mConfigData.mLogVerbosity = vm["logverbosity"].as<std::string>();
   mConfigData.mKeyValueTokens = vm["configKeyValues"].as<std::string>();
+  mConfigData.mConfigFile = vm["configFile"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   mConfigData.mStartSeed = vm["seed"].as<int>();

@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 ROframe::ROframe(const int ROframeId) : mROframeId{ ROframeId }
@@ -28,6 +28,13 @@ ROframe::ROframe(const int ROframeId) : mROframeId{ ROframeId }
 void ROframe::addPrimaryVertex(const float xCoordinate, const float yCoordinate, const float zCoordinate)
 {
   mPrimaryVertices.emplace_back(float3{ xCoordinate, yCoordinate, zCoordinate });
+}
+
+void ROframe::addPrimaryVertices(std::vector<Vertex> vertices)
+{
+  for (Vertex& vertex : vertices) {
+    mPrimaryVertices.emplace_back(float3{ vertex.getX(), vertex.getY(), vertex.getZ() });
+  }
 }
 
 void ROframe::printPrimaryVertices() const
@@ -48,5 +55,5 @@ int ROframe::getTotalClusters() const
     totalClusters += clusters.size();
   return int(totalClusters);
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

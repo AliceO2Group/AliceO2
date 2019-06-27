@@ -18,7 +18,7 @@
 
 using namespace o2::framework;
 
-AlgorithmSpec simplePipe(std::string const& what, size_t subSpec, int minDelay)
+AlgorithmSpec simplePipe(std::string const& what, o2::header::DataHeader::SubSpecificationType subSpec, int minDelay)
 {
   return AlgorithmSpec{ [what, minDelay, subSpec](InitContext& ic) {
     srand(getpid());

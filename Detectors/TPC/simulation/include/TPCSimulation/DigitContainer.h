@@ -22,10 +22,11 @@
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/CDBInterface.h"
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Digit;
@@ -84,8 +85,8 @@ class DigitContainer
 
 inline DigitContainer::DigitContainer()
 {
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  mTmaxTriggered = detParam.getMaxTimeBinTriggered();
+  auto& detParam = ParameterDetector::Instance();
+  mTmaxTriggered = detParam.TmaxTriggered;
 }
 
 inline void DigitContainer::reset()
@@ -111,7 +112,7 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
   mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitContainer_H_

@@ -20,7 +20,7 @@
 
 std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pedestalFile, int roc)
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   TFile f(pedestalFile);
   gROOT->cd();
 
@@ -40,12 +40,12 @@ std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pe
   auto hNoise = new TH1F("hNoise", Form("Noise distribution (%s);ADC value", pedestalFile.Data()), 100, 0, 5);
   hNoise->SetDirectory(nullptr);
 
-  auto hPedestal2D = Painter::getHistogram2D(rocPedestal);
+  auto hPedestal2D = painter::getHistogram2D(rocPedestal);
   hPedestal2D->SetStats(0);
   hPedestal2D->SetDirectory(nullptr);
   hPedestal2D->SetTitle(Form("%s (%s)", hPedestal2D->GetTitle(), pedestalFile.Data()));
 
-  auto hNoise2D = Painter::getHistogram2D(rocNoise);
+  auto hNoise2D = painter::getHistogram2D(rocNoise);
   hNoise2D->SetStats(0);
   hNoise2D->SetDirectory(nullptr);
   hNoise2D->SetTitle(Form("%s (%s)", hNoise2D->GetTitle(), pedestalFile.Data()));

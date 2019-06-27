@@ -21,27 +21,27 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 namespace RecoWorkflow
 {
 
-framework::WorkflowSpec getWorkflow()
+framework::WorkflowSpec getWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::ITS::getDigitReaderSpec());
-  specs.emplace_back(o2::ITS::getClustererSpec());
-  specs.emplace_back(o2::ITS::getClusterWriterSpec());
-  //specs.emplace_back(o2::ITS::getTrackerSpec());
-  specs.emplace_back(o2::ITS::getCookedTrackerSpec());
-  specs.emplace_back(o2::ITS::getTrackWriterSpec());
+  specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
+  specs.emplace_back(o2::its::getClustererSpec(useMC));
+  specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+  // specs.emplace_back(o2::its::getTrackerSpec(useMC));
+  specs.emplace_back(o2::its::getCookedTrackerSpec(useMC));
+  specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
 
   return specs;
 }
 
 } // namespace RecoWorkflow
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

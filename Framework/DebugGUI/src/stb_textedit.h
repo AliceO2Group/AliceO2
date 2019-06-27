@@ -377,7 +377,7 @@ typedef struct
 #ifdef STB_TEXTEDIT_IMPLEMENTATION
 
 #ifndef STB_TEXTEDIT_memmove
-#include <string.h>
+#include <cstring>
 #define STB_TEXTEDIT_memmove memmove
 #endif
 
@@ -1122,7 +1122,7 @@ static StbUndoRecord *stb_text_create_undo_record(StbUndoState *state, int numch
    if (numchars > STB_TEXTEDIT_UNDOCHARCOUNT) {
       state->undo_point = 0;
       state->undo_char_point = 0;
-      return NULL;
+      return nullptr;
    }
 
    // if we don't have enough free characters in the buffer, we have to make room
@@ -1135,8 +1135,8 @@ static StbUndoRecord *stb_text_create_undo_record(StbUndoState *state, int numch
 static STB_TEXTEDIT_CHARTYPE *stb_text_createundo(StbUndoState *state, int pos, int insert_len, int delete_len)
 {
    StbUndoRecord *r = stb_text_create_undo_record(state, insert_len);
-   if (r == NULL)
-      return NULL;
+   if (r == nullptr)
+      return nullptr;
 
    r->where = pos;
    r->insert_length = (short) insert_len;
@@ -1144,7 +1144,7 @@ static STB_TEXTEDIT_CHARTYPE *stb_text_createundo(StbUndoState *state, int pos, 
 
    if (insert_len == 0) {
       r->char_storage = -1;
-      return NULL;
+      return nullptr;
    } else {
       r->char_storage = state->undo_char_point;
       state->undo_char_point = state->undo_char_point + (short) insert_len;

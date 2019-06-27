@@ -10,6 +10,7 @@
 
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Geometry.h"
+#include "SimulationDataFormat/Stack.h"
 #include "Stepper.h"
 #include "TGeoManager.h"
 #include <sstream>
@@ -63,6 +64,7 @@ void Detector::ConstructGeometry()
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   mStepper->process(*fMC);
+  (static_cast<o2::data::Stack*>(fMC->GetStack()))->addHit(GetDetId());
   return kTRUE;
 }
 

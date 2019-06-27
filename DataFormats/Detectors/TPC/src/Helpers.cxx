@@ -16,4 +16,4 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTPC/Constants.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;

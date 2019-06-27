@@ -154,7 +154,7 @@ bool DataProcessingDevice::ConditionalRun()
                       .addTag(Key::Subsystem, Value::DPL));
     monitoring.send(Metric{ stats.lastLatency.maxLatency, "max_input_latency_ms" }
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "Value::DPL/input_rate_mb_s" }
+    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s" }
                       .addTag(Key::Subsystem, Value::DPL));
 
     lastSent = currentTime;
@@ -430,6 +430,26 @@ bool DataProcessingDevice::tryDispatchComputation()
     rawContext.clear();
   };
 
+  // When processing them, timers will have to be cleaned up
+  // to avoid double counting them.
+  // This was actually the easiest solution we could find for
+  // O2-646.
+  auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
+    assert(record.size() * 2 == currentSetOfInputs.size());
+    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+      DataRef input = record.getByPos(ii);
+      if (input.spec->lifetime != Lifetime::Timer) {
+        continue;
+      }
+      if (input.header == nullptr || input.payload == nullptr) {
+        continue;
+      }
+      // This will hopefully delete the message.
+      std::unique_ptr<FairMQMessage> header = std::move(currentSetOfInputs[ii * 2]);
+      std::unique_ptr<FairMQMessage> payload = std::move(currentSetOfInputs[ii * 2 + 1]);
+    }
+  };
+
   // This is how we do the forwarding, i.e. we push
   // the inputs which are shared between this device and others
   // to the next one in the daisy chain.
@@ -563,6 +583,8 @@ bool DataProcessingDevice::tryDispatchComputation()
       if (forwards.empty() == false) {
         forwardInputs(action.slot, record);
       }
+    } else if (action.op == CompletionPolicy::CompletionOp::Process) {
+      cleanTimers(action.slot, record);
     }
   }
 

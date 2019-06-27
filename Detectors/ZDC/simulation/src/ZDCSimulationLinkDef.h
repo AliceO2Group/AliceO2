@@ -18,4 +18,13 @@
 #pragma link C++ class o2::zdc::Detector+;
 #pragma link C++ class o2::base::DetImpl<o2::zdc::Detector>+;
 
+#pragma link C++ class o2::zdc::ChannelBCData + ;
+#pragma link C++ class o2::zdc::ChannelData + ;
+#pragma link C++ class o2::zdc::Digit + ;
+#pragma link C++ class o2::zdc::Digitizer + ;
+#pragma link C++ class o2::zdc::MCLabel + ;
+
+#pragma link C++ class std::vector < o2::zdc::Digit> + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::zdc::MCLabel> + ;
+
 #endif

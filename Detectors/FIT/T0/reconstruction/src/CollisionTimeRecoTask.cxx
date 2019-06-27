@@ -15,7 +15,7 @@
 #include "FairLogger.h" // for LOG
 
 using namespace o2::t0;
-using namespace o2::fit;
+
 /*
 //_____________________________________________________________________
 CollisionTimeRecoTask::CollisionTimeRecoTask()
@@ -30,7 +30,7 @@ void CollisionTimeRecoTask::Process(const Digit& digits,
                                     RecPoints& recPoints) const
 {
   //  LOG(INFO) << "Running reconstruction on new event" << FairLogger::endl;
-  recPoints.FillFromDigits(digits);
+  recPoints.fillFromDigits(digits);
 }
 //________________________________________________________
 void CollisionTimeRecoTask::FinishTask()

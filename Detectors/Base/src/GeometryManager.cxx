@@ -29,8 +29,6 @@
 using namespace o2::detectors;
 using namespace o2::base;
 
-ClassImp(o2::base::GeometryManager);
-ClassImp(o2::base::GeometryManager::MatBudget);
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
@@ -52,15 +50,16 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
   m.Clear();
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "No active geometry or geometry not yet closed!" << FairLogger::endl;
+    LOG(ERROR) << "No active geometry or geometry not yet closed!";
+    ;
     return kFALSE;
   }
 
   if (!gGeoManager->GetListOfPhysicalNodes()) {
-    LOG(WARNING) << "gGeoManager doesn't contain any aligned nodes!" << FairLogger::endl;
+    LOG(WARNING) << "gGeoManager doesn't contain any aligned nodes!";
 
     if (!gGeoManager->cd(symname)) {
-      LOG(ERROR) << "Volume path " << symname << " not valid!" << FairLogger::endl;
+      LOG(ERROR) << "Volume path " << symname << " not valid!";
       return kFALSE;
     } else {
       m = *gGeoManager->GetCurrentMatrix();
@@ -76,7 +75,7 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
     return kTRUE;
   } else {
     LOG(WARNING) << "The symbolic volume name " << symname
-                 << "does not correspond to a physical entry. Using it as a volume path!" << FairLogger::endl;
+                 << "does not correspond to a physical entry. Using it as a volume path!";
     path = symname;
   }
 
@@ -89,13 +88,12 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
   m.Clear();
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
-               << FairLogger::endl;
+    LOG(ERROR) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!";
     return kFALSE;
   }
 
   if (!gGeoManager->CheckPath(path)) {
-    LOG(ERROR) << "Volume path " << path << " not valid!" << FairLogger::endl;
+    LOG(ERROR) << "Volume path " << path << " not valid!";
     return kFALSE;
   }
 
@@ -139,8 +137,7 @@ const char* GeometryManager::getSymbolicName(DetID detid, int sensid)
   int id = getSensID(detid, sensid);
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(id);
   if (!pne) {
-    LOG(ERROR) << "Failed to find alignable entry with index " << id << ": Det" << detid << " Sens.Vol:" << sensid
-               << ") !" << FairLogger::endl;
+    LOG(ERROR) << "Failed to find alignable entry with index " << id << ": Det" << detid << " Sens.Vol:" << sensid << ") !";
     return nullptr;
   }
   return pne->GetName();
@@ -154,8 +151,7 @@ TGeoPNEntry* GeometryManager::getPNEntry(DetID detid, Int_t sensid)
   int id = getSensID(detid, sensid);
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(id);
   if (!pne) {
-    LOG(ERROR) << "The sens.vol " << sensid << " of det " << detid << " does not correspond to a physical entry!"
-               << FairLogger::endl;
+    LOG(ERROR) << "The sens.vol " << sensid << " of det " << detid << " does not correspond to a physical entry!";
   }
   return pne;
 }
@@ -181,7 +177,7 @@ TGeoHMatrix* GeometryManager::getMatrix(DetID detid, Int_t sensid)
   gGeoManager->PushPath(); // Preserve the modeler state.
   if (!gGeoManager->cd(path)) {
     gGeoManager->PopPath();
-    LOG(ERROR) << "Volume path " << path << " not valid!" << FairLogger::endl;
+    LOG(ERROR) << "Volume path " << path << " not valid!";
     return nullptr;
   }
   matTmp = *gGeoManager->GetCurrentMatrix();
@@ -219,59 +215,59 @@ bool GeometryManager::applyAlignment(TObjArray& algParArray, bool ovlpcheck, dou
     if (alg) {
       if (!alg->applyToGeometry(ovlpcheck, ovlToler)) {
         res = false;
-        LOG(ERROR) << "Error applying alignment object for volume" << alg->getSymName() << FairLogger::endl;
+        LOG(ERROR) << "Error applying alignment object for volume" << alg->getSymName();
       }
     }
   }
   return res;
 }
 
-// ================= methods for nested MatBudget class ================
+// ================= methods for nested MatBudgetExt class ================
 
 //______________________________________________________________________
-void GeometryManager::MatBudget::normalize(double step)
+void GeometryManager::MatBudgetExt::normalize(double step)
 {
   double nrm = 1. / step;
   meanRho *= nrm;
   meanA *= nrm;
   meanZ *= nrm;
   meanZ2A *= nrm;
-  length = step;
+  if (nrm > 0.) {
+    length = step;
+  }
 }
 
 //______________________________________________________________________
-void GeometryManager::MatBudget::accountMaterial(const TGeoMaterial* material)
+void GeometryManager::accountMaterial(const TGeoMaterial* material, GeometryManager::MatBudgetExt& bd)
 {
-  meanRho = material->GetDensity();
-  meanX2X0 = material->GetRadLen();
-  meanA = material->GetA();
-  meanZ = material->GetZ();
+  bd.meanRho = material->GetDensity();
+  bd.meanX2X0 = material->GetRadLen();
+  bd.meanA = material->GetA();
+  bd.meanZ = material->GetZ();
   if (material->IsMixture()) {
     TGeoMixture* mixture = (TGeoMixture*)material;
     Double_t norm = 0.;
-    meanZ2A = 0.;
+    bd.meanZ2A = 0.;
     for (Int_t iel = 0; iel < mixture->GetNelements(); iel++) {
       norm += mixture->GetWmixt()[iel];
-      meanZ2A += mixture->GetZmixt()[iel] * mixture->GetWmixt()[iel] / mixture->GetAmixt()[iel];
+      bd.meanZ2A += mixture->GetZmixt()[iel] * mixture->GetWmixt()[iel] / mixture->GetAmixt()[iel];
     }
-    meanZ2A /= norm;
+    bd.meanZ2A /= norm;
   } else {
-    meanZ2A = meanZ / meanA;
+    bd.meanZ2A = bd.meanZ / bd.meanA;
   }
 }
 
 //_____________________________________________________________________________________
-GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y0, float z0, float x1, float y1,
-                                                               float z1)
+GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, float y0, float z0, float x1, float y1, float z1)
 {
   //
-  // Calculate mean material budget and material properties between
+  // TODO? It seems there is no real nead for extended material budget, consider eliminating it
+  //
+  // Calculate mean material budget and material properties (extended version) between
   //    the points "0" and "1".
   //
-  // "mparam" - parameters used for the energy and multiple scattering
-  //  corrections:
-  //
-  // see MatBudget data members for provided information
+  // see MatBudgetExt data members for provided information
   //
   //  Origin:  Marian Ivanov, Marian.Ivanov@cern.ch
   //
@@ -284,9 +280,8 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
 
   double length, startD[3] = { x0, y0, z0 };
   double dir[3] = { x1 - x0, y1 - y0, z1 - z0 };
-  if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) <
-      TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
-    return MatBudget(); // return empty struct
+  if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
+    return MatBudgetExt(); // return empty struct
   }
   length = TMath::Sqrt(length);
   double invlen = 1. / length;
@@ -297,12 +292,12 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
-    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0 << FairLogger::endl;
-    return MatBudget(); // return empty struct
+    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
+    return MatBudgetExt(); // return empty struct
   }
 
-  MatBudget budTotal, budStep;
-  budStep.accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial());
+  MatBudgetExt budTotal, budStep;
+  accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
   budStep.length = length;
 
   // Locate next boundary within length without computing safety.
@@ -313,7 +308,7 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
   // If no boundary within proposed length, return current step data
   if (!gGeoManager->IsOnBoundary()) {
     budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
-    return MatBudget(budStep);
+    return MatBudgetExt(budStep);
   }
   // Try to cross the boundary and see what is next
   Int_t nzero = 0;
@@ -327,11 +322,10 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
       const double* curPos = gGeoManager->GetCurrentPoint();
-      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')'
-                 << FairLogger::endl;
+      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.normalize(stepTot);
       budTotal.nCross = -1; // flag failed navigation
-      return MatBudget(budTotal);
+      return MatBudgetExt(budTotal);
     }
     stepTot += step;
 
@@ -350,24 +344,113 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
       break;
     }
     length -= step;
-    budStep.accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial());
+    accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
     gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
     step = gGeoManager->GetStep();
   }
   budTotal.normalize(stepTot);
-  return MatBudget(budTotal);
+  return MatBudgetExt(budTotal);
+}
+
+//_____________________________________________________________________________________
+o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
+{
+  //
+  // Calculate mean material budget and material properties between
+  //    the points "0" and "1".
+  //
+  //  see MatBudget data members for provided information
+  //
+  //  Origin:  Marian Ivanov, Marian.Ivanov@cern.ch
+  //
+  //  Corrections and improvements by
+  //        Andrea Dainese, Andrea.Dainese@lnl.infn.it,
+  //        Andrei Gheata,  Andrei.Gheata@cern.ch
+  //
+  //  Ported to O2: ruben.shahoyan@cern.ch
+  //
+
+  double length, startD[3] = { x0, y0, z0 };
+  double dir[3] = { x1 - x0, y1 - y0, z1 - z0 };
+  if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
+    return o2::base::MatBudget(); // return empty struct
+  }
+  length = TMath::Sqrt(length);
+  double invlen = 1. / length;
+  for (int i = 3; i--;) {
+    dir[i] *= invlen;
+  }
+
+  // Initialize start point and direction
+  TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
+  if (!currentnode) {
+    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
+    return o2::base::MatBudget(); // return empty struct
+  }
+
+  o2::base::MatBudget budTotal, budStep;
+  accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
+  budStep.length = length;
+
+  // Locate next boundary within length without computing safety.
+  // Propagate either with length (if no boundary found) or just cross boundary
+  gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+  Double_t stepTot = 0.0; // Step made
+  Double_t step = gGeoManager->GetStep();
+  // If no boundary within proposed length, return current step data
+  if (!gGeoManager->IsOnBoundary()) {
+    budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
+    return o2::base::MatBudget(budStep);
+  }
+  // Try to cross the boundary and see what is next
+  Int_t nzero = 0;
+  while (length > TGeoShape::Tolerance()) {
+    if (step < 2. * TGeoShape::Tolerance()) {
+      nzero++;
+    } else {
+      nzero = 0;
+    }
+    if (nzero > 3) {
+      // This means navigation has problems on one boundary
+      // Try to cross by making a small step
+      const double* curPos = gGeoManager->GetCurrentPoint();
+      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
+      budTotal.meanRho /= stepTot;
+      budTotal.length = stepTot;
+      return o2::base::MatBudget(budTotal);
+    }
+    stepTot += step;
+
+    budTotal.meanRho += step * budStep.meanRho;
+    budTotal.meanX2X0 += step / budStep.meanX2X0;
+
+    if (step >= length) {
+      break;
+    }
+    currentnode = gGeoManager->GetCurrentNode();
+    if (!currentnode) {
+      break;
+    }
+    length -= step;
+    accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
+    gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+    step = gGeoManager->GetStep();
+  }
+  budTotal.meanRho /= stepTot;
+  budTotal.length = stepTot;
+  return o2::base::MatBudget(budTotal);
 }
 
 //_________________________________
 void GeometryManager::loadGeometry(std::string geomFileName, std::string geomName)
 {
   ///< load geometry from file
-  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName << FairLogger::endl;
+  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName;
   TFile flGeom(geomFileName.data());
   if (flGeom.IsZombie()) {
-    LOG(FATAL) << "Failed to open file " << geomFileName << FairLogger::endl;
+    LOG(FATAL) << "Failed to open file " << geomFileName;
   }
   if (!flGeom.Get(geomName.data())) {
-    LOG(FATAL) << "Did not find geometry named " << geomName << FairLogger::endl;
+    LOG(FATAL) << "Did not find geometry named " << geomName;
   }
 }

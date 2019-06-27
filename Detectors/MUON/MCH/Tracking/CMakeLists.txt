@@ -21,7 +21,7 @@ set(BUCKET_NAME mch_tracking_bucket)
 
 # Define application
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME trackfitter-workflow
+  EXE_NAME o2-mch-trackfitter-workflow
 
   SOURCES
   src/TrackFitterWorkflow.cxx

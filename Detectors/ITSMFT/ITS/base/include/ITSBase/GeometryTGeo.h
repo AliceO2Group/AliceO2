@@ -31,7 +31,7 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.
@@ -39,7 +39,7 @@ namespace ITS
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
 
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
@@ -79,7 +79,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(int mask) override;
 
   // cache parameters of sensors tracking frames
@@ -344,7 +344,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
  private:
-  static std::unique_ptr<o2::ITS::GeometryTGeo> sInstance; ///< singletone instance
+  static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };

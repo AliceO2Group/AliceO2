@@ -36,7 +36,7 @@
 #include "FairLogger.h"
 
 namespace o2{
-namespace TPC{
+namespace tpc{
 
 /// \class GBTFrameContainer
 /// \brief GBT Frame container class

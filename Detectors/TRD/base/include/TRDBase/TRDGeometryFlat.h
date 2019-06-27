@@ -11,10 +11,12 @@
 #ifndef O2_TRDGEOMETRYFLAT_H
 #define O2_TRDGEOMETRYFLAT_H
 
+#ifndef __OPENCL__
 #include <cstring>
+#endif
 #include "FlatObject.h"
-#include "AliTPCCommonDefGPU.h"
-#include "AliTPCCommonTransform3D.h"
+#include "GPUCommonDef.h"
+#include "GPUCommonTransform3D.h"
 #include "TRDBase/TRDGeometryBase.h"
 #include "TRDBase/TRDPadPlane.h"
 
@@ -29,9 +31,10 @@ class TRDGeometry;
 
 //Reduced flat version of TRD geometry class.
 //Contains all entries required for tracking on GPUs.
-class TRDGeometryFlat : public ali_tpc_common::tpc_fast_transformation::FlatObject, public TRDGeometryBase
+class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
 {
  public:
+#ifndef GPUCA_GPUCODE_DEVICE
   TRDGeometryFlat() = default;
   TRDGeometryFlat(const TRDGeometryFlat& v) : FlatObject(), TRDGeometryBase()
   {
@@ -39,8 +42,8 @@ class TRDGeometryFlat : public ali_tpc_common::tpc_fast_transformation::FlatObje
   }
   TRDGeometryFlat(const TRDGeometry& geo);
   ~TRDGeometryFlat() = default;
-
-  GPUd() const ali_tpc_common::Transform3D* getMatrixT2L(int det) const
+#endif
+  GPUd() const o2::gpu::Transform3D* getMatrixT2L(int det) const
   {
     if (mMatrixIndirection[det] == -1)
       return nullptr;
@@ -54,7 +57,7 @@ class TRDGeometryFlat : public ali_tpc_common::tpc_fast_transformation::FlatObje
   }
 
  private:
-  ali_tpc_common::Transform3D mMatrixCache[MAXMATRICES];
+  o2::gpu::Transform3D mMatrixCache[MAXMATRICES];
   short mMatrixIndirection[kNdet];
 };
 

@@ -19,11 +19,12 @@ struct DeviceSpec;
 struct DeviceControl;
 struct DeviceInfo;
 struct DeviceMetricsInfo;
+struct DataProcessorInfo;
 
 namespace gui
 {
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceMetricsInfo const& metrics, DeviceControl& control);
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceMetricsInfo const& metrics, DataProcessorInfo const& metadata, DeviceControl& control);
 
 } // namespace gui
 } // namespace framework

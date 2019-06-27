@@ -33,7 +33,7 @@
 using namespace std;
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 MultiView *MultiView::sInstance = nullptr;
 

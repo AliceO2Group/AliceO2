@@ -31,7 +31,7 @@ void addFECInfo();
 /// FEC information to the title
 void drawNoiseAndPedestal(TString pedestalFile)
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   TFile f(pedestalFile);
   gROOT->cd();
 
@@ -55,9 +55,9 @@ void drawNoiseAndPedestal(TString pedestalFile)
     // ===| histograms for noise and pedestal |===
     auto hPedestal = new TH1F(Form("hPedestal%02d", iroc), Form("Pedestal distribution ROC %02d;ADC value", iroc), 150, 0, 150);
     auto hNoise = new TH1F(Form("hNoise%02d", iroc), Form("Noise distribution ROC %02d;ADC value", iroc), 100, 0, 5);
-    auto hPedestal2D = Painter::getHistogram2D(rocPedestal);
+    auto hPedestal2D = painter::getHistogram2D(rocPedestal);
     hPedestal2D->SetStats(0);
-    auto hNoise2D = Painter::getHistogram2D(rocNoise);
+    auto hNoise2D = painter::getHistogram2D(rocNoise);
     hNoise2D->SetStats(0);
 
     // ===| fill 1D histograms |===
@@ -122,7 +122,7 @@ TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy)
 
 void addFECInfo()
 {
-  using namespace o2::TPC;
+  using namespace o2::tpc;
   const int event = gPad->GetEvent();
   if (event != 51) {
     return;

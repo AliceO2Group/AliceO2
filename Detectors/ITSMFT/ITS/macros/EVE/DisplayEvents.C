@@ -36,7 +36,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 extern TEveManager* gEve;
 
@@ -80,10 +80,11 @@ class Data
   std::vector<Digit> mDigits;
   std::vector<Cluster>* mClusterBuffer = nullptr;
   gsl::span<Cluster> mClusters;
-  std::vector<o2::ITSMFT::ROFRecord> mClustersROF;
-  std::vector<o2::ITS::TrackITS>* mTrackBuffer = nullptr;
-  gsl::span<o2::ITS::TrackITS> mTracks;
-  std::vector<o2::ITSMFT::ROFRecord> mTracksROF;
+  std::vector<o2::itsmft::ROFRecord> mClustersROF;
+  std::vector<o2::its::TrackITS>* mTrackBuffer = nullptr;
+  std::vector<int>* mClIdxBuffer = nullptr;
+  gsl::span<o2::its::TrackITS> mTracks;
+  std::vector<o2::itsmft::ROFRecord> mTracksROF;
   void loadDigits();
   void loadDigits(int entry);
   void loadClusters(int entry);
@@ -155,7 +156,7 @@ void Data::setClusTree(TTree* tree)
 
   TTree* roft = (TTree*)gFile->Get("ITSClustersROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mClustersROF;
+    std::vector<o2::itsmft::ROFRecord>* roFrames = &mClustersROF;
     roft->SetBranchAddress("ITSClustersROF", &roFrames);
     roft->GetEntry(0);
   }
@@ -205,11 +206,12 @@ void Data::setTracTree(TTree* tree)
     return;
   }
   tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
+  tree->SetBranchAddress("ITSTrackClusIdx", &mClIdxBuffer);
   mTracTree = tree;
 
   TTree* roft = (TTree*)gFile->Get("ITSTracksROF");
   if (roft != nullptr) {
-    std::vector<o2::ITSMFT::ROFRecord>* roFrames = &mTracksROF;
+    std::vector<o2::itsmft::ROFRecord>* roFrames = &mTracksROF;
     roft->SetBranchAddress("ITSTracksROF", &roFrames);
     roft->GetEntry(0);
   }
@@ -276,7 +278,7 @@ TEveElement* Data::getEveChipDigits(int chip)
   qdigi->SetOwnIds(kTRUE);
   qdigi->SetFrame(box);
   qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   std::vector<int> occup(gman->getNumberOfChips());
   for (const auto& d : mDigits) {
     auto id = d.getChipIndex();
@@ -341,7 +343,7 @@ TEveElement* Data::getEveChipClusters(int chip)
 
 TEveElement* Data::getEveClusters()
 {
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
   for (const auto& c : mClusters) {
@@ -353,7 +355,7 @@ TEveElement* Data::getEveClusters()
 
 TEveElement* Data::getEveTracks()
 {
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
   prop->SetMagField(0.5);
@@ -373,9 +375,10 @@ TEveElement* Data::getEveTracks()
     TEvePointSet* tpoints = new TEvePointSet("tclusters");
     tpoints->SetMarkerColor(kGreen);
     int nc = rec.getNumberOfClusters();
+    int idxRef = rec.getFirstClusterEntry();
     while (nc--) {
-      Int_t idx = rec.getClusterIndex(nc);
-      const Cluster& c = (*mClusterBuffer)[idx];
+      Int_t idx = (*mClIdxBuffer)[idxRef + nc];
+      const Cluster& c = mClusters[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
     }
@@ -409,7 +412,7 @@ void Data::displayData(int entry, int chip)
   mEvent = new TEveElementList(ename.c_str());
   mEvent->AddElement(clusters);
   mEvent->AddElement(tracks);
-  auto multi = o2::EventVisualisation::MultiView::getInstance();
+  auto multi = o2::event_visualisation::MultiView::getInstance();
   multi->registerEvent(mEvent);
 
   gEve->Redraw3D(kFALSE);
@@ -444,7 +447,7 @@ void init(int entry = 0, int chip = 13,
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G));
 
@@ -457,7 +460,7 @@ void init(int entry = 0, int chip = 13,
   co->SetOrthographicMode(TGLCameraOverlay::kGridFront);
 
   // Event View
-  auto multi = o2::EventVisualisation::MultiView::getInstance();
+  auto multi = o2::event_visualisation::MultiView::getInstance();
   multi->drawGeometryForDetector("ITS");
 
   // Event navigation

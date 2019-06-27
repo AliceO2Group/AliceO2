@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 struct MFTChipMappingData {
@@ -51,6 +51,15 @@ class ChipMappingMFT
 
   ///< get HW id of the RU (software id of the RU)
   uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return 0; }
+
+  ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
+  uint16_t composeFEEId(uint16_t lr, uint16_t ruOnLr, uint16_t link) const { return 0; }
+
+  ///< decompose FEEid to layer, stave (ru) relative to layer, link, see documentation in the constructor
+  void expandFEEId(uint16_t feeID, uint16_t& lr, uint16_t& ruOnLr, uint16_t& link) const
+  {
+    lr = ruOnLr = link = 0;
+  }
 
   ///< get info on sw RU
   const RUInfo* getRUInfoSW(int ruSW) const { return nullptr; }
@@ -87,6 +96,8 @@ class ChipMappingMFT
     return ChipMappingData[chipID].module;
   }
 
+  int getCablesOnRUType(int ruType) const { return 0; }
+
   int getNChipsInModule(int modID) const
   {
     return ModuleMappingData[modID].nChips;
@@ -106,6 +117,9 @@ class ChipMappingMFT
   {
     return ModuleMappingData[ChipMappingData[chipID].module].layer;
   }
+
+  ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
+  void imposeFEEId2RUSW(uint16_t, uint16_t) {}
 
  private:
   int invalid() const;

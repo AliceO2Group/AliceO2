@@ -17,7 +17,7 @@
 #include <cmath>
 
 namespace o2 {
-  namespace TPC {
+  namespace tpc {
     
     BOOST_AUTO_TEST_CASE(Point3D_test)
     {

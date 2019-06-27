@@ -28,7 +28,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 using namespace o2;
 using namespace o2::dataformats;
 

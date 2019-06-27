@@ -22,9 +22,9 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::ITS::TrivialClustererTask)
+ClassImp(o2::its::TrivialClustererTask)
 
-  using namespace o2::ITS;
+  using namespace o2::its;
 using namespace o2::base;
 using namespace o2::utils;
 
@@ -59,7 +59,7 @@ InitStatus TrivialClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
+  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Digit>*>("ITSDigit");
   if (!mDigitsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

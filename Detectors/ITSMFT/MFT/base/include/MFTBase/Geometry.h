@@ -22,14 +22,14 @@ class TGeoHMatrix;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class GeometryBuilder;
 }
 }
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class Segmentation;
 }
@@ -37,7 +37,7 @@ class Segmentation;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Geometry : public TNamed

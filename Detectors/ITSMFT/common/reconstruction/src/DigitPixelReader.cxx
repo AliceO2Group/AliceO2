@@ -16,8 +16,8 @@
 #include <FairLogger.h>
 #include <cassert>
 
-using namespace o2::ITSMFT;
-using o2::ITSMFT::Digit;
+using namespace o2::itsmft;
+using o2::itsmft::Digit;
 
 //______________________________________________________________________________
 DigitPixelReader::~DigitPixelReader()

@@ -11,12 +11,13 @@
 // \file ChipMappingITS.cxx
 // \brief Autimatically generated ITS chip <-> module mapping
 
+#include <FairLogger.h>
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include <cassert>
 #include <sstream>
 #include <iomanip>
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesAlongStaveSB;
 
@@ -196,4 +197,20 @@ std::string ChipMappingITS::getChipNameHW(int idSW) const
   strs << "_C" << std::setfill('0') << std::setw(2) << cinmod;
 
   return strs.str();
+}
+
+///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
+void ChipMappingITS::imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW)
+{
+  // test if it is legitimate
+  uint16_t lr, ruOnLr, link;
+  expandFEEId(feeID, lr, ruOnLr, link);
+  if (lr >= NLayers || ruOnLr >= NStavesOnLr[lr] || link >= NLinks) {
+    LOG(FATAL) << "Invalid FEE#0x" << std::hex << feeID << std::dec << ": corresponds to Lr#" << lr
+               << " StaveOnLr#" << ruOnLr << " GBTLinkOnRU#" << link;
+  }
+  if (ruSW >= getNRUs()) {
+    LOG(FATAL) << "Invalid SW RUid " << ruSW << " (cannot exceed " << getNRUs() << ")";
+  }
+  mFEEId2RUSW[feeID] = ruSW;
 }

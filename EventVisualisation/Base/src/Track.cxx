@@ -27,7 +27,7 @@
 
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 Track::Track() : TEveTrack()
 {

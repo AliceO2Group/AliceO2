@@ -107,6 +107,30 @@ static void BM_TableBuilderSimple2(benchmark::State& state)
 
 BENCHMARK(BM_TableBuilderSimple2)->Range(8, 8 << 16);
 
+namespace test
+{
+DECLARE_SOA_COLUMN(X, x, float, "x");
+DECLARE_SOA_COLUMN(Y, y, float, "y");
+DECLARE_SOA_COLUMN(Z, z, float, "z");
+} // namespace test
+
+using TestVectors = o2::soa::Table<test::X, test::Y, test::Z>;
+
+static void BM_TableBuilderSoA(benchmark::State& state)
+{
+  using namespace o2::framework;
+  for (auto _ : state) {
+    TableBuilder builder;
+    auto rowWriter = builder.cursor<TestVectors>();
+    for (size_t i = 0; i < state.range(0); ++i) {
+      rowWriter(0, 0.f, 0.f, 0.f);
+    }
+    auto table = builder.finalize();
+  }
+}
+
+BENCHMARK(BM_TableBuilderSoA)->Range(8, 8 << 16);
+
 static void BM_TableBuilderComplex(benchmark::State& state)
 {
   using namespace o2::framework;
@@ -122,4 +146,4 @@ static void BM_TableBuilderComplex(benchmark::State& state)
 
 BENCHMARK(BM_TableBuilderComplex)->Range(8, 8 << 16);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();

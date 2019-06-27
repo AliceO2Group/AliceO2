@@ -14,6 +14,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/WorkflowSpec.h"
+#include "DataProcessorInfo.h"
 
 #include <cstddef>
 #include <vector>

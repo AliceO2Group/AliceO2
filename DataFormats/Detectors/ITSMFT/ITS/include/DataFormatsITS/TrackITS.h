@@ -18,19 +18,22 @@
 #include <vector>
 
 #include "ReconstructionDataFormats/Track.h"
+#include "CommonDataFormat/RangeReference.h"
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
 
-namespace ITS
+namespace its
 {
+
 class TrackITS : public o2::track::TrackParCov
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
+  using ClusRefs = o2::dataformats::RangeRefComp<4>;
 
  public:
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
@@ -38,44 +41,98 @@ class TrackITS : public o2::track::TrackParCov
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
-  TrackITS(o2::track::TrackParCov&& parcov) : TrackParCov{ parcov } {}
+  TrackITS(const o2::track::TrackParCov& parcov) : TrackParCov{ parcov } {}
+  TrackITS(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
+    : o2::track::TrackParCov{ parCov }, mChi2{ chi2 }, mROFrame{ rof }, mParamOut{ outer } {}
   TrackITS& operator=(const TrackITS& tr) = default;
   ~TrackITS() = default;
 
   // These functions must be provided
-  Bool_t propagate(Float_t alpha, Float_t x, Float_t bz);
-  Bool_t update(const Cluster& c, Float_t chi2, Int_t idx);
+  bool propagate(float alpha, float x, float bz);
+  bool update(const Cluster& c, float chi2);
 
   // Other functions
   float getChi2() const { return mChi2; }
-  Int_t getNumberOfClusters() const { return mNClusters; }
-  Int_t getClusterIndex(Int_t i) const { return mIndex[i]; }
+  int getNumberOfClusters() const { return mClusRef.getEntries(); }
+  int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
+  int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
+  void shiftFirstClusterEntry(int bias)
+  {
+    mClusRef.setFirstEntry(mClusRef.getFirstEntry() + bias);
+  }
+  void setFirstClusterEntry(int offs)
+  {
+    mClusRef.setFirstEntry(offs);
+  }
+  void setNumberOfClusters(int n)
+  {
+    mClusRef.setEntries(n);
+  }
   bool operator<(const TrackITS& o) const;
-  void getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Float_t ip[2]) const;
-  // Bool_t getPhiZat(Float_t r,Float_t &phi,Float_t &z) const;
+  void getImpactParams(float x, float y, float z, float bz, float ip[2]) const;
+  // bool getPhiZat(float r,float &phi,float &z) const;
 
-  void setClusterIndex(Int_t layer, Int_t index);
-  void setExternalClusterIndex(Int_t layer, Int_t idx, bool newCluster = false);
-  void resetClusters();
+  void setClusterRefs(int firstEntry, int n)
+  {
+    mClusRef.set(firstEntry, n);
+  }
+
+  const ClusRefs& getClusterRefs() const { return mClusRef; }
+  ClusRefs& getClusterRefs() { return mClusRef; }
 
   void setChi2(float chi2) { mChi2 = chi2; }
 
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
-  Bool_t isBetter(const TrackITS& best, Float_t maxChi2) const;
+  bool isBetter(const TrackITS& best, float maxChi2) const;
 
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
  private:
-  short mNClusters = 0;
-  float mMass = 0.14;                             ///< Assumed mass for this track
+  float mMass = 0.139;                            ///< Assumed mass for this track
   float mChi2 = 0.;                               ///< Chi2 for this track
   std::uint32_t mROFrame = 0;                     ///< RO Frame
-  o2::track::TrackParCov mParamOut;               /// parameter at largest radius
-  std::array<Int_t, MaxClusters> mIndex = { -1 }; ///< Indices of associated clusters
+  o2::track::TrackParCov mParamOut;               ///< parameter at largest radius
+  ClusRefs mClusRef;                              ///< references on clusters
 
-  ClassDefNV(TrackITS, 2)
+  ClassDefNV(TrackITS, 3)
+};
+
+class TrackITSExt : public TrackITS
+{
+  ///< heavy version of TrackITS, with clusters embedded
+ public:
+  static constexpr int MaxClusters = 7;
+  using TrackITS::TrackITS; // inherit base constructors
+
+  TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
+              o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+    : TrackITS(parCov, chi2, rof, outer), mIndex{ cls }
+  {
+    setNumberOfClusters(ncl);
+  }
+
+  void setClusterIndex(int l, int i)
+  {
+    int ncl = getNumberOfClusters();
+    mIndex[ncl++] = (l << 28) + i;
+    getClusterRefs().setEntries(ncl);
+  }
+
+  int getClusterIndex(int lr) const { return mIndex[lr]; }
+
+  void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
+  {
+    if (newCluster) {
+      getClusterRefs().setEntries(getNumberOfClusters() + 1);
+    }
+    mIndex[layer] = idx;
+  }
+
+ private:
+  std::array<int, MaxClusters> mIndex = { -1 }; ///< Indices of associated clusters
+  ClassDefNV(TrackITSExt, 1);
 };
 }
 }

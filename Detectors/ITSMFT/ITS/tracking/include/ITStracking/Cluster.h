@@ -15,7 +15,9 @@
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
 
+#ifndef __OPENCL__
 #include <array>
+#endif
 
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
@@ -23,7 +25,7 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Cluster final {
@@ -41,14 +43,18 @@ struct Cluster final {
 };
 
 struct TrackingFrameInfo {
-  TrackingFrameInfo(float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  TrackingFrameInfo() = default;
 
+  float xCoordinate;
+  float yCoordinate;
+  float zCoordinate;
   float xTrackingFrame;
   float alphaTrackingFrame;
   std::array<float, 2> positionTrackingFrame;
   std::array<float, 3> covarianceTrackingFrame;
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CACLUSTER_H_ */

@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   auto s = std::get_if<std::string>(&context.get(0));
   BOOST_CHECK(s != nullptr);
   BOOST_CHECK(*s == "TPC");
-  auto v = std::get_if<uint64_t>(&context.get(1));
+  auto v = std::get_if<o2::header::DataHeader::SubSpecificationType>(&context.get(1));
   BOOST_CHECK(v != nullptr);
   BOOST_CHECK(*v == 1);
 
@@ -461,13 +461,13 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   // we should still be able to retrieve them
   // (just slower).
   context.put(ContextUpdate{ 0, "A TEST" });
-  context.put(ContextUpdate{ 10, 77 });
+  context.put(ContextUpdate{ 10, uint32_t{ 77 } });
   auto v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "A TEST");
   auto v2 = std::get_if<std::string>(&context.get(1));
   BOOST_CHECK(v2 == nullptr);
-  auto v3 = std::get_if<uint64_t>(&context.get(10));
+  auto v3 = std::get_if<uint32_t>(&context.get(10));
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 77);
   context.commit();
@@ -477,19 +477,19 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   BOOST_CHECK(*v1 == "A TEST");
   v2 = std::get_if<std::string>(&context.get(1));
   BOOST_CHECK(v2 == nullptr);
-  v3 = std::get_if<uint64_t>(&context.get(10));
+  v3 = std::get_if<uint32_t>(&context.get(10));
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 77);
 
   // Let's update again. New values should win.
   context.put(ContextUpdate{ 0, "SOME MORE" });
-  context.put(ContextUpdate{ 10, 16 });
+  context.put(ContextUpdate{ 10, uint32_t{ 16 } });
   v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "SOME MORE");
   v2 = std::get_if<std::string>(&context.get(1));
   BOOST_CHECK(v2 == nullptr);
-  v3 = std::get_if<uint64_t>(&context.get(10));
+  v3 = std::get_if<uint32_t>(&context.get(10));
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 16);
 
@@ -500,19 +500,19 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   BOOST_CHECK(*v1 == "A TEST");
   auto n = std::get_if<None>(&context.get(1));
   BOOST_CHECK(n != nullptr);
-  v3 = std::get_if<uint64_t>(&context.get(10));
+  v3 = std::get_if<uint32_t>(&context.get(10));
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 77);
 
   // Let's update again. New values should win.
   context.put(ContextUpdate{ 0, "SOME MORE" });
-  context.put(ContextUpdate{ 10, 16 });
+  context.put(ContextUpdate{ 10, uint32_t{ 16 } });
   v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "SOME MORE");
   v2 = std::get_if<std::string>(&context.get(1));
   BOOST_CHECK(v2 == nullptr);
-  v3 = std::get_if<uint64_t>(&context.get(10));
+  v3 = std::get_if<uint32_t>(&context.get(10));
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 16);
 

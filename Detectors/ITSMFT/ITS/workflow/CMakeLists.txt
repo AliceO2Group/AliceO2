@@ -11,6 +11,7 @@ set(SRCS
   src/TrackerSpec.cxx
   src/CookedTrackerSpec.cxx
   src/TrackWriterSpec.cxx
+  src/TrackReaderSpec.cxx
    )
 
 set(LIBRARY_NAME ${MODULE_NAME})
@@ -19,7 +20,7 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "its-reco-workflow"
+  EXE_NAME "o2-its-reco-workflow"
 
   SOURCES
   src/its-reco-workflow.cxx

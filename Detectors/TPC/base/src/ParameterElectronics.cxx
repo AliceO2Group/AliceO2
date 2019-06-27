@@ -14,16 +14,5 @@
 
 #include "TPCBase/ParameterElectronics.h"
 
-using namespace o2::TPC;
-
-ParameterElectronics::ParameterElectronics()
-  : mNShapedPoints(8),
-    mPeakingTime(160e-3f),
-    mChipGain(20.f),
-    mADCdynamicRange(2200.f),
-    mADCsaturation(1024.f),
-    mZbinWidth(0.2f),
-    mElectronCharge(1.602e-19f),
-    mDigitizationMode(DigitzationMode::SubtractPedestal)
-{
-}
+using namespace o2::tpc;
+O2ParamImpl(o2::tpc::ParameterElectronics);

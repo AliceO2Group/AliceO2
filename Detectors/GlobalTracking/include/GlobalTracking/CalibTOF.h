@@ -94,10 +94,20 @@ class CalibTOF
 
   void merge(const char* name);
 
- private:
-  Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored
+  void flagProblematics(); ///< problematics are flagged with negative values for frationUnderPeak: -100 empty channels, -1<fraction<0 bad fits (-0.0001) or bad parameters
 
-  void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof);                                                                                                    // we will fill the input for the LHC phase calibration
+  void setNsigmaFractionProblematicCut(float value) { mNsigmaFractionProblematicCut = value; }
+  void setNsigmaSigmaProblematicCut(float value) { mNsigmaSigmaProblematicCut = value; }
+  float getNsigmaFractionProblematicCut() const { return mNsigmaFractionProblematicCut; }
+  float getNsigmaSigmaProblematicCut() const { return mNsigmaSigmaProblematicCut; }
+
+ private:
+  Int_t mDebugMode = 0; ///< >0= time slewing extra plot, >1= problematic fits stored
+
+  float mNsigmaFractionProblematicCut = 5; ///< cut in number of sigmas on the fraction under the peak to flag problematics
+  float mNsigmaSigmaProblematicCut = 5;    ///< cut in number of sigmas on the distribution of the sigma of the fit of the signal to flag problematics
+
+  void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof);                                                                                                    ///< we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib();                                                                                                                                                                        // calibrate with respect LHC phase
   void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
   void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);                                                          // we will fill the input for the channel-time-slewing calibration

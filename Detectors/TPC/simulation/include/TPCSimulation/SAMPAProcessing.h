@@ -29,7 +29,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class SAMPAProcessing
@@ -136,8 +136,8 @@ class SAMPAProcessing
 template <typename T>
 inline T SAMPAProcessing::getADCvalue(T nElectrons) const
 {
-  T conversion = mEleParam->getElectronCharge() * 1.e15 * mEleParam->getChipGain() * mEleParam->getADCSaturation() /
-                 mEleParam->getADCDynamicRange(); // 1E-15 is to convert Coulomb in fC
+  T conversion = mEleParam->ElectronCharge * 1.e15 * mEleParam->ChipGain * mEleParam->ADCsaturation /
+                 mEleParam->ADCdynamicRange; // 1E-15 is to convert Coulomb in fC
   return nElectrons * conversion;
 }
 
@@ -178,7 +178,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
 
 inline float SAMPAProcessing::getADCSaturation(const float signal) const
 {
-  const float adcSaturation = mEleParam->getADCSaturation();
+  const float adcSaturation = mEleParam->ADCsaturation;
   if (signal > adcSaturation - 1)
     return adcSaturation - 1;
   return signal;
@@ -187,7 +187,7 @@ inline float SAMPAProcessing::getADCSaturation(const float signal) const
 template <typename T>
 inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 {
-  Vc::float_v tmp0 = (time - startTime) / mEleParam->getPeakingTime();
+  Vc::float_v tmp0 = (time - startTime) / mEleParam->PeakingTime;
   Vc::float_m cond = (tmp0 > 0);
   Vc::float_v tmp;
   tmp(cond) = tmp0;
@@ -197,26 +197,26 @@ inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 
 inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const
 {
-  float timeBin = (mDetParam->getTPClength() - std::abs(zPos)) / (mGasParam->getVdrift() * mEleParam->getZBinWidth());
+  float timeBin = (mDetParam->TPClength - std::abs(zPos)) / (mGasParam->DriftV * mEleParam->ZbinWidth);
   return static_cast<TimeBin>(timeBin);
 }
 
 inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s) const
 {
   float zSign = (s == 0) ? 1 : -1;
-  float zAbs = zSign * (mDetParam->getTPClength() - (timeBin * mGasParam->getVdrift() * mEleParam->getZBinWidth()));
+  float zAbs = zSign * (mDetParam->TPClength - (timeBin * mGasParam->DriftV * mEleParam->ZbinWidth));
   return zAbs;
 }
 
 inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time) const
 {
-  float timeBin = time / mEleParam->getZBinWidth();
+  float timeBin = time / mEleParam->ZbinWidth;
   return static_cast<TimeBin>(timeBin);
 }
 
 inline float SAMPAProcessing::getTimeFromBin(TimeBin timeBin) const
 {
-  float time = static_cast<float>(timeBin) * mEleParam->getZBinWidth();
+  float time = static_cast<float>(timeBin) * mEleParam->ZbinWidth;
   return time;
 }
 

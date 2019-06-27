@@ -23,7 +23,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class DigiParams;
 
@@ -39,15 +39,15 @@ class ChipDigitsContainer
   /// Destructor
   ~ChipDigitsContainer() = default;
 
-  std::map<ULong64_t, o2::ITSMFT::PreDigit>& getPreDigits() { return mDigits; }
+  std::map<ULong64_t, o2::itsmft::PreDigit>& getPreDigits() { return mDigits; }
   bool isEmpty() const { return mDigits.empty(); }
 
   void setChipIndex(UShort_t ind) { mChipIndex = ind; }
   UShort_t getChipIndex() const { return mChipIndex; }
 
-  o2::ITSMFT::PreDigit* findDigit(ULong64_t key);
+  o2::itsmft::PreDigit* findDigit(ULong64_t key);
   void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl);
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::ITSMFT::DigiParams* params);
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
@@ -63,13 +63,13 @@ class ChipDigitsContainer
 
  protected:
   UShort_t mChipIndex = 0;                           ///< chip index
-  std::map<ULong64_t, o2::ITSMFT::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
+  std::map<ULong64_t, o2::itsmft::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
 
   ClassDefNV(ChipDigitsContainer, 1);
 };
 
 //_______________________________________________________________________
-inline o2::ITSMFT::PreDigit* ChipDigitsContainer::findDigit(ULong64_t key)
+inline o2::itsmft::PreDigit* ChipDigitsContainer::findDigit(ULong64_t key)
 {
   // finds the digit corresponding to global key
   auto digitentry = mDigits.find(key);
@@ -80,7 +80,7 @@ inline o2::ITSMFT::PreDigit* ChipDigitsContainer::findDigit(ULong64_t key)
 inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col,
                                           int charge, o2::MCCompLabel lbl)
 {
-  mDigits.emplace(std::make_pair(key, o2::ITSMFT::PreDigit(roframe, row, col, charge, lbl)));
+  mDigits.emplace(std::make_pair(key, o2::itsmft::PreDigit(roframe, row, col, charge, lbl)));
 }
 }
 }

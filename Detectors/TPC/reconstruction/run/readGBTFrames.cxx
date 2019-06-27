@@ -36,7 +36,7 @@ bool isVector1 (std::vector<int>& vec) {
   return true;
 }
 
-void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int frames, std::string rorcFlavor, int& done) {
+void addData(o2::tpc::GBTFrameContainer& container, std::string& infile, int frames, std::string rorcFlavor, int& done) {
   done = 0;
   mtx.lock();
   std::cout << infile << std::endl;
@@ -47,9 +47,9 @@ void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int fra
   done = 1;
 }
 
-void readData(o2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
+void readData(o2::tpc::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
-  std::vector<o2::TPC::HalfSAMPAData> data;
+  std::vector<o2::tpc::HalfSAMPAData> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 
   // Actual "work"
   std::chrono::time_point<std::chrono::system_clock> start, end;
-  std::vector<o2::TPC::GBTFrameContainer*> container;
+  std::vector<o2::tpc::GBTFrameContainer*> container;
   unsigned iSize;
   unsigned iCRU;
   unsigned iLink;
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     if (link.size() >= infile.size()) iLink = link[i];
     else iLink = link[0];
 
-    container.push_back(new o2::TPC::GBTFrameContainer(iSize,iCRU,iLink));
+    container.push_back(new o2::tpc::GBTFrameContainer(iSize,iCRU,iLink));
     container.back()->setEnableAdcClockWarning(checkAdcClock);
     container.back()->setEnableSyncPatternWarning(false);
     container.back()->setEnableStoreGBTFrames(keepGbtFrames);
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
   std::cout << "-----------|---------------|------------------|-------------------" << std::endl;
   while (not isVector1(reading_done)) {
     std::this_thread::sleep_for(std::chrono::seconds{1});
-    for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+    for (std::vector<o2::tpc::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
       mtx.lock();
       std::cout << " " << std::right 
         << std::setw(9) << std::distance(container.begin(), it) << " | " 
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
   std::cout << "Summary:" << std::endl;
 
   unsigned framesProcessed = 0;
-  for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+  for (std::vector<o2::tpc::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
     framesProcessed += (*it)->getNFramesAnalyzed();
     std::cout << "Container " << std::distance(container.begin(), it) << " analyzed " << (*it)->getNFramesAnalyzed() << " GBT Frames" << std::endl;
     delete (*it);
@@ -217,9 +217,9 @@ int main(int argc, char *argv[])
 
   unsigned word3, word2, word1, word0;
   if (printGbtFrames) {
-    for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+    for (std::vector<o2::tpc::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
       std::cout << "Container " << std::distance(container.begin(), it) << ":" << std::endl;
-      for (std::vector<o2::TPC::GBTFrame>::iterator itt = (*it)->begin(); itt != (*it)->end(); ++itt) {
+      for (std::vector<o2::tpc::GBTFrame>::iterator itt = (*it)->begin(); itt != (*it)->end(); ++itt) {
         itt->getGBTFrame(word3, word2, word1, word0);
         std::cout << *itt << " ";
         std::cout << std::hex << std::setfill('0') << std::right << std::setw(8) << word3 << " " 

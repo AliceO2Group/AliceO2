@@ -51,7 +51,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class ModelGEM
@@ -395,7 +395,7 @@ class ModelGEM
   // Fano factor for NeCO2N2 90-10-5 (Please check this!)
   const float Fano = 0.13;
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_ModelGEM_H_

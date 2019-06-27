@@ -25,9 +25,9 @@
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Support.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::HalfDisk);
+ClassImp(o2::mft::HalfDisk);
 
 /// \brief Default constructor
 

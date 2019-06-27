@@ -33,17 +33,17 @@
 #include "FairVolume.h"
 #include "FairRootManager.h"
 
-using o2::ITSMFT::Hit;
-using namespace o2::MFT;
+using o2::itsmft::Hit;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Detector);
+ClassImp(o2::mft::Detector);
 
 //_____________________________________________________________________________
 Detector::Detector()
   : o2::base::DetImpl<Detector>("MFT", kTRUE),
     mVersion(1),
     mDensitySupportOverSi(0.036),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mTrackData()
 {
 }
@@ -53,7 +53,7 @@ Detector::Detector(const Detector& src)
   : o2::base::DetImpl<Detector>(src),
     mVersion(src.mVersion),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mTrackData()
 {
 }

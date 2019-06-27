@@ -75,7 +75,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -88,11 +88,11 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   run->SetField(&field);
 
   // ===| Add ITS |============================================================
-  o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
+  o2::its::Detector* its = new o2::its::Detector(kTRUE);
   run->AddModule(its);
 
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
+  o2::tpc::Detector* tpc = new o2::tpc::Detector(kTRUE);
   //tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

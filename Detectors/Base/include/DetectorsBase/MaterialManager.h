@@ -39,7 +39,11 @@ enum class EProc { kPAIR = 0,
                    kDCAY,
                    kLOSS,
                    kMULS,
-                   kCKOV };
+                   kCKOV,
+                   kLABS,
+                   kRAYL
+};
+
 /// cuts available
 enum class ECut { kCUTGAM = 0,
                   kCUTELE,
@@ -138,6 +142,9 @@ class MaterialManager
     }
   }
 
+  /// load cuts and process flags from a data file (like AliRoot did)
+  void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
+
  private:
   // Hide details by providing these private methods so it cannot happen that special settings
   // are applied as default settings by accident using a boolean flag
@@ -224,7 +231,7 @@ class MaterialManager
     if (it != mProcessIDToName.end()) {
       return it->second;
     }
-    return "UNKOWN";
+    return "UNKNOWN";
   }
   const char* getCutName(ECut cut) const
   {
@@ -232,7 +239,7 @@ class MaterialManager
     if (it != mCutIDToName.end()) {
       return it->second;
     }
-    return "UNKOWN";
+    return "UNKNOWN";
   }
   const char* getModuleFromMediumID(int globalindex) const
   {

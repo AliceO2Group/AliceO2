@@ -27,7 +27,7 @@ class TVector3;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Hit;
 }
@@ -35,7 +35,7 @@ class Hit;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class GeometryTGeo;
 }
@@ -43,7 +43,7 @@ class GeometryTGeo;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -67,7 +67,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced hits
-  std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -82,7 +82,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  void SetSpecialPhysicsCuts() override { ; }
   void ConstructGeometry() override; // inherited from FairModule
 
   //
@@ -139,12 +138,12 @@ class Detector : public o2::base::DetImpl<Detector>
 
  private:
   /// Container for hit data
-  std::vector<o2::ITSMFT::Hit>* mHits;
+  std::vector<o2::itsmft::Hit>* mHits;
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
+  o2::itsmft::Hit* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
                           double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
 
   /// this is transient data about track passing the sensor
@@ -173,7 +172,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::MFT::Detector> {
+struct UseShm<o2::mft::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

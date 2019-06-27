@@ -29,7 +29,7 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2DummyWorkflow"
+  EXE_NAME "o2-dummy-workflow"
   SOURCES "src/o2DummyWorkflow.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
@@ -43,56 +43,63 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2DiamondWorkflow"
+  EXE_NAME "o2-diamond-workflow"
   SOURCES "src/o2DiamondWorkflow.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2ParallelWorkflow"
+  EXE_NAME "o2-parallel-workflow"
   SOURCES "src/o2ParallelWorkflow.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "flpQualification"
+  EXE_NAME "o2-flp-qualification"
   SOURCES "src/flpQualification.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2SyncReconstructionDummy"
+  EXE_NAME "o2-sync-reconstruction-dummy"
   SOURCES "src/o2SyncReconstructionDummy.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2AODDummy"
+  EXE_NAME "o2-aod-dummy-workflow"
   SOURCES "src/o2AODDummy.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2D0Analysis"
+  EXE_NAME "o2-d0-analysis"
   SOURCES "src/o2D0Analysis.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2SimpleTracksAnalysis"
+  EXE_NAME "o2-simple-tracks-analysis"
   SOURCES "src/o2SimpleTracksAnalysis.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "o2DataQueryWorkflow"
+  EXE_NAME "o2-analysis-task-example"
+  SOURCES "src/o2AnalysisTaskExample.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "o2-data-query-workflow"
   SOURCES "src/o2DataQueryWorkflow.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
@@ -120,21 +127,21 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "dataSamplingPodAndRoot"
+  EXE_NAME "o2-datasampling-pod-and-root"
   SOURCES "src/dataSamplingPodAndRoot.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "dataSamplingParallel"
+  EXE_NAME "o2-datasampling-parallel"
   SOURCES "src/dataSamplingParallel.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "dataSamplingTimePipeline"
+  EXE_NAME "o2-datasampling-time-pipeline"
   SOURCES "src/dataSamplingTimePipeline.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}

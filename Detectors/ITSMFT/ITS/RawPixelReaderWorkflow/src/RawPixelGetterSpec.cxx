@@ -18,7 +18,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-	namespace ITS
+	namespace its
 	{
 
 		void RawPixelGetter::init(InitContext& ic)
@@ -26,25 +26,42 @@ namespace o2
 			LOG(INFO) << "Now Working on the GETTER BROS";
 
 			o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-			o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
+			o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
 			geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 		}
 
 		void RawPixelGetter::run(ProcessingContext& pc)
 		{
-			auto digits = pc.inputs().get<const std::vector<o2::ITSMFT::Digit>>("digits");
-			LOG(INFO) << "ITSClusterer pulled " << digits.size() << " digits";
+			LOG(INFO) << "START Getter";
+			auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
+			LOG(INFO) << "Digit Size Getting For This TimeFrame (Event) = " <<  digits.size();
+
+
+	/*
+			int Run = pc.inputs().get<int>("Run");
+			LOG(INFO) << "New " << Run;
+	*/
+			/*
+			int ResetDecision = pc.inputs().get<int>("in");
+			LOG(INFO) << "Reset Histogram Decision = " << ResetDecision;
+		
+			o2::itsmft::Digit digit = pc.inputs().get<o2::itsmft::Digit>("digits");
+			LOG(INFO) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
+			*/
+
 			//pc.services().get<ControlService>().readyToQuit(true);
 		}
 
 
-		DataProcessorSpec getRawPixelGetterSpec()
+	DataProcessorSpec getRawPixelGetterSpec()
 		{
 			return DataProcessorSpec{
 				"its-rawpixel-getter",
 					Inputs{
 						InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
-					},
+				//		InputSpec{ "in", "TST", "TEST", 0, Lifetime::Timeframe },
+				//		InputSpec{ "Run", "TST", "TEST2", 0, Lifetime::Timeframe },
+					       },
 					Outputs{
 					},
 					AlgorithmSpec{ adaptFromTask<RawPixelGetter>() },

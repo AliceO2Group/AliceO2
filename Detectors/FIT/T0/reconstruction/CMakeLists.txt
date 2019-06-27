@@ -3,12 +3,10 @@ set(MODULE_NAME "T0Reconstruction")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/RecPoints.cxx
   src/CollisionTimeRecoTask.cxx
     )
 
 set(HEADERS
-    include/${MODULE_NAME}/RecPoints.h
     include/${MODULE_NAME}/CollisionTimeRecoTask.h
     )
 

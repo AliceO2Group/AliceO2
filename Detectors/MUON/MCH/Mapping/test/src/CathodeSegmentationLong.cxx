@@ -15,7 +15,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "boost/format.hpp"
+#include <boost/format.hpp>
 #include "MCHMappingInterface/CathodeSegmentation.h"
 #include "MCHMappingSegContour/CathodeSegmentationContours.h"
 #include "MCHMappingSegContour/CathodeSegmentationSVGWriter.h"
@@ -25,8 +25,8 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/document.h"
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/document.h>
 
 template <typename StreamType>
 class InputDocument

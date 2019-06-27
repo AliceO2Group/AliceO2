@@ -45,6 +45,8 @@ class O2MCApplicationBase : public FairMCApplication
   void PreTrack() override;
   void BeginEvent() override;
   void FinishEvent() override;
+  void ConstructGeometry() override;
+  void InitGeometry() override;
 
   // specific implementation of our hard geometry limits
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
@@ -53,6 +55,9 @@ class O2MCApplicationBase : public FairMCApplication
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
   unsigned long long mStepCounter{ 0 };
+  std::map<int, std::string> mModIdToName{}; // mapping of module id to name
+  std::map<int, std::string> mSensitiveVolumes{}; // collection of all sensitive volumes with
+                                                  // keeping track of volumeIds and volume names
 
   /// some common parts of finishEvent
   void finishEventCommon();

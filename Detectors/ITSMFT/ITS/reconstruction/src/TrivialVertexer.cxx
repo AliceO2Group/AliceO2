@@ -24,8 +24,8 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::ITSMFT;
-using namespace o2::ITS;
+using namespace o2::itsmft;
+using namespace o2::its;
 
 using Point3Df = Point3D<float>;
 

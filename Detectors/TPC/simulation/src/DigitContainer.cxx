@@ -18,14 +18,13 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
                                          dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)
 {
-  auto& cdb = CDBInterface::instance();
-  auto& eleParam = cdb.getParameterElectronics();
-  const auto digitizationMode = eleParam.getDigitizationMode();
+  auto& eleParam = ParameterElectronics::Instance();
+  const auto digitizationMode = eleParam.DigiMode;
   int nProcessedTimeBins = 0;
   TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
   for (auto& time : mTimeBins) {

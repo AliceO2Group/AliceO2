@@ -25,6 +25,7 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/TableBuilder.h"
 
@@ -58,7 +59,6 @@ namespace o2
 {
 namespace framework
 {
-
 class ContextRegistry;
 
 /// This allocator is responsible to make sure that the messages created match
@@ -200,7 +200,7 @@ class DataAllocator
     T&>::type
     make(const Output&)
   {
-    static_assert(sizeof(T) == -1,
+    static_assert(always_static_assert_v<T>,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
@@ -219,7 +219,7 @@ class DataAllocator
     gsl::span<T>>::type
     make(const Output&, size_t)
   {
-    static_assert(is_messageable<T>::value == true,
+    static_assert(always_static_assert_v<T>,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
@@ -238,7 +238,7 @@ class DataAllocator
     T&>::type
     make(const Output&, U, V, Args...)
   {
-    static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
+    static_assert(always_static_assert_v<T>,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
@@ -432,10 +432,7 @@ class DataAllocator
                           is_specialization<T, std::vector>::value == false>::type //
     snapshot(const Output& spec, T const&)
   {
-    static_assert(has_root_dictionary<T>::value == true ||
-                  is_specialization<T, ROOTSerialized>::value == true ||
-                  is_messageable<T>::value == true ||
-                  is_specialization<T, std::vector>::value == true,
+    static_assert(always_static_assert_v<T>,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
@@ -451,7 +448,7 @@ class DataAllocator
       typename std::remove_pointer<typename T::value_type>::type>::value == false>::type
     snapshot(const Output& spec, T const&)
   {
-    static_assert(is_messageable<typename std::remove_pointer<typename T::value_type>::type>::value == true,
+    static_assert(always_static_assert_v<T>,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
@@ -463,9 +460,15 @@ class DataAllocator
   template <typename T>
   typename std::enable_if<std::is_pointer<T>::value>::type snapshot(const Output& spec, T const&)
   {
-    static_assert(std::is_pointer<T>::value == false,
+    static_assert(always_static_assert_v<T>,
                   "pointer to data type not supported by API. Please pass object by reference");
   }
+
+  /// Take a snapshot of a raw data array which can be either POD or may contain a serialized
+  /// object (in such case the serialization method should be specified accordingly). Changes
+  /// to the data after the call will not be sent.
+  void snapshot(const Output& spec, const char* payload, size_t payloadSize,
+                o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
 
   /// make an object of type T and route to output specified by OutputRef
   /// The object is owned by the framework, returned reference can be used to fill the object.

@@ -31,7 +31,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Base class for raw data calibrations
@@ -284,7 +284,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
       mPresentEventNumber = reader->loadPreviousEvent();
     }
 
-    o2::TPC::PadPos padPos;
+    o2::tpc::PadPos padPos;
     while (std::shared_ptr<std::vector<uint16_t>> data = reader->getNextData(padPos)) {
       if (!data)
         continue;
@@ -454,7 +454,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
   return status;
 }
 
-} // namespace TPC
+} // namespace tpc
 
 } // namespace o2
 #endif

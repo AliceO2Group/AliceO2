@@ -8,13 +8,37 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/runDataProcessing.h"
-
 #include "ITSWorkflow/RecoWorkflow.h"
+#include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+// ------------------------------------------------------------------
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  return std::move(o2::ITS::RecoWorkflow::getWorkflow());
+  // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{
+    "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } });
+
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
+
+  workflowOptions.push_back(ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
+}
+
+// ------------------------------------------------------------------
+
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
+{
+  // Update the (declared) parameters if changed from the command line
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  // write the configuration used for the digitizer workflow
+  o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
+
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+
+  return std::move(o2::its::RecoWorkflow::getWorkflow(useMC));
 }

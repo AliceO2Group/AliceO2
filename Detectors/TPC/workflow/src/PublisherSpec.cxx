@@ -14,9 +14,9 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/ControlService.h"
-#include "PublisherSpec.h"
+#include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
-#include "Utils/RootTreeReader.h"
+#include "DPLUtils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
@@ -30,7 +30,7 @@ using namespace o2::header;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// create a processor spec
@@ -42,7 +42,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
   if (config.tpcSectors.size() == 0 || config.outputIds.size() == 0) {
     throw std::invalid_argument("need TPC sector and output id configuration");
   }
-  constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   struct ProcessAttributes {
     std::vector<int> sectors;
     std::vector<int> outputIds;
@@ -148,7 +148,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
           return false;
         }
         auto sector = sectors[*index];
-        o2::TPC::TPCSectorHeader header{ sector };
+        o2::tpc::TPCSectorHeader header{ sector };
         header.activeSectors = activeSectors;
         auto& r = *(readers[sector].get());
 
@@ -178,7 +178,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
             operation = -1;
           }
           o2::header::DataHeader::SubSpecificationType subSpec = processAttributes->outputIds[lane];
-          o2::TPC::TPCSectorHeader header{ operation };
+          o2::tpc::TPCSectorHeader header{ operation };
           pc.outputs().snapshot(OutputRef{ "output", subSpec, { header } }, subSpec);
           if (propagateMC) {
             pc.outputs().snapshot(OutputRef{ "outputMC", subSpec, { header } }, subSpec);
@@ -223,5 +223,5 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
                               { "terminate-on-eod", VariantType::Bool, true, { "terminate on end-of-data" } },
                             } };
 }
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

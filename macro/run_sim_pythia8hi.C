@@ -64,7 +64,7 @@ void run_sim_pythia8hi(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -72,7 +72,7 @@ void run_sim_pythia8hi(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetField(magField.get());
 
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
+  o2::tpc::Detector* tpc = new o2::tpc::Detector(kTRUE);
   tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

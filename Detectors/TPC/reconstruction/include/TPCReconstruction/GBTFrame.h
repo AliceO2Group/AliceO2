@@ -20,7 +20,7 @@
 #include <array>
 
 namespace o2 {
-namespace TPC {
+namespace tpc {
 
 #define BIT00(x) ((x & 0x1) >> 0 )                                               
 #define BIT01(x) ((x & 0x2) >> 1 )                                               

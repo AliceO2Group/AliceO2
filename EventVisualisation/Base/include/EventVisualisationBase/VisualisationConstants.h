@@ -19,7 +19,7 @@
 #include <string>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 enum EVisualisationGroup{
   ACO,

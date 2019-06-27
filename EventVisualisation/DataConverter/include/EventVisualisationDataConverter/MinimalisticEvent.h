@@ -23,7 +23,7 @@
 #include <ctime>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// Minimalistic description of an event
 ///

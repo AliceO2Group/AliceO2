@@ -18,7 +18,7 @@
 #include <string>
 #include <cstdint>
 #include <FairLogger.h>
-
+#include <iostream>
 #include "PayLoadCont.h"
 
 #include "ITSMFTReconstruction/PixelData.h"
@@ -32,7 +32,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class AlpideCoder
@@ -230,7 +230,9 @@ class AlpideCoder
         buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
         break;
       }
-      return unexpectedEOF("Unknown word"); // either error
+      std::stringstream stream;
+      stream << "Unknown word 0x" << std::hex << int(dataC) << " [mode = 0x" << int(expectInp) << "]";
+      return unexpectedEOF(stream.str().c_str()); // error
     }
 
     return chipData.getData().size();
@@ -251,7 +253,7 @@ class AlpideCoder
   uint8_t bc2TimeStamp(int bc) const { return (bc >> 3) & MaskTimeStamp; }
   uint16_t timeStamp2BC(uint8_t ts) const { return uint16_t(ts) << 3; }
 
-  int encodeChip(PayLoadCont& buffer, const o2::ITSMFT::ChipPixelData& chipData,
+  int encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
                  uint16_t chipInModule, uint16_t bc, uint16_t roflags = 0);
 
   // Add empty record for the chip with chipID within its module for the bc

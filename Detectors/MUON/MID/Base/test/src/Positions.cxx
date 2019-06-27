@@ -22,8 +22,8 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/document.h"
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/document.h>
 #include "MIDBase/GeometryTransformer.h"
 
 template <typename StreamType>

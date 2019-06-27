@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TPCCATracking.h
+/// \file HardwareClusterDecoder.h
 /// \brief Decoder to convert TPC ClusterHardware to ClusterNative
 /// \author David Rohr
 #ifndef ALICEO2_TPC_HARDWARECLUSTERDECODER_H_
@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 class ClusterHardwareContainer;
 class MCCompLabel;
@@ -74,7 +74,7 @@ public:
   /// @param outputAllocator allocator object to provide the output buffer of specified size
   /// @param inMCLabels      optional pointer to MC label container
   /// @param outMCLabels     optional pointer to MC output container
-  int decodeClusters(std::vector<std::pair<const o2::TPC::ClusterHardwareContainer*, std::size_t>>& inputClusters,
+  int decodeClusters(std::vector<std::pair<const o2::tpc::ClusterHardwareContainer*, std::size_t>>& inputClusters,
                      OutputAllocator outputAllocator,
                      const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr,
                      std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels = nullptr);
@@ -89,6 +89,6 @@ public:
   std::unique_ptr<DigitalCurrentClusterIntegrator> mIntegrator;
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 #endif

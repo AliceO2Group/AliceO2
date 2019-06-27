@@ -45,7 +45,7 @@ class AliTPCLookUpTable3DInterpolatorD;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class SpaceCharge
@@ -176,7 +176,7 @@ class SpaceCharge
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpLocalIonDriftC; ///< lookup table for local ion drift along E field on C side
 };
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_SPACECHARGE_H

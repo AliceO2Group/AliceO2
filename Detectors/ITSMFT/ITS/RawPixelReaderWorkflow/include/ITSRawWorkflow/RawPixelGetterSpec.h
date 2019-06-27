@@ -12,7 +12,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-	namespace ITS
+	namespace its
 	{
 
 		class RawPixelGetter : public Task

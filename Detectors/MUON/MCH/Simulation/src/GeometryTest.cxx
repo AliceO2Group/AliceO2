@@ -188,14 +188,14 @@ void drawGeometry()
   // gl->SetStyle(TGLRnrCtx::kFill);
 }
 
-o2::base::GeometryManager::MatBudget getMatBudget(const o2::Transform3D& t, Vector3D<double>& n, float x, float y, float thickness)
+o2::base::GeometryManager::MatBudgetExt getMatBudgetExt(const o2::Transform3D& t, Vector3D<double>& n, float x, float y, float thickness)
 {
   Point3D<double> point;
   t.LocalToMaster(Point3D<double>{ x, y, 0 }, point);
-  return o2::base::GeometryManager::MeanMaterialBudget(Point3D<double>{ point + n * thickness / 2.0 }, Point3D<double>{ point - n * thickness / 2.0 });
+  return o2::base::GeometryManager::meanMaterialBudgetExt(Point3D<double>{ point + n * thickness / 2.0 }, Point3D<double>{ point - n * thickness / 2.0 });
 }
 
-std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudget m)
+std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudgetExt m)
 {
   os << "L=" << m.length << " <Rho>=" << m.meanRho << " <A>=" << m.meanA
      << " <Z>=" << m.meanZ << " <x/x0>=" << m.meanX2X0 << " nCross=" << m.nCross;
@@ -227,7 +227,7 @@ TH2* getRadio(int detElemId, float xmin, float ymin, float xmax, float ymax, flo
 
   for (auto x = xmin; x < xmax; x += xstep) {
     for (auto y = ymin; y < ymax; y += ystep) {
-      auto matb = getMatBudget(t, normal, x, y, thickness);
+      auto matb = getMatBudgetExt(t, normal, x, y, thickness);
       if (std::isfinite(matb.meanX2X0)) {
         hmatb->Fill(x, y, matb.meanX2X0);
       }

@@ -7,36 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELMATCHING_H
-#define FRAMEWORK_CHANNELMATCHING_H
+#ifndef O2_FRAMEWORK_CHANNELMATCHING_H_
+#define O2_FRAMEWORK_CHANNELMATCHING_H_
 
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/DataSpecUtils.h"
 
-#include <vector>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct LogicalChannelRange {
-  LogicalChannelRange(const OutputSpec& spec)
-  {
-    name = std::string("out_") +
-           spec.origin.as<std::string>() + "_" +
-           spec.description.as<std::string>() + "_" +
-           std::to_string(spec.subSpec);
-  }
+  LogicalChannelRange(OutputSpec const& spec);
 
   std::string name;
-  bool operator<(LogicalChannelRange const& other) const
-  {
-    return this->name < other.name;
-  }
+  bool operator<(LogicalChannelRange const& other) const;
 };
 
 struct DomainId {
@@ -44,46 +30,24 @@ struct DomainId {
 };
 
 struct LogicalChannelDomain {
-  LogicalChannelDomain(const InputSpec& spec)
-  {
-    name.value = std::string("out_") + std::string(DataSpecUtils::label(spec));
-  }
+  LogicalChannelDomain(InputSpec const& spec);
   DomainId name;
-  bool operator<(LogicalChannelDomain const& other) const
-  {
-    return this->name.value < other.name.value;
-  }
+  bool operator<(LogicalChannelDomain const& other) const;
 };
 
 struct PhysicalChannelRange {
-  PhysicalChannelRange(const OutputSpec& spec, int count)
-  {
-    char buffer[16];
-    auto channel = LogicalChannelRange(spec);
-    id = channel.name + (snprintf(buffer, 16, "_%d", count), buffer);
-  }
+  PhysicalChannelRange(OutputSpec const& spec, int count);
 
   std::string id;
-  bool operator<(PhysicalChannelRange const& other) const
-  {
-    return this->id < other.id;
-  }
+  bool operator<(PhysicalChannelRange const& other) const;
 };
 
 struct PhysicalChannelDomain {
-  PhysicalChannelDomain(const InputSpec& spec, int count)
-  {
-    char buffer[16];
-    auto channel = LogicalChannelDomain(spec);
-    id.value = channel.name.value + (snprintf(buffer, 16, "_%d", count), buffer);
-  }
+  PhysicalChannelDomain(InputSpec const& spec, int count);
+
   DomainId id;
-  bool operator<(PhysicalChannelDomain const& other) const
-  {
-    return this->id.value < other.id.value;
-  }
+  bool operator<(PhysicalChannelDomain const& other) const;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_CHANNELMATCHING_H

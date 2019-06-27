@@ -10,4 +10,4 @@
 
 #include "TPCBase/CalDet.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;

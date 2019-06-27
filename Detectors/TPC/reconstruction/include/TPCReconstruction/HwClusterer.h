@@ -28,10 +28,9 @@
 #include <memory>
 
 namespace o2{
-namespace TPC {
+namespace tpc {
 
 class Digit;
-class Cluster;
 class ClusterHardware;
 
 /// \class HwClusterer
@@ -45,7 +44,6 @@ class HwClusterer : public Clusterer
   /// Main Constructor
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
-    std::vector<Cluster>* clusterOutputSimple, int sectorid,
     MCLabelContainer* labelOutput);
 
  public:
@@ -55,15 +53,6 @@ class HwClusterer : public Clusterer
   /// \param sectorid is sector number to be processed
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutput,
-    int sectorid,
-    MCLabelContainer* labelOutput = nullptr);
-
-  /// Constructor
-  /// \param clusterOutput is pointer to vector to be filled with clusters
-  /// \param labelOutput is pointer to storage to be filled with MC labels
-  /// \param sectorid is sector number to be processed
-  HwClusterer(
-    std::vector<Cluster>* clusterOutput,
     int sectorid,
     MCLabelContainer* labelOutput = nullptr);
 
@@ -77,15 +66,15 @@ class HwClusterer : public Clusterer
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
 
   /// Finish processing digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -219,16 +208,15 @@ class HwClusterer : public Clusterer
   std::vector<std::unique_ptr<std::vector<std::vector<std::pair<MCCompLabel, unsigned>>>>> mTmpLabelArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
 
   std::vector<ClusterHardwareContainer8kb>* mClusterArray; ///< Pointer to output cluster container
-  std::vector<Cluster>* mPlainClusterArray;                ///< Pointer to output cluster container
   MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
 };
 
-inline void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
 {
   process(digits, mcDigitTruth, true);
 }
 
-inline void HwClusterer::finishProcess(std::vector<o2::TPC::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::finishProcess(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
 {
   finishProcess(digits, mcDigitTruth, true);
 }

@@ -16,15 +16,17 @@
 #define TRACKINGITSU_INCLUDE_TRACKLET_H_
 
 #include "ITStracking/Cluster.h"
+#include <iostream>
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Tracklet final {
   Tracklet();
   GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
+  void dump();
 
   const int firstClusterIndex;
   const int secondClusterIndex;
@@ -49,7 +51,15 @@ inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const 
   // Nothing to do
 }
 
-} // namespace ITS
+inline void Tracklet::dump()
+{
+  std::cout << "firstClusterIndex: " << firstClusterIndex << std::endl;
+  std::cout << "secondClusterIndex: " << secondClusterIndex << std::endl;
+  std::cout << "tanLambda: " << tanLambda << std::endl;
+  std::cout << "phiCoordinate: " << phiCoordinate << std::endl;
+}
+
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKLET_H_ */

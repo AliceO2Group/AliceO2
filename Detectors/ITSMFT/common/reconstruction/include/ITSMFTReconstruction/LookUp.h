@@ -27,7 +27,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class LookUp
 {
@@ -45,7 +45,7 @@ class LookUp
 
   ClassDefNV(LookUp, 1);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif

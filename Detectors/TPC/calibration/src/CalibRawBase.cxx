@@ -17,7 +17,7 @@
 
 #include "TPCCalibration/CalibRawBase.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_t debugLevel)
 {

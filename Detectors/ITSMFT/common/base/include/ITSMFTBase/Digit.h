@@ -19,7 +19,7 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 /// \class Digit
 /// \brief Digit class for the ITS

@@ -46,16 +46,16 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Clusterer
 {
-  using PixelReader = o2::ITSMFT::PixelReader;
-  using PixelData = o2::ITSMFT::PixelData;
-  using ChipPixelData = o2::ITSMFT::ChipPixelData;
-  using Cluster = o2::ITSMFT::Cluster;
-  using CompCluster = o2::ITSMFT::CompCluster;
-  using CompClusterExt = o2::ITSMFT::CompClusterExt;
+  using PixelReader = o2::itsmft::PixelReader;
+  using PixelData = o2::itsmft::PixelData;
+  using ChipPixelData = o2::itsmft::ChipPixelData;
+  using Cluster = o2::itsmft::Cluster;
+  using CompCluster = o2::itsmft::CompCluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
@@ -72,10 +72,10 @@ class Clusterer
   void process(PixelReader& r, std::vector<Cluster>* fullClus,
                std::vector<CompClusterExt>* compClus,
                MCTruth* labelsCl = nullptr,
-               std::vector<o2::ITSMFT::ROFRecord>* vecROFRec = nullptr);
+               std::vector<o2::itsmft::ROFRecord>* vecROFRec = nullptr);
 
-  // provide the common ITSMFT::GeometryTGeo to access matrices
-  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
+  // provide the common itsmft::GeometryTGeo to access matrices
+  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
 
   bool isContinuousReadOut() const { return mContinuousReadout; }
   void setContinuousReadOut(bool v) { mContinuousReadout = v; }
@@ -132,7 +132,7 @@ class Clusterer
   }
 
   ///< recalculate min max row and column of the cluster accounting for the position of pix
-  void adjustBoundingBox(const o2::ITSMFT::PixelData pix, UShort_t& rMin, UShort_t& rMax,
+  void adjustBoundingBox(const o2::itsmft::PixelData pix, UShort_t& rMin, UShort_t& rMax,
                          UShort_t& cMin, UShort_t& cMax) const
   {
     if (pix.getRowDirect() < rMin) {
@@ -215,7 +215,7 @@ class Clusterer
   int* mCurr; // pointer on the 1st row of currently processed mColumnsX
   int* mPrev; // pointer on the 1st row of previously processed mColumnsX
 
-  o2::ITSMFT::ROFRecord mROFRef; // ROF reference
+  o2::itsmft::ROFRecord mROFRef; // ROF reference
 
   // mPixels[].first is the index of the next pixel of the same precluster in the mPixels
   // mPixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
@@ -226,7 +226,7 @@ class Clusterer
   int mClustersCount = 0; ///< number of clusters in the output container
 
   bool mNoLeftColumn = true;                           ///< flag that there is no column on the left to check
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
   TTree* mClusTree = nullptr;                                      //! externally provided tree to write clusters output (if needed)
   std::array<Label, Cluster::maxLabels> mLabelsBuff;               //! temporary buffer for building cluster labels
@@ -239,6 +239,6 @@ class Clusterer
 #endif
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 #endif /* ALICEO2_ITS_CLUSTERER_H */

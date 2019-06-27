@@ -17,10 +17,7 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::t0::DigitizerTask);
-
 using namespace o2::fit;
-using namespace o2::t0;
 
 DigitizerTask::DigitizerTask() : FairTask("T0DigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
@@ -40,7 +37,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = mgr->InitObjectAs<const std::vector<o2::fit::HitType>*>("FITHit");
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::t0::HitType>*>("FITHit");
 
   if (!mHitsArray) {
     LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;

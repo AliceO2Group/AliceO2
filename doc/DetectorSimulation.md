@@ -10,14 +10,14 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2sim` executable. The second part is handled in the `digitizer-workflow`.
+The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
  
-# Documentation of `o2sim`
+# Documentation of `o2-sim`
 
-The purpose of the `o2sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
+The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
 
 ## Command overview
-* **Basic help:** Help on command line options can be obtained with `o2sim --help`
+* **Basic help:** Help on command line options can be obtained with `o2-sim --help`
 * **Typical example:** A typical (exemplary) invocation is of the form 
 
     ```o2sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
@@ -94,12 +94,12 @@ o2sim --embedIntoFile o2sim.background.root
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
 
 #### 5. **How can I obtained detailed stepping information?**
-Run the simulation (currently only supported in combination with `o2sim_serial`) with a preloaded library:
+Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
-MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2sim_serial -j 1 -n 10
+MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10
 ```
 This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/AliceO2/blob/dev/Utilities/MCStepLogger/README.md for more documentation.
 
 ## Development
 
-# Documentation of `digitizer-workflow`
+# Documentation of `o2-sim-digitizer-workflow`

@@ -113,9 +113,7 @@ struct ExpirationHandlerHelpers {
   static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
-      std::string rateName = std::string{ "period-" } + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
-      return LifetimeHelpers::expireTimed(std::chrono::microseconds(period));
+      return LifetimeHelpers::expireAlways();
     };
   }
 
@@ -624,13 +622,12 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   }
 }
 
-void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuiet, bool defaultStopped,
-                                         const std::vector<DeviceSpec>& deviceSpecs,
-                                         const std::vector<ConfigParamSpec> &workflowOptions,
+void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
+                                         std::vector<DataProcessorInfo> const& processorInfos,
+                                         std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
                                          std::vector<DeviceControl>& deviceControls)
 {
-  assert(argc > 0); // we require to have the program name as the first argument
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
   for (size_t si = 0; si < deviceSpecs.size(); ++si) {
@@ -640,6 +637,27 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
 
     control.quiet = defaultQuiet;
     control.stopped = defaultStopped;
+
+    int argc;
+    char** argv;
+    std::vector<ConfigParamSpec> workflowOptions;
+    /// Lookup the executable name in the metadata associated with the workflow.
+    /// If we find it, we rewrite the command line arguments to be processed
+    /// so that they look like the ones passed to the merged workflow.
+    for (auto& processorInfo : processorInfos) {
+      if (processorInfo.name == spec.id) {
+        argc = processorInfo.cmdLineArgs.size() + 1;
+        argv = (char**)malloc(sizeof(char**) * (argc + 1));
+        argv[0] = strdup(processorInfo.executable.data());
+        for (size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
+          auto& arg = processorInfo.cmdLineArgs[ai];
+          argv[ai + 1] = strdup(arg.data());
+        }
+        argv[argc] = nullptr;
+        workflowOptions = processorInfo.workflowOptions;
+        break;
+      }
+    }
 
     // We duplicate the list of options, filtering only those
     // which are actually relevant for the given device. The additional
@@ -657,8 +675,11 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     // FIXME: add some checksum in framework id. We could use this
     //        to avoid redeploys when only a portion of the workflow is changed.
     // FIXME: this should probably be done in one go with char *, but I am lazy.
-    std::vector<std::string> tmpArgs = { argv[0],       "--id",  spec.id.c_str(), "--control", "static",
-                                         "--log-color", "false", "--color",       "false" };
+    std::vector<std::string> tmpArgs = { argv[0], "--id", spec.id.c_str(), "--control", "static",
+                                         "--log-color", "false", "--color", "false" };
+    if (defaultStopped) {
+      tmpArgs.push_back("-s");
+    }
 
     // do the filtering of options:
     // 1) forward options belonging to this specific DeviceSpec
@@ -667,9 +688,9 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     const char* name = spec.name.c_str();
     bpo::options_description od;     // option descriptions per process
     bpo::options_description foDesc; // forwarded options for all processes
-    ConfigParamsHelper::prepareOptionsDescription(spec.options, od);
+    ConfigParamsHelper::dpl2BoostOptions(spec.options, od);
     od.add_options()(name, bpo::value<std::string>());
-    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, foDesc);
+    ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
     foDesc.add(getForwardedDeviceOptions());
 
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;

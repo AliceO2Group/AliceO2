@@ -27,22 +27,24 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
                          bool outDigPerROF = false,          // in case digits are requested, create separate tree entry for each ROF
                          bool padding = true,                // payload in raw data comes in 128 bit CRU words
                          bool page8kb = true,                // full 8KB CRU pages are provided (no skimming applied)
+                         int nTriggersToCache = 1025,        // number of triggers per link to cache (> N 8KB CRU pages per superpage)
                          int verbose = 0)
 {
 
-  o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> rawReader;
   rawReader.openInput(inpName);
   rawReader.setPadding128(padding); // payload GBT words are padded to 16B
   rawReader.imposeMaxPage(page8kb); // pages are 8kB in size (no skimming)
+  rawReader.setMinTriggersToCache(nTriggersToCache);
   rawReader.setVerbosity(verbose);
 
-  o2::ITSMFT::ChipPixelData chipData;
+  o2::itsmft::ChipPixelData chipData;
   TStopwatch sw;
   sw.Start();
   uint32_t roFrame = 0;
   o2::InteractionRecord irHB, irTrig;
-  std::vector<o2::ITSMFT::Digit> digits, *digitsPtr = &digits;
-  std::vector<o2::ITSMFT::ROFRecord> rofRecVec, *rofRecVecPtr = &rofRecVec;
+  std::vector<o2::itsmft::Digit> digits, *digitsPtr = &digits;
+  std::vector<o2::itsmft::ROFRecord> rofRecVec, *rofRecVecPtr = &rofRecVec;
   std::size_t rofEntry = 0, nrofdig = 0;
   std::unique_ptr<TFile> outFileDig;
   std::unique_ptr<TTree> outTreeDig; // output tree with digits
@@ -108,10 +110,12 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
 
   const auto& MAP = rawReader.getMapping();
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
-    const auto ruStat = rawReader.getRUDecodingStatSW(ir);
-    if (ruStat && ruStat->nPackets) {
-      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
-      ruStat->print();
+    for (int il = 0; il < o2::itsmft::MaxLinksPerRU; il++) {
+      const auto ruStat = rawReader.getRUDecodingStatSW(ir, il);
+      if (ruStat && ruStat->nPackets) {
+        printf("\nStatistics for RU%3d (HWID:0x%4x) GBTLink%d\n", ir, MAP.RUSW2FEEId(ir, il), il);
+        ruStat->print();
+      }
     }
   }
   rawReader.getDecodingStat().print();

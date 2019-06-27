@@ -17,9 +17,9 @@
 
 class FairParSet;
 
-using namespace o2::ITS;
+using namespace o2::its;
 
-ClassImp(o2::ITS::ContainerFactory)
+ClassImp(o2::its::ContainerFactory)
 
   static ContainerFactory gO2itsContFact;
 

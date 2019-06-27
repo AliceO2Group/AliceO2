@@ -24,7 +24,7 @@
 #include <string>
 
 namespace o2  {
-namespace EventVisualisation {
+namespace event_visualisation {
 
 /// EventManager is a singleton class managing event loading.
 ///

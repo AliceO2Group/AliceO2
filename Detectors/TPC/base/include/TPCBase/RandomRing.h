@@ -39,7 +39,7 @@ using float_v = Vc::float_v;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 template <size_t N = float_v::size() * 100000>
@@ -170,6 +170,6 @@ inline void RandomRing<N>::initialize(TF1& function)
   }
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace AliceO2
 #endif

@@ -1,11 +1,3 @@
-if(DEFINED ALITPCCOMMON_DIR)
-    set(ALITPCCOMMON_BUILD_TYPE "O2")
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase TPCSpaceChargeBase)
-    include_directories(${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase)
-else()
-    message(FATAL_ERROR "cmake variable ALITPCCOMMON_DIR is not defined")
-endif()
-
 set(MODULE_NAME "TPCSimulation")
 
 O2_SETUP(NAME ${MODULE_NAME})
@@ -88,9 +80,9 @@ O2_GENERATE_TESTS(
 
 # add the TPC run sim as a unit test (if simulation was enabled)
 if (HAVESIMULATION)
-  add_test_wrap(NAME tpcsim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 2 -e TGeant4)
+  add_test_wrap(NAME tpcsim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim-tpc -n 2 -e TGeant4)
   set_tests_properties(tpcsim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
-  add_test_wrap(NAME tpcsim_G3 COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 2 -e TGeant3)
+  add_test_wrap(NAME tpcsim_G3 COMMAND ${CMAKE_BINARY_DIR}/bin/o2-sim-tpc -n 2 -e TGeant3)
   set_tests_properties(tpcsim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
   # sets the necessary environment
   set_tests_properties(tpcsim_G3 tpcsim_G4  PROPERTIES ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})

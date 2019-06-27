@@ -22,10 +22,10 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
 /// define input and output types of the workflow
 enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
@@ -70,7 +70,7 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1
   return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
 }
 
-} // end namespace RecoWorkflow
-} // end namespace TPC
+} // end namespace reco_workflow
+} // end namespace tpc
 } // end namespace o2
 #endif //O2_TPC_RECOWORKFLOW_H

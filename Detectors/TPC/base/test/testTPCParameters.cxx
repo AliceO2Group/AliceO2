@@ -20,122 +20,184 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
+#include <SimConfig/ConfigurableParam.h>
+#include <SimConfig/ConfigurableParamHelper.h>
+#include <SimConfig/SimConfig.h>
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Trivial test of the default initialization of Parameter Detector
 /// Precision: 1E-3 %
 BOOST_AUTO_TEST_CASE(ParameterDetector_test1)
 {
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  BOOST_CHECK_CLOSE(detParam.getPadCapacitance(), 0.1f, 1E-3);
-  BOOST_CHECK_CLOSE(detParam.getTPClength(), 250.f, 1E-3);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().PadCapacitance, 0.1f, 1E-3);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().TPClength, 250.f, 1E-3);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().TmaxTriggered, 550.f, 1E-12);
+
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().PadCapacitance,
+                    o2::conf::ConfigurableParam::getValueAs<float>("TPCDetParam.PadCapacitance"), 1E-3);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().TPClength,
+                    o2::conf::ConfigurableParam::getValueAs<float>("TPCDetParam.TPClength"), 1E-3);
+  BOOST_CHECK(
+    ParameterDetector::Instance().TmaxTriggered == o2::conf::ConfigurableParam::getValueAs<TimeBin>("TPCDetParam.TmaxTriggered"));
 }
 
 /// \brief Trivial test of the initialization of Parameter Detector
 /// Precision: 1E-12 %
 BOOST_AUTO_TEST_CASE(ParameterDetector_test2)
 {
-  ParameterDetector detParam;
-  detParam.setPadCapacitance(1.f);
-  detParam.setTPClength(2.f);
-  BOOST_CHECK_CLOSE(detParam.getPadCapacitance(), 1.f, 1E-12);
-  BOOST_CHECK_CLOSE(detParam.getTPClength(), 2.f, 1E-12);
+  o2::conf::ConfigurableParam::updateFromString(
+    "TPCDetParam.PadCapacitance=2;TPCDetParam.TPClength=3;TPCDetParam.TmaxTriggered=4");
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCDetParam.PadCapacitance"), 2.f, 1E-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCDetParam.TPClength"), 3.f, 1E-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCDetParam.TmaxTriggered"), 4.f, 1E-12);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().PadCapacitance, 2.f, 1E-12);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().TPClength, 3.f, 1E-12);
+  BOOST_CHECK_CLOSE(ParameterDetector::Instance().TmaxTriggered, 4.f, 1E-12);
 }
 
 /// \brief Trivial test of the default initialization of Parameter Electronics
 /// Precision: 1E-3 %
 BOOST_AUTO_TEST_CASE(ParameterElectronics_test1)
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  BOOST_CHECK(eleParam.getNShapedPoints() == 8);
-  BOOST_CHECK_CLOSE(eleParam.getPeakingTime(), 160e-3, 1e-3);
-  BOOST_CHECK_CLOSE(eleParam.getChipGain(), 20, 1e-3);
-  BOOST_CHECK_CLOSE(eleParam.getADCDynamicRange(), 2200, 1e-3);
-  BOOST_CHECK_CLOSE(eleParam.getADCSaturation(), 1024, 1e-3);
-  BOOST_CHECK_CLOSE(eleParam.getZBinWidth(), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(eleParam.getElectronCharge(), 1.602e-19, 1e-3);
+  BOOST_CHECK(ParameterElectronics::Instance().NShapedPoints == 8);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().PeakingTime, 160e-3, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ChipGain, 20, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCdynamicRange, 2200, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCsaturation, 1024, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ElectronCharge, 1.602e-19, 1e-3);
+  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::SubtractPedestal);
+
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCEleParam.NShapedPoints") == 8);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.PeakingTime"), 160e-3, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ChipGain"), 20, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCdynamicRange"), 2200, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCsaturation"), 1024, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ZbinWidth"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ElectronCharge"), 1.602e-19, 1e-3);
 }
 
 /// \brief Trivial test of the initialization of Parameter Detector
 /// Precision: 1E-12 %
 BOOST_AUTO_TEST_CASE(ParameterElectronics_test2)
 {
-  ParameterElectronics eleParam;
-  eleParam.setNShapedPoints(1);
-  eleParam.setPeakingTime(2.f);
-  eleParam.setChipGain(3.f);
-  eleParam.setADCDynamicRange(4.f);
-  eleParam.setADCSaturation(5.f);
-  eleParam.setZBinWidth(6.f);
-  eleParam.setElectronCharge(7.f);
-  BOOST_CHECK(eleParam.getNShapedPoints() == 1);
-  BOOST_CHECK_CLOSE(eleParam.getPeakingTime(), 2.f, 1e-12);
-  BOOST_CHECK_CLOSE(eleParam.getChipGain(), 3.f, 1e-12);
-  BOOST_CHECK_CLOSE(eleParam.getADCDynamicRange(), 4.f, 1e-12);
-  BOOST_CHECK_CLOSE(eleParam.getADCSaturation(), 5.f, 1e-12);
-  BOOST_CHECK_CLOSE(eleParam.getZBinWidth(), 6.f, 1e-12);
-  BOOST_CHECK_CLOSE(eleParam.getElectronCharge(), 7.f, 1e-12);
+  o2::conf::ConfigurableParam::updateFromString(
+    "TPCEleParam.NShapedPoints=1;TPCEleParam.PeakingTime=2;TPCEleParam.ChipGain=3;TPCEleParam.ADCdynamicRange=4;TPCEleParam.ADCsaturation=5;TPCEleParam.ZbinWidth=6;TPCEleParam.ElectronCharge=7;TPCEleParam.DigiMode=0");
+  BOOST_CHECK(ParameterElectronics::Instance().NShapedPoints == 1);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().PeakingTime, 2.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ChipGain, 3.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCdynamicRange, 4.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCsaturation, 5.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, 6.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ElectronCharge, 7.f, 1e-12);
+  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::FullMode);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCEleParam.NShapedPoints") == 1);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.PeakingTime"), 2.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ChipGain"), 3.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCdynamicRange"), 4.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCsaturation"), 5.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ZbinWidth"), 6.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ElectronCharge"), 7.f, 1e-12);
 }
 
 /// \brief Trivial test of the default initialization of Parameter Gas
 /// Precision: 1E-3 %
 BOOST_AUTO_TEST_CASE(ParameterGas_test1)
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  BOOST_CHECK_CLOSE(gasParam.getWion(), 37.3e-9, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getIpot(), 20.77e-9, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getAttachmentCoefficient(), 250.f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getOxygenContent(), 5e-6, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getVdrift(), 2.58f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getSigmaOverMu(), 0.78f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getDiffT(), 0.0209f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getDiffL(), 0.0221f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getNprim(), 14.f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getScaleG4(), 0.85f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getFanoFactorG4(), 0.7f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(0), 0.76176e-1, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(1), 10.632, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(2), 0.13279e-4, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(3), 1.8631, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(4), 1.9479, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 37.3e-9, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Ipot, 20.77e-9, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().AttCoeff, 250.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().OxygenCont, 5e-6, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DriftV, 2.58f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().SigmaOverMu, 0.78f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DiffT, 0.0209f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DiffL, 0.0221f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Nprim, 14.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().ScaleFactorG4, 0.85f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().FanoFactorG4, 0.7f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[0], 0.76176e-1, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[1], 10.632, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[2], 0.13279e-4, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[3], 1.8631, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[4], 1.9479, 1e-3);
+
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 37.3e-9, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Ipot"), 20.77e-9, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.AttCoeff"), 250.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.OxygenCont"), 5e-6, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DriftV"), 2.58f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.SigmaOverMu"), 0.78f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DiffT"), 0.0209f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DiffL"), 0.0221f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Nprim"), 14.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.ScaleFactorG4"), 0.85f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.FanoFactorG4"), 0.7f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[0]"), 0.76176e-1, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[1]"), 10.632, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[2]"), 0.13279e-4, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[3]"), 1.8631, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[4]"), 1.9479, 1e-3);
 }
 
 /// \brief Trivial test of the initialization of Parameter Gas
 /// Precision: 1E-12 %
 BOOST_AUTO_TEST_CASE(ParameterGas_test2)
 {
-  ParameterGas gasParam;
-  gasParam.setWion(1.f);
-  gasParam.setIpot(2.f);
-  gasParam.setAttachmentCoefficient(3.f);
-  gasParam.setOxygenContent(4.f);
-  gasParam.setVdrift(5.f);
-  gasParam.setSigmaOverMu(6.f);
-  gasParam.setDiffT(7.f);
-  gasParam.setDiffL(8.f);
-  gasParam.setNprim(9.f);
-  gasParam.setScaleG4(10.f);
-  gasParam.setFanoFactorG4(11.f);
-  gasParam.setBetheBlochParam(12.f, 13.f, 14, 15.f, 16.f);
-  BOOST_CHECK_CLOSE(gasParam.getWion(), 1.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getIpot(), 2.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getAttachmentCoefficient(), 3.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getOxygenContent(), 4.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getVdrift(), 5.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getSigmaOverMu(), 6.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getDiffT(), 7.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getDiffL(), 8.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getNprim(), 9.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getScaleG4(), 10.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getFanoFactorG4(), 11.f, 1e-3);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(0), 12.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(1), 13.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(2), 14.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(3), 15.f, 1e-12);
-  BOOST_CHECK_CLOSE(gasParam.getBetheBlochParam(4), 16.f, 1e-12);
+  o2::conf::ConfigurableParam::updateFromString(
+    "TPCGasParam.Wion=1;TPCGasParam.Ipot=2;TPCGasParam.AttCoeff=3;TPCGasParam.OxygenCont=4;TPCGasParam.DriftV=5;TPCGasParam.SigmaOverMu=6;"
+    "TPCGasParam.DiffT=7;TPCGasParam.DiffL=8;"
+    "TPCGasParam.Nprim=9;TPCGasParam.ScaleFactorG4=10;TPCGasParam.FanoFactorG4=11;TPCGasParam.BetheBlochParam[0]=12;TPCGasParam.BetheBlochParam[1]=13;TPCGasParam.BetheBlochParam[2]=14;"
+    "TPCGasParam.BetheBlochParam[3]=15;TPCGasParam.BetheBlochParam[4]=16");
+
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 1.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Ipot, 2.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().AttCoeff, 3.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().OxygenCont, 4.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DriftV, 5.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().SigmaOverMu, 6.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DiffT, 7.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().DiffL, 8.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Nprim, 9.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().ScaleFactorG4, 10.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().FanoFactorG4, 11.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[0], 12.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[1], 13.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[2], 14.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[3], 15.f, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[4], 16.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 1.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Ipot"), 2.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.AttCoeff"), 3.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.OxygenCont"), 4.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DriftV"), 5.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.SigmaOverMu"), 6.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DiffT"), 7.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.DiffL"), 8.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Nprim"), 9.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.ScaleFactorG4"), 10.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.FanoFactorG4"), 11.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[0]"), 12.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[1]"), 13.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[2]"), 14.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[3]"), 15.f, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[4]"), 16.f, 1e-12);
+}
+
+/// \brief Trivial test of the two ways to setValue for a ConfigurableParameter
+/// Precision: 1E-3 %
+BOOST_AUTO_TEST_CASE(setValues_test1)
+{
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 1e-3);
+  o2::conf::ConfigurableParam::setValue<float>("TPCGasParam", "Wion", 3.0);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 3.0, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 3.0, 1e-3);
+  o2::conf::ConfigurableParam::setValue("TPCGasParam.Wion", "5.0");
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 5.0, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 5.0, 1e-3);
+  ParameterGas::Instance().printKeyValues(true);
 }
 
 /// \brief Trivial test of the default initialization of Parameter GEM
@@ -143,48 +205,80 @@ BOOST_AUTO_TEST_CASE(ParameterGas_test2)
 ///
 BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
 {
-  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
-  BOOST_CHECK(gemParam.getGeometry(1) == 0);
-  BOOST_CHECK(gemParam.getGeometry(2) == 2);
-  BOOST_CHECK(gemParam.getGeometry(3) == 2);
-  BOOST_CHECK(gemParam.getGeometry(4) == 0);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(1), 4.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(2), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(3), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(4), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(5), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(1), 270.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(2), 250.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(3), 270.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(4), 340.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(1), 0.4f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(2), 4.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(3), 2.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(4), 0.1f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(5), 4.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(1), 14.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 8.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 53.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 240.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getTotalGainStack(), 1644.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getKappaStack(), 1.2295f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getEfficiencyStack(), 0.473805f, 1e-3);
-  BOOST_CHECK(gemParam.getAmplificationMode() == AmplificationMode::EffectiveMode);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[0] == 0);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[1] == 2);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[2] == 2);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[3] == 0);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[0], 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[1], 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[2], 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[3], 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[4], 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[0], 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[1], 250.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[2], 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[3], 340.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[0], 0.4f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[1], 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[2], 2.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[3], 0.1f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[4], 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[0], 14.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[1], 8.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[2], 53.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[3], 240.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().TotalGainStack, 1644.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().KappaStack, 1.2295f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().EfficiencyStack, 0.473805f, 1e-3);
+  BOOST_CHECK(ParameterGEM::Instance().AmplMode == AmplificationMode::EffectiveMode);
+
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCGEMParam.Geometry[0]") == 0);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCGEMParam.Geometry[1]") == 2);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCGEMParam.Geometry[2]") == 2);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCGEMParam.Geometry[3]") == 0);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[0]"), 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[1]"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[2]"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[3]"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[4]"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[0]"), 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[1]"), 250.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[2]"), 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[3]"), 340.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[0]"), 0.4f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[1]"), 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[2]"), 2.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[3]"), 0.1f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[4]"), 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[0]"), 14.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[1]"), 8.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[2]"), 53.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[3]"), 240.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.TotalGainStack"), 1644.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 1.2295f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 0.473805f, 1e-3);
 
   // For fixed values
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 1.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 0.25f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 1.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 0.65f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 0.55f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 0.12f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 0.6f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[0], 1.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[1], 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[2], 0.25f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[3], 1.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[0], 0.65f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[1], 0.55f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[2], 0.12f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[3], 0.6f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[0]"), 1.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[1]"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[2]"), 0.25f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[3]"), 1.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[0]"), 0.65f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[1]"), 0.55f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[2]"), 0.12f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[3]"), 0.6f, 1e-3);
 
-  for (int i = 1; i < 5; ++i) {
-    BOOST_CHECK_CLOSE(
-      gemParam.getEffectiveGain(i),
-      gemParam.getAbsoluteGain(i) * gemParam.getCollectionEfficiency(i) * gemParam.getExtractionEfficiency(i), 1e-3);
+  for (int i = 0; i < 4; ++i) {
+    BOOST_CHECK_CLOSE(ParameterGEM::Instance().getEffectiveGain(i),
+                      ParameterGEM::Instance().AbsoluteGain[i] * ParameterGEM::Instance().CollectionEfficiency[i] * ParameterGEM::Instance().ExtractionEfficiency[i], 1e-3);
   }
 }
 
@@ -192,61 +286,85 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
 /// Precision: 1E-12 %
 BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
 {
-  ParameterGEM gemParam;
-  gemParam.setGeometry(0, 2, 2, 0);
-  gemParam.setDistance(4.f, 0.2f, 0.2f, 0.2f, 0.2f);
-  gemParam.setPotential(4.f, 5.f, 6.f, 7.f);
-  gemParam.setElectricField(8.f, 9.f, 10.f, 11.f, 12.f);
-  gemParam.setAbsoluteGain(13.f, 14.f, 15.f, 16.f);
-  gemParam.setCollectionEfficiency(17.f, 18.f, 19.f, 20.f);
-  gemParam.setExtractionEfficiency(21.f, 22.f, 23.f, 24.f);
-  gemParam.setTotalGainStack(25.f);
-  gemParam.setKappaStack(26.f);
-  gemParam.setEfficiencyStack(27.f);
-  gemParam.setAmplificationMode(AmplificationMode::EffectiveMode);
-  BOOST_CHECK(gemParam.getGeometry(1) == 0);
-  BOOST_CHECK(gemParam.getGeometry(2) == 2);
-  BOOST_CHECK(gemParam.getGeometry(3) == 2);
-  BOOST_CHECK(gemParam.getGeometry(4) == 0);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(1), 4.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(2), 0.2f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(3), 0.2f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(4), 0.2f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getDistance(5), 0.2f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(1), 4.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(2), 5.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(3), 6.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getPotential(4), 7.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(1), 8.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(2), 9.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(3), 10.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(4), 11.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getElectricField(5), 12.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(1), 13.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 14.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 15.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 16.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 17.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 18.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 19.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 20.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 21.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 22.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 23.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 24.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getTotalGainStack(), 25.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getKappaStack(), 26.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getEfficiencyStack(), 27., 1e-3);
-  BOOST_CHECK(gemParam.getAmplificationMode() == AmplificationMode::EffectiveMode);
 
-  for (int i = 1; i < 5; ++i) {
-    gemParam.setAbsoluteGain(i, i);
-    BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(i), i, 1e-12);
-    gemParam.setCollectionEfficiency(i, i);
-    BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(i), i, 1e-12);
-    gemParam.setExtractionEfficiency(i, i);
-    BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(i), i, 1e-12);
-  }
+  o2::conf::ConfigurableParam::updateFromString(
+    "TPCGEMParam.Geometry[0]=1;TPCGEMParam.Geometry[1]=2;TPCGEMParam.Geometry[2]=3;TPCGEMParam.Geometry[3]=4;"
+    "TPCGEMParam.Distance[0]=5;TPCGEMParam.Distance[1]=6;TPCGEMParam.Distance[2]=7;TPCGEMParam.Distance[3]=8;TPCGEMParam.Distance[4]=9;"
+    "TPCGEMParam.Potential[0]=10;TPCGEMParam.Potential[1]=11;TPCGEMParam.Potential[2]=12;TPCGEMParam.Potential[3]=13;"
+    "TPCGEMParam.ElectricField[0]=14;TPCGEMParam.ElectricField[1]=15;TPCGEMParam.ElectricField[2]=16;TPCGEMParam.ElectricField[3]=17;TPCGEMParam.ElectricField[4]=18;"
+    "TPCGEMParam.AbsoluteGain[0]=19;TPCGEMParam.AbsoluteGain[1]=20;TPCGEMParam.AbsoluteGain[2]=21;TPCGEMParam.AbsoluteGain[3]=22;"
+    "TPCGEMParam.CollectionEfficiency[0]=23;TPCGEMParam.CollectionEfficiency[1]=24;TPCGEMParam.CollectionEfficiency[2]=25;TPCGEMParam.CollectionEfficiency[3]=26;"
+    "TPCGEMParam.ExtractionEfficiency[0]=27;TPCGEMParam.ExtractionEfficiency[1]=28;TPCGEMParam.ExtractionEfficiency[2]=29;TPCGEMParam.ExtractionEfficiency[3]=30;"
+    "TPCGEMParam.TotalGainStack=31;TPCGEMParam.KappaStack=32;TPCGEMParam.EfficiencyStack=33;TPCGEMParam.AmplMode=0;"
+    "");
+
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[0] == 1);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[1] == 2);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[2] == 3);
+  BOOST_CHECK(ParameterGEM::Instance().Geometry[3] == 4);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[0], 5, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[1], 6, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[2], 7, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[3], 8, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Distance[4], 9, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[0], 10, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[1], 11, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[2], 12, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().Potential[3], 13, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[0], 14, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[1], 15, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[2], 16, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[3], 17, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ElectricField[4], 18, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[0], 19, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[1], 20, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[2], 21, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[3], 22, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[0], 23, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[1], 24, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[2], 25, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[3], 26, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[0], 27, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[1], 28, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[2], 29, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().ExtractionEfficiency[3], 30, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().TotalGainStack, 31, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().KappaStack, 32, 1e-12);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().EfficiencyStack, 33, 1e-3);
+  BOOST_CHECK(ParameterGEM::Instance().AmplMode == AmplificationMode::FullMode);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Geometry[0]") == 1);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Geometry[1]") == 2);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Geometry[2]") == 3);
+  BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Geometry[3]") == 4);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[0]"), 5, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[1]"), 6, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[2]"), 7, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[3]"), 8, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Distance[4]"), 9, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[0]"), 10, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[1]"), 11, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[2]"), 12, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.Potential[3]"), 13, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[0]"), 14, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[1]"), 15, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[2]"), 16, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[3]"), 17, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[4]"), 18, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[0]"), 19, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[1]"), 20, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[2]"), 21, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[3]"), 22, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[0]"), 23, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[1]"), 24, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[2]"), 25, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.CollectionEfficiency[3]"), 26, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[0]"), 27, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[1]"), 28, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[2]"), 29, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ExtractionEfficiency[3]"), 30, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.TotalGainStack"), 31, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 32, 1e-12);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 33, 1e-3);
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

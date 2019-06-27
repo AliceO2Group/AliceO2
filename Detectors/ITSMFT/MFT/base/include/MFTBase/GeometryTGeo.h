@@ -30,9 +30,9 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
@@ -69,7 +69,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo
@@ -173,7 +173,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sSensorName; ///<
 
  private:
-  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance; ///< singleton instance
+  static std::unique_ptr<o2::mft::GeometryTGeo> sInstance; ///< singleton instance
 
   ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };

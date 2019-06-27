@@ -62,6 +62,10 @@
 #include "MIDDigitizerSpec.h"
 #include "MIDDigitWriterSpec.h"
 
+// for ZDC
+#include "ZDCDigitizerSpec.h"
+#include "ZDCDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -110,7 +114,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
 
   std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
-  std::string sectorDefault = "0-" + std::to_string(o2::TPC::Sector::MAXSECTOR - 1);
+  std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-sectors", VariantType::String, sectorDefault.c_str(), { sectorshelp } });
 
@@ -131,6 +135,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
   workflowOptions.push_back(
     ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
+  workflowOptions.push_back(
+    ConfigParamSpec{ "configFile", VariantType::String, "", { "configuration file for configurable parameters" } });
 }
 
 // ------------------------------------------------------------------
@@ -173,11 +179,11 @@ void initTPC()
   LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
   setenv(streamthis.str().c_str(), "ON", 1);
 
-  auto& cdb = o2::TPC::CDBInterface::instance();
+  auto& cdb = o2::tpc::CDBInterface::instance();
   cdb.setUseDefaults();
   // by invoking this constructor we make sure that a common file will be created
   // in future we should take this from OCDB and just forward per message
-  const static auto& ampl = o2::TPC::GEMAmplification::instance();
+  const static auto& ampl = o2::tpc::GEMAmplification::instance();
 }
 
 // ------------------------------------------------------------------
@@ -290,10 +296,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
 
+  o2::conf::ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
+
   // Update the (declared) parameters if changed from the command line
   // Note: In the future this should be done only on a dedicated processor managing
   // the parameters and then propagated automatically to all devices
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
 
@@ -301,7 +310,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
   const auto grp = readGRP();
   if (!grp) {
-    return specs;
+    return WorkflowSpec{};
   }
 
   // onlyDet takes precedence on skipDet
@@ -352,7 +361,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
-      specs.emplace_back(o2::TPC::getTPCDigitizerSpec(fanoutsize, (l == 0)));
+      specs.emplace_back(o2::tpc::getTPCDigitizerSpec(fanoutsize, (l == 0)));
       tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
       fanoutsize++;
     }
@@ -360,10 +369,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(lanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }
@@ -372,18 +381,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::ITSMFT::getITSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++));
     // connect ITS digit writer
-    specs.emplace_back(o2::ITSMFT::getITSDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec());
   }
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::ITSMFT::getMFTDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++));
     // connect MFT digit writer
-    specs.emplace_back(o2::ITSMFT::getMFTDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec());
   }
 
   // the TOF part
@@ -424,6 +433,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++));
     // connect the HMP digit writer
     specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec());
+  }
+
+  // add ZDC
+  if (isEnabled(o2::detectors::DetID::ZDC)) {
+    detList.emplace_back(o2::detectors::DetID::ZDC);
+    // connect the ZDC digitization
+    specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++));
+    // connect the ZDC digit writer
+    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec());
   }
 
   // add TRD
