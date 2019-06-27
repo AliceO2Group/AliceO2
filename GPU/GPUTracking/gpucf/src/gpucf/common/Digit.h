@@ -11,16 +11,19 @@
 namespace gpucf
 {
 
-class Digit : public PaddedDigit
+class Digit : public PackedDigit
 {
 public:
     Digit();
-    Digit(float, int, int, int, int);
+    Digit(float, int, int, int);
 
     Object serialize() const;
     void deserialize(const Object &);
 
-    PackedDigit toPacked() const;
+    int localRow() const;
+    int cru() const;
+
+    bool operator==(const Digit &) const;
 };
 
 

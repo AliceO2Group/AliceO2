@@ -1,17 +1,36 @@
 #pragma once
 
 #include <gpucf/algorithms/ClusterFinder.h>
+#include <gpucf/algorithms/ReferenceClusterFinder.h>
 
 
 namespace gpucf
 {
 
-class ClusterFinderTest : public ClusterFinder {
+class ClusterFinderTest : public ClusterFinder 
+{
 
 public:
-    using ClusterFinder::ClusterFinder;
+    ClusterFinderTest(ClusterFinderConfig, size_t, ClEnv);
 
     void run(nonstd::span<const Digit>);
+
+private:
+    ReferenceClusterFinder gt;
+
+    void checkIsPeaks(const std::vector<bool> &);
+
+    void checkPeaks(const std::vector<Digit> &);
+
+    void checkCluster(
+            const std::vector<Digit> &, 
+            const std::vector<Cluster> &);
+
+    void checkCompactedCluster(
+            const std::vector<Digit> &, 
+            const std::vector<Cluster> &);
+
+    void printInterimValues(const std::vector<unsigned char> &, size_t);
     
 };
     

@@ -9,6 +9,7 @@ set(GPUCF_SRC
     "./common/Event.cpp"
     "./common/float.cpp"
     "./common/Fragment.cpp"
+    "./common/Kernel1D.cpp"
     "./common/log.cpp"
     "./common/Measurements.cpp"
     "./common/Object.cpp"

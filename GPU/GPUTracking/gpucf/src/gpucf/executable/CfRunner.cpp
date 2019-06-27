@@ -1,5 +1,6 @@
 #include "CfRunner.h"
 
+#include <gpucf/algorithms/ClusterFinderTest.h>
 #include <gpucf/algorithms/GPUClusterFinder.h>
 #include <gpucf/algorithms/ReferenceClusterFinder.h>
 #include <gpucf/common/DataSet.h>
@@ -117,6 +118,7 @@ int CfRunner::mainImpl()
     }
     else
     {
+#if 0
         GPUClusterFinder cf;
         ClEnv env(*envFlags, config); 
         cf.setup(config, env, digits);
@@ -132,10 +134,16 @@ int CfRunner::mainImpl()
             peakSet.serialize<Digit>(peaks);
             peakSet.write(peakFile->Get());
         }
+#else
+        ClEnv env(*envFlags, config); 
+        ClusterFinderTest cf(config, digits.size(), env);
+        cf.run(digits);
+#endif
     }
 
+#if 0
     clusters.write(args::get(*clusterResultFile));
-
+#endif
 
     return 0;
 }

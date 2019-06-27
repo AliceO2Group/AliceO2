@@ -19,12 +19,18 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(
     Map<float> chargemap(digits, [](const Digit &d) { return d.charge; }, 0.f);
 
     std::vector<Digit> peaks;
-    std::copy_if(
-            digits.begin(),
-            digits.end(),
-            std::back_inserter(peaks),
-            [=](const Digit &d) { return isPeak(d, chargemap); });
+    std::vector<bool> isPeakPred;
 
+    for (const Digit &d : digits)
+    {
+        bool p = isPeak(d, chargemap);
+        isPeakPred.push_back(p);
+
+        if (p)
+        {
+            peaks.push_back(d);
+        }
+    }
 
     Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, config.splitCharges);
 
@@ -49,7 +55,7 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(
                     return clusterize(d, chargemap, peakcount); });
     }
 
-    return {clusters, peaks};
+    return {clusters, peaks, isPeakPred};
 }
 
 

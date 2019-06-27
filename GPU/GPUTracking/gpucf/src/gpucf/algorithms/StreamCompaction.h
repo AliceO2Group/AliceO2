@@ -51,6 +51,8 @@ public:
 
         Step asStep(const std::string &) const;
 
+        void printDump() const;
+
     private:
         friend class StreamCompaction;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gpucf/common/Digit.h>
 #include <gpucf/algorithms/StreamCompaction.h>
 
 #include <CL/cl2.hpp>

@@ -1,6 +1,8 @@
 #include "SCFuzzer.h"
 
 #include <gpucf/common/ClEnv.h>
+#include <gpucf/common/Cluster.h>
+#include <gpucf/common/Digit.h>
 #include <gpucf/common/log.h>
 
 #include <algorithm>
@@ -22,7 +24,7 @@ void SCFuzzer::setup(ClEnv &env)
     context = env.getContext();
     device  = env.getDevice();
 
-    streamCompaction.setup(env, StreamCompaction::CompType::Digit, 1, 10);
+    streamCompaction.setup(env, StreamCompaction::CompType::Cluster, 1, 10);
 }
 
 bool SCFuzzer::run(size_t runs)
@@ -70,14 +72,15 @@ bool SCFuzzer::runTest(size_t N)
     streamCompaction.setDigitNum(N, 1);
 
     static_assert(sizeof(cl_uchar) == sizeof(unsigned char));
-    std::vector<unsigned char> predicate(N);
+    size_t insize = N - 10;
+    std::vector<unsigned char> predicate(insize);
     std::fill(predicate.begin(), predicate.end(), 1);
 
-    std::vector<Digit> digitsIn(N);
-    std::vector<Digit> digitsOut(N);
+    std::vector<Cluster> digitsIn(insize);
+    std::vector<Cluster> digitsOut(insize);
 
-    size_t digitBytes     = sizeof(Digit) * N;
-    size_t predicateBytes = sizeof(cl_uchar) * N;
+    size_t digitBytes     = sizeof(Cluster) * insize;
+    size_t predicateBytes = sizeof(cl_uchar) * insize;
 
     digitsInBuf = cl::Buffer(
                     context,
@@ -109,7 +112,7 @@ bool SCFuzzer::runTest(size_t N)
             predicateBytes,
             predicate.data());
 
-    Fragment all(N);
+    Fragment all(insize);
     int res = worker.run(
             all,
             queue,
@@ -121,10 +124,10 @@ bool SCFuzzer::runTest(size_t N)
     auto dump = worker.getNewIdxDump();
 
 
-    if (res != static_cast<int>(N))
+    if (res != static_cast<int>(insize))
     {
         log::Error() << "StreamCompaction: got " << res 
-            << " elements, but expected " << N;
+            << " elements, but expected " << insize;
 
         dumpResult(dump);
 

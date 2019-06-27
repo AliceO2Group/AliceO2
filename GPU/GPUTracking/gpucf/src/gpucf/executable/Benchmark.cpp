@@ -65,22 +65,9 @@ int Benchmark::mainImpl()
 
 void Benchmark::registerExperiments()
 {
-    {
-        ClusterFinderConfig naiveConfig;
-        naiveConfig.packedDigits = false;
-        experiments.emplace_back(
-                new TimeCf(
-                        "naive cluster finder", 
-                        "paddedClusterFinder.json",
-                        naiveConfig,
-                        digits, 
-                        iterations->Get(), 
-                        baseDir));
-    }
 
     {
         ClusterFinderConfig packedDigitsConf;
-        packedDigitsConf.packedDigits = true;
         experiments.emplace_back(
                 new TimeCf(
                         "packed digits cluster finder", 

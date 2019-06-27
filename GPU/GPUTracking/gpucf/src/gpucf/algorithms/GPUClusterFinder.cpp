@@ -377,11 +377,6 @@ void GPUClusterFinder::setup(
     this->config = conf;
     this->digits = digits;
 
-    if (config.packedDigits)
-    {
-        fillPackedDigits(); 
-    }
-
     addDefines(env);
 
     digitCompaction.setup(
@@ -410,9 +405,7 @@ void GPUClusterFinder::setup(
      * Create Buffer
      ************************************************************************/
 
-    size_t digitsBufSize = 
-        ((config.packedDigits) ? sizeof(PackedDigit) : sizeof(Digit)) 
-        * digits.size();
+    size_t digitsBufSize = sizeof(Digit) * digits.size();
     mem.digits = cl::Buffer(
             context,
             CL_MEM_READ_WRITE,
@@ -567,17 +560,7 @@ GPUClusterFinder::Result GPUClusterFinder::run()
                      << ", items: " << fragment->items
                      << ", future: " << fragment->future << "}";
 
-        if (config.packedDigits)
-        {
-            worker.dispatch<PackedDigit>(
-                    *fragment, 
-                    nonstd::span<const PackedDigit>(packedDigits),
-                    clusters);
-        }
-        else
-        {
-            worker.dispatch(*fragment, digits, clusters);
-        }
+        worker.dispatch(*fragment, digits, clusters);
 
     }
 
@@ -661,14 +644,6 @@ std::vector<Digit> GPUClusterFinder::compactDigits(
     }
 
     return peaks;
-}
-
-void GPUClusterFinder::fillPackedDigits()
-{
-    for (const Digit &digit : digits)
-    {
-        packedDigits.push_back(digit.toPacked());
-    }
 }
 
 void GPUClusterFinder::addDefines(ClEnv &)

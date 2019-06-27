@@ -166,7 +166,6 @@ private:
     ClusterFinderConfig config;
 
     nonstd::span<const Digit> digits;
-    std::vector<PackedDigit>  packedDigits;
     std::vector<Digit>        peaks;
 
     std::vector<Cluster> clusters;
