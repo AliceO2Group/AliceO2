@@ -50,6 +50,7 @@ find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(FairLogger REQUIRED)
+find_package(fmt)
 find_package(DDS)
 cmake_policy(SET CMP0077 NEW)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -326,6 +327,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     FairLogger::FairLogger
+    fmt::fmt
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Framework/Logger/include
@@ -931,6 +933,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 )
 
+
 o2_define_bucket(
     NAME
     ITS_RawPixel_bucket
@@ -948,6 +951,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
+
 
 o2_define_bucket(
     NAME
@@ -2475,6 +2479,25 @@ o2_define_bucket(
     O2MIDClustering
 )
 
+o2_define_bucket(
+    NAME
+    mid_simulation_bucket
+
+    DEPENDENCIES
+    mid_base_bucket
+    root_base_bucket
+    fairroot_base_bucket
+    O2DetectorsBase
+    detectors_base_bucket
+    data_format_simulation_bucket
+    O2SimulationDataFormat
+    O2MIDBase
+    O2MIDClustering
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/include
+)
 
 o2_define_bucket(
     NAME
@@ -2560,18 +2583,6 @@ o2_define_bucket(
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
-)
-
-o2_define_bucket(
-    NAME
-    mid_simulation_bucket
-
-    DEPENDENCIES
-    data_format_simulation_bucket
-    root_base_bucket
-    mid_base_bucket
-    O2MIDBase
-    O2SimulationDataFormat
 )
 
 o2_define_bucket(

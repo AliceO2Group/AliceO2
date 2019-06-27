@@ -17,6 +17,7 @@
 
 #include "ITStracking/Cluster.h"
 #include <iostream>
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -45,8 +46,8 @@ inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const 
     secondClusterIndex{ secondClusterOrderingIndex },
     tanLambda{ (firstCluster.zCoordinate - secondCluster.zCoordinate) /
                (firstCluster.rCoordinate - secondCluster.rCoordinate) },
-    phiCoordinate{ MATH_ATAN2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                              firstCluster.xCoordinate - secondCluster.xCoordinate) }
+    phiCoordinate{ gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                                             firstCluster.xCoordinate - secondCluster.xCoordinate) }
 {
   // Nothing to do
 }

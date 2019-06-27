@@ -18,55 +18,51 @@ using namespace o2::framework;
 
 namespace o2
 {
-	namespace its
-	{
+namespace its
+{
 
-		void RawPixelGetter::init(InitContext& ic)
-		{
-			LOG(INFO) << "Now Working on the GETTER BROS";
+void RawPixelGetter::init(InitContext& ic)
+{
+  LOG(DEBUG) << "Now Working on the GETTER BROS";
 
-			o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-			o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-			geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
-		}
+  o2::base::GeometryManager::loadGeometry(); // for generating full clusters
+  o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
+}
 
-		void RawPixelGetter::run(ProcessingContext& pc)
-		{
-			LOG(INFO) << "START Getter";
-			auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
-			LOG(INFO) << "Digit Size Getting For This TimeFrame (Event) = " <<  digits.size();
+void RawPixelGetter::run(ProcessingContext& pc)
+{
+  LOG(DEBUG) << "START Getter";
+  auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
+  LOG(DEBUG) << "Digit Size Getting For This TimeFrame (Event) = " << digits.size();
 
-
-	/*
+  /*
 			int Run = pc.inputs().get<int>("Run");
-			LOG(INFO) << "New " << Run;
+			LOG(DEBUG) << "New " << Run;
 	*/
-			/*
+  /*
 			int ResetDecision = pc.inputs().get<int>("in");
-			LOG(INFO) << "Reset Histogram Decision = " << ResetDecision;
+			LOG(DEBUG) << "Reset Histogram Decision = " << ResetDecision;
 		
 			o2::itsmft::Digit digit = pc.inputs().get<o2::itsmft::Digit>("digits");
-			LOG(INFO) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
+			LOG(DEBUG) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
 			*/
 
-			//pc.services().get<ControlService>().readyToQuit(true);
-		}
-
-
-	DataProcessorSpec getRawPixelGetterSpec()
-		{
-			return DataProcessorSpec{
-				"its-rawpixel-getter",
-					Inputs{
-						InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
-				//		InputSpec{ "in", "TST", "TEST", 0, Lifetime::Timeframe },
-				//		InputSpec{ "Run", "TST", "TEST2", 0, Lifetime::Timeframe },
-					       },
-					Outputs{
-					},
-					AlgorithmSpec{ adaptFromTask<RawPixelGetter>() },
-			};
-
-		}
-	}
+  //pc.services().get<ControlService>().readyToQuit(true);
 }
+
+DataProcessorSpec getRawPixelGetterSpec()
+{
+  return DataProcessorSpec{
+    "its-rawpixel-getter",
+    Inputs{
+      InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
+      //		InputSpec{ "in", "TST", "TEST", 0, Lifetime::Timeframe },
+      //		InputSpec{ "Run", "TST", "TEST2", 0, Lifetime::Timeframe },
+    },
+    Outputs{},
+    AlgorithmSpec{ adaptFromTask<RawPixelGetter>() },
+  };
+}
+} // namespace its
+} // namespace o2

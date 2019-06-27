@@ -14,7 +14,6 @@
 #include "ITSRawWorkflow/RawPixelReaderSpec.h"
 #include "ITSRawWorkflow/RawPixelGetterSpec.h"
 
-
 namespace o2
 {
 namespace its
@@ -27,15 +26,13 @@ framework::WorkflowSpec getWorkflow()
 {
   framework::WorkflowSpec specs;
 
-
   specs.emplace_back(o2::its::getRawPixelReaderSpec());
-  LOG(INFO) << "DONE READING BRO ";
   specs.emplace_back(o2::its::getRawPixelGetterSpec());
 
   return specs;
 }
 
-} // namespace RecoWorkflow
+} // namespace RawPixelWorkflow
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

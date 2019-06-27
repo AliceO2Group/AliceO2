@@ -28,7 +28,7 @@ void DigitsPacker::process(const std::vector<ColumnDataMC>& inDigitStore, const 
   mDigitStore = &inDigitStore;
   mMCContainer = &inMCContainer;
 
-  int ts = -1;
+  int ts = -99999999;
   for (size_t idx = 0; idx < inDigitStore.size(); ++idx) {
     if (std::abs(inDigitStore[idx].getTimeStamp() - ts) > timestampdiff) {
       ts = inDigitStore[idx].getTimeStamp();
@@ -55,7 +55,7 @@ bool DigitsPacker::getGroup(size_t igroup, std::vector<ColumnDataMC>& digitStore
   digitStore.reserve(end - start);
   std::copy(mDigitStore->begin() + start, mDigitStore->begin() + end, std::back_inserter(digitStore));
   for (size_t idx = 0; idx < digitStore.size(); ++idx) {
-    mcContainer.addElements(digitStore.size() - 1, mMCContainer->getLabels(start + idx));
+    mcContainer.addElements(idx, mMCContainer->getLabels(start + idx));
   }
 
   return true;

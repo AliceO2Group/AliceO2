@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <memory>
 #include <fstream>
 #include <vector>
@@ -157,7 +158,7 @@ class GPUReconstruction
   void* AllocateUnmanagedMemory(size_t size, int type);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false);
   void FreeRegisteredMemory(short res);
-  void ClearAllocatedMemory();
+  void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void PrepareEvent();
@@ -243,6 +244,8 @@ class GPUReconstruction
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
   InOutTypeField mRecoStepsInputs = 0;
   InOutTypeField mRecoStepsOutputs = 0;
+
+  std::string mDeviceName = "CPU";
 
   // Ptrs to host and device memory;
   void* mHostMemoryBase = nullptr;

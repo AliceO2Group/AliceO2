@@ -8,17 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDSimulation/Detector.h"
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 #include <vector>
+#include <stdexcept>
 #include "FairVolume.h"
 #include "FairRootManager.h"
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
 #include "CommonUtils/ShmAllocator.h"
-#include <stdexcept>
+#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDGeometry.h"
+#include "TRDSimulation/Detector.h"
+#include "TRDSimulation/TRsim.h"
 
 using namespace o2::trd;
 
@@ -172,7 +173,11 @@ bool Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(xp, yp, zp);
     tof = tof * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(xp, yp, zp, tof, totalChargeDep, trackID, det);
+    double pos[3] = { xp, yp, zp };
+    double loc[3] = { -99, -99, -99 };
+    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
     stack->addHit(GetDetId());
     return true;
   }
@@ -255,7 +260,12 @@ void Detector::createTRhit(int det)
     o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
-    addHit(x, y, z, tof, totalChargeDep, trackID, det);
+    // prepare local coordinates
+    double pos[3] = { x, y, z };
+    double loc[3] = { -99, -99, -99 };
+    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
     stack->addHit(GetDetId());
   }
 }

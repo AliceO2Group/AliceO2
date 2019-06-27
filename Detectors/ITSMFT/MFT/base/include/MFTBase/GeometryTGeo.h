@@ -36,9 +36,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
-  using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2G;
+  using DetMatrixCache::getMatrixT2L;
 
   static GeometryTGeo* Instance()
   {
@@ -60,7 +60,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
                /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
                                            o2::TransformType::T2G,
                                            o2::TransformType::L2G)*/
-               );
+  );
 
   /// Default destructor
   ~GeometryTGeo() override;
@@ -106,6 +106,12 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return extractNumberOfSensorsPerLadder(half, disk, ladderID);
   }
 
+  /// Returns the ladder geometry ID from the matrix ID
+  Int_t getLadderID(Int_t disk, Int_t ladder) const
+  {
+    return mLadderIndex2Id[disk][ladder];
+  }
+
  protected:
   /// Determines the number of detector halves in the Geometry
   Int_t extractNumberOfHalves();
@@ -147,6 +153,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   /// In a disk start numbering the sensors from zero
   Int_t getFirstSensorIndex(Int_t disk) const { return (disk == 0) ? 0 : mLastSensorIndex[disk - 1] + 1; }
+
  protected:
   static constexpr Int_t MinSensorsPerLadder = 2;
   static constexpr Int_t MaxSensorsPerLadder = 5;
@@ -177,7 +184,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

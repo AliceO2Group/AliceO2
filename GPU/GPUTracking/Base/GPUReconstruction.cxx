@@ -336,10 +336,10 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
   res->mPtrDevice = nullptr;
 }
 
-void GPUReconstruction::ClearAllocatedMemory()
+void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
-    if (!(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_PERMANENT)) {
+    if (!(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_PERMANENT) && (clearOutputs || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_OUTPUT))) {
       FreeRegisteredMemory(i);
     }
   }

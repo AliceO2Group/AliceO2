@@ -12,7 +12,6 @@
 
 #include "ITSRawWorkflow/RawPixelWorkflow.h"
 
-
 using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)

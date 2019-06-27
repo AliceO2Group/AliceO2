@@ -16,5 +16,6 @@
 
 #pragma link C++ class o2::its::ClusterLines + ;
 #pragma link C++ class o2::its::Tracklet + ;
+#pragma link C++ class o2::its::Centroid + ;
 
 #endif

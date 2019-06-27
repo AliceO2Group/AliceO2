@@ -19,9 +19,26 @@
 #include <iostream>
 #include <vector>
 #include "CommonUtils/BoostSerializer.h"
-#include "DataFormatsMID/Cluster2D.h"
+#include <boost/serialization/access.hpp>
 
 using namespace o2::utils;
+
+struct TestCluster {
+  uint8_t deId;  ///< Detection element ID
+  float xCoor;   ///< Local x coordinate
+  float yCoor;   ///< Local y coordinate
+  float sigmaX2; ///< Square of dispersion along x
+  float sigmaY2; ///< Square of dispersion along y
+
+  friend class boost::serialization::access;
+
+  /// Serializes the struct
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int version)
+  {
+    ar& deId& xCoor& yCoor& sigmaX2& sigmaY2;
+  }
+};
 
 BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
@@ -82,13 +99,13 @@ BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
 BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
 {
-  using contType = std::vector<o2::mid::Cluster2D>;
+  using contType = std::vector<TestCluster>;
 
   contType inputV;
 
   for (size_t i = 0; i < 17; i++) {
     float iFloat = (float)i;
-    inputV.emplace_back(o2::mid::Cluster2D{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
+    inputV.emplace_back(TestCluster{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
   }
 
   auto msgStr = BoostSerialize(inputV).str();

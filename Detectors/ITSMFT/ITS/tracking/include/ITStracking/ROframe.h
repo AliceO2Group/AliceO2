@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_ROframe_H_
-#define TRACKINGITSU_INCLUDE_ROframe_H_
+#ifndef TRACKINGITSU_INCLUDE_ROFRAME_H_
+#define TRACKINGITSU_INCLUDE_ROFRAME_H_
 
 #include <array>
 #include <vector>
@@ -47,6 +47,7 @@ class ROframe final
   void addPrimaryReconstructedVertex(const float, const float, const float);
   void printPrimaryVertices() const;
   int getTotalClusters() const;
+  bool empty() const;
 
   const std::array<std::vector<Cluster>, constants::its::LayersNumber>& getClusters() const;
   const std::vector<Cluster>& getClustersOnLayer(int layerId) const;
@@ -83,6 +84,8 @@ inline int ROframe::getROFrameId() const { return mROframeId; }
 inline const float3& ROframe::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
 
 inline int ROframe::getPrimaryVerticesNum() const { return mPrimaryVertices.size(); }
+
+inline bool ROframe::empty() const { return getTotalClusters() == 0; }
 
 inline const std::array<std::vector<Cluster>, constants::its::LayersNumber>& ROframe::getClusters() const
 {
@@ -176,4 +179,4 @@ inline bool ROframe::hasMCinformation() const
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITSU_INCLUDE_ROframe_H_ */
+#endif /* TRACKINGITSU_INCLUDE_ROFRAME_H_ */

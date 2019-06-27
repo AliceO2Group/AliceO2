@@ -37,9 +37,6 @@ constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(ui
 template <class T, int I, typename... Args>
 int GPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.device == krnlDeviceType::CPU) {
-    return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  }
   cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
   if (y.num == -1) {
     if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
@@ -115,7 +112,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
       clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, nullptr);
       clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, nullptr);
       if (mDeviceProcessingSettings.debugLevel >= 2) {
-        GPUInfo("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
+        GPUInfo("Available Platform %d: (%s %s) %s %s", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
       }
       if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strcmp(platform_version, "OpenCL 2.0 AMD-APP (1800.8)") == 0) {
         found = true;
@@ -157,7 +154,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
   for (unsigned int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 3) {
-      GPUInfo("Examining device %d\n", i);
+      GPUInfo("Examining device %d", i);
     }
     cl_uint nbits;
 
@@ -180,7 +177,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
 
     double bestDeviceSpeed = -1, deviceSpeed = (double)freq * (double)shaders;
     if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)%s %s\n", deviceOK ? " " : "[", i, device_vendor, device_name, (int)freq, (int)shaders, (int)nbits, (long long int)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+      GPUImportant("Device %s%2d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)%s %s", deviceOK ? " " : "[", i, device_vendor, device_name, (int)freq, (int)shaders, (int)nbits, (long long int)deviceSpeed, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
     }
     if (!deviceOK) {
       continue;
@@ -190,7 +187,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
       bestDeviceSpeed = deviceSpeed;
     } else {
       if (mDeviceProcessingSettings.debugLevel >= 0) {
-        GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
+        GPUInfo("Skipping: Speed %f < %f", deviceSpeed, bestDeviceSpeed);
       }
     }
   }
@@ -224,14 +221,14 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(maxWorkItems), maxWorkItems, nullptr);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using OpenCL device %d: %s %s with properties:", bestDevice, device_vendor, device_name);
-    GPUInfo("Version = %s", deviceVersion);
-    GPUInfo("Frequency = %d", (int)freq);
-    GPUInfo("Shaders = %d", (int)shaders);
-    GPUInfo("GLobalMemory = %lld", (long long int)globalMem);
-    GPUInfo("ContantMemoryBuffer = %lld", (long long int)constantBuffer);
-    GPUInfo("LocalMemory = %lld", (long long int)localMem);
-    GPUInfo("maxThreadsPerBlock = %lld", (long long int)maxWorkGroup);
-    GPUInfo("maxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
+    GPUInfo("\tVersion = %s", deviceVersion);
+    GPUInfo("\tFrequency = %d", (int)freq);
+    GPUInfo("\tShaders = %d", (int)shaders);
+    GPUInfo("\tGLobalMemory = %lld", (long long int)globalMem);
+    GPUInfo("\tContantMemoryBuffer = %lld", (long long int)constantBuffer);
+    GPUInfo("\tLocalMemory = %lld", (long long int)localMem);
+    GPUInfo("\tmaxThreadsPerBlock = %lld", (long long int)maxWorkGroup);
+    GPUInfo("\tmaxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
     GPUInfo(" ");
   }
 #ifndef GPUCA_OPENCL_NO_CONSTANT_MEMORY
@@ -241,6 +238,8 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   }
 #endif
 
+  mDeviceName = device_name;
+  mDeviceName += " (OpenCL)";
   mCoreCount = shaders;
 
   mInternals->context = clCreateContext(nullptr, count, mInternals->devices, nullptr, nullptr, &ocl_error);

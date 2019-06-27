@@ -66,9 +66,6 @@ GPUg() void runKernelHIPMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount,
 template <class T, int I, typename... Args>
 int GPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args... args)
 {
-  if (x.device == krnlDeviceType::CPU) {
-    return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  }
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
@@ -174,23 +171,24 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp_t.name);
-    GPUInfo("totalGlobalMem = %lld", (unsigned long long int)hipDeviceProp_t.totalGlobalMem);
-    GPUInfo("sharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp_t.sharedMemPerBlock);
-    GPUInfo("regsPerBlock = %d", hipDeviceProp_t.regsPerBlock);
-    GPUInfo("warpSize = %d", hipDeviceProp_t.warpSize);
-    GPUInfo("maxThreadsPerBlock = %d", hipDeviceProp_t.maxThreadsPerBlock);
-    GPUInfo("maxThreadsDim = %d %d %d", hipDeviceProp_t.maxThreadsDim[0], hipDeviceProp_t.maxThreadsDim[1], hipDeviceProp_t.maxThreadsDim[2]);
-    GPUInfo("maxGridSize = %d %d %d", hipDeviceProp_t.maxGridSize[0], hipDeviceProp_t.maxGridSize[1], hipDeviceProp_t.maxGridSize[2]);
-    GPUInfo("totalConstMem = %lld", (unsigned long long int)hipDeviceProp_t.totalConstMem);
-    GPUInfo("major = %d", hipDeviceProp_t.major);
-    GPUInfo("minor = %d", hipDeviceProp_t.minor);
-    GPUInfo("clockRate = %d", hipDeviceProp_t.clockRate);
-    GPUInfo("memoryClockRate = %d", hipDeviceProp_t.memoryClockRate);
-    GPUInfo("multiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
+    GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)hipDeviceProp_t.totalGlobalMem);
+    GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp_t.sharedMemPerBlock);
+    GPUInfo("\tregsPerBlock = %d", hipDeviceProp_t.regsPerBlock);
+    GPUInfo("\twarpSize = %d", hipDeviceProp_t.warpSize);
+    GPUInfo("\tmaxThreadsPerBlock = %d", hipDeviceProp_t.maxThreadsPerBlock);
+    GPUInfo("\tmaxThreadsDim = %d %d %d", hipDeviceProp_t.maxThreadsDim[0], hipDeviceProp_t.maxThreadsDim[1], hipDeviceProp_t.maxThreadsDim[2]);
+    GPUInfo("\tmaxGridSize = %d %d %d", hipDeviceProp_t.maxGridSize[0], hipDeviceProp_t.maxGridSize[1], hipDeviceProp_t.maxGridSize[2]);
+    GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)hipDeviceProp_t.totalConstMem);
+    GPUInfo("\tmajor = %d", hipDeviceProp_t.major);
+    GPUInfo("\tminor = %d", hipDeviceProp_t.minor);
+    GPUInfo("\tclockRate = %d", hipDeviceProp_t.clockRate);
+    GPUInfo("\tmemoryClockRate = %d", hipDeviceProp_t.memoryClockRate);
+    GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
     GPUInfo(" ");
   }
-
   mCoreCount = hipDeviceProp_t.multiProcessorCount;
+  mDeviceName = hipDeviceProp_t.name;
+  mDeviceName += " (HIP GPU)";
 
   if (hipDeviceProp_t.major < 3) {
     GPUError("Unsupported HIP Device");

@@ -25,6 +25,6 @@ namespace RawPixelWorkflow
 framework::WorkflowSpec getWorkflow();
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif

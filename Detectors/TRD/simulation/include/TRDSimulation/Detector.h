@@ -16,8 +16,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
-#include "TRDSimulation/TRsim.h"
-
 class FairVolume;
 
 namespace o2
@@ -28,6 +26,21 @@ class HitType : public o2::BasicXYZQHit<float>
 {
  public:
   using BasicXYZQHit<float>::BasicXYZQHit;
+  HitType(float x, float y, float z, float lCol, float lRow, float lTime, float tof, int charge, int trackId, int detId, bool drift)
+    : mInDrift(drift), locC(lCol), locR(lRow), locT(lTime), BasicXYZQHit(x, y, z, tof, charge, trackId, detId){};
+  bool isFromDriftRegion() const { return mInDrift; }
+  void setLocalC(float lCol) { locC = lCol; }
+  void setLocalR(float lRow) { locR = lRow; }
+  void setLocalT(float lTime) { locT = lTime; }
+  float getLocalC() const { return locC; }
+  float getLocalR() const { return locR; }
+  float getLocalT() const { return locT; }
+
+ private:
+  bool mInDrift{ false };
+  float locC{ -99 }; // col direction in amplification or drift volume
+  float locR{ -99 }; // row direction in amplification or drift volume
+  float locT{ -99 }; // time direction in amplification or drift volume
 };
 } // namespace trd
 } // namespace o2
@@ -46,7 +59,9 @@ namespace o2
 {
 namespace trd
 {
+
 class TRDGeometry;
+class TRsim;
 
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -80,7 +95,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   // addHit
   template <typename T>
-  void addHit(T x, T y, T z, T tof, int charge, int trackId, int detId);
+  void addHit(T x, T y, T z, T locC, T locR, T locT, T tof, int charge, int trackId, int detId, bool drift = false);
 
   // Create TR hits
   void createTRhit(int);
@@ -104,9 +119,9 @@ class Detector : public o2::base::DetImpl<Detector>
 };
 
 template <typename T>
-void Detector::addHit(T x, T y, T z, T tof, int charge, int trackId, int detId)
+void Detector::addHit(T x, T y, T z, T locC, T locR, T locT, T tof, int charge, int trackId, int detId, bool drift)
 {
-  mHits->emplace_back(x, y, z, tof, charge, trackId, detId);
+  mHits->emplace_back(x, y, z, locC, locR, locT, tof, charge, trackId, detId, drift);
 }
 
 } // namespace trd

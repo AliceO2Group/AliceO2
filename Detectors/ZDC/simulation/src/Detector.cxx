@@ -255,6 +255,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Vector3D<float> xImp;
   getDetIDandSecID(volname, Vector3D<float>(x[0], x[1], x[2]),
                    xImp, detector, sector);
+  //printf("ProcessHits:  x=(%f, %f, %f)  DET %d  SEC %d\n",x[0], x[1], x[2],detector,sector);
+  //printf("                  XImpact=(%f, %f, %f)\n",xImp.X(), xImp.Y(), xImp.Z());
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
@@ -262,6 +264,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // find out if we are entering into the detector NEU or PRO for the first time
   int volID, copy;
   volID = fMC->CurrentVolID(copy);
+  //printf("--- track %d in vol. %d %d  trackMother %d \n",trackn, detector, sector, stack->GetCurrentTrack()->GetMother(0));
 
   // a new principal track is a track which previously was not seen by any ZDC detector
   // we will account all detector response associated to principal tracks only
@@ -294,10 +297,11 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int pdgCode = fMC->TrackPid();
   float lightoutput = 0.;
   auto currentMediumid = fMC->CurrentMedium();
-  int ibeta = 99, iangle = 99, iradius = 99, nphe = 0;
-  if ((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid)) {
-    calculateTableIndexes(ibeta, iangle, iradius);
-    if (ibeta != 99 && iangle != 99 && iangle != 99) {
+  int nphe = 0;
+  if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
+    int ibeta = 0, iangle = 0, iradius = 0;
+    Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
+    if (isLightProduced) {
       int charge = 0;
       if (pdgCode < 10000) {
         charge = fMC->TrackCharge();
@@ -305,16 +309,20 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         charge = TMath::Abs(pdgCode / 10000 - 100000);
       }
 
-      //look into the light tables
-      if (detector == 1 || detector == 4) {
-        iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
-        lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
-      } else {
-        iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
-        lightoutput = charge * charge * mLightTableZP[ibeta][iradius][iangle];
-      }
-      if (lightoutput > 0) {
-        nphe = gRandom->Poisson(lightoutput);
+      //look into the light tables if the particle is charged
+      if (TMath::Abs(charge) > 0) {
+        if (detector == 1 || detector == 4) {
+          iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
+          lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
+        } else {
+          iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
+          lightoutput = charge * charge * mLightTableZP[ibeta][iradius][iangle];
+        }
+        //printf(".....beta %d  alpha %d radius %d  light output %f\n", ibeta, iangle, iradius, lightoutput);
+        if (lightoutput > 0) {
+          nphe = gRandom->Poisson(lightoutput);
+          //printf(".. nphe %d  \n", nphe);
+        }
       }
     }
   }
@@ -324,6 +332,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
     auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
     bool issecondary = trackn != stack->getCurrentPrimaryIndex();
+    //if(!issecondary) printf("!!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
 
     if (currentMediumid == mMediumPMCid) {
       mTotLightPMC = nphe;
@@ -339,7 +348,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentHitsIndices[detector - 1][sector - 1] = mHits->size() - 1;
 
     mXImpact = xImp;
-
+    //printf("### NEW HITS CREATED in vol %d %d for track %d daughter of track %d\n", detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0));
     return true;
 
   } else {
@@ -351,9 +360,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     } else if (currentMediumid == mMediumPMQid) {
       mTotLightPMQ += nphe;
     }
-    curHit.SetEnergyLoss(curHit.GetEnergyLoss() + eDep);
-    curHit.setPMCLightYield(mTotLightPMC);
-    curHit.setPMQLightYield(mTotLightPMQ);
+    float incenloss = curHit.GetEnergyLoss() + eDep;
+    if (incenloss > 0 || nphe > 0) {
+      curHit.SetEnergyLoss(incenloss);
+      curHit.setPMCLightYield(mTotLightPMC);
+      curHit.setPMQLightYield(mTotLightPMQ);
+      //printf("   >>> Hit updated in vol %d %d  for track %d (%d)    E %f  light %1.0f %1.0f \n",detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0),curHit.GetEnergyLoss()+ eDep,mTotLightPMC,mTotLightPMQ);
+    }
     return true;
   }
   return false;
@@ -449,19 +462,19 @@ void Detector::createMaterials()
   // ******** TRACKING MEDIA PARAMETERS ********
   Int_t notactiveMed = 0, sensMed = 1; // sensitive or not sensitive medium
 
-  // field intergration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
-  Int_t inofld = 0;
-  Int_t ifld = 3; //TODO: ????CHECK!!!! secondo me va -1!!!!!
+  // field integration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
+  Int_t inofld = 0; // Max. field value (no field)
+  Int_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
   Float_t nofieldm = 0.;
 
-  Float_t maxnofld = 0.; // max field value
-  Float_t maxfld = 45.;  // max field value
+  Float_t maxnofld = 0.; // max field value (no field)
+  Float_t maxfld = 45.;  // max field value (with field)
   Float_t tmaxnofd = 0.; // max deflection angle due to magnetic field in one step
   Float_t tmaxfd = 0.1;  // max deflection angle due to magnetic field in one step
   Float_t deemax = -1.;  // maximum fractional energy loss in one step 0<deemax<=1
   Float_t epsil = 0.001; // tracking precision [cm]
   Float_t stemax = 1.;   // max step allowed [cm] ????CHECK!!!!
-  Float_t stmin = -0.1;  // minimum step due to continuous processes [cm] (negative value: choose it automatically) ????CHECK!!!! 0.01 in aliroot
+  Float_t stmin = 0.01;  // minimum step due to continuous processes [cm] (negative value: choose it automatically) ????CHECK!!!! 0.01 in aliroot
 
   // ******** MATERIAL DEFINITION ********
   Mixture(0, "Walloy$", aW, zW, dW, 3, wW);
@@ -482,11 +495,13 @@ void Detector::createMaterials()
   Medium(kSiO2pmq, "quartzPMQ$", 2, sensMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kPb, "Lead$", 3, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kCu, "Copper$", 4, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kCuLumi, "CopperLowTh$", 4, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kFe, "Iron$", 5, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kFeLowTh, "IronLowTh$", 5, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kAl, "Aluminum$", 6, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kGraphite, "Graphite$", 7, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
   Medium(kVoidNoField, "VoidNoField$", 8, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
-  Medium(kVoidwField, "VoidwField$", 8, notactiveMed, ifld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
+  Medium(kVoidwField, "VoidwField$", 8, notactiveMed, ifld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   Medium(kAir, "Air$", 9, notactiveMed, inofld, nofieldm, tmaxnofd, stemax, deemax, epsil, stmin);
 }
 
@@ -497,7 +512,8 @@ void Detector::createAsideBeamLine()
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };
   Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15];
+  Double_t conpar[15] = { 0. }; // all elements will be 0
+
   Float_t zA = 1910.2;
 
   conpar[0] = 0.;
@@ -1082,7 +1098,7 @@ void Detector::createAsideBeamLine()
   auto& matmgr = o2::base::MaterialManager::Instance();
 
   // Volume: QALext
-  TGeoVolume* pQALext = new TGeoVolume("QALext", pOutTrousers, matmgr.getTGeoMedium("ZDC", kFe));
+  TGeoVolume* pQALext = new TGeoVolume("QALext", pOutTrousers, matmgr.getTGeoMedium("ZDC", kFeLowTh));
   pQALext->SetLineColor(kBlue);
   pQALext->SetVisLeaves(kTRUE);
   //
@@ -1136,7 +1152,7 @@ void Detector::createAsideBeamLine()
     boxpar[0] = 8.0 / 2.;
     boxpar[1] = 8.0 / 2.;
     boxpar[2] = mLumiLength / 2.;
-    TVirtualMC::GetMC()->Gsvolu("QLUA", "BOX ", getMediumID(kCu), boxpar, 3);
+    TVirtualMC::GetMC()->Gsvolu("QLUA", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUA", 1, "ZDCA", 0., 0., Geometry::ZNAPOSITION[1] /*fPosZNA[2]*/ - 66. - boxpar[2], 0, "ONLY");
     LOG(DEBUG) << "	A-side luminometer positioned in front of ZNA\n";
   }
@@ -1145,15 +1161,14 @@ void Detector::createAsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createCsideBeamLine()
 {
-  auto& matmgr = o2::base::MaterialManager::Instance();
-
   Double_t tubpar[3] = { 0., 0., 0 };
   Float_t boxpar[3] = { 0., 0., 0 };
   Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15];
+  Double_t conpar[15] = {
+    0.,
+  };
 
   Float_t zC = 1947.2;
-  ;
   Float_t zCompensator = 1974.;
 
   conpar[0] = 0.;
@@ -1481,8 +1496,13 @@ void Detector::createCsideBeamLine()
   // Outer trousers
   TGeoCompositeShape* pOutTrousersC = new TGeoCompositeShape("outTrousersC", "QCLext:ZDCC_c1+QCLext:ZDCC_c2");
 
+  //auto& matmgr = o2::base::MaterialManager::Instance();
+
   // Volume: QCLext
-  TGeoVolume* pQCLext = new TGeoVolume("QCLext", pOutTrousersC, matmgr.getTGeoMedium("ZDC", kVoidNoField));
+  TGeoMedium* medZDCFeLowTh = gGeoManager->GetMedium("ZDC_IronLowTh$");
+  TGeoVolume* pQCLext = new TGeoVolume("QCLext", pOutTrousersC, medZDCFeLowTh);
+  pQCLext->SetLineColor(kAzure);
+  pQCLext->SetVisLeaves(kTRUE);
   //
   TGeoTranslation* tr1c = new TGeoTranslation(0., 0., (Double_t)-conpar[0] - 0.95 - zC);
   //
@@ -1492,7 +1512,7 @@ void Detector::createCsideBeamLine()
   // Volume: QCLint
   TGeoMedium* medZDCvoid = gGeoManager->GetMedium("ZDC_VoidNoField$");
   TGeoVolume* pQCLint = new TGeoVolume("QCLint", pIntTrousersC, medZDCvoid);
-  pQCLint->SetLineColor(kTeal);
+  pQCLint->SetLineColor(kBlue);
   pQCLint->SetVisLeaves(kTRUE);
   pQCLext->AddNode(pQCLint, 1);
 
@@ -1544,7 +1564,7 @@ void Detector::createCsideBeamLine()
     boxpar[0] = 8.0 / 2.;
     boxpar[1] = 8.0 / 2.;
     boxpar[2] = mLumiLength / 2.; // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!
-    TVirtualMC::GetMC()->Gsvolu("QLUC", "BOX ", getMediumID(kCu), boxpar, 3);
+    TVirtualMC::GetMC()->Gsvolu("QLUC", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUC", 1, "ZDCC", 0., 0., Geometry::ZNCPOSITION[1] + 66. + boxpar[2], 0, "ONLY");
     LOG(DEBUG) << "	C-side luminometer positioned in front of ZNC\n";
   }
@@ -1558,7 +1578,7 @@ void Detector::createMagnets()
   // Parameters from magnet DEFINITION
   double zCompensatorField = 1972.5;
   double zITField = 2296.5;
-  double zD1Field = 5838.3;
+  double zD1Field = 5838.3001;
   double zD2Field = 12167.8;
 
   // ***************************************************************
@@ -2174,7 +2194,7 @@ void Detector::createDetectors()
 }
 
 //_____________________________________________________________________________
-void Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
+Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
 {
   double x[3] = { 0., 0., 0. }, xDet[3] = { 0., 0., 0. }, p[3] = { 0., 0., 0. }, energy = 0.;
   fMC->TrackPosition(x[0], x[1], x[2]);
@@ -2195,7 +2215,7 @@ void Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
     else if (beta > 0.95)
       ibeta = 3;
   } else
-    beta = 99;
+    return kFALSE;
   //track angle wrt fibre axis (||LHC axis)
   double umom[3] = { 0., 0., 0. }, udet[3] = { 0., 0., 0. };
   umom[0] = p[0] / ptot;
@@ -2207,7 +2227,7 @@ void Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   if (angleDeg < 110.)
     iangle = int(0.5 + angleDeg / 2.);
   else
-    iangle = 99;
+    return kFALSE;
   //radius from fibre axis
   fMC->Gmtod(x, xDet, 1);
   float radius = 0.;
@@ -2217,6 +2237,7 @@ void Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   } else
     radius = TMath::Abs(udet[0]);
   iradius = int(radius * 1000. + 1.);
+  return kTRUE;
 }
 
 //_____________________________________________________________________________

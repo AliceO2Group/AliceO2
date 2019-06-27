@@ -45,6 +45,7 @@
 #endif
 #include "utils/timer.h"
 
+#include "TPCFastTransform.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include <vector>
@@ -110,6 +111,7 @@ int ReadConfiguration(int argc, char** argv)
 
 #ifndef _WIN32
   setlocale(LC_ALL, "");
+  setlocale(LC_NUMERIC, "");
   if (configStandalone.affinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -134,7 +136,6 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.fpe) {
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
-
 #else
   if (configStandalone.affinity != -1) {
     printf("Affinity setting not supported on Windows\n");
@@ -148,6 +149,9 @@ int ReadConfiguration(int argc, char** argv)
     printf("FPE not supported on Windows\n");
     return (1);
   }
+#endif
+#ifndef HAVE_O2HEADERS
+  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = 0;
 #endif
 #ifndef BUILD_QA
   if (configStandalone.qa || configStandalone.eventGenerator) {
@@ -164,6 +168,17 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {
     printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n");
     return (1);
+  }
+  if (configStandalone.configTF.bunchSim > 1) {
+    configStandalone.configTF.timeFrameLen = 1.e9 * configStandalone.configTF.bunchSim / configStandalone.configTF.interactionRate;
+  }
+  if (configStandalone.configTF.nMerge) {
+    double len = configStandalone.configTF.nMerge - 1;
+    if (configStandalone.configTF.randomizeDistance)
+      len += 0.5;
+    if (configStandalone.configTF.shiftFirstEvent)
+      len += 0.5;
+    configStandalone.configTF.timeFrameLen = (len * configStandalone.configTF.averageDistance / GPUReconstructionTimeframe::TPCZ + 1) * GPUReconstructionTimeframe::DRIFT_TIME;
   }
   if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {
     printf("Can only produce QA pdf output when input files are specified!\n");
@@ -232,11 +247,20 @@ int SetupReconstruction()
   if (configStandalone.constBz) {
     ev.constBz = true;
   }
-  if (configStandalone.cont) {
-    ev.continuousMaxTimeBin = -1;
+  if (configStandalone.configTF.nMerge || configStandalone.configTF.bunchSim) {
+    if (ev.continuousMaxTimeBin) {
+      printf("ERROR: requested to overlay continuous data - not supported\n");
+      return 1;
+    }
+    if (!configStandalone.cont) {
+      printf("Continuous mode forced\n");
+      configStandalone.cont = true;
+    }
+    if (chainTracking->GetTPCTransform()) {
+      ev.continuousMaxTimeBin = configStandalone.configTF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
+    }
   }
-  if (ev.continuousMaxTimeBin == 0 && (configStandalone.configTF.nMerge || configStandalone.configTF.bunchSim)) {
-    printf("Continuous mode forced\n");
+  if (configStandalone.cont && ev.continuousMaxTimeBin == 0) {
     ev.continuousMaxTimeBin = -1;
   }
   if (rec->GetDeviceType() == GPUReconstruction::DeviceType::CPU) {
@@ -314,11 +338,20 @@ int SetupReconstruction()
   if (configStandalone.configRec.rundEdx != -1) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
   }
+  if (configStandalone.configRec.runCompression != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
+  }
+  if (configStandalone.configRec.runTransformation != -1) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCConversion, configStandalone.configRec.runTransformation > 0);
+  }
   if (!configStandalone.merger) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, false);
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
+  }
+  if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge) {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
@@ -342,16 +375,10 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
-  bool convertRun2Raw = false;
-  for (int i = 0; i < chainTracking->NSLICES; i++) {
-    if (chainTracking->mIOPtrs.rawClusters[i]) {
-      convertRun2Raw = true;
+  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge || !configStandalone.configRec.runTransformation)) {
+    if (configStandalone.DebugLevel >= 2) {
+      printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
     }
-  }
-  if (convertRun2Raw) {
-    chainTracking->ConvertRun2RawToNative();
-  }
-  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)) {
     chainTracking->ConvertNativeToClusterDataLegacy();
   }
   return 0;
@@ -422,7 +449,9 @@ int main(int argc, char** argv)
         }
         nEvents = nEventsInDirectory;
       }
-      nEvents /= (configStandalone.configTF.nMerge > 1 ? configStandalone.configTF.nMerge : 1);
+      if (configStandalone.configTF.nMerge > 1) {
+        nEvents /= configStandalone.configTF.nMerge;
+      }
     }
 
     for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
@@ -455,6 +484,20 @@ int main(int argc, char** argv)
             break;
           }
         }
+        if (!configStandalone.configRec.runTransformation) {
+          chainTracking->mIOPtrs.clustersNative = nullptr;
+        } else {
+          for (int i = 0; i < chainTracking->NSLICES; i++) {
+            if (chainTracking->mIOPtrs.rawClusters[i]) {
+              if (configStandalone.DebugLevel >= 2) {
+                printf("Converting Legacy Raw Cluster to Native\n");
+              }
+              chainTracking->ConvertRun2RawToNative();
+              break;
+            }
+          }
+        }
+
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
 
         printf("Processing Event %d\n", iEvent);
@@ -469,7 +512,7 @@ int main(int argc, char** argv)
 
           int tmpRetVal = rec->RunChains();
 
-          if (tmpRetVal == 0) {
+          if (tmpRetVal == 0 || tmpRetVal == 2) {
             int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
             for (int k = 0; k < chainTracking->GetTPCMerger().NOutputTracks(); k++) {
               if (chainTracking->GetTPCMerger().OutputTracks()[k].OK()) {
@@ -485,16 +528,17 @@ int main(int argc, char** argv)
               nClustersTotal += nClusters;
               nEventsProcessed++;
             }
-          }
 
-          if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
-            int nTracklets = 0;
-            for (int k = 0; k < chainTracking->GetTRDTracker()->NTracks(); k++) {
-              auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
-              nTracklets += trk.GetNtracklets();
+            if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
+              int nTracklets = 0;
+              for (int k = 0; k < chainTracking->GetTRDTracker()->NTracks(); k++) {
+                auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
+                nTracklets += trk.GetNtracklets();
+              }
+              printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
-            printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
           }
+          rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {
             configStandalone.continueOnError = 0; // Forced exit from event display loop
