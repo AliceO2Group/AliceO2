@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef ALICEO2_FDD_DIGITIZATION_PARAMETERS
+#define ALICEO2_FDD_DIGITIZATION_PARAMETERS
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::fdd::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::fdd::Detector> + ;
-#pragma link C++ class o2::fdd::Digitizer + ;
-#pragma link C++ class o2::fdd::DigitizationParameters + ;
-
-
+namespace o2::fdd
+{
+struct DigitizationParameters {
+  UShort_t mNchannels;       
+  UShort_t mNtriggers; 
+  Float_t mIntTimeRes;
+  //std::vector<Float_t> mLightYield;
+};
+} // namespace o2::fdd
 #endif

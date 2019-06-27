@@ -13,7 +13,7 @@
 /// \author michal broz
 /// \date 01/08/2016
 
-#include "FDDSimulation/Hit.h"
+#include "DataFormatsFDD/Hit.h"
 
 #include "FDDBase/Geometry.h"
 

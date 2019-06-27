@@ -35,6 +35,7 @@ O2_GENERATE_EXECUTABLE(
   src/TOFClusterWriterSpec.cxx
   src/FITDigitizerSpec.cxx
   src/FITDigitWriterSpec.cxx
+  src/FDDDigitizerSpec.cxx
   src/EMCALDigitizerSpec.cxx
   src/EMCALDigitWriterSpec.cxx
   src/HMPIDDigitizerSpec.cxx

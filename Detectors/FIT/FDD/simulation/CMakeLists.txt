@@ -4,11 +4,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
+  src/Digitizer.cxx
     )
 
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/Hit.h
+    include/${MODULE_NAME}/Digitizer.h
+    include/${MODULE_NAME}/DigitizationParameters.h
     )
 
 Set(LINKDEF src/FDDSimulationLinkDef.h)
