@@ -21,12 +21,16 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 {
     auto res = gt.run(digits);
 
+    log::Debug() << "send Digits to GPU";
     digitsToGPU.call(state, digits, queue);
 
     ASSERT(state.digitnum == size_t(digits.size()))
         << "state.digitnum = " << state.digitnum;
 
+    log::Debug() << "Fill charge map";
     fillChargeMap.call(state, queue);
+
+    log::Debug() << "Look for peaks";
     findPeaks.call(state, queue);
 
     checkIsPeaks(res.isPeak);
@@ -50,8 +54,6 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 
     checkCompactedCluster(res.peaks, res.cluster);
 
-    /* nativeToRegular.call(state, queue); */
-
     queue.finish();
 }
 
@@ -63,10 +65,19 @@ void ClusterFinderTest::checkIsPeaks(const std::vector<bool> &isPeakGT)
 
     ASSERT(isPeakGT.size() == isPeak.size());
 
+    bool correctPeaks = true;
     for (size_t i = 0; i < isPeak.size(); i++)
     {
-        ASSERT(isPeakGT[i] == isPeak[i]);
+        bool ok = (isPeak[i] == isPeakGT[i]);
+
+        /* if (!ok) */
+        /* { */
+        /*     log::Debug() << "i = " << i << "; peak = " << int(isPeak[i]); */
+        /* } */
+
+        correctPeaks &= ok;
     }
+    ASSERT(correctPeaks);
 
     log::Success() << "isPeaks: OK";
 }
@@ -79,10 +90,19 @@ void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
 
     ASSERT(peakGT.size() == peaks.size());
 
+    bool correctPeaks = true;
     for (size_t i = 0; i < peaks.size(); i++)
     {
-        ASSERT(peaks[i] == peakGT[i]);
+        bool ok = (peaks[i] == peakGT[i]);
+
+        if (!ok)
+        {
+            log::Debug() << "i = " << i << "; peak = " << peaks[i];
+        }
+
+        correctPeaks &= ok;
     }
+    ASSERT(correctPeaks);
     
     log::Success() << "peaks: OK";
 }
