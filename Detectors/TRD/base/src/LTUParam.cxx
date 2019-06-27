@@ -88,10 +88,10 @@ void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
   float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *            // Sekante/2 (cm)
                       (e * 1e-2 * TMath::Abs(mMagField) / mPtMin); // 1/R (1/cm)
 
-  float maxDeflAngle = 0.;
 
   float phi = getPhi(det, rob, mcm, ch);
   if (maxDeflTemp < TMath::Cos(phi)) {
+    float maxDeflAngle = 0.;
     maxDeflAngle = TMath::ASin(maxDeflTemp);
 
     float dyMin = (mgDriftLength *
