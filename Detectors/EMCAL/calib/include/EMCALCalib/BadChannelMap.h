@@ -159,6 +159,8 @@ class BadChannelMap
 /// on the stream. Printing also the channel status (BAD_CELL/WARM_CELL)
 std::ostream& operator<<(std::ostream& in, const BadChannelMap& bcm);
 
+std::ostream& operator<<(std::ostream& in, const BadChannelMap::MaskType_t &masktype);
+
 } // namespace emcal
 
 } // namespace o2

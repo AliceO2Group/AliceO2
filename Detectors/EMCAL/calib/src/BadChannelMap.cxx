@@ -106,3 +106,12 @@ std::ostream& o2::emcal::operator<<(std::ostream& stream, const BadChannelMap& b
   bcm.PrintStream(stream);
   return stream;
 }
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const BadChannelMap::MaskType_t &masktype){
+  switch(masktype){
+    case BadChannelMap::MaskType_t::GOOD_CELL: stream << "Good cell"; break;
+    case BadChannelMap::MaskType_t::WARM_CELL: stream << "Warm cell"; break;
+    case BadChannelMap::MaskType_t::BAD_CELL: stream << "Bad cell"; break;
+  };
+  return stream;
+}
