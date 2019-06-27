@@ -71,6 +71,7 @@ class VertexerTraits
   virtual void computeVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
+  VertexingParameters getVertexingParameters() const { return mVrtParams; }
   static const std::vector<std::pair<int, int>> selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
                                                                const std::array<int, 4>& selectedBinsRect);
   std::vector<lightVertex> getVertices() const { return mVertices; }
