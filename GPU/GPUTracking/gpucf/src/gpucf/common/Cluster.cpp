@@ -38,7 +38,23 @@ Cluster::Cluster(int _cru, int _row, float q, float qmax, float _padMean,
     timeSigma = _timeSigma;
 }
 
+Cluster::Cluster(const Digit &peak, const ClusterNative &cn)
+    : Cluster(peak.cru(), peak.localRow(), cn)
+{
+}
 
+Cluster::Cluster(int cru, int row, const ClusterNative &cn)
+    : Cluster(
+            cru, 
+            row, 
+            cn.qtot, 
+            cn.qmax, 
+            cnGetPad(&cn), 
+            cnGetTime(&cn), 
+            cnGetSigmaPad(&cn),
+            cnGetSigmaTime(&cn))
+{
+}
 
 Object Cluster::serialize() const
 {

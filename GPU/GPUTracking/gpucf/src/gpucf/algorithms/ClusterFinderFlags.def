@@ -1,7 +1,6 @@
 #if defined(CLUSTER_FINDER_FLAG)
 
 CLUSTER_FINDER_FLAG(halfs, false, "CHARGEMAP_TYPE_HALF", "Store charges with half precision.")
-CLUSTER_FINDER_FLAG(packedDigits, true, "USE_PACKED_DIGIT", "Use 8 byte digits.")
 CLUSTER_FINDER_FLAG(splitCharges, false, "SPLIT_CHARGES", "Split charges among nearby peaks.")
 CLUSTER_FINDER_FLAG(correctEdgeClusters, false, "CORRECT_EDGE_CLUSTERS", 
     "Use position of peak for COG of edge clusters.")

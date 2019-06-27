@@ -4,6 +4,7 @@
 #include <gpucf/common/Object.h>
 
 #include <shared/Cluster.h>
+#include <shared/ClusterNative.h>
 
 #include <iosfwd>
 #include <string>
@@ -39,6 +40,8 @@ public:
 
     Cluster();
     Cluster(int, int, float, float, float, float, float, float);
+    Cluster(const Digit &, const ClusterNative &);
+    Cluster(int, int, const ClusterNative &);
 
     Object serialize() const;
     void deserialize(const Object &);
