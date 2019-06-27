@@ -15,11 +15,16 @@
 #ifndef ALICEO2_DATAFORMATS_MCTRUTH_H_
 #define ALICEO2_DATAFORMATS_MCTRUTH_H_
 
-#include <TNamed.h>
+#include <TNamed.h> // to have the ClassDef macros
+#include <cstdint>  // uint8_t etc
 #include <cassert>
 #include <stdexcept>
 #include <gsl/gsl> // for guideline support library; array_view
 #include <type_traits>
+#include "MemoryResources/MemoryResources.h"
+// type traits are needed for the compile time consistency check
+// maybe to be moved out of Framework first
+//#include "Framework/TypeTraits.h"
 
 namespace o2
 {
@@ -35,18 +40,33 @@ struct MCTruthHeaderElement {
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
-// A container to hold and manage MC truth information/labels.
-// The actual MCtruth type is a generic template type and can be supplied by the user
-// It is meant to manage associations from one "dataobject" identified by an index into an array
-// to multiple TruthElements
-
+/// @class MCTruthContainer
+/// @brief A container to hold and manage MC truth information/labels.
+///
+/// The actual MCtruth type is a generic template type and can be supplied by the user
+/// It is meant to manage associations from one "dataobject" identified by an index into an array
+/// to multiple TruthElements
+///
 template <typename TruthElement>
 class MCTruthContainer
 {
  private:
-  std::vector<MCTruthHeaderElement>
-    mHeaderArray;                        // the header structure array serves as an index into the actual storage
-  std::vector<TruthElement> mTruthArray; // the buffer containing the actual truth information
+  /// The allocator to be used with the internal vectors is by default o2::pmr::polymorphic_allocator
+  /// we might change this to be a template parameter
+  /// template <typename TruthElement, template <typename ...> class Allocator = o2::pmr::polymorphic_allocator>
+  template <typename T>
+  using Allocator = o2::pmr::polymorphic_allocator<T>;
+
+  // for the moment we require the truth element to be messageable in order to simply flatten the object
+  // if it turnes out that other types are required this needs to be extended and method flatten nees to
+  // be conditionally added
+  // TODO: activate this check
+  //static_assert(o2::framework::is_messageable<TruthElement>::value, "truth element type must be messageable");
+
+  // the header structure array serves as an index into the actual storage
+  std::vector<MCTruthHeaderElement, Allocator<MCTruthHeaderElement>> mHeaderArray;
+  // the buffer containing the actual truth information
+  std::vector<TruthElement, Allocator<TruthElement>> mTruthArray;
 
   size_t getSize(uint dataindex) const
   {
@@ -70,6 +90,15 @@ class MCTruthContainer
   MCTruthContainer& operator=(const MCTruthContainer& other) = default;
   // move assignment operator
   MCTruthContainer& operator=(MCTruthContainer&& other) = default;
+
+  struct FlatHeader {
+    uint8_t version = 1;
+    uint8_t sizeofHeaderElement = sizeof(MCTruthHeaderElement);
+    uint8_t sizeofTruthElement = sizeof(TruthElement);
+    uint8_t reserved = 0;
+    uint32_t nofHeaderElements;
+    uint32_t nofTruthElements;
+  };
 
   // access
   MCTruthHeaderElement getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
@@ -217,6 +246,69 @@ class MCTruthContainer
     for (uint i = oldheadersize; i < mHeaderArray.size(); ++i) {
       mHeaderArray[i].index += oldtruthsize;
     }
+  }
+
+  // TODO: find appropriate name for 'flatten'
+  template <typename MemoryResource>
+  std::vector<char, Allocator<char>> flatten(MemoryResource* resource)
+  {
+    std::vector<char, Allocator<char>> buffer{ resource };
+    [[maybe_unused]] auto size = flatten_to(buffer);
+    assert(size == buffer.size());
+    return buffer;
+  }
+
+  // TODO: find appropriate name for 'flatten'
+  template <typename ContainerType>
+  size_t flatten_to(ContainerType& container)
+  {
+    size_t bufferSize = sizeof(FlatHeader) + sizeof(MCTruthHeaderElement) * mHeaderArray.size() + sizeof(TruthElement) * mTruthArray.size();
+    container.resize((bufferSize / sizeof(typename ContainerType::value_type)) + ((bufferSize % sizeof(typename ContainerType::value_type)) > 0 ? 1 : 0));
+    char* target = reinterpret_cast<char*>(container.data());
+    auto& flatheader = *reinterpret_cast<FlatHeader*>(target);
+    target += sizeof(FlatHeader);
+    flatheader.version = 1;
+    flatheader.sizeofHeaderElement = sizeof(MCTruthHeaderElement);
+    flatheader.sizeofTruthElement = sizeof(TruthElement);
+    flatheader.reserved = 0;
+    flatheader.nofHeaderElements = mHeaderArray.size();
+    flatheader.nofTruthElements = mTruthArray.size();
+    size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
+    memcpy(target, mHeaderArray.data(), copySize);
+    target += copySize;
+    copySize = flatheader.sizeofTruthElement * flatheader.nofTruthElements;
+    memcpy(target, mTruthArray.data(), copySize);
+    return bufferSize;
+  }
+
+  void restore_from(const char* buffer, size_t bufferSize)
+  {
+    if (buffer == nullptr || bufferSize < sizeof(FlatHeader)) {
+      return;
+    }
+    auto* source = buffer;
+    auto& flatheader = *reinterpret_cast<FlatHeader const*>(source);
+    source += sizeof(FlatHeader);
+    if (bufferSize < sizeof(FlatHeader) + flatheader.sizeofHeaderElement * flatheader.nofHeaderElements + flatheader.sizeofTruthElement * flatheader.nofTruthElements) {
+      throw std::runtime_error("inconsistent buffer size: too small");
+      return;
+    }
+    if (flatheader.sizeofHeaderElement != sizeof(MCTruthHeaderElement) || flatheader.sizeofTruthElement != sizeof(TruthElement)) {
+      // not yet handled
+      throw std::runtime_error("member element sizes don't match");
+    }
+    // TODO: with a spectator memory ressource the vectors can be built directly
+    // over the original buffer, there is the implementation for a memory ressource
+    // working on a FairMQ message, here we would need two memory resources over
+    // the two ranges of the input buffer
+    // for now doing a copy
+    mHeaderArray.resize(flatheader.nofHeaderElements);
+    mTruthArray.resize(flatheader.nofTruthElements);
+    size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
+    memcpy(mHeaderArray.data(), source, copySize);
+    source += copySize;
+    copySize = flatheader.sizeofTruthElement * flatheader.nofTruthElements;
+    memcpy(mTruthArray.data(), source, copySize);
   }
 
   ClassDefNV(MCTruthContainer, 1);
