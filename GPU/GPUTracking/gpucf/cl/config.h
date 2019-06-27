@@ -11,11 +11,7 @@
 
 typedef FloatCluster Cluster;
 
-#if defined(USE_PACKED_DIGIT)
-  typedef PackedDigit Digit;
-#else
-  typedef PaddedDigit Digit;
-#endif
+typedef PackedDigit Digit;
 
 
 #if defined(CHARGEMAP_TYPE_HALF)

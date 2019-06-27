@@ -4,19 +4,6 @@
 #include "tpc.h"
 
 
-typedef struct PaddedDigit_s
-{
-    SHARED_FLOAT charge;
-    timestamp time;
-    pad_t pad;
-    row_t row;
-    cru_t cru;
-    /*SHARED_UCHAR padding[3]; Implicit padding to keep struct 4 byte aligned*/
-} PaddedDigit;
-
-#define PADDED_DIGIT_SIZE 12
-
-
 typedef struct PackedDigit_s
 {
     SHARED_FLOAT charge;
