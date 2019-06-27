@@ -2,6 +2,7 @@
 #include "debug.h"
 
 #include "shared/ClusterNative.h"
+#include "shared/constants.h"
 #include "shared/tpc.h"
 
 
@@ -35,10 +36,6 @@ typedef struct ChargePos_s
 } ChargePos;
 
 typedef short2 local_id;
-
-constant charge_t CHARGE_THRESHOLD = 2.f;
-constant charge_t OUTER_CHARGE_THRESHOLD = 0.f;
-constant charge_t QTOT_THRESHOLD = 0.f;
 
 constant delta2_t INNER_NEIGHBORS[8] =
 {
