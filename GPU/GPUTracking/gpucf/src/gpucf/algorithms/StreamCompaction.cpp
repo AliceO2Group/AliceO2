@@ -295,7 +295,13 @@ size_t StreamCompaction::Worker::run(
             nullptr,
             readNewDigitNum.get());
 
+    if (debug)
+    {
+        printDump();
+    }
+
     ASSERT(size_t(newDigitNum) <= digitnum);
+
 
     return newDigitNum;
 }
@@ -324,6 +330,27 @@ Step StreamCompaction::Worker::asStep(const std::string &name) const
     Timestamp start = scanEvents.front().start();
     Timestamp end   = readNewDigitNum.end();
     return {name, start, start, start, end};
+}
+
+void StreamCompaction::Worker::printDump() const
+{
+    log::Error() << "Result dump: ";
+    for (std::vector<int> interim : sumsDump)
+    {
+        constexpr size_t maxPrintOut = 100;
+        size_t c = maxPrintOut;
+        for (int idx : interim)
+        {
+            log::Error() << idx;
+            c--;
+            if (c == 0)
+            {
+                log::Error() << "...";
+                break;
+            }
+        }
+        log::Error();
+    }
 }
 
 void StreamCompaction::Worker::dumpBuffer(

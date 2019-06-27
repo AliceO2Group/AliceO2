@@ -1,5 +1,7 @@
 #include "Digit.h"
 
+#include <gpucf/common/RowInfo.h>
+
 #include <ostream>
 #include <sstream>
 
@@ -7,20 +9,18 @@
 using namespace gpucf;
 
 
-static_assert(sizeof(PaddedDigit) == PADDED_DIGIT_SIZE);
-static_assert(sizeof(Digit) == sizeof(PaddedDigit));
+static_assert(sizeof(Digit) == sizeof(PackedDigit));
 static_assert(sizeof(PackedDigit) == PACKED_DIGIT_SIZE);
 
 
 Digit::Digit()
-    : Digit(0, 0, 0, 0, 0)
+    : Digit(0.f, 0, 0, 0)
 {
 }
 
-Digit::Digit(float _charge, int _cru, int _row, int _pad, int _time)
+Digit::Digit(float _charge, int _row, int _pad, int _time)
 {
     charge = _charge;
-    cru = _cru;
     row = _row;
     pad = _pad;
     time = _time;
@@ -30,7 +30,6 @@ Object Digit::serialize() const
 {
     Object obj("Digit");
 
-    SET_FIELD(obj, cru);
     SET_FIELD(obj, row);
     SET_FIELD(obj, pad);
     SET_FIELD(obj, time);
@@ -41,16 +40,32 @@ Object Digit::serialize() const
 
 void Digit::deserialize(const Object &o)
 {
-    GET_INT(o, cru);
+    /* GET_INT(o, cru); */
     GET_INT(o, row);
     GET_INT(o, pad);
     GET_INT(o, time);
     GET_FLOAT(o, charge);
 }
 
-PackedDigit Digit::toPacked() const
+int Digit::localRow() const
 {
-    return PackedDigit{ charge, time, pad, row };
+    return RowInfo::instance().globalToLocal(row);
+}
+
+int Digit::cru() const
+{
+    return RowInfo::instance().globalRowToCru(row);
+}
+
+bool Digit::operator==(const Digit &other) const
+{
+    bool eq = true;
+    eq &= (row == other.row);
+    eq &= (pad == other.pad);
+    eq &= (time == other.time);
+    eq &= (charge == other.charge);
+
+    return eq;
 }
 
 std::ostream &gpucf::operator<<(std::ostream &os, const Digit &d) 
