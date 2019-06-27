@@ -7,7 +7,7 @@
 
 
 #if 1
-# define IF_DBG_INST if (get_global_linear_id() == 0)
+# define IF_DBG_INST if (get_global_linear_id() == 8)
 # define IF_DBG_GROUP if (get_group_id(0) == 0)
 #else
 # define IF_DBG_INST if (false)
@@ -247,6 +247,11 @@ void reset(PartialCluster *clus)
         for (; i < wgSize-N; i += N) \
         { \
             ChargePos readFrom = posBcast[i + lid.y]; \
+            IF_DBG_GROUP \
+            { \
+                if (i + lid.y == 8) \
+                    DBGPR_2("posbcast = %d, %d", readFrom.gpad, readFrom.time); \
+            } \
             \
             delta2_t d = neighbors[lid.x + offset]; \
             delta_t dp = d.x; \
@@ -257,7 +262,7 @@ void reset(PartialCluster *clus)
             buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
         } \
         \
-        if (i + lid.y <= wgSize) \
+        if (i + lid.y < wgSize) \
         { \
             ChargePos readFrom = posBcast[i + lid.y]; \
             \
@@ -501,7 +506,10 @@ bool isPeakScratchPad(
     const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
     ChargePos pos = {gpad, time};
 
+    IF_DBG_INST DBGPR_2("pos = %d, %d", pos.gpad, pos.time);
+
     posBcast[ll] = pos;
+    IF_DBG_INST DBGPR_2("pos = %d, %d", posBcast[ll].gpad, posBcast[ll].time);
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     fillScratchPad_charge_t(
@@ -740,8 +748,9 @@ void findPeaks(
 
     bool peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
+    IF_DBG_INST printf("Looking for peaks (using LDS)\n");
     const ushort N = 8;
-    local ChargePos posBcast[N];
+    local ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     local charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
     peak = isPeakScratchPad(&myDigit, N, chargeMap, posBcast, buf);
 #else
@@ -774,8 +783,6 @@ void countPeaks(
 {
     size_t idx = get_global_linear_id();
 
-    printf("TEST \n");
-
     bool iamDummy = (idx >= digitnum);
     /* idx = select(idx, (size_t)(digitnum-1), (size_t)iamDummy); */
     idx = iamDummy ? digitnum-1 : idx;
@@ -786,7 +793,8 @@ void countPeaks(
     bool iamPeak  = isPeak[idx];
 
     char peakCount;
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+/* #if defined(BUILD_CLUSTER_SCRATCH_PAD) */
+#if 0
     ushort ll = get_local_linear_id();
 
     const ushort N = 8;
@@ -797,7 +805,7 @@ void countPeaks(
     local charge_t  chargeBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
     local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
 
-    DBGPR_0("Filling Bcast.");
+    IF_DBG_INST DBGPR_0("Filling Bcast.");
 
     posBcast1[ll]    = (ChargePos){gpad, myDigit.time};
     chargeBcast1[ll] = myDigit.charge;
@@ -815,7 +823,6 @@ void countPeaks(
             posBcast1, 
             chargeBcast2, 
             posBcast2);
-
 
     local_id lid = {ll % N, ll / N};
     IF_DBG_INST DBGPR_0("Fill LDS 1.");
@@ -932,34 +939,4 @@ void computeClusters(
 #else
     aboveQTotCutoff[idx] = true;
 #endif
-}
-
-
-kernel
-void nativeToRegular(
-        global const ClusterNative *native,
-        global const Digit         *peaks,
-        global const int           *globalToLocalRow,
-        global const int           *globalRowToCru,
-        global       Cluster       *regular)
-{
-    size_t idx = get_global_linear_id();
-
-    ClusterNative cn = native[idx];
-    Digit peak       = peaks[idx];
-
-    Cluster c;
-    c.Q    = cn.qtot;
-    c.QMax = cn.qmax;
-
-    c.padMean = cnGetPad(&cn);
-    c.timeMean = cnGetTime(&cn);
-
-    c.padSigma = cnGetSigmaPad(&cn);
-    c.timeSigma = cnGetSigmaTime(&cn);
-
-    c.cru = globalRowToCru[peak.row];
-    c.row = globalToLocalRow[peak.row];
-
-    regular[idx] = c;
 }
