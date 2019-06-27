@@ -15,7 +15,8 @@ public:
     void call(ClusterFinderState &state, cl::CommandQueue queue)
     {
         bool scratchpad = (state.cfg.clusterbuilder == ClusterBuilder::ScratchPad);
-        size_t dummyItems = (scratchpad) ? 64 - (state.digitnum % 64) : 0;
+        size_t dummyItems = (scratchpad) 
+            ? 64 - (state.digitnum % 64) : 0;
 
         size_t workitems = state.digitnum + dummyItems;
 

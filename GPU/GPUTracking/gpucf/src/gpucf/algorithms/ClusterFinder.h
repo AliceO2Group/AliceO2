@@ -28,7 +28,6 @@ protected:
     DigitsToGPU     digitsToGPU;
     FillChargeMap   fillChargeMap;
     FindPeaks       findPeaks;
-    NativeToRegular nativeToRegular;
     ResetMaps       resetMaps;
 
 };
