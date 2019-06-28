@@ -124,10 +124,21 @@ void ClusterFinderTest::checkCluster(
         cluster.emplace_back(peaks[i].cru(), peaks[i].localRow(), cn[i]);
     }
 
+    bool clusterOk = true;
     for (size_t i = 0; i < cluster.size(); i++)
     {
-        ASSERT(cluster[i].eq(clusterGT[i], 0.f, 0.f, Cluster::Field_all));
+        bool ok = (cluster[i].eq(clusterGT[i], 0.f, 0.f, Cluster::Field_all));
+        clusterOk &= ok;
+
+        if (!ok)
+        {
+            log::Debug() << "i  = " << i
+                << "\n c  = " << cluster[i]
+                << "\n gt = " << clusterGT[i];
+        }
     }
+
+    ASSERT(clusterOk);
 
     log::Success() << "cluster: OK";
 }
