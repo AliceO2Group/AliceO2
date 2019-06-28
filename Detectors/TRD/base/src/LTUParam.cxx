@@ -60,7 +60,6 @@ LTUParam::LTUParam() : mMagField(0.),
   std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { 1 / mgWidthPad[j]; });
   j = 0;
   std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
-  mInvPtMin = 1 / mPtMin;
 }
 
 LTUParam::~LTUParam() = default;
@@ -72,7 +71,7 @@ int LTUParam::getDyCorrection(int det, int rob, int mcm) const
 
   int layer = det % 6;
 
-  float dyTilt = (mgDriftLength * mgTiltingAngleTan[layer] *
+  float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * TMath::Pi() / 180.) *
                   getLocalZ(det, rob, mcm) * mgInvX[layer]);
 
   // calculate Lorentz correction
@@ -93,18 +92,17 @@ void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
   dyMaxInt = mgDyMax;
 
   // deflection cut is considered for |B| > 0.1 T only
-  if (std::abs(mMagField) < 0.1)
+  if (TMath::Abs(mMagField) < 0.1)
     return;
 
   float e = 0.30;
 
-  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *             // Sekante/2 (cm)
-                      (e * 1e-2 * std::abs(mMagField) * mInvPtMin); // 1/R (1/cm)
+  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *               // Sekante/2 (cm)
+                      (e * 1e-2 * TMath::Abs(mMagField) * mInvPtMin); // 1/R (1/cm)
 
   float phi = getPhi(det, rob, mcm, ch);
-  if (maxDeflTemp < std::cos(phi)) {
-    float maxDeflAngle = 0.;
-    maxDeflAngle = std::asin(maxDeflTemp);
+  if (maxDeflTemp < TMath::Cos(phi)) {
+    float maxDeflAngle = TMath::ASin(maxDeflTemp);
 
     float dyMin = (mgDriftLength *
                    std::tan(phi - maxDeflAngle));
@@ -147,7 +145,7 @@ float LTUParam::getElongation(int det, int rob, int mcm, int ch) const
 
   int layer = det % 6;
 
-  float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
+  float elongation = TMath::Abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
 
   // sanity check
   if (elongation < 0.001) {
