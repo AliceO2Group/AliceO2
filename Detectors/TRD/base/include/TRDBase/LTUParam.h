@@ -27,7 +27,11 @@ class LTUParam
 
   // configuration settings
   // called with special SCSN commands
-  void setPtMin(int data) { mPtMin = float(data) / 1000.; }
+  void setPtMin(int data)
+  {
+    mPtMin = float(data) / 1000.;
+    mInvPtMin = 1 / mPtMin;
+  }
   void setMagField(int data) { mMagField = float(data) / 1000.; }
   void setOmegaTau(int data) { mOmegaTau = float(data) / 1.e6; }
   void setNtimebins(int data) { mNtimebins = data; }
@@ -69,8 +73,11 @@ class LTUParam
   // geometry constants
   static std::array<float, 30> mgZrow;            // z-position of pad row edge 6x5
   static std::array<float, 6> mgX;                // x-position for all layers
+  static std::array<float, 6> mgInvX;             // inverse x-position for all layers (to remove divisions)
   static std::array<float, 6> mgTiltingAngle;     // tilting angle for every layer
+  static std::array<float, 6> mgTiltingAngleTan;  // tan of tilting angle for every layer (look up table to avoid tan calculations)
   static std::array<float, 6> mgWidthPad;         // pad width for all layers
+  static std::array<float, 6> mgInvWidthPad;      // inverse pad width for all layers (to remove divisions)
   static float mgLengthInnerPadC0;                // inner pad length C0 chamber
   static float mgLengthOuterPadC0;                // outer pad length C0 chamber
   static std::array<float, 6> mgLengthInnerPadC1; // inner pad length C1 chambers
@@ -85,6 +92,7 @@ class LTUParam
   float mMagField;          // magnetic field
   float mOmegaTau;          // omega tau, i.e. tan(Lorentz angle)
   float mPtMin;             // min. pt for deflection cut
+  float mInvPtMin;          // min. pt for deflection cut (Inverted to remove division)
   int mNtimebins;           // drift time in units of timebins << 5n
   unsigned int mScaleQ0;    // scale factor for accumulated charge Q0
   unsigned int mScaleQ1;    // scale factor for accumulated charge Q1

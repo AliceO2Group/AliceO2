@@ -32,6 +32,10 @@ float LTUParam::mgBinDy = 140e-4;
 std::array<float, 6> LTUParam::mgWidthPad = { 0.635, 0.665, 0.695, 0.725, 0.755, 0.785 };
 std::array<float, 6> LTUParam::mgLengthInnerPadC1 = { 7.5, 7.5, 8.0, 8.5, 9.0, 9.0 };
 std::array<float, 6> LTUParam::mgLengthOuterPadC1 = { 7.5, 7.5, 7.5, 7.5, 7.5, 8.5 };
+std::array<float, 6> LTUParam::mgInvX;
+std::array<float, 6> LTUParam::mgTiltingAngleTan;
+std::array<float, 6> LTUParam::mgInvWidthPad;
+
 float LTUParam::mgLengthInnerPadC0 = 9.0;
 float LTUParam::mgLengthOuterPadC0 = 8.0;
 float LTUParam::mgScalePad = 256. * 32.;
@@ -48,6 +52,15 @@ LTUParam::LTUParam() : mMagField(0.),
                        mPidGainCorr(false)
 {
   // default constructor
+  // These variables are used internally in the class to elliminate divisions.
+  // putting them at the top was messy.
+  int j = 0;
+  std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { 1 / mgX[j]; });
+  j = 0;
+  std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { 1 / mgWidthPad[j]; });
+  j = 0;
+  std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
+  mInvPtMin = 1 / mPtMin;
 }
 
 LTUParam::~LTUParam() = default;
@@ -59,8 +72,8 @@ int LTUParam::getDyCorrection(int det, int rob, int mcm) const
 
   int layer = det % 6;
 
-  float dyTilt = (mgDriftLength * TMath::Tan(mgTiltingAngle[layer] * TMath::Pi() / 180.) *
-                  getLocalZ(det, rob, mcm) / mgX[layer]);
+  float dyTilt = (mgDriftLength * mgTiltingAngleTan[layer] *
+                  getLocalZ(det, rob, mcm) * mgInvX[layer]);
 
   // calculate Lorentz correction
   float dyCorr = -mOmegaTau * mgDriftLength;
@@ -68,7 +81,7 @@ int LTUParam::getDyCorrection(int det, int rob, int mcm) const
   if (mTiltCorr)
     dyCorr += dyTilt; // add tilt correction
 
-  return (int)TMath::Nint(dyCorr * mgScalePad / mgWidthPad[layer]);
+  return (int)TMath::Nint(dyCorr * mgScalePad * mgInvWidthPad[layer]);
 }
 
 void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
@@ -80,22 +93,21 @@ void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
   dyMaxInt = mgDyMax;
 
   // deflection cut is considered for |B| > 0.1 T only
-  if (TMath::Abs(mMagField) < 0.1)
+  if (std::abs(mMagField) < 0.1)
     return;
 
   float e = 0.30;
 
-  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *            // Sekante/2 (cm)
-                      (e * 1e-2 * TMath::Abs(mMagField) / mPtMin); // 1/R (1/cm)
-
+  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *             // Sekante/2 (cm)
+                      (e * 1e-2 * std::abs(mMagField) * mInvPtMin); // 1/R (1/cm)
 
   float phi = getPhi(det, rob, mcm, ch);
-  if (maxDeflTemp < TMath::Cos(phi)) {
+  if (maxDeflTemp < std::cos(phi)) {
     float maxDeflAngle = 0.;
-    maxDeflAngle = TMath::ASin(maxDeflTemp);
+    maxDeflAngle = std::asin(maxDeflTemp);
 
     float dyMin = (mgDriftLength *
-                   TMath::Tan(phi - maxDeflAngle));
+                   std::tan(phi - maxDeflAngle));
 
     dyMinInt = int(dyMin / mgBinDy);
     // clipping to allowed range
@@ -105,7 +117,7 @@ void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
       dyMinInt = mgDyMax;
 
     float dyMax = (mgDriftLength *
-                   TMath::Tan(phi + maxDeflAngle));
+                   std::tan(phi + maxDeflAngle));
 
     dyMaxInt = int(dyMax / mgBinDy);
     // clipping to allowed range
@@ -135,7 +147,7 @@ float LTUParam::getElongation(int det, int rob, int mcm, int ch) const
 
   int layer = det % 6;
 
-  float elongation = TMath::Abs(getDist(det, rob, mcm, ch) / mgX[layer]);
+  float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
 
   // sanity check
   if (elongation < 0.001) {
@@ -148,16 +160,16 @@ void LTUParam::getCorrectionFactors(int det, int rob, int mcm, int ch,
                                     unsigned int& cor0, unsigned int& cor1, float gain) const
 {
   // calculate the gain correction factors for the given ADC channel
-
-  if (mPidGainCorr == false)
-    gain = 1;
+  float Invgain = 1.0;
+  if (mPidGainCorr == true)
+    Invgain = 1 / gain;
 
   if (mPidTracklengthCorr == true) {
-    cor0 = (unsigned int)((1.0 * mScaleQ0 * (1. / getElongation(det, rob, mcm, ch))) / gain);
-    cor1 = (unsigned int)((1.0 * mScaleQ1 * (1. / getElongation(det, rob, mcm, ch))) / gain);
+    cor0 = (unsigned int)((1.0 * mScaleQ0 * (1. / getElongation(det, rob, mcm, ch))) * Invgain);
+    cor1 = (unsigned int)((1.0 * mScaleQ1 * (1. / getElongation(det, rob, mcm, ch))) * Invgain);
   } else {
-    cor0 = (unsigned int)(mScaleQ0 / gain);
-    cor1 = (unsigned int)(mScaleQ1 / gain);
+    cor0 = (unsigned int)(mScaleQ0 * Invgain);
+    cor1 = (unsigned int)(mScaleQ1 * Invgain);
   }
 }
 
@@ -218,14 +230,14 @@ float LTUParam::getPerp(int det, int rob, int mcm, int ch) const
   float x;
   x = getX(det, rob, mcm) * getX(det, rob, mcm);
   y = getLocalY(det, rob, mcm, ch);
-  return TMath::Sqrt(y * y + x * x);
+  return std::sqrt(y * y + x * x);
 }
 
 float LTUParam::getPhi(int det, int rob, int mcm, int ch) const
 {
   // calculate the azimuthal angle for the given ADC channel
 
-  return TMath::ATan2(getLocalY(det, rob, mcm, ch), getX(det, rob, mcm));
+  return std::atan2(getLocalY(det, rob, mcm, ch), getX(det, rob, mcm));
 }
 
 float LTUParam::getDist(int det, int rob, int mcm, int ch) const
@@ -236,5 +248,5 @@ float LTUParam::getDist(int det, int rob, int mcm, int ch) const
   y = getLocalY(det, rob, mcm, ch);
   z = getLocalZ(det, rob, mcm);
 
-  return TMath::Sqrt(y * y + x * x + z * z);
+  return std::sqrt(y * y + x * x + z * z);
 }
