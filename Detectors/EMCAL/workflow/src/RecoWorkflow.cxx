@@ -93,17 +93,16 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   // in this workflow, the EOD is sent after the last real data, and all inputs will receive EOD,
   // so it is enough to check on the first occurence
   // FIXME: this will be changed once DPL can propagate control events like EOD
-  auto checkReady = [](o2::framework::DataRef const& ref, bool& isReady) {
+  auto checkReady = [](o2::framework::DataRef const& ref) {
     auto const* emcalheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(ref);
     // sector number -1 indicates end-of-data
     if (emcalheader != nullptr) {
-      isReady = !emcalheader->mHasPayload;
       // indicate normal processing if not ready and skip if ready
-      if (isReady) {
-        return o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing;
+      if (!emcalheader->mHasPayload) {
+        return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing, true);
       }
     }
-    return o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing;
+    return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing, false);
   };
 
   auto makeWriterSpec = [propagateMC, checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,

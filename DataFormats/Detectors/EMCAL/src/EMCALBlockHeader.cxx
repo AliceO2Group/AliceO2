@@ -11,3 +11,4 @@
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 
 constexpr o2::header::HeaderType o2::emcal::EMCALBlockHeader::sHeaderType;
+constexpr const o2::header::HeaderType sHeaderType = "EMCBlkH";
