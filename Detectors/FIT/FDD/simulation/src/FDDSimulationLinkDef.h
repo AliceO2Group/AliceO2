@@ -19,5 +19,4 @@
 #pragma link C++ class o2::fdd::Digitizer + ;
 #pragma link C++ class o2::fdd::DigitizationParameters + ;
 
-
 #endif

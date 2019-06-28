@@ -22,10 +22,10 @@ namespace fdd
 {
 
 struct ChannelData {
-  Int_t   mPMNumber;      // PhotoMultiplier number (0 to 16)
-  Float_t mTime;          // Time of Flight
-  Float_t mWidth;         // Width of the time distribution
-  Short_t mChargeADC;     // ADC sample as present in raw data
+  Int_t mPMNumber;    // PhotoMultiplier number (0 to 16)
+  Float_t mTime;      // Time of Flight
+  Float_t mWidth;     // Width of the time distribution
+  Short_t mChargeADC; // ADC sample as present in raw data
   ClassDefNV(ChannelData, 1);
 };
 

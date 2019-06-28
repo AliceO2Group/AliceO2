@@ -14,10 +14,16 @@
 namespace o2::fdd
 {
 struct DigitizationParameters {
-  UShort_t mNchannels;       
-  UShort_t mNtriggers; 
-  Float_t mIntTimeRes;
-  //std::vector<Float_t> mLightYield;
+  const UShort_t mNchannels = 16;
+  const UShort_t mNtriggers = 5;
+  const Float_t mIntTimeRes = 0.4;
+  const Float_t mPhotoCathodeEfficiency = 0.18;
+  const Float_t mLightYield = 0.01;
+  const Float_t mPmGain = 1e6;
+  const Float_t mChargePerADC = 0.6e-12;
+  const Float_t mPMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
+  const Float_t mPMTransparency = 0.25; // Transparency of the first dynode of the PM
+  const Float_t mPMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
 };
 } // namespace o2::fdd
 #endif

@@ -18,6 +18,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FDDSimulation/DigitizationParameters.h"
+#include "MathUtils/CachingTF1.h"
 
 namespace o2
 {
@@ -26,7 +27,7 @@ namespace fdd
 class Digitizer
 {
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
+  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params), mTime(16) { init(); };
   ~Digitizer() = default;
 
   void process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* digit);
@@ -48,6 +49,8 @@ class Digitizer
 
   void SetTriggers(o2::fdd::Digit* digit);
   Int_t SimulateLightYield(Int_t pmt, Int_t nPhot);
+  Double_t PMResponse(Double_t* x, Double_t* par);
+  Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
 
   void init();
   void finish();
@@ -55,17 +58,20 @@ class Digitizer
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* mclb) { mMCLabels = mclb; }
 
  private:
-  // digit info
-  // parameters
-  Int_t mMode;  //triggered or continuos
+  Int_t mMode;                      //triggered or continuos
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
 
   DigitizationParameters parameters;
-
   o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* mMCLabels = nullptr;
+
+  std::vector<std::vector<Float_t>> mTime;                  // Charge time series aka analogue signal pulse from PM
+  UInt_t mNBins;                                            // Number of bins in pulse series
+  Float_t mBinSize;                                         // Time width of the pulse bin - HPTDC resolution
+  std::unique_ptr<o2::base::CachingTF1> mPMResponse;        // function which describes the PM time response
+  std::unique_ptr<o2::base::CachingTF1> mSinglePhESpectrum; // function which describes the single ph.e. PM response
 
   ClassDefNV(Digitizer, 1);
 };

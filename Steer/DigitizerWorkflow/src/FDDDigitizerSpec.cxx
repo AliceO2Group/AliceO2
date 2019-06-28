@@ -78,8 +78,8 @@ class FDDDPLDigitizerTask
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
     }
-    o2::fdd::DigitizationParameters const& parameters = {16,5,0.5};
-    mDigitizer = std::make_unique<Digitizer>(parameters,0);
+    o2::fdd::DigitizationParameters const& parameters = {};
+    mDigitizer = std::make_unique<Digitizer>(parameters, 0);
   }
 
   void run(framework::ProcessingContext& pc)
@@ -124,7 +124,7 @@ class FDDDPLDigitizerTask
         mDigitizer->process(&hits, &digit);
         //std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
-	mDigitizer->SetTriggers(&digit);
+        mDigitizer->SetTriggers(&digit);
         digitsAccum.push_back(digit); // we should move it there actually
         LOG(INFO) << "Have " << digitsAccum.back().GetChannelData().size() << " fired channels ";
       }

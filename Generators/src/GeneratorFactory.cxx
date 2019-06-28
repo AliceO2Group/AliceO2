@@ -97,7 +97,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGenA);
   } else if (genconfig.compare("fddgen") == 0) {
     LOG(INFO) << "Init box FDD generator";
-    auto boxGenFDC = new FairBoxGenerator(13, 2000);
+    auto boxGenFDC = new FairBoxGenerator(13, 1000);
     boxGenFDC->SetEtaRange(-7.0, -4.8);
     boxGenFDC->SetPRange(10, 500);
     boxGenFDC->SetPhiRange(0., 360.);
