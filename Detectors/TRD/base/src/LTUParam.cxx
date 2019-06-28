@@ -53,11 +53,13 @@ LTUParam::LTUParam() : mMagField(0.),
   // default constructor
   // These variables are used internally in the class to elliminate divisions.
   // putting them at the top was messy.
-  for (int i = 0; i < 6; i++) {
-    mgInvX[i] = 1 / mgX[i];
-    mgInvWidthPad[i] = 1 / mgWidthPad[i];
-    mgTiltingAngleTan[i] = std::tan(mgTiltingAngle[i] * M_PI / 180.0);
-  }
+  int j = 0;
+  std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { x = 1. / mgX[j]; });
+  j = 0;
+  std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { x = 1. / mgWidthPad[j]; });
+  j = 0;
+  std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { x = std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
+
   mInvPtMin = 1 / mPtMin;
 }
 
@@ -91,17 +93,17 @@ void LTUParam::getDyRange(int det, int rob, int mcm, int ch,
   dyMaxInt = mgDyMax;
 
   // deflection cut is considered for |B| > 0.1 T only
-  if (TMath::Abs(mMagField) < 0.1)
+  if (std::abs(mMagField) < 0.1)
     return;
 
   float e = 0.30;
 
-  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *               // Sekante/2 (cm)
-                      (e * 1e-2 * TMath::Abs(mMagField) * mInvPtMin); // 1/R (1/cm)
+  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *             // Sekante/2 (cm)
+                      (e * 1e-2 * std::abs(mMagField) * mInvPtMin); // 1/R (1/cm)
 
   float phi = getPhi(det, rob, mcm, ch);
-  if (maxDeflTemp < TMath::Cos(phi)) {
-    float maxDeflAngle = TMath::ASin(maxDeflTemp);
+  if (maxDeflTemp < std::cos(phi)) {
+    float maxDeflAngle = std::asin(maxDeflTemp);
 
     float dyMin = (mgDriftLength *
                    std::tan(phi - maxDeflAngle));
@@ -144,7 +146,7 @@ float LTUParam::getElongation(int det, int rob, int mcm, int ch) const
 
   int layer = det % 6;
 
-  float elongation = TMath::Abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
+  float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
 
   // sanity check
   if (elongation < 0.001) {
@@ -162,8 +164,9 @@ void LTUParam::getCorrectionFactors(int det, int rob, int mcm, int ch,
     Invgain = 1 / gain;
 
   if (mPidTracklengthCorr == true) {
-    cor0 = (unsigned int)((1.0 * mScaleQ0 * (1. / getElongation(det, rob, mcm, ch))) * Invgain);
-    cor1 = (unsigned int)((1.0 * mScaleQ1 * (1. / getElongation(det, rob, mcm, ch))) * Invgain);
+    float InvElongationOverGain = 1 / getElongation(det, rob, mcm, ch) * Invgain;
+    cor0 = (unsigned int)(mScaleQ0 * InvElongationOverGain);
+    cor1 = (unsigned int)(mScaleQ1 * InvElongationOverGain);
   } else {
     cor0 = (unsigned int)(mScaleQ0 * Invgain);
     cor1 = (unsigned int)(mScaleQ1 * Invgain);
@@ -225,7 +228,7 @@ float LTUParam::getPerp(int det, int rob, int mcm, int ch) const
   // get transverse distance to the beam axis
   float y;
   float x;
-  x = getX(det, rob, mcm) * getX(det, rob, mcm);
+  x = getX(det, rob, mcm);
   y = getLocalY(det, rob, mcm, ch);
   return std::sqrt(y * y + x * x);
 }
