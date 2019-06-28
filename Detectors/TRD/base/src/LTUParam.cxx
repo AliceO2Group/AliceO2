@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <stdio.h>
 #include "TMath.h"
 #include "TRDBase/LTUParam.h"
 #include "fairlogger/Logger.h"
@@ -54,12 +53,12 @@ LTUParam::LTUParam() : mMagField(0.),
   // default constructor
   // These variables are used internally in the class to elliminate divisions.
   // putting them at the top was messy.
-  int j = 0;
-  std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { 1 / mgX[j]; });
-  j = 0;
-  std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { 1 / mgWidthPad[j]; });
-  j = 0;
-  std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
+  for (int i = 0; i < 6; i++) {
+    mgInvX[i] = 1 / mgX[i];
+    mgInvWidthPad[i] = 1 / mgWidthPad[i];
+    mgTiltingAngleTan[i] = std::tan(mgTiltingAngle[i] * M_PI / 180.0);
+  }
+  mInvPtMin = 1 / mPtMin;
 }
 
 LTUParam::~LTUParam() = default;
@@ -71,7 +70,7 @@ int LTUParam::getDyCorrection(int det, int rob, int mcm) const
 
   int layer = det % 6;
 
-  float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * TMath::Pi() / 180.) *
+  float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * M_PI / 180.) *
                   getLocalZ(det, rob, mcm) * mgInvX[layer]);
 
   // calculate Lorentz correction
