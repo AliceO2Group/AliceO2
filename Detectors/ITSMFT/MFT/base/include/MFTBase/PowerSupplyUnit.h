@@ -16,7 +16,6 @@
 #ifndef ALICEO2_MFT_POWERSUPPLYUNIT_H_
 #define ALICEO2_MFT_POWERSUPPLYUNIT_H_
 
-#include "TNamed.h"
 #include "TGeoVolume.h"
 #include "TGeoMatrix.h"
 
@@ -25,19 +24,19 @@ namespace o2
 namespace mft
 {
 
-class PowerSupplyUnit : public TNamed
+class PowerSupplyUnit
 {
 
  public:
   PowerSupplyUnit();
   //PowerSupplyUnit(Double_t Rwater, Double_t DRPipe, Double_t PowerSupplyUnitThickness, Double_t CarbonThickness);
 
-  ~PowerSupplyUnit() override = default;
+  ~PowerSupplyUnit() = default;
 
   TGeoVolumeAssembly* create();
 
  private:
-  ClassDefOverride(PowerSupplyUnit, 2);
+  ClassDef(PowerSupplyUnit, 2);
 };
 } // namespace mft
 } // namespace o2

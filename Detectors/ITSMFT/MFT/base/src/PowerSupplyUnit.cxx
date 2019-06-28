@@ -31,20 +31,12 @@ using namespace o2::mft;
 ClassImp(o2::mft::PowerSupplyUnit);
 
 //_____________________________________________________________________________
-PowerSupplyUnit::PowerSupplyUnit() : TNamed()
+PowerSupplyUnit::PowerSupplyUnit()
 {
   create();
 }
-/*
 //_____________________________________________________________________________
-PowerSupplyUnit::PowerSupplyUnit(Double_t rWater, Double_t dRPipe, Double_t heatExchangerThickness,
-				 Double_t carbonThickness)
-  : TNamed(),mPSU(nullptr)
-{
-  create(1,1);
-}
-*/
-//_____________________________________________________________________________
+
 TGeoVolumeAssembly* PowerSupplyUnit::create()
 {
 
