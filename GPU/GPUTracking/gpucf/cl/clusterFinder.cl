@@ -6,7 +6,7 @@
 #include "shared/tpc.h"
 
 
-#if 1
+#if 0
 # define IF_DBG_INST if (get_global_linear_id() == 8)
 # define IF_DBG_GROUP if (get_group_id(0) == 0)
 #else
@@ -343,12 +343,16 @@ void updateClusterScratchpadOuter(
         charge_t q = buf[N * lid + i];
         ushort outerIdx = i + offset;
 
+#if defined(SPLIT_CHARGES)
+        q = (q < 0) ? -q : 0.f;
+#else
         bool contributes = (q > OUTER_CHARGE_THRESHOLD 
                 && innerAboveThreshold(aboveThreshold, outerIdx));
 
-        IF_DBG_INST DBGPR_1("q = %f", q);
+        /* IF_DBG_INST DBGPR_1("q = %f", q); */
 
         q = (contributes) ? q : 0.f;
+#endif
 
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
 
