@@ -18,6 +18,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FITSimulation/DigitizationParameters.h"
+#include <TH1F.h>
 
 namespace o2
 {
@@ -56,6 +57,7 @@ class Digitizer
   void finish();
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mclb) { mMCLabels = mclb; }
+  double get_time(const std::vector<double>& times, double signal_width);
 
  private:
   // digit info
@@ -72,6 +74,11 @@ class Digitizer
 
   static constexpr Float_t C_side_cable_cmps = 2.877; //ns
   static constexpr Float_t A_side_cable_cmps = 11.08; //ns
+
+  TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+
   //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
   //static std::vector<double> aggregate_channels(const std::vector<o2::fit::HitType>& hits, DigitizationParameters const& parameters);
