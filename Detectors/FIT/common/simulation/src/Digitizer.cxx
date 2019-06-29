@@ -36,60 +36,65 @@ double signalForm_i(double x)
   return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
 
-double get_time(const std::vector<double>& times, double signal_width)
+double Digitizer::get_time(const std::vector<double>& times, double signal_width)
 {
-  TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F histsum("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F histshift("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  /// Fill Histrogram `hist` with photoelectron induced voltage
+  mHist->Reset();
+  mHistsum->Reset();
+  mHistshift->Reset();
+  /*
+  TH1F mHist("time_mHistogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F mHistsum("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F mHistshift("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  */
+  /// Fill MHistrogram `mHist` with photoelectron induced voltage
   for (auto time : times) {
-    for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
-      if (hist.GetBinCenter(bin) > time)
-        hist.AddBinContent(bin, signalForm_i(hist.GetBinCenter(bin) - time));
+    for (int bin = mHist->FindBin(time); bin < mHist->GetSize(); ++bin)
+      if (mHist->GetBinCenter(bin) > time)
+        mHist->AddBinContent(bin, signalForm_i(mHist->GetBinCenter(bin) - time));
   }
-  /// Add noise to `hist`
+  /// Add noise to `mHist`
   double noiseVar = 0.1;
-  int noise_period = 1 / 0.9 / hist.GetBinWidth(0);
-  for (int c = 0; c < hist.GetSize(); c += noise_period) {
+  int noise_period = 1 / 0.9 / mHist->GetBinWidth(0);
+  for (int c = 0; c < mHist->GetSize(); c += noise_period) {
     double val = gRandom->Gaus(0, noiseVar);
-    for (int bin = 0; bin < hist.GetSize(); ++bin)
-      hist.AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
+    for (int bin = 0; bin < mHist->GetSize(); ++bin)
+      mHist->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
   }
   int binshift = int(1.47 / (signal_width / 1000.));
-  /// Add noise to the initial part of `histshift` that would contain values before the timeframe
-  for (int c = 0; c < hist.GetSize(); c += noise_period) {
+  /// Add noise to the initial part of `mHistshift` that would contain values before the timeframe
+  for (int c = 0; c < mHist->GetSize(); c += noise_period) {
     double val = gRandom->Gaus(0, noiseVar);
     for (int bin = 0; bin < binshift; ++bin)
-      histshift.AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
+      mHistshift->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
   }
 
   /*
-  for (int bin = 0; bin < hist.GetSize(); ++bin) {
+  for (int bin = 0; bin < mHist->GetSize(); ++bin) {
     Double_t gausnoise = gRandom->Gaus(0, noiseVar);
-    hist.AddBinContent(bin, gausnoise);
+    mHist->AddBinContent(bin, gausnoise);
   }
   
   int binshift = int(1.47 / (signal_width / 1000.));
-  /// Add noise to the initial part of `histshift` that would contain values before the timeframe
+  /// Add noise to the initial part of `mHistshift` that would contain values before the timeframe
   for (int bin =0; bin < binshift; ++bin) {
     Double_t gausnoise = gRandom->Gaus(0, noiseVar);
-    histshift.AddBinContent(bin, gausnoise);
+    mHistshift->AddBinContent(bin, gausnoise);
   }
   */
-  /// Shift `hist` by 1.47 ns to `histshift`
-  for (int bin = 0; bin < hist.GetSize() - binshift; ++bin)
-    histshift.SetBinContent(bin + binshift, hist.GetBinContent(bin));
+  /// Shift `mHist` by 1.47 ns to `mHistshift`
+  for (int bin = 0; bin < mHist->GetSize() - binshift; ++bin)
+    mHistshift->SetBinContent(bin + binshift, mHist->GetBinContent(bin));
 
-  /// Add the signal and its shifted version to `histsum`
-  hist.Scale(-1);
-  histsum.Add(&histshift, &hist, 5, 1);
-  for (int bin = 1; bin < hist.GetSize(); ++bin) {
-    /// Find the point where zero is crossed in `histsum` ...
-    if (histsum.GetBinContent(bin - 1) < 0 && histsum.GetBinContent(bin) >= 0) {
+  /// Add the signal and its shifted version to `mHistsum`
+  mHist->Scale(-1);
+  mHistsum->Add(mHistshift, mHist, 5, 1);
+  for (int bin = 1; bin < mHist->GetSize(); ++bin) {
+    /// Find the point where zero is crossed in `mHistsum` ...
+    if (mHistsum->GetBinContent(bin - 1) < 0 && mHistsum->GetBinContent(bin) >= 0) {
       /// ... and voltage is above 3 mV
-      if (std::abs(hist.GetBinContent(bin)) > 3) {
-        //std::cout << "Amp high enough: " << hist.GetBinContent(bin) << " mV of " << maxBin << " mV at " << hist.GetBinCenter(bin) << " ns\n";
-        return hist.GetBinCenter(bin);
+      if (std::abs(mHist->GetBinContent(bin)) > 3) {
+        //std::cout << "Amp high enough: " << mHist->GetBinContent(bin) << " mV of " << maxBin << " mV at " << mHist->GetBinCenter(bin) << " ns\n";
+        return mHistsum->GetBinCenter(bin);
       }
     }
   }
@@ -152,12 +157,13 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
 void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
-  constexpr Float_t mip_in_V = 7.;     // mV /250 ph.e.
-  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
+  //  constexpr Float_t mMip_in_V = 7.;     // mV /250 ph.e.
+  //  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
+  std::cout << " parameters.mMip_in_V " << parameters.mMip_in_V << "parameters.mPe_in_mip " << parameters.mPe_in_mip << std::endl;
   std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Float_t amp = mip_in_V * d.numberOfParticles / nPe_in_mip;
+    Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
       double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
@@ -239,14 +245,11 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
 
 void Digitizer::initParameters()
 {
-  /*
-  parameters.mBC_clk_center = 12.5; // clk center
-  parameters.mMCPs = (parameters.NCellsA + parameters.NCellsC) * 4;
-  parameters.mCFD_trsh_mip = 0.4; // = 4[mV] / 10[mV/mip]
-  parameters.mTime_trg_gate = 4.; // ns
-  parameters.mAmpThreshold = 100;
-  */
   mEventTime = 0;
+  float signal_width = 5.;
+  mHist = new TH1F("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  mHistsum = new TH1F("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  mHistshift = new TH1F("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   // murmur
 }
 //_______________________________________________________________________
