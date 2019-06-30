@@ -125,16 +125,19 @@ void ClusterFinderTest::checkCluster(
     }
 
     bool clusterOk = true;
+    int clusterPrinted = 10;
     for (size_t i = 0; i < cluster.size(); i++)
     {
         bool ok = (cluster[i].eq(clusterGT[i], 0.f, 0.f, Cluster::Field_all));
         clusterOk &= ok;
 
-        if (!ok)
+        if (!ok && clusterPrinted > 0)
         {
             log::Debug() << "i  = " << i
                 << "\n c  = " << cluster[i]
                 << "\n gt = " << clusterGT[i];
+
+            clusterPrinted--;
         }
     }
 
