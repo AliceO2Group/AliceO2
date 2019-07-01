@@ -4,6 +4,7 @@
 #include <gpucf/algorithms/ClusterBuilder.h>
 
 #include <cstddef>
+#include <iosfwd>
 
 
 namespace gpucf
@@ -20,6 +21,8 @@ struct ClusterFinderConfig
 
     ClusterBuilder clusterbuilder = ClusterBuilder::Naive;
 };
+
+std::ostream &operator<<(std::ostream &, const ClusterFinderConfig &);
 
 } // namespace gpucf
 
