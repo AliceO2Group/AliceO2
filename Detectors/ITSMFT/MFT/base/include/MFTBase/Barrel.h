@@ -36,7 +36,7 @@ class Barrel : public TNamed
  private:
   ClassDefOverride(Barrel, 1)
 };
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif

@@ -19,6 +19,7 @@ set(SRCS
   src/Support.cxx
   src/HeatExchanger.cxx
   src/HalfCone.cxx
+  src/PowerSupplyUnit.cxx
   src/Barrel.cxx
 )
 
@@ -40,6 +41,7 @@ set(HEADERS
   include/${MODULE_NAME}/Support.h
   include/${MODULE_NAME}/HeatExchanger.h
   include/${MODULE_NAME}/HalfCone.h
+  include/${MODULE_NAME}/PowerSupplyUnit.h
   include/${MODULE_NAME}/Barrel.h
 )
 
