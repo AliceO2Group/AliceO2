@@ -21,7 +21,7 @@
 #include "TGeoXtru.h"
 #include "TMath.h"
 
-#include "Barrel.h"
+#include "MFTBase/Barrel.h"
 
 using namespace o2::mft;
 
