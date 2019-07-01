@@ -64,7 +64,12 @@ ClusterFinderState::ClusterFinderState(
     gpucpy<int>(globalToLocalRowMap, globalToLocalRow, numOfRows, init);
     gpucpy<int>(globalRowToCruMap, globalToLocalRow, numOfRows, init);
 
-    fill<cl_float>(chargeMap, 0.f, mapEntries, init);
+    if (cfg.halfs)
+    {
+        fill<cl_half>(chargeMap, 0.f, mapEntries, init);
+    } else {
+        fill<cl_float>(chargeMap, 0.f, mapEntries, init);
+    }
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
 
     init.finish();

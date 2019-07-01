@@ -1,8 +1,7 @@
 #if !defined(DEBUG_H)
 #    define  DEBUG_H
 
-/* #if defined(NDEBUG) */
-#if 0
+#if !defined(DEBUG_ON)
 #  define SOFT_ASSERT(test)              ((void) 0)  
 #  define DBGPR_0(str)                   ((void) 0)
 #  define DBGPR_1(str, arg1)             ((void) 0)  

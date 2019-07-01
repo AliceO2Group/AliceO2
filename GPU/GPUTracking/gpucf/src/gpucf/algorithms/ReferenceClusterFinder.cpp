@@ -130,7 +130,7 @@ Map<ReferenceClusterFinder::PeakCount> ReferenceClusterFinder::makePeakCountMap(
         return {{}, [](const Digit &) { return 1; }, 1};
     }
 
-    Map<bool> peakmap(peaks, [](const Digit &) { return true; }, false);
+    Map<bool> peakmap(peaks, true, false);
     return {
         digits, 
         [=](const Digit &d) { return countPeaks(d, peakmap); },
