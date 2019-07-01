@@ -31,6 +31,8 @@ set(GPUCF_SRC
     "./experiments/TimeCf.cpp"
 
     "./algorithms/ClusterFinder.cpp"
+    "./algorithms/ClusterFinderConfig.cpp"
+    "./algorithms/ClusterFinderProfiler.cpp"
     "./algorithms/ClusterFinderState.cpp"
     "./algorithms/ClusterFinderTest.cpp"
     # "./algorithms/VectorAdd.cpp"

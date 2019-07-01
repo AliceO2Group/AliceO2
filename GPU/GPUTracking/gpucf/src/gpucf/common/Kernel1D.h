@@ -14,6 +14,16 @@ class Kernel1D
 public:
     Kernel1D(const std::string &, cl::Program);
 
+    std::string getName() const
+    { 
+        return name;
+    }
+
+    Event getEvent() const
+    {
+        return event;
+    }
+
 protected:
     cl::Kernel kernel;
 

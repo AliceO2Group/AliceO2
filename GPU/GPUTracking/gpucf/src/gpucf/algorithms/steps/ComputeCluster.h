@@ -6,7 +6,7 @@
 namespace gpucf
 {
 
-class ComputeCluster : protected Kernel1D
+class ComputeCluster : public Kernel1D
 {
 
 public:

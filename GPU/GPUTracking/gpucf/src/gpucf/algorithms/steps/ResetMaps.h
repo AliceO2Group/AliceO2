@@ -6,7 +6,7 @@
 namespace gpucf
 {
 
-class ResetMaps : protected Kernel1D
+class ResetMaps : public Kernel1D
 {
 
 public:

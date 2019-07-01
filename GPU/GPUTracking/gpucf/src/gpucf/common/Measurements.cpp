@@ -1,6 +1,7 @@
 #include "Measurements.h"
 
 #include <gpucf/common/Event.h>
+#include <gpucf/common/Kernel1D.h>
 
 #include <minijson_writer.hpp>
 
@@ -35,6 +36,11 @@ struct default_value_writer<Step>
 
 } // namespace minijson
 
+
+Step::Step(const Kernel1D &k)
+    : Step(k.getName(), k.getEvent())
+{
+}
 
 Step::Step(const std::string &name, const Event &ev)
     : Step(name, ev.queued(), ev.submitted(), ev.start(), ev.end())
