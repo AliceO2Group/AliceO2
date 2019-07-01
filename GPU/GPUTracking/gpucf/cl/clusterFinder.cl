@@ -6,7 +6,7 @@
 #include "shared/tpc.h"
 
 
-#if 1
+#if defined(DEBUG_ON)
 # define IF_DBG_INST if (get_global_linear_id() == 8)
 # define IF_DBG_GROUP if (get_group_id(0) == 0)
 #else

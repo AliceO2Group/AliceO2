@@ -16,6 +16,7 @@ public:
     pad_t     pad;
     timestamp time;
 
+    Position(const Digit &);
     Position(const Digit &, int, int);
     Position(row_t, pad_t, timestamp);
     

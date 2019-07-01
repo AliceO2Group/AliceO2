@@ -5,6 +5,7 @@ CLUSTER_FINDER_FLAG(splitCharges, false, "SPLIT_CHARGES", "Split charges among n
 CLUSTER_FINDER_FLAG(correctEdgeClusters, false, "CORRECT_EDGE_CLUSTERS", 
     "Use position of peak for COG of edge clusters.")
 CLUSTER_FINDER_FLAG(qtotCutoff, false, "CUT_QTOT", "Remove clusters below a threshold for qtot.")
+CLUSTER_FINDER_FLAG(dbg, false, "DEBUG_ON", "Enable debug macros.")
 
 #elif defined(MEMORY_LAYOUT)
 

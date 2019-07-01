@@ -1,5 +1,6 @@
 #include "ClusterFinderTest.h"
 
+#include <gpucf/common/ClusterMap.h>
 #include <gpucf/common/log.h>
 
 #include <shared/constants.h>
@@ -63,23 +64,31 @@ void ClusterFinderTest::checkIsPeaks(const std::vector<bool> &isPeakGT)
 
     gpucpy<unsigned char>(state.isPeak, isPeak, isPeak.size(), queue, true);
 
-    ASSERT(isPeakGT.size() == isPeak.size());
-
-    bool correctPeaks = true;
-    for (size_t i = 0; i < isPeak.size(); i++)
+    if (state.cfg.halfs)
     {
-        bool ok = (isPeak[i] == isPeakGT[i]);
+        return;
+    } 
+    else 
+    {
+        ASSERT(isPeakGT.size() == isPeak.size());
 
-        /* if (!ok) */
-        /* { */
-        /*     log::Debug() << "i = " << i << "; peak = " << int(isPeak[i]); */
-        /* } */
+        bool correctPeaks = true;
+        for (size_t i = 0; i < isPeak.size(); i++)
+        {
+            bool ok = (isPeak[i] == isPeakGT[i]);
 
-        correctPeaks &= ok;
+            /* if (!ok) */
+            /* { */
+            /*     log::Debug() << "i = " << i << "; peak = " << int(isPeak[i]); */
+            /* } */
+
+            correctPeaks &= ok;
+        }
+        ASSERT(correctPeaks);
+
+        log::Success() << "isPeaks: OK";
     }
-    ASSERT(correctPeaks);
 
-    log::Success() << "isPeaks: OK";
 }
 
 void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
@@ -88,23 +97,40 @@ void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
 
     gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
 
-    ASSERT(peakGT.size() == peaks.size());
-
-    bool correctPeaks = true;
-    for (size_t i = 0; i < peaks.size(); i++)
+    if (state.cfg.halfs)
     {
-        bool ok = (peaks[i] == peakGT[i]);
+        Map<bool> peakLookup(peaks, true, false);
+        log::Info() << "GT has   " << peakGT.size() << " peaks.";
+        log::Info() << "Cf found " << peaks.size() << " peaks.";
 
-        if (!ok)
+        size_t correctPeaks = 0;
+        for (const Digit &d : peakGT)
         {
-            log::Debug() << "i = " << i << "; peak = " << peaks[i];
+            correctPeaks += peakLookup[d];
         }
 
-        correctPeaks &= ok;
+        log::Info() << "Correct peaks: " << correctPeaks;
     }
-    ASSERT(correctPeaks);
+    else
+    {
+        ASSERT(peakGT.size() == peaks.size());
+
+        bool correctPeaks = true;
+        for (size_t i = 0; i < peaks.size(); i++)
+        {
+            bool ok = (peaks[i] == peakGT[i]);
+
+            if (!ok)
+            {
+                log::Debug() << "i = " << i << "; peak = " << peaks[i];
+            }
+
+            correctPeaks &= ok;
+        }
+        ASSERT(correctPeaks);
     
-    log::Success() << "peaks: OK";
+        log::Success() << "peaks: OK";
+    }
 }
 
 void ClusterFinderTest::checkCluster(
@@ -112,9 +138,6 @@ void ClusterFinderTest::checkCluster(
         const std::vector<Cluster> &clusterGT)
 {
     std::vector<ClusterNative> cn(state.peaknum);
-
-    ASSERT(clusterGT.size() == cn.size());
-    ASSERT(peaks.size() == cn.size());
 
     gpucpy<ClusterNative>(state.clusterNative, cn, cn.size(), queue, true);
 
@@ -124,32 +147,79 @@ void ClusterFinderTest::checkCluster(
         cluster.emplace_back(peaks[i].cru(), peaks[i].localRow(), cn[i]);
     }
 
-    bool clusterOk = true;
-    int clusterPrinted = 10;
-    for (size_t i = 0; i < cluster.size(); i++)
+    if (state.cfg.halfs)
     {
-        bool ok = (cluster[i].eq(clusterGT[i], 0.f, 0.f, Cluster::Field_all));
-        clusterOk &= ok;
+        ClusterMap cl;
+        cl.addAll(clusterGT);
+        cl.setClusterEqParams(0.f, 0.f, 
+                Cluster::Field_all ^ (Cluster::Field_timeSigma 
+                    | Cluster::Field_padSigma));
 
-        if (!ok && clusterPrinted > 0)
+        size_t correctCluster = 0;
+        for (const Cluster &c : cluster)
         {
-            log::Debug() << "i  = " << i
-                << "\n c  = " << cluster[i]
-                << "\n gt = " << clusterGT[i];
-
-            clusterPrinted--;
+            /* if (!cl.contains(c)) */
+            /* { */
+            /*     log::Debug() << c; */
+            /* } */
+            correctCluster += cl.contains(c);
         }
+
+        ClusterMap clall;
+        clall.addAll(clusterGT);
+
+        size_t correctClusterAll = 0;
+        for (const Cluster &c : cluster)
+        {
+            /* if (!clall.contains(c)) */
+            /* { */
+            /*     log::Debug() << c; */
+            /* } */
+            correctClusterAll += clall.contains(c);
+        }
+
+        log::Info() << "Correct cluster: " << correctCluster
+                    << ", With sigma: " << correctClusterAll;
+    }
+    else
+    {
+        ASSERT(clusterGT.size() == cn.size());
+        ASSERT(peaks.size() == cn.size());
+
+
+        bool clusterOk = true;
+        int clusterPrinted = 10;
+        for (size_t i = 0; i < cluster.size(); i++)
+        {
+            bool ok = (cluster[i].eq(clusterGT[i], 0.f, 0.f, Cluster::Field_all));
+            clusterOk &= ok;
+
+            if (!ok && clusterPrinted > 0)
+            {
+                log::Debug() << "i  = " << i
+                    << "\n c  = " << cluster[i]
+                    << "\n gt = " << clusterGT[i];
+
+                clusterPrinted--;
+            }
+        }
+
+        ASSERT(clusterOk);
+
+        log::Success() << "cluster: OK";
     }
 
-    ASSERT(clusterOk);
-
-    log::Success() << "cluster: OK";
 }
 
 void ClusterFinderTest::checkCompactedCluster(
         const std::vector<Digit> &peaks,
         const std::vector<Cluster> &clusterGT)
 {
+    if (state.cfg.halfs)
+    {
+        return;
+    }
+
     std::vector<ClusterNative> cn(state.cutoffClusternum);
     std::vector<unsigned char> cutoff(state.peaknum);
 

@@ -23,7 +23,6 @@ static constexpr Bits exponentBitMask = ~(signBitMask | fractionBitMask);
 static constexpr size_t maxUlps = 1 << 20;
 
 
-
 union FpUnion
 {
     float value;

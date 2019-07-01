@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/common/Cluster.h>
+#include <gpucf/common/ClusterMap.h>
 #include <gpucf/common/float.h>
 
 #include <nonstd/optional.hpp>
@@ -24,29 +25,6 @@ public:
 private:
     using ClusterPair = std::pair<Cluster, Cluster>;
 
-    class ClusterMap
-    {
-
-    public:
-        void add(const Cluster &);
-        void addAll(nonstd::span<const Cluster>);
-
-        bool contains(const Cluster &) const;
-        nonstd::optional<Cluster> tryLookup(const Cluster &) const;
-
-        std::vector<Cluster> findDuplicates() const;
-
-        void setClusterEqParams(float, float, Cluster::FieldMask);
-
-        size_t size() const;
-        
-    private:
-        std::unordered_map<int, std::vector<Cluster>> clusters;
-
-        float epsilonSmall = FEQ_EPSILON_SMALL;
-        float epsilonBig   = FEQ_EPSILON_BIG;
-        Cluster::FieldMask mask = Cluster::Field_all;
-    };
 
 
     std::vector<Cluster> findWrongClusters(nonstd::span<const Cluster>);
