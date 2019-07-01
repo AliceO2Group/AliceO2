@@ -146,7 +146,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
-    o2::its::IOUtils::loadROFrameData(rof, event, clusters, labels);
+    o2::its::ioutils::loadROFrameData(rof, event, clusters, labels);
     if (useITSVertex) {
       vertexer.initialiseVertexer(&event);
 

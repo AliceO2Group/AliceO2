@@ -34,8 +34,8 @@ namespace its
 
 class ROframe;
 
-using constants::IndexTable::PhiBins;
-using constants::IndexTable::ZBins;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::its::LayersNumberVertexer;
 
 struct lightVertex {
@@ -144,16 +144,16 @@ inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentC
     return getEmptyBinsRect();
   }
 
-  return int4{ gpu::GPUCommonMath::Max(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
-               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
-               gpu::GPUCommonMath::Min(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
-               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
+  return int4{ gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
+               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 
 inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(const int layerIndex, float phi, float dPhi)
 {
-  return int2{ IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi - dPhi)),
-               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phi + dPhi)) };
+  return int2{ index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
+               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi)) };
 }
 
 inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,
@@ -170,10 +170,10 @@ inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& cu
     return getEmptyBinsRect();
   }
 
-  return int4{ gpu::GPUCommonMath::Max(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
-               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
-               gpu::GPUCommonMath::Min(constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
-               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
+  return int4{ gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
+               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 extern "C" VertexerTraits* createVertexerTraits();
 

@@ -77,7 +77,7 @@ struct IndexTableParameters {
   void ComputeInverseBinSizes();
   int ZBins = 20;
   int PhiBins = 20;
-  float InversePhiBinSize = 20 / constants::Math::TwoPi;
+  float InversePhiBinSize = 20 / constants::math::TwoPi;
   std::array<float, constants::its::LayersNumber> InverseZBinSize;
 };
 
@@ -93,7 +93,7 @@ inline IndexTableParameters::IndexTableParameters()
 
 inline void IndexTableParameters::ComputeInverseBinSizes()
 {
-  InversePhiBinSize = PhiBins / constants::Math::TwoPi;
+  InversePhiBinSize = PhiBins / constants::math::TwoPi;
   for (int iL = 0; iL < constants::its::LayersNumber; ++iL) {
     InverseZBinSize[iL] = 0.5f * ZBins / constants::its::LayersZCoordinate()[iL];
   }

@@ -116,7 +116,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
-    int nclUsed = o2::its::IOUtils::loadROFrameData(rof, frame, clusters, labels);
+    int nclUsed = o2::its::ioutils::loadROFrameData(rof, frame, clusters, labels);
     // float total = vertexer.clustersToVertices(frame, true);
     vertexer.initialiseVertexer(&frame);
     vertexer.findTracklets(useMCcheck);

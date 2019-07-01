@@ -32,7 +32,7 @@ namespace constants
 
 constexpr bool DoTimeBenchmarks = true;
 
-namespace Math
+namespace math
 {
 constexpr float Pi{ 3.14159265359f };
 constexpr float TwoPi{ 2.0f * Pi };
@@ -59,11 +59,11 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 }
 } // namespace its
 
-namespace IndexTable
+namespace index_table
 {
 constexpr int ZBins{ 20 };
 constexpr int PhiBins{ 20 };
-constexpr float InversePhiBinSize{ constants::IndexTable::PhiBins / constants::Math::TwoPi };
+constexpr float InversePhiBinSize{ constants::index_table::PhiBins / constants::math::TwoPi };
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
   return GPUArray<float, its::LayersNumber>{ { 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f,
@@ -72,7 +72,7 @@ GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 }
 } // namespace IndexTable
 
-namespace PDGCodes
+namespace pdgcodes
 {
 constexpr int PionCode{ 211 };
 }

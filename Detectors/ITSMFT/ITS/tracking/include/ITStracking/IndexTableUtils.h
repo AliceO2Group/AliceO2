@@ -30,41 +30,41 @@ namespace o2
 namespace its
 {
 
-namespace IndexTableUtils
+namespace index_table_utils
 {
 float getInverseZBinSize(const int);
 GPU_HOST_DEVICE int getZBinIndex(const int, const float);
 GPU_HOST_DEVICE int getPhiBinIndex(const float);
 GPU_HOST_DEVICE int getBinIndex(const int, const int);
 GPU_HOST_DEVICE int countRowSelectedBins(
-  const GPUArray<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>&, const int, const int,
+  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>&, const int, const int,
   const int);
 } // namespace IndexTableUtils
 
 inline float getInverseZCoordinate(const int layerIndex)
 {
-  return 0.5f * constants::IndexTable::ZBins / constants::its::LayersZCoordinate()[layerIndex];
+  return 0.5f * constants::index_table::ZBins / constants::its::LayersZCoordinate()[layerIndex];
 }
 
-GPU_HOST_DEVICE inline int IndexTableUtils::getZBinIndex(const int layerIndex, const float zCoordinate)
+GPU_HOST_DEVICE inline int index_table_utils::getZBinIndex(const int layerIndex, const float zCoordinate)
 {
   return (zCoordinate + constants::its::LayersZCoordinate()[layerIndex]) *
-         constants::IndexTable::InverseZBinSize()[layerIndex];
+         constants::index_table::InverseZBinSize()[layerIndex];
 }
 
-GPU_HOST_DEVICE inline int IndexTableUtils::getPhiBinIndex(const float currentPhi)
+GPU_HOST_DEVICE inline int index_table_utils::getPhiBinIndex(const float currentPhi)
 {
-  return (currentPhi * constants::IndexTable::InversePhiBinSize);
+  return (currentPhi * constants::index_table::InversePhiBinSize);
 }
 
-GPU_HOST_DEVICE inline int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex)
+GPU_HOST_DEVICE inline int index_table_utils::getBinIndex(const int zIndex, const int phiIndex)
 {
-  return gpu::GPUCommonMath::Min(phiIndex * constants::IndexTable::PhiBins + zIndex,
-                                 constants::IndexTable::ZBins * constants::IndexTable::PhiBins);
+  return gpu::GPUCommonMath::Min(phiIndex * constants::index_table::PhiBins + zIndex,
+                                 constants::index_table::ZBins * constants::index_table::PhiBins);
 }
 
-GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(
-  const GPUArray<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>& indexTable,
+GPU_HOST_DEVICE inline int index_table_utils::countRowSelectedBins(
+  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
   const int phiBinIndex, const int minZBinIndex, const int maxZBinIndex)
 {
   const int firstBinIndex{ getBinIndex(minZBinIndex, phiBinIndex) };

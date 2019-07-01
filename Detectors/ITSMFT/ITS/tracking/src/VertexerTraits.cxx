@@ -26,12 +26,12 @@ namespace o2
 namespace its
 {
 
-using constants::IndexTable::PhiBins;
-using constants::IndexTable::ZBins;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::its::LayersRCoordinate;
 using constants::its::LayersZCoordinate;
-using constants::Math::TwoPi;
-using IndexTableUtils::getZBinIndex;
+using constants::math::TwoPi;
+using index_table_utils::getZBinIndex;
 
 void trackleterKernelSerial(
   const std::vector<Cluster>& clustersNextLayer,    // 0 2
@@ -60,7 +60,7 @@ void trackleterKernelSerial(
       }
       // loop on phi bins next layer
       for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-        const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect.x, iPhiBin) };
+        const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
         const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
         const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
         // loop on clusters next layer
@@ -129,9 +129,9 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{ std::array<float, 3>{ 
                                    mMaxDirectorCosine3{ 0.f }
 {
   // CUDA does not allow for dynamic initialization -> no constructor for VertexingParams
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::IndexTable::PhiBins * mVrtParams.phiCut /
-                                                  constants::Math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::IndexTable::InverseZBinSize()[0]));
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
+                                                  constants::math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
   setIsGPU(false);
 }
 
@@ -211,10 +211,10 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
   filteredBins.reserve(phiBinsNum);
   for (int iPhiBin{ selectedBinsRect[1] }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
        iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-    const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect[0], iPhiBin) };
+    const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect[0], iPhiBin) };
     filteredBins.emplace_back(
       indexTable[firstBinIndex],
-      IndexTableUtils::countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
+      index_table_utils::countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
   }
   return filteredBins;
 }

@@ -40,5 +40,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
-  return std::move(o2::its::RecoWorkflow::getWorkflow(useMC));
+  return std::move(o2::its::reco_workflow::getWorkflow(useMC));
 }

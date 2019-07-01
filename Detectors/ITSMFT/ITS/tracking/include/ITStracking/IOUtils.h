@@ -53,7 +53,7 @@ void from_json(const nlohmann::json& j, MemoryParameters& par);
 void to_json(nlohmann::json& j, const IndexTableParameters& par);
 void from_json(const nlohmann::json& j, IndexTableParameters& par);
 
-namespace IOUtils
+namespace ioutils
 {
 void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);

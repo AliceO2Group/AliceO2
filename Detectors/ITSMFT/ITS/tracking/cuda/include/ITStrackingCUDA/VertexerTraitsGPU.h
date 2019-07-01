@@ -31,7 +31,7 @@ namespace its
 {
 class ROframe;
 
-using constants::IndexTable::InversePhiBinSize;
+using constants::index_table::InversePhiBinSize;
 
 class VertexerTraitsGPU : public VertexerTraits
 {
@@ -65,8 +65,8 @@ class VertexerTraitsGPU : public VertexerTraits
 inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
-  const int phiBinMin{ IndexTableUtils::getPhiBinIndex(
-    MathUtils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut)) };
+  const int phiBinMin{ index_table_utils::getPhiBinIndex(
+    math_utils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut)) };
   const int phiBinSpan{ static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize)) };
   return int2{ phiBinMin, phiBinSpan };
 }

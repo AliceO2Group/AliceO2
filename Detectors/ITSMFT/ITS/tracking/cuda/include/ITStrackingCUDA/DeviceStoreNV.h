@@ -44,7 +44,7 @@ class DeviceStoreNV final
                                           const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>&);
   GPU_DEVICE const float3& getPrimaryVertex();
   GPU_HOST_DEVICE Array<Vector<Cluster>, constants::its::LayersNumber>& getClusters();
-  GPU_DEVICE Array<Array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>,
+  GPU_DEVICE Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
                    constants::its::TrackletsPerRoad>&
     getIndexTables();
   GPU_HOST_DEVICE Array<Vector<Tracklet>, constants::its::TrackletsPerRoad>& getTracklets();
@@ -58,7 +58,7 @@ class DeviceStoreNV final
  private:
   UniquePointer<float3> mPrimaryVertex;
   Array<Vector<Cluster>, constants::its::LayersNumber> mClusters;
-  Array<Array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>, constants::its::TrackletsPerRoad>
+  Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>, constants::its::TrackletsPerRoad>
     mIndexTables;
   Array<Vector<Tracklet>, constants::its::TrackletsPerRoad> mTracklets;
   Array<Vector<int>, constants::its::CellsPerRoad> mTrackletsLookupTable;
@@ -75,7 +75,7 @@ GPU_HOST_DEVICE inline Array<Vector<Cluster>, constants::its::LayersNumber>& Dev
   return mClusters;
 }
 
-GPU_DEVICE inline Array<Array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>,
+GPU_DEVICE inline Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
                         constants::its::TrackletsPerRoad>&
   DeviceStoreNV::getIndexTables()
 {

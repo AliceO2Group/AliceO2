@@ -107,7 +107,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      int nclUsed = IOUtils::loadROFrameData(rof, event, &clusters, labels);
+      int nclUsed = ioutils::loadROFrameData(rof, event, &clusters, labels);
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mVertexer->clustersToVertices(event);
@@ -128,7 +128,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   } else {
-    IOUtils::loadEventData(event, &clusters, labels);
+    ioutils::loadEventData(event, &clusters, labels);
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());

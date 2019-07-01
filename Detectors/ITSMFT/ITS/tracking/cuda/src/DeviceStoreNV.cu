@@ -56,7 +56,7 @@ __device__ void fillIndexTables(GPU::DeviceStoreNV &primaryVertexContext, const 
 
     if (currentClusterIndex == nextLayerClustersNum - 1) {
 
-      for (int iBin{ currentBinIndex + 1 }; iBin <= o2::its::constants::IndexTable::ZBins * o2::its::constants::IndexTable::PhiBins;
+      for (int iBin{ currentBinIndex + 1 }; iBin <= o2::its::constants::index_table::ZBins * o2::its::constants::index_table::PhiBins;
            iBin++) {
 
         primaryVertexContext.getIndexTables()[layerIndex][iBin] = nextLayerClustersNum;

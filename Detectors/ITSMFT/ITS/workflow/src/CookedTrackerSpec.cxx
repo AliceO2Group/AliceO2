@@ -101,7 +101,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::its::TrackITS> tracks;
   std::vector<int> clusIdx;
   for (auto& rof : rofs) {
-    o2::its::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
+    o2::its::ioutils::loadROFrameData(rof, event, &clusters, labels.get());
     vertexer.clustersToVertices(event);
     auto vertices = vertexer.exportVertices();
     if (vertices.empty()) {

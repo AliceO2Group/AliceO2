@@ -161,7 +161,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::ROframe event(0);
 
   for (auto& rof : *rofs) {
-    o2::its::IOUtils::loadROFrameData(rof, event, &allClusters, &allLabels);
+    o2::its::ioutils::loadROFrameData(rof, event, &allClusters, &allLabels);
     vertexer.clustersToVertices(event);
     auto vertices = vertexer.exportVertices();
     if (vertices.empty()) {
