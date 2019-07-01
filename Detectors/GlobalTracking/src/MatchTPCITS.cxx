@@ -53,6 +53,42 @@ constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
 
+void MatchTPCITS::printABTree(const ABTrackLinksList& llist) const
+{
+
+  int startLayer = 0, nextHyp;
+  while ((nextHyp = llist.firstInLr[startLayer]) == MinusOne && startLayer < NITSLayers) {
+    startLayer++;
+  }
+  if (startLayer == NITSLayers) {
+    printf("No matches\n");
+    return;
+  }
+  auto lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].source.getIndex())[0]; // tmp
+  LOG(INFO) << "Matches for track " << llist.trackID << " " << lblTrc;
+  while (nextHyp > MinusOne) {
+    printf("Lr/IC/ClID/Chi2/{MC}:%c ", lblTrc.getTrackID() > 0 ? 'C' : 'F');
+    int parID = nextHyp; // print particular hypothesis
+    int lr = startLayer;
+    do {
+      const auto& lnk = mABLinks[parID];
+      int mcEv = -1, mcTr = -1;
+      if (lnk.clID > MinusOne) {
+        const auto lab = mITSClsLabels->getLabels(lnk.clID)[0];
+        mcEv = lab.getEventID();
+        mcTr = lab.getTrackID();
+      } else if (lnk.parentID == MinusOne) { // top layer, use TPC MC lbl
+        mcEv = lblTrc.getEventID();
+        mcTr = lblTrc.getTrackID();
+      }
+      printf("[%d/%3d/%5d/%6.2f/{%d/%d}]", lr++, lnk.icCandID, lnk.clID, lnk.chi2, mcEv, mcTr);
+      parID = lnk.parentID;
+    } while (parID > MinusOne);
+    printf("\n");
+    nextHyp = mABLinks[nextHyp].nextOnLr;
+  }
+}
+
 //______________________________________________
 MatchTPCITS::MatchTPCITS() = default;
 
@@ -218,9 +254,9 @@ void MatchTPCITS::init()
   }
 #endif
 
-  if (isRunAfterBurner()) {
-    mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
-  }
+  mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
+  const auto& zr = mRGHelper.layers.back().zRange;
+  mITSFiducialZCut = std::max(std::abs(zr.min()), std::abs(zr.max())) + 20.;
 
   clear();
 
@@ -511,7 +547,7 @@ bool MatchTPCITS::prepareTPCTracks()
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
 
-      while (trc.timeBins < mITSROFTimes[itsROF] && itsROF < nITSROFs) {
+      while (itsROF < nITSROFs && trc.timeBins < mITSROFTimes[itsROF]) {
         itsROF++;
       }
       if (tbinStart[itsROF] == -1) {
@@ -534,7 +570,7 @@ bool MatchTPCITS::prepareTPCTracks()
   mITSROFofTPCBin.resize(nb, -1);
   int itsROF = 0;
   for (int ib = 0; ib < nb; ib++) {
-    while (ib < mITSROFTimes[itsROF].min() && itsROF < nITSROFs) {
+    while (itsROF < nITSROFs && ib < mITSROFTimes[itsROF].min()) {
       itsROF++;
     }
     mITSROFofTPCBin[ib] = itsROF;
@@ -562,7 +598,6 @@ bool MatchTPCITS::prepareITSClusters()
 
     // estimate total number of clusters and reserve the space
     size_t nclTot = 0;
-    int lastROREnt = -1;
     for (int ir = 0; ir < nROFs; ir++) {
       o2::itsmft::ROFRecord& clROF = mITSClusterROFRecBuffer[ir];
       clROF.getROFEntry().setIndex(nclTot); // linearize
@@ -1163,7 +1198,7 @@ void MatchTPCITS::addTrackCloneForNeighbourSector(const TrackLocITS& src, int se
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
-      mITSLblWork.emplace_back(mITSTrkLabels->getLabels(src.source.getIndex())[0]);
+      mITSLblWork.emplace_back(mITSTrkLabels->getLabels(trc.source.getIndex())[0]);
     }
   } else {
     mITSWork.pop_back(); // rotation / propagation failed
@@ -1243,10 +1278,9 @@ void MatchTPCITS::print() const
 }
 
 //______________________________________________
-void MatchTPCITS::refitWinners()
+void MatchTPCITS::refitWinners(bool loopInITS)
 {
   ///< refit winning tracks
-  bool loopInITS = false; //true;  // TODO decide final loop
 
   mTimerRefit.Start(false);
   LOG(INFO) << "Refitting winner matches";
@@ -1705,6 +1739,9 @@ int MatchTPCITS::prepareTPCTracksAfterBurner()
   mTPCABIndexCache.clear();
   mTPCABTimeBinStart.clear();
   const auto& outerLr = mRGHelper.layers.back();
+  // to avoid difference between 3D field propagation and Bz-bazed getXatLabR we propagate RMax+margin
+  const float ROuter = outerLr.rRange.max() + 0.5f;
+
   auto propagator = o2::base::Propagator::Instance();
 
   for (int iTPC = 0; iTPC < (int)mTPCWork.size(); iTPC++) {
@@ -1714,7 +1751,7 @@ int MatchTPCITS::prepareTPCTracksAfterBurner()
       // in this case the material corrections will be correct only in the limit of their uniformity in Z,
       // which should be good assumption....
       float xTgt;
-      if (!tTPC.getXatLabR(outerLr.rRange.max(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
+      if (!tTPC.getXatLabR(ROuter, xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
           !propagator->PropagateToXBxByBz(tTPC, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
         continue;
       }
@@ -1738,7 +1775,6 @@ int MatchTPCITS::prepareInteractionTimes()
   // guess interaction times from various sources and relate with ITS rofs
   const float T0UncertaintyTB = 0.5 / (1e3 * mTPCTBinMUS); // assumed T0 time uncertainty (~0.5ns) in TPC timeBins
   mInteractions.clear();
-  int nITSROFs = mITSROFTimes.size(), rof = 0;
   if (mFITInfoInp) {
     for (const auto& ft : *mFITInfoInp) {
       if (!ft.isValidTime(o2::t0::RecPoints::TimeMean)) {
@@ -1746,7 +1782,8 @@ int MatchTPCITS::prepareInteractionTimes()
       }
       auto fitTime = intRecord2TPCTimeBin(ft.getInteractionRecord()); // FIT time in TPC timebins
       // find corresponding ITS ROF, works both in cont. and trigg. modes (ignore T0 MeanTime within the BC)
-      for (; rof < nITSROFs; rof++) {
+      int nITSROFs = mITSROFTimes.size();
+      for (int rof = 0; rof < nITSROFs; rof++) {
         if (mITSROFTimes[rof] < fitTime) {
           continue;
         }
@@ -1763,37 +1800,47 @@ int MatchTPCITS::prepareInteractionTimes()
 //______________________________________________
 void MatchTPCITS::runAfterBurner()
 {
+  mABLinks.clear();
+
   int nIntCand = prepareInteractionTimes();
   int nTPCCand = prepareTPCTracksAfterBurner();
   LOG(INFO) << "AfterBurner will check " << nIntCand << " interaction candindates for " << nTPCCand << " TPC tracks";
   if (!nIntCand || !nTPCCand) {
     return;
   }
-  int iC = 0, iCRes;                         // interaction candindate to consider and result of its time-bracket comparison to TPC track
+  int iC = 0;                                // interaction candindate to consider and result of its time-bracket comparison to TPC track
   int iCClean = iC;                          // id of the next candidate whose cache to be cleaned
   for (int itr = 0; itr < nTPCCand; itr++) { // TPC track indices are sorted in tMin
     const auto& tTPC = mTPCWork[mTPCABIndexCache[itr]];
     // find 1st interaction candidate compatible with time brackets of this track
+    int iCRes;
     while ((iCRes = tTPC.timeBins.isOutside(mInteractions[iC].timeBins)) < 0 && ++iC < nIntCand) { // interaction precedes the track time-bracket
       cleanAfterBurnerClusRefCache(iC, iCClean);                                                   // if possible, clean unneeded cached cluster references
     }
     if (iCRes == 0) {
-      int iCC = iC; // check all interaction candidates matching to this this TPC track
+      int iCStart = iC, iCEnd = iC; // check all interaction candidates matching to this TPC track
       do {
-        if (!mInteractions[iCC].clRefPtr) { // if not done yet, fill sorted cluster references for interaction candidate
-          mInteractions[iCC].clRefPtr = &mITSChipClustersRefs.emplace_back();
-          fillClustersForAfterBurner(mITSChipClustersRefs.back(), mInteractions[iCC].rofITS);
+        if (!mInteractions[iCEnd].clRefPtr) { // if not done yet, fill sorted cluster references for interaction candidate
+          mInteractions[iCEnd].clRefPtr = &mITSChipClustersRefs.emplace_back();
+          fillClustersForAfterBurner(mITSChipClustersRefs.back(), mInteractions[iCEnd].rofITS);
           // tst
           int ncl = mITSChipClustersRefs.back().clusterID.size();
-          printf("loaded %d clusters at cache at %p\n", ncl, mInteractions[iCC].clRefPtr);
+          printf("loaded %d clusters at cache at %p\n", ncl, mInteractions[iCEnd].clRefPtr);
         }
+      } while (++iCEnd < nIntCand && !tTPC.timeBins.isOutside(mInteractions[iCEnd].timeBins));
 
-        auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
-        runAfterBurner(tTPC, mInteractions[iCC]);
-        lbl.print(); // tmp
-      } while (++iCC < nIntCand && !tTPC.timeBins.isOutside(mInteractions[iCC].timeBins));
+      auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
+      runAfterBurner(mTPCABIndexCache[itr], iCStart, iCEnd);
+      lbl.print(); // tmp
+      //tmp
+      if (tTPC.matchID > MinusOne) {
+        printf("AB Matching tree for TPC WID %d and IC %d : %d\n", mTPCABIndexCache[itr], iCStart, iCEnd);
+        auto& llinks = mABTrackLinksList[tTPC.matchID];
+        printABTree(llinks);
+      }
+
     } else if (iCRes > 0) {
-      continue; // TPC track precedes the intercation (means orphan track?), no need to check it
+      continue; // TPC track precedes the interaction (means orphan track?), no need to check it
     } else {
       LOG(INFO) << "All interaction candidates precede track " << itr << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "]";
       break; // all interaction candidates precede TPC track
@@ -1802,123 +1849,165 @@ void MatchTPCITS::runAfterBurner()
 }
 
 //______________________________________________
-bool MatchTPCITS::runAfterBurner(const TrackLocTPC& tTPC, InteractionCandidate& cand)
+bool MatchTPCITS::runAfterBurner(int tpcWID, int iCStart, int iCEnd)
 {
-  // Try to match TPC tracks to ITS clusters, assuming that it comes from given interaction candidate
+  // Try to match TPC tracks to ITS clusters, assuming that it comes from interaction candidate in the rane [iCStart:iCEnd)
   // The track is already propagated to the outer R of the outermost layer
 
-  LOG(INFO) << "Check track TPC mtc=" << tTPC.matchID
-            << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "] for interaction "
-            << " [" << cand.timeBins.min() << ":" << cand.timeBins.max() << "]";
+  LOG(INFO) << "AfterBurner for TPC track " << tpcWID << " with int.candidates " << iCStart << " " << iCEnd;
+
+  const auto& tTPC = mTPCWork[tpcWID];
+  auto& abTrackLinksList = getCreateABTrackLinksList(tpcWID);
 
   const int maxMissed = 0;
-  const float nSigmaZ = 5., nSigmaY = 5.;
-  const float YErr2Extra = 0.1 * 0.1;
-  const auto& clRefs = *static_cast<ITSChipClustersRefs*>(cand.clRefPtr);
-  constexpr int NZSpan = 3;
-  const int chipIDZSpan[NZSpan] = { -1, 1, 0 }; // check chips in this nieghbourhood
-  //
-  auto tpcTrOrig = (*mTPCTracksArrayInp)[tTPC.source.getIndex()];
-  o2::track::TrackParCov trc(tTPC); // operate with track copy
-  float driftErr = correctTPCTrack(trc, tTPC, cand);
 
-  auto propagator = o2::base::Propagator::Instance();
-  float sna, csa; // circle parameters for B ON data
-  o2::utils::CircleXY trcCircle;
-  o2::utils::IntervalXY trcLinPar; // line parameters fpr B OFF data
-  int nMissed = 0;
-  std::vector<int> chipSelClusters; // preliminary cluster candidates //RS TODO do we keep this local / consider array instead of vector
-  for (int ilr = mRGHelper.getNLayers(); ilr--;) {
-    if (ilr != 6)
-      break;
-    const auto& lr = mRGHelper.layers[ilr];
-    float zDRStep = -trc.getTgl() * lr.rRange.delta(); // approximate Z span when going from layer rMin to rMax
-    float errZ = std::sqrt(trc.getSigmaZ2());
-    if (lr.zRange.isOutside(trc.getZ(), nSigmaZ * errZ + driftErr + std::abs(zDRStep))) {
-      nMissed++;
-      printf("Lr %d (skip %d) missed by Z = %.2f + %.3f\n", ilr, nMissed, trc.getZ(), nSigmaZ * errZ + driftErr + std::abs(zDRStep));
-      if (nMissed > maxMissed) {
-        break;
-      }
-      continue;
+  for (int iCC = iCStart; iCC < iCEnd; iCC++) {
+    const auto& iCCand = mInteractions[iCC];
+    int topLinkID = registerABLink(abTrackLinksList, tTPC, iCC, NITSLayers, MinusOne, MinusOne); // add track copy as a link on N+1 layer
+    if (topLinkID == MinusOne) {
+      continue; // link to be discarded
     }
-    // approximate errors
-    float errY = std::sqrt(trc.getSigmaY2() + YErr2Extra), errYFrac = errY * mRGHelper.ladderWidthInv(), errPhi = errY * lr.rInv;
-    float xCurr, yCurr, phi;
-    if (mFieldON) {
-      trc.getCircleParams(propagator->getNominalBz(), trcCircle, sna, csa);
-    } else {
-      trc.getLineParams(trcLinPar, sna, csa);
-    }
-    o2::utils::rotateZ(trc.getX(), trc.getY(), xCurr, yCurr, sna, csa);
-    phi = std::atan2(yCurr, xCurr);
-    // find approximate ladder and chip_in_ladder corresponding to this track extrapolation
-    int nLad2Check = 0, ladIDguess = lr.getLadderID(phi), chipIDguess = lr.getChipID(trc.getZ() + 0.5 * zDRStep);
-    std::array<int, MaxLadderCand> lad2Check;
-    nLad2Check = mFieldON ? findLaddersToCheckBOn(ilr, ladIDguess, trcCircle, errYFrac, lad2Check) : findLaddersToCheckBOff(ilr, ladIDguess, trcLinPar, errYFrac, lad2Check);
+    auto& topLink = mABLinks[topLinkID];
 
-    // tmp
-    auto lblTrc = mTPCTrkLabels->getLabels(tTPC.source.getIndex())[0];
-
-    for (int ilad = nLad2Check; ilad--;) {
-      int ladID = lad2Check[ilad];
-      const auto& lad = lr.ladders[ladID];
-
-      // we assume that close chips on the same ladder with have close xyEdges, so it is enough to calculate track-chip crossing
-      // coordinates xCross,yCross,zCross for this central chipIDguess, although we are going to check also neighbours
-      float t = 1e9, xCross, yCross;
-      const auto& chipC = lad.chips[chipIDguess];
-      bool res = mFieldON ? chipC.xyEdges.circleCrossParam(trcCircle, t) : chipC.xyEdges.lineCrossParam(trcLinPar, t);
-      chipC.xyEdges.eval(t, xCross, yCross);
-      float dx = xCross - xCurr, dy = yCross - yCurr, dst2 = dx * dx + dy * dy, dst = sqrtf(dst2);
-      // Z-step sign depends on radius decreasing or increasing during the propagation
-      float zCross = trc.getZ() + trc.getTgl() * (dst2 < 2 * (dx * xCurr + dy * yCurr) ? dst : -dst);
-
-      for (int ich = NZSpan; ich--;) {
-        int chipID = chipIDguess + ich;
-        if (chipID < 0 || chipID >= lad.chips.size()) {
-          continue;
-        }
-        const auto& chip = lad.chips[chipID];
-        if (chip.zRange.isOutside(zCross, driftErr + nSigmaZ * errZ)) {
-          continue;
-        }
-        int chipGID = chip.id;
-        const auto& clRange = clRefs.chipRefs[chipGID];
-        if (!clRange.getEntries()) {
-          continue;
-        }
-        printf("Lr %d #%d/%d LadID: %d (phi:%+d) ChipID: %d [%d Ncl: %d from %d] (rRhi:%d Z:%+d[%+.1f:%+.1f]) | %+.3f %+.3f -> %+.3f %+.3f %+.3f (zErr: %.3f)\n",
-               ilr, ilad, ich, ladID, lad.isPhiOutside(phi, errPhi), chipID,
-               chipGID, clRange.getEntries(), clRange.getFirstEntry(),
-               chip.xyEdges.seenByCircle(trcCircle, errYFrac), chip.zRange.isOutside(zCross, driftErr + 3 * errZ), chip.zRange.min(), chip.zRange.max(),
-               xCurr, yCurr, xCross, yCross, zCross, errZ);
-
-        // track Y error in chip frame
-        float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
-        float tolerZ = errZ * nSigmaZ, tolerY = errYcalp * nSigmaY;
-        float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp; // track-chip crossing Y in chip frame
-        // select candidate clusters for this chip
-        if (!preselectChipClusters(chipSelClusters, clRange, clRefs, yTrack, zCross, tolerY, tolerZ, lblTrc)) {
-          continue;
-        }
-        auto trcLC = trc; // tmp
-        if (!trcLC.rotate(chipC.alp) || !trcLC.propagateTo(chipC.xRef, propagator->getNominalBz())) {
-          LOG(INFO) << " failed to rotate to alpha=" << chipC.alp << " or prop to X=" << chipC.xRef;
-          trcLC.print();
-          continue;
-        }
-        int cntc = 0;
-        for (auto clID : chipSelClusters) {
-          const auto& cls = (*mITSClustersArrayInp)[clID];
-          auto chi2 = trcLC.getPredictedChi2(cls);
-          const auto lab = mITSClsLabels->getLabels(clID)[0];
-          LOG(INFO) << "cl " << cntc << "ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2; // tmp
-        }
-      }
+    correctTPCTrack(topLink, tTPC, iCCand); // correct track for assumed Z location calibration
+    LOG(INFO) << "Check track TPC mtc=" << tTPC.matchID << " int.cand. " << iCC
+              << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "] for interaction "
+              << " [" << iCCand.timeBins.min() << ":" << iCCand.timeBins.max() << "]";
+    if (std::abs(topLink.getZ()) > mITSFiducialZCut) { // we can discard this seed
+      topLink.disable();
     }
   }
 
+  for (int ilr = NITSLayers; ilr > 0; ilr--) {
+    int nextLinkID = abTrackLinksList.firstInLr[ilr];
+    while (nextLinkID > MinusOne) {
+      int nMissed = 0;
+      auto& seed = mABLinks[nextLinkID];
+      if (!seed.isDisabled()) {
+        checkABSeedFromLr(ilr, nextLinkID, abTrackLinksList, nMissed);
+      }
+      nextLinkID = seed.nextOnLr;
+    }
+  }
+
+  return true;
+}
+
+//______________________________________________
+bool MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist, int& nMissed)
+{
+  // check seed isd on layer lrSeed for prolongation to next layer
+  int lrTgt = lrSeed - 1;
+  auto& seedLink = mABLinks[seedID];
+  o2::track::TrackParCov seed(seedLink); // operate with copy
+  auto propagator = o2::base::Propagator::Instance();
+  float xTgt;
+  const auto& lr = mRGHelper.layers[lrTgt];
+  if (!seed.getXatLabR(lr.rRange.max(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
+      !propagator->PropagateToXBxByBz(seed, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
+    return false;
+  }
+
+  // fetch cluster reference object for the ITS ROF corresponding to interaction candidate
+  const auto& clRefs = *static_cast<const ITSChipClustersRefs*>(mInteractions[seedLink.icCandID].clRefPtr);
+  const float nSigmaZ = 5., nSigmaY = 5.;
+  const float YErr2Extra = 0.1 * 0.1;
+  constexpr int NZSpan = 3;
+  float sna, csa;                                     // circle parameters for B ON data
+  float zDRStep = -seed.getTgl() * lr.rRange.delta(); // approximate Z span when going from layer rMin to rMax
+  float errZ = std::sqrt(seed.getSigmaZ2());
+  if (lr.zRange.isOutside(seed.getZ(), nSigmaZ * errZ + std::abs(zDRStep))) {
+    nMissed++;
+    printf("Lr %d (skip %d) missed by Z = %.2f + %.3f\n", lrTgt, nMissed, seed.getZ(), nSigmaZ * errZ + std::abs(zDRStep));
+    return false;
+  }
+  std::vector<int> chipSelClusters; // preliminary cluster candidates //RS TODO do we keep this local / consider array instead of vector
+  o2::utils::CircleXY trcCircle;
+  o2::utils::IntervalXY trcLinPar; // line parameters fpr B OFF data
+  // approximate errors
+  float errY = std::sqrt(seed.getSigmaY2() + YErr2Extra), errYFrac = errY * mRGHelper.ladderWidthInv(), errPhi = errY * lr.rInv;
+  if (mFieldON) {
+    seed.getCircleParams(propagator->getNominalBz(), trcCircle, sna, csa);
+  } else {
+    seed.getLineParams(trcLinPar, sna, csa);
+  }
+  float xCurr, yCurr;
+  o2::utils::rotateZ(seed.getX(), seed.getY(), xCurr, yCurr, sna, csa);
+  float phi = std::atan2(yCurr, xCurr);
+
+  // find approximate ladder and chip_in_ladder corresponding to this track extrapolation
+  int nLad2Check = 0, ladIDguess = lr.getLadderID(phi), chipIDguess = lr.getChipID(seed.getZ() + 0.5 * zDRStep);
+  std::array<int, MaxLadderCand> lad2Check;
+  nLad2Check = mFieldON ? findLaddersToCheckBOn(lrTgt, ladIDguess, trcCircle, errYFrac, lad2Check) : findLaddersToCheckBOff(lrTgt, ladIDguess, trcLinPar, errYFrac, lad2Check);
+
+  const auto& tTPC = mTPCWork[llist.trackID];                        // tmp
+  auto lblTrc = mTPCTrkLabels->getLabels(tTPC.source.getIndex())[0]; // tmp
+  for (int ilad = nLad2Check; ilad--;) {
+    int ladID = lad2Check[ilad];
+    const auto& lad = lr.ladders[ladID];
+
+    // we assume that close chips on the same ladder with have close xyEdges, so it is enough to calculate track-chip crossing
+    // coordinates xCross,yCross,zCross for this central chipIDguess, although we are going to check also neighbours
+    float t = 1e9, xCross, yCross;
+    const auto& chipC = lad.chips[chipIDguess];
+    bool res = mFieldON ? chipC.xyEdges.circleCrossParam(trcCircle, t) : chipC.xyEdges.lineCrossParam(trcLinPar, t);
+    chipC.xyEdges.eval(t, xCross, yCross);
+    float dx = xCross - xCurr, dy = yCross - yCurr, dst2 = dx * dx + dy * dy, dst = sqrtf(dst2);
+    // Z-step sign depends on radius decreasing or increasing during the propagation
+    float zCross = seed.getZ() + seed.getTgl() * (dst2 < 2 * (dx * xCurr + dy * yCurr) ? dst : -dst);
+
+    for (int ich = -1; ich < 2; ich++) {
+      int chipID = chipIDguess + ich;
+      if (chipID < 0 || chipID >= lad.chips.size()) {
+        continue;
+      }
+      const auto& chip = lad.chips[chipID];
+      if (chip.zRange.isOutside(zCross, nSigmaZ * errZ)) {
+        continue;
+      }
+      int chipGID = chip.id;
+      const auto& clRange = clRefs.chipRefs[chipGID];
+      if (!clRange.getEntries()) {
+        continue;
+      }
+      printf("Lr %d #%d/%d LadID: %d (phi:%+d) ChipID: %d [%d Ncl: %d from %d] (rRhi:%d Z:%+d[%+.1f:%+.1f]) | %+.3f %+.3f -> %+.3f %+.3f %+.3f (zErr: %.3f)\n",
+             lrTgt, ilad, ich, ladID, lad.isPhiOutside(phi, errPhi), chipID,
+             chipGID, clRange.getEntries(), clRange.getFirstEntry(),
+             chip.xyEdges.seenByCircle(trcCircle, errYFrac), chip.zRange.isOutside(zCross, 3 * errZ), chip.zRange.min(), chip.zRange.max(),
+             xCurr, yCurr, xCross, yCross, zCross, errZ);
+
+      // track Y error in chip frame
+      float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
+      float tolerZ = errZ * nSigmaZ, tolerY = errYcalp * nSigmaY;
+      float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp; // track-chip crossing Y in chip frame
+      // select candidate clusters for this chip
+      if (!preselectChipClusters(chipSelClusters, clRange, clRefs, yTrack, zCross, tolerY, tolerZ, lblTrc)) {
+        continue;
+      }
+      o2::track::TrackParCov trcLC = seed;
+      if (!trcLC.rotate(chipC.alp) || !trcLC.propagateTo(chipC.xRef, propagator->getNominalBz())) {
+        LOG(INFO) << " failed to rotate to alpha=" << chipC.alp << " or prop to X=" << chipC.xRef;
+        trcLC.print();
+        continue;
+      }
+      int cntc = 0;
+      for (auto clID : chipSelClusters) {
+        const auto& cls = (*mITSClustersArrayInp)[clID];
+        auto chi2 = trcLC.getPredictedChi2(cls);
+
+        const auto lab = mITSClsLabels->getLabels(clID)[0];                                           // tmp
+        LOG(INFO) << "cl " << cntc++ << "ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2; // tmp
+
+        if (chi2 > mCutABTrack2ClChi2) {
+          continue;
+        }
+        int lnkID = registerABLink(llist, trcLC, seedLink.icCandID, lrTgt, seedID, clID); // add new link with track copy
+        auto& link = mABLinks[lnkID];
+        link.update(cls);
+        link.chi2 = chi2 + seedLink.chi2;
+      }
+    }
+  }
   return true;
 }
 
@@ -1995,7 +2084,63 @@ int MatchTPCITS::findLaddersToCheckBOff(int ilr, int lad0, const o2::utils::Inte
 }
 
 //______________________________________________
-float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, InteractionCandidate& cand) const
+int MatchTPCITS::registerABLink(ABTrackLinksList& llist, const o2::track::TrackParCov& src, int ic, int lr, int parentID, int clID)
+{
+  // registers new ABLink on the layer, assigning provided kinematics. The link will be registered in a
+  // way preserving the quality ordering of the links on the layer
+  int lnkID = mABLinks.size();
+  if (llist.firstInLr[lr] == MinusOne) { // no links on this layer yet
+    llist.firstInLr[lr] = lnkID;
+    mABLinks.emplace_back(src, ic, parentID, clID);
+    return lnkID;
+  }
+  // add new link sorting links of this layer in quality
+
+  int count = 0, nextID = llist.firstInLr[lr], topID = MinusOne;
+  do {
+    auto& nextLink = mABLinks[nextID];
+    count++;
+    if (isBetter(src, nextLink)) {      // need to insert new link before nexLink
+      if (count < mMaxABLinksOnLayer) { // will insert in front of nextID
+        auto& newLnk = mABLinks.emplace_back(src, ic, parentID, clID);
+        newLnk.nextOnLr = nextID; // point to the next one
+        if (topID > MinusOne) {
+          mABLinks[topID].nextOnLr = lnkID; // point from previous one
+        }
+        return lnkID;
+      } else {                                     // max number of candidates reached, will overwrite the last one
+        ((o2::track::TrackParCov&)nextLink) = src; // NOTE: this makes sense only if the prolongation tree is filled from top to bottom
+        return nextID;                             // i.e. there are no links on the lower layers pointing on overwritten one!!!
+      }
+    }
+    topID = nextID;
+    nextID = nextLink.nextOnLr;
+  } while (nextID > MinusOne);
+  // new link is worse than all others, add it only if there is a room to expand
+  if (count < mMaxABLinksOnLayer) {
+    mABLinks.emplace_back(src, ic, parentID, clID);
+    if (topID > MinusOne) {
+      mABLinks[topID].nextOnLr = lnkID; // point from previous one
+    }
+    return lnkID;
+  }
+  return MinusOne; // link to be ignored
+}
+
+//______________________________________________
+ABTrackLinksList& MatchTPCITS::getCreateABTrackLinksList(int tpcWID)
+{
+  // return existing or newly created AB links list for TPC track work copy ID
+  auto& tTPC = mTPCWork[tpcWID];
+  if (tTPC.matchID > MinusOne) {
+    return mABTrackLinksList[tTPC.matchID];
+  }
+  tTPC.matchID = mABTrackLinksList.size(); // register new list in the TPC track
+  return mABTrackLinksList.emplace_back(tpcWID);
+}
+
+//______________________________________________
+float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const
 {
   // Correct the track copy trc of the working TPC track tTPC in continuous RO mode for the assumed interaction time
   // return extra uncertainty in Z due to the interaction time incertainty
@@ -2011,7 +2156,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
   float dDrift = (timeIC - timeTrc) * mTPCBin2Z, driftErr = cand.timeBins.delta() * mTPCBin2Z;
 
   trc.setZ(tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift));
-
+  trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
   // tmp
   printf("Ttrack A=%d: pT:%.1f Ncl:%2d T:%.2f  TIC: %.2f -> Z=%+.2f -> %+.2f +- %.3f [shift = %f]\n",
          tpcTrOrig.hasASideClustersOnly(), trc.getPt(), tpcTrOrig.getNClusterReferences(), timeTrc, timeIC, tTPC.getZ(), trc.getZ(),

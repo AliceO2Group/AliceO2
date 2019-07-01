@@ -273,9 +273,9 @@ class TrackParCov : public TrackPar
 
   void resetCovariance(float s2 = 0);
   void checkCovariance();
+  void setCov(float v, int i) { mC[i] = v; }
 
  protected:
-  void setCov(float v, int i) { mC[i] = v; }
   void updateCov(const float delta[kCovMatSize])
   {
     for (int i = kCovMatSize; i--;)
