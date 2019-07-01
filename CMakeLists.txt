@@ -308,10 +308,10 @@ if(HAVESIMULATION)
 endif()
 
 # Create special .rootrc for testing compiled macros
-configure_file("${CMAKE_SOURCE_DIR}/cmake/tests.rootrc.in"
-               "${CMAKE_BINARY_DIR}/.rootrc"
-               @ONLY
-               NEWLINE_STYLE UNIX)
+#configure_file("${CMAKE_SOURCE_DIR}/cmake/tests.rootrc.in"
+#               "${CMAKE_BINARY_DIR}/.rootrc"
+#               @ONLY
+#               NEWLINE_STYLE UNIX)
 
 # Create tests wrapper (and make it executable)
 configure_file("${CMAKE_SOURCE_DIR}/cmake/tests-wrapper.sh.in"
