@@ -3,6 +3,7 @@ set(GPUCF_SRC
     
     "./common/ClEnv.cpp"
     "./common/Cluster.cpp"
+    "./common/ClusterMap.cpp"
     "./common/DataSet.cpp"
     "./common/Digit.cpp"
     "./common/DigitDivider.cpp"

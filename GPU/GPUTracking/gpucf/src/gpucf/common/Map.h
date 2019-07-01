@@ -4,6 +4,7 @@
 
 #include <nonstd/span.hpp>
 
+#include <functional>
 #include <unordered_map>
 
 
@@ -15,14 +16,20 @@ class Map
 {
 
 public:
-    template<class Predicate>
+    using Predicate = std::function<T(const Digit &)>;
+
     Map(nonstd::span<const Digit> keys, Predicate pred, T fallback)
         : fallback(fallback)
     {
         for (const Digit &d : keys)
         {
-            data[{d, 0, 0}] = pred(d);
+            data[d] = pred(d);
         }
+    }
+
+    Map(nonstd::span<const Digit> keys, T pred, T fallback)
+        : Map(keys, [pred](const Digit &) { return pred; }, fallback)
+    {
     }
 
     const T &operator[](const Position &p) const

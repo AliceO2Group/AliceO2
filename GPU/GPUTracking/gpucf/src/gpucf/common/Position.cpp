@@ -4,6 +4,11 @@
 using namespace gpucf;
 
 
+Position::Position(const Digit &d)
+    : Position(d, 0, 0)
+{
+}
+
 Position::Position(const Digit &d, int dp, int dt)
     : Position(d.row, d.pad + dp, d.time + dt)
 {
