@@ -37,14 +37,14 @@ namespace o2
 namespace its
 {
 
-using constants::IndexTable::PhiBins;
-using constants::IndexTable::ZBins;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::its::LayersRCoordinate;
 using constants::its::LayersZCoordinate;
-using constants::Math::TwoPi;
-using IndexTableUtils::getPhiBinIndex;
-using IndexTableUtils::getZBinIndex;
-using MathUtils::getNormalizedPhiCoordinate;
+using constants::math::TwoPi;
+using index_table_utils::getPhiBinIndex;
+using index_table_utils::getZBinIndex;
+using math_utils::getNormalizedPhiCoordinate;
 
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
@@ -116,7 +116,7 @@ GPU_GLOBAL void trackleterKernel(
           phiBinsNum += PhiBins;
         }
         for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-          const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect.x, iPhiBin) };
+          const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
           const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
           const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
           for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
