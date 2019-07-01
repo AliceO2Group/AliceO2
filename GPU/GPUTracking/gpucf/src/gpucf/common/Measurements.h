@@ -12,41 +12,46 @@
 
 namespace gpucf
 {
-    class Event;
 
-    struct Step
-    {
-        Step(const std::string &, const Event &);
+class Event;
+class Kernel1D;
 
-        Step(const std::string &, Timestamp, Timestamp, Timestamp, Timestamp);
+struct Step
+{
 
-        std::string name;
-        Timestamp queued;
-        Timestamp submitted;
-        Timestamp start;
-        Timestamp end;
-        
-        size_t lane = 0;
-        size_t run  = 0;
-    };
+    Step(const Kernel1D &);
 
-    class Measurements
-    {
-    public:
-        void add(nonstd::span<const Step>);
-        void add(const Step &);
+    Step(const std::string &, const Event &);
 
-        void finishRun();
+    Step(const std::string &, Timestamp, Timestamp, Timestamp, Timestamp);
 
-        const std::vector<Step> &getSteps() const;
+    std::string name;
+    Timestamp queued;
+    Timestamp submitted;
+    Timestamp start;
+    Timestamp end;
+    
+    size_t lane = 0;
+    size_t run  = 0;
+};
 
-    private:
-        std::vector<Step> steps;
+class Measurements
+{
+public:
+    void add(nonstd::span<const Step>);
+    void add(const Step &);
 
-        size_t run = 0;
-    };
+    void finishRun();
 
-    std::ostream &operator<<(std::ostream &, const Measurements &);
+    const std::vector<Step> &getSteps() const;
+
+private:
+    std::vector<Step> steps;
+
+    size_t run = 0;
+};
+
+std::ostream &operator<<(std::ostream &, const Measurements &);
 
 } // namespace gpucf
 

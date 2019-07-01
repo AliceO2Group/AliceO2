@@ -28,6 +28,11 @@ public:
                 state.clusterNativeCutoff, 
                 state.aboveQTotCutoff);
     }
+
+    Step step()
+    {
+        return worker->asStep("compactCluster");
+    }
     
 
 private:
