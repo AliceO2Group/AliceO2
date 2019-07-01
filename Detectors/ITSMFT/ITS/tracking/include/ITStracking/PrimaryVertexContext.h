@@ -54,7 +54,7 @@ class PrimaryVertexContext
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
 
-  std::array<std::array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>,
+  std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
              constants::its::TrackletsPerRoad>&
     getIndexTables();
   std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& getTracklets();
@@ -69,7 +69,7 @@ class PrimaryVertexContext
   std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1> mCellsNeighbours;
   std::vector<Road> mRoads;
 
-  std::array<std::array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>,
+  std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
              constants::its::TrackletsPerRoad>
     mIndexTables;
   std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad> mTracklets;
@@ -105,7 +105,7 @@ inline bool PrimaryVertexContext::isClusterUsed(int layer, int clusterId) const
 
 inline void PrimaryVertexContext::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 
-inline std::array<std::array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>,
+inline std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
                   constants::its::TrackletsPerRoad>&
   PrimaryVertexContext::getIndexTables()
 {
