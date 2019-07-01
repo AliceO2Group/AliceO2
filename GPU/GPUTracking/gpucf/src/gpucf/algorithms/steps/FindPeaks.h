@@ -6,7 +6,7 @@
 namespace gpucf
 {
 
-class FindPeaks : protected Kernel1D
+class FindPeaks : public Kernel1D
 {
 
 public:

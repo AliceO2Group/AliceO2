@@ -7,7 +7,7 @@
 namespace gpucf
 {
 
-class FillChargeMap : protected Kernel1D
+class FillChargeMap : public Kernel1D
 {
 
 public:

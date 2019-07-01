@@ -29,6 +29,11 @@ public:
                 state.peaks, 
                 state.isPeak);
     }
+
+    Step step()
+    {
+        return worker->asStep("compactPeaks");
+    }
     
 private:
 

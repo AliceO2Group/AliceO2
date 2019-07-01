@@ -1,5 +1,7 @@
 #include "TimeCf.h"
 
+#include <gpucf/algorithms/ClusterFinderProfiler.h>
+#include <gpucf/algorithms/ClusterFinderTest.h>
 #include <gpucf/common/log.h>
 
 
@@ -25,21 +27,23 @@ TimeCf::TimeCf(
 void TimeCf::run(ClEnv &env)
 {
 
-    log::Info() << "Benchmarking " << name;
+    log::Info() << "Benchmarking " << name << "(" << cfg << ")";
+
+    ClusterFinderTest tester(cfg, digits.size(), env);
+    tester.run(digits);
 
     Measurements measurements;
 
     for (size_t i = 0; i < repeats+1; i++)
     {
         ClEnv envCopy = env;
-        GPUClusterFinder cf; 
-        cf.setup(cfg, envCopy, digits);
 
-        auto res = cf.run();
+        ClusterFinderProfiler p(cfg, digits.size(), envCopy);
+        auto res = p.run(digits);
 
         if (i > 0)
         {
-            measurements.add(res.profiling);
+            measurements.add(res);
             measurements.finishRun();
         }
     }

@@ -6,7 +6,7 @@
 namespace gpucf
 {
 
-class CountPeaks : protected Kernel1D
+class CountPeaks : public Kernel1D
 {
 
 public:
