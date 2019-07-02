@@ -28,7 +28,8 @@ using namespace o2::mft;
 ClassImp(o2::mft::Barrel);
 
 //_____________________________________________________________________________
-Barrel::Barrel() : TNamed(), mBarrel(nullptr) {
+Barrel::Barrel() : TNamed(), mBarrel(nullptr)
+{
 
   // default constructor
 }
@@ -37,67 +38,68 @@ Barrel::Barrel() : TNamed(), mBarrel(nullptr) {
 Barrel::~Barrel() = default;
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly *Barrel::createBarrel() {
+TGeoVolumeAssembly* Barrel::createBarrel()
+{
 
-  auto *BarrelVolume = new TGeoVolumeAssembly("BarrelVolume");
+  auto* BarrelVolume = new TGeoVolumeAssembly("BarrelVolume");
 
-  TGeoMedium *kMeAl = gGeoManager->GetMedium("MFT_Alu$");
-  TGeoMedium *mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
-  TGeoMedium *mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  TGeoMedium *mKapton = gGeoManager->GetMedium("MFT_Kapton$");
+  TGeoMedium* kMeAl = gGeoManager->GetMedium("MFT_Alu$");
+  TGeoMedium* mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
+  TGeoMedium* mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
+  TGeoMedium* mKapton = gGeoManager->GetMedium("MFT_Kapton$");
 
   // define shape of joints
-  TGeoVolume *BarrelJoint0 = gGeoManager->MakeTubs(
-      "Barrel_joint0", kMeAl, 49.600, 49.85, 1.05, 207.2660445, 332.7339555);
-  TGeoVolume *BarrelJoint1 = gGeoManager->MakeTubs(
-      "Barrel_joint1", kMeAl, 49.851, 50.301, 0.525, 207.2660445, 332.7339555);
+  TGeoVolume* BarrelJoint0 = gGeoManager->MakeTubs(
+    "Barrel_joint0", kMeAl, 49.600, 49.85, 1.05, 207.2660445, 332.7339555);
+  TGeoVolume* BarrelJoint1 = gGeoManager->MakeTubs(
+    "Barrel_joint1", kMeAl, 49.851, 50.301, 0.525, 207.2660445, 332.7339555);
   //  TGeoVolume *BoxJoint0 =
   //  gGeoManager->MakeBox("BoxJoint0",kMeAl,0.5125,2.50,0.5125);
-  TGeoVolume *BoxJoint0 =
-      gGeoManager->MakeBox("BoxJoint0", kMeAl, 0.2375, 2.750, 0.5125);
+  TGeoVolume* BoxJoint0 =
+    gGeoManager->MakeBox("BoxJoint0", kMeAl, 0.2375, 2.750, 0.5125);
   //  TGeoVolume *BoxJoint1 =
   //  gGeoManager->MakeBox("BoxJoint1",kMeAl,0.75,2.5,0.5125);
-  TGeoVolume *BoxJoint1 =
-      gGeoManager->MakeBox("BoxJoint1", kMeAl, 0.75, 2.750, 0.5125);
+  TGeoVolume* BoxJoint1 =
+    gGeoManager->MakeBox("BoxJoint1", kMeAl, 0.75, 2.750, 0.5125);
   // define shape of cyl vol
-  TGeoVolume *BarrelTube0 =
-      gGeoManager->MakeTubs("Barrel_Cylinder0", mCarbon, 50.400, 50.800, 20.325,
-                            207.2660445, 332.7339555);
-  TGeoVolume *BarrelTube1 =
-      gGeoManager->MakeTubs("Barrel_Cylinder1", mCarbon, 50.400, 50.800, 61.00,
-                            207.2660445, 332.7339555);
+  TGeoVolume* BarrelTube0 =
+    gGeoManager->MakeTubs("Barrel_Cylinder0", mCarbon, 50.400, 50.800, 20.325,
+                          207.2660445, 332.7339555);
+  TGeoVolume* BarrelTube1 =
+    gGeoManager->MakeTubs("Barrel_Cylinder1", mCarbon, 50.400, 50.800, 61.00,
+                          207.2660445, 332.7339555);
 
   // defining rails 1st cyl
 
-  TGeoVolume *barrel_rail0 =
-      gGeoManager->MakeBox("RailBox0", mCarbon, 0.5, 0.45, 19.20);
-  TGeoVolume *cylrail =
-      gGeoManager->MakeTubs("cylrail0", mCarbon, 0, .20, 19.20, 0, 180);
-  TGeoVolume *barrel_rail1 =
-      gGeoManager->MakeBox("RailBox1", mCarbon, 0.2, .45, 19.20);
-  TGeoCompositeShape *com_rail1;
-  TGeoTranslation *transcyl = new TGeoTranslation(0, 0.45, 0);
+  TGeoVolume* barrel_rail0 =
+    gGeoManager->MakeBox("RailBox0", mCarbon, 0.5, 0.45, 19.20);
+  TGeoVolume* cylrail =
+    gGeoManager->MakeTubs("cylrail0", mCarbon, 0, .20, 19.20, 0, 180);
+  TGeoVolume* barrel_rail1 =
+    gGeoManager->MakeBox("RailBox1", mCarbon, 0.2, .45, 19.20);
+  TGeoCompositeShape* com_rail1;
+  TGeoTranslation* transcyl = new TGeoTranslation(0, 0.45, 0);
   transcyl->SetName("transcyl");
   transcyl->RegisterYourself();
 
   com_rail1 =
-      new TGeoCompositeShape("Composite_rail1", "RailBox1 + cylrail0:transcyl");
-  TGeoVolume *comp_volrail0 =
-      new TGeoVolume("Comp_rail0_vol", com_rail1, mCarbon);
-  TGeoVolume *BoxCavity0 =
-      gGeoManager->MakeBox("BoxCavity0", mCarbon, 0.50, 2.50, 19.20);
-  TGeoVolume *BoxCavity1 =
-      gGeoManager->MakeBox("BoxCavity1", mCarbon, 0.40, 2.30, 19.20);
-  TGeoVolume *BoxCavity2 =
-      gGeoManager->MakeBox("BoxCavity2", mCarbon, 0.50, 0.10, 19.20);
-  TGeoVolume *Joincyl0 = gGeoManager->MakeTubs("Joincyl0", mCarbon, 0.7500,
+    new TGeoCompositeShape("Composite_rail1", "RailBox1 + cylrail0:transcyl");
+  TGeoVolume* comp_volrail0 =
+    new TGeoVolume("Comp_rail0_vol", com_rail1, mCarbon);
+  TGeoVolume* BoxCavity0 =
+    gGeoManager->MakeBox("BoxCavity0", mCarbon, 0.50, 2.50, 19.20);
+  TGeoVolume* BoxCavity1 =
+    gGeoManager->MakeBox("BoxCavity1", mCarbon, 0.40, 2.30, 19.20);
+  TGeoVolume* BoxCavity2 =
+    gGeoManager->MakeBox("BoxCavity2", mCarbon, 0.50, 0.10, 19.20);
+  TGeoVolume* Joincyl0 = gGeoManager->MakeTubs("Joincyl0", mCarbon, 0.7500,
                                                0.95, 19.20, 105.4660, 180);
-  TGeoVolume *Joincyl1 = gGeoManager->MakeTubs("Joincyl1", mCarbon, 10.000,
+  TGeoVolume* Joincyl1 = gGeoManager->MakeTubs("Joincyl1", mCarbon, 10.000,
                                                10.20, 19.20, 0.0, 5.1);
-  TGeoCompositeShape *com_box0;
-  TGeoTranslation *cstr = new TGeoTranslation(0, -2.40, 0);
-  TGeoTranslation *jcyl0 = new TGeoTranslation(0.7, -3.25, 0);
-  TGeoTranslation *jcyl1 = new TGeoTranslation(-10.50, -3.25, 0);
+  TGeoCompositeShape* com_box0;
+  TGeoTranslation* cstr = new TGeoTranslation(0, -2.40, 0);
+  TGeoTranslation* jcyl0 = new TGeoTranslation(0.7, -3.25, 0);
+  TGeoTranslation* jcyl1 = new TGeoTranslation(-10.50, -3.25, 0);
   cstr->SetName("cstr");
   jcyl0->SetName("jcyltr0");
   jcyl1->SetName("jcyltr1");
@@ -108,7 +110,7 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
                                     "BoxCavity0 - BoxCavity1 - BoxCavity2:cstr "
                                     "+ Joincyl0:jcyltr0 + Joincyl1:jcyltr1");
 
-  TGeoVolume *comp_volBox = new TGeoVolume("Comp_Box_Vol0", com_box0, mCarbon);
+  TGeoVolume* comp_volBox = new TGeoVolume("Comp_Box_Vol0", com_box0, mCarbon);
   // definig pos_box0
   TGeoRotation rotrail0;
   TGeoRotation rotrail1;
@@ -116,13 +118,13 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   rotrail1.SetAngles(-127.7, 0, 0);
 
   TGeoTranslation transrail0(
-      -39.40, -30.621,
-      20.350); // central rail R pos= 499.0; H= 9.0; W = 10.0 (mm)
+    -39.40, -30.621,
+    20.350); // central rail R pos= 499.0; H= 9.0; W = 10.0 (mm)
   TGeoTranslation transrail1(39.40, -30.621, 20.350);
   TGeoCombiTrans Combirail0(transrail0, rotrail0);
   TGeoCombiTrans Combirail1(transrail1, rotrail1);
-  TGeoHMatrix *pos_rail0 = new TGeoHMatrix(Combirail0);
-  TGeoHMatrix *pos_rail1 = new TGeoHMatrix(Combirail1);
+  TGeoHMatrix* pos_rail0 = new TGeoHMatrix(Combirail0);
+  TGeoHMatrix* pos_rail1 = new TGeoHMatrix(Combirail1);
 
   TGeoRotation rotrail2;
   TGeoRotation rotrail3;
@@ -133,8 +135,8 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transrail3(43.70, -23.986, 20.350);
   TGeoCombiTrans Combirail2(transrail2, rotrail2);
   TGeoCombiTrans Combirail3(transrail3, rotrail3);
-  TGeoHMatrix *pos_rail2 = new TGeoHMatrix(Combirail2);
-  TGeoHMatrix *pos_rail3 = new TGeoHMatrix(Combirail3);
+  TGeoHMatrix* pos_rail2 = new TGeoHMatrix(Combirail2);
+  TGeoHMatrix* pos_rail3 = new TGeoHMatrix(Combirail3);
 
   TGeoRotation rotrail4;
   TGeoRotation rotrail5;
@@ -145,46 +147,46 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transrail5(34.240, -36.23, 20.350);
   TGeoCombiTrans Combirail4(transrail4, rotrail4);
   TGeoCombiTrans Combirail5(transrail5, rotrail5);
-  TGeoHMatrix *pos_rail4 = new TGeoHMatrix(Combirail4);
-  TGeoHMatrix *pos_rail5 = new TGeoHMatrix(Combirail5);
+  TGeoHMatrix* pos_rail4 = new TGeoHMatrix(Combirail4);
+  TGeoHMatrix* pos_rail5 = new TGeoHMatrix(Combirail5);
   // rotating 2nd Box
 
   TGeoRotation rotbox0;
   rotbox0.SetAngles(180, 180, 0);
   TGeoTranslation transbox0(-45.30, -19.85, 20.35);
   TGeoCombiTrans Combibox0(transbox0, rotbox0);
-  TGeoHMatrix *pos_box0 = new TGeoHMatrix(Combibox0);
+  TGeoHMatrix* pos_box0 = new TGeoHMatrix(Combibox0);
 
   // rails 2nd cyl
 
-  TGeoVolume *barrel_rail02 =
-      gGeoManager->MakeBox("RailBox02", mCarbon, 0.5, 0.45, 60.4750);
-  TGeoVolume *cylrail2 =
-      gGeoManager->MakeTubs("cylrail2", mCarbon, 0, 0.20, 60.4750, 0, 180);
-  TGeoVolume *barrel_rail12 =
-      gGeoManager->MakeBox("RailBox12", mCarbon, 0.2, 0.45, 60.4750);
-  TGeoCompositeShape *com_rail12;
-  TGeoTranslation *transcyl2 = new TGeoTranslation(0, 0.45, 0);
+  TGeoVolume* barrel_rail02 =
+    gGeoManager->MakeBox("RailBox02", mCarbon, 0.5, 0.45, 60.4750);
+  TGeoVolume* cylrail2 =
+    gGeoManager->MakeTubs("cylrail2", mCarbon, 0, 0.20, 60.4750, 0, 180);
+  TGeoVolume* barrel_rail12 =
+    gGeoManager->MakeBox("RailBox12", mCarbon, 0.2, 0.45, 60.4750);
+  TGeoCompositeShape* com_rail12;
+  TGeoTranslation* transcyl2 = new TGeoTranslation(0, 0.45, 0);
   transcyl2->SetName("transcyl2");
   transcyl2->RegisterYourself();
   com_rail12 = new TGeoCompositeShape("Composite_rail1",
                                       "RailBox12 + cylrail2:transcyl2");
-  TGeoVolume *comp_volrail02 =
-      new TGeoVolume("Comp_rail0_vol2", com_rail12, mCarbon);
-  TGeoVolume *BoxCavity02 =
-      gGeoManager->MakeBox("BoxCavity02", mCarbon, 0.50, 2.50, 60.4750);
-  TGeoVolume *BoxCavity12 =
-      gGeoManager->MakeBox("BoxCavity12", mCarbon, 0.40, 2.30, 60.4750);
-  TGeoVolume *BoxCavity22 =
-      gGeoManager->MakeBox("BoxCavity22", mCarbon, 0.50, 0.10, 60.4750);
-  TGeoVolume *Joincyl02 = gGeoManager->MakeTubs("Joincyl02", mCarbon, 0.7500,
+  TGeoVolume* comp_volrail02 =
+    new TGeoVolume("Comp_rail0_vol2", com_rail12, mCarbon);
+  TGeoVolume* BoxCavity02 =
+    gGeoManager->MakeBox("BoxCavity02", mCarbon, 0.50, 2.50, 60.4750);
+  TGeoVolume* BoxCavity12 =
+    gGeoManager->MakeBox("BoxCavity12", mCarbon, 0.40, 2.30, 60.4750);
+  TGeoVolume* BoxCavity22 =
+    gGeoManager->MakeBox("BoxCavity22", mCarbon, 0.50, 0.10, 60.4750);
+  TGeoVolume* Joincyl02 = gGeoManager->MakeTubs("Joincyl02", mCarbon, 0.7500,
                                                 0.95, 60.4750, 105.4660, 180);
-  TGeoVolume *Joincyl12 = gGeoManager->MakeTubs("Joincyl12", mCarbon, 10.000,
+  TGeoVolume* Joincyl12 = gGeoManager->MakeTubs("Joincyl12", mCarbon, 10.000,
                                                 10.20, 60.4750, 0.0, 5.1);
-  TGeoCompositeShape *com_box02;
-  TGeoTranslation *cstr2 = new TGeoTranslation(0, -2.40, 0);
-  TGeoTranslation *jcyl02 = new TGeoTranslation(0.7, -3.25, 0);
-  TGeoTranslation *jcyl12 = new TGeoTranslation(-10.50, -3.25, 0);
+  TGeoCompositeShape* com_box02;
+  TGeoTranslation* cstr2 = new TGeoTranslation(0, -2.40, 0);
+  TGeoTranslation* jcyl02 = new TGeoTranslation(0.7, -3.25, 0);
+  TGeoTranslation* jcyl12 = new TGeoTranslation(-10.50, -3.25, 0);
   cstr2->SetName("cstr2");
   jcyl02->SetName("jcyltr02");
   jcyl12->SetName("jcyltr12");
@@ -192,11 +194,12 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   jcyl02->RegisterYourself();
   jcyl12->RegisterYourself();
   com_box02 = new TGeoCompositeShape(
-      "CompBox2", "BoxCavity02 - BoxCavity12 - BoxCavity22:cstr2 + "
-                  "Joincyl02:jcyltr02 + Joincyl12:jcyltr12");
+    "CompBox2",
+    "BoxCavity02 - BoxCavity12 - BoxCavity22:cstr2 + "
+    "Joincyl02:jcyltr02 + Joincyl12:jcyltr12");
 
-  TGeoVolume *comp_volBox2 =
-      new TGeoVolume("Comp_Box_Vol02", com_box02, mCarbon);
+  TGeoVolume* comp_volBox2 =
+    new TGeoVolume("Comp_Box_Vol02", com_box02, mCarbon);
   // definig pos_box02
   TGeoRotation rotrail02;
   TGeoRotation rotrail12;
@@ -204,12 +207,12 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   rotrail12.SetAngles(-127.7, 0, 0);
 
   TGeoTranslation transrail02(
-      -39.40, -30.621, 104.425); // central rail R pos= 499.0; H= 9.0; W = 10.0
+    -39.40, -30.621, 104.425); // central rail R pos= 499.0; H= 9.0; W = 10.0
   TGeoTranslation transrail12(39.40, -30.621, 104.425);
   TGeoCombiTrans Combirail02(transrail02, rotrail02);
   TGeoCombiTrans Combirail12(transrail12, rotrail12);
-  TGeoHMatrix *pos_rail02 = new TGeoHMatrix(Combirail02);
-  TGeoHMatrix *pos_rail12 = new TGeoHMatrix(Combirail12);
+  TGeoHMatrix* pos_rail02 = new TGeoHMatrix(Combirail02);
+  TGeoHMatrix* pos_rail12 = new TGeoHMatrix(Combirail12);
 
   TGeoRotation rotrail22;
   TGeoRotation rotrail32;
@@ -220,8 +223,8 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transrail32(43.70, -23.986, 104.425);
   TGeoCombiTrans Combirail22(transrail22, rotrail2);
   TGeoCombiTrans Combirail32(transrail32, rotrail3);
-  TGeoHMatrix *pos_rail22 = new TGeoHMatrix(Combirail22);
-  TGeoHMatrix *pos_rail32 = new TGeoHMatrix(Combirail32);
+  TGeoHMatrix* pos_rail22 = new TGeoHMatrix(Combirail22);
+  TGeoHMatrix* pos_rail32 = new TGeoHMatrix(Combirail32);
 
   TGeoRotation rotrail42;
   TGeoRotation rotrail52;
@@ -232,28 +235,28 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transrail52(34.240, -36.23, 104.425);
   TGeoCombiTrans Combirail42(transrail42, rotrail42);
   TGeoCombiTrans Combirail52(transrail52, rotrail52);
-  TGeoHMatrix *pos_rail42 = new TGeoHMatrix(Combirail42);
-  TGeoHMatrix *pos_rail52 = new TGeoHMatrix(Combirail52);
+  TGeoHMatrix* pos_rail42 = new TGeoHMatrix(Combirail42);
+  TGeoHMatrix* pos_rail52 = new TGeoHMatrix(Combirail52);
   // rotating 2nd Box
 
   TGeoRotation rotbox02;
   rotbox02.SetAngles(180, 180, 0);
   TGeoTranslation transbox02(-45.30, -19.85, 104.425);
   TGeoCombiTrans Combibox02(transbox02, rotbox02);
-  TGeoHMatrix *pos_box02 = new TGeoHMatrix(Combibox02);
+  TGeoHMatrix* pos_box02 = new TGeoHMatrix(Combibox02);
 
   // defining pipes
-  TGeoVolume *BarrelPipes =
-      gGeoManager->MakeTube("Barrel_Pipes", kMeAl, 0.3, 0.4, 82.375);
-  TGeoVolume *ConePipes =
-      gGeoManager->MakeTube("Cone_Pipes", kMeAl, 0.3, 0.4, 82.25);
-  TGeoVolume *PipeBox0 =
-      gGeoManager->MakeBox("PipeBoxOut", kMeAl, 2.95, 0.45, 82.375);
-  TGeoVolume *PipeBox1 =
-      gGeoManager->MakeBox("PipeBoxInn", kMeAl, 2.85, 0.35, 82.375);
-  TGeoCompositeShape *ParallelPipeBox =
-      new TGeoCompositeShape("ParallelPipeBox", "PipeBoxOut - PipeBoxInn");
-  TGeoVolume *PipeBox = new TGeoVolume("PipeBox", ParallelPipeBox, kMeAl);
+  TGeoVolume* BarrelPipes =
+    gGeoManager->MakeTube("Barrel_Pipes", kMeAl, 0.3, 0.4, 82.375);
+  TGeoVolume* ConePipes =
+    gGeoManager->MakeTube("Cone_Pipes", kMeAl, 0.3, 0.4, 82.25);
+  TGeoVolume* PipeBox0 =
+    gGeoManager->MakeBox("PipeBoxOut", kMeAl, 2.95, 0.45, 82.375);
+  TGeoVolume* PipeBox1 =
+    gGeoManager->MakeBox("PipeBoxInn", kMeAl, 2.85, 0.35, 82.375);
+  TGeoCompositeShape* ParallelPipeBox =
+    new TGeoCompositeShape("ParallelPipeBox", "PipeBoxOut - PipeBoxInn");
+  TGeoVolume* PipeBox = new TGeoVolume("PipeBox", ParallelPipeBox, kMeAl);
 
   /*mm
   TGeoVolume *parallelpipe0 = gGeoManager->MakeTubs("Parallel_Pipe0", kMeAl,
@@ -273,8 +276,8 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transpipe1(36.55, -33.520, 82.375);
   TGeoCombiTrans Combipipe0(transpipe0, rotpipe0);
   TGeoCombiTrans Combipipe1(transpipe1, rotpipe0);
-  TGeoHMatrix *pos_pipe0 = new TGeoHMatrix(Combipipe0);
-  TGeoHMatrix *pos_pipe1 = new TGeoHMatrix(Combipipe1);
+  TGeoHMatrix* pos_pipe0 = new TGeoHMatrix(Combipipe0);
+  TGeoHMatrix* pos_pipe1 = new TGeoHMatrix(Combipipe1);
 
   TGeoRotation rotpiper;
   rotpiper.SetAngles(47.3, 0, 0);
@@ -282,8 +285,8 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   TGeoTranslation transpipe3(34.7, -35.85972, 82.375);
   TGeoCombiTrans Combipipe2(transpipe2, rotpiper);
   TGeoCombiTrans Combipipe3(transpipe3, rotpiper);
-  TGeoHMatrix *pos_pipe2 = new TGeoHMatrix(Combipipe2);
-  TGeoHMatrix *pos_pipe3 = new TGeoHMatrix(Combipipe3);
+  TGeoHMatrix* pos_pipe2 = new TGeoHMatrix(Combipipe2);
+  TGeoHMatrix* pos_pipe3 = new TGeoHMatrix(Combipipe3);
 
   /*  parallelpipe0->SetLineColor(kOrange-6);
     parallelpipe1->SetLineColor(kOrange-6);
@@ -395,16 +398,16 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   Int_t nwiresa = 19;
   Int_t nwiresb = 4;
   Int_t nwiresc = 3;
-  Int_t wires_array_pos[26] = {3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                               1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2};
+  Int_t wires_array_pos[26] = { 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2 };
 
   // defining wires shapes
-  TGeoVolume *BarrelWiresA =
-      gGeoManager->MakeTube("Barrel_wiresa", kMeAl, 0.0, radiia, 81.225);
-  TGeoVolume *BarrelWiresB =
-      gGeoManager->MakeTube("Barrel_wiresb", kMeAl, 0.0, radiib, 81.225);
-  TGeoVolume *BarrelWiresC =
-      gGeoManager->MakeTube("Barrel_wiresc", kMeAl, 0.0, radiic, 81.225);
+  TGeoVolume* BarrelWiresA =
+    gGeoManager->MakeTube("Barrel_wiresa", kMeAl, 0.0, radiia, 81.225);
+  TGeoVolume* BarrelWiresB =
+    gGeoManager->MakeTube("Barrel_wiresb", kMeAl, 0.0, radiib, 81.225);
+  TGeoVolume* BarrelWiresC =
+    gGeoManager->MakeTube("Barrel_wiresc", kMeAl, 0.0, radiic, 81.225);
   // units cm
 
   // coloring
@@ -414,51 +417,51 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   Float_t xPosIni = 43.415;
   for (Int_t k = 0; k < 26; k++) {
     switch (wires_array_pos[k]) {
-    case 1: {
-      xPosIni = xPosIni - radiia;
-      Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
-      BarrelVolume->AddNode(
+      case 1: {
+        xPosIni = xPosIni - radiia;
+        Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
+        BarrelVolume->AddNode(
           BarrelWiresA, 1,
           new TGeoTranslation(xPosIni, -1.0 * yPosIni, 81.325));
-      BarrelVolume->AddNode(
+        BarrelVolume->AddNode(
           BarrelWiresA, 1,
           new TGeoTranslation(-xPosIni, -1.0 * yPosIni, 81.325));
-      xPosIni = xPosIni - 0.02;
-      break;
-    }
-    case 2: {
-      xPosIni = xPosIni - radiib;
-      Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
-      BarrelVolume->AddNode(
+        xPosIni = xPosIni - 0.02;
+        break;
+      }
+      case 2: {
+        xPosIni = xPosIni - radiib;
+        Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
+        BarrelVolume->AddNode(
           BarrelWiresB, 1,
           new TGeoTranslation(xPosIni, -1.0 * yPosIni, 81.325));
-      BarrelVolume->AddNode(
+        BarrelVolume->AddNode(
           BarrelWiresB, 1,
           new TGeoTranslation(-xPosIni, -1.0 * yPosIni, 81.325));
-      xPosIni = xPosIni - 0.02;
-      break;
-    }
+        xPosIni = xPosIni - 0.02;
+        break;
+      }
 
-    case 3: {
-      xPosIni = xPosIni - radiic;
-      Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
-      BarrelVolume->AddNode(
+      case 3: {
+        xPosIni = xPosIni - radiic;
+        Float_t yPosIni = sqrt(50.35 * 50.35 - xPosIni * xPosIni);
+        BarrelVolume->AddNode(
           BarrelWiresC, 1,
           new TGeoTranslation(xPosIni, -1.0 * yPosIni, 81.325));
-      BarrelVolume->AddNode(
+        BarrelVolume->AddNode(
           BarrelWiresC, 1,
           new TGeoTranslation(-xPosIni, -1.0 * yPosIni, 81.325));
-      xPosIni = xPosIni - 0.02;
-      break;
-    }
+        xPosIni = xPosIni - 0.02;
+        break;
+      }
     }
   }
 
   // kapton KaptonFoil
-  TGeoVolume *KaptonFoil0 = gGeoManager->MakeTubs(
-      "Kapton_Foil0", mKapton, 50.301, 50.311, 81.325, 210.46, 212.58);
-  TGeoVolume *KaptonFoil1 = gGeoManager->MakeTubs(
-      "Kapton_Foil1", mKapton, 50.301, 50.311, 81.325, 327.42, 329.54);
+  TGeoVolume* KaptonFoil0 = gGeoManager->MakeTubs(
+    "Kapton_Foil0", mKapton, 50.301, 50.311, 81.325, 210.46, 212.58);
+  TGeoVolume* KaptonFoil1 = gGeoManager->MakeTubs(
+    "Kapton_Foil1", mKapton, 50.301, 50.311, 81.325, 327.42, 329.54);
   // coloring
   KaptonFoil0->SetLineColor(kSpring - 4);
   KaptonFoil1->SetLineColor(kSpring - 4);
@@ -467,15 +470,11 @@ TGeoVolumeAssembly *Barrel::createBarrel() {
   BarrelVolume->AddNode(KaptonFoil1, 1, new TGeoTranslation(0.0, 0.01, 81.875));
 
   // fixation services
-  TGeoVolume *FixService0 = gGeoManager->MakeTubs("FixService0", kMeAl, 49.40,
+  TGeoVolume* FixService0 = gGeoManager->MakeTubs("FixService0", kMeAl, 49.40,
                                                   49.60, 2.00, 314.15, 332.78);
-  TGeoVolume *FixService1 = gGeoManager->MakeTubs("FixService1", kMeAl, 49.40,
+  TGeoVolume* FixService1 = gGeoManager->MakeTubs("FixService1", kMeAl, 49.40,
                                                   49.60, 2.00, 207.55, 226.18);
-  // coloring
-  FixService0->SetLineColor(kRed - 9);
-  FixService1->SetLineColor(kRed - 9);
   // adding nodes
-
   BarrelVolume->AddNode(FixService0, 1, new TGeoTranslation(-2.00, 0.0, 21.2));
   BarrelVolume->AddNode(FixService1, 1, new TGeoTranslation(2.00, 0.0, 21.2));
   BarrelVolume->AddNode(FixService0, 1, new TGeoTranslation(-2.00, 0.0, 32.7));
