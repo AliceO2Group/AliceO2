@@ -82,6 +82,16 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
   auto tracks = builder2.finalize();
 
   arrow::compute::FunctionContext ctx;
+  arrow::compute::Datum outRanges;
+  SortedGroupByKernel groupBy{ { "fID4Tracks" } };
+  BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(tracks), &outRanges).ok(), true);
+  auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
+  BOOST_REQUIRE(result.get() != nullptr);
+  BOOST_CHECK_EQUAL(result->num_rows(), 2);
+
   std::vector<Datum> splitted;
   BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fID4Tracks", arrow::compute::Datum(tracks), &splitted).ok(), true);
+  BOOST_REQUIRE_EQUAL(splitted.size(), 2);
+  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 1);
+  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 2);
 }
