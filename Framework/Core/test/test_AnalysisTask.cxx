@@ -12,14 +12,26 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/AnalysisTask.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include <boost/test/unit_test.hpp>
 
+using namespace o2;
 using namespace o2::framework;
 
-class ATask : public AnalysisTask
+namespace o2::aod
 {
- public:
+namespace track
+{
+DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
+DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+} // namespace track
+DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI", track::Eta, track::Phi);
+} // namespace o2::aod
+
+struct ATask : AnalysisTask {
+  Produces<aod::EtaPhis> phis;
+
   void init(InitContext& ic) final
   {
   }
@@ -27,14 +39,13 @@ class ATask : public AnalysisTask
   {
   }
 
-  void processTrack(o2::aod::Track const& track)
+  void processTrack(o2::aod::Track const& track) override
   {
+    phis(0.01102005, 0.27092016); // dummy value for phi for now...
   }
 };
 
-class BTask : public AnalysisTask
-{
- public:
+struct BTask : AnalysisTask {
   void init(InitContext& ic) final
   {
   }
@@ -42,7 +53,7 @@ class BTask : public AnalysisTask
   {
   }
 
-  void processCollisionTrack(o2::aod::Collision const&, o2::aod::Track const&)
+  void processCollisionTrack(o2::aod::Collision const&, o2::aod::Track const&) override
   {
   }
 };
