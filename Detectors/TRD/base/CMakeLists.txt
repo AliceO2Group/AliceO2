@@ -16,6 +16,7 @@ SET(SRCS
   src/CalDet.cxx
   src/CalROC.cxx
   src/TRDFeeParam.cxx
+  src/LTUParam.cxx
 )
 
 SET(HEADERS
@@ -33,6 +34,7 @@ SET(HEADERS
   include/${MODULE_NAME}/CalDet.h
   include/${MODULE_NAME}/CalROC.h
   include/${MODULE_NAME}/TRDFeeParam.h
+  include/${MODULE_NAME}/LTUParam.h
 )
 
 SET(LINKDEF src/TRDBaseLinkDef.h)

@@ -27,8 +27,8 @@
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
-
 #pragma link C++ class o2::trd::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::trd::MCLabel> + ;
+#pragma link C++ class o2::trd::LTUParam + ;
 
 #endif
