@@ -43,6 +43,19 @@ namespace framework
 class AnalysisTask
 {
  public:
+  template <typename T>
+  struct Produces {
+    static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
+  };
+
+  template <typename... C>
+  struct Produces<soa::Table<C...>> {
+    void operator()(typename C::type...)
+    {
+      assert(false);
+    }
+  };
+
   virtual ~AnalysisTask() = default;
   /// The method which is called once to initialise the task.
   /// Derived classes can use this to save extra state.
@@ -169,15 +182,15 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::hasProcessCollisionTracks, inputs);
   }
 
+  std::vector<OutputSpec> outputs;
+
   DataProcessorSpec spec{
     name,
     // FIXME: For the moment we hardcode this. We could build
     // this list from the list of methods actually implemented in the
     // task itself.
     inputs,
-    // FIXME: Placeholeder for results. We should make it configurable
-    // from the task.
-    Outputs{ OutputSpec{ "ASIS", "RESULTS", 0 } },
+    outputs,
     algo
   };
   return spec;
