@@ -47,32 +47,48 @@ SortedGroupByKernel::SortedGroupByKernel(GroupByOptions options)
 {
 }
 
-Status SortedGroupByKernel::Call(FunctionContext* ctx, Datum const& inputTable, Datum* outputRanges)
+template <typename T, typename ARRAY>
+Status doGrouping(std::shared_ptr<ChunkedArray> chunkedArray, Datum* outputRanges)
 {
-  if (inputTable.kind() == Datum::TABLE) {
-    auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
-    auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
-    auto chunkedArray = table->column(columnIndex)->data();
-    TableBuilder builder;
-    auto writer = builder.persist<uint64_t, uint64_t>({ "start", "count" });
-    uint64_t currentIndex = std::static_pointer_cast<arrow::UInt64Array>(chunkedArray->chunk(0))->raw_values()[0];
-    uint64_t currentCount = 0;
-    for (size_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
-      auto chunk = chunkedArray->chunk(ci);
-      uint64_t const* data = std::static_pointer_cast<arrow::UInt64Array>(chunk)->raw_values();
-      for (size_t ai = 0; ai < chunk->length(); ++ai) {
-        if (currentIndex == data[ai]) {
-          currentCount++;
-        } else if (currentIndex != -1) {
-          writer(0, currentIndex, currentCount);
-          currentIndex = data[ai];
-          currentCount = 1;
-        }
+  TableBuilder builder;
+  auto writer = builder.persist<uint64_t, uint64_t>({ "start", "count" });
+  T currentIndex = std::static_pointer_cast<ARRAY>(chunkedArray->chunk(0))->raw_values()[0];
+  T currentCount = 0;
+  for (size_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
+    auto chunk = chunkedArray->chunk(ci);
+    T const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
+    for (size_t ai = 0; ai < chunk->length(); ++ai) {
+      if (currentIndex == data[ai]) {
+        currentCount++;
+      } else if (currentIndex != -1) {
+        writer(0, currentIndex, currentCount);
+        currentIndex = data[ai];
+        currentCount = 1;
       }
     }
-    writer(0, currentIndex, currentCount);
-    *outputRanges = std::move(builder.finalize());
-    return arrow::Status::OK();
+  }
+  writer(0, currentIndex, currentCount);
+  *outputRanges = std::move(builder.finalize());
+  return arrow::Status::OK();
+}
+
+Status SortedGroupByKernel::Call(FunctionContext* ctx, Datum const& inputTable, Datum* outputRanges)
+{
+  using namespace arrow;
+  if (inputTable.kind() == Datum::TABLE) {
+    auto table = util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
+    auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
+    auto dataType = table->column(columnIndex)->type();
+    auto chunkedArray = table->column(columnIndex)->data();
+    if (dataType->id() == Type::UINT64) {
+      return doGrouping<uint64_t, arrow::UInt64Array>(chunkedArray, outputRanges);
+    } else if (dataType->id() == Type::INT64) {
+      return doGrouping<int64_t, arrow::Int64Array>(chunkedArray, outputRanges);
+    } else if (dataType->id() == Type::UINT32) {
+      return doGrouping<uint32_t, arrow::UInt32Array>(chunkedArray, outputRanges);
+    } else if (dataType->id() == Type::INT32) {
+      return doGrouping<int32_t, arrow::Int32Array>(chunkedArray, outputRanges);
+    }
   }
   return arrow::Status::OK();
 }
