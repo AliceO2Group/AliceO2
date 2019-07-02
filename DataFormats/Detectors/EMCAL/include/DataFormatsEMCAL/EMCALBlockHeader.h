@@ -22,7 +22,7 @@ namespace emcal
 /// @brief Header for EMCAL flagging the following EMCAL payload
 struct EMCALBlockHeader : public o2::header::BaseHeader {
   // Required to do the lookup
-  constexpr static const o2::header::HeaderType sHeaderType;
+  constexpr static const o2::header::HeaderType sHeaderType = "EMCBlkH";
   static const uint32_t sVersion = 1;
 
   EMCALBlockHeader(bool hasPayload) : BaseHeader(sizeof(EMCALBlockHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), mHasPayload(hasPayload) {}
