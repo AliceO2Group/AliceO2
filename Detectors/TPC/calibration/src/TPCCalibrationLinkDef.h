@@ -21,5 +21,8 @@
 #pragma link C++ class o2::tpc::CalibPulserParam +;
 #pragma link C++ class o2::tpc::CalibTreeDump;
 #pragma link C++ class o2::tpc::DigitDump;
+#pragma link C++ class o2::tpc::CalibPadGainTracks;
+#pragma link C++ class o2::tpc::FastHisto<float> +;
+#pragma link C++ class o2::tpc::FastHisto<unsigned int> +;
 
 #endif
