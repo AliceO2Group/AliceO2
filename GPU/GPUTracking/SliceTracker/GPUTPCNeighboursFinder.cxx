@@ -80,45 +80,18 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
   }
   GPUbarrier();
 
-  if (s.mIRow < GPUCA_ROW_COUNT) {
-    if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
-#ifdef GPUCA_GPUCODE
-      GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
-#else
-      GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-#endif
-      for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
-        tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
-        tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
-      }
-    } else {
-      /*#ifdef GPUCA_GPUCODE
-                  const GPUTPCRow &rowUp = s.mRowUp;
-                  const GPUTPCRow &rowDn = s.mRowDown;
-       #else
-                  const GPUTPCRow &rowUp = tracker.Row( s.mIRowUp );
-                  const GPUTPCRow &rowDn = tracker.Row( s.mIRowDn );
-       #endif
-
-                for ( unsigned int ih = iThread; ih < s.mGridUp.N() + s.mGridUp.Ny() + 2; ih += nThreads ) {
-                  s.mGridContentUp[ih] = tracker.FirstHitInBin( rowUp, ih );
-                }
-                for ( unsigned int ih = iThread; ih < s.mGridDn.N() + s.mGridDn.Ny() + 2; ih += nThreads ) {
-                  s.mGridContentDn[ih] = tracker.FirstHitInBin( rowDn, ih );
-                }*/
-    }
-  }
-  GPUbarrier();
-
-#ifdef GPUCA_GPUCODE
-  if ((iBlock <= 1) || (iBlock >= GPUCA_ROW_COUNT - 2)) {
-    return;
-  }
-#else
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
+#ifdef GPUCA_GPUCODE
+    GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+#else
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+#endif
+    for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
+      tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
+      tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
+    }
     return;
   }
-#endif
 
   float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
 // float chi2Cut = 3.*3.*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
