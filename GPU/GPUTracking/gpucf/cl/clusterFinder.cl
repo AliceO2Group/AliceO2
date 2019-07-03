@@ -934,6 +934,7 @@ void computeClusters(
         global const int           *globalRowToCru,
                      uint           clusternum,
         global       ClusterNative *clusters,
+        global       row_t         *rows,
         global       uchar         *aboveQTotCutoff,
         global       uchar         *peakMap)
 {
@@ -975,6 +976,7 @@ void computeClusters(
     toNative(&pc, myDigit.charge, flags, &myCluster);
 
     clusters[idx] = myCluster;
+    rows[idx] = myDigit.row;
 
 #if defined(SPLIT_CHARGES)
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;

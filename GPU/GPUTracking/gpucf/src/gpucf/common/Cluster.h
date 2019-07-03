@@ -42,6 +42,7 @@ public:
     Cluster(int, int, float, float, float, float, float, float);
     Cluster(const Digit &, const ClusterNative &);
     Cluster(int, int, const ClusterNative &);
+    Cluster(int, const ClusterNative &);
 
     Object serialize() const;
     void deserialize(const Object &);

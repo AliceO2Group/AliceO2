@@ -21,6 +21,7 @@ protected:
 
     ClusterFinderState state;
 
+    ClusterToCPU    clusterToCPU;
     CompactClusters compactCluster;
     CompactPeaks    compactPeaks;
     ComputeCluster  computeCluster;

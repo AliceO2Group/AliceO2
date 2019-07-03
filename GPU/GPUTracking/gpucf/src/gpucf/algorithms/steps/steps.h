@@ -1,8 +1,9 @@
 #pragma once
 
-#include <gpucf/common/Kernel1D.h>
 #include <gpucf/algorithms/ClusterFinderState.h>
+#include <gpucf/common/Kernel1D.h>
 
+#include "ClusterToCPU.h"
 #include "CompactClusters.h"
 #include "CompactPeaks.h"
 #include "ComputeCluster.h"
