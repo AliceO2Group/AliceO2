@@ -81,16 +81,26 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mFlatObjectsDevice.InitGPUProcessor(mRec, GPUProcessor::PROCESSOR_TYPE_DEVICE, &mFlatObjectsShadow);
   mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &GPUTrackingFlatObjects::SetPointersFlatObjects, GPUMemoryResource::MEMORY_PERMANENT, "Processors");
 
-  for (unsigned int i = 0; i < NSLICES; i++) {
-    mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+  if (GetRecoSteps() & RecoStep::TPCSliceTracking) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+    }
   }
-  processors()->tpcMerger.SetTrackingChain(this);
-  mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
-  processors()->trdTracker.SetTrackingChain(this);
-  mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+  if (GetRecoSteps() & RecoStep::TPCMerging) {
+    processors()->tpcMerger.SetTrackingChain(this);
+    mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
+  }
+  if (GetRecoSteps() & RecoStep::TRDTracking) {
+    processors()->trdTracker.SetTrackingChain(this);
+    mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+  }
 #ifdef HAVE_O2HEADERS
-  mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
-  mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
+  if (GetRecoSteps() & RecoStep::TPCConversion) {
+    mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
+  }
+  if (GetRecoSteps() & RecoStep::TPCCompression) {
+    mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
+  }
 #endif
   mRec->AddGPUEvents(mEvents);
 }
@@ -109,7 +119,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTracker, &processors()->trdTracker);
   }
-
 #ifdef HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
@@ -117,7 +126,6 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
-
 #endif
 }
 
