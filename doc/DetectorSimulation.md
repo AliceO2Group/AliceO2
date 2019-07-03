@@ -61,7 +61,7 @@ generator. Examples thereof are available in the installation directory `$O2_ROO
 
 For example, in order to simulate with 10 Hijing events, the following command can be run:
 ```
-o2sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
+o2-sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
 ```
 Macro arguments can be passed via
 `--extGenFunc pythia6(14000., "pythia.settings")`.
@@ -69,7 +69,7 @@ Macro arguments can be passed via
 Users may write there own macros in order to customize to their needs.
 
 #### 2. **How can I run on a subset of geometry modules**?
-Use the `--modules` or `-m` command line option. Example: `o2sim -m PIPE ITS TPC`
+Use the `--modules` or `-m` command line option. Example: `o2-sim -m PIPE ITS TPC`
 will run the simulation on a geometry/material consinsting of PIPE, ITS, TPC.
 
 #### 3. **How can I run with exactly the same events as used in an AliRoot simulation?**
@@ -79,7 +79,7 @@ produced. The file contains primary and possibly secondary particles (added by t
 When the file is passed to `o2sim`, the primary particles my be used as the initial event. 
 Use the **`-g extkin`** command line option:
 ```
-o2sim -g extkin --extKinFile Kinematics.root ...
+o2-sim -g extkin --extKinFile Kinematics.root ...
 ```
 
 #### 4. **How can I generate events (signal) using the vertex position of already-generated (background) events?**
@@ -88,7 +88,7 @@ This process might be called embedding, where one wants to merge two events gene
 Assuming that your already-generated (background) events are stored in the `o2sim.background.root` file, you can force the interaction vertex for the generation of a new set of events to be the same as the one in the background with the following command line option:
 
 ```
-o2sim --embedIntoFile o2sim.background.root
+o2-sim --embedIntoFile o2sim.background.root
 ```
 
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
