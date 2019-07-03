@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUCommonFairLogger.h
+/// \file GPUCommonLogger.h
 /// \author David Rohr
 
 #ifndef GPUCOMMONFAIRLOGGER_H
@@ -18,14 +18,10 @@
 
 #include <iostream>
 #define LOG(type) std::cout
-namespace FairLogger
-{
-static constexpr const char* endl = "\n";
-}
 
 #else
 
-#include <FairLogger.h>
+#include <Framework/Logger.h>
 
 #endif
 
