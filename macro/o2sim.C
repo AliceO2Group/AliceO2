@@ -210,6 +210,5 @@ void o2sim(bool asservice = false)
 {
   auto run = o2sim_init(asservice);
   o2sim_run(run, asservice);
-  o2::base::MaterialManager::printContainingMedia("ITSV");
   delete run;
 }
