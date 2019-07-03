@@ -24,8 +24,8 @@ struct ClusterFinderState
     cl::Buffer peakMap;
     cl::Buffer aboveQTotCutoff;
     cl::Buffer clusterNative;
+    cl::Buffer rows;
     cl::Buffer clusterNativeCutoff;
-    cl::Buffer cluster;
 
     cl::Buffer globalToLocalRow;
     cl::Buffer globalRowToCru;
