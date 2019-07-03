@@ -191,7 +191,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;           // Material Lookup Table
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;            //
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;      // TRD Geometry
-  const o2::trd::TRDGeometryFlat* mTRDGeometry;                 //
+  const o2::trd::TRDGeometryFlat* mTRDGeometry = nullptr;       //
 
   HighResTimer timerTPCtracking[NSLICES][10];
   eventStruct* mEvents = nullptr;
