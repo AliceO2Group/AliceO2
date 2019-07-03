@@ -54,7 +54,7 @@ GPUClusterFinder::Worker::Worker(
     countPeaks      = cl::Kernel(program, "countPeaks");
     computeClusters = cl::Kernel(program, "computeClusters");
     resetMaps       = cl::Kernel(program, "resetMaps");
-    nativeToRegular = cl::Kernel(program, "nativeToRegular");
+    /* nativeToRegular = cl::Kernel(program, "nativeToRegular"); */
 
     if (prev != nullptr)
     {
@@ -288,20 +288,20 @@ void GPUClusterFinder::Worker::run(
     /*************************************************************************
      * Convert ClusterNative format back to regular clusters
      ************************************************************************/
-    ASSERT(config.chunks == 1); // This will explode with more than one worker.
+    /* ASSERT(config.chunks == 1); // This will explode with more than one worker. */
 
-    nativeToRegular.setArg(0, mem.clusterNativeCutoff);
-    nativeToRegular.setArg(1, mem.peaks);
-    nativeToRegular.setArg(2, mem.globalToLocalRow);
-    nativeToRegular.setArg(3, mem.globalRowToCru);
-    nativeToRegular.setArg(4, mem.cluster);
-    clustering.enqueueNDRangeKernel(
-            nativeToRegular,
-            cl::NullRange,
-            cl::NDRange(clusternum),
-            local,
-            nullptr,
-            nullptr);
+    /* nativeToRegular.setArg(0, mem.clusterNativeCutoff); */
+    /* nativeToRegular.setArg(1, mem.peaks); */
+    /* nativeToRegular.setArg(2, mem.globalToLocalRow); */
+    /* nativeToRegular.setArg(3, mem.globalRowToCru); */
+    /* nativeToRegular.setArg(4, mem.cluster); */
+    /* clustering.enqueueNDRangeKernel( */
+    /*         nativeToRegular, */
+    /*         cl::NullRange, */
+    /*         cl::NDRange(clusternum), */
+    /*         local, */
+    /*         nullptr, */
+    /*         nullptr); */
 
 
     /*************************************************************************
@@ -322,7 +322,7 @@ void GPUClusterFinder::Worker::run(
     if (clusternum > 0)
     {
         clustering.enqueueReadBuffer(
-                mem.cluster, 
+                mem.clusterNativeCutoff, 
                 CL_TRUE,
                 range.start * sizeof(Cluster),
                 clusternum  * sizeof(Cluster), 
