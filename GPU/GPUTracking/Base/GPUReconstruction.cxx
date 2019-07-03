@@ -317,10 +317,10 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
   }
 }
 
-void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom)
+void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom, bool freePermanent)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
-    if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && (freeCustom || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM))) {
+    if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && (freeCustom || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) && (freePermanent || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_PERMANENT))) {
       FreeRegisteredMemory(i);
     }
   }
