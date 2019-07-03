@@ -57,6 +57,7 @@ include(O2TargetManPage)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common/Constants)
+add_subdirectory(Framework/Logger)
 add_subdirectory(GPU/Common)
 add_subdirectory(Common/MathUtils)
 add_subdirectory(DataFormats/Detectors/Common)

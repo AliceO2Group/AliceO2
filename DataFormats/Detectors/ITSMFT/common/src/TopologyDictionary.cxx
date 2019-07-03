@@ -70,7 +70,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
     GroupStruct gr;
     int groupID = 0;
     if (!in.is_open()) {
-      LOG(ERROR) << "The file coud not be opened" << FairLogger::endl;
+      LOG(ERROR) << "The file coud not be opened";
       throw std::runtime_error("No fired pixels in small topology");
     } else {
       while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {
@@ -96,7 +96,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   float TopologyDictionary::GetXcog(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mXCOG;
@@ -104,7 +104,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   float TopologyDictionary::GetErrX(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mErrX;
@@ -113,7 +113,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   float TopologyDictionary::GetZcog(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mZCOG;
@@ -122,7 +122,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   float TopologyDictionary::GetErrZ(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mErrZ;
@@ -131,7 +131,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   unsigned long TopologyDictionary::GetHash(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mHash;
@@ -140,7 +140,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   int TopologyDictionary::GetNpixels(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mNpixels;
@@ -149,7 +149,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   ClusterPattern TopologyDictionary::GetPattern(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else
       return mVectorOfGroupIDs[n].mPattern;
@@ -158,7 +158,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
   double TopologyDictionary::GetFrequency(int n)
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds" << FairLogger::endl;
+      LOG(ERROR) << "Index out of bounds";
       throw std::range_error("Index out of bounds");
     } else if (n == 0) {
       return mVectorOfGroupIDs[n].mFrequency;
