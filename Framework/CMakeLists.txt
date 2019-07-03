@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Logger)
+#add_subdirectory(Logger) #Included at top level due to depency order
 
 add_subdirectory(Foundation)
 

@@ -16,7 +16,7 @@
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
-#include "GPUCommonFairLogger.h"
+#include "GPUCommonLogger.h"
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
 //#define _DBG_LOC_ // for local debugging only
