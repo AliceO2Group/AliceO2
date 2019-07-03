@@ -16,7 +16,7 @@
 #include "CommonConstants/MathConstants.h"
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "DetectorsBase/GeometryManager.h"
-#include "GPUCommonFairLogger.h"
+#include "GPUCommonLogger.h"
 #endif
 
 using namespace o2::base;
