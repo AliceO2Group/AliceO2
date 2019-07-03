@@ -203,7 +203,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
-  /*if (GPUFailedMsgI(hipThreadSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
+  /*if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
   {
     GPUError("Error setting HIP stack size");
     GPUFailedMsgI(hipDeviceReset());

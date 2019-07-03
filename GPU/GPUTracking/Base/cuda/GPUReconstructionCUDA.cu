@@ -245,7 +245,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 
-  if (GPUFailedMsgI(cudaThreadSetLimit(cudaLimitStackSize, GPUCA_GPU_STACK_SIZE))) {
+  if (GPUFailedMsgI(cudaDeviceSetLimit(cudaLimitStackSize, GPUCA_GPU_STACK_SIZE))) {
     GPUError("Error setting CUDA stack size");
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
