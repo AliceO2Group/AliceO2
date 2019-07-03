@@ -56,8 +56,9 @@ ClusterFinderState::ClusterFinderState(
     clusterNativeCutoff =
         makeBuffer<ClusterNative>(digitnum, Memory::ReadWrite, context);
 
-    cluster = makeBuffer<Cluster>(digitnum, Memory::ReadWrite, context);
+    /* cluster = makeBuffer<Cluster>(digitnum, Memory::ReadWrite, context); */
 
+    rows = makeBuffer<row_t>(digitnum, Memory::ReadWrite, context);
 
     cl::CommandQueue init(context, device);
 

@@ -24,8 +24,9 @@ public:
         kernel.setArg(3, state.globalRowToCru);
         kernel.setArg(4, cl_uint(state.peaknum));
         kernel.setArg(5, state.clusterNative);
-        kernel.setArg(6, state.aboveQTotCutoff);
-        kernel.setArg(7, state.peakMap);
+        kernel.setArg(6, state.rows);
+        kernel.setArg(7, state.aboveQTotCutoff);
+        kernel.setArg(8, state.peakMap);
 
         Kernel1D::call(0, workitems, 64, queue);
     }

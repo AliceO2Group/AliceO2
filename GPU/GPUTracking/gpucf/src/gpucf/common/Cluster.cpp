@@ -43,6 +43,15 @@ Cluster::Cluster(const Digit &peak, const ClusterNative &cn)
 {
 }
 
+Cluster::Cluster(int globalRow, const ClusterNative &cn)
+    : Cluster(
+            RowInfo::instance().globalRowToCru(globalRow),
+            RowInfo::instance().globalToLocal(globalRow),
+            cn)
+{
+}
+
+
 Cluster::Cluster(int cru, int row, const ClusterNative &cn)
     : Cluster(
             cru, 
