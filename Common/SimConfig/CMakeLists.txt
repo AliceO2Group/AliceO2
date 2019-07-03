@@ -7,11 +7,13 @@ set(SRCS
     src/ConfigurableParam.cxx
     src/ConfigurableParamHelper.cxx
     src/SimCutParams.cxx
+    src/G4Params.cxx
    )
 
 set(HEADERS
     include/${MODULE_NAME}/SimConfig.h
     include/${MODULE_NAME}/SimCutParams.h
+    include/${MODULE_NAME}/G4Params.h
     include/${MODULE_NAME}/ConfigurableParam.h
     include/${MODULE_NAME}/ConfigurableParamHelper.h
    )
