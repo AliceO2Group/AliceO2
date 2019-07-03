@@ -1,7 +1,6 @@
 #include "CfRunner.h"
 
 #include <gpucf/algorithms/ClusterFinderTest.h>
-#include <gpucf/algorithms/GPUClusterFinder.h>
 #include <gpucf/algorithms/ReferenceClusterFinder.h>
 #include <gpucf/common/DataSet.h>
 #include <gpucf/common/log.h>
