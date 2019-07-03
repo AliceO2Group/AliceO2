@@ -156,7 +156,7 @@ class GPUReconstruction
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
   size_t AllocateRegisteredMemory(short res);
   void* AllocateUnmanagedMemory(size_t size, int type);
-  void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false);
+  void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
