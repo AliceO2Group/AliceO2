@@ -55,7 +55,11 @@ TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
   
   TEveElementList *container = new TEveElementList("Random tracks by PID");
   container->SetTitle(Form("Multiplicity = %d", minEvent->GetMultiplicity()));
+
   gEve->AddElement(container);
+    gEve->Redraw3D(kTRUE);
+
+
   
   TEveTrackList *trackList[nParticleTypes];
   trackList[0] = new TEveTrackList("Electrons");

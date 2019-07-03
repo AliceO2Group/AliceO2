@@ -11,6 +11,7 @@ set(SRCS
     src/EventManager.cxx
     src/GeometryManager.cxx
     src/Track.cxx
+    src/DataSourceOffline.cxx
     )
 
 # HEADERS is not needed if we don't generate a dictionary.

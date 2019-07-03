@@ -17,6 +17,7 @@
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 #include "EventVisualisationBase/Track.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
+#include "EventVisualisationBase/DataSource.h"
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -26,24 +27,83 @@
 #include <TEveTrackPropagator.h>
 #include <TGListTree.h>
 #include <TEveTrack.h>
+#include <iostream>
+
 
 using namespace std;
 
 namespace o2  {
 namespace event_visualisation {
 
+EventManager *EventManager::instance = nullptr;
+
 EventManager& EventManager::getInstance()
 {
-  static EventManager instance;
-  return instance;
+  if( instance == nullptr)
+      instance = new EventManager();
+  return *instance;
 }
 
-EventManager::EventManager() : TEveEventManager("Event",""),
-mCurrentDataSourceType(SourceOffline)
-{
+EventManager::EventManager() : TEveEventManager("Event", ""), mCurrentDataSourceType(SourceOffline) {
+    std::cout << "EventManager::EventManager()" << std::endl;
 }
 
-EventManager::~EventManager() = default;
+int EventManager::gotoEvent(Int_t event) {
+    std::cout << "EventManager::gotoEvent(" <<event << ")" << std::endl;
+    DataSource *dataSource = getDataSource();
+    return dataSource->gotoEvent(event);
+}
+
+void EventManager::Open() {
+    std::cout << "EventManager::Open()" << std::endl;
+    TEveEventManager::Open();
+}
+
+void EventManager::GotoEvent(Int_t no) {
+    std::cout << "EventManager::GotoEvent("<<no<<")" << std::endl;
+    gotoEvent(no);
+    TEveEventManager::GotoEvent( no);
+}
+
+void EventManager::NextEvent() {
+    std::cout << "EventManager::EventManager()" << std::endl;
+    TEveEventManager::NextEvent();
+}
+
+void EventManager::PrevEvent() {
+    std::cout << "EventManager::PrevEvent()" << std::endl;
+    TEveEventManager::PrevEvent();
+}
+
+void EventManager::Close() {
+    std::cout << "EventManager::Close()" << std::endl;
+    TEveEventManager::Close();
+}
+
+void EventManager::AfterNewEventLoaded() {
+    std::cout << "EventManager::AfterNewEventLoaded()" << std::endl;
+    TEveEventManager::AfterNewEventLoaded();
+}
+
+void EventManager::AddNewEventCommand(const TString &cmd) {
+    std::cout << "EventManager::AddNewEventCommand" << std::endl;
+    TEveEventManager::AddNewEventCommand(cmd);
+}
+
+void EventManager::RemoveNewEventCommand(const TString &cmd) {
+    std::cout << "EventManager::RemoveNewEventCommand" << std::endl;
+    TEveEventManager::RemoveNewEventCommand(cmd);
+}
+
+void EventManager::ClearNewEventCommands() {
+    std::cout << "EventManager::ClearNewEventCommands()" << std::endl;
+    TEveEventManager::ClearNewEventCommands();
+}
+
+EventManager::~EventManager() {
+    std::cout << "EventManager::~EventManager()" << std::endl;
+    instance = nullptr;
+}
 
 }
 }

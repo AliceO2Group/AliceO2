@@ -33,9 +33,11 @@ namespace event_visualisation {
 /// interpret data from different formats as visualisation objects (points, lines...) and register them
 /// for drawing in the MultiView.
 
+class DataSource;
+
 class EventManager : public TEveEventManager, public TQObject
 {
-  public:
+public:
     enum EDataSource{
       SourceOnline,   ///< Online reconstruction is a source of events
       SourceOffline,  ///< Local files are the source of events
@@ -43,6 +45,7 @@ class EventManager : public TEveEventManager, public TQObject
     };
 
     /// Returns an instance of EventManager
+    static EventManager *instance;
     static EventManager& getInstance();
 
     /// Setter of the current data source
@@ -52,9 +55,25 @@ class EventManager : public TEveEventManager, public TQObject
     {
       o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
     }
+    int gotoEvent(Int_t event) ;
+    DataSource *getDataSource() {return dataSource;}
+    void setDataSource(DataSource *dataSource) {this->dataSource = dataSource;}
 
-   private:
+    void Open() override ;
+    void GotoEvent(Int_t /*event*/) override ;
+    void NextEvent() override ;
+    void PrevEvent() override ;
+    void Close() override ;
+
+    void AfterNewEventLoaded() override;
+
+    void AddNewEventCommand(const TString& cmd) override ;;
+    void RemoveNewEventCommand(const TString& cmd) override ;;
+    void ClearNewEventCommands() override ;;
+
+private:
     EDataSource mCurrentDataSourceType; ///< enum type of the current data source
+    DataSource *dataSource = nullptr;
 
     /// Default constructor
     EventManager();

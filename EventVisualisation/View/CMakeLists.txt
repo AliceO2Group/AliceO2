@@ -8,12 +8,16 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/MultiView.cxx
     src/Initializer.cxx
+    src/EventManagerFrame.cxx
     )
+
+
 
 # HEADERS is not needed if we don't generate a dictionary.
 set(HEADERS
     include/${MODULE_NAME}/MultiView.h
     include/${MODULE_NAME}/Initializer.h
+    include/${MODULE_NAME}/EventManagerFrame.h
     )
 
 set(LIBRARY_NAME ${MODULE_NAME})
