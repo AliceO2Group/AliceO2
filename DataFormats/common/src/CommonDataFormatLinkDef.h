@@ -25,6 +25,7 @@
 #pragma link C++ class o2::dataformats::TimeStamp < float> + ;
 #pragma link C++ class o2::dataformats::TimeStamp < double> + ;
 #pragma link C++ class o2::dataformats::TimeStamp < int> + ;
+#pragma link C++ class o2::dataformats::TimeStamp < Float16_t > + ;
 #pragma link C++ class o2::dataformats::TimeStampWithError < float, float> + ;
 #pragma link C++ class o2::dataformats::TimeStampWithError < double, double> + ;
 #pragma link C++ class o2::dataformats::TimeStampWithError < int, int> + ;
