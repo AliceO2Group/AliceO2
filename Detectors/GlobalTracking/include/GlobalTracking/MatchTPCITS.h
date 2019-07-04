@@ -238,7 +238,7 @@ class MatchTPCITS
   }
 
   ///< set input TPC clusters received via DPL
-  void setTPCClustersInp(const o2::tpc::ClusterNativeAccessFullTPC* inp)
+  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
   {
     assertDPLIO(true);
     mTPCClusterIdxStruct = inp;
@@ -538,7 +538,9 @@ class MatchTPCITS
   TTree* mTreeFITInfo = nullptr;     ///< input tree for FIT info
 
   o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
-  std::unique_ptr<o2::tpc::ClusterNativeAccessFullTPC> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
+  std::unique_ptr<o2::tpc::ClusterNative[]> mTPCClusterBufferOwn;        ///< buffer for clusters in mTPCClusterIdxStructOwn
+  o2::tpc::MCLabelContainer mTPCClusterMCBufferOwn;                      ///< buffer for mc labels
 
   std::unique_ptr<TPCTransform> mTPCTransform;                       ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam;               ///< TPC clusters error param
@@ -555,7 +557,7 @@ class MatchTPCITS
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
   const std::vector<o2::t0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
-  const o2::tpc::ClusterNativeAccessFullTPC* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;        ///< struct holding the TPC cluster indices
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTPCTrkLabels = nullptr; ///< input TPC Track MC labels

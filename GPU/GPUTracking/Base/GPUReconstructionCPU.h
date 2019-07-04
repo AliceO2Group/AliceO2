@@ -38,7 +38,6 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-
 class GPUReconstructionCPUBackend : public GPUReconstruction
 {
  public:

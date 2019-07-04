@@ -263,7 +263,7 @@ GPUd() void MEM_LG(GPUParam)::GetClusterRMS2(int iRow, float z, float sinPhi, fl
 {
   int rowType = tpcGeometry.GetROC(iRow);
   if (rowType > 2) {
-    rowType = 2; //TODO: Add type 3
+    rowType = 2; // TODO: Add type 3
   }
   z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
@@ -301,7 +301,7 @@ GPUd() void MEM_LG(GPUParam)::GetClusterErrors2(int iRow, float z, float sinPhi,
   // Calibrated cluster error from OCDB for Y and Z
   int rowType = tpcGeometry.GetROC(iRow);
   if (rowType > 2) {
-    rowType = 2; //TODO: Add type 3
+    rowType = 2; // TODO: Add type 3
   }
   z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;

@@ -136,12 +136,32 @@ struct ClusterNative {
 
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
-struct ClusterNativeAccessFullTPC {
+struct ClusterNativeAccess {
+  const ClusterNative* clustersLinear;
   const ClusterNative* clusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth;
   unsigned int nClusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::tpc::Constants::MAXSECTOR]
-                                                                     [o2::tpc::Constants::MAXGLOBALPADROW];
+  unsigned int nClustersSector[o2::tpc::Constants::MAXSECTOR];
+  unsigned int clusterOffset[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  unsigned int nClustersTotal;
+
+  void setOffsetPtrs();
 };
+
+inline void ClusterNativeAccess::setOffsetPtrs()
+{
+  int offset = 0;
+  for (unsigned int i = 0; i < o2::tpc::Constants::MAXSECTOR; i++) {
+    nClustersSector[i] = 0;
+    for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
+      clusterOffset[i][j] = offset;
+      clusters[i][j] = &clustersLinear[offset];
+      nClustersSector[i] += nClusters[i][j];
+      offset += nClusters[i][j];
+    }
+  }
+  nClustersTotal = offset;
+}
 }
 }
 #endif
