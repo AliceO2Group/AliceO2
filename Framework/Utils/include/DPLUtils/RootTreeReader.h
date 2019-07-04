@@ -160,7 +160,7 @@ class GenericRootTreeReader
     : mInput(treename)
   {
     mInput.SetCacheSize(0);
-    parseConstructorArgs(std::forward<Args>(args)...);
+    parseConstructorArgs<0>(std::forward<Args>(args)...);
   }
 
   /// add a file as source for the tree
@@ -279,6 +279,11 @@ class GenericRootTreeReader
     TClass* classinfo = nullptr;
   };
 
+  // helper for the invalid code path of if constexpr statement
+  template <typename T>
+  struct type_dependent : std::false_type {
+  };
+
   /// add a new branch definition
   /// we allow for multiple branch definition for the same key
   void addBranchSpec(KeyType key, const char* branchName)
@@ -309,30 +314,45 @@ class GenericRootTreeReader
     }
   }
 
-  /// helper function to recursively parse constructor arguments
-  template <typename U, typename V, typename... Args>
-  void parseConstructorArgs(U key, V&& arg, Args&&... args)
+  // special helper to get the char argument from the argument pack
+  template <typename T, typename... Args>
+  const char* getCharArg(T arg, Args&&...)
   {
+    static_assert(std::is_same<T, const char*>::value, "missing branch name after publishing key, use const char* argument right after the key");
+    return arg;
+  }
+
+  /// helper function to recursively parse constructor arguments
+  template <size_t skip, typename U, typename... Args>
+  void parseConstructorArgs(U key, Args&&... args)
+  {
+    if constexpr (skip > 0) {
+      return parseConstructorArgs<skip - 1>(std::forward<Args>(args)...);
+    }
     if constexpr (std::is_same<U, const char*>::value) {
       addFile(key);
-      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
     } else if constexpr (std::is_same<U, int>::value) {
       mMaxEntries = key;
-      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
     } else if constexpr (std::is_same<U, PublishingMode>::value) {
       mPublishingMode = key;
-      parseConstructorArgs(std::move(arg), std::forward<Args>(args)...);
-    } else {
+    } else if constexpr (sizeof...(Args) > 0) {
+      const char* arg = getCharArg(std::forward<Args>(args)...);
       if (arg != nullptr && *arg != 0) {
         // add branch spec if the name is not empty
         addBranchSpec(KeyType{ key }, arg);
       }
-      parseConstructorArgs(std::forward<Args>(args)...);
+      return parseConstructorArgs<1>(std::forward<Args>(args)...);
+    } else {
+      static_assert(type_dependent<U>::value, "argument mismatch, allowed are: file names, int to specify number of events, publishing mode, and key-branchname pairs");
     }
+    parseConstructorArgs<0>(std::forward<Args>(args)...);
   }
 
   // this terminates the argument parsing
-  void parseConstructorArgs() {}
+  template <size_t skip>
+  void parseConstructorArgs()
+  {
+  }
 
   /// the input tree, using TChain to support multiple input files
   TChain mInput;
