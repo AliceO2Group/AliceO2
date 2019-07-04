@@ -64,8 +64,8 @@ DataProcessorSpec getSourceSpec()
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
                                                    Output{ "TST", "ARRAYOFDATA", 0, persistency },
-                                                   "dataarray" // name of cluster branch
-                                                   );
+                                                   "dataarray", // name of cluster branch
+                                                   RootTreeReader::PublishingMode::Single);
 
     auto processingFct = [reader](ProcessingContext& pc) {
       if (reader->getCount() == 0) {
