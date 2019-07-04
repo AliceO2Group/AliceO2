@@ -333,7 +333,8 @@ FairLogger.
 ...
 
 LOG(INFO) << "some message";      // streamer based API
-LOGF(INFO, "{}", "some message"); // fmt based API
+LOGF(INFO, "%s", "some message"); // printf based API
+LOGP(INFO, "{}", "some message"); // python / fmt based API
 O2INFO("{}", "some message);      // same but with less typing.
 ```
 
