@@ -15,21 +15,24 @@
 
 class TGeoVolumeAssembly;
 
-namespace o2 {
-namespace mft {
+namespace o2
+{
+namespace mft
+{
 
-class Barrel : public TNamed {
+class Barrel : public TNamed
+{
 
-public:
+ public:
   Barrel() = default;
   ~Barrel() = default;
 
-  TGeoVolumeAssembly *createBarrel();
+  TGeoVolumeAssembly* createBarrel();
 
-protected:
-  TGeoVolumeAssembly *mBarrel;
+ protected:
+  TGeoVolumeAssembly* mBarrel;
 
-private:
+ private:
   ClassDefOverride(Barrel, 1)
 };
 } // namespace mft
