@@ -16,8 +16,10 @@
 
 #pragma link C++ class o2::emcal::Cell + ;
 #pragma link C++ class o2::emcal::Digit + ;
+#pragma link C++ class o2::emcal::Cluster + ;
 
-#pragma link C++ class std::vector < o2::emcal::Cell> + ;
-#pragma link C++ class std::vector < o2::emcal::Digit> + ;
+#pragma link C++ class std::vector < o2::emcal::Cell > +;
+#pragma link C++ class std::vector < o2::emcal::Digit > +;
+#pragma link C++ class std::vector < o2::emcal::Cluster > +;
 
 #endif

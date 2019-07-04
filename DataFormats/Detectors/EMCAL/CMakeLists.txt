@@ -9,12 +9,20 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsEMCAL
-               SOURCES src/EMCALBlockHeader.cxx src/Cell.cxx src/Digit.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers 
-Boost::serialization O2::MathUtils O2::DetectorsBase O2::SimulationDataFormat)
+               SOURCES src/EMCALBlockHeader.cxx 
+                       src/Cluster.cxx
+                       src/Cell.cxx 
+                       src/Digit.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
+                                     O2::Headers 
+                                     O2::MathUtils 
+                                     O2::DetectorsBase 
+                                     O2::SimulationDataFormat
+                                     Boost::serialization)
 
 o2_target_root_dictionary(DataFormatsEMCAL
                           HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h
                                   include/DataFormatsEMCAL/Constants.h
                                   include/DataFormatsEMCAL/Cell.h
-                                  include/DataFormatsEMCAL/Digit.h)
+                                  include/DataFormatsEMCAL/Digit.h
+                                  include/DataFormatsEMCAL/Cluster.h)
