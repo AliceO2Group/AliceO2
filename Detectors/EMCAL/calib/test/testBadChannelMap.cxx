@@ -34,6 +34,12 @@ std::vector<unsigned short> getDeadChannelsLHC17o_block2();
 std::vector<unsigned short> combineMaps(const std::vector<unsigned short>& list1, const std::vector<unsigned short> list2);
 void filterBad(std::vector<unsigned short> warmcells, const std::vector<unsigned short> badcells);
 
+/// \brief Standard tests for bad channel map
+///
+/// - Set/Get/Update: single channel
+/// - Pattern test: Real bad channel map from LHC18m, getting exact channel status for each channel
+/// - Merge test: Merging bad channel maps from LHC18m and LHC17o
+/// - Comparison test: Comparing LHC18m with itself (true) and LHC17o (false)
 BOOST_AUTO_TEST_CASE(BadChannelMap_test)
 {
   auto geo = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
