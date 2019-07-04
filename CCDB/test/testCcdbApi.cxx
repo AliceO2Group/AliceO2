@@ -164,6 +164,10 @@ BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
   h1->FillRandom("gaus", 10000);
   f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+
+  auto h2 = new TH1F("object2", "object2", 100, 0, 99);
+  h1->FillRandom("gaus", 10000);
+  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
