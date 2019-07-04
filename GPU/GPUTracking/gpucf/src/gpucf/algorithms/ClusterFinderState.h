@@ -29,9 +29,6 @@ struct ClusterFinderState
     cl::Buffer rows;
     cl::Buffer clusterNativeCutoff;
 
-    cl::Buffer globalToLocalRow;
-    cl::Buffer globalRowToCru;
-
     ClusterFinderState(ClusterFinderConfig, size_t, cl::Context, cl::Device);
 };
 

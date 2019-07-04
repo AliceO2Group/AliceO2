@@ -21,13 +21,11 @@ public:
         kernel.setArg(0, state.chargeMap);
         kernel.setArg(1, state.peakCountMap);
         kernel.setArg(2, state.peaks);
-        kernel.setArg(3, state.globalToLocalRow);
-        kernel.setArg(4, state.globalRowToCru);
-        kernel.setArg(5, cl_uint(state.peaknum));
-        kernel.setArg(6, state.clusterNative);
-        kernel.setArg(7, state.rows);
-        kernel.setArg(8, state.aboveQTotCutoff);
-        kernel.setArg(9, state.peakMap);
+        kernel.setArg(3, cl_uint(state.peaknum));
+        kernel.setArg(4, state.clusterNative);
+        kernel.setArg(5, state.rows);
+        kernel.setArg(6, state.aboveQTotCutoff);
+        kernel.setArg(7, state.peakMap);
 
         Kernel1D::call(0, workitems, 64, queue);
     }

@@ -130,24 +130,6 @@ void toNative(const PartialCluster *cluster, const Digit *d, ClusterNative *cn)
 
 }
 
-void toRegular(
-               const PartialCluster *cluster, 
-               const Digit          *myDigit,
-        global const int            *globalToLocalRow,
-        global const int            *globalRowToCru,
-                     Cluster        *out)
-{
-    out->Q         = cluster->Q;
-    out->QMax      = round(myDigit->charge);
-    out->padMean   = cluster->padMean;
-    out->timeMean  = cluster->timeMean;
-    out->timeSigma = cluster->timeSigma;
-    out->padSigma  = cluster->padSigma;
-
-    out->cru = globalRowToCru[myDigit->row];
-    out->row = globalToLocalRow[myDigit->row];
-}
-
 void collectCharge(
         PartialCluster *cluster,
         charge_t splitCharge,
@@ -991,8 +973,6 @@ void computeClusters(
         global const charge_t      *chargeMap,
         global const char          *peakCountMap,
         global const Digit         *digits,
-        global const int           *globalToLocalRow,
-        global const int           *globalRowToCru,
                      uint           clusternum,
         global       ClusterNative *clusters,
         global       row_t         *rows,
