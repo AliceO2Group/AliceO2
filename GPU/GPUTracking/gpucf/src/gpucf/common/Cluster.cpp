@@ -55,6 +55,11 @@ Cluster::Cluster(int cru, int row, const ClusterNative &cn)
             cnGetSigmaPad(&cn),
             cnGetSigmaTime(&cn))
 {
+    unsigned char flags = cnGetFlags(&cn);
+
+    atEdge      = flags & CN_FLAG_IS_EDGE_CLUSTER;
+    splitInTime = flags & CN_FLAG_SPLIT_IN_TIME;
+    splitInPad  = flags & CN_FLAG_SPLIT_IN_PAD;
 }
 
 Object Cluster::serialize() const
