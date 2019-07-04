@@ -30,11 +30,18 @@ typedef struct ClusterNative_s
 } ClusterNative;
 
 
+enum CnFlagPos
+{
+    CN_FLAG_POS_IS_EDGE_CLUSTER = 0,
+    CN_FLAG_POS_SPLIT_IN_TIME   = 1,
+    CN_FLAG_POS_SPLIT_IN_PAD    = 2,
+};
+
 enum CnFlag
 {
-    CN_FLAG_IS_EDGE_CLUSTER = (1 << 0),
-    CN_FLAG_SPLIT_IN_TIME   = (1 << 1),
-    CN_FLAG_SPLIT_IN_PAD    = (1 << 2),
+    CN_FLAG_IS_EDGE_CLUSTER = (1 << CN_FLAG_POS_IS_EDGE_CLUSTER),
+    CN_FLAG_SPLIT_IN_TIME   = (1 << CN_FLAG_POS_SPLIT_IN_TIME),
+    CN_FLAG_SPLIT_IN_PAD    = (1 << CN_FLAG_POS_SPLIT_IN_PAD),
 };
 
 
