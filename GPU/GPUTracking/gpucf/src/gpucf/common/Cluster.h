@@ -3,22 +3,18 @@
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Object.h>
 
-#include <shared/Cluster.h>
 #include <shared/ClusterNative.h>
 
 #include <iosfwd>
-#include <string>
 
 
 namespace gpucf
 {
 
-class Cluster : public FloatCluster
+class Cluster 
 {
 
 public:
-    static constexpr size_t floatMemberNum = 6;
-
     using FieldMask = unsigned char;
 
     enum Field : FieldMask
@@ -37,6 +33,15 @@ public:
                   | Field_timeSigma 
                   | Field_padSigma
     };
+
+    float Q;
+    float QMax;
+    float padMean;
+    float timeMean;
+    float padSigma;
+    float timeSigma;
+    int cru;
+    int row;
 
     Cluster();
     Cluster(int, int, float, float, float, float, float, float);

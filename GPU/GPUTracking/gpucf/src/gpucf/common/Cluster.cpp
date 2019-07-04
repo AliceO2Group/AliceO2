@@ -3,19 +3,11 @@
 #include <gpucf/common/float.h>
 #include <gpucf/common/RowInfo.h>
 
-#include <cmath>
 #include <ostream>
-#include <sstream>
 
 
 using namespace gpucf;
 
-
-static_assert(sizeof(FloatCluster) == FLOAT_CLUSTER_SIZE);
-static_assert(sizeof(Cluster) == sizeof(FloatCluster));
-static_assert(sizeof(HalfCluster) == HALF_CLUSTER_SIZE);
-
-static_assert(Cluster::floatMemberNum <= sizeof(Cluster::Field) * 8);
 
 static_assert(Cluster::Field_all == 0b00111111);
 
