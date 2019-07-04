@@ -30,7 +30,9 @@ DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI", track::Eta, track::Phi);
 } // namespace o2::aod
 
 struct ATask : AnalysisTask {
+  int foo;
   Produces<aod::EtaPhis> phis;
+  int bar;
 
   void init(InitContext& ic) final
   {
@@ -58,12 +60,25 @@ struct BTask : AnalysisTask {
   }
 };
 
+struct SomeClass {
+};
+
+struct CTask : SomeClass {
+  int foo;
+  AnalysisTask::Produces<aod::EtaPhis> bar;
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
   BOOST_CHECK_EQUAL(task1.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
+
   auto task2 = adaptAnalysisTask<BTask>("test2");
   BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Tracks");
+  CTask spt;
+  auto tuple = o2::framework::to_tuple(spt);
+  auto foo = std::get<1>(tuple);
 }
