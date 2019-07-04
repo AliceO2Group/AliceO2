@@ -43,10 +43,7 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 
     checkPeaks(res.peaks);
 
-    if (state.cfg.splitCharges)
-    {
-        countPeaks.call(state, queue);
-    }
+    countPeaks.call(state, queue);
 
     computeCluster.call(state, queue);
 

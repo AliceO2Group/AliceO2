@@ -32,28 +32,16 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(
         }
     }
 
-    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, config.splitCharges);
+    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, true);
 
     std::vector<Cluster> clusters;
 
-    if (config.splitCharges)
-    {
-        std::transform(
-                peaks.begin(), 
-                peaks.end(),
-                std::back_inserter(clusters),
-                [=](const Digit &d) { 
-                    return clusterize(d, chargemap, peakcount); });
-    }
-    else
-    {
-        std::transform(
-                peaks.begin(), 
-                peaks.end(),
-                std::back_inserter(clusters),
-                [=](const Digit &d) { 
-                    return clusterize(d, chargemap, peakcount); });
-    }
+    std::transform(
+            peaks.begin(), 
+            peaks.end(),
+            std::back_inserter(clusters),
+            [=](const Digit &d) { 
+            return clusterize(d, chargemap, peakcount); });
 
     return {clusters, peaks, isPeakPred};
 }
@@ -133,8 +121,8 @@ Map<ReferenceClusterFinder::PeakCount> ReferenceClusterFinder::makePeakCountMap(
     Map<bool> peakmap(peaks, true, false);
     return {
         digits, 
-        [=](const Digit &d) { return countPeaks(d, peakmap); },
-        1};
+            [=](const Digit &d) { return countPeaks(d, peakmap); },
+            1};
 }
 
 ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
@@ -175,7 +163,7 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
             peaks += peakmap[{d, dp, dt}];
         }
     }
-    
+
     return peaks;
 }
 

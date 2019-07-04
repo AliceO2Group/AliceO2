@@ -14,10 +14,7 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
 
     compactPeaks.call(state, queue);
     
-    if (state.cfg.splitCharges)
-    {
-        countPeaks.call(state, queue);
-    }
+    countPeaks.call(state, queue);
 
     computeCluster.call(state, queue);
 
@@ -29,9 +26,7 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
     std::vector<Step> steps = {
         fillChargeMap,
         findPeaks,
-        (state.cfg.splitCharges) 
-            ? Step{countPeaks}
-            : Step{"countPeaks", 0, 0, 0, 0},
+        countPeaks,
         compactPeaks.step(),
         computeCluster,
         compactCluster.step(),
