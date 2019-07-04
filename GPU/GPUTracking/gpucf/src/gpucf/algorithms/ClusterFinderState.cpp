@@ -29,10 +29,6 @@ ClusterFinderState::ClusterFinderState(
     std::vector<int> globalRowToCruMap = RowInfo::instance().globalRowToCruMap;
     const size_t numOfRows = globalToLocalRowMap.size();
 
-    globalToLocalRow = makeBuffer<cl_int>(numOfRows, Memory::ReadOnly, context);
-    globalRowToCru = makeBuffer<cl_int>(numOfRows, Memory::ReadOnly, context);
-
-
     const size_t mapEntries = numOfRows 
         * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED; 
 
@@ -64,13 +60,12 @@ ClusterFinderState::ClusterFinderState(
 
     cl::CommandQueue init(context, device);
 
-    gpucpy<int>(globalToLocalRowMap, globalToLocalRow, numOfRows, init);
-    gpucpy<int>(globalRowToCruMap, globalToLocalRow, numOfRows, init);
-
     if (cfg.halfs)
     {
         fill<cl_half>(chargeMap, 0.f, mapEntries, init);
-    } else {
+    } 
+    else 
+    {
         fill<cl_float>(chargeMap, 0.f, mapEntries, init);
     }
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
