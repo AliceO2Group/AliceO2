@@ -168,12 +168,8 @@ void updateClusterOuter(
         delta_t dp,
         delta_t dt)
 {
-
-#if defined(SPLIT_CHARGES)
     charge = (peakCount < 0) ? charge / -peakCount : 0.f;
-#else
-    charge = (charge > OUTER_CHARGE_THRESHOLD) ? charge : 0;
-#endif
+    /* charge = (charge > OUTER_CHARGE_THRESHOLD) ? charge : 0; */
 
     collectCharge(cluster, charge, dp, dt);
 
@@ -223,16 +219,12 @@ void addCorner(
 {
     charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
     
-#if !defined(SPLIT_CHARGES)
-    if (q > CHARGE_THRESHOLD)
-    {
-#endif
+    /* if (q > CHARGE_THRESHOLD) */
+    /* { */
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp,   dt);
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time,   dp, 2*dt);
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
-#if !defined(SPLIT_CHARGES)
-    }
-#endif
+    /* } */
 }
 
 void addLine(
@@ -246,14 +238,10 @@ void addLine(
 {
     charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
 
-#if !defined(SPLIT_CHARGES)
-    if (q > CHARGE_THRESHOLD)
-    {
-#endif
+    /* if (q > CHARGE_THRESHOLD) */
+    /* { */
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
-#if !defined(SPLIT_CHARGES)
-    }
-#endif
+    /* } */
 }
 
 void reset(PartialCluster *clus)
@@ -392,16 +380,12 @@ void updateClusterScratchpadOuter(
         charge_t q = buf[N * lid + i];
         ushort outerIdx = i + offset;
 
-#if defined(SPLIT_CHARGES)
+        // FIXME: test with peakcount not charge!
         q = (q < 0) ? -q : 0.f;
-#else
-        bool contributes = (q > OUTER_CHARGE_THRESHOLD 
-                && innerAboveThreshold(aboveThreshold, outerIdx));
+        /* bool contributes = (q > OUTER_CHARGE_THRESHOLD */ 
+        /*         && innerAboveThreshold(aboveThreshold, outerIdx)); */
 
-        /* IF_DBG_INST DBGPR_1("q = %f", q); */
-
-        q = (contributes) ? q : 0.f;
-#endif
+        /* q = (contributes) ? q : 0.f; */
 
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
 
@@ -831,10 +815,8 @@ void findPeaks(
 
     isPeakPredicate[idx] = peak;
 
-#if defined(SPLIT_CHARGES)
     const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
     IS_PEAK(peakMap, gpad, myDigit.time) = peak;
-#endif
 }
 
 
@@ -1017,9 +999,7 @@ void computeClusters(
     clusters[idx] = myCluster;
     rows[idx] = myDigit.row;
 
-#if defined(SPLIT_CHARGES)
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;
-#endif
 
 #if defined(CUT_QTOT)
     aboveQTotCutoff[idx] = (pc.Q > QTOT_THRESHOLD);
