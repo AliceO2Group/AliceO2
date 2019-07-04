@@ -93,8 +93,8 @@ class GPUReconstruction
                                          CLUSTERS_NATIVE = 10,
                                          TRD_TRACKLET_MC = 11,
                                          TPC_COMPRESSED_CL = 12 };
-  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters",
-                                                       "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters" };
+  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
+                                                       "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters" };
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);
@@ -367,8 +367,6 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
   int count;
   if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  } else if (type == CLUSTERS_NATIVE) {
-    count = NSLICES * GPUCA_ROW_COUNT;
   } else {
     count = 1;
   }
@@ -405,8 +403,6 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
   int count;
   if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  } else if (type == CLUSTERS_NATIVE) {
-    count = NSLICES * GPUCA_ROW_COUNT;
   } else {
     count = 1;
   }

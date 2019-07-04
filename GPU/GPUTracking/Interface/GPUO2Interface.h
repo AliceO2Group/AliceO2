@@ -32,7 +32,7 @@ namespace o2
 {
 namespace tpc
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 struct ClusterNative;
 } // namespace tpc
 } // namespace o2

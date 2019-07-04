@@ -26,7 +26,7 @@ namespace o2
 {
 namespace tpc
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 template <class T>
 struct CompressedClustersPtrs_helper;
 struct CompressedClustersCounters;
@@ -60,7 +60,6 @@ struct GPUTPCGMMergedTrackHit;
 class GPUTRDTrackletWord;
 class GPUTPCMCInfo;
 struct GPUTPCClusterData;
-struct ClusterNativeAccessExt;
 struct GPUTRDTrackletLabels;
 
 class GPUDataTypes
@@ -113,7 +112,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nClusterData[NSLICES] = { 0 };
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
   unsigned int nRawClusters[NSLICES] = { 0 };
-  const o2::tpc::ClusterNativeAccessFullTPC* clustersNative = nullptr;
+  const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
   const GPUTPCTrack* sliceOutTracks[NSLICES] = { nullptr };
   unsigned int nSliceOutTracks[NSLICES] = { 0 };
   const GPUTPCHitId* sliceOutClusters[NSLICES] = { nullptr };

@@ -32,7 +32,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 
 class GPUReconstructionTimeframe
 {
@@ -72,7 +72,7 @@ class GPUReconstructionTimeframe
   long long int mEventStride;
   int mSimBunchNoRepeatEvent;
   std::vector<char> mEventUsed;
-  std::vector<std::tuple<GPUTrackingInOutPointers, GPUChainTracking::InOutMemory, o2::tpc::ClusterNativeAccessFullTPC>> mShiftedEvents;
+  std::vector<std::tuple<GPUTrackingInOutPointers, GPUChainTracking::InOutMemory, o2::tpc::ClusterNativeAccess>> mShiftedEvents;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

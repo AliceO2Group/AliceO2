@@ -146,7 +146,7 @@ void* GPUTPCSliceData::SetPointersInput(void* mem, bool idsOnGPU)
   GPUProcessor::computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
   GPUProcessor::computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
   if (idsOnGPU) {
-    mem = SetPointersScratchHost(mem, false); //Hijack the allocation from SetPointersScratchHost
+    mem = SetPointersScratchHost(mem, false); // Hijack the allocation from SetPointersScratchHost
   }
   return mem;
 }

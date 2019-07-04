@@ -18,21 +18,27 @@
 #include "TPCClusterDecompressor.h"
 #include <vector>
 
+namespace o2
+{
+namespace tpc
+{
+struct ClusterNativeAccess;
+}
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-struct ClusterNativeAccessExt;
-
 class GPUTPCClusterStatistics
 {
  public:
 #ifndef HAVE_O2HEADERS
-  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param){};
+  void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param){};
   void Finish(){};
 #else
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
-  void RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param);
+  void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param);
   void Finish();
 
  protected:

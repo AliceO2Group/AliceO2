@@ -12,7 +12,7 @@
 /// \author David Rohr
 
 #include "GPUTPCClusterStatistics.h"
-#include "ClusterNativeAccessExt.h"
+#include "GPUO2DataTypes.h"
 #include <algorithm>
 #include <cstring>
 #include <map>
@@ -101,10 +101,10 @@ void GenerateCodes(const INode* node, const HuffCode& prefix, HuffCodeMap& outCo
 }
 } // namespace
 
-void GPUTPCClusterStatistics::RunStatistics(const ClusterNativeAccessExt* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param)
+void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param)
 {
   bool decodingError = false;
-  o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded;
+  o2::tpc::ClusterNativeAccess clustersNativeDecoded;
   std::vector<o2::tpc::ClusterNative> clusterBuffer;
   mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param);
   std::vector<o2::tpc::ClusterNative> tmpClusters;

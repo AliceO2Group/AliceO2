@@ -22,7 +22,8 @@ namespace o2
 namespace tpc
 {
 struct ClusterNative;
-}
+struct ClusterNativeAccess;
+} // namespace tpc
 } // namespace o2
 
 class AliHLTTPCRawCluster;
@@ -32,15 +33,14 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUTPCClusterData;
-struct ClusterNativeAccessExt;
 class TPCFastTransform;
 
 class GPUReconstructionConvert
 {
  public:
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
-  static void ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
-  static void ConvertRun2RawToNative(ClusterNativeAccessExt* native, std::unique_ptr<o2::tpc::ClusterNative[]>* nativeBuffers, const AliHLTTPCRawCluster** rawClusters, unsigned int* nRawClusters);
+  static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
+  static void ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<o2::tpc::ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, unsigned int* nRawClusters);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

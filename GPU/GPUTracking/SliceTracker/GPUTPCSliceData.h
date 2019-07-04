@@ -31,10 +31,7 @@ MEM_CLASS_PRE()
 class GPUTPCSliceData
 {
  public:
-  GPUTPCSliceData()
-    : mFirstRow(0), mLastRow(GPUCA_ROW_COUNT - 1), mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr)
-  {
-  }
+  GPUTPCSliceData() : mFirstRow(0), mLastRow(GPUCA_ROW_COUNT - 1), mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
 
 #ifndef GPUCA_GPUCODE
   ~GPUTPCSliceData() CON_DEFAULT;

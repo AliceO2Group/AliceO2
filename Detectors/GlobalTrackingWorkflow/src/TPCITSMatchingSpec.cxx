@@ -216,9 +216,11 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     LOG(INFO) << "running matching for sector(s) " << bitInfo;
   }
 
-  o2::tpc::ClusterNativeAccessFullTPC clusterIndex;
+  o2::tpc::ClusterNativeAccess clusterIndex;
+  std::unique_ptr<o2::tpc::ClusterNative[]> clusterBuffer;
+  o2::tpc::MCLabelContainer clusterMCBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
+  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clusterMCBuffer, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
 
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 

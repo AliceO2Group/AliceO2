@@ -63,7 +63,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     return 0;
   }
 
-  const ClusterNativeAccessFullTPC& clusters = *data->clusters;
+  const ClusterNativeAccess& clusters = *data->clusters;
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   MCLabelContainer* outputTracksMCTruth = data->outputTracksMCTruth;
 
@@ -208,7 +208,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       CRU cru(sector, regionNumber);
       oTrack.setClusterReference(nOutCl++, sector, globalRow, clusterId);
       if (outputTracksMCTruth) {
-        for (const auto& element : clusters.clustersMCTruth[sector][globalRow]->getLabels(clusterId)) {
+        for (const auto& element : clusters.clustersMCTruth->getLabels(clusters.clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
             if (labels[l].first == element) {

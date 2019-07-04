@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClusterNativeAccessExt.h
+/// \file GPUO2DataTypes.h
 /// \author David Rohr
 
-#ifndef CLUSTERNATIVEACCESSEXT_H
-#define CLUSTERNATIVEACCESSEXT_H
-
-#include "GPUTPCDef.h"
+#ifndef O2_GPU_GPUO2DATATYPES_H
+#define O2_GPU_GPUO2DATATYPES_H
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "TRDBase/TRDGeometryFlat.h"
 #else
 namespace o2
 {
@@ -25,26 +25,30 @@ namespace tpc
 {
 struct ClusterNative {
 };
-struct ClusterNativeAccessFullTPC {
-  const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
+struct ClusterNativeAccess {
+  const ClusterNative* clustersLinear;
   unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-};
-struct Constants {
-  static constexpr int MAXSECTOR = GPUCA_NSLICES;
-  static constexpr int MAXGLOBALPADROW = GPUCA_ROW_COUNT;
+  unsigned int nClustersSector[GPUCA_NSLICES];
+  unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
+  unsigned int nClustersTotal;
 };
 } // namespace tpc
+namespace base
+{
+struct MatBudget {
+};
+class MatLayerCylSet
+{
+};
+} // namespace base
+namespace trd
+{
+class TRDGeometryFlat
+{
+};
+} // namespace trd
 } // namespace o2
 #endif
-
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-struct ClusterNativeAccessExt : public o2::tpc::ClusterNativeAccessFullTPC {
-  unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-};
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+#include "GPUdEdxInfo.h"
 
 #endif

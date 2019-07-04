@@ -96,7 +96,6 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCDef.h
     SliceTracker/GPUTPCGeometry.h
     SliceTracker/GPULogging.h
-    SliceTracker/ClusterNativeAccessExt.h
     TRDTracking/GPUTRDGeometry.h
     TRDTracking/GPUTRDTrackerDebug.h
     TRDTracking/GPUTRDInterfaces.h
@@ -106,7 +105,11 @@ set(HDRS_INSTALL
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
-    Base/GPUOutputControl.h)
+    Base/GPUOutputControl.h
+    Base/GPUOutputControl.h
+    Base/GPUO2DataTypes.h
+    dEdx/GPUdEdxInfo.h
+)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(SRCS

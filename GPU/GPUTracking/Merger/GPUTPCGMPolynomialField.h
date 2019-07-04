@@ -29,7 +29,10 @@ class GPUTPCGMPolynomialField
 {
  public:
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  GPUTPCGMPolynomialField() : mNominalBz(0.f) { Reset(); }
+  GPUTPCGMPolynomialField() : mNominalBz(0.f)
+  {
+    Reset();
+  }
 
   void Reset();
 
@@ -294,7 +297,6 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldItsBz(float x, float y, float z) 
 }
 
 #endif // __OPENCL__
-
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

@@ -88,7 +88,7 @@ struct GPUO2InterfaceConfiguration {
 // location if it is not a nullptr.
 struct GPUO2InterfaceIOPtrs {
   // TPC clusters in cluster native format, const as it can only be input
-  const o2::tpc::ClusterNativeAccessFullTPC* clusters = nullptr;
+  const o2::tpc::ClusterNativeAccess* clusters = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
   std::vector<o2::tpc::TrackTPC>* outputTracks = nullptr;

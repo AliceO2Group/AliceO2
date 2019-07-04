@@ -19,10 +19,8 @@
 #include <FairLogger.h>
 #include <iostream>
 
-namespace o2
-{
-namespace tpc
-{
+using namespace o2::tpc;
+
 void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, const char* toTreeName)
 {
   Reader reader;
@@ -30,13 +28,16 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   reader.init(fromFile);
   writer.init(toFile, toTreeName);
   size_t nEntries = reader.getTreeSize();
-  ClusterNativeAccessFullTPC clusterIndex;
+  ClusterNativeAccess clusterIndex;
+  std::unique_ptr<ClusterNative[]> clusterBuffer;
+  MCLabelContainer mcBuffer;
+
   int result = 0;
   int nClusters = 0;
   for (size_t entry = 0; entry < nEntries; ++entry) {
     LOG(INFO) << "converting entry " << entry;
     reader.read(entry);
-    result = reader.fillIndex(clusterIndex);
+    result = reader.fillIndex(clusterIndex, clusterBuffer, mcBuffer);
     if (result >= 0) {
       LOG(INFO) << "added " << result << " clusters to index";
     } else {
@@ -54,17 +55,35 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   writer.close();
 }
 
-std::unique_ptr<ClusterNativeAccessFullTPC> ClusterNativeHelper::createClusterNativeIndex(
-  std::vector<ClusterNativeContainer>& clusters,
-  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth)
+std::unique_ptr<ClusterNativeAccess> ClusterNativeHelper::createClusterNativeIndex(
+  std::unique_ptr<ClusterNative[]>& buffer, std::vector<ClusterNativeContainer>& clusters,
+  MCLabelContainer* bufferMC, std::vector<MCLabelContainer>* mcTruth)
 {
-  std::unique_ptr<ClusterNativeAccessFullTPC> retVal(new ClusterNativeAccessFullTPC);
+  std::unique_ptr<ClusterNativeAccess> retVal(new ClusterNativeAccess);
   memset(retVal.get(), 0, sizeof(*retVal));
   for (int i = 0; i < clusters.size(); i++) {
-    retVal->clusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.data();
+    if (retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow]) {
+      LOG(ERROR) << "Received two containers for the same sector / row";
+      return std::unique_ptr<ClusterNativeAccess>();
+    }
     retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.size();
-    if (mcTruth)
-      retVal->clustersMCTruth[clusters[i].sector][clusters[i].globalPadRow] = &(*mcTruth)[i];
+    retVal->nClustersTotal += clusters[i].clusters.size();
+  }
+  buffer.reset(new ClusterNative[retVal->nClustersTotal]);
+  if (bufferMC) {
+    bufferMC->clear();
+  }
+  retVal->clustersLinear = buffer.get();
+  retVal->setOffsetPtrs();
+  for (int i = 0; i < clusters.size(); i++) {
+    memcpy(&buffer[retVal->clusterOffset[clusters[i].sector][clusters[i].globalPadRow]], clusters[i].clusters.data(), sizeof(*retVal->clustersLinear) * clusters[i].clusters.size());
+    if (mcTruth) {
+      for (unsigned int j = 0; j < clusters[i].clusters.size(); j++) {
+        for (auto const& label : (*mcTruth)[i].getLabels(j)) {
+          bufferMC->addElement(retVal->clusterOffset[clusters[i].sector][clusters[i].globalPadRow] + j, label);
+        }
+      }
+    }
   }
   return (std::move(retVal));
 }
@@ -140,7 +159,8 @@ void ClusterNativeHelper::Reader::clear()
   memset(&mSectorRaw, 0, sizeof(mSectorRaw));
 }
 
-int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccessFullTPC& clusterIndex)
+int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
+                                           MCLabelContainer& mcBuffer)
 {
   for (size_t index = 0; index < mSectorRaw.size(); ++index) {
     if (mSectorRaw[index] && mSectorRaw[index]->size() != mSectorRawSize[index]) {
@@ -148,11 +168,12 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccessFullTPC& clusterIn
       mSectorRaw[index]->clear();
     }
   }
-  int result = fillIndex(clusterIndex, mSectorRaw, mSectorMC, [](auto&) { return true; });
+  int result = fillIndex(clusterIndex, clusterBuffer, mcBuffer, mSectorRaw, mSectorMC, [](auto&) { return true; });
   return result;
 }
 
-int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccessFullTPC& clusterIndex)
+int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccess& clusterIndex,
+                                             const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW])
 {
   if (!buffer || size == 0) {
     return 0;
@@ -181,7 +202,7 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, st
                  clusterIndex.nClusters[sector][padrow] = nClusters;
                  numberOfClusters += nClusters;
                  if (mcIterator != mcinput.end()) {
-                   clusterIndex.clustersMCTruth[sector][padrow] = &(*mcIterator);
+                   clustersMCTruth[sector][padrow] = &(*mcIterator);
                    ++mcIterator;
                  }
 
@@ -212,14 +233,14 @@ void ClusterNativeHelper::TreeWriter::init(const char* filename, const char* tre
   mStoreClusters.clear();
 }
 
-int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccessFullTPC const& clusterIndex)
+int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccess const& clusterIndex)
 {
   if (!mTree) {
     return -1;
   }
   int result = 0;
-  for (size_t sector = 0; sector < o2::tpc::Constants::MAXSECTOR; ++sector) {
-    for (size_t padrow = 0; padrow < o2::tpc::Constants::MAXGLOBALPADROW; ++padrow) {
+  for (size_t sector = 0; sector < Constants::MAXSECTOR; ++sector) {
+    for (size_t padrow = 0; padrow < Constants::MAXGLOBALPADROW; ++padrow) {
       int locres = fillFrom(sector, padrow, clusterIndex.clusters[sector][padrow], clusterIndex.nClusters[sector][padrow]);
       if (result >= 0 && locres >= 0) {
         result += locres;
@@ -231,8 +252,7 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccessFullTPC const& 
   return result;
 }
 
-int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNative const* clusters, size_t nClusters,
-                                              o2::dataformats::MCTruthContainer<o2::MCCompLabel>*)
+int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNative const* clusters, size_t nClusters, MCLabelContainer*)
 {
   if (!mTree) {
     return -1;
@@ -256,6 +276,3 @@ void ClusterNativeHelper::TreeWriter::close()
   mTree.release();
   mFile.reset();
 }
-
-} // namespace tpc
-} // namespace o2

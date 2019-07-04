@@ -69,6 +69,8 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
 
   std::vector<ClusterNativeContainer> cont;
   std::vector<MCLabelContainer> contMC;
+  std::unique_ptr<ClusterNative[]> clusterBuffer;
+  MCLabelContainer clusterMCBuffer;
   bool doMC = true;
 
   TFile fin(inputFile);
@@ -93,8 +95,8 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   }
   fin.Close();
 
-  std::unique_ptr<ClusterNativeAccessFullTPC> clusters =
-    ClusterNativeHelper::createClusterNativeIndex(cont, doMC ? &contMC : nullptr);
+  std::unique_ptr<ClusterNativeAccess> clusters =
+    ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, doMC ? &clusterMCBuffer : nullptr, doMC ? &contMC : nullptr);
 
   vector<TrackTPC> tracks;
   MCLabelContainer tracksMC;

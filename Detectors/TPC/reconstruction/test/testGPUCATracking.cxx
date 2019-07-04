@@ -90,7 +90,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].clusters[0].qMax = 10;
     cont[i].clusters[0].qTot = 50;
   }
-  std::unique_ptr<ClusterNativeAccessFullTPC> clusters = ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
+  std::unique_ptr<ClusterNative[]> clusterBuffer;
+  std::unique_ptr<ClusterNativeAccess> clusters = ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, nullptr, nullptr);
 
   GPUO2InterfaceIOPtrs ptrs;
   std::vector<TrackTPC> tracks;

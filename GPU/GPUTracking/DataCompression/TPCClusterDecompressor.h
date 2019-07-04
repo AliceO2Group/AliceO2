@@ -21,7 +21,7 @@ namespace o2
 {
 namespace tpc
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 struct ClusterNative;
 } // namespace tpc
 } // namespace o2
@@ -31,14 +31,13 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 using CompressedClusters = o2::tpc::CompressedClusters;
-struct ClusterNativeAccessExt;
 struct GPUParam;
 
 class TPCClusterDecompressor
 {
  public:
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
-  int decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccessFullTPC& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param);
+  int decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param);
 
  protected:
 };
