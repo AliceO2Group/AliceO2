@@ -25,7 +25,7 @@ class Barrel : public TNamed
 
  public:
   Barrel() = default;
-  ~Barrel() = override;
+  ~Barrel() override;
 
   TGeoVolumeAssembly* createBarrel();
 
