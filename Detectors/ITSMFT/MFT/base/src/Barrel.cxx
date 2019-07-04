@@ -26,6 +26,7 @@
 using namespace o2::mft;
 
 ClassImp(o2::mft::Barrel);
+Barrel::~Barrel() = default;
 
 TGeoVolumeAssembly* Barrel::createBarrel()
 {
