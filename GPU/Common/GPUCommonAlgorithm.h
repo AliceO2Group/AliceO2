@@ -14,7 +14,7 @@
 #ifndef GPUCOMMONALGORITHM_H
 #define GPUCOMMONALGORITHM_H
 
-#include "GPUDef.h"
+#include "GPUCommonDef.h"
 
 #if !defined(GPUCA_GPUCODE_DEVICE)
 #include <algorithm>
@@ -59,7 +59,13 @@ class GPUCommonAlgorithm
   template <class T, class S>
   GPUd() static void Insertionsort(T* left, T* right, const S& comp);
 };
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
 template <class T>
 GPUdi() void GPUCommonAlgorithm::SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2)
 {
@@ -186,6 +192,21 @@ GPUdi() void GPUCommonAlgorithm::Insertionsort(T* left, T* right, const S& comp)
   }
 }
 
+typedef GPUCommonAlgorithm CAAlgo;
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
+#ifdef __CUDACC__
+#include "GPUCommonAlgorithmCUDA.cuh"
+
+#else
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 {
@@ -236,8 +257,9 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 #endif
 }
 
-typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+
+#endif // ifdef __CUDACC__
 
 #endif
