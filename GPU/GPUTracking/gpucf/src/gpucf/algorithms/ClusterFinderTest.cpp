@@ -99,7 +99,8 @@ void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
 
     float correctFraction = float(correctPeaks) / peakGT.size();
 
-    ASSERT(correctFraction >= 0.99f) << "\n" << correctFraction;
+    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+    ASSERT(correctFraction >= threshold) << "\n" << correctFraction;
 
     log::Success() << "Peaks: OK (" << correctFraction << " correct)";
 }
@@ -128,7 +129,8 @@ void ClusterFinderTest::checkCluster(
 
     float correctFraction = float(correctCluster) / cluster.size();
 
-    ASSERT(correctFraction >= 0.99f) << "\n correctFraction = " << correctFraction;
+    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+    ASSERT(correctFraction >= threshold) << "\n correctFraction = " << correctFraction;
 
     log::Success() << "Cluster: OK (" << correctFraction << " correct)";
 
