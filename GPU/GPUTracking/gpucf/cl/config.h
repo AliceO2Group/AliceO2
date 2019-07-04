@@ -76,6 +76,7 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 
 #define CHARGE(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
 #define IS_PEAK(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
+#define PEAK_COUNT(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
 
 #endif //!defined(CONFIG_H)
 

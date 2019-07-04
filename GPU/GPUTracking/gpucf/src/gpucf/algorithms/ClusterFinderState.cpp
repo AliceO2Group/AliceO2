@@ -47,6 +47,8 @@ ClusterFinderState::ClusterFinderState(
 
     peakMap = makeBuffer<cl_uchar>(mapEntries, Memory::ReadWrite, context);
 
+    peakCountMap = makeBuffer<cl_char>(mapEntries, Memory::ReadWrite, context);
+
     aboveQTotCutoff = 
         makeBuffer<cl_uchar>(digitnum, Memory::ReadWrite, context);
 
@@ -72,6 +74,7 @@ ClusterFinderState::ClusterFinderState(
         fill<cl_float>(chargeMap, 0.f, mapEntries, init);
     }
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
+    fill<cl_char>(peakCountMap, 1, mapEntries, init);
 
     init.finish();
 }

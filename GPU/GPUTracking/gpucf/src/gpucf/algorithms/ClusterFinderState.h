@@ -22,6 +22,8 @@ struct ClusterFinderState
     cl::Buffer peaks;
     cl::Buffer chargeMap;
     cl::Buffer peakMap;
+    cl::Buffer peakCountMap;
+    
     cl::Buffer aboveQTotCutoff;
     cl::Buffer clusterNative;
     cl::Buffer rows;
