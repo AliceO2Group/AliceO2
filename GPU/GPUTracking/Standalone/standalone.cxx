@@ -18,7 +18,6 @@
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
-#include "ClusterNativeAccessExt.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -51,9 +50,8 @@
 #include <vector>
 #include <xmmintrin.h>
 
+#include "GPUO2DataTypes.h"
 #ifdef HAVE_O2HEADERS
-#include "DataFormatsTPC/ClusterNative.h"
-#include "DataFormatsTPC/ClusterHardware.h"
 #include "GPUChainITS.h"
 #endif
 
@@ -136,6 +134,7 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.fpe) {
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
+
 #else
   if (configStandalone.affinity != -1) {
     printf("Affinity setting not supported on Windows\n");
@@ -174,10 +173,12 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.configTF.nMerge) {
     double len = configStandalone.configTF.nMerge - 1;
-    if (configStandalone.configTF.randomizeDistance)
+    if (configStandalone.configTF.randomizeDistance) {
       len += 0.5;
-    if (configStandalone.configTF.shiftFirstEvent)
+    }
+    if (configStandalone.configTF.shiftFirstEvent) {
       len += 0.5;
+    }
     configStandalone.configTF.timeFrameLen = (len * configStandalone.configTF.averageDistance / GPUReconstructionTimeframe::TPCZ + 1) * GPUReconstructionTimeframe::DRIFT_TIME;
   }
   if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {

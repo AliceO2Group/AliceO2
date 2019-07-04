@@ -37,7 +37,7 @@ class GPUCommonAlgorithm
   GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
 
  private:
-  //Quicksort implementation
+  // Quicksort implementation
   template <class T>
   GPUd() static void SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2);
   template <class T>
@@ -45,17 +45,17 @@ class GPUCommonAlgorithm
   template <class T>
   GPUd() static void Quicksort(T* left, T* right);
 
-  //Quicksort impkementation with comparison object
+  // Quicksort impkementation with comparison object
   template <class T, class S>
   GPUd() static T* QuicksortPartition(T* left, T* right, const S& comp);
   template <class T, class S>
   GPUd() static void Quicksort(T* left, T* right, const S& comp);
 
-  //Insertionsort implementation
+  // Insertionsort implementation
   template <class T>
   GPUd() static void Insertionsort(T* left, T* right);
 
-  //Insertionsort implementation with comparison object
+  // Insertionsort implementation with comparison object
   template <class T, class S>
   GPUd() static void Insertionsort(T* left, T* right, const S& comp);
 };
