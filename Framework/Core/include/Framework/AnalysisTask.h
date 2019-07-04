@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Kernels.h"
 #include "Framework/Traits.h"
+#include "Framework/StructToTuple.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -83,7 +84,7 @@ struct AnalysisDataProcessorBuilder {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.emplace_back(metadata::label(), "RN2", metadata::description());
+    inputs.push_back({metadata::label(), "RN2", metadata::description()});
   }
 
   template <typename R, typename C, typename... Args>
@@ -91,6 +92,23 @@ struct AnalysisDataProcessorBuilder {
   {
     (appendInputWithMetadata<Args>(inputs), ...);
   }
+};
+
+template <typename T>
+struct OutputAppender {
+  template <typename ANY>
+  static bool appendOutput(std::vector<OutputSpec> &outputs, ANY&) {
+    return false;
+  };
+};
+
+template <typename TABLE>
+struct OutputAppender<AnalysisTask::Produces<TABLE>> {
+  static bool appendOutput(std::vector<OutputSpec> &outputs, AnalysisTask::Produces<TABLE> &what) {
+    using metadata = typename aod::MetadataTrait<std::decay_t<TABLE>>::metadata;
+    outputs.push_back({metadata::label(), metadata::origin(), metadata::description()});
+    return true;
+  };
 };
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -108,6 +126,11 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                                                            decltype(&AnalysisTask::processCollisionTracks)>::value;
 
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
+
+  std::vector<OutputSpec> outputs;
+  auto tupledTask = o2::framework::to_tuple(*task);
+  std::apply([&outputs](auto ...x){ return (OutputAppender<decltype(x)>::appendOutput(outputs, x) || ...);}, tupledTask);
+
   auto algo = AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
     task->init(ic);
     return [task](ProcessingContext& pc) {
@@ -182,7 +205,6 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::hasProcessCollisionTracks, inputs);
   }
 
-  std::vector<OutputSpec> outputs;
 
   DataProcessorSpec spec{
     name,
