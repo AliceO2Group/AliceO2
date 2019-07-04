@@ -43,6 +43,10 @@ public:
     int cru;
     int row;
 
+    bool atEdge      = false;
+    bool splitInTime = false;
+    bool splitInPad  = false;
+
     Cluster();
     Cluster(int, int, float, float, float, float, float, float);
     Cluster(const Digit &, const ClusterNative &);
