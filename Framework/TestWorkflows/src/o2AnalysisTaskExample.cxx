@@ -23,15 +23,15 @@ class ATask : public AnalysisTask
   explicit ATask(int state)
     : mSomeState{ state } {}
 
-  void init(InitContext& ic) final
+  void init(InitContext& ic)
   {
     mSomeState += 1;
   }
-  void run(ProcessingContext& pc) final
+  void run(ProcessingContext& pc)
   {
   }
 
-  void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
+  void process(aod::Timeframe const&, aod::Tracks const& tracks)
   {
     auto hPhi = new TH1F("phi", "Phi", 100, 0, 2 * M_PI);
     auto hEta = new TH1F("eta", "Eta", 100, 0, 2 * M_PI);
