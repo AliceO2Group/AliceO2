@@ -10,7 +10,7 @@
 
 /// \file HeatExchanger.cxx
 /// \brief Class building the MFT heat exchanger
-/// \author P. Demongodin, Raphael Tieulent <raphael.tieulent@cern.ch>
+/// \author P. Demongodin, and Raphael Tieulent <raphael.tieulent@cern.ch>
 
 #include "TMath.h"
 #include "TGeoManager.h"

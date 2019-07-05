@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/LocalRootFileService.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 #include <cstdio>
 #include <cstdarg>

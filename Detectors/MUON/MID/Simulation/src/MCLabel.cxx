@@ -39,5 +39,13 @@ void MCLabel::set(int value, unsigned int mask, unsigned int offset)
   mStripsInfo |= ((value & mask) << offset);
 }
 
+bool MCLabel::operator==(const MCLabel& other) const
+{
+  if (compare(other) != 1) {
+    return false;
+  }
+  return (mStripsInfo == other.mStripsInfo);
+}
+
 } // namespace mid
 } // namespace o2

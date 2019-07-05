@@ -21,6 +21,10 @@
 #include "ITStracking/Cell.h"
 #include "CommonConstants/MathConstants.h"
 
+#ifdef CA_DEBUG
+#include <cstdio>
+#endif
+
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
@@ -63,6 +67,12 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
   prop.SetFitInProjections(1);
   float bz = -5.f; // FIXME
 
+#ifdef CA_DEBUG
+  int roadCounters[4]{ 0, 0, 0, 0 };
+  int fitCounters[4]{ 0, 0, 0, 0 };
+  int backpropagatedCounters[4]{ 0, 0, 0, 0 };
+  int refitCounters[4]{ 0, 0, 0, 0 };
+#endif
   for (int iRoad = get_global_id(0); iRoad < Fitter.NumberOfRoads(); iRoad += get_global_size(0)) {
     Road& road = Fitter.roads()[iRoad];
     int clusters[7] = { o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex };
@@ -112,16 +122,16 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       const float y3 = cluster3.positionTrackingFrame[0];
       const float z3 = cluster3.positionTrackingFrame[1];
 
-      const float crv = MathUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
-      const float x0 = MathUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-      const float tgl12 = MathUtils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-      const float tgl23 = MathUtils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+      const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+      const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+      const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+      const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
       const float r2 = CAMath::Sqrt(cluster2.xCoordinate * cluster2.xCoordinate + cluster2.yCoordinate * cluster2.yCoordinate);
       const float r3 = CAMath::Sqrt(cluster3.xCoordinate * cluster3.xCoordinate + cluster3.yCoordinate * cluster3.yCoordinate);
       const float fy = 1. / (r2 - r3);
       const float& tz = fy;
-      const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+      const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
       constexpr float s2 = o2::its::constants::its::Resolution * o2::its::constants::its::Resolution;
 
       temporaryTrack.X() = cluster3.xTrackingFrame;
@@ -183,4 +193,10 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
+#ifdef CA_DEBUG
+  printf("Roads: %i %i %i %i\n", roadCounters[0], roadCounters[1], roadCounters[2], roadCounters[3]);
+  printf("Fitted tracks: %i %i %i %i\n", fitCounters[0], fitCounters[1], fitCounters[2], fitCounters[3]);
+  printf("Backpropagated tracks: %i %i %i %i\n", backpropagatedCounters[0], backpropagatedCounters[1], backpropagatedCounters[2], backpropagatedCounters[3]);
+  printf("Refitted tracks: %i %i %i %i\n", refitCounters[0], refitCounters[1], refitCounters[2], refitCounters[3]);
+#endif
 }

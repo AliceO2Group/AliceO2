@@ -50,6 +50,7 @@ find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(FairLogger REQUIRED)
+find_package(fmt)
 find_package(DDS)
 cmake_policy(SET CMP0077 NEW)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -326,6 +327,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     FairLogger::FairLogger
+    fmt::fmt
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Framework/Logger/include
@@ -1483,6 +1485,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    emcal_calib_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    Hist
+    O2EMCALBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/calib/include
+)
+
+o2_define_bucket(
+    NAME
     tof_simulation_bucket
 
     DEPENDENCIES
@@ -2244,6 +2262,7 @@ o2_define_bucket(
     data_format_its_bucket
 
     DEPENDENCIES
+    data_format_common_bucket
     data_format_reconstruction_bucket
     #
     O2ReconstructionDataFormats
@@ -2456,6 +2475,25 @@ o2_define_bucket(
     O2MIDClustering
 )
 
+o2_define_bucket(
+    NAME
+    mid_simulation_bucket
+
+    DEPENDENCIES
+    mid_base_bucket
+    root_base_bucket
+    fairroot_base_bucket
+    O2DetectorsBase
+    detectors_base_bucket
+    data_format_simulation_bucket
+    O2SimulationDataFormat
+    O2MIDBase
+    O2MIDClustering
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/include
+)
 
 o2_define_bucket(
     NAME
@@ -2468,6 +2506,8 @@ o2_define_bucket(
     O2MIDBase
     O2MIDSimulation
     O2MIDClustering
+    O2MIDTracking
+    O2MIDTestingSimTools
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Simulation/src
@@ -2541,18 +2581,6 @@ o2_define_bucket(
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
-)
-
-o2_define_bucket(
-    NAME
-    mid_simulation_bucket
-
-    DEPENDENCIES
-    data_format_simulation_bucket
-    root_base_bucket
-    mid_base_bucket
-    O2MIDBase
-    O2SimulationDataFormat
 )
 
 o2_define_bucket(
@@ -2677,4 +2705,23 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/GPU/TPCSpaceChargeBase
+)
+
+o2_define_bucket(
+    NAME
+    mid_workflow_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    DPLUtils_bucket
+
+    O2Framework
+    O2DPLUtils
+    O2DataFormatsMID
+    O2MIDClustering
+    O2MIDSimulation
+    O2MIDTracking
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MID/Workflow/include
 )

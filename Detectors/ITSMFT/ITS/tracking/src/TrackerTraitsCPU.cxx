@@ -24,6 +24,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "GPUCommonMath.h"
+
 namespace o2
 {
 namespace its
@@ -58,13 +60,13 @@ void TrackerTraitsCPU::computeLayerTracklets()
       int phiBinsNum{ selectedBinsRect.w - selectedBinsRect.y + 1 };
 
       if (phiBinsNum < 0) {
-        phiBinsNum += constants::IndexTable::PhiBins;
+        phiBinsNum += constants::index_table::PhiBins;
       }
 
       for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
-           iPhiBin = ++iPhiBin == constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
+           iPhiBin = ++iPhiBin == constants::index_table::PhiBins ? 0 : iPhiBin, iPhiCount++) {
 
-        const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect.x, iPhiBin) };
+        const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
         const int maxBinIndex{ firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1 };
         const int firstRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][firstBinIndex];
         const int maxRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][maxBinIndex];
@@ -77,13 +79,13 @@ void TrackerTraitsCPU::computeLayerTracklets()
           if (primaryVertexContext->isClusterUsed(iLayer + 1, nextCluster.clusterId))
             continue;
 
-          const float deltaZ{ MATH_ABS(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
-                                       currentCluster.zCoordinate - nextCluster.zCoordinate) };
-          const float deltaPhi{ MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
+          const float deltaZ{ gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
+                                                      currentCluster.zCoordinate - nextCluster.zCoordinate) };
+          const float deltaPhi{ gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
 
           if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
               (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
-               MATH_ABS(deltaPhi - constants::Math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+               gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
 
             if (iLayer > 0 &&
                 primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == constants::its::UnusedIndex) {
@@ -152,7 +154,7 @@ void TrackerTraitsCPU::computeLayerCells()
 
         if (deltaTanLambda < mTrkParams.CellMaxDeltaTanLambda &&
             (deltaPhi < mTrkParams.CellMaxDeltaPhi ||
-             std::abs(deltaPhi - constants::Math::TwoPi) < mTrkParams.CellMaxDeltaPhi)) {
+             std::abs(deltaPhi - constants::math::TwoPi) < mTrkParams.CellMaxDeltaPhi)) {
 
           const float averageTanLambda{ 0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda) };
           const float directionZIntersection{ -averageTanLambda * firstCellCluster.rCoordinate +
@@ -173,14 +175,14 @@ void TrackerTraitsCPU::computeLayerCells()
                                             thirdCellClusterQuadraticRCoordinate -
                                               firstCellClusterQuadraticRCoordinate };
 
-            float3 cellPlaneNormalVector{ MathUtils::crossProduct(firstDeltaVector, secondDeltaVector) };
+            float3 cellPlaneNormalVector{ math_utils::crossProduct(firstDeltaVector, secondDeltaVector) };
 
             const float vectorNorm{ std::sqrt(cellPlaneNormalVector.x * cellPlaneNormalVector.x +
                                               cellPlaneNormalVector.y * cellPlaneNormalVector.y +
                                               cellPlaneNormalVector.z * cellPlaneNormalVector.z) };
 
-            if (vectorNorm < constants::Math::FloatMinThreshold ||
-                std::abs(cellPlaneNormalVector.z) < constants::Math::FloatMinThreshold) {
+            if (vectorNorm < constants::math::FloatMinThreshold ||
+                std::abs(cellPlaneNormalVector.z) < constants::math::FloatMinThreshold) {
 
               continue;
             }
@@ -225,7 +227,7 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks)
+void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
 {
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {

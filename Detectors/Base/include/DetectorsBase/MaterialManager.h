@@ -106,46 +106,107 @@ class MaterialManager
   }
   /// set default process
   void DefaultProcess(EProc parID, int val) { Process(ESpecial::kFALSE, -1, parID, val); }
+
   /// Custom setting of process or cut given parameter name and value
-  void SpecialProcess(const char* modname, int localindex, EProc parID, int val)
-  {
-    int globalindex = getMediumID(modname, localindex);
-    if (globalindex != -1) {
-      Process(ESpecial::kTRUE, globalindex, parID, val);
-    }
-  }
+  void SpecialProcess(const char* modname, int localindex, EProc parID, int val);
+
   /// Global settings of cuts.
   /// To ignore a certain cut to be set, just set it to o2::base::MaterialManager::NOPROCESS
   void DefaultCuts(const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
   {
     Cuts(ESpecial::kFALSE, -1, parIDValMap);
   }
+
   /// Set cuts per medium providing the module name and the local ID of the medium.
   /// To ignore a certain cut to be set explicitly (default or Geant settings will be used in that case) use
   /// o2::base::MaterialManager::NOPROCESS
   void SpecialCuts(const char* modname, int localindex,
-                   const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
-  {
-    int globalindex = getMediumID(modname, localindex);
-    if (globalindex != -1) {
-      Cuts(ESpecial::kTRUE, globalindex, parIDValMap);
-    }
-  }
+                   const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap);
+
   /// set default cut
   void DefaultCut(ECut parID, Float_t val) { Cut(ESpecial::kFALSE, -1, parID, val); }
+
   /// Custom setting of process or cut given parameter name and value
-  void SpecialCut(const char* modname, int localindex, ECut parID, Float_t val)
-  {
-    int globalindex = getMediumID(modname, localindex);
-    if (globalindex != -1) {
-      Cut(ESpecial::kTRUE, globalindex, parID, val);
-    }
-  }
+  void SpecialCut(const char* modname, int localindex, ECut parID, Float_t val);
 
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
 
+  /// Set flags whether to use special cuts and process settings
+  void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }
+  bool specialProcessesEnabled() const { return mApplySpecialProcesses; }
+  void enableSpecialCuts(bool val = true) { mApplySpecialCuts = val; }
+  bool specialCutsEnabled() const { return mApplySpecialCuts; }
+
+  // returns global material ID given a "local" material ID for this detector
+  // returns -1 in case local ID not found
+  int getMaterialID(const char* modname, int imat) const;
+
+  // returns global medium ID given a "local" medium ID for this detector
+  // returns -1 in case local ID not found
+  int getMediumID(const char* modname, int imed) const;
+
+  // various methods to get the TGeoMedium instance
+  TGeoMedium* getTGeoMedium(const std::string& modname, int localid);
+  TGeoMedium* getTGeoMedium(const char* mediumname);
+
+  /// fill the medium index mapping into a standard vector
+  /// the vector gets sized properly and will be overridden
+  void getMediumIDMappingAsVector(const char* modname, std::vector<int>& mapping) const;
+
+  /// Get the names of processes and cuts providing an respective enum member.
+  const char* getProcessName(EProc process) const;
+
+  const char* getCutName(ECut cut) const;
+
+  /// Get module name which has medium of a certain global medium ID
+  const char* getModuleFromMediumID(int globalindex) const;
+
+  /// Get medium name from global medium ID
+  const char* getMediumNameFromMediumID(int globalindex) const;
+
+  /// get global medium IDs where special process is set along with process value
+  void getMediaWithSpecialProcess(EProc process, std::vector<int>& mediumProcessVector) const;
+
+  /// get global medium IDs where special cut is set along with cut value
+  void getMediaWithSpecialCut(ECut cut, std::vector<Float_t>& mediumCutVector) const;
+
+  /// Fill vector with default processes
+  void getDefaultProcesses(std::vector<std::pair<EProc, int>>& processVector);
+
+  /// Fill vector with default cuts
+  void getDefaultCuts(std::vector<std::pair<ECut, Float_t>>& cutVector);
+
+  /// Get special processes for global medium ID
+  void getSpecialProcesses(int globalindex, std::vector<std::pair<EProc, int>>& processVector);
+
+  /// Interface for module name and local medium ID
+  void getSpecialProcesses(const char* modname, int localindex, std::vector<std::pair<EProc, int>>& processVector);
+
+  /// Get special cuts for global medium ID
+  void getSpecialCuts(int globalindex, std::vector<std::pair<ECut, Float_t>>& cutVector);
+
+  /// Interface for module name and local medium ID
+  void getSpecialCuts(const char* modname, int localindex, std::vector<std::pair<ECut, Float_t>>& cutVector);
+
+  /// Print all processes for all media as well as defaults.
+  void printProcesses() const;
+  /// Print all cuts for all media as well as defaults.
+  void printCuts() const;
+
+  // print out all registered materials
+  void printMaterials() const;
+
+  // print out all registered media
+  void printMedia() const;
+
+  /// print all tracking media inside a logical volume (specified by name)
+  /// and all of its daughters
+  static void printContainingMedia(std::string const& volumename);
+
  private:
+  MaterialManager() = default;
+
   // Hide details by providing these private methods so it cannot happen that special settings
   // are applied as default settings by accident using a boolean flag
   void Processes(ESpecial special, int globalindex, const std::initializer_list<std::pair<EProc, int>>& parIDValMap);
@@ -158,229 +219,10 @@ class MaterialManager
   void insertMediumName(const char* uniquename, int index);
   void insertTGeoMedium(std::string modname, int localindex);
 
- public:
-  /// Set flags whether to use special cuts and process settings
-  void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }
-  bool specialProcessesEnabled() const { return mApplySpecialProcesses; }
-  void enableSpecialCuts(bool val = true) { mApplySpecialCuts = val; }
-  bool specialCutsEnabled() const { return mApplySpecialCuts; }
-
-  // returns global material ID given a "local" material ID for this detector
-  // returns -1 in case local ID not found
-  int getMaterialID(const char* modname, int imat) const
-  {
-    auto lookupiter = mMaterialMap.find(modname);
-    if (lookupiter == mMaterialMap.end()) {
-      return -1;
-    }
-    auto lookup = lookupiter->second;
-
-    auto iter = lookup.find(imat);
-    if (iter != lookup.end()) {
-      return iter->second;
-    }
-    return -1;
-  }
-
-  // returns global medium ID given a "local" medium ID for this detector
-  // returns -1 in case local ID not found
-  int getMediumID(const char* modname, int imed) const
-  {
-    auto lookupiter = mMediumMap.find(modname);
-    if (lookupiter == mMediumMap.end()) {
-      return -1;
-    }
-    auto lookup = lookupiter->second;
-
-    auto iter = lookup.find(imed);
-    if (iter != lookup.end()) {
-      return iter->second;
-    }
-    return -1;
-  }
-
-  // various methods to get the TGeoMedium instance
-  TGeoMedium* getTGeoMedium(const std::string& modname, int localid);
-  TGeoMedium* getTGeoMedium(const char* mediumname);
-
-  // fill the medium index mapping into a standard vector
-  // the vector gets sized properly and will be overridden
-  void getMediumIDMappingAsVector(const char* modname, std::vector<int>& mapping)
-  {
-    mapping.clear();
-
-    auto lookupiter = mMediumMap.find(modname);
-    if (lookupiter == mMediumMap.end()) {
-      return;
-    }
-    auto lookup = lookupiter->second;
-
-    // get the biggest mapped value (maps are sorted in keys)
-    auto maxkey = lookup.rbegin()->first;
-    // resize mapping and initialize with -1 by default
-    mapping.resize(maxkey + 1, -1);
-    // fill vector with entries from map
-    for (auto& p : lookup) {
-      mapping[p.first] = p.second;
-    }
-  }
-  /// Get the names of processes and cuts providing an respective enum member.
-  const char* getProcessName(EProc process) const
-  {
-    auto it = mProcessIDToName.find(process);
-    if (it != mProcessIDToName.end()) {
-      return it->second;
-    }
-    return "UNKNOWN";
-  }
-  const char* getCutName(ECut cut) const
-  {
-    auto it = mCutIDToName.find(cut);
-    if (it != mCutIDToName.end()) {
-      return it->second;
-    }
-    return "UNKNOWN";
-  }
-  const char* getModuleFromMediumID(int globalindex) const
-  {
-    // loop over module names and corresponding local<->global mapping
-    for (auto& m : mMediumMap) {
-      for (auto& i : m.second) {
-        // is the global index there?
-        if (i.second == globalindex) {
-          // \note maybe unsafe in case mMediumMap is altered in the same scope where the returned C string is used
-          // since that points to memory of string it was derived from.
-          return m.first.c_str();
-        }
-      }
-    }
-    // module is UNKNOWN if global medium ID could not be found.
-    return "UNKNOWN";
-  }
-  /// Get medium name from global medium ID
-  const char* getMediumNameFromMediumID(int globalindex) const
-  {
-    // Get the name of the medium.
-    for (auto& n : mMediumNameToGlobalIndexMap) {
-      if (n.second == globalindex) {
-        // \note maybe unsafe in case mMediumMap is altered in the same scope where the returned C string is used since
-        // that points to memory of string it was derived from.
-        return n.first.c_str();
-      }
-    }
-    return "UNKNOWN";
-  }
-
-  /// get global medium IDs where special process is set along with process value
-  void getMediaWithSpecialProcess(EProc process, std::vector<int>& mediumProcessVector)
-  {
-    // clear
-    mediumProcessVector.clear();
-    // resize to maximum number of global IDs for which special processes are set. In case process is not
-    // implemented for a certain medium, value is -1
-    mediumProcessVector.resize(mMediumProcessMap.size(), -1);
-    // find media
-    for (auto& m : mMediumProcessMap) {
-      // loop over processes in medium
-      for (auto& p : m.second) {
-        // push medium ID if process is there
-        if (p.first == process) {
-          mediumProcessVector[m.first] = p.second;
-          break;
-        }
-      }
-    }
-  }
-  /// get global medium IDs where special cut is set along with cut value
-  void getMediaWithSpecialCut(ECut cut, std::vector<Float_t>& mediumCutVector)
-  {
-    // clear
-    mediumCutVector.clear();
-    // resize to maximum number of global IDs for which special cuts are set. In case cut is not implemented
-    // for a certain medium, value is -1.
-    mediumCutVector.resize(mMediumCutMap.size(), -1.);
-    // find media
-    for (auto& m : mMediumCutMap) {
-      // loop over cuts in medium
-      for (auto& c : m.second) {
-        // push medium ID if cut is there
-        if (c.first == cut) {
-          mediumCutVector[m.first] = c.second;
-          break;
-        }
-      }
-    }
-  }
-  /// Fill vector with default processes
-  void getDeafultProcesses(std::vector<std::pair<EProc, int>>& processVector)
-  {
-    processVector.clear();
-    for (auto& m : mDefaultProcessMap) {
-      processVector.emplace_back(m.first, m.second);
-    }
-  }
-  /// Fill vector with default cuts
-  void getDeafultCuts(std::vector<std::pair<ECut, Float_t>>& cutVector)
-  {
-    cutVector.clear();
-    for (auto& m : mDefaultCutMap) {
-      cutVector.emplace_back(m.first, m.second);
-    }
-  }
-  /// Get special processes for global medium ID
-  void getSpecialProcesses(int globalindex, std::vector<std::pair<EProc, int>>& processVector)
-  {
-    processVector.clear();
-    if (mMediumProcessMap.find(globalindex) != mMediumProcessMap.end()) {
-      for (auto& m : mMediumProcessMap[globalindex]) {
-        processVector.emplace_back(m.first, m.second);
-      }
-    }
-  }
-  /// Interface for module name and local medium ID
-  void getSpecialProcesses(const char* modname, int localindex, std::vector<std::pair<EProc, int>>& processVector)
-  {
-    int globalindex = getMediumID(modname, localindex);
-    if (globalindex != -1) {
-      getSpecialProcesses(globalindex, processVector);
-    }
-  }
-  /// Get special cuts for global medium ID
-  void getSpecialCuts(int globalindex, std::vector<std::pair<ECut, Float_t>>& cutVector)
-  {
-    cutVector.clear();
-    if (mMediumCutMap.find(globalindex) != mMediumCutMap.end()) {
-      for (auto& m : mMediumCutMap[globalindex]) {
-        cutVector.emplace_back(m.first, m.second);
-      }
-    }
-  }
-  /// Interface for module name and local medium ID
-  void getSpecialCuts(const char* modname, int localindex, std::vector<std::pair<ECut, Float_t>>& cutVector)
-  {
-    int globalindex = getMediumID(modname, localindex);
-    if (globalindex != -1) {
-      getSpecialCuts(globalindex, cutVector);
-    }
-  }
-  /// Print all processes for all media as well as defaults.
-  void printProcesses() const;
-  /// Print all cuts for all media as well as defaults.
-  void printCuts() const;
-
-  // print out all registered materials
-  void printMaterials() const;
-
-  // print out all registered media
-  void printMedia() const;
-
- private:
-  MaterialManager() = default;
-
   // lookup structures
   std::map<std::string, std::map<int, int>>
-    mMaterialMap; // map of name -> map of local index to global index for Materials
-  std::map<std::string, std::map<int, int>> mMediumMap; // map of name -> map of local index to global index for Media
+    mMaterialMap;                                       // map of module name -> map of local index to global index for Materials
+  std::map<std::string, std::map<int, int>> mMediumMap; // map of module name -> map of local index to global index for Media
 
   std::map<int, std::map<EProc, int>> mMediumProcessMap; // map of global medium id to parameter-value map of processes
   std::map<int, std::map<ECut, Float_t>> mMediumCutMap;  // map of global medium id to parameter-value map of cuts
@@ -393,7 +235,7 @@ class MaterialManager
   // finally, I would like to keep track of tracking parameters and processes activated per medium
 
   std::map<std::string, int> mMaterialNameToGlobalIndexMap; // map of unique material name to global index
-  std::map<std::string, int> mMediumNameToGlobalIndexMap;
+  std::map<std::string, int> mMediumNameToGlobalIndexMap;   // map of unique material name to global index
 
   Float_t mDensityFactor = 1.; //! factor that is multiplied to all material densities (ONLY for
   // systematic studies)
@@ -419,6 +261,25 @@ class MaterialManager
  public:
   ClassDefNV(MaterialManager, 0);
 };
+
+inline const char* MaterialManager::getProcessName(EProc process) const
+{
+  auto it = mProcessIDToName.find(process);
+  if (it != mProcessIDToName.end()) {
+    return it->second;
+  }
+  return "UNKNOWN";
+}
+
+inline const char* MaterialManager::getCutName(ECut cut) const
+{
+  auto it = mCutIDToName.find(cut);
+  if (it != mCutIDToName.end()) {
+    return it->second;
+  }
+  return "UNKNOWN";
+}
+
 } // namespace base
 } // namespace o2
 

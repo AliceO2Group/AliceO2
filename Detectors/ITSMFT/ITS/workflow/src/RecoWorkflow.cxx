@@ -24,7 +24,7 @@ namespace o2
 namespace its
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC)
@@ -34,7 +34,7 @@ framework::WorkflowSpec getWorkflow(bool useMC)
   specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
   specs.emplace_back(o2::its::getClustererSpec(useMC));
   specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
-  //specs.emplace_back(o2::its::getTrackerSpec());
+  // specs.emplace_back(o2::its::getTrackerSpec(useMC));
   specs.emplace_back(o2::its::getCookedTrackerSpec(useMC));
   specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
 

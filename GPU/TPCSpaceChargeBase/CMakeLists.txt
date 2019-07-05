@@ -63,7 +63,6 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   O2_GENERATE_LIBRARY()
   install(FILES ${HDRS} DESTINATION include/GPU)
-  install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
   set(TEST_SRCS
     ctest/testTPCSpaceChargeBase.cxx

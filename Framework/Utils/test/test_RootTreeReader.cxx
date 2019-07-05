@@ -20,7 +20,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
 #include "../../Core/test/TestClasses.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <TSystem.h>
 #include <TTree.h>
 #include <TFile.h>
@@ -64,8 +64,8 @@ DataProcessorSpec getSourceSpec()
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
                                                    Output{ "TST", "ARRAYOFDATA", 0, persistency },
-                                                   "dataarray" // name of cluster branch
-                                                   );
+                                                   "dataarray", // name of cluster branch
+                                                   RootTreeReader::PublishingMode::Single);
 
     auto processingFct = [reader](ProcessingContext& pc) {
       if (reader->getCount() == 0) {

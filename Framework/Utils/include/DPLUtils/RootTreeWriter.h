@@ -38,36 +38,46 @@ namespace framework
 {
 
 /// @class RootTreeWriter
-/// A generic writer interface for ROOT TTrees
+/// @brief A generic writer interface for ROOT TTree objects.
 ///
-/// The writer class is configured with a list of branch definitions passed to the
-/// constructor. Each branch definition holds the data type as template parameter,
-/// as well as input definition and a branch name for the output.
+/// The writer class is configured with the file name, the tree name and a variable list
+/// of branch definitions passed to the constructor.
 ///
 /// The class is currently fixed to the DPL ProcessingContext and InputRecord for
 /// reading the input, but the implementation has been kept open for other interfaces.
 ///
 /// Usage:
-///   RootTreeWriter("file_name",
-///                  "tree_name",
-///                  BranchDef<type>{ "key", "branchname" },
-///                  ...// further input and branch config
-///                 ) writer;
-///   writer(processingContext);
 ///
+///     RootTreeWriter("file_name",
+///                    "tree_name",
+///                    BranchDef<type>{ "key", "branchname" },
+///                    ...// further input and branch config
+///                   ) writer;
+///     writer(processingContext);
+///
+/// @note
 /// See also the MakeRootTreeWriterSpec helper class for easy generation of a
 /// processor spec using RootTreeWriter.
 ///
-/// One branch definition can handle multiple branches as output for the same data type
-/// and a single input or list of inputs. BranchDef needs to be configured with the
-/// number n of output branches, a callback to retrieve an index in the range [0, n-1],
-/// and a callback creating the branch name for base name and index. A single input can
-/// also be distributed to multiple branches if the getIndex callback calculates the index
-/// from another piece of information in the header stack.
+/// \par Using branch definition \c BranchDef:
+/// The branch definition describes the mapping of inputs referenced by \a keys
+/// to outputs, i.e. the branches. Each branch definition holds the data type as template
+/// parameter, as well as input key definition and a branch name for the output.
+/// A variable list of branch definition parameters can be given to the constructor.
+/// See \ref BranchDef structure for more details.
 ///
+/// \par Multiple inputs and outputs:
+/// One branch definition can handle multiple branches as output for the same data type
+/// and a single input or list of inputs. \ref BranchDef needs to be configured with the
+/// number \a n of output branches, a callback to retrieve an index in the range [0, n-1],
+/// and a callback creating the branch name for base name and index. A single input can
+/// also be distributed to multiple branches if the callback calculates the index
+/// from another piece of information, e.g. from information in the header stack.
+///
+/// \par Writing binary data:
 /// While the generic writer is primarily intended for ROOT serializable objects, a special
-/// case is the writing of binary data when const char* is used as type. Data is written
-/// as a std::vector<char>, this ensures separation on event basis as well as having binary
+/// case is the writing of binary data when <tt>const char*</tt> is used as type. Data is written
+/// as a \c std::vector<char>, this ensures separation on event basis as well as having binary
 /// data in parallel to ROOT objects in the same file, e.g. a binary data format from the
 /// reconstruction in parallel to MC labels.
 class RootTreeWriter
@@ -91,14 +101,36 @@ class RootTreeWriter
     }
   };
 
-  /// BranchDef is used to define the mapping between inputs and branches. It is always bound
-  /// to data type of object to be written to tree branch.
-  /// can be used with the default key type and extractor of the RootTreeWriter class, or
-  /// by using a custom key type and extractor
+  /// @struct BranchDef Definition of branch specification for the RootTreeWriter
+  /// @brief BranchDef is used to define the mapping between inputs and branches.
+
+  /// A branch definition is always bound to a particular data type of the object to be
+  /// written to tree branch. The type must be provided as template parameter.
   ///
-  /// The same definition can handle more than one branch as target for writing the objects
-  /// Two callbacks, getIndex and getName have to be provided together with the number of
-  /// branches
+  /// \par \a KeyType and \a KeyExtractor:
+  /// Each branch definition is identified by a \c key which describes the input binding, i.e.
+  /// it is used as argument in the input function. The RootTreeWriter uses \c std::string as
+  /// internal key type to store a map of all dranch definitions. An extractor must be defined
+  /// for the key type provided to BranchDef.
+  /// In simple cases, defaults RootTreeWriter::key_type and RootTreeWriter::DefaultKeyExtractor
+  /// can be used directly and are thus default template parameters.
+  ///
+  /// \par Multiple branches:
+  /// The same definition can handle more than one branch as target for writing the objects,
+  /// which is indicated by specifying the number of branches as parameter. The mapping of
+  /// input objects to branch names is provided by the two callbacks \c getIndex and \c getName.
+  /// The \c getIndex callback may extract the relavent information from the data object e.g.
+  /// from the header stack and returns an index. The \c getName callback must return the
+  /// branch name for writing based on this index.
+  ///
+  /// \par Multiple branches of identical data type:
+  /// Multiple branches of identical data type can be served by one branch definition simply
+  /// using a vector of inputs. Again, number of branches and \c getIndex and \c getName
+  /// callbacks need to be provided
+  ///
+  /// \par Multiple inputs:
+  /// The ability to serve more than one input can be used to write all data to the same branch,
+  /// the exact behavior is controlled by the callbacks.
   template <typename T, typename KeyType = key_type, typename KeyExtractor = DefaultKeyExtractor>
   struct BranchDef {
     using type = T;
@@ -114,12 +146,24 @@ class RootTreeWriter
     BranchNameMapper getName = [](std::string base, size_t i) { return base + "_" + std::to_string(i); };
 
     /// simple constructor for single input and one branch
+    /// @param key          input key
+    /// @param _branchName  name of the target branch
     BranchDef(key_type key, std::string _branchName) : keys({ key }), branchName(_branchName) {}
 
     /// constructor for single input and multiple output branches
+    /// @param key          input key
+    /// @param _branchName  name of the target branch
+    /// @param _nofBranches the number of target branches
+    /// @param _getIndex    index callback
+    /// @param _getName     branch name callback
     BranchDef(key_type key, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys({ key }), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
 
     /// constructor for multiple inputs and multiple output branches
+    /// @param key          vector of input keys
+    /// @param _branchName  name of the target branch
+    /// @param _nofBranches the number of target branches
+    /// @param _getIndex    index callback
+    /// @param _getName     branch name callback
     BranchDef(std::vector<key_type> vec, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys(vec), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
   };
 
@@ -141,7 +185,10 @@ class RootTreeWriter
     }
   }
 
-  /// init the output file and tree
+  /// Init the output file and tree.
+  /// @param filename output file
+  /// @param treename output tree
+  ///
   /// After setting up the tree, the branches will be created according to the
   /// branch definition provided to the constructor.
   void init(const char* filename, const char* treename)
@@ -151,7 +198,7 @@ class RootTreeWriter
     mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 
-  /// set the branch name for a branch definition from the constructor argument list
+  /// Set the branch name for a branch definition from the constructor argument list
   /// @param index       position in the argument list
   /// @param branchName  (base)branch name
   ///

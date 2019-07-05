@@ -249,8 +249,16 @@ struct qConfigType {
     auto settings = qConfigGetSettings(args...);
     const bool boolType = optionType != 1 && std::is_same<T, bool>::value;
     const char* arguments = settings.doSet ? " (" : (settings.doDefault || optionType == 1 || boolType) ? " [arg] (" : optionType == 2 ? " [...] (" : " arg (";
-    std::cout << "\t" << name << ": " << (optnameshort == 0 || preoptshort == 0 ? "" : "-") << (char)(optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort) << (char)(optnameshort == 0 ? 0 : optnameshort) << (optnameshort == 0 ? "" : arguments) << "--" << preopt << optname
-              << (optnameshort == 0 ? arguments : ", ") << "type: " << type;
+    char argBuffer[4] = { 0 };
+    unsigned int argBufferPos = 0;
+    if (optnameshort && preoptshort) {
+      argBuffer[argBufferPos++] = '-';
+    }
+    if (optnameshort) {
+      argBuffer[argBufferPos++] = preoptshort == 0 ? '-' : preoptshort;
+      argBuffer[argBufferPos++] = optnameshort;
+    }
+    std::cout << "\t" << name << ": " << argBuffer << (optnameshort == 0 ? "" : arguments) << "--" << preopt << optname << (optnameshort == 0 ? arguments : ", ") << "type: " << type;
     if (optionType == 0) {
       std::cout << ", default: " << def;
     }

@@ -38,11 +38,13 @@ class Detector : public o2::base::DetImpl<Detector>
     kPb = 5,
     kCu = 6,
     kFe = 7,
-    kAl = 8,
-    kGraphite = 9,
+    kFeLowTh = 8,
+    kCuLumi = 9,
     kVoidNoField = 10,
     kVoidwField = 11,
-    kAir = 12
+    kAir = 12,
+    kAl = 13,
+    kGraphite = 14
   };
 
   Detector() = default;
@@ -96,7 +98,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void defineSensitiveVolumes();
 
   // Methods to calculate the light outpu
-  void calculateTableIndexes(int& ibeta, int& iangle, int& iradius);
+  Bool_t calculateTableIndexes(int& ibeta, int& iangle, int& iradius);
 
   void resetHitIndices();
 

@@ -1,0 +1,27 @@
+SET(MODULE_NAME EMCALCalib)
+
+O2_SETUP(NAME ${MODULE_NAME})
+
+set(SRCS
+  src/BadChannelMap.cxx
+)
+
+set(HEADERS
+  include/${MODULE_NAME}/BadChannelMap.h
+)
+
+SET(LINKDEF src/EMCALCalibLinkDef.h)
+SET(LIBRARY_NAME ${MODULE_NAME})
+SET(BUCKET_NAME emcal_calib_bucket)
+
+O2_GENERATE_LIBRARY()
+
+set(TEST_SRCS
+  test/testBadChannelMap.cxx
+)
+
+O2_GENERATE_TESTS(
+  BUCKET_NAME ${BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${MODULE_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)

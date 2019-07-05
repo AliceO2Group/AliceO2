@@ -40,7 +40,7 @@ namespace o2
 namespace its
 {
 
-void IOUtils::loadConfigurations(const std::string& fileName)
+void ioutils::loadConfigurations(const std::string& fileName)
 {
   if (!fileName.empty()) {
     std::ifstream inputStream;
@@ -52,7 +52,7 @@ void IOUtils::loadConfigurations(const std::string& fileName)
   }
 }
 
-std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
+std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
 {
   std::vector<ROframe> events{};
   std::ifstream inputStream{};
@@ -102,7 +102,7 @@ std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -125,13 +125,15 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    }
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
   }
 }
 
-int IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -157,14 +159,16 @@ int IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, c
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
   return number;
 }
 
-std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int eventsNum, const std::string& fileName)
+std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int eventsNum, const std::string& fileName)
 {
   std::vector<std::unordered_map<int, Label>> labelsMap{};
   std::unordered_map<int, Label> currentEventLabelsMap{};
@@ -193,7 +197,7 @@ std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int events
 
         if (inputStringStream >> transverseMomentum >> phiCoordinate >> pseudorapidity >> pdgCode >> numberOfClusters) {
 
-          if (std::abs(pdgCode) == constants::PDGCodes::PionCode && numberOfClusters == 7) {
+          if (std::abs(pdgCode) == constants::pdgcodes::PionCode && numberOfClusters == 7) {
 
             currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
                                           std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
@@ -209,7 +213,7 @@ std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int events
   return labelsMap;
 }
 
-void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
+void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
                                std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,
                                const std::unordered_map<int, Label>& labelsMap)
 {

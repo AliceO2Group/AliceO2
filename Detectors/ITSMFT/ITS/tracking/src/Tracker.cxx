@@ -205,7 +205,7 @@ void Tracker::findRoads(int& iteration)
 void Tracker::findTracks(const ROframe& event)
 {
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
-  std::vector<TrackITS> tracks;
+  std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
 #ifdef CA_DEBUG
   std::array<int, 4> roadCounters{ 0, 0, 0, 0 };
@@ -256,7 +256,7 @@ void Tracker::findTracks(const ROframe& event)
     const auto& cluster3_tf = event.getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
-    TrackITS temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
+    TrackITSExt temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -282,7 +282,7 @@ void Tracker::findTracks(const ROframe& event)
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
-            [](TrackITS& track1, TrackITS& track2) { return track1.isBetter(track2, 1.e6f); });
+            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
 #ifdef CA_DEBUG
   std::array<int, 26> sharingMatrix{ 0 };
@@ -375,7 +375,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITS& track, int start, int end, int step)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
 {
   track.setChi2(0);
   for (int iLayer{ start }; iLayer != end; iLayer += step) {
@@ -444,6 +444,9 @@ void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerI
 void Tracker::computeRoadsMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
+  if (!event.hasMCinformation()) {
+    return;
+  }
 
   int roadsNum{ static_cast<int>(mPrimaryVertexContext->getRoads().size()) };
 
@@ -519,17 +522,20 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
 void Tracker::computeTracksMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
+  if (!event.hasMCinformation()) {
+    return;
+  }
 
   int tracksNum{ static_cast<int>(mTracks.size()) };
 
-  for (TrackITS& track : mTracks) {
+  for (auto& track : mTracks) {
 
     MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
                                      constants::its::UnusedIndex };
     int count{ 0 };
     bool isFakeTrack{ false };
 
-    for (int iCluster = 0; iCluster < TrackITS::MaxClusters; ++iCluster) {
+    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
       if (index == constants::its::UnusedIndex) {
         continue;
@@ -577,14 +583,14 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = MathUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = MathUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-  const float tgl12 = MathUtils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = MathUtils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+  const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+  const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
   const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
   const float& tz = fy;
-  const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
+  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
                    (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
                    20.f; // FIXME: MS contribution to the cov[14] (*20 added)
   constexpr float s2 = constants::its::Resolution * constants::its::Resolution;

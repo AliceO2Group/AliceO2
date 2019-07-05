@@ -52,40 +52,76 @@ struct DefaultKey {
 } // namespace rtr
 
 /// @class RootTreeReader
-/// A generic reader interface for ROOT TTrees
+/// @brief A generic reader interface for ROOT TTrees
 ///
 /// The reader interfaces one TTree specified by its name, and supports this
 /// tree to be distributed over multiple files.
 ///
 /// The class uses a KeyType to define sinks for specific branches, the default
-/// key type is DPL `Output`. Branches are defined for processing by pairs of
-/// key type and branch name.
-/// Note that `Output` is probably going to be changed to `OutputDesc`
+/// key type is DPL \ref framework::Output. Branches are defined for processing
+/// by pairs of key type and branch name.
 ///
-/// Usage (for the default KeyType):
-///   RootTreeReader(treename,
-///                  filename1, filename2, ...,
-///                  Output{...}, branchname1,
-///                  Output{...}, branchname2,
-///                 ) reader;
-///   auto processSomething = [] (auto& key, auto& object) {/*do something*/};
-///   while (reader.next()) {
-///     reader.process(processSomething);
-///   }
-///   // -- or --
-///   while ((++reader)(processSomething));
+/// \par Usage, with some KeyType:
+/// The first argument is the tree name, the list of files is variable, all files
+/// must be passed before the first key-branchname pair.
 ///
-/// In the DPL AlgorithmSpec, the processing lambda can simply look like
-///   auto processingFct = [reader](ProcessingContext& pc) {
-///     // increment the reader and invoke it for the processing context
-///     (++reader)(pc);
-///   };
+///     RootTreeReader(treename,
+///                    filename1, filename2, ...,
+///                    KeyType{...}, branchname1,
+///                    KeyType{...}, branchname2,
+///                   ) reader;
+///     auto processSomething = [] (auto& key, auto& object) {
+///       // do something
+///     };
+///     while (reader.next()) {
+///       reader.process(processSomething);
+///     }
 ///
+/// \par Further optional constructor arguments
+/// Optional arguments can follow in arbitrary sequence, but all arguments must be passed
+/// before the first branch definition.
+///    - number of entries \a n (\c int)
+///    - publishing mode, \ref PublishingMode
+///
+/// \par Integration into DPL:
+/// The class defines the functor operator which takes the DPL ProcessingContext
+/// as argument and optionally an argument pack of headers which inherit from BaseHeader,
+/// the latter will form the header stack of the message.
+///
+///     auto reader = std::make_shared<RootTreeReader>(treename,
+///                                                    filename1, filename2, ...,
+///                                                    Output{...}, branchname1,
+///                                                    Output{...}, branchname2,
+///                                                   );
+///     // In the DPL AlgorithmSpec, the processing lambda can simply look like:
+///     // (note that the shared pointer is propagated by copy)
+///     auto processingFct = [reader](ProcessingContext& pc) {
+///       // increment the reader and invoke it for the processing context
+///       if (reader->next()) {
+///         SomeHeader specificHeader;
+///         reader(pc, specificHeader);
+///       } else {
+///         // no more data
+///       }
+///     }
+///
+///     // another example, simply incrementing by operator++ and providing additional
+///     // custom header
+///     auto someOtherProcessingFct = [reader](ProcessingContext& pc) {
+///       // increment the reader and invoke it for the processing context
+///       SomeHeader specificHeader;
+///       if ((++reader)(pc, specificHeader) == false) {
+///         // no more data
+///       }
+///     }
+///
+/// \par Binary format:
 /// The reader supports the binary format of the RootTreeWriter as counterpart.
 /// Binary data is stored as vector of char alongside with a branch storing the
 /// size, as both indicator and consistency check.
 ///
-/// Note that `reader` has to be set up in the init callback and it must
+/// \note
+/// In the examples, `reader` has to be set up in the init callback and it must
 /// be static there to persist. It can also be a shared_pointer, which then
 /// requires additional dereferencing in the syntax. The processing lambda has
 /// to capture the shared pointer instance by copy.
@@ -100,8 +136,11 @@ class GenericRootTreeReader
   // with ROOT objects like the MC labels.
   using BinaryDataStoreType = std::vector<char>;
 
+  /// Publishing mode determines what to do when the number of entries in the tree is reached
   enum struct PublishingMode {
+    /// no more data after end of tree
     Single,
+    /// start over at entry 0
     Loop,
   };
   // the key must not be of type const char* to make sure that the variable argument
@@ -121,7 +160,7 @@ class GenericRootTreeReader
     : mInput(treename)
   {
     mInput.SetCacheSize(0);
-    parseConstructorArgs(std::forward<Args>(args)...);
+    parseConstructorArgs<0>(std::forward<Args>(args)...);
   }
 
   /// add a file as source for the tree
@@ -240,6 +279,11 @@ class GenericRootTreeReader
     TClass* classinfo = nullptr;
   };
 
+  // helper for the invalid code path of if constexpr statement
+  template <typename T>
+  struct type_dependent : std::false_type {
+  };
+
   /// add a new branch definition
   /// we allow for multiple branch definition for the same key
   void addBranchSpec(KeyType key, const char* branchName)
@@ -270,51 +314,45 @@ class GenericRootTreeReader
     }
   }
 
-  /// helper function to recursively parse constructor arguments
-  /// this is the first part pasing all the file name, stops when the first key
-  /// is found
-  template <typename... Args>
-  void parseConstructorArgs(const char* fileName, Args&&... args)
+  // special helper to get the char argument from the argument pack
+  template <typename T, typename... Args>
+  const char* getCharArg(T arg, Args&&...)
   {
-    addFile(fileName);
-    parseConstructorArgs(std::forward<Args>(args)...);
+    static_assert(std::is_same<T, const char*>::value, "missing branch name after publishing key, use const char* argument right after the key");
+    return arg;
   }
 
   /// helper function to recursively parse constructor arguments
-  /// handles the number-of-entries argument, stops when the first key
-  /// is found
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, int>::value == true> parseConstructorArgs(T nMaxEntries, Args&&... args)
+  template <size_t skip, typename U, typename... Args>
+  void parseConstructorArgs(U key, Args&&... args)
   {
-    mMaxEntries = nMaxEntries;
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// handles the publishing mode argument, stops when the first key
-  /// is found
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, PublishingMode>::value == true> parseConstructorArgs(T mode, Args&&... args)
-  {
-    mPublishingMode = mode;
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// parse the branch definitions with key and branch name.
-  template <typename T, typename... Args>
-  typename std::enable_if_t<std::is_same<T, int>::value == false && std::is_same<T, PublishingMode>::value == false>
-    parseConstructorArgs(T key, const char* name, Args&&... args)
-  {
-    if (name != nullptr && *name != 0) {
-      // add branch spec if the name is not empty
-      addBranchSpec(KeyType{ key }, name);
+    if constexpr (skip > 0) {
+      return parseConstructorArgs<skip - 1>(std::forward<Args>(args)...);
     }
-    parseConstructorArgs(std::forward<Args>(args)...);
+    if constexpr (std::is_same<U, const char*>::value) {
+      addFile(key);
+    } else if constexpr (std::is_same<U, int>::value) {
+      mMaxEntries = key;
+    } else if constexpr (std::is_same<U, PublishingMode>::value) {
+      mPublishingMode = key;
+    } else if constexpr (sizeof...(Args) > 0) {
+      const char* arg = getCharArg(std::forward<Args>(args)...);
+      if (arg != nullptr && *arg != 0) {
+        // add branch spec if the name is not empty
+        addBranchSpec(KeyType{ key }, arg);
+      }
+      return parseConstructorArgs<1>(std::forward<Args>(args)...);
+    } else {
+      static_assert(type_dependent<U>::value, "argument mismatch, allowed are: file names, int to specify number of events, publishing mode, and key-branchname pairs");
+    }
+    parseConstructorArgs<0>(std::forward<Args>(args)...);
   }
 
   // this terminates the argument parsing
-  void parseConstructorArgs() {}
+  template <size_t skip>
+  void parseConstructorArgs()
+  {
+  }
 
   /// the input tree, using TChain to support multiple input files
   TChain mInput;

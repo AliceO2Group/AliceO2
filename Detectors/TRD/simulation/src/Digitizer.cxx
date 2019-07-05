@@ -52,7 +52,7 @@ Digitizer::Digitizer()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont)
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   // (WIP) Implementation for digitization
 
@@ -60,6 +60,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
   SignalContainer_t adcMapCont;
+  mLabels.clear();
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -95,6 +96,11 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // Finalize
   Digit::convertMapToVectors(adcMapCont, digitCont);
+
+  // MC labels
+  for (int i = 0; i < mLabels.size(); ++i) {
+    labels.addElement(i, mLabels[i]);
+  }
 }
 
 void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
@@ -121,9 +127,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   const float kDrMax = kDrWidth + 0.5 * kAmWidth;              // Drift + Amplification region
 
   int timeBinTRFend = 0;
-
-  double pos[3];
-  double loc[3];
   double padSignal[kNpad];
   double signalOld[kNpad];
 
@@ -162,32 +165,35 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   // Loop over hits
   for (const auto& hit : hits) {
-    pos[0] = hit.GetX();
-    pos[1] = hit.GetY();
-    pos[2] = hit.GetZ();
-    gGeoManager->SetCurrentPoint(pos);
-    gGeoManager->FindNode();
-    // Go to the local coordinate system
-    // loc [0] -  col direction in amplification or drift volume
-    // loc [1] -  row direction in amplification or drift volume
-    // loc [2] -  time direction in amplification or drift volume
-    gGeoManager->MasterToLocal(pos, loc);
-
+    bool isDigit = false;
     const int qTotal = hit.GetCharge();
+    /*
+      Now the real local coordinate system of the ROC
+      column direction: locC
+      row direction:    locR
+      time direction:   locT
+      locR and locC are identical to the coordinates of the corresponding
+      volumina of the drift or amplification region.
+      locT is defined relative to the wire plane (i.e. middle of amplification
+      region), meaning locT = 0, and is negative for hits coming from the
+      drift region.
+    */
+    double locC = hit.getLocalC(); // col direction in amplification or drift volume
+    double locR = hit.getLocalR(); // row direction in amplification or drift volume
+    double locT = hit.getLocalT(); // time direction in amplification or drift volume
 
-    const int inDrift = std::strstr(gGeoManager->GetPath(), "/UK") ? 0 : 1;
-    if (inDrift) {
-      loc[2] = loc[2] - kDrWidth / 2 - kAmWidth / 2;
+    if (hit.isFromDriftRegion()) {
+      locT = locT - kDrWidth / 2 - kAmWidth / 2;
     }
 
-    const double driftLength = -1 * loc[2]; // The drift length in cm without diffusion
+    const double driftLength = -1 * locT; // The drift length in cm without diffusion
 
     // Patch to take care of TR photons that are absorbed
     // outside the chamber volume. A real fix would actually need
     // a more clever implementation of the TR hit generation
     if (qTotal < 0) {
-      if ((loc[1] < rowEndROC) ||
-          (loc[1] > row0)) {
+      if ((locR < rowEndROC) ||
+          (locR > row0)) {
         continue;
       }
       if ((driftLength < kDrMin) ||
@@ -196,14 +202,14 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
     }
 
-    int rowE = padPlane->getPadRowNumberROC(loc[1]);
+    int rowE = padPlane->getPadRowNumberROC(locR);
     if (rowE < 0) {
       continue;
     }
 
-    double rowOffset = padPlane->getPadRowOffsetROC(rowE, loc[1]);
+    double rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
     double offsetTilt = padPlane->getTiltOffset(rowOffset);
-    int colE = padPlane->getPadColNumber(loc[0] + offsetTilt);
+    int colE = padPlane->getPadColNumber(locC + offsetTilt);
     if (colE < 0) {
       continue;
     }
@@ -219,21 +225,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     // Loop over all created electrons
     const int nElectrons = abs(qTotal);
     for (int el = 0; el < nElectrons; ++el) {
-      /*
-      Now the real local coordinate system of the ROC
-      column direction: locC
-      row direction:    locR
-      time direction:   locT
-      locR and locC are identical to the coordinates of the corresponding
-      volumina of the drift or amplification region.
-      locT is defined relative to the wire plane (i.e. middle of amplification
-      region), meaning locT = 0, and is negative for hits coming from the
-      drift region.
-      */
-      double locC = loc[0];
-      double locR = loc[1];
-      double locT = loc[2];
-
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
         if (gRandom->Rndm() < absDriftLength * elAttachProp) {
@@ -361,10 +352,12 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Update the final signal
           adcMapCont[key][iTimeBin] = signalOld[iPad];
+          isDigit = true;
         } // Loop: pads
       }   // Loop: time bins
     }     // end of loop over electrons
-  }       // end of loop over hits
+    mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
+  } // end of loop over hits
   return true;
 }
 
@@ -429,8 +422,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   // for (int row = 0; row < nRowMax; row++) {
   //   for (int col = 0; col < nColMax; col++) {
   for (auto& adcMapIter : adcMapCont) {
+    const int row = Digit::getRowFromKey(adcMapIter.first); // for the next line, when ccdb is ready
     const int col = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
-    const int row = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
     // halfchamber masking
     int iMcm = (int)(col / 18);               // current group of 18 col pads
     int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
@@ -470,8 +463,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       } else {
         adc = TMath::Nint(signalAmp * adcConvert);
       }
-      // Saving all digits
-      // digits->SetData(row, col, tb, adc);
+      // update the adc array value
       adcArrayVal = adc;
     } // for: tb
   }

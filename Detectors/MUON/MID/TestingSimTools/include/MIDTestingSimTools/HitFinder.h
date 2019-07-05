@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDBase/HitFinder.h
+/// \file   MIDTestingSimTools/HitFinder.h
 /// \brief  Hit finder for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   14 March 2018
@@ -19,7 +19,6 @@
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
-#include "MIDBase/Constants.h"
 
 namespace o2
 {

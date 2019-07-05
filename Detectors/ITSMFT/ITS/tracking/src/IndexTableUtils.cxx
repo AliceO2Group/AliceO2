@@ -19,8 +19,8 @@ namespace o2
 namespace its
 {
 
-const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
-  const std::array<int, constants::IndexTable::ZBins * constants::IndexTable::PhiBins + 1>& indexTable,
+const std::vector<std::pair<int, int>> index_table_utils::selectClusters(
+  const std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
   const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
@@ -28,15 +28,15 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
   int phiBinsNum{ selectedBinsRect[3] - selectedBinsRect[1] + 1 };
 
   if (phiBinsNum < 0) {
-    phiBinsNum += constants::IndexTable::PhiBins;
+    phiBinsNum += constants::index_table::PhiBins;
   }
 
   filteredBins.reserve(phiBinsNum);
 
   for (int iPhiBin{ selectedBinsRect[1] }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
-       iPhiBin = ++iPhiBin == constants::IndexTable::PhiBins ? 0 : iPhiBin, iPhiCount++) {
+       iPhiBin = ++iPhiBin == constants::index_table::PhiBins ? 0 : iPhiBin, iPhiCount++) {
 
-    const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect[0], iPhiBin) };
+    const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect[0], iPhiBin) };
 
     filteredBins.emplace_back(indexTable[firstBinIndex],
                               countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));

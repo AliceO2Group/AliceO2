@@ -28,6 +28,11 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 
+#include "ITStracking/ROframe.h"
+#include "ITStracking/IOUtils.h"
+#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerTraits.h"
+
 using namespace o2::framework;
 
 namespace o2
@@ -89,15 +94,26 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
-  std::vector<std::array<Double_t, 3>> vertices; //FIXME :  run an actual vertex finder !
-  vertices.push_back({ 0., 0., 0. });
-  mTracker.setVertices(vertices);
+  o2::its::VertexerTraits vertexerTraits;
+  o2::its::Vertexer vertexer(&vertexerTraits);
+  o2::its::ROframe event(0);
 
   std::vector<o2::its::TrackITS> tracks;
-  mTracker.process(clusters, tracks, rofs);
+  std::vector<int> clusIdx;
+  for (auto& rof : rofs) {
+    o2::its::ioutils::loadROFrameData(rof, event, &clusters, labels.get());
+    vertexer.clustersToVertices(event);
+    auto vertices = vertexer.exportVertices();
+    if (vertices.empty()) {
+      vertices.emplace_back();
+    }
+    mTracker.setVertices(vertices);
+    mTracker.process(clusters, tracks, clusIdx, rof);
+  }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
+  pc.outputs().snapshot(Output{ "ITS", "TRACKCLSID", 0, Lifetime::Timeframe }, clusIdx);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
 
   if (mUseMC) {
@@ -118,6 +134,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
 
   if (useMC) {

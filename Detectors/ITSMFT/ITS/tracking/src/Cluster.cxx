@@ -22,9 +22,9 @@ namespace o2
 namespace its
 {
 
-using MathUtils::calculatePhiCoordinate;
-using MathUtils::calculateRCoordinate;
-using MathUtils::getNormalizedPhiCoordinate;
+using math_utils::calculatePhiCoordinate;
+using math_utils::calculateRCoordinate;
+using math_utils::getNormalizedPhiCoordinate;
 
 Cluster::Cluster(const float x, const float y, const float z, const int index)
   : xCoordinate{ x },
@@ -45,8 +45,8 @@ Cluster::Cluster(const int layerIndex, const Cluster& other)
     phiCoordinate{ getNormalizedPhiCoordinate(calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
     rCoordinate{ calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
     clusterId{ other.clusterId },
-    indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
-                                                     IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
+    indexTableBinIndex{ index_table_utils::getBinIndex(index_table_utils::getZBinIndex(layerIndex, zCoordinate),
+                                                       index_table_utils::getPhiBinIndex(phiCoordinate)) }
 //, montecarloId{ other.montecarloId }
 {
   // Nothing to do
@@ -60,17 +60,33 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
       calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)) },
     rCoordinate{ calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y) },
     clusterId{ other.clusterId },
-    indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
-                                                     IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
+    indexTableBinIndex{ index_table_utils::getBinIndex(index_table_utils::getZBinIndex(layerIndex, zCoordinate),
+                                                       index_table_utils::getPhiBinIndex(phiCoordinate)) }
 {
   // Nothing to do
 }
 
-TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF,
-                                     std::array<float, 3>&& covTF)
-  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha }, positionTrackingFrame{ posTF }, covarianceTrackingFrame{ covTF }
+TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
+                                     GPUArray<float, 3>&& covTF)
+  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha },
+#ifdef __OPENCL__
+    positionTrackingFrame{ posTF },
+    covarianceTrackingFrame
+{
+  covTF
+}
+#else
+    positionTrackingFrame{},
+    covarianceTrackingFrame
+{
+}
+#endif
 {
   // Nothing to do
+#ifdef __OPENCL__
+  positionTrackingFrame.copy(posTF);
+  covarianceTrackingFrame.copy(covTF);
+#endif
 }
 } // namespace its
 } // namespace o2

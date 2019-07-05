@@ -13,6 +13,9 @@
 
 #include "TRDSimulation/Detector.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/MCLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+
 #include "TRDBase/TRDCommonParam.h"
 
 namespace o2
@@ -31,7 +34,7 @@ class Digitizer
  public:
   Digitizer();
   ~Digitizer() = default;
-  void process(std::vector<HitType> const&, DigitContainer_t&);
+  void process(std::vector<HitType> const&, DigitContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
@@ -47,7 +50,8 @@ class Digitizer
   int mSrcID = 0;
 
   bool mSDigits{ false };             // true: convert signals to summable digits, false by defaults
-  std::vector<HitType> mHitContainer; // The container of hits in a given detector
+  std::vector<HitType> mHitContainer; // the container of hits in a given detector
+  std::vector<MCLabel> mLabels;       // the container of labels
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods

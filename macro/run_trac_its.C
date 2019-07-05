@@ -26,9 +26,16 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "ReconstructionDataFormats/Vertex.h"
 #endif
 
+#include "ITStracking/ROframe.h"
+#include "ITStracking/IOUtils.h"
+#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerTraits.h"
+
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
@@ -103,10 +110,12 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("o2sim", "Cooked ITS Tracks");
-  std::vector<o2::its::TrackITS>* tracksITS = new std::vector<o2::its::TrackITS>;
-  MCLabCont* trackLabels = new MCLabCont();
-  outTree.Branch("ITSTrack", &tracksITS);
-  outTree.Branch("ITSTrackMCTruth", &trackLabels);
+  std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
+  std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
+  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  outTree.Branch("ITSTrack", &tracksITSPtr);
+  outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
+  outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
 
   TTree treeROF("ITSTracksROF", "ROF records tree");
   treeROF.Branch("ITSTracksROF", &rofs);
@@ -120,7 +129,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
   if (mcTruth)
-    tracker.setMCTruthContainers(&allLabels, trackLabels);
+    tracker.setMCTruthContainers(&allLabels, trackLabelsPtr);
   //===========================================
 
   // Load all clusters into a single vector
@@ -147,10 +156,20 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     std::cout << "entry nclusters offset " << entry << ' ' << clusters->size() << ' ' << offset << '\n';
   }
 
-  std::vector<std::array<Double_t, 3>> vertices;
-  vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
-  tracker.setVertices(vertices);
-  tracker.process(allClusters, *tracksITS, *rofs);
+  o2::its::VertexerTraits vertexerTraits;
+  o2::its::Vertexer vertexer(&vertexerTraits);
+  o2::its::ROframe event(0);
+
+  for (auto& rof : *rofs) {
+    o2::its::ioutils::loadROFrameData(rof, event, &allClusters, &allLabels);
+    vertexer.clustersToVertices(event);
+    auto vertices = vertexer.exportVertices();
+    if (vertices.empty()) {
+      vertices.emplace_back();
+    }
+    tracker.setVertices(vertices);
+    tracker.process(allClusters, tracksITS, trackClIdx, rof);
+  }
   outTree.Fill();
   treeROF.Fill();
 
