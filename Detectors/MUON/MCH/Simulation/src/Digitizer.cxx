@@ -66,7 +66,7 @@ Response& response(bool isStation1)
   return resp[isStation1];
 }
 
-  int getGlobalDigit(int detID, int padID)
+int getGlobalDigit(int detID, int padID)
 {
   //calculate global index
   return detID * 100000 + padID;
@@ -147,7 +147,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -172,7 +172,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
-      return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
+    return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
   auto sortedDigits = [&digits, &indices](int i) {
@@ -198,16 +198,13 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
     float adc{ 0 };
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
-      if(k==i)
-	{
-	  mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
-	}else {
-	if((sortedLabels(k).getTrackID() != sortedLabels(k-1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k-1).getSourceID()) )
-	  {
-	    mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID());
-	  }
+      if (k == i) {
+        mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
+      } else {
+        if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
+          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID());
+        }
       }
-	
     }
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
@@ -223,12 +220,12 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, const o2::dataformats::M
   mDigits.clear();
   mDigits.reserve(digits.size());
   mTrackLabels.clear();
-  
+
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
     mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
   }
-  
+
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);
     mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID());
