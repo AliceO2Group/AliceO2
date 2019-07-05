@@ -26,9 +26,6 @@
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 
-#include <iostream>
-using namespace std;
-
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -106,9 +103,6 @@ class MCHDPLDigitizerTask
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-	cout <<"+++++++++++++++++++++++++++++++collID+++++++++++++++++++++++++++++++++++++" << collID << endl;
-	cout <<"+++++++++++++++++++++++++++++++entryID++++++++++++++++++++++++++++++++++++" << part.entryID << endl;
-	cout << "++++++++++++++++++++++++++++++++sourceID+++++++++++++++++++++++++++++++++" << part.sourceID << endl;
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
 	
@@ -136,15 +130,9 @@ class MCHDPLDigitizerTask
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
       }
     }
-    //add if condition for srcID>0
     mDigitizer.mergeDigits(digitsAccum, labelAccum);
     mDigitizer.provideMC(labelAccum);
 
-    cout  << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize() << endl;
-    cout << "labelAccum.getNElements() " << labelAccum.getNElements() << endl;
-    cout  << "Have " << digitsAccum.size() << " digits " << endl;
-
-    
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
     pc.outputs().snapshot(Output{ "MCH", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);

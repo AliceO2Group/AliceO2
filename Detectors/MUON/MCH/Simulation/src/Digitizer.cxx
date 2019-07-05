@@ -19,9 +19,6 @@
 #include <cassert>
 #include <fairlogger/Logger.h>
 
-#include <iostream>
-using namespace std;
-
 using namespace o2::mch;
 
 namespace
@@ -60,7 +57,7 @@ const o2::mch::mapping::Segmentation& segmentation(int detElemId)
 
 bool isStation1(int detID)
 {
-  return detID < 400;
+  return detID < 300;
 }
 
 Response& response(bool isStation1)
@@ -69,7 +66,7 @@ Response& response(bool isStation1)
   return resp[isStation1];
 }
 
-int getGlobalDigit(int detID, int padID)
+  int getGlobalDigit(int detID, int padID)
 {
   //calculate global index
   return detID * 100000 + padID;
@@ -86,8 +83,6 @@ void Digitizer::init()
 //______________________________________________________________________
 void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
-  cout << "*****************************************************************************************************************************" << endl;
-  cout <<"HOW MANY TIMES **************************************************************************************************************" << endl;
   digits.clear();
   mDigits.clear();
   mTrackLabels.clear();
@@ -148,6 +143,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
     LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
+    LOG(ERROR) << "detID " << detID;
     return 0;
   }
 
@@ -173,12 +169,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 //______________________________________________________________________
 void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
 {
-  cout <<"hall mergeDigits "  << endl;
-  cout << "hallo mergeDigits digit-size first " << digits.size() << endl;
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
-    return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
+      return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
   auto sortedDigits = [&digits, &indices](int i) {
@@ -198,28 +192,28 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    //    cout <<"(getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID()) == (getGlobalDigit(sortedDigits(j).getDetID(), \
- sortedDigits(j).getPadID()))) " <<(getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID()) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID()))) << endl;
-    cout <<"i " << i << " j "<< j << endl;
-    cout << "sortedDigits(i).getDetID()  "  << sortedDigits(i).getDetID() << endl;
-    cout <<"sortedDigits(i).getPadID() " << sortedDigits(i).getPadID() << endl;
-    cout <<"sortedDigits(j).getDetID() " << sortedDigits(j).getDetID() << endl;
-    cout <<"sortedDigits(j).getPadID() " << sortedDigits(j).getPadID() << endl;
     while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID()) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())))) {
       j++;
-      cout <<"overlap how many  "<< j << endl;
     }
     float adc{ 0 };
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
+      if(k==i)
+	{
+	  mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
+	}else {
+	if((sortedLabels(k).getTrackID() != sortedLabels(k-1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k-1).getSourceID()) )
+	  {
+	    mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID());
+	  }
+      }
+	
     }
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
-    mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
     i = j;
     ++count;
   }
   mDigits.resize(mDigits.size());
-  cout <<"mDigits.size() at the end " << mDigits.size() << endl;
   mTrackLabels.resize(mTrackLabels.size());
 }
 //______________________________________________________________________
@@ -229,8 +223,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, const o2::dataformats::M
   mDigits.clear();
   mDigits.reserve(digits.size());
   mTrackLabels.clear();
-  mTrackLabels.reserve(mcContainer.getNElements());
-
+  
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
     mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
@@ -250,6 +243,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::
   // filling the digit container
   if (mDigits.empty())
     return;
+
+  digits.clear();
+  digits.reserve(mDigits.size());
 
   auto itBeg = mDigits.begin();
   auto iter = itBeg;
