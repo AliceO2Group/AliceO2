@@ -164,6 +164,10 @@ BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
   h1->FillRandom("gaus", 10000);
   f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+
+  auto h2 = new TH1F("object2", "object2", 100, 0, 99);
+  h2->FillRandom("gaus", 10000);
+  f.api.store(h2, "Test/Detector", f.metadata, -1, -1, true);
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
@@ -178,14 +182,18 @@ BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = f.api.retrieve("Test/Detector", f.metadata);
-  BOOST_CHECK(h1 != nullptr);
-  if (h1 != nullptr) {
-    BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+  h1->FillRandom("gaus", 10000);
+  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+
+  auto h2 = f.api.retrieve("Test/Detector", f.metadata);
+  BOOST_CHECK(h2 != nullptr);
+  if (h2 != nullptr) {
+    BOOST_CHECK_EQUAL(h2->GetName(), "object1");
   }
 
-  auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
-  BOOST_CHECK(h2 == nullptr);
+  auto h3 = f.api.retrieve("asdf/asdf", f.metadata);
+  BOOST_CHECK(h3 == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
