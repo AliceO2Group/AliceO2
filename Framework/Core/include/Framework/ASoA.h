@@ -168,7 +168,7 @@ struct RowView : public C... {
     return copy;
   }
 
-  RowView<C...> const& operator*()
+  RowView<C...> const& operator*() const
   {
     return *this;
   }
@@ -194,6 +194,7 @@ class Table
 {
  public:
   using iterator = RowView<C...>;
+  using const_iterator = RowView<C...>;
   using columns = std::tuple<C...>;
 
   Table(std::shared_ptr<arrow::Table> table)
@@ -201,14 +202,26 @@ class Table
   {
   }
 
-  RowView<C...> begin() const
+  iterator begin()
   {
-    return RowView<C...>(mTable);
+    return iterator(mTable);
   }
 
-  RowView<C...> end() const
+  iterator end()
   {
-    RowView<C...> end(mTable);
+    iterator end(mTable);
+    end.moveToEnd();
+    return end;
+  }
+
+  const_iterator begin() const
+  {
+    return const_iterator(mTable);
+  }
+
+  const_iterator end() const
+  {
+    const_iterator end(mTable);
     end.moveToEnd();
     return end;
   }

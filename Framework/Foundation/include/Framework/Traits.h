@@ -22,12 +22,12 @@ template <typename A, typename B>
 struct is_overriding : public std::bool_constant<std::is_same_v<A, B> == false && std::is_member_function_pointer_v<A> && std::is_member_function_pointer_v<B>> {
 };
 
-template <typename T>
+template <typename... T>
 struct always_static_assert : std::false_type {
 };
 
-template <typename T>
-inline constexpr bool always_static_assert_v = always_static_assert<T>::value;
+template <typename... T>
+inline constexpr bool always_static_assert_v = always_static_assert<T...>::value;
 
 } // namespace framework
 } // namespace o2

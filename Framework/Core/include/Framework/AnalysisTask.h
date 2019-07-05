@@ -38,12 +38,7 @@ namespace framework
 ///
 /// adaptAnalysisTask<YourDerivedTask>(constructor args, ...);
 ///
-/// The appropriate AlgorithmSpec invoking `AnalysisTask::init(...)` at
-/// startup and `AnalysisTask::run(...)` will be created.
-///
-class AnalysisTask
-{
- public:
+struct AnalysisTask {
   template <typename T>
   struct Produces {
     static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
@@ -56,23 +51,6 @@ class AnalysisTask
       assert(false);
     }
   };
-
-  virtual ~AnalysisTask() = default;
-  /// The method which is called once to initialise the task.
-  /// Derived classes can use this to save extra state.
-  virtual void init(InitContext& context) {}
-  /// This is invoked whenever a new InputRecord is demeed to
-  /// be complete.
-  virtual void run(ProcessingContext& context) = 0;
-
-  /// Override this to subscribe to each track. No guarantees on the order.
-  virtual void processTrack(aod::Track const& tracks) {}
-  /// Override this to subscribe to all the tracks and including their associated collision.
-  virtual void processCollisionTrack(aod::Collision const& collision, aod::Track const& track) {}
-  /// Override this to subscribe to all the tracks of the given timeframe.
-  virtual void processTimeframeTracks(aod::Timeframe const& timeframe, aod::Tracks const& tracks) {}
-  /// Override this to subscribe to all the tracks associated to a given collision.
-  virtual void processCollisionTracks(aod::Collision const& collision, aod::Tracks const& tracks) {}
 };
 
 // Helper struct which builds a DataProcessorSpec from
@@ -92,6 +70,110 @@ struct AnalysisDataProcessorBuilder {
   {
     (appendInputWithMetadata<Args>(inputs), ...);
   }
+
+  template <typename R, typename C, typename Grouping, typename... Args>
+  static auto signatures(InputRecord& record, R (C::*)(Grouping, Args...))
+  {
+    return std::declval<std::tuple<Grouping, Args...>>();
+  }
+
+  template <typename R, typename C, typename Grouping, typename... Args>
+  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...))
+  {
+    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
+    return typename metadata::table_t(record.get<TableConsumer>(metadata::label())->asArrowTable());
+  }
+
+  template <typename R, typename C>
+  static auto bindGroupingTable(InputRecord& record, R (C::*)())
+  {
+    static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
+    return o2::soa::Table<>{ nullptr };
+  }
+
+  template <typename R, typename C, typename Grouping, typename... Args>
+  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...))
+  {
+    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
+    return std::make_tuple(typename aod::MetadataTrait<std::decay_t<Args>>::metadata::table_t(record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<Args>>::metadata::label())->asArrowTable())...);
+  }
+
+  template <typename R, typename C>
+  static auto bindAssociatedTables(InputRecord& record, R (C::*)())
+  {
+    static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
+    return std::tuple<>{};
+  }
+
+  template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...))
+  {
+    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process);
+    auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process);
+
+    if constexpr (sizeof...(Associated) == 0) {
+      // No extra tables: we need to either iterate over the contents of
+      // grouping or pass the whole grouping table, depending on whether Grouping
+      // is a o2::soa::Table or a o2::soa::RowView
+      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
+        task.process(groupingTable);
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+        for (auto& groupedElement : groupingTable) {
+          task.process(groupedElement);
+        }
+      } else {
+        static_assert(always_static_assert_v<Grouping>,
+                      "The first argument of the process method of your task must be either"
+                      " a o2::soa::Table or a o2::soa::RowView");
+      }
+    } else if constexpr (sizeof...(Associated) == 1) {
+      // One extra table provided: if the first argument itself is a table,
+      // then we simply pass it over to the process method and let the user do the
+      // double looping (e.g. if they want to do some association between different
+      // physics quantities.
+      //
+      // If the first argument is a single element, we consider that the user
+      // wants to do a loop first on the table associated to the first element,
+      // then to the subgroup of the second table which is associated to the
+      // first one. E.g.:
+      //
+      // MyTask::process(Collision const& collision, Tracks const& tracks)
+      //
+      // Will iterate on all the tracks for the provided collision.
+      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
+        static_assert((is_specialization<Associated, o2::soa::Table>::value && ...),
+                      "You cannot have a soa::RowView iterator as an argument after the "
+                      " first argument of type soa::Table which is found as in the "
+                      " prototype of the task process method.");
+        task.process(groupingTable, std::get<0>(associatedTables));
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+        using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
+        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowView>::value) {
+          auto groupedTable = std::get<0>(associatedTables);
+          size_t currentGrouping = 0;
+          Grouping groupingElement = groupingTable.begin();
+          for (auto& groupedElement : groupedTable) {
+            // FIXME: this only works for collisions for now...
+            auto groupingIndex = groupedElement.collisionId(); // Fine for the moment.
+            // We find the associated collision, assuming they are sorted.
+            while (groupingIndex > currentGrouping) {
+              // This const_cast is done because I do not want people to be
+              // able to move the iterator in the user code.
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+              ++const_cast<std::decay_t<AssociatedType>&>(groupedElement);
+            }
+            task.process(groupingElement, groupedElement);
+          }
+        }
+      } else {
+        static_assert(always_static_assert_v<Grouping>,
+                      "Only grouping by Collision is supported for now");
+      }
+    } else {
+      static_assert(always_static_assert_v<Grouping, Associated...>,
+                    "Unable to find a way to iterate on the provided set of arguments. Probably unimplemented");
+    }
+  }
 };
 
 template <typename T>
@@ -106,9 +188,61 @@ template <typename TABLE>
 struct OutputAppender<AnalysisTask::Produces<TABLE>> {
   static bool appendOutput(std::vector<OutputSpec> &outputs, AnalysisTask::Produces<TABLE> &what) {
     using metadata = typename aod::MetadataTrait<std::decay_t<TABLE>>::metadata;
-    outputs.push_back({metadata::label(), metadata::origin(), metadata::description()});
+    outputs.emplace_back(OutputSpec{ OutputLabel{ metadata::label() }, metadata::origin(), metadata::description() });
     return true;
   };
+};
+
+// SFINAE test
+template <typename T>
+class has_process
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::process));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
+template <typename T>
+class has_run
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::run));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
+template <typename T>
+class has_init
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::init));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
 };
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -116,95 +250,32 @@ struct OutputAppender<AnalysisTask::Produces<TABLE>> {
 template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 {
-  constexpr bool hasProcessTrack = is_overriding<decltype(&T::processTrack),
-                                                 decltype(&AnalysisTask::processTrack)>::value;
-  constexpr bool hasProcessCollisionTrack = is_overriding<decltype(&T::processCollisionTrack),
-                                                          decltype(&AnalysisTask::processCollisionTrack)>::value;
-  constexpr bool hasProcessTimeframeTracks = is_overriding<decltype(&T::processTimeframeTracks),
-                                                           decltype(&AnalysisTask::processTimeframeTracks)>::value;
-  constexpr bool hasProcessCollisionTracks = is_overriding<decltype(&T::processCollisionTracks),
-                                                           decltype(&AnalysisTask::processCollisionTracks)>::value;
-
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple(*task);
   std::apply([&outputs](auto ...x){ return (OutputAppender<decltype(x)>::appendOutput(outputs, x) || ...);}, tupledTask);
+  static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
+                "At least one of process(...), T::run(...), init(...) must be defined");
+
+  std::vector<InputSpec> inputs;
+  if constexpr (has_process<T>::value) {
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs);
+  }
 
   auto algo = AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
-    task->init(ic);
+    if constexpr (has_init<T>::value) {
+      task->init(ic);
+    }
     return [task](ProcessingContext& pc) {
-      task->run(pc);
-      if constexpr (hasProcessTrack) {
-        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
-        for (auto& track : aod::Tracks(tracks->asArrowTable())) {
-          task->processTrack(track);
-        }
+      if constexpr (has_run<T>::value) {
+        task->run(pc);
       }
-      if constexpr (hasProcessCollisionTrack) {
-        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
-        auto collisions = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Collisions>::metadata::label());
-        size_t currentCollision = 0;
-        aod::Collision collision(collisions->asArrowTable());
-        for (auto& track : aod::Tracks(tracks->asArrowTable())) {
-          auto collisionIndex = track.collisionId();
-          // We find the associated collision, assuming they are sorted.
-          while (collisionIndex > currentCollision) {
-            ++currentCollision;
-            ++collision;
-          }
-          task->processCollisionTrack(collision, track);
-        }
-      }
-      if constexpr (hasProcessTimeframeTracks) {
-        auto tracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
-        auto timeframes = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Timeframe>::metadata::label());
-        // FIXME: For the moment we assume we have a single timeframe...
-        aod::Timeframe timeframe(timeframes->asArrowTable());
-        task->processTimeframeTracks(timeframe, aod::Tracks(tracks->asArrowTable()));
-      }
-      if constexpr (hasProcessCollisionTracks) {
-        auto collisions = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Collisions>::metadata::label());
-        auto allTracks = pc.inputs().get<TableConsumer>(aod::MetadataTrait<aod::Tracks>::metadata::label());
-        arrow::compute::FunctionContext ctx;
-        std::vector<arrow::compute::Datum> eventTracksCollection;
-        auto result = o2::framework::sliceByColumn(&ctx, "fID4Tracks", allTracks->asArrowTable(), &eventTracksCollection);
-        if (result.ok() == false) {
-          LOG(ERROR) << "Error while splitting the tracks per events";
-          return;
-        }
-        size_t currentCollision = 0;
-        aod::Collision collision(collisions->asArrowTable());
-        for (auto& eventTracks : eventTracksCollection) {
-          // FIXME: We find the associated collision, assuming they are sorted.
-          aod::Tracks tracks(arrow::util::get<std::shared_ptr<arrow::Table>>(eventTracks.value));
-          auto collisionIndex = tracks.begin().collisionId();
-          while (collisionIndex > currentCollision) {
-            ++currentCollision;
-            ++collision;
-          }
-          task->processCollisionTracks(collision, tracks);
-        }
+      if constexpr (has_process<T>::value) {
+        AnalysisDataProcessorBuilder::invokeProcess(*task, pc.inputs(), &T::process);
       }
     };
   } };
-
-  std::vector<InputSpec> inputs;
-
-  // Ugly, however will be cleaned up once we drop the extra methods.
-  if constexpr (hasProcessTrack) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processTrack, inputs);
-  }
-  if constexpr (hasProcessCollisionTrack) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processCollisionTrack, inputs);
-  }
-  if constexpr (hasProcessTimeframeTracks) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::processTimeframeTracks, inputs);
-  }
-  if constexpr (hasProcessCollisionTracks) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::hasProcessCollisionTracks, inputs);
-  }
-
 
   DataProcessorSpec spec{
     name,
