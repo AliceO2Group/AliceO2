@@ -175,7 +175,7 @@ class FlatObject
 
   /// Default constructor / destructor
   FlatObject() CON_DEFAULT;
-  ~FlatObject() CON_DEFAULT;
+  ~FlatObject();
   FlatObject(const FlatObject&) CON_DELETE;
   FlatObject& operator=(const FlatObject&) CON_DELETE;
 
@@ -323,6 +323,11 @@ class FlatObject
 /// ========================================================================================================
 
 #ifndef GPUCA_GPUCODE // code invisible on GPU
+inline FlatObject::~FlatObject()
+{
+  destroy();
+}
+
 inline void FlatObject::startConstruction()
 {
   /// Starts the construction procedure. A daughter class should reserve temporary memory.
