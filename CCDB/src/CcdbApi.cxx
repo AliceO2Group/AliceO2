@@ -27,6 +27,8 @@
 #include <TWebFile.h>
 #include <TH1F.h>
 #include <TTree.h>
+#include <FairLogger.h>
+#include <TError.h>
 
 namespace o2
 {
@@ -404,7 +406,10 @@ TObject* CcdbApi::retrieveFromTFile(std::string path, std::map<std::string, std:
     long response_code;
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
     if ((res == CURLE_OK) && (response_code != 404)) {
+      Int_t previousErrorLevel = gErrorIgnoreLevel;
+      gErrorIgnoreLevel = kFatal;
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
+      gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
         void* object = memFile.GetObjectChecked("ccdb_object", "TObject");
         if (object != nullptr) {
@@ -419,14 +424,14 @@ TObject* CcdbApi::retrieveFromTFile(std::string path, std::map<std::string, std:
             h->SetDirectory(nullptr);
           }
         } else {
-          cerr << "Couldn't retrieve the object " << path << endl;
+          LOG(ERROR) << "Couldn't retrieve the object " << path << endl;
         }
         memFile.Close();
       } else {
-        cerr << "Object " << path << " is not stored in a TMemFile" << endl;
+        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile" << endl;
       }
     } else {
-      cerr << "Invalid URL : " << fullUrl << endl;
+      LOG(ERROR) << "Invalid URL : " << fullUrl << endl;
     }
   } else {
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
