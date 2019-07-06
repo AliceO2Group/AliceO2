@@ -36,8 +36,8 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
   assert(mConstructionMask != Constructed);
   assert(rmin < rmax && zmax > 0 && dz > 0 && drphi > 0);
   mConstructionMask = InProgress;
-
-  if (!getNLayers()) {
+  int nlr = getNLayers();
+  if (!nlr) {
     // book local storage
     auto sz = sizeof(MatLayerCylSetLayout);
     o2::gpu::resizeArray(mFlatBufferContainer, 0, sz);
@@ -48,15 +48,19 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
     get()->mRMax = 0.;
   }
 
-  for (int il = 0; il < getNLayers(); il++) {
+  for (int il = 0; il < nlr; il++) {
     const auto& lr = getLayer(il);
     if (lr.getRMax() > rmin && rmax > lr.getRMin()) {
       LOG(FATAL) << "new layer overlaps with layer " << il;
     }
   }
-
-  delete[] o2::gpu::resizeArray(get()->mLayers, getNLayers(), getNLayers() + 1);
-  get()->mLayers[getNLayers()].initSegmentation(rmin, rmax, zmax, dz, drphi);
+  auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nlr, nlr + 1);
+  // dynamyc buffers of old layers were used in new ones, detach them
+  for (int i = nlr; i--;) {
+    oldLayers[i].clearInternalBufferPtr();
+  }
+  delete[] oldLayers;
+  get()->mLayers[nlr].initSegmentation(rmin, rmax, zmax, dz, drphi);
   get()->mNLayers++;
   get()->mRMin = get()->mRMin > rmin ? rmin : get()->mRMin;
   get()->mRMax = get()->mRMax < rmax ? rmax : get()->mRMax;
@@ -417,7 +421,12 @@ void MatLayerCylSet::flatten()
 
   auto offs = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // account for the alignment
   // move array of layer pointers to the flat array
-  delete[] o2::gpu::resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
+  auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
+  // dynamyc buffers of old layers were used in new ones, detach them
+  for (int i = nLr; i--;) {
+    oldLayers[i].clearInternalBufferPtr();
+  }
+  delete[] oldLayers;
   offs = alignSize(offs + nLr * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
