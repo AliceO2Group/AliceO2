@@ -69,7 +69,6 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
   mbLUT.writeToFile(outFile, outName);
 
   mbLUT.dumpToTree("matbudTree.root");
-
   return true;
 }
 
