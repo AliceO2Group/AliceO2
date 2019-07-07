@@ -1,35 +1,20 @@
-set(MODULE_NAME "MCHTracking")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MCHTracking
+               SOURCES src/Cluster.cxx src/TrackParam.cxx src/Track.cxx
+                       src/TrackExtrap.cxx src/TrackFitter.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::Field O2::MCHBase)
 
-set(SRCS
-   src/Cluster.cxx
-   src/TrackParam.cxx
-   src/Track.cxx
-   src/TrackExtrap.cxx
-   src/TrackFitter.cxx
-)
-
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_tracking_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_tracking_bucket)
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-mch-trackfitter-workflow
-
-  SOURCES
-  src/TrackFitterWorkflow.cxx
-  src/TrackSamplerSpec.cxx
-  src/TrackFitterSpec.cxx
-  src/TrackSinkSpec.cxx
-
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-
-  BUCKET_NAME ${BUCKET_NAME}
-)
+o2_add_executable(trackfitter-workflow
+                  SOURCES src/TrackFitterWorkflow.cxx src/TrackSamplerSpec.cxx
+                          src/TrackFitterSpec.cxx src/TrackSinkSpec.cxx
+                  COMPONENT_NAME mch
+                  PUBLIC_LINK_LIBRARIES O2::MCHTracking)

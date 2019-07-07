@@ -1,45 +1,47 @@
-# @author David Rohr
-# @brief  TPC data formats
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "DataFormatsTPC")
-set(MODULE_BUCKET_NAME data_format_TPC_bucket)
+# Comments
+#
+# * FIXME: ClusterNative depends on SimulationDataFormats : quite annoying for a
+#   (supposedly real data component)
+#
+# * GPUCommonDef -> GPUCommonDef to follow more closely the rest of the AliceO2
+#   code, but probably the name should be simplified to remove some common ...
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DataFormatsTPC
+               SOURCES src/Helpers.cxx src/TrackTPC.cxx src/TPCSectorHeader.cxx
+                       src/ClusterNativeHelper.cxx
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::SimulationDataFormat
+                                     O2::Headers O2::Algorithm)
 
-link_directories( ${LINK_DIRECTORIES})
+o2_target_root_dictionary(DataFormatsTPC
+                          HEADERS include/DataFormatsTPC/ClusterGroupAttribute.h
+                                  include/DataFormatsTPC/ClusterNative.h
+                                  include/DataFormatsTPC/ClusterNativeHelper.h
+                                  include/DataFormatsTPC/ClusterHardware.h
+                                  include/DataFormatsTPC/Helpers.h
+                                  include/DataFormatsTPC/TrackTPC.h
+                                  include/DataFormatsTPC/Constants.h
+                                  include/DataFormatsTPC/Defs.h
+                                  include/DataFormatsTPC/dEdxInfo.h
+                                  include/DataFormatsTPC/CompressedClusters.h)
 
-set(SRCS
-   src/Helpers.cxx
-   src/TrackTPC.cxx
-   src/TPCSectorHeader.cxx
-   src/ClusterNativeHelper.cxx
-)
+o2_add_test(ClusterNative
+            SOURCES test/testClusterNative.cxx
+            COMPONENT_NAME DataFormats-TPC
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+            LABELS tpc dataformats)
 
-set(HEADERS
-   include/${MODULE_NAME}/ClusterGroupAttribute.h
-   include/${MODULE_NAME}/ClusterNative.h
-   include/${MODULE_NAME}/ClusterNativeHelper.h
-   include/${MODULE_NAME}/ClusterHardware.h
-   include/${MODULE_NAME}/Helpers.h
-   include/${MODULE_NAME}/TrackTPC.h
-   include/${MODULE_NAME}/Constants.h
-   include/${MODULE_NAME}/Defs.h
-   include/${MODULE_NAME}/dEdxInfo.h
-   include/${MODULE_NAME}/CompressedClusters.h
-)
-
-set(LINKDEF src/DataFormatsTPCLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testClusterNative.cxx
-  test/testClusterHardware.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(ClusterHardware
+            SOURCES test/testClusterHardware.cxx
+            COMPONENT_NAME DataFormats-TPC
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+            LABELS tpc dataformats)
