@@ -93,7 +93,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
       int trID = lab.getTrackID();
       int ievH = lab.getEventID();
       Point3D<float> locH, locHsta;
-      if (trID >= 0) { // is this cluster from hit or noise ?
+      if (lab.isValid()) { // is this cluster from hit or noise ?
         Hit* p = nullptr;
         if (lastReadHitEv != ievH) {
           hitTree->GetEvent(ievH);

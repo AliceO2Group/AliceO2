@@ -531,7 +531,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
   for (auto& track : mTracks) {
 
     MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                     constants::its::UnusedIndex };
+                                     constants::its::UnusedIndex, false };
     int count{ 0 };
     bool isFakeTrack{ false };
 
@@ -558,9 +558,9 @@ void Tracker::computeTracksMClabels(const ROframe& event)
       track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
 
-    if (isFakeTrack)
-      maxOccurrencesValue.set(-maxOccurrencesValue.getTrackID(), maxOccurrencesValue.getEventID(),
-                              maxOccurrencesValue.getSourceID());
+    if (isFakeTrack) {
+      maxOccurrencesValue.setFakeFlag();
+    }
     mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
   }
 }

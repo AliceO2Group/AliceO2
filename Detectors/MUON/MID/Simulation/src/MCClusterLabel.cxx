@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-MCClusterLabel::MCClusterLabel(int trackID, int eventID, int srcID, bool isFiredBP, bool isFiredNBP) : o2::MCCompLabel(trackID, eventID, srcID)
+MCClusterLabel::MCClusterLabel(int trackID, int eventID, int srcID, bool isFiredBP, bool isFiredNBP) : o2::MCCompLabel(trackID, eventID, srcID, false)
 {
   /// Constructor
   setIsFiredBP(isFiredBP);
