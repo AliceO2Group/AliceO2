@@ -1,49 +1,23 @@
-set(MODULE_NAME "flp2epn")
+o2_add_library(flp2epn
+               SOURCES src/O2FLPex.cxx src/O2EPNex.cxx
+               PUBLIC_LINK_LIBRARIES O2::Device)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_executable(flp
+                  SOURCES src/runFLP.cxx
+                  PUBLIC_LINK_LIBRARIES O2::flp2epn
+                  COMPONENT_NAME example)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/flp2epn.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn.json)
+o2_add_executable(epn
+                  SOURCES src/runEPN.cxx
+                  PUBLIC_LINK_LIBRARIES O2::flp2epn
+                  COMPONENT_NAME example)
 
+# FIXME: runProxy.cxx references no longer existing <devices/FairMQProxy.h> ?
+# o2_add_executable(Proxy SOURCES src/runProxy.cxx PUBLIC_LINK_LIBRARIES
+# O2::flp2epn COMPONENT_NAME example)
+#
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startFLP2EPN.sh.in
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/o2-start-flp2epn.sh)
 
-set(HEADERS
-    include/${MODULE_NAME}/O2FLPex.h
-    include/${MODULE_NAME}/O2EPNex.h
-    )
-
-set(SRCS
-    src/O2FLPex.cxx
-    src/O2EPNex.cxx
-    )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME flp2epn_bucket)
-
-O2_GENERATE_LIBRARY()
-
-Set(Exe_Names
-    ${Exe_Names}
-    testFLP
-    testEPN
-    testProxy
-    )
-
-set(Exe_Source
-    src/runFLP.cxx
-    src/runEPN.cxx
-    src/runProxy.cxx
-    )
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/flp2epn.json
+               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/flp2epn.json)
