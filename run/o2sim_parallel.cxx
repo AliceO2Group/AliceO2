@@ -267,9 +267,12 @@ int main(int argc, char* argv[])
         std::cerr << arguments[i] << "\n";
       }
     }
-    std::cerr << "$$$$";
-    execv(path.c_str(), (char* const*)arguments);
-    return 0;
+    std::cerr << "$$$$\n";
+    auto r = execv(path.c_str(), (char* const*)arguments);
+    if (r != 0) {
+      perror(nullptr);
+    }
+    return r;
   } else {
     childpids.push_back(pid);
     close(pipe_serverdriver_fd[1]);

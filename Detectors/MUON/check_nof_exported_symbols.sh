@@ -4,7 +4,7 @@
 library=$1
 expected=$2
 
-nlibs=$(/usr/bin/nm -m -extern-only -defined-only $library -s __TEXT __text | wc -l)
+nlibs=$(/usr/bin/nm -m -extern-only -defined-only $library -s __TEXT __text | grep mch | wc -l)
 
 if [ $nlibs -ne $expected ]; then
   echo "bad: check number of exported symbols in $library"

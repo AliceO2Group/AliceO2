@@ -46,6 +46,7 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
 {
 
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
+    std::cout << geomName << " does not exist. Will create it\n";
     gSystem->Exec("$O2_ROOT/bin/o2-sim -n 0");
     geomName = "./O2geometry.root";
   }
