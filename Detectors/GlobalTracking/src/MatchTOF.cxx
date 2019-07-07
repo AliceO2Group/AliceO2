@@ -738,9 +738,7 @@ void MatchTOF::selectBestMatches()
     }
     if (!labelOk) {
       // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
-      o2::MCCompLabel fakeTOFlabel;
-      fakeTOFlabel.set(-labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID());
-      mOutTOFLabels.push_back(fakeTOFlabel);
+      mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
     }
     mOutTPCLabels.push_back(labelTPC);
     mOutITSLabels.push_back(labelITS);
