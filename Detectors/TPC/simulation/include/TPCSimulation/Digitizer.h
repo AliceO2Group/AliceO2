@@ -21,7 +21,6 @@
 #include "TPCSimulation/SpaceCharge.h"
 
 #include "TPCBase/Mapper.h"
-#include "Steer/HitProcessingManager.h"
 
 #include <cmath>
 
@@ -116,8 +115,8 @@ class Digitizer
   Sector mSector = -1;                              ///< ID of the currently processed sector
   float mEventTime = 0.f;                           ///< Time of the currently processed event
   // FIXME: whats the reason for hving this static?
-  static bool mIsContinuous;                        ///< Switch for continuous readout
-  bool mUseSCDistortions = false;                   ///< Flag to switch on the use of space-charge distortions
+  static bool mIsContinuous;      ///< Switch for continuous readout
+  bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
 
   ClassDefNV(Digitizer, 1);
 };

@@ -87,17 +87,17 @@ AddHelp("help", 'h')
 EndConfig()
 
 BeginConfig(structConfigStandalone, configStandalone)
-#if defined(BUILD_CUDA) || defined(BUILD_OPENCL) || defined(BUILD_HIP)
+#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED)
 AddOption(runGPU, bool, true, "gpu", 'g', "Use GPU for processing", message("GPU processing: %s"))
 #else
 AddOption(runGPU, bool, false, "gpu", 'g', "Use GPU for processing", message("GPU processing: %s"))
 #endif
 AddOptionSet(runGPU, bool, false, "cpu", 'c', "Use CPU for processing", message("CPU enabled"))
-#if defined(BUILD_CUDA)
+#if defined(CUDA_ENABLED)
 AddOption(gpuType, const char*, "CUDA", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
-#elif defined(BUILD_OPENCL)
+#elif defined(OPENCL1_ENABLED)
 AddOption(gpuType, const char*, "OCL", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
-#elif defined(BUILD_HIP)
+#elif defined(HIP_ENABLED)
 AddOption(gpuType, const char*, "HIP", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
 #else
 AddOption(gpuType, const char*, "", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
