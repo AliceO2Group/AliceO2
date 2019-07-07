@@ -91,7 +91,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   for (auto& hit : hits) {
     int detID = hit.GetDetectorID();
     int ndigits = processHit(hit, detID, mEventTime);
-    MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
+    MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID, false);
     for (int i = 0; i < ndigits; ++i) {
       int digitIndex = mDigits.size() - ndigits + i;
       mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
@@ -200,7 +200,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
       adc += sortedDigits(k).getADC();
     }
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
-    mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID());
+    mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
     i = j;
     ++count;
   }
