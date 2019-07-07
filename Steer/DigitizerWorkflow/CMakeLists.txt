@@ -1,47 +1,49 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is
-# distributed under the terms of the GNU General Public License v3 (GPL
-# Version 3), copied verbatim in the file "COPYING".
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
 #
-# See https://alice-o2.web.cern.ch/ for full licensing information.
+# See http://alice-o2.web.cern.ch/license for full licensing information.
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization
-# or submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "DigitizerWorkflow")
-set(MODULE_BUCKET_NAME digitizer_workflow_bucket)
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-## TODO: feature of macro, it deletes the variables we pass to it, set them again
-## this has to be fixed in the macro implementation
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-sim-digitizer-workflow
-
-  SOURCES
-  src/SimpleDigitizerWorkflow.cxx
-  src/SimReaderSpec.cxx
-  src/CollisionTimePrinter.cxx
-  src/MIDDigitizerSpec.cxx
-  src/TPCDigitizerSpec.cxx
-  src/TPCDigitRootWriterSpec.cxx
-  src/ITSMFTDigitizerSpec.cxx
-  src/ITSMFTDigitWriterSpec.cxx
-  src/TOFDigitizerSpec.cxx
-  src/TOFDigitWriterSpec.cxx
-  src/TOFClusterizerSpec.cxx
-  src/TOFClusterWriterSpec.cxx
-  src/FITDigitizerSpec.cxx
-  src/FITDigitWriterSpec.cxx
-  src/EMCALDigitizerSpec.cxx
-  src/EMCALDigitWriterSpec.cxx
-  src/HMPIDDigitizerSpec.cxx
-  src/MCHDigitizerSpec.cxx
-  src/TRDDigitizerSpec.cxx
-  src/ZDCDigitizerSpec.cxx
-  src/GRPUpdaterSpec.cxx
-
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+o2_add_executable(digitizer-workflow
+                  COMPONENT_NAME sim
+                  SOURCES src/CollisionTimePrinter.cxx
+                          src/EMCALDigitWriterSpec.cxx
+                          src/EMCALDigitizerSpec.cxx
+                          src/FITDigitWriterSpec.cxx
+                          src/FITDigitizerSpec.cxx
+                          src/GRPUpdaterSpec.cxx
+                          src/HMPIDDigitizerSpec.cxx
+                          src/ITSMFTDigitWriterSpec.cxx
+                          src/ITSMFTDigitizerSpec.cxx
+                          src/MCHDigitizerSpec.cxx
+                          src/MIDDigitizerSpec.cxx
+                          src/SimReaderSpec.cxx
+                          src/SimpleDigitizerWorkflow.cxx
+                          src/TOFClusterWriterSpec.cxx
+                          src/TOFClusterizerSpec.cxx
+                          src/TOFDigitWriterSpec.cxx
+                          src/TOFDigitizerSpec.cxx
+                          src/TPCDigitRootWriterSpec.cxx
+                          src/TPCDigitizerSpec.cxx
+                          src/TRDDigitizerSpec.cxx
+                          src/ZDCDigitizerSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::Steer
+                                        O2::EMCALSimulation
+                                        O2::FITSimulation
+                                        O2::HMPIDSimulation
+                                        O2::ITSMFTSimulation
+                                        O2::ITSSimulation
+                                        O2::MCHSimulation
+                                        O2::MFTSimulation
+                                        O2::MIDSimulation
+                                        O2::TOFSimulation
+                                        O2::TOFReconstruction
+                                        O2::TPCSimulation
+                                        O2::TPCWorkflow
+                                        O2::TRDSimulation
+                                        O2::ZDCSimulation)

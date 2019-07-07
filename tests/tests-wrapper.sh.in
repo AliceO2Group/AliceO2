@@ -1,0 +1,162 @@
+#!/bin/bash -e
+
+# tests-wrapper.sh -- wrap execution of CTest scripts by adding retry
+#
+# Usage (through CMake):
+#
+#   tests-wrapper.sh --name <name> [--max-attempts N] [--timeout T] \
+#                     --dont-fail-on-timeout] -- prog [arg1 [arg2...]]
+
+MAX_ATTEMPTS=1
+TIMEOUT=              # default: no timeout
+DONT_FAIL_ON_TIMEOUT= # default: if it times out, it fails
+NON_FATAL=            # default: fail on error
+ARGS=("$@")
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --)
+    shift
+    break
+    ;;
+  --name)
+    TEST_NAME="$2"
+    shift 2
+    ;;
+  --max-attempts)
+    MAX_ATTEMPTS="$2"
+    shift 2
+    ;;
+  --timeout)
+    TIMEOUT="$2"
+    shift 2
+    ;;
+  --dont-fail-on-timeout)
+    DONT_FAIL_ON_TIMEOUT=1
+    shift
+    ;;
+  --non-fatal)
+    NON_FATAL=1
+    shift
+    ;;
+  *)
+    echo "Parameter unknown: $1" >&2
+    exit 1
+    ;;
+  esac
+done
+
+# Check mandatory parmeters
+if [[ ! $TEST_NAME ]]; then
+  echo "Test name is mandatory" >&2
+  exit 1
+fi
+
+LOG="@CMAKE_BINARY_DIR@/test_logs/${TEST_NAME//\//_}.log"
+mkdir -p "$(dirname "$LOG")"
+rm -f "$LOG"* &>/dev/null
+exec &> >(tee "$LOG")
+
+function banner() {
+  echo "=== $TEST_NAME - $1 ===" >&2
+}
+
+banner "Starting test. Max attempts: $MAX_ATTEMPTS.${TIMEOUT:+" Timeout per attempt: $TIMEOUT."}${DONT_FAIL_ON_TIMEOUT:+" Timeouts are not fatal."}${NON_FATAL:+" Errors are not fatal."}"
+
+for A in "${ARGS[@]}"; do
+  banner "Argument: $A"
+done
+banner "Current working directory: $PWD"
+echo "PATH=$PATH"
+echo "ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+banner "/Environment"
+
+# Do we have timeout?
+TIMEOUT_EXEC=timeout
+TIMEOUT_CMD=
+TIMEOUT_PSTACK=
+type $TIMEOUT_EXEC &>/dev/null || TIMEOUT_EXEC=gtimeout
+type $TIMEOUT_EXEC &>/dev/null || TIMEOUT_EXEC=
+if [[ $TIMEOUT_EXEC && $TIMEOUT ]]; then
+  # Kill with 15; if after 10 seconds it's still alive, send 9
+  TIMEOUT_CMD="$TIMEOUT_EXEC --signal=SIGTERM --kill-after=10s ${TIMEOUT}s"
+  # Get a stack trace, if possible, shortly before sending the first SIGTERM
+  if type pstack &>/dev/null; then
+    export GDB=$(which gdb 2>/dev/null)
+    TIMEOUT_PSTACK=$((TIMEOUT - 10))
+    if [[ $TIMEOUT_PSTACK -lt 10 ]]; then
+      TIMEOUT_PSTACK=10
+    fi
+  else
+    banner "Will not get stack trace of processes timing out: pstack not found"
+  fi
+fi
+
+banner "Timeout prefix: $TIMEOUT_CMD"
+
+CMD="$1"
+shift
+type "$CMD" &>/dev/null || CMD="@CMAKE_BINARY_DIR@/bin/$CMD"
+
+for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
+  DARGS=("$@")
+  # Deduping args that contain a ":"
+  N=${#DARGS[@]}
+  i=1
+  while [[ $i -lt $N ]]; do
+    A=${DARGS[$i]}
+    if [[ $A =~ : ]]; then
+      DARGS[$i]=$(echo $A | tr ":" "\n" | sort | uniq | tr "\n" ":")
+    fi
+    i=$(($i + 1))
+  done
+
+  banner "Running $CMD with args ${DARGS[*]} (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+  ERR=0
+  rm -f "${LOG}.bt"
+  $TIMEOUT_CMD "$CMD" "${DARGS[@]}" &
+  REAL_PID=$(pgrep -P$! 2>/dev/null || true)
+  if [[ $REAL_PID && $TIMEOUT_PSTACK ]]; then
+    banner "Process running as $REAL_PID for attempt $ATTEMPT"
+    FINISHED=
+    for ((I = 0; I < TIMEOUT_PSTACK; I++)); do
+      if ! kill -0 $REAL_PID &>/dev/null; then
+        FINISHED=1
+        break
+      fi
+      sleep 1
+    done
+    if [[ ! $FINISHED ]]; then
+      pstack $REAL_PID &>"${LOG}.bt" || true
+    fi
+  fi
+  wait $! || ERR=$? # wait timeout process, not real PID
+  if [[ $ERR == 0 ]]; then
+    banner "Test finished with success after $ATTEMPT attempts, exiting"
+    mv "$LOG" "${LOG}.0"
+    exit 0
+  else
+    banner "Test attempt $ATTEMPT/$MAX_ATTEMPTS failed with exit code $ERR"
+    if [[ -e "${LOG}.bt" ]]; then
+      banner "Stack trace follows for attempt $ATTEMPT"
+      cat "${LOG}.bt"
+      rm -f "${LOG}.bt"
+      banner "End of stack trace for attempt $ATTEMPT"
+    fi
+  fi
+done
+
+mv "$LOG" "${LOG}.${ERR}" # log file will contain exitcode in name
+banner "Test failed after $MAX_ATTEMPTS attempts with $ERR"
+if [[ $DONT_FAIL_ON_TIMEOUT && $ERR == 124 ]]; then
+  # man timeout --> 124 is for "timed out"
+  banner "Reason for failure: timeout, explicitly set as not fatal. Exiting with 0"
+  cp "${LOG}.${ERR}" "${LOG}.${ERR}.nonfatal"
+  exit 0
+elif [[ $NON_FATAL ]]; then
+  banner "Failed with error $ERR, but errors are set as not fatal. Exiting with 0"
+  cp "${LOG}.${ERR}" "${LOG}.${ERR}.nonfatal"
+  exit 0
+fi
+exit 1

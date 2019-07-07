@@ -1,20 +1,16 @@
-set(MODULE_NAME "DataFormatsFITV0")
-set(MODULE_BUCKET_NAME data_format_fit_bucket)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DataFormatsFITV0
+               SOURCES src/Hit.cxx
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-set(SRCS
-  src/Hit.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Hit.h
-    )
-
-Set(LINKDEF src/DataFormatsFITV0LinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-
+o2_target_root_dictionary(DataFormatsFITV0
+                          HEADERS include/DataFormatsFITV0/Hit.h)
