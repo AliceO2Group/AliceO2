@@ -1,14 +1,18 @@
-set(MODULE_NAME "MIDTracking")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MIDTracking
+               SOURCES src/Tracker.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase
+                                     O2::MIDTestingSimTools ms_gsl::ms_gsl)
 
-set(SRCS
-   src/Tracker.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_tracking_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

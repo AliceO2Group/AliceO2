@@ -1,358 +1,265 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is
-# distributed under the terms of the GNU General Public License v3 (GPL
-# Version 3), copied verbatim in the file "COPYING".
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
 #
-# See http://alice-o2.web.cern.ch/ for full licensing information.
+# See http://alice-o2.web.cern.ch/license for full licensing information.
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization
-# or submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "Framework")
-
-set(MODULE_BUCKET_NAME O2FrameworkCore_bucket)
-
-O2_SETUP(NAME ${MODULE_NAME})
-if (GLFW_FOUND)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx)
+if(GLFW_FOUND)
+  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx src/FrameworkGUIDevicesGraph.cxx
+                  src/FrameworkGUIDeviceInspector.cxx
+                  src/FrameworkGUIDataRelayerUsage.cxx src/PaletteHelpers.cxx)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
 
-set(SRCS
-    src/AODReaderHelpers.cxx
-    src/AnalysisHelpers.cxx
-    src/BoostOptionsRetriever.cxx
-    src/ConfigParamsHelper.cxx
-    src/CompletionPolicy.cxx
-    src/ChannelSpecHelpers.cxx
-    src/CompletionPolicyHelpers.cxx
-    src/ChannelConfigurationPolicy.cxx
-    src/ChannelMatching.cxx
-    src/ChannelConfigurationPolicyHelpers.cxx
-    src/DataAllocator.cxx
-    src/DataDescriptorMatcher.cxx
-    src/DataProcessingDevice.cxx
-    src/DataProcessingHeader.cxx
-    src/DataProcessor.cxx
-    src/DataRelayer.cxx
-    src/DataSampling.cxx
-    src/DataSamplingConditionRandom.cxx
-    src/DataSamplingConditionPayloadSize.cxx
-    src/DataSamplingConditionNConsecutive.cxx
-    src/DataSamplingConditionFactory.cxx
-    src/DataSamplingHeader.cxx
-    src/DataSamplingReadoutAdapter.cxx
-    src/DataSamplingPolicy.cxx
-    src/DataSpecUtils.cxx
-    src/DeviceMetricsInfo.cxx
-    src/DeviceSpec.cxx
-    src/DeviceSpecHelpers.cxx
-    src/DDSConfigHelpers.cxx
-    src/Dispatcher.cxx
-    src/O2ControlHelpers.cxx
-    src/DriverControl.cxx
-    src/DriverInfo.cxx
-    src/ExternalFairMQDeviceProxy.cxx
-    src/FairOptionsRetriever.cxx
-    src/FairMQDeviceProxy.cxx
-    src/FairMQResizableBuffer.cxx
-    src/FreePortFinder.cxx
-    src/GraphvizHelpers.cxx
-    src/InputRecord.cxx
-    src/InputSpec.cxx
-    src/OutputSpec.cxx
-    src/Kernels.cxx
-    src/DataDescriptorQueryBuilder.cxx
-    src/LifetimeHelpers.cxx
-    src/LocalRootFileService.cxx
-    src/LogParsingHelpers.cxx
-    src/Metric2DViewIndex.cxx
-    src/SimpleOptionsRetriever.cxx
-    src/SimpleResourceManager.cxx
-    src/TextControlService.cxx
-    src/TableBuilder.cxx
-    src/TableConsumer.cxx
-    src/WorkflowHelpers.cxx
-    src/WorkflowSerializationHelpers.cxx
-    src/WorkflowSpec.cxx
-    src/runDataProcessing.cxx
-    src/Task.cxx
-    src/TMessageSerializer.cxx
-    src/StreamOperators.cxx
-    src/FrameworkGUIDevicesGraph.cxx
-    src/FrameworkGUIDeviceInspector.cxx
-    src/FrameworkGUIDataRelayerUsage.cxx
-    src/PaletteHelpers.cxx
-    src/PropertyTreeHelpers.cxx
-    src/CommonDataProcessors.cxx
-    src/RCombinedDS.cxx
-    src/ReadoutAdapter.cxx
-    ${GUI_SOURCES}
-    test/TestClasses.cxx
-    src/Variant.cxx
-    src/MessageContext.cxx
-   )
+o2_add_library(Framework
+               SOURCES src/AODReaderHelpers.cxx
+                       ${GUI_SOURCES}
+                       src/AnalysisHelpers.cxx
+                       src/BoostOptionsRetriever.cxx
+                       src/ChannelConfigurationPolicy.cxx
+                       src/ChannelMatching.cxx
+                       src/ChannelConfigurationPolicyHelpers.cxx
+                       src/ChannelSpecHelpers.cxx
+                       src/CommonDataProcessors.cxx
+                       src/CompletionPolicy.cxx
+                       src/CompletionPolicyHelpers.cxx
+                       src/ConfigParamsHelper.cxx
+                       src/DDSConfigHelpers.cxx
+                       src/DataAllocator.cxx
+                       src/DataDescriptorMatcher.cxx
+                       src/DataDescriptorQueryBuilder.cxx
+                       src/DataProcessingDevice.cxx
+                       src/DataProcessingHeader.cxx
+                       src/DataProcessor.cxx
+                       src/DataRelayer.cxx
+                       src/DataSampling.cxx
+                       src/DataSamplingConditionFactory.cxx
+                       src/DataSamplingHeader.cxx
+                       src/DataSamplingConditionNConsecutive.cxx
+                       src/DataSamplingConditionPayloadSize.cxx
+                       src/DataSamplingConditionRandom.cxx
+                       src/DataSamplingHeader.cxx
+                       src/DataSamplingPolicy.cxx
+                       src/DataSamplingReadoutAdapter.cxx
+                       src/DataSpecUtils.cxx
+                       src/DeviceMetricsInfo.cxx
+                       src/DeviceSpec.cxx
+                       src/DeviceSpecHelpers.cxx
+                       src/Dispatcher.cxx
+                       src/DriverControl.cxx
+                       src/DriverInfo.cxx
+                       src/FairMQDeviceProxy.cxx
+                       src/FairMQResizableBuffer.cxx
+                       src/FairOptionsRetriever.cxx
+                       src/FreePortFinder.cxx
+                       src/GraphvizHelpers.cxx
+                       src/InputRecord.cxx
+                       src/InputSpec.cxx
+                       src/OutputSpec.cxx
+                       src/Kernels.cxx
+                       src/LifetimeHelpers.cxx
+                       src/LocalRootFileService.cxx
+                       src/LogParsingHelpers.cxx
+                       src/MessageContext.cxx
+                       src/Metric2DViewIndex.cxx
+                       src/SimpleOptionsRetriever.cxx
+                       src/O2ControlHelpers.cxx
+                       src/OutputSpec.cxx
+                       src/PropertyTreeHelpers.cxx
+                       src/RCombinedDS.cxx
+                       src/ReadoutAdapter.cxx
+                       src/SimpleResourceManager.cxx
+                       src/StreamOperators.cxx
+                       src/TMessageSerializer.cxx
+                       src/TableBuilder.cxx
+                       src/TableConsumer.cxx
+                       src/Task.cxx
+                       src/TextControlService.cxx
+                       src/Variant.cxx
+                       src/WorkflowHelpers.cxx
+                       src/WorkflowSerializationHelpers.cxx
+                       src/WorkflowSpec.cxx
+                       src/runDataProcessing.cxx
+                       src/ExternalFairMQDeviceProxy.cxx
+                       test/TestClasses.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES AliceO2::Common
+                                     AliceO2::Configuration
+                                     AliceO2::InfoLogger
+                                     AliceO2::Monitoring
+                                     CURL::libcurl
+                                     FairMQ::FairMQ
+                                     O2::CommonUtils
+                                     O2::FrameworkFoundation
+                                     O2::Headers
+                                     O2::MemoryResources
+                                     O2::PCG
+                                     RapidJSON::RapidJSON
+                                     arrow_shared
+                                     ms_gsl::ms_gsl
+                                     ROOT::ROOTDataFrame
+                                     O2::DebugGUI
+                                     O2::FrameworkLogger
+                                     Boost::serialization)
 
-set(HEADERS
-      include/Framework
-      include/Framework/AnalysisDataModel.h
-      include/Framework/ASoA.h
-      include/Framework/DataProcessor.h
-      include/Framework/DataSpecUtils.h
-      include/Framework/FrameworkGUIDevicesGraph.h
-      include/Framework/FrameworkGUIDataRelayerUsage.h
-      include/Framework/DeviceMetricsInfo.h
-      include/Framework/DeviceSpec.h
-      include/Framework/DeviceControl.h
-      include/Framework/InitContext.h
-      include/Framework/ServiceRegistry.h
-      include/Framework/DeviceExecution.h
-      include/Framework/DebugGUI.h
-      include/Framework/FreePortFinder.h
-      include/Framework/TypeTraits.h
-      include/Framework/PaletteHelpers.h
-      include/Framework/ConfigParamSpec.h
-      include/Framework/TMessageSerializer.h
-      include/Framework/DataProcessorLabel.h
-      include/Framework/LogParsingHelpers.h
-      include/Framework/InputSpec.h
-      include/Framework/DeviceInfo.h
-      include/Framework/BoostOptionsRetriever.h
-      include/Framework/DataChunk.h
-      include/Framework/FrameworkGUIDebugger.h
-      include/Framework/runDataProcessing.h
-      include/Framework/AlgorithmSpec.h
-      include/Framework/ParamRetriever.h
-      include/Framework/ErrorContext.h
-      include/Framework/InputRecord.h
-      include/Framework/DataProcessorSpec.h
-      include/Framework/ConfigParamsHelper.h
-      include/Framework/InputRoute.h
-      include/Framework/ChannelConfigurationPolicyHelpers.h
-      include/Framework/ForwardRoute.h
-      include/Framework/MessageContext.h
-      include/Framework/ChannelMatching.h
-      include/Framework/RawDeviceService.h
-      include/Framework/TextControlService.h
-      include/Framework/DataAllocator.h
-      include/Framework/ConfigParamRegistry.h
-      include/Framework/DataRef.h
-      include/Framework/WorkflowSpec.h
-      include/Framework/LocalRootFileService.h
-      include/Framework/OutputSpec.h
-      include/Framework/ChannelSpec.h
-      include/Framework/ChannelConfigurationPolicy.h
-      include/Framework/SimpleRawDeviceService.h
-      include/Framework/SimpleOptionsRetriever.h
-      include/Framework/ExternalFairMQDeviceProxy.h
-      include/Framework/ControlService.h
-      include/Framework/DataRelayer.h
-      include/Framework/DataRefUtils.h
-      include/Framework/RootFileService.h
-      include/Framework/OutputRoute.h
-      include/Framework/DataProcessingHeader.h
-      include/Framework/ProcessingContext.h
-      include/Framework/FairOptionsRetriever.h
-      include/Framework/ParallelContext.h
-      include/Framework/RootObjectContext.h
-      include/Framework/DataProcessingDevice.h
-      include/Framework/Variant.h
-      include/Framework/CallbackRegistry.h
-      include/Framework/CallbackService.h
-      include/Framework/DataSampling.h
-      include/Framework/DataSamplingCondition.h
-      include/Framework/DataSamplingConditionFactory.h
-      include/Framework/DataSamplingHeader.h
-      include/Framework/DataSamplingReadoutAdapter.h
-      include/Framework/DataSamplingPolicy.h
-      include/Framework/Dispatcher.h
-      include/Framework/DPLBoostSerializer.h
-      include/Framework/TableBuilder.h
-      include/Framework/FairMQResizableBuffer.h
-      include/Framework/Metric2DViewIndex.h
-      include/Framework/RawBufferContext.h
-      include/Framework/Kernels.h
-      src/ComputingResource.h
-      src/DDSConfigHelpers.h
-      src/O2ControlHelpers.h
-      src/DeviceSpecHelpers.h
-      src/DriverControl.h
-      src/DriverInfo.h
-      src/GraphvizHelpers.h
-      src/ResourceManager.h
-      src/SimpleResourceManager.h
-      src/WorkflowHelpers.h
-  )
+o2_target_root_dictionary(Framework
+                          HEADERS test/TestClasses.h
+                          LINKDEF test/FrameworkCoreTestLinkDef.h)
 
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+if(GLFW_FOUND)
+  foreach(t DebugGUISokol DebugGUIGL GUITests)
+    o2_add_test(${t}
+                SOURCES test/test_${t}.cxx
+                COMPONENT_NAME Framework
+                LABELS framework
+                PUBLIC_LINK_LIBRARIES O2::Framework)
+  endforeach()
+  # FIXME: investigate those two failures at some point
+  set_property(TEST Framework/Core/test/test_DebugGUISokol.cxx
+               PROPERTY DISABLED True)
+  set_property(TEST Framework/Core/test/test_DebugGUIGL.cxx
+               PROPERTY DISABLED True)
+endif()
 
-# create dictionary for a test class to be serialized in unit test
-set(LINKDEF test/FrameworkCoreTestLinkDef.h)
-set(HEADERS
-     test/TestClasses.h
-   )
+foreach(t
+        AlgorithmSpec
+        AnalysisTask
+        ASoA
+        BoostOptionsRetriever
+        CallbackRegistry
+        ChannelSpecHelpers
+        CompletionPolicy
+        ConfigParamRegistry
+        ContextRegistry
+        DataDescriptorMatcher
+        DataProcessorSpec
+        DataRefUtils
+        DataRelayer
+        DataSamplingCondition
+        DataSamplingHeader
+        DataSamplingPolicy
+        DeviceMetricsInfo
+        DeviceSpec
+        DeviceSpecHelpers
+        ExternalFairMQDeviceProxy
+        FairMQOptionsRetriever
+        FairMQResizableBuffer
+        FrameworkDataFlowToDDS
+        Graphviz
+        InfoLogger
+        InputRecord
+        Kernels
+        LogParsingHelpers
+        Parallel
+        PtrHelpers
+        Root2ArrowTable
+        Services
+        SuppressionGenerator
+        TMessageSerializer
+        TableBuilder
+        TimeParallelPipelining
+        TimesliceIndex
+        TypeTraits
+        Variants
+        WorkflowHelpers
+        WorkflowSerialization)
 
-O2_GENERATE_LIBRARY()
+  # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
+  # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
 
-# TODO: feature of macro, it deletes the variables we pass to it, set them again
-# this has to be fixed in the macro implementation
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+  o2_add_test(${t} NAME test_Framework_test_${t}
+              SOURCES test/test_${t}.cxx
+              COMPONENT_NAME Framework
+              LABELS framework
+              PUBLIC_LINK_LIBRARIES O2::Framework)
+endforeach()
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_SimpleDataProcessingDevice01"
-  SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+# tests with input data
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_Parallel"
-  SOURCES "test/test_Parallel.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+o2_data_file(COPY test/test_DataSampling.json DESTINATION tests)
 
-# TODO: is this better a unit test?
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_TimePipeline"
-  SOURCES "test/test_TimePipeline.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+o2_add_test(DataSampling NAME test_Framework_test_DataSampling
+            SOURCES test/test_DataSampling.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_DebugGUISokol"
-  SOURCES test/test_DebugGUISokol.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+# tests with a name not starting with test_...
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_DebugGUIGL"
-  SOURCES test/test_DebugGUIGL.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+o2_add_test(unittest_DataSpecUtils NAME test_Framework_unittest_DataSpecUtils
+            SOURCES test/unittest_DataSpecUtils.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
 
-Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
+o2_add_test(unittest_SimpleOptionsRetriever NAME
+            test_Framework_unittest_SimpleOptionsRetriever
+            SOURCES test/unittest_SimpleOptionsRetriever.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
 
-set(TEST_SRCS
-      test/test_ASoA.cxx
-      test/test_AnalysisTask.cxx
-      test/test_AlgorithmSpec.cxx
-      test/test_BoostOptionsRetriever.cxx
-      test/test_CallbackRegistry.cxx
-      test/test_ChannelSpecHelpers.cxx
-      test/test_ContextRegistry.cxx
-      test/test_ConfigParamRegistry.cxx
-      test/test_CompletionPolicy.cxx
-      test/test_DataDescriptorMatcher.cxx
-      test/test_DataProcessorSpec.cxx
-      test/test_DataRefUtils.cxx
-      test/test_DataRelayer.cxx
-      test/test_DataSampling.cxx
-      test/test_DataSamplingCondition.cxx
-      test/test_DataSamplingHeader.cxx
-      test/test_DataSamplingPolicy.cxx
-      test/unittest_DataSpecUtils.cxx
-      test/test_DeviceMetricsInfo.cxx
-      test/test_DeviceSpec.cxx
-      test/test_ExternalFairMQDeviceProxy.cxx
-      test/test_FairMQResizableBuffer.cxx
-      test/test_FrameworkDataFlowToDDS.cxx
-      test/test_FairMQOptionsRetriever.cxx
-      test/test_GUITests.cxx
-      test/test_Graphviz.cxx
-      test/test_InfoLogger.cxx
-      test/test_InputRecord.cxx
-      test/test_Kernels.cxx
-      test/test_LogParsingHelpers.cxx
-      test/test_PtrHelpers.cxx
-      test/test_Root2ArrowTable.cxx
-      test/test_Services.cxx
-      test/unittest_SimpleOptionsRetriever.cxx
-      test/test_SuppressionGenerator.cxx
-      test/test_TimesliceIndex.cxx
-      test/test_TMessageSerializer.cxx
-      test/test_TableBuilder.cxx
-      test/test_TimeParallelPipelining.cxx
-      test/test_TypeTraits.cxx
-      test/test_Variants.cxx
-      test/test_WorkflowHelpers.cxx
-      test/test_WorkflowSerialization.cxx
-      test/test_DeviceSpecHelpers.cxx
-   )
+# benchmarks
 
-set(BENCH_SRCS 
-    test/benchmark_ContextRegistry.cxx
-    test/benchmark_DataDescriptorMatcher.cxx
-    test/benchmark_DataRelayer.cxx
-    test/benchmark_DeviceMetricsInfo.cxx
-    test/benchmark_InputRecord.cxx
-    test/benchmark_TableBuilder.cxx
-    )
+foreach(b
+        ContextRegistry
+        DataDescriptorMatcher
+        DataRelayer
+        DeviceMetricsInfo
+        InputRecord
+        TableBuilder)
+  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
+              SOURCES test/benchmark_${b}.cxx
+              COMPONENT_NAME Framework
+              LABELS framework benchmark
+              PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
+endforeach()
 
-set(WORKFLOW_SRCS
-    test/test_CustomGUIGL.cxx
-    test/test_SimpleStatefulProcessing01.cxx
-    #test/test_GenericSource.cxx
-    test/test_CustomGUISokol.cxx
-    #test/test_Task.cxx
-    test/test_Forwarding.cxx
-    test/test_SingleDataSource.cxx
-    test/test_ParallelPipeline.cxx
-    test/test_DataAllocator.cxx
-    test/test_SimpleRDataFrameProcessing.cxx
-    test/test_ParallelProducer.cxx
-    test/test_SimpleTimer.cxx
-    test/test_CallbackService.cxx
-    #test/test_CCDBFetcher.cxx
-    test/test_DanglingOutputs.cxx
-    test/test_BoostSerializedProcessing.cxx
-    test/test_DanglingInputs.cxx
-    test/test_SimpleStringProcessing.cxx
-    test/test_SimpleDataProcessingDevice01.cxx
-    )
+# #####################################################@
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME O2FrameworkCore_benchmark_bucket
-  TEST_SRCS ${BENCH_SRCS}
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-  TIMEOUT 30
-)
-
-# Workflows have to be executed with command line option --run
-# The merging functionality would simply dump the configuration on std output because of
-# the connected log pipe
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${WORKFLOW_SRCS}
-  TIMEOUT 30
-  COMMAND_LINE_ARGS --run
-)
+foreach(w
+        BoostSerializedProcessing
+        CallbackService
+        CustomGUIGL
+        CustomGUISokol
+        DanglingInputs
+        DanglingOutputs
+        DataAllocator
+        Forwarding
+        ParallelPipeline
+        ParallelProducer
+        SimpleDataProcessingDevice01
+        SimpleRDataFrameProcessing
+        SimpleStatefulProcessing01
+        SimpleStringProcessing
+        SimpleTimer
+        SingleDataSource)
+  o2_add_test(${w} NAME test_Framework_test_${w}
+              SOURCES test/test_${w}.cxx
+              COMPONENT_NAME Framework
+              LABELS framework workflow
+              PUBLIC_LINK_LIBRARIES O2::Framework
+              TIMEOUT 30
+              COMMAND_LINE_ARGS --run)
+endforeach()
 
 # specific tests which needs command line options
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
+o2_add_test(
+  ProcessorOptions NAME test_Framework_test_ProcessorOptions
+  SOURCES test/test_ProcessorOptions.cxx
+  COMPONENT_NAME Framework
+  LABELS framework workflow
   TIMEOUT 60
-
-  TEST_SRCS
-  test/test_ProcessorOptions.cxx
-
+  PUBLIC_LINK_LIBRARIES O2::Framework
   COMMAND_LINE_ARGS
-  --global-config require-me
-  --run
-  # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
-)
+    --global-config require-me --run
+    # Note: the group switch makes process consumer parse only the group
+    arguments --consumer
+    "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
+  )

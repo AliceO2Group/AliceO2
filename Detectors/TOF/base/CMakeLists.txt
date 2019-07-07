@@ -1,29 +1,22 @@
-SET(MODULE_NAME TOFBase)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(TOFBase
+               SOURCES src/Geo.cxx src/Digit.cxx
+               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base
+                                     O2::DetectorsBase)
 
-set(SRCS
-  src/Geo.cxx
-  src/Digit.cxx
-)
+o2_target_root_dictionary(TOFBase
+                          HEADERS include/TOFBase/Geo.h include/TOFBase/Digit.h)
 
-set(HEADERS
-  include/${MODULE_NAME}/Geo.h
-  include/${MODULE_NAME}/Digit.h
-)
-
-SET(LINKDEF src/TOFBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME tof_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testTOFIndex.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(TOFIndex
+            SOURCES test/testTOFIndex.cxx
+            COMPONENT_NAME TOF
+            PUBLIC_LINK_LIBRARIES O2::TOFBase)

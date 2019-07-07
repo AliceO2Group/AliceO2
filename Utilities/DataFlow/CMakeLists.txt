@@ -1,100 +1,87 @@
-# @author Matthias Richter
-# @brief  cmake setup for module Utilities/DataFlow
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "DataFlow")
-# the bucket contains the following dependencies
-#  - common_boost_bucket
-#  - Base
-#  - Headers
-#  - O2device
-#  - dl
-# the 'dl' dependency is needed as the device boilerplate code in
-# runSimpleMQStateMachine.h uses dlopen etc. Probably this hidden
-# dependency can be avoided by including the to some compiled FairMQ
+# the bucket contains the following dependencies - common_boost_bucket - Base -
+# Headers - O2device - dl the 'dl' dependency is needed as the device
+# boilerplate code in runSimpleMQStateMachine.h uses dlopen etc. Probably this
+# hidden dependency can be avoided by including the to some compiled FairMQ
 # library
 
-set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
+o2_add_library(DataFlow
+               SOURCES src/FakeTimeframeBuilder.cxx
+                       src/FakeTimeframeGeneratorDevice.cxx
+                       src/HeartbeatSampler.cxx
+                       src/SubframeBuilderDevice.cxx
+                       src/TimeframeParser.cxx
+                       src/TimeframeReaderDevice.cxx
+                       src/TimeframeValidatorDevice.cxx
+                       src/TimeframeWriterDevice.cxx
+                       src/EPNReceiverDevice.cxx
+                       src/FLPSenderDevice.cxx
+               PUBLIC_LINK_LIBRARIES O2::Headers O2::TimeFrame FairMQ::FairMQ
+                                     O2::Device)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_target_man_page(DataFlow NAME o2-timeframe-reader-device)
+o2_target_man_page(DataFlow NAME o2-timeframe-writer-device)
+o2_target_man_page(DataFlow NAME o2-subframebuilder-device)
 
-set(SRCS
-    src/FakeTimeframeBuilder.cxx
-    src/FakeTimeframeGeneratorDevice.cxx
-    src/HeartbeatSampler.cxx
-    src/SubframeBuilderDevice.cxx
-    src/TimeframeParser.cxx
-    src/TimeframeReaderDevice.cxx
-    src/TimeframeValidatorDevice.cxx
-    src/TimeframeWriterDevice.cxx
-    src/EPNReceiverDevice.cxx
-    src/FLPSenderDevice.cxx
-    )
+o2_add_executable(fake-timeframegenerator-device
+                  SOURCES src/runFakeTimeframeGeneratorDevice
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+o2_add_executable(heartbeat-sampler
+                  SOURCES src/runHeartbeatSampler
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-O2_GENERATE_LIBRARY()
+o2_add_executable(subframebuilder-device
+                  SOURCES src/runSubframeBuilderDevice
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-# TODO: feature of macro, it deletes the variables we pass to it, set them again
-# this has to be fixed in the macro implementation
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+o2_add_executable(timeframe-reader-device
+                  SOURCES src/runTimeframeReaderDevice
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-Set(Exe_Names
-    o2-fake-timeframegenerator-device
-    o2-heartbeat-sampler
-    o2-subframebuilder-device
-    o2-timeframe-reader-device
-    o2-timeframe-validator-device
-    o2-timeframe-writer-device
-    o2-epn-receiver-device
-    o2-flp-sender-device
-   )
+o2_add_executable(timeframe-validator-device
+                  SOURCES src/runTimeframeValidatorDevice
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-set(Exe_Source
-    src/runFakeTimeframeGeneratorDevice.cxx
-    src/runHeartbeatSampler.cxx
-    src/runSubframeBuilderDevice.cxx
-    src/runTimeframeReaderDevice.cxx
-    src/runTimeframeValidatorDevice.cxx
-    src/runTimeframeWriterDevice.cxx
-    src/runEPNReceiver.cxx
-    src/runFLPSender.cxx
-    )
+o2_add_executable(timeframe-writer-device
+                  SOURCES src/runTimeframeWriterDevice
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
+o2_add_executable(epn-receiver-device
+                  SOURCES src/runEPNReceiver
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${MODULE_BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
+o2_add_executable(flp-sender-device
+                  SOURCES src/runFLPSender
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
+o2_add_executable(timeframe-validation-tool
+                  SOURCES src/TimeframeValidationTool
+                  PUBLIC_LINK_LIBRARIES O2::DataFlow)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-timeframe-validation-tool
-  SOURCES src/TimeframeValidationTool
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+o2_add_test(TimeframeParser
+            SOURCES test/test_TimeframeParser
+            PUBLIC_LINK_LIBRARIES O2::DataFlow
+            COMPONENT_NAME dataflow
+            LABELS utils)
 
-set(TEST_SRCS
-  test/test_TimeframeParser.cxx
-  test/test_SubframeUtils01.cxx
-  test/test_PayloadMerger01.cxx
-)
+o2_add_test(SubframeUtils01
+            SOURCES test/test_SubframeUtils01
+            PUBLIC_LINK_LIBRARIES O2::DataFlow
+            COMPONENT_NAME dataflow
+            LABELS utils)
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS})
-
-O2_GENERATE_MAN(NAME o2-timeframe-reader-device)
-O2_GENERATE_MAN(NAME o2-timeframe-writer-device)
-O2_GENERATE_MAN(NAME o2-subframebuilder-device)
+o2_add_test(PayloadMerger01
+            SOURCES test/test_PayloadMerger01
+            PUBLIC_LINK_LIBRARIES O2::DataFlow
+            COMPONENT_NAME dataflow
+            LABELS utils)

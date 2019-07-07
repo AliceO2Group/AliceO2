@@ -1,38 +1,59 @@
-set(BUCKET_NAME mch_contour_bucket)
-set(MODULE_NAME MCHContour)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-add_library(MCHContour INTERFACE)
+o2_add_header_only_library(MCHContour)
 
-install(DIRECTORY include/MCHContour DESTINATION include)
+o2_add_test(BBox
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/BBox.cxx)
 
-O2_GENERATE_TESTS(
+o2_add_test(Contour
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/Contour.cxx)
 
-        BUCKET_NAME mch_contour_bucket
+o2_add_test(ContourCreator
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/ContourCreator.cxx)
 
-        TEST_SRCS
-        test/BBox.cxx
-        test/Contour.cxx
-        test/ContourCreator.cxx
-        test/Edge.cxx
-        test/Interval.cxx
-        test/Polygon.cxx
-        test/SegmentTree.cxx
-        test/Vertex.cxx
+o2_add_test(Edge
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/Edge.cxx)
 
-)
+o2_add_test(Interval
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/Interval.cxx)
 
-# custom target so that some IDE (e.g. CLion) recognize those files as
-# being part of the project even though they are not part of a CMake target
-add_custom_target(MCHContour_ide SOURCES
-        include/MCHContour/BBox.h
-        include/MCHContour/Contour.h
-        include/MCHContour/ContourCreator.h
-        include/MCHContour/ContourCreator.inl
-        include/MCHContour/Edge.h
-        include/MCHContour/Helper.h
-        include/MCHContour/Interval.h
-        include/MCHContour/Polygon.h
-        include/MCHContour/SegmentTree.h
-        include/MCHContour/SVGWriter.h
-        include/MCHContour/Vertex.h
-        )
+o2_add_test(Polygon
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/Polygon.cxx)
+
+o2_add_test(SegmentTree
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/SegmentTree.cxx)
+
+o2_add_test(Vertex
+            COMPONENT_NAME mchcontour
+            LABELS mch muon
+            PUBLIC_LINK_LIBRARIES O2::MCHContour
+            SOURCES test/Vertex.cxx)
