@@ -1,0 +1,62 @@
+.\" Manpage for ex5.
+
+.\" this file gives some basic introduction on how to use the
+.\" roff format to write man pages
+.\" NOTE: all formatting commands start with a dot and must be
+.\" at the beginning of the line
+
+.\" the header section
+.TH AliceO2 1 "07 July 2019" "1.0" "ex5 man page"
+
+.\" .SH starts a new section, NAME is the first section
+.SH NAME
+
+ex5 - A simple example for AliceO2 submodules
+
+.\" next is the SYNOPSIS section
+.SH SYNOPSIS
+
+.\" some bold formatted text
+.B ex5
+.\" alternate between roman and bold font, separated by blank, i.e. the
+.\" square backets in roman and the option in bold
+.RB [ --someoption ]
+.\" same here, in addition, the dots indicating the argument string are in
+.\" italic. Note: the quoted " [" makes sure there is a blank
+.RB [ --debug " [" --gdb=\fI...\fR ]]
+.\" italic formatting (underline in man)
+.I mandatory_argument
+.\" alternate roman and italic
+.RI [ further_arguments... ]
+
+
+.SH DESCRIPTION
+
+ex5 is an example to demonstrate the AliceO2 cmake setup of
+modules. This document illustrates creation of man pages. All options and
+arument are pure fictive.
+
+.SH OPTIONS
+
+.\" indented paragraph with label, indentation is set to the optional number
+.TP 5
+.B --someoption
+This is a fancy option of the example.
+
+.TP 5
+.B --debug
+Run everything with debugging options
+
+.TP 5
+.B --gdb=\fI...\fR
+Add additional information to run with gdb
+
+.SH SEE ALSO
+
+ex5(1)
+
+http://gnustep.made-it.com/man-groff.html
+
+.SH BUGS
+
+No known bugs
