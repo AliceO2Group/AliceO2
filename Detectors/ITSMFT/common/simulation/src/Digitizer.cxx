@@ -307,7 +307,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   }
 
   // fire the pixels assuming Poisson(n_response_electrons)
-  o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID);
+  o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto& chip = mChips[hit.GetDetectorID()];
 
   for (int irow = rowSpan; irow--;) {

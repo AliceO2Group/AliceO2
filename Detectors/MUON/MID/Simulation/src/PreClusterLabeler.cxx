@@ -71,7 +71,7 @@ bool PreClusterLabeler::addLabel(size_t idx, const MCLabel& label)
   if (isDuplicated(idx, label)) {
     return false;
   }
-  MCCompLabel lb(label.getTrackID(), label.getEventID(), label.getSourceID());
+  MCCompLabel lb(label.getTrackID(), label.getEventID(), label.getSourceID(), label.isFake());
   mMCContainer.addElement(idx, lb);
   return true;
 }

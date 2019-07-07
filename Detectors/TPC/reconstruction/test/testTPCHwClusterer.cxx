@@ -150,9 +150,9 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
   digitVec.emplace_back(0, 12, 13, 5, 2);
   digitVec.emplace_back(0, 321, 7, 10, 10);
 
-  labelContainer.addElement(0, 1);
-  labelContainer.addElement(1, 2);
-  labelContainer.addElement(2, 3);
+  labelContainer.addElement(0, { 1, 0, 0, false });
+  labelContainer.addElement(1, { 2, 0, 0, false });
+  labelContainer.addElement(2, { 3, 0, 0, false });
 
   auto digits = std::make_unique<const std::vector<Digit>>(digitVec);
   auto mcDigitTruth = std::make_unique<const MCLabelContainer>(labelContainer);

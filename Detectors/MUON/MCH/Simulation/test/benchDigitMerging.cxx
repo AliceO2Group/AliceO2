@@ -43,7 +43,7 @@ std::vector<o2::MCCompLabel> createLabels(int N)
 
   for (auto i = 0; i < N; i++) {
     int randomTrackID = std::rand() * N;
-    labels.emplace_back(randomTrackID, dummyEventID, dummysrcID);
+    labels.emplace_back(randomTrackID, dummyEventID, dummysrcID, false);
   }
 
   return labels;

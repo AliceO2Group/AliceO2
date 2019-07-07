@@ -42,7 +42,7 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmf
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(-1, 0, 0));
+        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true));
       }
     }
   }

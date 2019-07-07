@@ -133,7 +133,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
         const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
         const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
-        const MCCompLabel label(MCTrackID, eventID, sourceID);
+        const MCCompLabel label(MCTrackID, eventID, sourceID, false);
         sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
         for (float i = 0; i < nShapedPoints; ++i) {
           const float time = absoluteTime + i * eleParam.ZbinWidth;

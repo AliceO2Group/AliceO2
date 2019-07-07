@@ -120,7 +120,7 @@ Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
 
   if ((1. - Float_t(maxL) / noc) > wrong) {
     // change the track ID to negative
-    lab.set(-lab.getTrackID(), lab.getEventID(), lab.getSourceID());
+    lab.setFakeFlag();
   }
   // t.SetFakeRatio((1.- Float_t(maxL)/noc));
   return lab;

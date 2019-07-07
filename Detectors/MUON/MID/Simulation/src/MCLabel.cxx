@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-MCLabel::MCLabel(int trackID, int eventID, int srcID, int deId, int columnId, int cathode, int firstStrip, int lastStrip) : o2::MCCompLabel(trackID, eventID, srcID)
+MCLabel::MCLabel(int trackID, int eventID, int srcID, int deId, int columnId, int cathode, int firstStrip, int lastStrip) : o2::MCCompLabel(trackID, eventID, srcID, false)
 {
   /// Constructor
   setDEId(deId);

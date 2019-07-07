@@ -75,7 +75,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
       int trID = labs[0].getTrackID();
       int ievH = labs[0].getEventID();
 
-      if (trID >= 0) { // not a noise
+      if (labs[0].isValid()) { // not a noise
         ndr++;
         const auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
         float dx = 0., dz = 0.;
