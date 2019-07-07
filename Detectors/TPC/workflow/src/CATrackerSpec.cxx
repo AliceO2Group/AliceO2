@@ -96,6 +96,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       bool continuous = false;     // time frame data v.s. triggered events
       int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
       bool useGPU = false;         // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;          // Enable additional debug output
       bool dump = false;           // create memory dump of processed events for standalone runs
       char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
       GPUDisplayBackend* display = nullptr;
@@ -141,6 +142,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
             sscanf(optPtr + 5, "%f", &refX);
             printf("Propagating to reference X %f\n", refX);
+          } else if (optLen > 5 && strncmp(optPtr, "debug=", 6) == 0) {
+            sscanf(optPtr + 6, "%d", &debugLevel);
+            printf("Debug level set to %d\n", debugLevel);
           } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
             sscanf(optPtr + 8, "%d", &nThreads);
             printf("Using %d threads\n", nThreads);
