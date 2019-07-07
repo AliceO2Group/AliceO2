@@ -1,29 +1,19 @@
-set(MODULE_NAME "DataFormatsMID")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DataFormatsMID
+               SOURCES src/ColumnData.cxx src/Track.cxx
+               PUBLIC_LINK_LIBRARIES Boost::serialization O2::MathUtils)
 
-set(SRCS
-  src/ColumnData.cxx
-  src/Track.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/Cluster2D.h
-  include/${MODULE_NAME}/Cluster3D.h
-  include/${MODULE_NAME}/ColumnData.h
-  include/${MODULE_NAME}/Track.h
-)
-
-set(LINKDEF src/DataFormatsMIDLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME data_format_mid_bucket)
-
-# The O2_GENERATE_LIBRARY does not work properly if there are no SRCS
-# and there is no linkdef, since it fails in determining if is a C++ file.
-# Let us install the headers directly
-# Install all the public headers
-#if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include/${MODULE_NAME})
-#  install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
-#endif()
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(DataFormatsMID
+                          HEADERS include/DataFormatsMID/Cluster2D.h
+                                  include/DataFormatsMID/Cluster3D.h
+                                  include/DataFormatsMID/ColumnData.h
+                                  include/DataFormatsMID/Track.h)
