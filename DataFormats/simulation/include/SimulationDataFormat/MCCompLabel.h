@@ -22,20 +22,22 @@ class MCCompLabel
  private:
   static constexpr ULong64_t ul0x1 = 0x1;
   static constexpr ULong64_t NotSet = 0xffffffffffffffff;
+  static constexpr ULong64_t Noise = 0xfffffffffffffffe;
+  static constexpr ULong64_t Fake = ul0x1 << 63;
+  static constexpr int NReservedBits = 1;
 
   ULong64_t mLabel = NotSet; ///< MC label encoding MCtrack ID and MCevent origin
 
  public:
   // number of bits reserved for MC track ID, DON'T modify this, since the
   // track ID might be negative
-  static constexpr int nbitsTrackID = sizeof(int) * 8;
+  static constexpr int nbitsTrackID = 31; // number of bits reserved for MC track ID
   static constexpr int nbitsEvID = 19; // number of bits reserved for MC event ID
   static constexpr int nbitsSrcID = 8; // number of bits reserved for MC source ID
   // the rest of the bits is reserved at the moment
 
   // check if the fields are defined consistently
-  static_assert(nbitsTrackID == sizeof(int) * 8, "TrackID must have int size");
-  static_assert(nbitsTrackID + nbitsEvID + nbitsSrcID <= sizeof(ULong64_t) * 8,
+  static_assert(nbitsTrackID + nbitsEvID + nbitsSrcID <= sizeof(ULong64_t) * 8 - NReservedBits,
                 "Fields cannot be stored in 64 bits");
 
   // mask to extract MC track ID
@@ -47,18 +49,33 @@ class MCCompLabel
   // mask for all used fields
   static constexpr ULong64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
 
-  MCCompLabel(int trackID, int evID = 0, int srcID = 0) { set(trackID, evID, srcID); }
-  MCCompLabel() = default;
+  MCCompLabel(int trackID, int evID, int srcID, bool fake) { set(trackID, evID, srcID, fake); }
+  MCCompLabel(bool noise = false)
+  {
+    if (noise) {
+      mLabel = Noise;
+    } else {
+      mLabel = NotSet;
+    }
+  }
   ~MCCompLabel() = default;
 
   // check if label was assigned
   bool isSet() const { return mLabel != NotSet; }
   // check if label was not assigned
   bool isEmpty() const { return mLabel == NotSet; }
-  // check if label was assigned with non-negaive trackID
-  bool isPosTrackID() const { return getTrackID() >= 0; }
-  // return 1 if the tracks are the same and have labels>=0,
-  // 0 if the tracks are the same but at least one of them has label<0
+  // check if label corresponds to real particle
+  bool isNoise() const { return mLabel == Noise; }
+  // check if label was assigned as for correctly identified particle
+  bool isValid() const { return isSet() && !isNoise(); }
+
+  // check if label was assigned as for incorrectly identified particle or not set or noise
+  bool isFake() const { return mLabel & Fake; }
+  // check if label was assigned as for correctly identified particle
+  bool isCorrect() const { return !isFake(); }
+
+  // return 1 if the tracks are the same and correctly identified
+  // 0 if the tracks are the same but at least one of them is fake
   // -1 otherwhise
   int compare(const MCCompLabel& other) const
   {
@@ -66,7 +83,7 @@ class MCCompLabel
       return -1;
     }
     int tr1 = getTrackID(), tr2 = other.getTrackID();
-    return (tr1 == tr2) ? 1 : ((tr1 == -tr2) ? 0 : -1);
+    return (tr1 == tr2) ? ((isCorrect() && other.isCorrect()) ? 1 : 0) : -1;
   }
 
   // conversion operator
@@ -74,27 +91,42 @@ class MCCompLabel
   // allow to retrieve bare label
   ULong64_t getRawValue() const { return mLabel; }
 
-  // comparison operator, compares only label, not evential weight info
+  // comparison operator, compares only label, not evential weight or correctness info
   bool operator==(const MCCompLabel& other) const { return (mLabel & maskFull) == (other.mLabel & maskFull); }
   // invalidate
   void unset() { mLabel = NotSet; }
-  void set(int trackID, int evID, int srcID)
+  void setNoise() { mLabel = Noise; }
+  void setFakeFlag(bool v = true)
+  {
+    if (v) {
+      mLabel |= Fake;
+    } else {
+      mLabel &= ~Fake;
+    }
+  }
+
+  void set(unsigned int trackID, int evID, int srcID, bool fake)
   {
     /// compose label: the track 1st cast to UInt32_t to preserve the sign!
-    mLabel = (maskTrackID & static_cast<ULong64_t>(static_cast<UInt_t>(trackID))) |
+    mLabel = (maskTrackID & static_cast<ULong64_t>(trackID)) |
              (maskEvID & static_cast<ULong64_t>(evID)) << nbitsTrackID |
              (maskSrcID & static_cast<ULong64_t>(srcID)) << (nbitsTrackID + nbitsEvID);
+    if (fake) {
+      setFakeFlag();
+    }
   }
 
   int getTrackID() const { return static_cast<int>(mLabel & maskTrackID); }
+  int getTrackIDSigned() const { return isFake() ? -getTrackID() : getTrackID(); }
   int getEventID() const { return (mLabel >> nbitsTrackID) & maskEvID; }
   int getSourceID() const { return (mLabel >> (nbitsTrackID + nbitsEvID)) & maskSrcID; }
-  void get(int& trackID, int& evID, int& srcID)
+  void get(int& trackID, int& evID, int& srcID, bool& fake)
   {
     /// parse label
     trackID = getTrackID();
     evID = getEventID();
     srcID = getSourceID();
+    fake = isFake();
   }
 
   void print() const;
