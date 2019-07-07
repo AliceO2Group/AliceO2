@@ -61,8 +61,7 @@ endif
 
 ifneq (${CONFIG_O2DIR}, )
 DEFINES						+= HAVE_O2HEADERS
-INCLUDEPATHS					+= O2Headers \
-								${CONFIG_O2DIR}/Common/Constants/include \
+INCLUDEPATHS					+= ${CONFIG_O2DIR}/Common/Constants/include \
 								${CONFIG_O2DIR}/Common/MathUtils/include \
 								${CONFIG_O2DIR}/DataFormats/common/include \
 								${CONFIG_O2DIR}/Detectors/TPC/base/include \
@@ -85,13 +84,13 @@ DEFINES						+= GPUCA_TPC_GEOMETRY_O2
 endif
 
 ifeq ($(BUILD_CUDA), 1)
-DEFINES						+= BUILD_CUDA
+DEFINES						+= CUDA_ENABLED
 endif
 ifeq ($(BUILD_OPENCL), 1)
-DEFINES						+= BUILD_OPENCL
+DEFINES						+= OPENCL1_ENABLED
 endif
 ifeq ($(BUILD_HIP), 1)
-DEFINES						+= BUILD_HIP
+DEFINES						+= HIP_ENABLED
 endif
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
 DEFINES						+= BUILD_EVENT_DISPLAY

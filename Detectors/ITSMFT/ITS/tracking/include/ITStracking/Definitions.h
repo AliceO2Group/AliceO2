@@ -32,7 +32,7 @@
 #endif
 #endif
 
-#if defined(ENABLE_CUDA)
+#if defined(CUDA_ENABLED)
 #define TRACKINGITSU_GPU_MODE true
 #else
 #define TRACKINGITSU_GPU_MODE false
