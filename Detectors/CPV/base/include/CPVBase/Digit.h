@@ -83,13 +83,13 @@ class Digit : public DigitBase
     if (idx < kMaxLabels) {
       return mLabels[idx];
     } else {
-      return -1;
+      return Label();
     }
   }
   /// \brief Proportion of charge deposited by particle idx
   /// \param idx index in a list of a particles, max length kMaxLabels
   /// \return Proportion of energy from this particle.
-  Label getLabelEProp(int idx) const
+  double getLabelEProp(int idx) const
   {
     if (idx < kMaxLabels) {
       return mEProp[idx];
