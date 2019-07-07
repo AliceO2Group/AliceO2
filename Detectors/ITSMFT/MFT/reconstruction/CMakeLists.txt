@@ -1,25 +1,18 @@
-set(MODULE_NAME "MFTReconstruction")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MFTReconstruction
+               SOURCES src/ClustererTask.cxx src/TrackerTask.cxx src/Tracker.cxx
+               PUBLIC_LINK_LIBRARIES O2::MFTBase O2::ITSMFTReconstruction
+                                     O2::DataFormatsMFT)
 
-set(SRCS
-  src/ClustererTask.cxx
-  src/TrackerTask.cxx
-)
-set(HEADERS
-  include/${MODULE_NAME}/ClustererTask.h
-  include/${MODULE_NAME}/TrackerTask.h
-)
-set(NO_DICT_SRCS # sources not for the dictionary
-  src/Tracker.cxx
-)
-set(NO_DICT_HEADERS # sources not for the dictionary
-  include/${MODULE_NAME}/Tracker.h
-)
-
-Set(LINKDEF src/MFTReconstructionLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-Set(BUCKET_NAME mft_reconstruction_bucket)
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(MFTReconstruction
+                          HEADERS include/MFTReconstruction/ClustererTask.h
+                                  include/MFTReconstruction/TrackerTask.h)

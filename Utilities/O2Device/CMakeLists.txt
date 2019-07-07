@@ -1,30 +1,20 @@
-# @author Mikolaj Krzewicki
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "O2Device")
+o2_add_library(Device
+               SOURCES src/O2Device.cxx
+               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ O2::MemoryResources
+                                     O2::Headers ms_gsl::ms_gsl
+                                     AliceO2::Monitoring)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-# Define the source and header files
-set(SRCS
-  src/O2Device.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/O2Device.h
-  include/${MODULE_NAME}/Utilities.h
-)
-
-set(TEST_SRCS
-  test/test_O2Device.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME O2Device_bucket)
-
-O2_GENERATE_LIBRARY()
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(O2Device
+            SOURCES test/test_O2Device.cxx
+            PUBLIC_LINK_LIBRARIES O2::Device
+            COMPONENT_NAME Device)

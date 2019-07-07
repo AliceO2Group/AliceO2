@@ -1,27 +1,27 @@
-set(MODULE_NAME "DataFormatsITSMFT")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DataFormatsITSMFT
+               SOURCES src/ROFRecord.cxx
+                       src/Cluster.cxx
+                       src/CompCluster.cxx
+                       src/ClusterPattern.cxx
+                       src/ClusterTopology.cxx
+                       src/TopologyDictionary.cxx
+               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats)
 
-set(SRCS
-  src/ROFRecord.cxx
-  src/Cluster.cxx
-  src/CompCluster.cxx
-  src/ClusterPattern.cxx
-  src/ClusterTopology.cxx
-  src/TopologyDictionary.cxx
-)
-
-Set(HEADERS
-  include/${MODULE_NAME}/ROFRecord.h
-  include/${MODULE_NAME}/Cluster.h
-  include/${MODULE_NAME}/CompCluster.h
-  include/${MODULE_NAME}/ClusterPattern.h
-  include/${MODULE_NAME}/ClusterTopology.h
-  include/${MODULE_NAME}/TopologyDictionary.h
-)
-
-Set(LINKDEF src/ITSMFTDataFormatsLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME data_format_itsmft_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(DataFormatsITSMFT
+                          HEADERS include/DataFormatsITSMFT/ROFRecord.h
+                                  include/DataFormatsITSMFT/Cluster.h
+                                  include/DataFormatsITSMFT/CompCluster.h
+                                  include/DataFormatsITSMFT/ClusterPattern.h
+                                  include/DataFormatsITSMFT/ClusterTopology.h
+                                  include/DataFormatsITSMFT/TopologyDictionary.h
+                          LINKDEF src/ITSMFTDataFormatsLinkDef.h)

@@ -1,36 +1,41 @@
-set(MODULE_NAME "Field")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(Field
+               SOURCES src/MagFieldContFact.cxx
+                       src/MagFieldFact.cxx
+                       src/MagFieldFast.cxx
+                       src/MagFieldParam.cxx
+                       src/MagneticField.cxx
+                       src/MagneticWrapperChebyshev.cxx
+               PUBLIC_LINK_LIBRARIES O2::MathUtils)
 
-set(SRCS
-    src/MagneticWrapperChebyshev.cxx
-    src/MagneticField.cxx
-    src/MagFieldParam.cxx
-    src/MagFieldContFact.cxx
-    src/MagFieldFast.cxx
-    src/MagFieldFact.cxx
-    )
+o2_target_root_dictionary(Field
+                          HEADERS include/Field/MagneticWrapperChebyshev.h
+                                  include/Field/MagneticField.h
+                                  include/Field/MagFieldParam.h
+                                  include/Field/MagFieldContFact.h
+                                  include/Field/MagFieldFast.h
+                                  include/Field/MagFieldFact.h)
 
-set(HEADERS
-    include/${MODULE_NAME}/MagneticWrapperChebyshev.h
-    include/${MODULE_NAME}/MagneticField.h
-    include/${MODULE_NAME}/MagFieldParam.h
-    include/${MODULE_NAME}/MagFieldContFact.h
-    include/${MODULE_NAME}/MagFieldFast.h
-    include/${MODULE_NAME}/MagFieldFact.h
-    )
-set(LINKDEF src/FieldLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME common_field_bucket)
+o2_add_test(MagneticField
+            SOURCES test/testMagneticField.cxx
+            PUBLIC_LINK_LIBRARIES O2::Field
+            COMPONENT_NAME Field
+            LABELS field
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
-O2_GENERATE_LIBRARY()
+o2_add_test_root_macro(macro/extractMapsAsText.C
+                       PUBLIC_LINK_LIBRARIES O2::Field
+                       LABELS field)
 
-set(TEST_SRCS
-  test/testMagneticField.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test_root_macro(macro/createMapsFromText.C
+                       PUBLIC_LINK_LIBRARIES O2::Field
+                       LABELS field)

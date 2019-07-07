@@ -1,13 +1,11 @@
-O2_SETUP(NAME MCHMappingInterface)
-set(BUCKET_NAME mch_mapping_interface_bucket)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-add_library(MCHMappingInterface INTERFACE)
-
-install(DIRECTORY include/MCHMappingInterface DESTINATION include)
-
-# custom target so that some IDE (e.g. CLion) recognize those files as
-# being part of the project even though they are not part of a CMake target
-add_custom_target(MCHMappingInterface_ide SOURCES
-        include/MCHMappingInterface/CathodeSegmentation.h
-        include/MCHMappingInterface/CathodeSegmentationCInterface.h
-        )
+o2_add_header_only_library(MCHMappingInterface)

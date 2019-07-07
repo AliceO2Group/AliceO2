@@ -1,82 +1,98 @@
-set(MODULE_NAME "TPCBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(TPCBase
+               SOURCES src/CalArray.cxx
+                       src/CalDet.cxx
+                       src/CDBInterface.cxx
+                       src/ContainerFactory.cxx
+                       src/CRU.cxx
+                       src/Digit.cxx
+                       src/DigitPos.cxx
+                       src/ModelGEM.cxx
+                       src/FECInfo.cxx
+                       src/Mapper.cxx
+                       src/PadInfo.cxx
+                       src/PadPos.cxx
+                       src/PadRegionInfo.cxx
+                       src/PadROCPos.cxx
+                       src/PadSecPos.cxx
+                       src/Painter.cxx
+                       src/ParameterDetector.cxx
+                       src/ParameterElectronics.cxx
+                       src/ParameterGas.cxx
+                       src/ParameterGEM.cxx
+                       src/PartitionInfo.cxx
+                       src/RandomRing.cxx
+                       src/ROC.cxx
+                       src/Sector.cxx
+               PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
+                                     O2::CCDB FairRoot::Base)
 
-set(SRCS
-   src/CalArray.cxx
-   src/CalDet.cxx
-   src/CDBInterface.cxx
-   src/ContainerFactory.cxx
-   src/CRU.cxx
-   src/Digit.cxx
-   src/DigitPos.cxx
-   src/ModelGEM.cxx
-   src/FECInfo.cxx
-   src/Mapper.cxx
-   src/PadInfo.cxx
-   src/PadPos.cxx
-   src/PadRegionInfo.cxx
-   src/PadROCPos.cxx
-   src/PadSecPos.cxx
-   src/Painter.cxx
-   src/ParameterDetector.cxx
-   src/ParameterElectronics.cxx
-   src/ParameterGas.cxx
-   src/ParameterGEM.cxx
-   src/PartitionInfo.cxx
-   src/RandomRing.cxx
-   src/ROC.cxx
-   src/Sector.cxx
-)
+o2_target_root_dictionary(TPCBase
+                          HEADERS include/TPCBase/CalArray.h
+                                  include/TPCBase/CalDet.h
+                                  include/TPCBase/CDBInterface.h
+                                  include/TPCBase/ContainerFactory.h
+                                  include/TPCBase/CRU.h
+                                  include/TPCBase/Digit.h
+                                  include/TPCBase/DigitPos.h
+                                  include/TPCBase/ModelGEM.h
+                                  include/TPCBase/FECInfo.h
+                                  include/TPCBase/Mapper.h
+                                  include/TPCBase/PadInfo.h
+                                  include/TPCBase/PadPos.h
+                                  include/TPCBase/PadRegionInfo.h
+                                  include/TPCBase/PadROCPos.h
+                                  include/TPCBase/PadSecPos.h
+                                  include/TPCBase/Painter.h
+                                  include/TPCBase/ParameterDetector.h
+                                  include/TPCBase/ParameterElectronics.h
+                                  include/TPCBase/ParameterGas.h
+                                  include/TPCBase/ParameterGEM.h
+                                  include/TPCBase/PartitionInfo.h
+                                  include/TPCBase/RandomRing.h
+                                  include/TPCBase/ROC.h
+                                  include/TPCBase/Sector.h)
 
-set(HEADERS
-   include/TPCBase/CalArray.h
-   include/TPCBase/CalDet.h
-   include/TPCBase/CDBInterface.h
-   include/TPCBase/ContainerFactory.h
-   include/TPCBase/CRU.h
-   include/TPCBase/Digit.h
-   include/TPCBase/DigitPos.h
-   include/TPCBase/ModelGEM.h
-   include/TPCBase/FECInfo.h
-   include/TPCBase/Mapper.h
-   include/TPCBase/PadInfo.h
-   include/TPCBase/PadPos.h
-   include/TPCBase/PadRegionInfo.h
-   include/TPCBase/PadROCPos.h
-   include/TPCBase/PadSecPos.h
-   include/TPCBase/Painter.h
-   include/TPCBase/ParameterDetector.h
-   include/TPCBase/ParameterElectronics.h
-   include/TPCBase/ParameterGas.h
-   include/TPCBase/ParameterGEM.h
-   include/TPCBase/PartitionInfo.h
-   include/TPCBase/RandomRing.h
-   include/TPCBase/ROC.h
-   include/TPCBase/Sector.h
-)
+o2_add_test(Base
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testTPCBase.cxx
+            LABELS tpc)
 
-Set(LINKDEF src/TPCBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME tpc_base_bucket)
+o2_add_test(CalDet
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testTPCCalDet.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc)
 
-O2_GENERATE_LIBRARY()
+o2_add_test(Mapper
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testTPCMapper.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc)
 
-set(TEST_SRCS
-   test/testTPCBase.cxx
-   test/testTPCCalDet.cxx
-   test/testTPCMapper.cxx
-   test/testTPCParameters.cxx
-   test/testTPCCDBInterface.cxx
-)
+o2_add_test(Parameters
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testTPCParameters.cxx
+            LABELS tpc)
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  MODULE_LIBRARY_NAME ${MODULE_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(CCDBInterface
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testTPCCDBInterface.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc)
 
-install(
-  DIRECTORY files
-  DESTINATION share/Detectors/TPC/
-)
+o2_data_file(COPY files DESTINATION Detectors/TPC)

@@ -1,46 +1,61 @@
-set(MODULE_NAME "SimulationDataFormat")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(SimulationDataFormat
+               SOURCES src/Stack.cxx
+                       src/MCTrack.cxx
+                       src/MCCompLabel.cxx
+                       src/RunContext.cxx
+                       src/StackParam.cxx
+                       src/MCEventHeader.cxx
+               PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl
+                                     O2::DetectorsCommonDataFormats
+                                     O2::GPUCommon O2::DetectorsBase
+                                     O2::SimConfig)
 
-set(SRCS
-  src/Stack.cxx
-  src/MCTrack.cxx
-  src/MCCompLabel.cxx
-  src/RunContext.cxx
-  src/StackParam.cxx
-  src/MCEventHeader.cxx
-)
+o2_target_root_dictionary(
+  SimulationDataFormat
+  HEADERS include/SimulationDataFormat/Stack.h
+          include/SimulationDataFormat/StackParam.h
+          include/SimulationDataFormat/MCTrack.h
+          include/SimulationDataFormat/BaseHits.h
+          include/SimulationDataFormat/MCTruthContainer.h
+          include/SimulationDataFormat/MCCompLabel.h
+          include/SimulationDataFormat/TrackReference.h
+          include/SimulationDataFormat/PrimaryChunk.h
+          include/SimulationDataFormat/RunContext.h
+          include/SimulationDataFormat/LabelContainer.h
+          include/SimulationDataFormat/MCEventHeader.h
+          include/SimulationDataFormat/MCEventStats.h
+  LINKDEF src/SimulationDataLinkDef.h)
+# note the explicit LINKDEF as the linkdef in src is
+#
+# * src/SimulationDataLinkDef.h
+# * and not src/SimulationDataFormatLinkDef.h
 
-Set(HEADERS
-    include/${MODULE_NAME}/Stack.h
-    include/${MODULE_NAME}/StackParam.h
-    include/${MODULE_NAME}/MCTrack.h
-    include/${MODULE_NAME}/BaseHits.h
-    include/${MODULE_NAME}/MCTruthContainer.h
-    include/${MODULE_NAME}/MCCompLabel.h
-    include/${MODULE_NAME}/TrackReference.h
-    include/${MODULE_NAME}/PrimaryChunk.h
-    include/${MODULE_NAME}/RunContext.h
-    include/${MODULE_NAME}/LabelContainer.h
-    include/${MODULE_NAME}/MCEventHeader.h
-    include/${MODULE_NAME}/MCEventStats.h
-)
+o2_add_test(BasicHits
+            SOURCES test/testBasicHits.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-Set(LINKDEF src/SimulationDataLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME data_format_simulation_bucket)
+o2_add_test(MCTruthContainer
+            SOURCES test/testMCTruthContainer.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-O2_GENERATE_LIBRARY()
+o2_add_test(MCCompLabel
+            SOURCES test/testMCCompLabel.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-set(TEST_SRCS
-  test/testBasicHits.cxx
-  test/testMCTruthContainer.cxx
-  test/testMCCompLabel.cxx
-  test/MCTrack.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(MCTrack
+            SOURCES test/MCTrack.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)

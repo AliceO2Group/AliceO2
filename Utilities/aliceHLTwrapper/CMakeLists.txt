@@ -1,60 +1,46 @@
-# @author Matthias Richter
-# @brief  cmake setup for module devices/aliceHLTwrapper
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "aliceHLTwrapper")
+# @author Matthias Richter @brief  cmake setup for module
+# devices/aliceHLTwrapper
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(aliceHLTwrapper
+               SOURCES src/SystemInterface.cxx
+                       src/HOMERFactory.cxx
+                       src/WrapperDevice.cxx
+                       src/Component.cxx
+                       src/MessageFormat.cxx
+                       src/EventSampler.cxx
+               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ O2::Headers O2::Device
+                                     Boost::thread)
 
-set(SRCS
-    src/SystemInterface.cxx
-    src/HOMERFactory.cxx
-    src/WrapperDevice.cxx
-    src/Component.cxx
-    src/MessageFormat.cxx
-    src/EventSampler.cxx
-    )
+o2_target_man_page(aliceHLTwrapper NAME o2-alicehlt-wrapper-device)
+o2_target_man_page(aliceHLTwrapper NAME AliceHLTComponents)
 
-set(LIBRARY_NAME ${MODULE_NAME})
+o2_add_executable(wrapper-device
+                  SOURCES src/aliceHLTWrapper.cxx
+                  COMPONENT_NAME alicehlt
+                  PUBLIC_LINK_LIBRARIES O2::aliceHLTwrapper)
 
-set(BUCKET_NAME O2DeviceApplication_bucket)
+o2_add_executable(eventsampler-device
+                  SOURCES src/aliceHLTEventSampler.cxx
+                  COMPONENT_NAME alicehlt
+                  PUBLIC_LINK_LIBRARIES O2::aliceHLTwrapper)
 
-O2_GENERATE_LIBRARY()
+o2_add_executable(runcomponent
+                  SOURCES src/runComponent.cxx
+                  COMPONENT_NAME alicehlt
+                  PUBLIC_LINK_LIBRARIES O2::aliceHLTwrapper)
 
-Set(Exe_Names
-    o2-alicehlt-wrapper-device
-    o2-alicehlt-eventsampler-device
-    o2-alicehlt-runcomponent
-    )
-
-set(Exe_Source
-    src/aliceHLTWrapper.cxx
-    src/aliceHLTEventSampler.cxx
-    src/runComponent.cxx
-    )
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
-
-set(TEST_SRCS
-  test/testMessageFormat.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
-
-O2_GENERATE_MAN(NAME o2-alicehlt-wrapper-device)
-O2_GENERATE_MAN(NAME AliceHLTComponents)
+o2_add_test(MessageFormat
+            COMPONENT_NAME alicehlt
+            SOURCES test/testMessageFormat.cxx
+            PUBLIC_LINK_LIBRARIES O2::aliceHLTwrapper
+            LABELS utils)

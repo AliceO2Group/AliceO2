@@ -1,39 +1,23 @@
-# @author Mikolaj Krzewicki
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "O2MessageMonitor")
+o2_add_library(MessageMonitor
+               SOURCES src/O2MessageMonitor.cxx
+               PUBLIC_LINK_LIBRARIES FairLogger::FairLogger FairMQ::FairMQ
+                                     O2::Device)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_executable(message-monitor
+                  SOURCES src/runO2MessageMonitor.cxx
+                  PUBLIC_LINK_LIBRARIES O2::MessageMonitor)
 
-# Define the source and header files
-set(SRCS
-  src/O2MessageMonitor.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/O2MessageMonitor.h
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME O2MessageMonitor_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-message-monitor
-  SOURCES src/runO2MessageMonitor.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-)
-
-ADD_DEFINITIONS()
-
-set(TEST_SRCS
-  test/O2MessageMonitorTest.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(O2MessageMonitorTest
+            SOURCES test/O2MessageMonitorTest.cxx
+            PUBLIC_LINK_LIBRARIES O2::MessageMonitor
+            LABELS utils)

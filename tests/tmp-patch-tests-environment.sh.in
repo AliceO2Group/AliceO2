@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for i in $(find @CMAKE_BINARY_DIR@ -name CTestTestfile.cmake); do
+  if grep ENVIRONMENT $i >/dev/null 2>&1; then
+    echo "Patching test file with an ENVIRONMENT: $i"
+    sed -i.bak /O2_ROOT/s=@CMAKE_BINARY_DIR@/stage=@CMAKE_INSTALL_PREFIX@=g $i && rm $i.bak
+    sed -i.bak /VMCWORKDIR/s=@CMAKE_BINARY_DIR@/stage=@CMAKE_INSTALL_PREFIX@=g $i && rm $i.bak
+    sed -i.bak /PATH/s=@CMAKE_BINARY_DIR@/stage=@CMAKE_INSTALL_PREFIX@=g $i && rm $i.bak
+  fi
+done

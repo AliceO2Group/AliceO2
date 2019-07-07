@@ -1,24 +1,29 @@
-set(MODULE_NAME "GlobalTracking")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(GlobalTracking
+               SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx src/CalibTOF.cxx
+                       src/CollectCalibInfoTOF.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+                                     O2::DataFormatsITSMFT
+                                     O2::DataFormatsITS
+                                     O2::DataFormatsFITT0
+                                     O2::DataFormatsTOF
+                                     O2::TPCFastTransformation
+                                     O2::GPUTracking
+                                     O2::TPCBase
+                                     O2::TPCReconstruction
+                                     O2::TOFBase)
 
-set(SRCS
-   src/MatchTPCITS.cxx
-   src/MatchTOF.cxx
-   src/CalibTOF.cxx
-   src/CollectCalibInfoTOF.cxx
-)
-
-set(HEADERS
-   include/${MODULE_NAME}/MatchTPCITS.h
-   include/${MODULE_NAME}/MatchTOF.h
-   include/${MODULE_NAME}/CalibTOF.h
-   include/${MODULE_NAME}/CollectCalibInfoTOF.h
-)
-
-set(LINKDEF src/GlobalTrackingLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME global_tracking_bucket)
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(GlobalTracking
+                          HEADERS include/GlobalTracking/MatchTPCITS.h
+                                  include/GlobalTracking/MatchTOF.h
+                                  include/GlobalTracking/CalibTOF.h
+                                  include/GlobalTracking/CollectCalibInfoTOF.h)

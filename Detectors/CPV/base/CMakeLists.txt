@@ -1,21 +1,17 @@
-SET(MODULE_NAME CPVBase)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(CPVBase
+               SOURCES src/Geometry.cxx src/Hit.cxx src/Digit.cxx
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
-set(SRCS
-  src/Geometry.cxx
-  src/Hit.cxx
-  src/Digit.cxx
- )
-
-set(HEADERS
-  include/${MODULE_NAME}/Geometry.h
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/Digit.h
-)
-
-SET(LINKDEF src/CPVBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME cpv_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(CPVBase
+                          HEADERS include/CPVBase/Geometry.h
+                                  include/CPVBase/Hit.h include/CPVBase/Digit.h)

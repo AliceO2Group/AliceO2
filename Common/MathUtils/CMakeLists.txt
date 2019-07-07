@@ -1,40 +1,43 @@
-set(MODULE_NAME "MathUtils")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MathUtils
+               SOURCES src/CachingTF1.cxx
+                       src/Cartesian2D.cxx
+                       src/Cartesian3D.cxx
+                       src/Chebyshev3D.cxx
+                       src/Chebyshev3DCalc.cxx
+                       src/MathBase.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Hist
+                                     FairRoot::Base
+                                     O2::CommonConstants
+                                     O2::GPUCommon
+                                     ROOT::GenVector
+                                     ROOT::Geom)
 
-set(SRCS
-  src/Chebyshev3D.cxx
-  src/Chebyshev3DCalc.cxx
-  src/MathBase.cxx
-  src/Cartesian2D.cxx
-  src/Cartesian3D.cxx
-  src/CachingTF1.cxx
-)
+o2_target_root_dictionary(MathUtils
+                          HEADERS include/MathUtils/Chebyshev3D.h
+                                  include/MathUtils/Chebyshev3DCalc.h
+                                  include/MathUtils/MathBase.h
+                                  include/MathUtils/Cartesian2D.h
+                                  include/MathUtils/Cartesian3D.h
+                                  include/MathUtils/CachingTF1.h)
 
-set(HEADERS
-  include/${MODULE_NAME}/Utils.h
-  include/${MODULE_NAME}/Chebyshev3D.h
-  include/${MODULE_NAME}/Chebyshev3DCalc.h
-  include/${MODULE_NAME}/MathBase.h
-  include/${MODULE_NAME}/Cartesian2D.h
-  include/${MODULE_NAME}/Cartesian3D.h
-  include/${MODULE_NAME}/CachingTF1.h
-)
+o2_add_test(CachingTF1
+            SOURCES test/testCachingTF1.cxx
+            COMPONENT_NAME MathUtils
+            PUBLIC_LINK_LIBRARIES O2::MathUtils
+            LABELS utils)
 
-set(LINKDEF src/MathUtilsLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME common_math_bucket)
-
-O2_GENERATE_LIBRARY()
-
-
-set(TEST_SRCS
-  test/testCartesian3D.cxx
-  test/testCachingTF1.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(Cartesian3D
+            SOURCES test/testCartesian3D.cxx
+            COMPONENT_NAME MathUtils
+            PUBLIC_LINK_LIBRARIES O2::MathUtils
+            LABELS utils)

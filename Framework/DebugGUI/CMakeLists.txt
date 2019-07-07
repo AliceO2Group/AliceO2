@@ -1,75 +1,43 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is
-# distributed under the terms of the GNU General Public License v3 (GPL
-# Version 3), copied verbatim in the file "COPYING".
-# 
-# See http://alice-o2.web.cern.ch/ for full licensing information.
-# 
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization
-# or submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-
-
-
-if (GLFW_FOUND)
-  set(MODULE_BUCKET_NAME glfw_bucket)
+if(GLFW_FOUND)
   set(GUI_BACKEND
-        src/imgui_impl_glfw_gl3.cpp
-        src/gl3w.c
-        src/Sokol3DUtils.cxx
-        src/GL3DUtils.cxx
-        src/HandMade3DImpl.cxx
-        src/DebugGUI.cxx
-      )
+      src/imgui_impl_glfw_gl3.cpp
+      src/gl3w.c
+      src/Sokol3DUtils.cxx
+      src/GL3DUtils.cxx
+      src/HandMade3DImpl.cxx
+      src/DebugGUI.cxx)
+  set(GUI_TARGET glfw)
 else()
-  set(MODULE_BUCKET_NAME headless_bucket)
-  set(GUI_BACKEND
-        src/Dummy3DUtils.cxx
-        src/DummyDebugGUI.cxx
-      )
+  set(GUI_BACKEND src/Dummy3DUtils.cxx src/DummyDebugGUI.cxx)
+  set(GUI_TARGET "")
 endif()
 
-set(MODULE_NAME "DebugGUI")
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DebugGUI
+               SOURCES src/imgui.cpp src/imgui_draw.cpp src/imgui_extras.cpp
+                       ${GUI_BACKEND}
+               PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation ${GUI_TARGET})
 
-set(SRCS
-      src/imgui.cpp
-      src/imgui_draw.cpp
-      src/imgui_extras.cpp
-      ${GUI_BACKEND}
-   )
-
-set(HEADERS
-    include/DebugGUI/imconfig.h
-    include/DebugGUI/imgui.h
-    include/DebugGUI/imgui_extras.h)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-# TODO: feature of macro, it deletes the variables we pass to it, set them again
-# this has to be fixed in the macro implementation
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-if (GLFW_FOUND)
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_ImGUI"
-  SOURCES test/test_ImGUI.cpp test/imgui_demo.cpp
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+if(GLFW_FOUND)
+  o2_add_executable(imgui
+                    SOURCES
+                    SOURCES test/test_ImGUI.cpp test/imgui_demo.cpp
+                    PUBLIC_LINK_LIBRARIES O2::DebugGUI
+                    COMPONENT_NAME Framework)
 endif()
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_DebugGUI_test_ImGUIHeadless"
-  SOURCES test/test_ImGUIHeadless.cpp test/imgui_demo.cpp
-
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
-add_test_wrap(NAME test_DebugGUI_test_ImGUIHeadless COMMAND test_DebugGUI_test_ImGUIHeadless)
-target_link_libraries(test_DebugGUI_test_ImGUIHeadless Boost::unit_test_framework)
-set_tests_properties(test_DebugGUI_test_ImGUIHeadless PROPERTIES TIMEOUT 30)
+o2_add_test(ImGUIHeadless
+            SOURCES test/test_ImGUIHeadless.cpp test/imgui_demo.cpp
+            PUBLIC_LINK_LIBRARIES O2::DebugGUI
+            COMPONENT_NAME Framework
+            LABELS gui
+            TIMEOUT 30)

@@ -1,18 +1,18 @@
-set(MODULE_NAME "FDDSimulation")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(FDDSimulation
+               SOURCES src/Detector.cxx
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FDDBase
+                                     ROOT::Physics)
 
-set(SRCS
-  src/Detector.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/Hit.h
-    )
-
-Set(LINKDEF src/FDDSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(FDDSimulation
+                          HEADERS include/FDDSimulation/Detector.h
+                                  include/FDDSimulation/Hit.h)

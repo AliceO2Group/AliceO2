@@ -1,35 +1,22 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is
-# distributed under the terms of the GNU General Public License v3 (GPL
-# Version 3), copied verbatim in the file "COPYING".
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
 #
-# See http://alice-o2.web.cern.ch/ for full licensing information.
+# See http://alice-o2.web.cern.ch/license for full licensing information.
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization
-# or submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "GlobalTrackingWorkflow")
-set(MODULE_BUCKET_NAME GlobalTracking_workflow_bucket)
+# FIXME: do we actually need a library here, or is the executable enough ?
+o2_add_library(GlobalTrackingWorkflow
+               SOURCES src/TrackWriterTPCITSSpec.cxx src/TPCITSMatchingSpec.cxx
+                       src/MatchTPCITSWorkflow.cxx
+               PUBLIC_LINK_LIBRARIES O2::GlobalTracking O2::ITSWorkflow
+                                     O2::TPCWorkflow O2::FITWorkflow
+                                     O2::ITSMFTWorkflow)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-  src/TrackWriterTPCITSSpec.cxx
-  src/TPCITSMatchingSpec.cxx
-  src/MatchTPCITSWorkflow.cxx
-  )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-tpcits-match-workflow
-  
-  SOURCES
-  src/tpcits-match-workflow.cxx
-
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  )
+o2_add_executable(match-workflow
+                  COMPONENT_NAME tpcits
+                  SOURCES src/tpcits-match-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)

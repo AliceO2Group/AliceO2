@@ -1,26 +1,25 @@
-SET(MODULE_NAME EMCALBase)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(EMCALBase
+               SOURCES src/Digit.cxx src/Geometry.cxx src/Hit.cxx
+                       src/ShishKebabTrd1Module.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat Boost::serialization
+                                     O2::MathUtils O2::SimulationDataFormat
+                                     ROOT::Physics)
 
-set(SRCS
-  src/Digit.cxx
-  src/Geometry.cxx
-  src/Hit.cxx
-  src/ShishKebabTrd1Module.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/Cell.h
-  include/${MODULE_NAME}/Constants.h
-  include/${MODULE_NAME}/Digit.h
-  include/${MODULE_NAME}/GeometryBase.h
-  include/${MODULE_NAME}/Geometry.h
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/ShishKebabTrd1Module.h
-)
-
-SET(LINKDEF src/EMCALBaseLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME emcal_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(EMCALBase
+                          HEADERS include/EMCALBase/Cell.h
+                                  include/EMCALBase/Constants.h
+                                  include/EMCALBase/Digit.h
+                                  include/EMCALBase/GeometryBase.h
+                                  include/EMCALBase/Geometry.h
+                                  include/EMCALBase/Hit.h
+                                  include/EMCALBase/ShishKebabTrd1Module.h)

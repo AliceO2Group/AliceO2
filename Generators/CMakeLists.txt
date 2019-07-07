@@ -1,57 +1,65 @@
-# Create a library called "libGen" which includes the source files given in
-# the array .
-# The extension is already found.  Any number of sources could be listed here.
-set(MODULE_NAME "Generators")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-FILE(GLOB INSTALL_SHARE "share/external/*.C")
-INSTALL(FILES ${INSTALL_SHARE} DESTINATION share/Generators/external/)
-SET(IGNORE_MACROS ${CMAKE_SOURCE_FILE}/share/Generators/external/hijing.C)
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/Generator.cxx
-    src/GeneratorTGenerator.cxx
-    src/GeneratorFromFile.cxx
-    src/Pythia6Generator.cxx
-    src/PDG.cxx	
-    src/PrimaryGenerator.cxx
-    src/InteractionDiamondParam.cxx
-    src/BoxGunParam.cxx
-   )
-set(HEADERS
-    include/${MODULE_NAME}/Generator.h
-    include/${MODULE_NAME}/GeneratorTGenerator.h
-    include/${MODULE_NAME}/GeneratorFromFile.h
-    include/${MODULE_NAME}/Pythia6Generator.h
-    include/${MODULE_NAME}/PDG.h
-    include/${MODULE_NAME}/PrimaryGenerator.h
-    include/${MODULE_NAME}/InteractionDiamondParam.h
-    include/${MODULE_NAME}/BoxGunParam.h
-       )
-if (HAVESIMULATION)
-  set(HEADERS ${HEADERS}
-      include/${MODULE_NAME}/GeneratorFactory.h
-    )
-  set(SRCS ${SRCS}
-      src/GeneratorFactory.cxx
-    )
+if(pythia_FOUND)
+  set(pythiaTarget pythia FairRoot::Gen)
 endif()
- 
-if (PYTHIA8_INCLUDE_DIR)
-  set(SRCS ${SRCS}
-      src/Pythia8Generator.cxx
-     )
-  set(HEADERS ${HEADERS}
-      include/${MODULE_NAME}/Pythia8Generator.h
-      )
-  set(BUCKET_NAME generators_bucket)
-else (PYTHIA8_INCLUDE_DIR)
-  message(STATUS "module 'Generators' requires Pythia8 ... deactivated")
-  set(BUCKET_NAME generators_base_bucket)
-endif (PYTHIA8_INCLUDE_DIR)
 
-set(LINKDEF src/GeneratorsLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
+o2_add_library(Generators
+               SOURCES src/Generator.cxx
+                       src/GeneratorTGenerator.cxx
+                       src/GeneratorFromFile.cxx
+                       src/Pythia6Generator.cxx
+                       src/PDG.cxx
+                       src/PrimaryGenerator.cxx
+                       src/InteractionDiamondParam.cxx
+                       src/BoxGunParam.cxx
+                       $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorFactory.cxx>
+               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
+                                     O2::SimulationDataFormat ${pythiaTarget}
+               TARGETVARNAME targetName)
 
-O2_GENERATE_LIBRARY()
+if(pythia_FOUND)
+  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_PYTHIA8)
+endif()
+
+set(headers
+    include/Generators/Generator.h
+    include/Generators/GeneratorTGenerator.h
+    include/Generators/GeneratorFromFile.h
+    include/Generators/Pythia6Generator.h
+    include/Generators/PDG.h
+    include/Generators/PrimaryGenerator.h
+    include/Generators/InteractionDiamondParam.h
+    include/Generators/BoxGunParam.h)
+
+if(pythia_FOUND)
+  list(APPEND headers include/Generators/Pythia8Generator.h
+              include/Generators/GeneratorFactory.h)
+endif()
+
+o2_target_root_dictionary(Generators HEADERS ${headers})
+
+o2_add_test_root_macro(share/external/extgen.C
+                       PUBLIC_LINK_LIBRARIES O2::Generators FairRoot::Base
+                       LABELS generators)
+if(pythia6_FOUND)
+  o2_add_test_root_macro(share/external/pythia6.C
+                         PUBLIC_LINK_LIBRARIES O2::Generators pythia6
+                         LABELS generators)
+endif()
+o2_add_test_root_macro(share/external/tgenerator.C
+                       PUBLIC_LINK_LIBRARIES O2::Generators
+                       LABELS generators)
+
+install(FILES share/external/extgen.C share/external/pythia6.C
+              share/external/tgenerator.C
+        DESTINATION share/Generators/external/)

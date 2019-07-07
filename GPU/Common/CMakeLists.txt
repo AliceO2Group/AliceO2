@@ -1,20 +1,18 @@
-cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    set(MODULE O2GPUCommon)
-elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE GPUCommon)
-endif()
+set(MODULE GPUCommon)
 
-set(SRCS
-    GPUCommon.cxx
-)
+set(HDRS_CINT FlatObject.h)
 
-set (HDRS
-    FlatObject.h
-)
-
-set (HDRS2
+set(HDRS_INSTALL
     GPUCommonAlgorithm.h
     GPUCommonDef.h
     GPUCommonDefAPI.h
@@ -26,37 +24,47 @@ set (HDRS2
     GPUDef.h
     GPUDefConstantsAndSettings.h
     GPUDefGPUParameters.h
-    GPUDefOpenCL12Templates.h
-)
+    GPUDefOpenCL12Templates.h)
 
-#Default cmake build script for AliRoot
-if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    # Add a library to the project using the specified source files
-    add_library_tested(${MODULE} SHARED ${SRCS})
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  o2_add_library(${MODULE}
+                 TARGETVARNAME targetName
+                 PUBLIC_LINK_LIBRARIES FairLogger::FairLogger ROOT::RIO
+                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR})
 
-    # Additional compilation flags
-    set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
+  o2_target_root_dictionary(${MODULE}
+                            HEADERS ${HDRS_CINT}
+                            LINKDEF GPUCommonLinkDef.h)
 
-    # System dependent: Modify the way the library is build
-    if(${CMAKE_SYSTEM} MATCHES Darwin)
-        set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-    endif(${CMAKE_SYSTEM} MATCHES Darwin)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
+                             GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
 
-    # Installation
-    install(TARGETS ${MODULE}
-            ARCHIVE DESTINATION lib
-            LIBRARY DESTINATION lib)
-
-    install(FILES ${HDRS} ${HDRS2} DESTINATION include)
+  install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION include/GPU)
 endif()
 
-#Default cmake build script for O2
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    Set(HEADERS ${HDRS})
-    Set(LINKDEF GPUCommonLinkDef.h)
-    Set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME GPUCommon_bucket)
+if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  add_definitions(-DGPUCA_ALIROOT_LIB)
 
-    O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} ${HDRS2} DESTINATION include/GPU)
+  set(SRCS ${SRCS} GPUCommon.cxx)
+
+  # Add a library to the project using the specified source files
+  add_library_tested(Ali${MODULE} SHARED ${SRCS})
+
+  # Additional compilation flags
+  set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
+
+  # System dependent: Modify the way the library is build
+  if(${CMAKE_SYSTEM} MATCHES Darwin)
+    set_target_properties(Ali${MODULE}
+                          PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  endif(${CMAKE_SYSTEM} MATCHES Darwin)
+
+  # Installation
+  install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+
+  install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION include)
+endif()
+
+if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+
 endif()

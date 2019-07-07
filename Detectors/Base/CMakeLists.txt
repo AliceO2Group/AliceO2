@@ -1,46 +1,53 @@
-set(MODULE_NAME "DetectorsBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DetectorsBase
+               SOURCES src/Detector.cxx
+                       src/GeometryManager.cxx
+                       src/MaterialManager.cxx
+                       src/Propagator.cxx
+                       src/MatLayerCyl.cxx
+                       src/MatLayerCylSet.cxx
+                       src/Ray.cxx
+               PUBLIC_LINK_LIBRARIES FairRoot::Base
+                                     O2::CommonUtils
+                                     O2::DetectorsCommonDataFormats
+                                     O2::GPUCommon
+                                     O2::ReconstructionDataFormats
+                                     O2::Field
+                                     FairMQ::FairMQ
+                                     O2::DataFormatsParameters
+                                     ROOT::VMC)
 
-set(SRCS
-  src/Detector.cxx
-  src/GeometryManager.cxx
-  src/MaterialManager.cxx
-  src/Propagator.cxx
-  src/MatLayerCyl.cxx
-  src/MatLayerCylSet.cxx
-  src/Ray.cxx
-  src/DCAFitter.cxx
-)
+o2_target_root_dictionary(DetectorsBase
+                          HEADERS include/DetectorsBase/Detector.h
+                                  include/DetectorsBase/GeometryManager.h
+                                  include/DetectorsBase/MaterialManager.h
+                                  include/DetectorsBase/Propagator.h
+                                  include/DetectorsBase/Triggers.h
+                                  include/DetectorsBase/Ray.h
+                                  include/DetectorsBase/MatCell.h
+                                  include/DetectorsBase/MatLayerCyl.h
+                                  include/DetectorsBase/MatLayerCylSet.h)
 
-Set(HEADERS
-  include/${MODULE_NAME}/Detector.h
-  include/${MODULE_NAME}/GeometryManager.h
-  include/${MODULE_NAME}/MaterialManager.h
-  include/${MODULE_NAME}/Propagator.h
-  include/${MODULE_NAME}/Triggers.h
-  include/${MODULE_NAME}/Ray.h
-  include/${MODULE_NAME}/MatCell.h
-  include/${MODULE_NAME}/MatLayerCyl.h
-  include/${MODULE_NAME}/MatLayerCylSet.h
-  include/${MODULE_NAME}/DCAFitter.h
-)
-
-Set(LINKDEF src/DetectorsBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME detectors_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testMatBudLUT.cxx
-  test/testDCAFitter.cxx
-)
-
-if (HAVESIMULATION)
-  O2_GENERATE_TESTS(
-    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-    BUCKET_NAME ${BUCKET_NAME}
-    TEST_SRCS ${TEST_SRCS}
-  )
+if(BUILD_SIMULATION)
+  o2_add_test(
+    MatBudLUT
+    SOURCES test/testMatBudLUT.cxx
+    COMPONENT_NAME DetectorsBase
+    PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+    LABELS detectorsbase
+    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+                VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
+
+o2_add_test_root_macro(test/buildMatBudLUT.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                       LABELS detectorsbase)

@@ -1,50 +1,36 @@
-# @author Matthias Richter
-# @brief  cmake setup for module Utilities/DataCompression
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "DataCompression")
+o2_add_test(dc_primitives
+            SOURCES test/test_dc_primitives.cxx
+            COMPONENT_NAME DataCompression
+            LABELS utils)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_test(Fifo
+            SOURCES test/test_Fifo.cxx
+            COMPONENT_NAME DataCompression
+            PUBLIC_LINK_LIBRARIES Threads::Threads
+            LABELS utils)
 
-set(SRCS
-    )
+o2_add_test(DataGenerator
+            SOURCES test/test_DataGenerator.cxx
+            COMPONENT_NAME DataCompression
+            LABELS utils)
 
-set(LIBRARY_NAME ${MODULE_NAME})
+o2_add_test(HuffmanCodec
+            SOURCES test/test_HuffmanCodec.cxx
+            COMPONENT_NAME DataCompression
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::filesystem
+            LABELS utils)
 
-set(BUCKET_NAME utility_datacompression_bucket)
-
-#O2_GENERATE_LIBRARY()
-
-Set(Exe_Names
-    )
-
-set(Exe_Source
-    )
-
-list(LENGTH Exe_Names _length)
-if (LENGTH)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
-endif()
-
-set(TEST_SRCS
-  test/test_dc_primitives.cxx
-  test/test_Fifo.cxx
-  test/test_DataGenerator.cxx
-  test/test_HuffmanCodec.cxx
-  test/test_DataDeflater.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(DataDeflater
+            SOURCES test/test_DataDeflater.cxx
+            COMPONENT_NAME DataCompression
+            LABELS utils)

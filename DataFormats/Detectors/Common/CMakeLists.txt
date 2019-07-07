@@ -1,33 +1,25 @@
-set(MODULE_NAME "DetectorsCommonDataFormats")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(DetectorsCommonDataFormats
+               SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Core ROOT::Geom O2::MathUtils)
 
-set(SRCS
-  src/DetID.cxx
-  src/AlignParam.cxx
-  src/DetMatrixCache.cxx
-)
+o2_target_root_dictionary(
+  DetectorsCommonDataFormats
+  HEADERS include/DetectorsCommonDataFormats/DetID.h
+          include/DetectorsCommonDataFormats/AlignParam.h
+          include/DetectorsCommonDataFormats/DetMatrixCache.h)
 
-Set(HEADERS
-  include/${MODULE_NAME}/DetID.h
-  include/${MODULE_NAME}/AlignParam.h
-  include/${MODULE_NAME}/DetMatrixCache.h
-)
-
-Set(LINKDEF src/DetectorsCommonDataFormatsLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME data_format_detectors_common_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testDetID.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
-
-
+o2_add_test(DetID
+            SOURCES test/testDetID.cxx
+            PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
+            COMPONENT_NAME DetectorsCommonDataFormats
+            LABELS dataformats)

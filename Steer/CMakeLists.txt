@@ -1,36 +1,35 @@
-set(MODULE_NAME "Steer")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(Steer
+               SOURCES src/O2MCApplication.cxx src/InteractionSampler.cxx
+                       src/HitProcessingManager.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                                     O2::SimulationDataFormat
+                                     O2::ITSMFTSimulation O2::TPCSimulation)
 
-set(SRCS
-  src/O2MCApplication.cxx
-  src/InteractionSampler.cxx
-  src/HitProcessingManager.cxx
-)
+o2_target_root_dictionary(Steer
+                          HEADERS include/Steer/InteractionSampler.h
+                                  include/Steer/HitProcessingManager.h
+                                  include/Steer/O2RunSim.h
+                                  include/Steer/O2MCApplication.h
+                                  include/Steer/O2MCApplicationBase.h)
 
-set(HEADERS
-  include/${MODULE_NAME}/InteractionSampler.h
-  include/${MODULE_NAME}/HitProcessingManager.h
-  include/${MODULE_NAME}/O2RunSim.h
-  include/${MODULE_NAME}/O2MCApplication.h
-  include/${MODULE_NAME}/O2MCApplicationBase.h
-)
+o2_add_test(InteractionSampler
+            PUBLIC_LINK_LIBRARIES O2::Steer
+            SOURCES test/testInteractionSampler.cxx
+            LABELS steer)
 
-set(LINKDEF src/SteerLinkDef.h)
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME steer_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testInteractionSampler.cxx
-  test/testHitProcessingManager.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME steer_bucket
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(HitProcessingManager
+            PUBLIC_LINK_LIBRARIES O2::Steer
+            SOURCES test/testHitProcessingManager.cxx
+            LABELS steer)
 
 add_subdirectory(DigitizerWorkflow)

@@ -1,18 +1,18 @@
-set(MODULE_NAME "MIDClustering")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-   src/Clusterizer.cxx
-   src/PreClusterizer.cxx
-   src/PreCluster.cxx
-   src/PreClusterHelper.cxx
-   src/PreClustersDE.cxx
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_clustering_bucket)
-
-O2_GENERATE_LIBRARY()
-
-add_subdirectory(test)
+o2_add_library(MIDClustering
+               SOURCES src/Clusterizer.cxx src/PreClusterizer.cxx
+                       src/PreCluster.cxx src/PreClusterHelper.cxx
+                       src/PreClustersDE.cxx
+               PUBLIC_LINK_LIBRARIES O2::MIDBase ms_gsl::ms_gsl)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

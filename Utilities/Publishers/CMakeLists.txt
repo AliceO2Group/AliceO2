@@ -1,53 +1,18 @@
-# @author Matthias Richter
-# @brief  cmake setup for module Utilities/Publishers
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "Publishers")
-# the bucket contains the following dependencies
-#  - common_boost_bucket
-#  - Base
-#  - Headers
-#  - O2device
-#  - dl
-# the 'dl' dependency is needed as the device boilerplate code in
-# runSimpleMQStateMachine.h uses dlopen etc. Probably this hidden
-# dependency can be avoided by including the to some compiled FairMQ
-# library
-set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
+# FIXME: do we actually need a library here ?
+o2_add_library(Publishers
+               SOURCES src/DataPublisherDevice.cxx
+               PUBLIC_LINK_LIBRARIES O2::Device)
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-    src/DataPublisherDevice.cxx
-    )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-O2_GENERATE_LIBRARY()
-
-# TODO: feature of macro, it deletes the variables we pass to it, set them again
-# this has to be fixed in the macro implementation
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME ${MODULE_BUCKET_NAME})
-
-Set(Exe_Names
-    o2-datapublisher-device
-    )
-
-set(Exe_Source
-    src/runDataPublisherDevice.cxx
-    )
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-  list(GET Exe_Names ${_file} _name)
-  list(GET Exe_Source ${_file} _src)
-  O2_GENERATE_EXECUTABLE(
-      EXE_NAME ${_name}
-      SOURCES ${_src}
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
-EndForEach (_file RANGE 0 ${_length})
+o2_add_executable(datapublisher-device
+                  PUBLIC_LINK_LIBRARIES O2::Publishers
+                  SOURCES src/runDataPublisherDevice.cxx)

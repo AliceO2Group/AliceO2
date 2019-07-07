@@ -1,18 +1,22 @@
-O2_SETUP(NAME MCHMappingSegContour)
-set(BUCKET_NAME mch_mapping_segcontour_bucket)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(SRCS
-        src/CathodeSegmentationContours.cxx
-        src/CathodeSegmentationSVGWriter.cxx
-        src/SegmentationContours.cxx)
+o2_add_library(MCHMappingSegContour3
+               SOURCES src/CathodeSegmentationContours.cxx
+                       src/CathodeSegmentationSVGWriter.cxx
+                       src/SegmentationContours.cxx
+               PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHContour
+                                     Boost::boost)
 
-set(LIBRARY_NAME MCHMappingSegContour3)
-
-O2_GENERATE_LIBRARY()
-
-O2_GENERATE_EXECUTABLE(
-        EXE_NAME o2-mch-mapping-svg-segmentation3
-        SOURCES src/SVGSegmentation.cxx
-        BUCKET_NAME mch_mapping_segcontour_bucket
-        MODULE_LIBRARY_NAME ${LIBRARY_NAME})
-
+o2_add_executable(mapping-svg-segmentation3
+                  COMPONENT_NAME mch
+                  SOURCES src/SVGSegmentation.cxx
+                  PUBLIC_LINK_LIBRARIES O2::MCHMappingSegContour3
+                                        Boost::program_options)

@@ -1,12 +1,21 @@
-O2_SETUP(NAME "MIDSimulationTest")
-set(BUCKET_NAME mid_simulation_test_bucket)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS testGeometry.cxx
-)
+o2_add_test(Geometry
+            SOURCES testGeometry.cxx
+            PUBLIC_LINK_LIBRARIES O2::MIDSimulation
+            COMPONENT_NAME mid
+            LABELS mid muon)
 
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS testSimulation.cxx
-)
+o2_add_test(Simulation
+            SOURCES testSimulation.cxx
+            PUBLIC_LINK_LIBRARIES O2::MIDSimulation O2::MIDTracking
+            COMPONENT_NAME mid
+            LABELS mid long muon)

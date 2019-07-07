@@ -1,21 +1,19 @@
-set(MODULE_NAME "FITSimulation")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(FITSimulation
+               SOURCES src/Digitizer.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::DataFormatsFITT0
+                                     O2::T0Simulation)
 
-set(SRCS
-  src/Digitizer.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Digitizer.h
-    include/${MODULE_NAME}/DigitizationParameters.h
-    )
-
-
-Set(LINKDEF src/FITSimulationLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
-
-
+o2_target_root_dictionary(
+  FITSimulation
+  HEADERS include/FITSimulation/Digitizer.h
+          include/FITSimulation/DigitizationParameters.h)
