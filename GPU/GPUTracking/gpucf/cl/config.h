@@ -4,12 +4,9 @@
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
 
-#include "shared/Cluster.h"
 #include "shared/Digit.h"
 #include "shared/tpc.h"
 
-
-typedef FloatCluster Cluster;
 
 typedef PackedDigit Digit;
 
@@ -18,6 +15,13 @@ typedef PackedDigit Digit;
   typedef half charge_t;
 #else
   typedef float charge_t;
+#endif
+
+
+#if defined(UNROLL_LOOPS)
+  #define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint))
+#else
+  #define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
 #endif
 
 
