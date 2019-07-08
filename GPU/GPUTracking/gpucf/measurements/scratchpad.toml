@@ -1,10 +1,10 @@
 input = [
-    { file = "in/scratchpad.json", label = "scratchpad" }
-    { file = "in/halfs.json", label = "time major layout" }
+    { file = "in/timemajor.json", label = "naive" }
+    { file = "in/scratchpad.json", label = "scratchpad (no loop unrolling)" }
+    { file = "in/scratchpadUnroll.json", label = "scratchpad (loop unrolling)" }
 ]
 
 type   = "bar"
 out    = "out/scratchpad.pdf"
 ylabel = "time [ms]"
 showLegend = true
-stepBlacklist = ["digitsToDevice", "clusterToHost"]

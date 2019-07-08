@@ -1,9 +1,0 @@
-input = [
-    { file = "in/paddedClusterFinder.json", label = "With padded digits" },
-    { file = "in/packedClusterFinder.json", label = "With packed digits" }
-]
-
-type   = "bar"
-out    = "out/cmpWithPacked.pdf"
-ylabel = "time [ms]"
-showLegend = true

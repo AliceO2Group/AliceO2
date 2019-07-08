@@ -5,13 +5,12 @@ using namespace gpucf;
 
 
 Event::Event()
-    : event(cl::Event())
 {
 }
 
 cl::Event *Event::get()
 {
-    return &event.value();
+    return &event;
 }
 
 Timestamp Event::queued() const
@@ -37,7 +36,7 @@ Timestamp Event::end() const
 Timestamp Event::profilingInfo(cl_profiling_info key) const
 {
     Timestamp data; 
-    event->getProfilingInfo(key, &data);
+    event.getProfilingInfo(key, &data);
 
     return data;
 }
