@@ -12,8 +12,6 @@ namespace gpucf
 
 struct ClusterFinderConfig
 {
-    size_t chunks = 1;
-
     #define CLUSTER_FINDER_FLAG(name, val, def, desc) bool name = val;
     #include <gpucf/algorithms/ClusterFinderFlags.def>
 
