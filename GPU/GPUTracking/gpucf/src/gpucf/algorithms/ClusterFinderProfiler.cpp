@@ -20,9 +20,12 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
 
     compactCluster.call(state, queue);
 
+    resetMaps.call(state, queue);
+
     queue.finish();
 
 
+    log::Info() << "Collecting OpenCL profiling data.";
     std::vector<Step> steps = {
         fillChargeMap,
         findPeaks,
@@ -30,7 +33,7 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
         compactPeaks.step(),
         computeCluster,
         compactCluster.step(),
-        resetMaps,
+        resetMaps
     };
 
     for (Step &step : steps)

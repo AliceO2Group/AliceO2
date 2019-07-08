@@ -268,8 +268,7 @@ void reset(PartialCluster *clus)
             local          type      *buf) \
     { \
         int i = lid.y; \
-        __attribute__((opencl_unroll_hint(1))) \
-        for (; i < wgSize; i += N) \
+        LOOP_UNROLL_ATTR for (; i < wgSize; i += N) \
         { \
             ChargePos readFrom = posBcast[i]; \
             delta2_t d = neighbors[lid.x + offset]; \
@@ -329,8 +328,7 @@ void updateClusterScratchpadInner(
 {
     uchar aboveThreshold = 0;
 
-	__attribute__((opencl_unroll_hint(1)))
-    for (ushort i = 0; i < N; i++)
+    LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
     {
         delta2_t d = INNER_NEIGHBORS[i];
 
@@ -341,7 +339,6 @@ void updateClusterScratchpadInner(
 
         IF_DBG_INST DBGPR_3("q = %f, dp = %d, dt = %d", q, dp, dt);
 
-        // FIXME pass peakCount
         char pc = peakCount[N * lid + i];
         updateClusterInner(cluster, q, pc, dp, dt);
 
@@ -374,8 +371,7 @@ void updateClusterScratchpadOuter(
 
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 	
-	__attribute__((opencl_unroll_hint(1)))
-    for (ushort i = 0; i < N; i++)
+    LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
     {
         charge_t q = buf[N * lid + i];
         char    pc = peakCount[N * lid + i];
