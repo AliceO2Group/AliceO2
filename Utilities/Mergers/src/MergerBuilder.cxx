@@ -69,7 +69,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
   merger.inputs = mInputSpecs;
 
   merger.outputs.push_back(mOutputSpec);
-  framework::DataAllocator::SubSpecificationType subSpec;
+  framework::DataAllocator::SubSpecificationType subSpec = DataSpecUtils::getOptionalSubSpec(mOutputSpec).value();
   if (DataSpecUtils::validate(mOutputSpec) == false) {
     // inner layer => generate output spec according to scheme
     subSpec = mergerSubSpec(mLayer, mId);
