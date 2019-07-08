@@ -60,6 +60,8 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     for (const auto& dataProcessor : workflow) {
       for (const auto& externalOutput : dataProcessor.outputs) {
         InputSpec candidateInputSpec = DataSpecUtils::matchingInput(externalOutput);
+        candidateInputSpec.binding = "doesnt-matter";
+        
         if (policy.match(candidateInputSpec)) {
           Output output = policy.prepareOutput(candidateInputSpec);
           OutputSpec outputSpec{
