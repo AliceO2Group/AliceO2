@@ -67,30 +67,17 @@ void Benchmark::registerExperiments()
 {
 
     {
-        ClusterFinderConfig packedDigitsConf;
+        ClusterFinderConfig timeMajorLayout;
+        timeMajorLayout.layout = ChargemapLayout::TimeMajor;
         experiments.emplace_back(
                 new TimeCf(
-                        "packed digits cluster finder", 
-                        "packedClusterFinder.json",
-                        packedDigitsConf,
-                        digits, 
+                        "Chargemap with tiling layout", 
+                        "timemajor.json",
+                        timeMajorLayout,
+                        digits,
                         iterations->Get(), 
                         baseDir));
     }
-
-    /* { */
-    /*     GPUClusterFinder::Config multipleChunks; */
-    /*     multipleChunks.usePackedDigits = true; */
-    /*     multipleChunks.chunks = 4; */
-    /*     experiments.emplace_back( */
-    /*             new TimeCf( */
-    /*                     "Parallel cluster finder", */ 
-    /*                     "parallelClusterFinder.json", */
-    /*                     multipleChunks, */
-    /*                     digits, */ 
-    /*                     iterations->Get(), */ 
-    /*                     baseDir)); */
-    /* } */
 
     {
         ClusterFinderConfig tilingLayout;
@@ -118,62 +105,62 @@ void Benchmark::registerExperiments()
                         baseDir));
     }
 
-    {
-        ClusterFinderConfig halfs;
-        halfs.halfs = true;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap storing half charges.",
-                        "halfs.json",
-                        halfs,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
-    }
+    /* { */
+    /*     ClusterFinderConfig halfs; */
+    /*     halfs.halfs = true; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Chargemap storing half charges.", */
+    /*                     "halfs.json", */
+    /*                     halfs, */
+    /*                     digits, */
+    /*                     iterations->Get(), */
+    /*                     baseDir)); */
+    /* } */
 
-    {
-        ClusterFinderConfig halfsPadMajor;
-        halfsPadMajor.halfs = true;
-        halfsPadMajor.layout = ChargemapLayout::PadMajor;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap storing half charges (pad major layout)",
-                        "halfsPadMajor.json",
-                        halfsPadMajor,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
+    /* { */
+    /*     ClusterFinderConfig halfsPadMajor; */
+    /*     halfsPadMajor.halfs = true; */
+    /*     halfsPadMajor.layout = ChargemapLayout::PadMajor; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Chargemap storing half charges (pad major layout)", */
+    /*                     "halfsPadMajor.json", */
+    /*                     halfsPadMajor, */
+    /*                     digits, */
+    /*                     iterations->Get(), */
+    /*                     baseDir)); */
         
-    }
+    /* } */
 
-    {
-        ClusterFinderConfig halfs4x8Tiling;
-        halfs4x8Tiling.halfs = true;
-        halfs4x8Tiling.layout = ChargemapLayout::Tiling4x8;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap storing half charges (4x8 tiling layout)",
-                        "halfs4x8Tiling.json",
-                        halfs4x8Tiling,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
+    /* { */
+    /*     ClusterFinderConfig halfs4x8Tiling; */
+    /*     halfs4x8Tiling.halfs = true; */
+    /*     halfs4x8Tiling.layout = ChargemapLayout::Tiling4x8; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Chargemap storing half charges (4x8 tiling layout)", */
+    /*                     "halfs4x8Tiling.json", */
+    /*                     halfs4x8Tiling, */
+    /*                     digits, */
+    /*                     iterations->Get(), */
+    /*                     baseDir)); */
         
-    }
+    /* } */
 
-    {
-        ClusterFinderConfig halfs8x4Tiling;
-        halfs8x4Tiling.halfs = true;
-        halfs8x4Tiling.layout = ChargemapLayout::Tiling8x4;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap storing half charges (8x4 tiling layout)",
-                        "halfs8x4Tiling.json",
-                        halfs8x4Tiling,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
-    }
+    /* { */
+    /*     ClusterFinderConfig halfs8x4Tiling; */
+    /*     halfs8x4Tiling.halfs = true; */
+    /*     halfs8x4Tiling.layout = ChargemapLayout::Tiling8x4; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Chargemap storing half charges (8x4 tiling layout)", */
+    /*                     "halfs8x4Tiling.json", */
+    /*                     halfs8x4Tiling, */
+    /*                     digits, */
+    /*                     iterations->Get(), */
+    /*                     baseDir)); */
+    /* } */
 
     {
         ClusterFinderConfig scratchpad;
@@ -185,6 +172,22 @@ void Benchmark::registerExperiments()
                         "Load charges into scratchpad",
                         "scratchpad.json",
                         scratchpad,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
+    {
+        ClusterFinderConfig unroll;
+        unroll.halfs = true;
+        unroll.layout = ChargemapLayout::Tiling8x4;
+        unroll.clusterbuilder = ClusterBuilder::ScratchPad;
+        unroll.unrollLoops = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Load charges into scratchpad",
+                        "scratchpadUnroll.json",
+                        unroll,
                         digits,
                         iterations->Get(),
                         baseDir));

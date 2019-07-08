@@ -24,7 +24,7 @@ public:
     Timestamp end()       const;
 
 private:
-    nonstd::optional<cl::Event> event;
+    cl::Event event;
 
     Timestamp profilingInfo(cl_profiling_info) const;
 };

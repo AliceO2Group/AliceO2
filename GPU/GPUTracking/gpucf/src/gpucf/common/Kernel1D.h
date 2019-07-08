@@ -19,7 +19,7 @@ public:
         return name;
     }
 
-    Event getEvent() const
+    const Event &getEvent() const
     {
         return event;
     }

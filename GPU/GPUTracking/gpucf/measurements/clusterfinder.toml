@@ -1,8 +1,0 @@
-input = [
-    { file = "in/packedClusterFinder.json", label = "Cluster Finder" }
-]
-
-type   = "bar"
-out    = "out/clusterfinder.pdf"
-ylabel = "time [ms]"
-showLegend = false
