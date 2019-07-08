@@ -26,7 +26,6 @@
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 
-
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -99,13 +98,13 @@ class MCHDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-            mDigitizer.setEventTime(irecords[collID].timeNS);
+      mDigitizer.setEventTime(irecords[collID].timeNS);
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-	
+
         // get the hits for this event and this source
         std::vector<o2::mch::Hit> hits;
         retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
