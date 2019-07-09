@@ -3,6 +3,7 @@
 #include <gpucf/common/buffer.h>
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/log.h>
+#include <gpucf/common/RowInfo.h>
 
 
 namespace gpucf
@@ -15,52 +16,43 @@ public:
 
     std::vector<Cluster> call(
             ClusterFinderState &state, 
-            bool compacted,
             cl::CommandQueue queue)
     {
         static_assert(sizeof(row_t) == sizeof(unsigned char));
+        static_assert(sizeof(cl_uint) == sizeof(unsigned int));
 
-        std::vector<unsigned char> rows(state.peaknum);
+        std::vector<unsigned int> clusterInRow(RowInfo::instance().numOfRows());
 
-        size_t clusternum = 
-            (compacted) ? state.cutoffClusternum : state.peaknum;
+        gpucpy<cl_uint>(
+                state.clusterInRow, 
+                clusterInRow, 
+                clusterInRow.size(), 
+                queue,
+                true);
 
-        std::vector<ClusterNative> cn(clusternum);
+        std::vector<std::vector<ClusterNative>> clusterByRow;
 
-        cl::Buffer clustersrc = 
-            (compacted) ? state.clusterNativeCutoff : state.clusterNative;
+        for (size_t i = 0; i < clusterInRow.size(); i++)
+        {
+            size_t clusternum = clusterInRow[i];
+            clusterByRow.emplace_back(clusternum);
 
-        gpucpy<row_t>(state.rows, rows, rows.size(), queue, true);
-        gpucpy<ClusterNative>(clustersrc, cn, cn.size(), queue, true);
+            bool blocking = (i == clusterInRow.size()-1);
+            gpucpy<ClusterNative>(
+                    state.clusterByRow,
+                    clusterByRow.back(),
+                    clusternum,
+                    queue,
+                    blocking,
+                    state.maxClusterPerRow * i);
+        }
 
         std::vector<Cluster> cluster;
-        if (compacted)
+        for (size_t row = 0; row < clusterByRow.size(); row++)
         {
-            std::vector<unsigned char> abovecutoff(state.peaknum);
-            
-            gpucpy<cl_uchar>(
-                    state.aboveQTotCutoff,
-                    abovecutoff,
-                    abovecutoff.size(),
-                    queue,
-                    true);
-
-            size_t cutpos = 0;
-            for (size_t i = 0; i < abovecutoff.size(); i++)
+            for (const ClusterNative &cn : clusterByRow[row])
             {
-                if (abovecutoff[i])
-                {
-                    cluster.emplace_back(rows[i], cn[cutpos]);
-                    cutpos++;
-                }
-            }
-        }
-        else
-        {
-            ASSERT(cn.size() == rows.size());
-            for (size_t i = 0; i < cn.size(); i++)
-            {
-                cluster.emplace_back(rows[i], cn[i]);
+                cluster.emplace_back(row, cn);
             }
         }
 

@@ -18,8 +18,6 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
 
     computeCluster.call(state, queue);
 
-    compactCluster.call(state, queue);
-
     resetMaps.call(state, queue);
 
     queue.finish();
@@ -32,7 +30,6 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
         countPeaks,
         compactPeaks.step(),
         computeCluster,
-        compactCluster.step(),
         resetMaps
     };
 

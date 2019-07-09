@@ -14,20 +14,20 @@ struct ClusterFinderState
     ClusterFinderConfig cfg;
     
     size_t digitnum;
-    size_t peaknum;
-    size_t cutoffClusternum;
-
     cl::Buffer digits;
+
     cl::Buffer isPeak;
+
+    size_t peaknum;
     cl::Buffer peaks;
+
     cl::Buffer chargeMap;
     cl::Buffer peakMap;
     cl::Buffer peakCountMap;
     
-    cl::Buffer aboveQTotCutoff;
-    cl::Buffer clusterNative;
-    cl::Buffer rows;
-    cl::Buffer clusterNativeCutoff;
+    size_t maxClusterPerRow;
+    cl::Buffer clusterInRow;
+    cl::Buffer clusterByRow;
 
     ClusterFinderState(ClusterFinderConfig, size_t, cl::Context, cl::Device);
 };

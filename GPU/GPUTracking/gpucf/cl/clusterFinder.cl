@@ -792,6 +792,18 @@ ushort partition(
     return part;
 }
 
+void sortIntoBuckets(
+               const ClusterNative *cluster,
+               const uint           bucket,
+               const uint           maxElemsPerBucket,
+        global       uint          *elemsInBucket,
+        global       ClusterNative *buckets)
+{
+    uint posInBucket = atomic_add(&elemsInBucket[bucket], 1);
+
+    buckets[maxElemsPerBucket * bucket + posInBucket] = *cluster;
+}
+
 
 kernel
 void fillChargeMap(
@@ -997,9 +1009,9 @@ void computeClusters(
         global const char          *peakCountMap,
         global const Digit         *digits,
                      uint           clusternum,
-        global       ClusterNative *clusters,
-        global       row_t         *rows,
-        global       uchar         *aboveQTotCutoff,
+                     uint           maxClusterPerRow,
+        global       uint          *clusterInRow,
+        global       ClusterNative *clusterByRow,
         global       uchar         *peakMap)
 {
     uint idx = get_global_linear_id();
@@ -1035,18 +1047,33 @@ void computeClusters(
 
     finalize(&pc, &myDigit);
 
+    bool iamDummy = (idx >= clusternum);
+    if (iamDummy)
+    {
+        return;
+    }
 
     ClusterNative myCluster;
     toNative(&pc, &myDigit, &myCluster);
 
-    clusters[idx] = myCluster;
-    rows[idx] = myDigit.row;
+    /* clusters[idx] = myCluster; */
+    /* rows[idx] = myDigit.row; */
 
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;
 
 #if defined(CUT_QTOT)
-    aboveQTotCutoff[idx] = (pc.Q > QTOT_THRESHOLD);
+    bool aboveQTotCutoff = (pc.Q > QTOT_THRESHOLD);
 #else
-    aboveQTotCutoff[idx] = true;
+    bool aboveQTotCutoff = true;
 #endif
+
+    if (aboveQTotCutoff)
+    {
+        sortIntoBuckets(
+                &myCluster,
+                myDigit.row,
+                maxClusterPerRow,
+                clusterInRow,
+                clusterByRow);
+    }
 }

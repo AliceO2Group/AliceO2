@@ -49,9 +49,6 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 
     checkCluster(res.peaks, res.cluster);
 
-    compactCluster.call(state, queue);
-
-    checkCompactedCluster();
 
     queue.finish();
 }
@@ -106,7 +103,7 @@ void ClusterFinderTest::checkCluster(
         const std::vector<Digit> &/*peaks*/, 
         const std::vector<Cluster> &clusterGT)
 {
-    std::vector<Cluster> cluster = clusterToCPU.call(state, false, queue);
+    std::vector<Cluster> cluster = clusterToCPU.call(state, queue);
 
     ClusterMap cl;
     cl.addAll(clusterGT);
@@ -148,48 +145,6 @@ void ClusterFinderTest::checkCluster(
                 << ", With sigma: " << correctClusterAll;
 }
 
-void ClusterFinderTest::checkCompactedCluster()
-{
-    ASSERT(state.cutoffClusternum <= state.peaknum);
-
-    std::vector<Cluster> cluster = clusterToCPU.call(state, false, queue);
-    std::vector<Cluster> clusterAboveCutoff = 
-        clusterToCPU.call(state, true, queue);
-
-    ClusterMap map;
-    map.addAll(cluster);
-
-    size_t correctCluster = 0;
-    for (const Cluster &c : clusterAboveCutoff)
-    {
-        ASSERT(c.Q >= QTOT_THRESHOLD || !state.cfg.qtotCutoff); 
-
-        correctCluster += map.contains(c);
-    }
-
-    log::Info() << "Correct cutoff cluster: " 
-                << float(correctCluster) / clusterAboveCutoff.size();
-
-    /* if (correctCluster != state.cutoffClusternum) */ 
-    /* { */
-    /*     printInterimValues(, 256); */
-
-    /*     size_t cutoffGT = 0; */
-    /*     for (const Cluster &c : clusterGT) */
-    /*     { */
-    /*         cutoffGT += (c.Q >= QTOT_THRESHOLD || !state.cfg.qtotCutoff); */
-    /*     } */
-
-    /*     DBG(cutoffGT); */
-
-    /*     ASSERT(cutpos == state.cutoffClusternum) */ 
-    /*         << "\n  cutpos = " << cutpos */
-    /*         << "\n  state.cutoffClusternum = " << state.cutoffClusternum */
-    /*         << "\n  clusternum = " << state.peaknum; */
-    /* } */
-
-    log::Success() << "Compacted cluster: OK";
-}
 
 void ClusterFinderTest::printInterimValues(
         const std::vector<unsigned char> &pred,
