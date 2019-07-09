@@ -28,6 +28,8 @@
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
 #error Unsupported OpenGL version < 4.5
+#elif defined(GPUCA_O2_LIB)
+#pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
 #undef BUILD_EVENT_DISPLAY
