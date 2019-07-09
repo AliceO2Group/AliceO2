@@ -235,9 +235,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0, mHostMemorySize);
     if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 143, mDeviceMemorySize))) {
-      GPUError("Error during HIP memset (non-fatal)");
-      // GPUFailedMsgI(hipDeviceReset());
-      // return (1);
+      GPUError("Error during HIP memset");
+      GPUFailedMsgI(hipDeviceReset());
+      return (1);
     }
   }
 
