@@ -48,14 +48,15 @@ void gpucpy(
         nonstd::span<T> to,
         size_t N,
         cl::CommandQueue queue,
-        bool blocking=false)
+        bool blocking=false,
+        size_t offset=0)
 {
     size_t bytes = sizeof(T) * N; 
 
     queue.enqueueReadBuffer(
         from,
         blocking,
-        0,
+        offset * sizeof(T),
         bytes,
         to.data());
 }

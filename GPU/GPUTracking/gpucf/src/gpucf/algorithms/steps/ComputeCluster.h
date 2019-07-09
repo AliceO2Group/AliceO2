@@ -22,9 +22,9 @@ public:
         kernel.setArg(1, state.peakCountMap);
         kernel.setArg(2, state.peaks);
         kernel.setArg(3, cl_uint(state.peaknum));
-        kernel.setArg(4, state.clusterNative);
-        kernel.setArg(5, state.rows);
-        kernel.setArg(6, state.aboveQTotCutoff);
+        kernel.setArg(4, cl_uint(state.maxClusterPerRow));
+        kernel.setArg(5, state.clusterInRow);
+        kernel.setArg(6, state.clusterByRow);
         kernel.setArg(7, state.peakMap);
 
         Kernel1D::call(0, workitems, 64, queue);
