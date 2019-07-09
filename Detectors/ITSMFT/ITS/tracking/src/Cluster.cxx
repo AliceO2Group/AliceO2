@@ -69,24 +69,20 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
                                      GPUArray<float, 3>&& covTF)
   : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha },
-#ifdef __OPENCL__
+#ifndef __OPENCL__
     positionTrackingFrame{ posTF },
-    covarianceTrackingFrame
+    covarianceTrackingFrame{ covTF }
 {
-  covTF
+  // Nothing to do
 }
 #else
     positionTrackingFrame{},
-    covarianceTrackingFrame
+    covarianceTrackingFrame{}
 {
-}
-#endif
-{
-  // Nothing to do
-#ifdef __OPENCL__
   positionTrackingFrame.copy(posTF);
   covarianceTrackingFrame.copy(covTF);
-#endif
 }
+#endif
+
 } // namespace its
 } // namespace o2
