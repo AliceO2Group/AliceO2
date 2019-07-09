@@ -43,6 +43,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
     const int currentLayerClustersNum{ static_cast<int>(primaryVertexContext->getClusters()[iLayer].size()) };
 
     for (int iCluster{ 0 }; iCluster < currentLayerClustersNum; ++iCluster) {
+      if (primaryVertexContext->isClusterUsed(iLayer, iCluster)) {
+        continue;
+      }
       const Cluster& currentCluster{ primaryVertexContext->getClusters()[iLayer][iCluster] };
 
       const float tanLambda{ (currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate };
@@ -65,7 +68,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
       for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
            iPhiBin = ++iPhiBin == constants::index_table::PhiBins ? 0 : iPhiBin, iPhiCount++) {
-
         const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
         const int maxBinIndex{ firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1 };
         const int firstRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][firstBinIndex];
@@ -73,6 +75,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
         for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex;
              ++iNextLayerCluster) {
+          if (primaryVertexContext->isClusterUsed(iLayer + 1, iNextLayerCluster)) {
+            continue;
+          }
 
           const Cluster& nextCluster{ primaryVertexContext->getClusters()[iLayer + 1][iNextLayerCluster] };
 
