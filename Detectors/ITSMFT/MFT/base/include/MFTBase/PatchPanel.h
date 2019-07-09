@@ -19,7 +19,7 @@ class PatchPanel : public TNamed
 
   ~PatchPanel() override;
 
-  TGeoVolumeAssembly* createPatchPanel(Int_t half);
+  TGeoVolumeAssembly* createPatchPanel(Int_t);
 
  protected:
   TGeoVolumeAssembly* mPatchPanel;
