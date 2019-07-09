@@ -51,10 +51,10 @@ void run_trac_ca_its(bool useITSVertex = false,
                      std::string paramfilename = "o2sim_par.root")
 {
 
-  gSystem->Load("libITStracking.so");
+  gSystem->Load("libO2ITStracking.so");
 
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  auto* chainTracking = rec->AddChain<GPUChainTracking>();
+  //  auto* chainTracking = rec->AddChain<GPUChainTracking>();
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 
