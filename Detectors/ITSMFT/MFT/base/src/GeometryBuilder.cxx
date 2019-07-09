@@ -36,7 +36,11 @@ GeometryBuilder::GeometryBuilder() : TNamed()
 }
 
 //_____________________________________________________________________________
-GeometryBuilder::~GeometryBuilder() = default;
+//GeometryBuilder::~GeometryBuilder() = default;
+GeometryBuilder::~GeometryBuilder()
+{
+      //destructor
+}
 
 //_____________________________________________________________________________
 /// \brief Build the MFT Geometry
