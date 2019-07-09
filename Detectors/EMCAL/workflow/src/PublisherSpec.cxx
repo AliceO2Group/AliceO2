@@ -13,6 +13,7 @@
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "DPLUtils/RootTreeReader.h"
+#include "Framework/DataSpecUtils.h"
 #include <memory>
 #include <utility>
 
@@ -45,8 +46,8 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       processAttributes->finished = false;
       processAttributes->datatype = config.databranch.defval;
-      auto& dto = config.dataoutput;
-      auto& mco = config.mcoutput;
+      auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+      auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
       constexpr auto persistency = o2::framework::Lifetime::Timeframe;
       o2::header::DataHeader::SubSpecificationType subSpec = 0;
       if (propagateMC) {
@@ -106,8 +107,10 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
 
   auto createOutputSpecs = [&config, propagateMC]() {
     std::vector<o2::framework::OutputSpec> outputSpecs;
-    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "output" }, config.dataoutput.origin, config.dataoutput.description, 0, o2::framework::Lifetime::Timeframe });
-    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "outputMC" }, config.mcoutput.origin, config.mcoutput.description, 0, o2::framework::Lifetime::Timeframe });
+    auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+    auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
+    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "output" }, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe });
+    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "outputMC" }, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe });
     return std::move(outputSpecs);
   };
 
