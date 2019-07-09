@@ -26,8 +26,6 @@ private:
             const std::vector<Digit> &, 
             const std::vector<Cluster> &);
 
-    void checkCompactedCluster();
-
     void printInterimValues(const std::vector<unsigned char> &, size_t);
     
 };
