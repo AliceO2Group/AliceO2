@@ -68,6 +68,7 @@ set(SRCS
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/Metric2DViewIndex.cxx
+    src/SimpleOptionsRetriever.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/TableBuilder.cxx
@@ -143,6 +144,7 @@ set(HEADERS
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h
       include/Framework/SimpleRawDeviceService.h
+      include/Framework/SimpleOptionsRetriever.h
       include/Framework/ExternalFairMQDeviceProxy.h
       include/Framework/ControlService.h
       include/Framework/DataRelayer.h
@@ -271,6 +273,7 @@ set(TEST_SRCS
       test/test_PtrHelpers.cxx
       test/test_Root2ArrowTable.cxx
       test/test_Services.cxx
+      test/unittest_SimpleOptionsRetriever.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx
