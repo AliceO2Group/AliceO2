@@ -45,18 +45,16 @@ ClusterFinderState::ClusterFinderState(
 
     peakCountMap = makeBuffer<cl_char>(mapEntries, Memory::ReadWrite, context);
 
-    aboveQTotCutoff = 
-        makeBuffer<cl_uchar>(digitnum, Memory::ReadWrite, context);
 
-    clusterNative = 
-        makeBuffer<ClusterNative>(digitnum, Memory::ReadWrite, context);
+    maxClusterPerRow = 0.01f * digitnum;
 
-    clusterNativeCutoff =
-        makeBuffer<ClusterNative>(digitnum, Memory::ReadWrite, context);
+    clusterInRow = makeBuffer<cl_uint>(numOfRows, Memory::ReadWrite, context);
 
-    /* cluster = makeBuffer<Cluster>(digitnum, Memory::ReadWrite, context); */
+    clusterByRow = makeBuffer<ClusterNative>(
+            maxClusterPerRow * numOfRows, 
+            Memory::ReadWrite, 
+            context);
 
-    rows = makeBuffer<row_t>(digitnum, Memory::ReadWrite, context);
 
     cl::CommandQueue init(context, device);
 
@@ -70,6 +68,7 @@ ClusterFinderState::ClusterFinderState(
     }
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
     fill<cl_char>(peakCountMap, 1, mapEntries, init);
+    fill<cl_uint>(clusterInRow, 0, numOfRows, init);
 
     init.finish();
 }
