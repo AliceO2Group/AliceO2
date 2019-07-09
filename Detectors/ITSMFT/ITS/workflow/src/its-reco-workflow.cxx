@@ -19,8 +19,12 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } });
+  std::vector<o2::framework::ConfigParamSpec> options{
+    { "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } },
+    { "trackerCA", o2::framework::VariantType::Bool, false, { "use trackerCA (default: trackerCM)" } }
+  };
+
+  std::swap(workflowOptions, options);
 
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
 
@@ -39,6 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto useCAtracker = configcontext.options().get<bool>("trackerCA");
 
-  return std::move(o2::its::reco_workflow::getWorkflow(useMC));
+  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker));
 }

@@ -22,7 +22,7 @@ namespace its
 
 namespace reco_workflow
 {
-framework::WorkflowSpec getWorkflow(bool useMC);
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker);
 }
 
 } // namespace its
