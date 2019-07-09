@@ -25,6 +25,7 @@ IndentCaseLabels: true
 IndentFunctionDeclarationAfterType: true
 IndentWidth:     2
 # It is broken on windows. Breaks all #include "header.h"
+---
 Language:        Cpp
 MaxEmptyLinesToKeep: 1
 KeepEmptyLinesAtTheStartOfBlocks: true
@@ -49,3 +50,7 @@ SpacesInParentheses: false
 Standard:        Cpp11
 TabWidth:        2
 UseTab:          Never
+---
+# Do not format protobuf files
+Language: Proto
+DisableFormat: true
