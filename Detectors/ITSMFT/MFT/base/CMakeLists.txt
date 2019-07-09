@@ -20,6 +20,8 @@ set(SRCS
   src/HeatExchanger.cxx
   src/HalfCone.cxx
   src/PowerSupplyUnit.cxx
+  src/PatchPanel.cxx
+
 )
 
 set(HEADERS
@@ -41,6 +43,8 @@ set(HEADERS
   include/${MODULE_NAME}/HeatExchanger.h
   include/${MODULE_NAME}/HalfCone.h
   include/${MODULE_NAME}/PowerSupplyUnit.h
+  include/${MODULE_NAME}/PatchPanel.h
+
 )
 
 Set(LINKDEF src/MFTBaseLinkDef.h)
