@@ -29,7 +29,7 @@ PatchPanel::PatchPanel() : TNamed(), mPatchPanel(nullptr)
 PatchPanel::~PatchPanel() = default;
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* PatchPanel::createPatchPanel(Int_t half)
+TGeoVolumeAssembly* PatchPanel::createPatchPanel(Int_t)
 {
 
   auto *PatchPanelVolume = new TGeoVolumeAssembly("PatchPanelVolume");
