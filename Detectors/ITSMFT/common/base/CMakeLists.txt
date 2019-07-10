@@ -1,26 +1,23 @@
-set(MODULE_NAME "ITSMFTBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(ITSMFTBase
+               SOURCES src/SDigit.cxx src/Digit.cxx src/SegmentationAlpide.cxx
+                       src/GeometryTGeo.cxx src/DPLAlpideParam.cxx
+               PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                     O2::DetectorsCommonDataFormats
+                                     O2::SimConfig)
 
-set(SRCS
-     src/SDigit.cxx
-     src/Digit.cxx
-     src/SegmentationAlpide.cxx
-     src/GeometryTGeo.cxx
-     src/DPLAlpideParam.cxx
-    )
-
-set(HEADERS
-     include/${MODULE_NAME}/SDigit.h
-     include/${MODULE_NAME}/Digit.h
-     include/${MODULE_NAME}/SegmentationAlpide.h
-     include/${MODULE_NAME}/GeometryTGeo.h
-     include/${MODULE_NAME}/DPLAlpideParam.h
-    )
-
-
-Set(LINKDEF src/ITSMFTBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME itsmft_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(ITSMFTBase
+                          HEADERS include/ITSMFTBase/SDigit.h
+                                  include/ITSMFTBase/Digit.h
+                                  include/ITSMFTBase/SegmentationAlpide.h
+                                  include/ITSMFTBase/GeometryTGeo.h
+                                  include/ITSMFTBase/DPLAlpideParam.h)

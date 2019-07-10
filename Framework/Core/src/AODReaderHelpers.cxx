@@ -14,6 +14,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/DataSpecUtils.h"
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
@@ -96,10 +97,8 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
 {
   uint64_t readMask = None;
   for (auto& route : routes) {
-    if (route.matcher.origin != origin) {
-      continue;
-    }
-    auto description = route.matcher.description;
+    auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
+    auto description = concrete.description;
     if (description == header::DataDescription{ "TRACKPAR" }) {
       readMask |= AODTypeMask::Tracks;
     } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
@@ -119,7 +118,7 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
     } else if (description == header::DataDescription{ "DZEROFLAGGED" }) {
       readMask |= AODTypeMask::DZeroFlagged;
     } else {
-      throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
+      throw std::runtime_error(std::string("Unknown AOD type: ") + description.str);
     }
   }
   return readMask;

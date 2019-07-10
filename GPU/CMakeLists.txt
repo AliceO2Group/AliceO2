@@ -1,25 +1,27 @@
-# **************************************************************************
-# * Copyright(c) 1998-2014, ALICE Experiment at CERN, All rights reserved. *
-# *                                                                        *
-# * Author: The ALICE Off-line Project.                                    *
-# * Contributors are mentioned in the code where appropriate.              *
-# *                                                                        *
-# * Permission to use, copy, modify and distribute this software and its   *
-# * documentation strictly for non-commercial purposes is hereby granted   *
-# * without fee, provided that the above copyright notice appears in all   *
-# * copies and that both the copyright notice and this permission notice   *
-# * appear in the supporting documentation. The authors make no claims     *
-# * about the suitability of this software for any purpose. It is          *
-# * provided "as is" without express or implied warranty.                  *
-# **************************************************************************
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(ALIGPU_BUILD_TYPE "O2")
-#option(ENABLE_CUDA   "Build GPU tracker using CUDA"   OFF)
-option(ENABLE_OPENCL "Build GPU tracker using OpenCL" OFF)
-option(ENABLE_HIP    "Build GPU tracker using HIP"    OFF)
+# Subdirectories will be compiled with O2 / AliRoot / Standalone To simplify the
+# CMake, variables are defined for Sources / Headers first. Then, the actual
+# CMake build scripts use these variables.
+#
+# SRCS: Common Sources for all builds HDRS_CINT: Headers for ROOT dictionary
+# (always) HDRS_CINT_ALIROOT: Headers for ROOT dictionary (only in AliRoot)
+# HDRS_CINT_O2: Headers for ROOT dictionary (only for O2) HDRS_INSTALL: Headers
+# for installation only
 
-# Libraries
-add_subdirectory(Common)
-add_subdirectory(GPUTracking)
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
+  add_subdirectory(Common)
+endif()
 add_subdirectory(TPCFastTransformation)
-add_subdirectory(TPCSpaceChargeBase)
+add_subdirectory(GPUTracking)
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  add_subdirectory(TPCSpaceChargeBase)
+endif()

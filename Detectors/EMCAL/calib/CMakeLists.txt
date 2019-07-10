@@ -1,27 +1,23 @@
-SET(MODULE_NAME EMCALCalib)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(EMCALCalib
+               SOURCES src/BadChannelMap.cxx
+               PUBLIC_LINK_LIBRARIES O2::EMCALBase)
 
-set(SRCS
-  src/BadChannelMap.cxx
-)
+o2_target_root_dictionary(EMCALCalib
+                          HEADERS include/EMCALCalib/BadChannelMap.h
+                          LINKDEF src/EMCALCalibLinkDef.h)
 
-set(HEADERS
-  include/${MODULE_NAME}/BadChannelMap.h
-)
-
-SET(LINKDEF src/EMCALCalibLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME emcal_calib_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testBadChannelMap.cxx
-)
-
-O2_GENERATE_TESTS(
-  BUCKET_NAME ${BUCKET_NAME}
-  MODULE_LIBRARY_NAME ${MODULE_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(BadChannelMap
+            SOURCES test/testBadChannelMap.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            COMPONENT_NAME emcal
+            LABELS emcal)

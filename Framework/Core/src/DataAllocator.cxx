@@ -219,7 +219,8 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
   for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
     if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
       auto spec = mAllowedOutputRoutes[ri].matcher;
-      return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
+      auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+      return Output{ dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
     }
   }
   throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);

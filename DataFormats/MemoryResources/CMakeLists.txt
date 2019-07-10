@@ -1,31 +1,23 @@
-# @author Mikolaj Krzewicki
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "MemoryResources")
+o2_add_library(MemoryResources
+               SOURCES src/MemoryResources.cxx
+               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ)
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_test(MemoryResources
+            SOURCES test/testMemoryResources.cxx
+            PUBLIC_LINK_LIBRARIES O2::MemoryResources
+            COMPONENT_NAME MemoryResources)
 
-# Define the source and header files
-set(SRCS
-  src/MemoryResources.cxx
-)
-
-set(HEADERS
-  include/${MODULE_NAME}/MemoryResources.h
-  include/${MODULE_NAME}/observer_ptr.h
-)
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME pmr_bucket)
-
-O2_GENERATE_LIBRARY()
-
-set(TEST_SRCS
-  test/testMemoryResources.cxx
-  test/test_observer_ptr.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
+o2_add_test(observer_ptr
+            SOURCES test/test_observer_ptr.cxx
+            PUBLIC_LINK_LIBRARIES O2::MemoryResources
+            COMPONENT_NAME MemoryResources)

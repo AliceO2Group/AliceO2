@@ -235,7 +235,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         }
         MCCompLabel& bestLabel = labels[bestLabelNum].first;
         if (bestLabelCount < (1.f - sTrackMCMaxFake) * nOutCl) {
-          bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
+          bestLabel.setFakeFlag();
         }
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
