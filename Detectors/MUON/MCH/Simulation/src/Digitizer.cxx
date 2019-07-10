@@ -213,7 +213,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   mTrackLabels.resize(mTrackLabels.size());
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(std::vector<Digit>& digits, const o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcContainer)
+void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
 {
 
   mDigits.clear();
@@ -227,11 +227,12 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, const o2::dataformats::M
 
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);
-    mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID());
+    mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
   }
 
   mergeDigits(mDigits, mTrackLabels);
   fillOutputContainer(digits, mTrackLabels);
+  provideMC(mcContainer);
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)

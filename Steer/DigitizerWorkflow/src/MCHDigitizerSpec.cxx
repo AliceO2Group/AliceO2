@@ -130,7 +130,6 @@ class MCHDPLDigitizerTask
       }
     }
     mDigitizer.mergeDigits(digitsAccum, labelAccum);
-    mDigitizer.provideMC(labelAccum);
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
