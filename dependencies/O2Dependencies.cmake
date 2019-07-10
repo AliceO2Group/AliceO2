@@ -41,7 +41,7 @@ set_package_properties(arrow PROPERTIES TYPE REQUIRED)
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
-find_package(ROOT 6.06.00 MODULE)
+find_package(ROOT 6.16.00 MODULE)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
 find_package(fmt)
@@ -130,11 +130,13 @@ set_package_properties(GLEW PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
 
-find_package(Clang)
-set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
-
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)
+if(LLVM_FOUND)
+find_package(Clang)
+set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
+endif()
+
 
 find_package(O2GPU)
 

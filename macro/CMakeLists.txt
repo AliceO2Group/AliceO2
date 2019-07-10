@@ -123,6 +123,7 @@ o2_add_test_root_macro(
   initSimGeomAndField.C
   PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field)
 
+if(Geant4_FOUND)
 o2_add_test_root_macro(o2sim.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                                              O2::DetectorsPassive
@@ -145,6 +146,7 @@ o2_add_test_root_macro(o2sim.C
                                              O2::CommonTypes
                                              O2::SimSetup
                                              O2::Steer)
+endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...
 # o2_add_test_root_macro( putCondition.C)
