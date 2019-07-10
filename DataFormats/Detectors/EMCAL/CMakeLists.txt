@@ -10,8 +10,8 @@
 
 o2_add_library(DataFormatsEMCAL
                SOURCES src/EMCALBlockHeader.cxx 
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat Boost::serialization
-                                     O2::MathUtils)
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers 
+                                     Boost::serialization O2::MathUtils)
 
 o2_target_root_dictionary(DataFormatsEMCAL
                           HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h)

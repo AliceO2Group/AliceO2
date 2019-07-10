@@ -8,14 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(TPCWorkflow
+o2_add_library(EMCALWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/PublisherSpec.cxx
                        src/DigitsPrinterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL
-                                     O2::DPLUtils O2::EMCALbase)
+                                     O2::DPLUtils O2::EMCALBase O2::Algorithm)
 
 o2_add_executable(reco-workflow
-                  COMPONENT_NAME tpc
+                  COMPONENT_NAME emcal
                   SOURCES src/emc-reco-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
