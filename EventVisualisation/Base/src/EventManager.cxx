@@ -12,6 +12,8 @@
 /// \file    EventManager.cxx
 /// \author  Jeremi Niedziela
 
+
+
 #include "EventVisualisationBase/EventManager.h"
 
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
@@ -107,3 +109,4 @@ EventManager::~EventManager() {
 
 }
 }
+

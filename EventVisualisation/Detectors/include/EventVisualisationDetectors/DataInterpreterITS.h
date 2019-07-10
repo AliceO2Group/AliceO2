@@ -2,13 +2,13 @@
 // Created by jmy on 25.06.19.
 //
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
+#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERITS_H
+#define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERITS_H
 
 /// DataInterpreterVSD prepares random events
 ///
 /// This class overrides DataInterpreter and implements method
-/// returning visualisation objects representing data from VSD file
+/// returning visualisation objects representing data from ITS file
 /// with tracks colored by PID only.
 
 #include "EventVisualisationBase/DataInterpreter.h"
@@ -34,4 +34,4 @@ public:
 }
 }
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
+#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERITS_H

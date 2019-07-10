@@ -4,63 +4,21 @@
 
 #include <EventVisualisationBase/DataSourceOffline.h>
 
+#include <TSystem.h>
+#include <TEveTreeTools.h>
+#include <TEveTrack.h>
+#include <TEveManager.h>
+#include <TFile.h>
+#include <TPRegexp.h>
+#include <TEveTrackPropagator.h>
+#include <TEveViewer.h>
+#include <TEveEventManager.h>
+#include <TEveVSD.h>
+#include <TVector3.h>
+
+namespace o2 {
+namespace event_visualisation {
 
 
-o2::event_visualisation::DataSourceOffline::DataSourceOffline(TString ESDFileName) {
-    this->fgESDFileName = ESDFileName;
-    open();
 }
-
-o2::event_visualisation::DataSourceOffline::~DataSourceOffline() {
-
-}
-
-int o2::event_visualisation::DataSourceOffline::gotoEvent(Int_t ev) {
-
-    if (ev < 0 || ev >= esd.fMaxEv)
-    {
-        Warning("GotoEvent", "Invalid event id %d.", ev);
-        return kFALSE;
-    }
-
-/*    DropEvent();
-
-    // Connect to new event-data.
-
-    fCurEv = ev;
-    fDirectory = (TDirectory*) ((TKey*) fEvDirKeys->At(fCurEv))->ReadObj();
-    fVSD->SetDirectory(fDirectory);
-
-    AttachEvent();
-
-    // Load event data into visualization structures.
-
-    LoadClusters(fITSClusters, "ITS", 0);
-    LoadClusters(fTPCClusters, "TPC", 1);
-    LoadClusters(fTRDClusters, "TRD", 2);
-    LoadClusters(fTOFClusters, "TOF", 3);
-
-    LoadEsdTracks();
-
-    // Fill projected views.
-
-    TEveElement* top = gEve->GetCurrentEvent();
-
-    gMultiView->DestroyEventRPhi();
-    gMultiView->ImportEventRPhi(top);
-
-    gMultiView->DestroyEventRhoZ();
-    gMultiView->ImportEventRhoZ(top);
-
-    gEve->Redraw3D(kFALSE, kTRUE);
-
-    return kTRUE;
-
-*/
-
-    return ev;
-}
-
-void o2::event_visualisation::DataSourceOffline::open() {
-
 }

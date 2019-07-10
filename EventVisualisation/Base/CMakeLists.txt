@@ -12,6 +12,8 @@ set(SRCS
     src/GeometryManager.cxx
     src/Track.cxx
     src/DataSourceOffline.cxx
+    src/DataSourceOfflineVSD.cxx
+        src/DataSourceOfflineITS.cxx
     )
 
 # HEADERS is not needed if we don't generate a dictionary.
@@ -22,6 +24,9 @@ set(HEADERS
     include/${MODULE_NAME}/GeometryManager.h
     include/${MODULE_NAME}/Track.h
     include/${MODULE_NAME}/VisualisationConstants.h
+        include/${MODULE_NAME}/DataSourceOffline.h
+        include/${MODULE_NAME}/DataSourceOfflineVSD.h
+        include/${MODULE_NAME}/DataSourceOfflineITS.h
     )
 
 set(LIBRARY_NAME ${MODULE_NAME})

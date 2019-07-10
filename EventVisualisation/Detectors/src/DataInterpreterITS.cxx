@@ -9,10 +9,10 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    DataInterpreterVSD.cxx
+/// \file    DataInterpreterITS.cxx
 /// \author  Julian Myrcha
 
-#include "EventVisualisationDetectors/DataInterpreterVSD.h"
+#include "EventVisualisationDetectors/DataInterpreterITS.h"
 
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/Track.h"

@@ -8,9 +8,6 @@
 #include <EventVisualisationBase/DataSource.h>
 #include <TString.h>
 
-// VSD
-#include <TEveVSD.h>
-
 namespace o2  {
 namespace event_visualisation {
 
@@ -18,20 +15,22 @@ class DataSourceOffline : public DataSource {
 protected:
     TString fgESDFileName ;
     bool isOpen = kFALSE;
-    void open();
-    struct {
-        int fMaxEv;
-        TEveVSD    *fVSD;
-    } esd;
+
 public:
-    int gotoEvent(Int_t event) override ;
+    virtual void open(TString ESDFileName) {
+        this->fgESDFileName = ESDFileName;
+    };
+    int gotoEvent(Int_t event) override {};
     void nextEvent() override {};
-    DataSourceOffline(TString ESDFileName);
-    virtual ~DataSourceOffline() final;
+    DataSourceOffline() {}
+
+    ~DataSourceOffline() override {};
+
     DataSourceOffline(DataSourceOffline const&) = delete;
     /// Deleted assignemt operator
     void operator=(DataSourceOffline const&) = delete;
 };
+
 
 }
 }

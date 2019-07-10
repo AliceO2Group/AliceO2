@@ -22,6 +22,7 @@
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationBase/DataSourceOfflineVSD.h"
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -33,7 +34,7 @@
 #include <TROOT.h>
 #include <TEveWindowManager.h>
 #include <iostream>
-
+#include <TFile.h>
 using namespace std;
 
 
@@ -54,7 +55,15 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   auto &eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
-  eventManager.setDataSource(new DataSourceOffline("AliESDs.root"));
+
+  TFile*  fFile = TFile::Open("AliESDs.root");
+  //TFile*  fFile = TFile::Open("AliVSD.root");
+
+  DataSourceOffline *ds = new DataSourceOfflineVSD();
+//DataSourceOffline *ds = new DataSourceOffline();
+  ds->open("AliVSD.root");
+  eventManager.setDataSource(ds);
+
   
   //gEve->AddEvent(&eventManager);
   
@@ -70,7 +79,7 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(),gClient->GetDisplayHeight() - 32);
 
   browser->StartEmbedding(TRootBrowser::kBottom);
-  new EventManagerFrame(eventManager);
+  EventManagerFrame *frame =new EventManagerFrame(eventManager);
   browser->StopEmbedding("EventCtrl Balbinka");
 
   if(fullscreen){
@@ -85,9 +94,10 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Temporary:
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
-  gEve->AddEvent(&EventManager::getInstance());
-  MultiView::getInstance()->drawRandomEvent();
-
+  //gEve->AddEvent(&EventManager::getInstance());
+  //MultiView::getInstance()->drawRandomEvent();
+    gEve->AddEvent(&eventManager);
+  frame->DoFirstEvent();
 }
 
 Initializer::~Initializer() = default;
