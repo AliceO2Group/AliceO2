@@ -47,7 +47,7 @@ include_guard()
 # give us, _transitively_, all the libraries directories. And computing them
 # ourselves (recursively) is quite time consuming...
 #
-function(o2_add_test_root_macro)
+function(o2_add_test_root_macro macro)
 
   if(NOT BUILD_TESTING)
     return()
@@ -70,7 +70,8 @@ function(o2_add_test_root_macro)
       FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  get_filename_component(macroFileName ${ARGV0} ABSOLUTE)
+  get_filename_component(macroFileName ${macro} ABSOLUTE)
+
 
   if(NOT EXISTS ${macroFileName})
     message(
