@@ -19,6 +19,7 @@
 #include "MFTBase/HalfSegmentation.h"
 #include "MFTBase/HalfDetector.h"
 #include "MFTBase/HalfCone.h"
+#include "MFTBase/PatchPanel.h"
 
 #include "TGeoVolume.h"
 #include "TGeoManager.h"
