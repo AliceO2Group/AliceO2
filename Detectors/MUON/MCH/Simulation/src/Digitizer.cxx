@@ -142,8 +142,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
-    LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
-    LOG(ERROR) << "detID " << detID;
+    LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY << ", for detID: " << detID;
     return 0;
   }
 
