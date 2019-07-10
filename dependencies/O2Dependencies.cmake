@@ -41,7 +41,7 @@ set_package_properties(arrow PROPERTIES TYPE REQUIRED)
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
-find_package(ROOT 6.06.00 MODULE)
+find_package(ROOT 6.16.00 MODULE)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
 find_package(fmt)
