@@ -1913,17 +1913,34 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
+    data_format_simulation_bucket
+    data_format_itsmft_bucket
+    #
     O2EventVisualisationDataConverter
+    O2DataFormatsITSMFT
+    O2DataFormatsITSMFT
+    O2ITSBase
     Graf3d
     Eve
     RGL
     Gui
     O2CCDB
 
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/CCDB/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
-
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/View/include
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+	${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+	${CMAKE_SOURCE_DIR}/Detectors/Base/include
+	${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+	${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+	${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/imclude
+	${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/CommonDataFormat/include
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
 )
@@ -2060,7 +2077,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
-
+	${CMAKE_SOURCE_DIR}/EventVisualisation/View/include
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
 )
@@ -2104,7 +2121,9 @@ NAME
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/CCDB/include
-
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Detectors/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/View/include
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
 )

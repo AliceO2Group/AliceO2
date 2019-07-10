@@ -1,9 +1,12 @@
 //
 // Created by jmy on 09.07.19.
 //
+//#include "EventVisualisationView/MultiView.h"
+#include "EventVisualisationBase/DataSourceOfflineITS.h"
 
-#include <EventVisualisationBase/DataSourceOfflineITS.h>
-#include <EventVisualisationView/MultiView.h>
+
+//
+
 
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
@@ -19,6 +22,8 @@
 #include "TGenericClassInfo.h"
 
 #include <TEveElement.h>
+
+
 
 
 #include <iostream>
@@ -46,6 +51,8 @@
 
 
 
+
+
 using namespace o2::itsmft;
 extern TEveManager* gEve;
 
@@ -56,7 +63,7 @@ class ITSData
 {
 public:
     void loadData(int entry);
-    void displayData(int entry, int chip);
+    TEveElementList *displayData(int entry, int chip);
     int getLastEvent() const { return mLastEvent; }
     void setRawPixelReader(std::string input)
     {
@@ -403,7 +410,7 @@ TEveElement* ITSData::getEveTracks()
     return tracks;
 }
 
-void ITSData::displayData(int entry, int chip)
+TEveElementList* ITSData::displayData(int entry, int chip)
 {
     std::string ename("Event #");
     ename += std::to_string(entry);
@@ -426,19 +433,20 @@ void ITSData::displayData(int entry, int chip)
     mEvent = new TEveElementList(ename.c_str());
     mEvent->AddElement(clusters);
     mEvent->AddElement(tracks);
-    auto multi = o2::event_visualisation::MultiView::getInstance();
-    multi->registerEvent(mEvent);
 
-    gEve->Redraw3D(kFALSE);
+    return mEvent;
+
 }
 
-void ITSload(int entry, int chip)
+
+
+TEveElement* ITSload(int entry, int chip)
 {
     int lastEvent = its_data.getLastEvent();
     if (lastEvent > entry) {
         std::cerr << "\nERROR: Cannot stay or go back over events. Please increase the event number !\n\n";
         gEntry->SetIntNumber(lastEvent - 1);
-        return;
+        return nullptr;
     }
 
     gEntry->SetIntNumber(entry);
@@ -446,7 +454,7 @@ void ITSload(int entry, int chip)
 
     std::cout << "\n*** Event #" << entry << " ***\n";
     its_data.loadData(entry);
-    its_data.displayData(entry, chip);
+    return its_data.displayData(entry, chip);
 }
 
 
@@ -505,7 +513,6 @@ void ITSDisplayEvents()
 {
     // A dummy function with the same name as this macro
 }
-
 
 
 

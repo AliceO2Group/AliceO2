@@ -54,6 +54,15 @@ using namespace o2::event_visualisation;
 #include <TEnv.h>
 #include <EventVisualisationBase/ConfigurationManager.h>
 
+#include "EventVisualisationView/MultiView.h"
+extern TEveManager* gEve;
+void drawEvent(TEveElementList* mEvent) {
+    auto multi = o2::event_visualisation::MultiView::getInstance();
+    multi->registerEvent(mEvent);
+    gEve->Redraw3D(kFALSE);
+}
+
+
 int main(int argc, char **argv)
 {
     cout<<"Welcome in O2 event visualisation tool"<<endl;
