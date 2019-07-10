@@ -31,6 +31,9 @@ include(O2NameTarget)
 #   to use the fully qualified target name (i.e. including the namespace part)
 #   even for internal (O2) targets.
 #
+# * PRIVATE_LINK_LIBRARIES (needed in most cases) : as PUBLIC_LINK_LIBRARIES,
+#   but dependencies are not forwarded to the consumers.
+#
 # * PUBLIC_INCLUDE_DIRECTORIES (not needed in most cases) : the list of include
 #   directories where to find the include files needed to compile this library
 #   and that will be needed as well by the consumers of that library. By default
@@ -54,7 +57,7 @@ function(o2_add_library baseTargetName)
     A
     ""
     "TARGETVARNAME"
-    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES"
+    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES;PRIVATE_LINK_LIBRARIES"
     )
 
   if(A_UNPARSED_ARGUMENTS)
@@ -89,6 +92,17 @@ function(o2_add_library baseTargetName)
           FATAL_ERROR "Trying to add a dependency on non-existing target ${L}")
       endif()
       target_link_libraries(${target} PUBLIC ${L})
+    endforeach()
+  endif()
+
+  # Private dependencies
+  if(A_PRIVATE_LINK_LIBRARIES)
+    foreach(L IN LISTS A_PRIVATE_LINK_LIBRARIES)
+      if(NOT TARGET ${L})
+        message(
+          FATAL_ERROR "Trying to add a dependency on non-existing target ${L}")
+      endif()
+      target_link_libraries(${target} PRIVATE ${L})
     endforeach()
   endif()
 

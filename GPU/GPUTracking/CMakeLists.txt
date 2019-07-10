@@ -195,11 +195,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                       O2::DataFormatsTPC
-                                       O2::TRDBase
-                                       O2::ITStracking
                                        O2::TPCFastTransformation
-                                       O2::DebugGUI
+                 PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                                        O2::TRDBase
+                                        O2::ITStracking
+                                        O2::DebugGUI
                  PUBLIC_INCLUDE_DIRECTORIES SliceTracker
                                             Base
                                             TPCConvert
@@ -214,6 +214,21 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             DataCompression
+                                            ${ROOT_INCLUDE_DIRS}
+                                            ${CMAKE_SOURCE_DIR}/Common/Constants/include
+                                            ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+                                            ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+                                            ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
+                                            ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
+                                            ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+                                            ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+                                            ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
                  TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 

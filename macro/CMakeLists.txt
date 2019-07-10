@@ -334,6 +334,7 @@ o2_add_test_root_macro(run_sim_tpc.C
 # FIXME: move to subsystem dir + check how to deal with GPU dependencies
 o2_add_test_root_macro(run_trac_ca_its.C
                        PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                                             O2::ITStracking
                        LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir

@@ -137,9 +137,9 @@ function(add_root_dictionary target)
       -rmf ${rootmapFile}
       -rml $<TARGET_FILE_NAME:${target}>
       $<GENEX_EVAL:-I$<JOIN:$<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>,\;-I>>
-      # the generator expression above gets the list of all include 
-      # directories that might be required using the transitive dependencies 
-      # of the target ${target} and prepend each item of that list with -I 
+      # the generator expression above gets the list of all include
+      # directories that might be required using the transitive dependencies
+      # of the target ${target} and prepend each item of that list with -I
       "${defs}"
       ${incdirs} ${headers}
     COMMAND
@@ -155,7 +155,7 @@ function(add_root_dictionary target)
   if(NOT ROOT::RIO IN_LIST libs)
     # add ROOT::IO if not already there as a target that has a Root dictionary
     # has to depend on ... Root
-    target_link_libraries(${target} PUBLIC ROOT::RIO)
+    target_link_libraries(${target} PRIVATE ROOT::RIO)
   endif()
 
   # Get the list of include directories that will be required to compile the

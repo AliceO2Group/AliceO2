@@ -27,10 +27,15 @@ o2_add_library(ITStracking
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      ms_gsl::ms_gsl
                                      O2::CommonConstants
-                                     O2::DataFormatsITSMFT
-                                     O2::SimulationDataFormat
-                                     O2::ITSBase
-                                     O2::DataFormatsITS)
+               PRIVATE_LINK_LIBRARIES O2::DataFormatsITSMFT
+                                      O2::SimulationDataFormat
+                                      O2::ITSBase
+                                      O2::DataFormatsITS
+               PUBLIC_INCLUDE_DIRECTORIES ${ROOT_INCLUDE_DIRS}
+                                          ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
+                                          ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+                                          ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+                                          ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include)
 
 o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h

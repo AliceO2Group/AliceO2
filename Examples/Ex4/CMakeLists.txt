@@ -10,7 +10,7 @@
 
 o2_add_library(Ex4
                SOURCES src/A.cxx src/B.cxx
-               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ)
+               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ ROOT::Core)
 
 o2_target_root_dictionary(Ex4 HEADERS include/Ex4/A.h src/B.h)
 

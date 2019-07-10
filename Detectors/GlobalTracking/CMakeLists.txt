@@ -20,6 +20,8 @@ o2_add_library(GlobalTracking
                                      O2::GPUTracking
                                      O2::TPCBase
                                      O2::TPCReconstruction
+                                     O2::ITSBase
+                                     O2::ITSMFTBase
                                      O2::TOFBase)
 
 o2_target_root_dictionary(GlobalTracking
