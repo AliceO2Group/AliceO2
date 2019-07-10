@@ -130,11 +130,13 @@ set_package_properties(GLEW PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
 
-find_package(Clang)
-set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
-
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)
+if(LLVM_FOUND)
+find_package(Clang)
+set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
+endif()
+
 
 find_package(O2GPU)
 
