@@ -36,9 +36,9 @@ class HalfDiskSegmentation : public VSegmentation
   HalfDiskSegmentation(UInt_t uniqueID);
   HalfDiskSegmentation(const HalfDiskSegmentation& pt);
 
-  ~HalfDiskSegmentation() override;
+  ~HalfDiskSegmentation();
 
-  void Clear(const Option_t* /*opt*/) override;
+  void Clear(const Option_t* /*opt*/);
 
   void print(Option_t* opt = "");
 
@@ -74,9 +74,9 @@ class HalfDiskSegmentation : public VSegmentation
 
   TClonesArray* mLadders; ///< \brief Array of pointer to LadderSegmentation
 
-  ClassDefOverride(HalfDiskSegmentation, 1);
+  ClassDef(HalfDiskSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

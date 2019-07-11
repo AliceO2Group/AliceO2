@@ -27,8 +27,7 @@ ClassImp(o2::mft::Support);
 
 //_____________________________________________________________________________
 Support::Support()
-  : TNamed(),
-    mSupportVolume(nullptr),
+  : mSupportVolume(nullptr),
     mSupportThickness(0.7), // cm    instead of 0.8, fm
     mPCBThickness(0.1)      // cm
 {
@@ -43,7 +42,7 @@ Support::~Support() { delete mSupportVolume; }
 TGeoVolumeAssembly* Support::createVolume(Int_t half, Int_t disk)
 {
 
-  Info("CreateVolume", Form("Creating support and PCB for half %d and disk %d)", half, disk), 0, 0);
+  //Info("CreateVolume", Form("Creating support and PCB for half %d and disk %d)", half, disk), 0, 0);
 
   mSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
 
@@ -66,7 +65,7 @@ TGeoVolumeAssembly* Support::createVolume(Int_t half, Int_t disk)
 TGeoVolumeAssembly* Support::createPCBs(Int_t half, Int_t disk)
 {
 
-  Info("CreatePCBs", Form("Creating PCB for half %d and disk %d ", half, disk), 0, 0);
+  //Info("CreatePCBs", Form("Creating PCB for half %d and disk %d ", half, disk), 0, 0);
 
   TGeoVolumeAssembly* pcbVolume;
 
@@ -1493,7 +1492,7 @@ TGeoVolumeAssembly* Support::createPCB_PSU(Int_t half, Int_t disk)
 TGeoVolume* Support::createSupport(Int_t half, Int_t disk)
 {
 
-  Info("CreateSupport", Form("Creating PCB for half %d and disk %d ", half, disk), 0, 0);
+  //Info("CreateSupport", Form("Creating PCB for half %d and disk %d ", half, disk), 0, 0);
 
   // Get Mediums
   TGeoMedium* medPeek = gGeoManager->GetMedium("MFT_PEEK$");

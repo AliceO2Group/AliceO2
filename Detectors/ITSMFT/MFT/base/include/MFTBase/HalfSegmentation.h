@@ -28,7 +28,7 @@ namespace mft
 {
 class HalfDiskSegmentation;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -43,10 +43,10 @@ class HalfSegmentation : public VSegmentation
   HalfSegmentation(const Char_t* initFile, const Short_t id);
   HalfSegmentation(const HalfSegmentation& source);
 
-  ~HalfSegmentation() override;
-  void Clear(const Option_t* /*opt*/) override;
+  ~HalfSegmentation();
+  void Clear(const Option_t* /*opt*/);
 
-  Bool_t getID() const { return (GetUniqueID() >> 12); };
+  // Bool_t getID() const { return (GetUniqueID() >> 12); };
 
   Int_t getNHalfDisks() const { return mHalfDisks->GetEntries(); }
 
@@ -64,9 +64,9 @@ class HalfSegmentation : public VSegmentation
 
   TClonesArray* mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
 
-  ClassDefOverride(HalfSegmentation, 1);
+  ClassDef(HalfSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

@@ -35,7 +35,7 @@ class LadderSegmentation : public VSegmentation
   LadderSegmentation(UInt_t uniqueID);
   LadderSegmentation(const LadderSegmentation& ladder);
 
-  ~LadderSegmentation() override
+  ~LadderSegmentation()
   {
     if (mChips) {
       mChips->Delete();
@@ -44,7 +44,7 @@ class LadderSegmentation : public VSegmentation
     }
   }
   void print(Option_t* opt = "");
-  void Clear(const Option_t* /*opt*/) override
+  void Clear(const Option_t* /*opt*/)
   {
     if (mChips) {
       mChips->Clear();
@@ -66,9 +66,9 @@ class LadderSegmentation : public VSegmentation
   Int_t mNSensors;      ///< \brief Number of Sensors holded by the ladder
   TClonesArray* mChips; ///< \brief Array of pointer to ChipSegmentation
 
-  ClassDefOverride(LadderSegmentation, 1);
+  ClassDef(LadderSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif
