@@ -119,7 +119,7 @@ GPU_GLOBAL void trackleterKernel(
           const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
           const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
           const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
-          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
+          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
             const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
             const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
