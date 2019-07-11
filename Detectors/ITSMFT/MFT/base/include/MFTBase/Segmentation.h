@@ -25,24 +25,25 @@ namespace mft
 {
 class HalfSegmentation;
 }
-}
+} // namespace o2
 
 namespace o2
 {
 namespace mft
 {
 
-class Segmentation : public TNamed
+class Segmentation
 {
 
  public:
-  enum { Bottom, Top };
+  enum { Bottom,
+         Top };
 
   Segmentation();
   Segmentation(const Char_t* nameGeomFile);
 
-  ~Segmentation() override;
-  void Clear(const Option_t* /*opt*/) override;
+  ~Segmentation();
+  void Clear(const Option_t* /*opt*/);
 
   /// \brief Returns pointer to the segmentation of the half-MFT
   /// \param iHalf Integer : 0 = Bottom; 1 = Top
@@ -59,9 +60,9 @@ class Segmentation : public TNamed
  private:
   TClonesArray* mHalves; ///< \brief Array of pointer to HalfSegmentation
 
-  ClassDefOverride(Segmentation, 1);
+  ClassDef(Segmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

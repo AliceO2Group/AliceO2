@@ -76,7 +76,7 @@ class HalfDiskSegmentation : public VSegmentation
 
   ClassDefOverride(HalfDiskSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

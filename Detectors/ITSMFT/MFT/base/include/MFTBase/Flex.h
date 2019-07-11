@@ -15,8 +15,6 @@
 #ifndef ALICEO2_MFT_FLEX_H_
 #define ALICEO2_MFT_FLEX_H_
 
-#include "TNamed.h"
-
 class TGeoVolume;
 class TGeoVolumeAssembly;
 
@@ -25,13 +23,13 @@ namespace o2
 namespace mft
 {
 
-class Flex : public TNamed
+class Flex
 {
 
  public:
   Flex();
   Flex(LadderSegmentation* ladder);
-  ~Flex() override;
+  ~Flex();
   TGeoVolumeAssembly* makeFlex(Int_t nbsensors, Double_t length);
   void makeElectricComponents(TGeoVolumeAssembly* flex, Int_t nbsensors, Double_t length, Double_t zvarnish);
 
@@ -45,9 +43,9 @@ class Flex : public TNamed
   Double_t* mFlexOrigin;
   LadderSegmentation* mLadderSeg;
 
-  ClassDefOverride(Flex, 1)
+  ClassDef(Flex, 1)
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

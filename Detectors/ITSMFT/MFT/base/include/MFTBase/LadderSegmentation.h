@@ -68,7 +68,7 @@ class LadderSegmentation : public VSegmentation
 
   ClassDefOverride(LadderSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

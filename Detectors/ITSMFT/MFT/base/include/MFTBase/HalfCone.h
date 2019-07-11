@@ -16,8 +16,6 @@
 #ifndef ALICEO2_MFT_HALFCONE_H_
 #define ALICEO2_MFT_HALFCONE_H_
 
-#include "TNamed.h"
-
 class TGeoVolumeAssembly;
 
 namespace o2
@@ -25,13 +23,13 @@ namespace o2
 namespace mft
 {
 
-class HalfCone : public TNamed
+class HalfCone
 {
 
  public:
   HalfCone();
 
-  ~HalfCone() override;
+  ~HalfCone();
 
   TGeoVolumeAssembly* createHalfCone(Int_t half);
 
@@ -39,9 +37,9 @@ class HalfCone : public TNamed
   TGeoVolumeAssembly* mHalfCone;
 
  private:
-  ClassDefOverride(HalfCone, 1)
+  ClassDef(HalfCone, 1)
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

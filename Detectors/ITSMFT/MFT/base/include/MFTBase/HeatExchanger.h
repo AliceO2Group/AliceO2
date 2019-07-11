@@ -25,14 +25,14 @@ namespace o2
 namespace mft
 {
 
-class HeatExchanger : public TNamed
+class HeatExchanger
 {
 
  public:
   HeatExchanger();
   HeatExchanger(Double_t Rwater, Double_t DRPipe, Double_t HeatExchangerThickness, Double_t CarbonThickness);
 
-  ~HeatExchanger() override = default;
+  ~HeatExchanger() = default;
 
   TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
@@ -136,9 +136,9 @@ class HeatExchanger : public TNamed
   Double_t mAngle4fifth[4];  // angle of torus for fifth pipe of disk 4
   Double_t mRadius4fifth[4]; // radius of torus for fifth pipe of disk 4
 
-  ClassDefOverride(HeatExchanger, 2);
+  ClassDef(HeatExchanger, 2);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif
