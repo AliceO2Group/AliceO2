@@ -46,9 +46,6 @@ o2_add_test(RootTreeWriterWorkflow
             COMPONENT_NAME DPLUtils
             LABELS dplutils
             COMMAND_LINE_ARGS --run)
-# FIXME: re-enable this when random failures understood
-set_property(TEST Framework/Utils/test/test_RootTreeWriterWorkflow.cxx
-             PROPERTY DISABLED TRUE)
 
 o2_add_test(RootTreeReader
             SOURCES test/test_RootTreeReader.cxx
