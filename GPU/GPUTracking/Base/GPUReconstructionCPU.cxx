@@ -28,7 +28,6 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
-#include "ClusterNativeAccessExt.h"
 #include "GPUTRDTrackletLabels.h"
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"

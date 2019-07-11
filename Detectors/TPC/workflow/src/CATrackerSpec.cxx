@@ -54,8 +54,6 @@ namespace o2
 namespace tpc
 {
 
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-
 DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds)
 {
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
@@ -98,6 +96,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       bool continuous = false;     // time frame data v.s. triggered events
       int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
       bool useGPU = false;         // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;          // Enable additional debug output
       bool dump = false;           // create memory dump of processed events for standalone runs
       char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
       GPUDisplayBackend* display = nullptr;
@@ -143,6 +142,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
             sscanf(optPtr + 5, "%f", &refX);
             printf("Propagating to reference X %f\n", refX);
+          } else if (optLen > 5 && strncmp(optPtr, "debug=", 6) == 0) {
+            sscanf(optPtr + 6, "%d", &debugLevel);
+            printf("Debug level set to %d\n", debugLevel);
           } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
             sscanf(optPtr + 8, "%d", &nThreads);
             printf("Using %d threads\n", nThreads);
@@ -256,7 +258,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             // have already data for this sector, this should not happen in the current
             // sequential implementation, for parallel path merged at the tracker stage
             // multiple buffers need to be handled
-            throw std::runtime_error("can only have one data set per sector");
+            throw std::runtime_error("can only have one MC data set per sector");
           }
           mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
           validMcInputs.set(sector);
@@ -302,7 +304,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           // have already data for this sector, this should not happen in the current
           // sequential implementation, for parallel path merged at the tracker stage
           // multiple buffers need to be handled
-          throw std::runtime_error("can only have one data set per sector");
+          throw std::runtime_error("can only have one cluster data set per sector");
         }
         activeSectors |= sectorHeader->activeSectors;
         validInputs.set(sector);
@@ -405,9 +407,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         }
         LOG(INFO) << "running tracking for sector(s) " << bitInfo;
       }
-      ClusterNativeAccessFullTPC clusterIndex;
+      ClusterNativeAccess clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
-      ClusterNativeHelper::Reader::fillIndex(clusterIndex, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
+      std::unique_ptr<ClusterNative[]> clusterBuffer;
+      MCLabelContainer clustersMCBuffer;
+      ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
 
       GPUO2InterfaceIOPtrs ptrs;
       std::vector<TrackTPC> tracks;
@@ -431,7 +435,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters; // This is a ROOT-serializable container with compressed TPC clusters
       // Example to decompress clusters
       //#include "TPCClusterDecompressor.cxx"
-      //o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded; // Cluster native access structure as used by the tracker
+      //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
 
