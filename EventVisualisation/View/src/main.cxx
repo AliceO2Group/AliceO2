@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
     // Terminate application
     TEveManager::Terminate();
-    app->Terminate();
+    app->Terminate(0);
 
     return 0;
 }

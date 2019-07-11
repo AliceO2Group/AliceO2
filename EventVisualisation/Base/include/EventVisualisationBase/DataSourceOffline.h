@@ -13,13 +13,8 @@ namespace event_visualisation {
 
 class DataSourceOffline : public DataSource {
 protected:
-    TString fgESDFileName ;
-    bool isOpen = kFALSE;
 
 public:
-    virtual void open(TString ESDFileName) {
-        this->fgESDFileName = ESDFileName;
-    };
     int gotoEvent(Int_t event) override {};
     void nextEvent() override {};
     DataSourceOffline() {}

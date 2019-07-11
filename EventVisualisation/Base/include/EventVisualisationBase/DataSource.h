@@ -18,6 +18,8 @@ public:
 
     DataSource(){};
 
+    virtual bool open() {}
+
     /// Default destructor
     virtual ~DataSource(){};
 

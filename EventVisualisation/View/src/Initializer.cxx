@@ -55,14 +55,15 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   auto &eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
+  eventManager.Open();
 
-  TFile*  fFile = TFile::Open("AliESDs.root");
+  //TFile*  fFile = TFile::Open("AliESDs.root");
   //TFile*  fFile = TFile::Open("AliVSD.root");
 
-  DataSourceOffline *ds = new DataSourceOfflineVSD();
-//DataSourceOffline *ds = new DataSourceOffline();
-  ds->open("AliVSD.root");
-  eventManager.setDataSource(ds);
+  //DataSourceOffline *ds = new DataSourceOfflineVSD();
+  //DataSourceOffline *ds = new DataSourceOffline();
+  //ds->open("AliVSD.root");
+  //eventManager.setDataSource(ds);
 
   
   //gEve->AddEvent(&eventManager);
@@ -96,7 +97,7 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Later this will be triggered by button, and finally moved to configuration.
   //gEve->AddEvent(&EventManager::getInstance());
   //MultiView::getInstance()->drawRandomEvent();
-    gEve->AddEvent(&eventManager);
+  gEve->AddEvent(&eventManager);
   frame->DoFirstEvent();
 }
 
@@ -111,7 +112,7 @@ void Initializer::setupGeometry()
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
   
-  for(int iDet=0;iDet<NvisualisationGroups;++iDet){
+  for(int iDet=0; iDet<NvisualisationGroups; ++iDet){
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
     if(settings.GetValue((detName+".draw").c_str(), false))

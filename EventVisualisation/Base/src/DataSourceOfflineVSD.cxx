@@ -126,7 +126,8 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
         gEve->AddElement(fTrackList);
     }
 
-    void DataSourceOfflineVSD::open(TString ESDFileName)  {
+    bool DataSourceOfflineVSD::open()  {
+        TString ESDFileName = "balbinka.root";
         fMaxEv = -1;
         fCurEv = -1;
         fFile = TFile::Open(ESDFileName);

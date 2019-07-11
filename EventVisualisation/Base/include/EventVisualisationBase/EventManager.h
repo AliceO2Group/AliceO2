@@ -55,9 +55,6 @@ public:
     {
       o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
     }
-    int gotoEvent(Int_t event) ;
-    DataSource *getDataSource() {return dataSource;}
-    void setDataSource(DataSource *dataSource) {this->dataSource = dataSource;}
 
     void Open() override ;
     void GotoEvent(Int_t /*event*/) override ;

@@ -51,7 +51,7 @@ public:
 
     void LoadEsdTracks();
 
-    void open(TString ESDFileName) override;
+    bool open() override;
 
     Bool_t GotoEvent(Int_t ev);
 };

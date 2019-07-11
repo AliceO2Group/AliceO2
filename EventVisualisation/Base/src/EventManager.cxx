@@ -19,7 +19,7 @@
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 #include "EventVisualisationBase/Track.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/DataSource.h"
+#include "EventVisualisationBase/DataSourceOfflineITS.h"
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -48,22 +48,22 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", ""), mCurrentDataSourceType(SourceOffline) {
     std::cout << "EventManager::EventManager()" << std::endl;
-}
-
-int EventManager::gotoEvent(Int_t event) {
-    std::cout << "EventManager::gotoEvent(" <<event << ")" << std::endl;
-    DataSource *dataSource = getDataSource();
-    return dataSource->gotoEvent(event);
+    dataSource = new DataSourceOfflineITS();
 }
 
 void EventManager::Open() {
     std::cout << "EventManager::Open()" << std::endl;
-    TEveEventManager::Open();
+
+
+    //TEveEventManager::Open();
 }
+
+
+
 
 void EventManager::GotoEvent(Int_t no) {
     std::cout << "EventManager::GotoEvent("<<no<<")" << std::endl;
-    gotoEvent(no);
+    dataSource->gotoEvent(no);
     TEveEventManager::GotoEvent( no);
 }
 

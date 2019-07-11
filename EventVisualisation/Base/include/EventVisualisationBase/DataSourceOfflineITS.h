@@ -13,12 +13,16 @@ namespace event_visualisation {
 
 class DataSourceOfflineITS : public DataSourceOffline {
 public:
-
+    TString digifile;
+    TString clusfile;
+    TString tracfile;
+    int entry = 0;
+    int chip = 13;
     DataSourceOfflineITS();
 
-    void open(TString fileName) override;
+    bool open() override;
 
-    Bool_t GotoEvent(Int_t ev);
+    int gotoEvent(Int_t event) override ;
 };
 
 }
