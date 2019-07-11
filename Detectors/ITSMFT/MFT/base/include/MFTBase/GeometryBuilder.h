@@ -16,26 +16,24 @@
 #ifndef ALICEO2_MFT_GEOMETRYBUILDER_H_
 #define ALICEO2_MFT_GEOMETRYBUILDER_H_
 
-#include "TNamed.h"
-
 namespace o2
 {
 namespace mft
 {
 
-class GeometryBuilder : public TNamed
+class GeometryBuilder
 {
 
  public:
-  GeometryBuilder();
-  ~GeometryBuilder() override;
+  GeometryBuilder() = default;
+  ~GeometryBuilder() = default;
 
   void buildGeometry();
 
  private:
-  ClassDefOverride(GeometryBuilder, 1)
+  ClassDef(GeometryBuilder, 1)
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

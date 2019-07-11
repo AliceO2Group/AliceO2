@@ -15,8 +15,6 @@
 #ifndef ALICEO2_MFT_SUPPORT_H_
 #define ALICEO2_MFT_SUPPORT_H_
 
-#include "TNamed.h"
-
 #include "FairLogger.h"
 
 class TGeoVolume;
@@ -27,13 +25,13 @@ namespace o2
 namespace mft
 {
 
-class Support : public TNamed
+class Support
 {
 
  public:
   Support();
 
-  ~Support() override;
+  ~Support();
 
   TGeoVolumeAssembly* createVolume(Int_t half, Int_t disk);
   TGeoVolumeAssembly* createPCBs(Int_t half, Int_t disk);
@@ -65,9 +63,9 @@ class Support : public TNamed
   Double_t mPCBThickness;
 
  private:
-  ClassDefOverride(Support, 1)
+  ClassDef(Support, 1)
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif
