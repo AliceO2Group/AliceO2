@@ -13,8 +13,11 @@ namespace event_visualisation {
 
 class DataSource : public TQObject {
 public:
-    virtual int gotoEvent(Int_t event) {};
+    virtual Int_t gotoEvent(Int_t event) {};
     virtual void nextEvent() {};
+    virtual Int_t GetEventCount() { return 0; };
+    virtual void open(TString ESDFileName) {};
+    virtual void close() {};
 
     DataSource(){};
 

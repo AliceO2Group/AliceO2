@@ -17,7 +17,7 @@ protected:
     bool isOpen = kFALSE;
 
 public:
-    virtual void open(TString ESDFileName) {
+    virtual void open(TString ESDFileName) override {
         this->fgESDFileName = ESDFileName;
     };
     int gotoEvent(Int_t event) override {};

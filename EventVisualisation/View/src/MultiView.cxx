@@ -27,6 +27,7 @@
 #include <TEveManager.h>
 #include <TEveProjectionAxes.h>
 #include <TEveProjectionManager.h>
+#include <TEveWindowManager.h>
 
 #include <iostream>
 
@@ -53,9 +54,15 @@ MultiView::MultiView()
   mSceneDescriptions[Scene3dEvent]   = "Scene holding 3D event.";
   mSceneDescriptions[SceneRphiEvent] = "Scene holding projected event for the R-Phi view.";
   mSceneDescriptions[SceneZrhoEvent] = "Scene holding projected event for the Rho-Z view.";
-  
+
   // spawn scenes
-  for(int i=0;i<NumberOfScenes;++i){
+  mScenes[Scene3dGeom] = gEve->GetGlobalScene();
+  mScenes[Scene3dGeom]->SetNameTitle(mSceneNames[Scene3dGeom].c_str(), mSceneDescriptions[Scene3dGeom].c_str());
+
+  mScenes[Scene3dEvent] = gEve->GetEventScene();
+  mScenes[Scene3dEvent]->SetNameTitle(mSceneNames[Scene3dEvent].c_str(), mSceneDescriptions[Scene3dEvent].c_str());
+
+  for(int i=SceneRPhiGeom;i<NumberOfScenes;++i){
     mScenes[i] = gEve->SpawnNewScene(mSceneNames[i].c_str(), mSceneDescriptions[i].c_str());
   }
   
@@ -109,9 +116,9 @@ void MultiView::setupMultiview()
   pack->SetShowTitleBar(kFALSE);
   
   pack->NewSlotWithWeight(2)->MakeCurrent(); // new slot is created from pack
-  mViews[View3d] = gEve->SpawnNewViewer("3D View", "");
-  mViews[View3d]->AddScene(mScenes[Scene3dGeom]);
-  mViews[View3d]->AddScene(mScenes[Scene3dEvent]);
+  mViews[View3d] = gEve->GetDefaultViewer();
+  mViews[View3d]->SetNameTitle("3D View", "");
+  gEve->GetWindowManager()->GetCurrentWindowAsSlot()->ReplaceWindow(mViews[View3d]);
   
   pack =  pack->NewSlot()->MakePack();
   pack->SetShowTitleBar(kFALSE);
@@ -209,6 +216,5 @@ void MultiView::drawRandomEvent()
     registerEvent(dataRND1);
 
 }
-  
 }
 }

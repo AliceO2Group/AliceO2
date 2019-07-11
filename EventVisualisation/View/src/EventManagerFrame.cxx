@@ -82,31 +82,39 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame *p, const char *txt
 }
 
 void EventManagerFrame::DoFirstEvent() {
-    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
-    std::cout << "DoFirstEvent" << std::endl;
-    fEventId->SetIntNumber(0);
-    offline->GotoEvent(0);
+    fM->GotoEvent(0);
+    fEventId->SetIntNumber(fM->getCurrentEvent());
+//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    std::cout << "DoFirstEvent" << std::endl;
+//    fEventId->SetIntNumber(0);
+//    offline->GotoEvent(0);
 }
 
 void EventManagerFrame::DoPrevEvent() {
-    std::cout << "DoPrevEvent" << std::endl;
-    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()-1));
-    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
-    offline->GotoEvent(fEventId->GetNumber());
+    fM->PrevEvent();
+    fEventId->SetIntNumber(fM->getCurrentEvent());
+//    std::cout << "DoPrevEvent" << std::endl;
+//    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()-1));
+//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    offline->GotoEvent(fEventId->GetNumber());
 }
 
 void EventManagerFrame::DoNextEvent() {
-    std::cout << "DoNextEvent" << std::endl;
-    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()+1));
-    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
-    offline->GotoEvent(fEventId->GetNumber());
+    fM->NextEvent();
+    fEventId->SetIntNumber(fM->getCurrentEvent());
+//    std::cout << "DoNextEvent" << std::endl;
+//    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()+1));
+//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    offline->GotoEvent(fEventId->GetNumber());
 }
 
 void EventManagerFrame::DoLastEvent() {
-    std::cout << "DoLastEvent" << std::endl;
-    fEventId->SetIntNumber(fM->gotoEvent(-1));      // -1 means last available
-    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
-    offline->GotoEvent(fEventId->GetNumber());
+    fM->GotoEvent(-1);  /// -1 means last available
+    fEventId->SetIntNumber(fM->getCurrentEvent());
+//    std::cout << "DoLastEvent" << std::endl;
+//    fEventId->SetIntNumber(fM->gotoEvent(-1));      // -1 means last available
+//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    offline->GotoEvent(fEventId->GetNumber());
 }
 
 void EventManagerFrame::DoSetEvent() {

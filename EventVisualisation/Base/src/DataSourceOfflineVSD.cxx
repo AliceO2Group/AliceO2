@@ -11,7 +11,8 @@
 #include <TPRegexp.h>
 #include <TEveTrackPropagator.h>
 #include <TEveEventManager.h>
-
+#include <EventVisualisationBase/EventManager.h>
+#include <EventVisualisationView/MultiView.h>
 
 
 namespace o2  {
@@ -59,7 +60,7 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
 
             fFile->Close();
             delete fFile;
-            fFile == nullptr;
+            fFile = nullptr;
         }
     }
 
@@ -78,9 +79,9 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
 
         this->viewers = gEve->GetViewers();
         this->viewers->DeleteAnnotations();
-        TEveEventManager *manager = gEve->GetCurrentEvent();
-        assert(manager != nullptr);
-        manager->DestroyElements();
+        //TEveEventManager *manager = gEve->GetCurrentEvent();
+        //assert(manager != nullptr);
+        //manager->DestroyElements();
 
         // Drop old event-data.
 
@@ -98,10 +99,12 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
             fTrackList->SetMarkerColor(kYellow);
             fTrackList->SetMarkerStyle(4);
             fTrackList->SetMarkerSize(0.5);
+            fTrackList->SetLineWidth(5);
 
             fTrackList->IncDenyDestroy();
         } else {
             fTrackList->DestroyElements();
+            MultiView::getInstance()->destroyAllEvents();
         }
 
         TEveTrackPropagator *trkProp = fTrackList->GetPropagator();
@@ -111,10 +114,12 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
         trkProp->SetStepper(TEveTrackPropagator::kRungeKutta);
 
         Int_t nTracks = fVSD->fTreeR->GetEntries();
-        for (Int_t n = 0; n < nTracks; ++n) {
+
+        for (Int_t n = 0; n < nTracks; n++) {
             fVSD->fTreeR->GetEntry(n);
 
-            TEveTrack *track = new TEveTrack(&fVSD->fR, trkProp);
+            auto *track = new TEveTrack(&fVSD->fR, trkProp);
+            track->SetAttLineAttMarker(fTrackList);
             track->SetName(Form("ESD Track %d", fVSD->fR.fIndex));
             track->SetStdTitle();
             track->SetAttLineAttMarker(fTrackList);
@@ -123,10 +128,11 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
 
         fTrackList->MakeTracks();
 
-        gEve->AddElement(fTrackList);
+        MultiView::getInstance()->registerEvent(fTrackList);
     }
 
     void DataSourceOfflineVSD::open(TString ESDFileName)  {
+        Warning("GotoEvent", "OPEN");
         fMaxEv = -1;
         fCurEv = -1;
         fFile = TFile::Open(ESDFileName);
@@ -155,7 +161,8 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
         fVSD = new TEveVSD;
     }
 
-    Bool_t DataSourceOfflineVSD::GotoEvent(Int_t ev) {
+    Int_t DataSourceOfflineVSD::gotoEvent(Int_t ev) {
+        Warning("GotoEvent", "GOTOEVENT");
         if (ev < 0 || ev >= this->fMaxEv) {
             Warning("GotoEvent", "Invalid event id %d.", ev);
             return kFALSE;
@@ -173,10 +180,10 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
 
         // Load event data into visualization structures.
 
-        this->LoadClusters(this->fITSClusters, "ITS", 0);
-        this->LoadClusters(this->fTPCClusters, "TPC", 1);
-        this->LoadClusters(this->fTRDClusters, "TRD", 2);
-        this->LoadClusters(this->fTOFClusters, "TOF", 3);
+//        this->LoadClusters(this->fITSClusters, "ITS", 0);
+//        this->LoadClusters(this->fTPCClusters, "TPC", 1);
+//        this->LoadClusters(this->fTRDClusters, "TRD", 2);
+//        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
         this->LoadEsdTracks();
         return kTRUE;

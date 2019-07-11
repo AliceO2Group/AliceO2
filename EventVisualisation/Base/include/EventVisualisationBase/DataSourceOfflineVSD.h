@@ -38,6 +38,8 @@ public:
     TEvePointSet *fTOFClusters;
     TDirectory *fDirectory;
 
+    Int_t GetEventCount() override { return fEvDirKeys->GetEntriesFast(); };
+
     DataSourceOfflineVSD();
 
     void LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id);
@@ -53,7 +55,7 @@ public:
 
     void open(TString ESDFileName) override;
 
-    Bool_t GotoEvent(Int_t ev);
+    Int_t gotoEvent(Int_t ev) override;
 };
 
 

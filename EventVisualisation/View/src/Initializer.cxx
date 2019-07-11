@@ -56,13 +56,16 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  TFile*  fFile = TFile::Open("AliESDs.root");
+  //TFile*  fFile = TFile::Open("AliESDs.root");
   //TFile*  fFile = TFile::Open("AliVSD.root");
 
-  DataSourceOffline *ds = new DataSourceOfflineVSD();
-//DataSourceOffline *ds = new DataSourceOffline();
-  ds->open("AliVSD.root");
-  eventManager.setDataSource(ds);
+//  DataSourceOffline *ds = new DataSourceOfflineVSD();
+////DataSourceOffline *ds = new DataSourceOffline();
+//  ds->open("AliVSD.root");
+//  eventManager.setDataSource(ds);
+  eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
+  eventManager.setDataSourcePath("events_0.root");
+  eventManager.Open();
 
   
   //gEve->AddEvent(&eventManager);
@@ -94,9 +97,8 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Temporary:
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
-  //gEve->AddEvent(&EventManager::getInstance());
-  //MultiView::getInstance()->drawRandomEvent();
-    gEve->AddEvent(&eventManager);
+  gEve->AddEvent(&EventManager::getInstance());
+//  MultiView::getInstance()->drawRandomEvent();
   frame->DoFirstEvent();
 }
 

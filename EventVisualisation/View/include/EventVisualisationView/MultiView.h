@@ -44,9 +44,9 @@ class MultiView
     
     enum EScenes{
       Scene3dGeom,    ///< 3D scene of geometry
+      Scene3dEvent,   ///< 3D scene of event
       SceneRPhiGeom,  ///< R-Phi scene of geometry
       SceneZrhoGeom , ///< Z-Pho scene of geometry
-      Scene3dEvent,   ///< 3D scene of event
       SceneRphiEvent, ///< R-Phi scene of event
       SceneZrhoEvent ,///< Z-Rho scene of event
       NumberOfScenes  ///< Total number of scenes
