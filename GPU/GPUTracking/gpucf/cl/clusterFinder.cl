@@ -260,23 +260,22 @@ void reset(PartialCluster *clus)
     void fillScratchPad_##type( \
             global   const type      *chargeMap, \
                            uint       wgSize, \
-                           local_id   lid, \
+                           ushort     ll, \
                            uint       offset, \
                            uint       N, \
             constant       delta2_t  *neighbors, \
             local    const ChargePos *posBcast, \
             local          type      *buf) \
     { \
-        int i = lid.y; \
-        LOOP_UNROLL_ATTR for (; i < wgSize; i += N) \
+        ushort y = ll / N; \
+        ushort x = ll % N; \
+        delta2_t d = neighbors[x + offset]; \
+        delta_t dp = d.x; \
+        delta_t dt = d.y; \
+        LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
         { \
             ChargePos readFrom = posBcast[i]; \
-            delta2_t d = neighbors[lid.x + offset]; \
-            delta_t dp = d.x; \
-            delta_t dt = d.y; \
-            \
-            uint writeTo = N * i + lid.x; \
-            \
+            uint writeTo = N * i + x; \
             buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
         } \
         work_group_barrier(CLK_LOCAL_MEM_FENCE); \
@@ -407,7 +406,6 @@ void buildClusterScratchPad(
     reset(myCluster);
 
     ushort ll = get_local_linear_id();
-    local_id lid = {ll % N, ll / N};
 
     posBcast[ll] = pos;
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
@@ -416,7 +414,7 @@ void buildClusterScratchPad(
     fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             0,
             N,
             INNER_NEIGHBORS,
@@ -425,7 +423,7 @@ void buildClusterScratchPad(
     fillScratchPad_char(
             peakCountMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             0,
             N,
             INNER_NEIGHBORS,
@@ -442,7 +440,7 @@ void buildClusterScratchPad(
     fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE, 
-            lid, 
+            ll,
             0, 
             N, 
             OUTER_NEIGHBORS,
@@ -451,7 +449,7 @@ void buildClusterScratchPad(
     fillScratchPad_char(
             peakCountMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             0,
             N,
             OUTER_NEIGHBORS,
@@ -469,7 +467,7 @@ void buildClusterScratchPad(
     fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             8,
             N,
             OUTER_NEIGHBORS,
@@ -478,7 +476,7 @@ void buildClusterScratchPad(
     fillScratchPad_char(
             peakCountMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             8,
             N,
             OUTER_NEIGHBORS,
@@ -578,7 +576,6 @@ bool isPeakScratchPad(
         local        charge_t  *buf)
 {
     ushort ll = get_local_linear_id();
-    local_id lid = {ll % N, ll / N};
 
     const timestamp time = digit->time;
     const row_t row = digit->row;
@@ -596,7 +593,7 @@ bool isPeakScratchPad(
     fillScratchPad_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
-            lid,
+            ll,
             0,
             N,
             INNER_NEIGHBORS,
@@ -926,9 +923,8 @@ void countPeaks(
 
     IF_DBG_INST DBGPR_1("in3x3 = %d", in3x3);
 
-    local_id lid = {ll % N, ll / N};
     IF_DBG_INST DBGPR_0("Fill LDS 1.");
-    fillScratchPad_uchar(peakMap, in3x3, lid, 0, N, INNER_NEIGHBORS, posBcast2, buf);
+    fillScratchPad_uchar(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast2, buf);
     /* fillScratchPadNaive(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast2, buf); */
     if (ll < in3x3)
     {
@@ -956,7 +952,7 @@ void countPeaks(
             posBcast1);
 
     IF_DBG_INST DBGPR_0("Fill LDS 2.");
-    fillScratchPad_uchar(peakMap, in5x5, lid, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
+    fillScratchPad_uchar(peakMap, in5x5, ll, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
     /* fillScratchPadNaive(peakMap, in5x5, ll, 0, N, OUTER_NEIGHBORS, posBcast1, buf); */
     if (ll < in5x5)
     {
@@ -965,7 +961,7 @@ void countPeaks(
     }
 
     IF_DBG_INST DBGPR_0("Fill LDS 3.");
-    fillScratchPad_uchar(peakMap, in5x5, lid, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
+    fillScratchPad_uchar(peakMap, in5x5, ll, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
     /* fillScratchPadNaive(peakMap, in5x5, ll, 8, N, OUTER_NEIGHBORS, posBcast1, buf); */
     if (ll < in5x5)
     {
