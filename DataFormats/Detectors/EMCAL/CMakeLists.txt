@@ -8,10 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(calib)
-if(BUILD_TESTING)
-  add_subdirectory(testsimulation)
-endif()
-add_subdirectory(workflow)
+o2_add_library(DataFormatsEMCAL
+               SOURCES src/EMCALBlockHeader.cxx 
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers 
+                                     Boost::serialization O2::MathUtils)
+
+o2_target_root_dictionary(DataFormatsEMCAL
+                          HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h)
