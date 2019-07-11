@@ -20,7 +20,6 @@ set(SRCS
   src/HeatExchanger.cxx
   src/HalfCone.cxx
   src/PowerSupplyUnit.cxx
-  src/Barrel.cxx
 )
 
 set(HEADERS
@@ -42,7 +41,6 @@ set(HEADERS
   include/${MODULE_NAME}/HeatExchanger.h
   include/${MODULE_NAME}/HalfCone.h
   include/${MODULE_NAME}/PowerSupplyUnit.h
-  include/${MODULE_NAME}/Barrel.h
 )
 
 Set(LINKDEF src/MFTBaseLinkDef.h)
