@@ -28,12 +28,6 @@ mkdir -p /tmp/gpucf_profiling
 
 make -sC$buildDir/release run_gpucf -j64
 
-profile Baseline.csv --layoutTimeMajor
-profile TilingLayout.csv --layoutTiling4x4
-profile PadMajor.csv --layoutPadMajor
-
-profile Halfs.csv --halfs
-profile HalfsPadMajor.csv --halfs --layoutPadMajor
-profile Halfs4x8Tiling.csv --halfs --layoutTiling4x8
-profile Halfs8x4Tiling.csv --halfs --layoutTiling8x4
-profile Scratchpad.csv --halfs --layoutTiling8x4 --builderScratchpad
+profile TimeMajor.csv --layoutTimeMajor
+profile Tiling8x4.csv --layoutTiling8x4
+profile Scratchpad.csv --halfs --layoutTiling8x4 --builderScratchPad
