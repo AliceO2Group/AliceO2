@@ -101,9 +101,12 @@ class DataAllocator
 
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
+  /// Note: decltype(auto) will deduce the return type from the expression and it
+  /// will be lvalue reference for the framework-owned objects. Instances of local
+  /// variables like shared_ptr will be returned by value/move/return value optimization.
   /// Objects created this way will be sent to the channel specified by @spec
   template <typename T, typename... Args>
-  auto& make(const Output& spec, Args... args)
+  decltype(auto) make(const Output& spec, Args... args)
   {
     if constexpr (std::is_base_of_v<TObject, T>) {
       auto obj = new T(args...);
@@ -393,7 +396,7 @@ class DataAllocator
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
   template <typename T, typename... Args>
-  auto& make(OutputRef&& ref, Args&&... args)
+  decltype(auto) make(OutputRef&& ref, Args&&... args)
   {
     return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }

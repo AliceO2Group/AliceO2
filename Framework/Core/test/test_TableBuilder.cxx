@@ -16,6 +16,8 @@
 
 #include "Framework/TableBuilder.h"
 #include "Framework/TableConsumer.h"
+#include "Framework/DataAllocator.h"
+#include "Framework/OutputRoute.h"
 #include <arrow/table.h>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -246,4 +248,15 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
     BOOST_CHECK_EQUAL(row.y(), i);
     ++i;
   }
+}
+
+BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
+{
+  TimingInfo* timingInfo = nullptr;
+  ContextRegistry* contextes = nullptr;
+  std::vector<OutputRoute> routes;
+  DataAllocator allocator(timingInfo, contextes, routes);
+  const Output output{ "TST", "DUMMY", 0, Lifetime::Timeframe };
+  // we require reference to object owned by allocator context
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);
 }
