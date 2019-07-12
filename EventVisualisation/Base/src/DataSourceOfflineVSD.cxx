@@ -11,7 +11,7 @@
 #include <TPRegexp.h>
 #include <TEveTrackPropagator.h>
 #include <TEveEventManager.h>
-
+#include <iostream>
 
 
 namespace o2  {
@@ -24,7 +24,9 @@ namespace event_visualisation {
             : DataSourceOffline(), fTrackList(0), fITSClusters(0), fTPCClusters(0), fTRDClusters(0), fTOFClusters(0),
               fVSD(0), fDirectory(0),
               fFile(0), fEvDirKeys(0),
-              fMaxEv(-1), fCurEv(-1) {}
+              fMaxEv(-1), fCurEv(-1) {
+        std::cout << "DataSourceOfflineVSD::DataSourceOfflineVSD()" << std::endl;
+    }
     //---------------------------------------------------------------------------
     // Cluster loading
     //---------------------------------------------------------------------------
@@ -127,6 +129,7 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
     }
 
     bool DataSourceOfflineVSD::open()  {
+        std::cout << "bool DataSourceOfflineVSD::open()" << std::endl;
         TString ESDFileName = "balbinka.root";
         fMaxEv = -1;
         fCurEv = -1;

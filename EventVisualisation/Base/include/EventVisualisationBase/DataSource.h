@@ -7,14 +7,16 @@
 
 #include <TQObject.h>
 
-
+class TEveElementList;
 namespace o2 {
 namespace event_visualisation {
 
+
 class DataSource : public TQObject {
 public:
-    virtual int gotoEvent(Int_t event) {};
+    virtual TEveElementList* gotoEvent(Int_t event) {};
     virtual void nextEvent() {};
+    virtual std::string name() { return "DataSource"; }
 
     DataSource(){};
 

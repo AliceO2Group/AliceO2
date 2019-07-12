@@ -38,6 +38,12 @@ class DataSource;
 class EventManager : public TEveEventManager, public TQObject
 {
 public:
+    // sznurki
+    TEveElementList *mEvent;
+    int eventNo = 0;
+    int GetEventNo() { return  this->eventNo;}
+    std::string versionID;
+    // koniec sznurków
     enum EDataSource{
       SourceOnline,   ///< Online reconstruction is a source of events
       SourceOffline,  ///< Local files are the source of events

@@ -23,7 +23,8 @@ private:
     static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width=0,
                               Int_t lo=0, Int_t ro=0, Int_t to=0, Int_t bo=0);
 protected:
-    o2::event_visualisation::EventManager   *fM;            // Model object.
+    //TEveEventManager   *fM;            // Model object.
+    EventManager   *fM;            // Model object.
 
     TGTextButton   *fFirstEvent;   // Go to first event
     TGTextButton   *fPrevEvent;    // Go to prev event

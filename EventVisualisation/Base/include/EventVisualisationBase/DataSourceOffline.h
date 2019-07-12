@@ -15,7 +15,7 @@ class DataSourceOffline : public DataSource {
 protected:
 
 public:
-    int gotoEvent(Int_t event) override {};
+    TEveElementList* gotoEvent(Int_t event) override {};
     void nextEvent() override {};
     DataSourceOffline() {}
 

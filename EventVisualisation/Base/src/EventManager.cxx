@@ -20,6 +20,7 @@
 #include "EventVisualisationBase/Track.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataSourceOfflineITS.h"
+#include "EventVisualisationView/MultiView.h"
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -47,13 +48,14 @@ EventManager& EventManager::getInstance()
 }
 
 EventManager::EventManager() : TEveEventManager("Event", ""), mCurrentDataSourceType(SourceOffline) {
-    std::cout << "EventManager::EventManager()" << std::endl;
+    std::cout << "EventManager::EventManager() " << this << std::endl;
     dataSource = new DataSourceOfflineITS();
 }
 
 void EventManager::Open() {
-    std::cout << "EventManager::Open()" << std::endl;
-
+    this->versionID = "balbinka";
+    std::cout << "EventManager::Open() "<< this->versionID << std::endl;
+    dataSource->open();
 
     //TEveEventManager::Open();
 }
@@ -63,18 +65,22 @@ void EventManager::Open() {
 
 void EventManager::GotoEvent(Int_t no) {
     std::cout << "EventManager::GotoEvent("<<no<<")" << std::endl;
-    dataSource->gotoEvent(no);
-    TEveEventManager::GotoEvent( no);
+    std::cout << "EventManager: " <<this << std::endl;
+    std::cout << "DataSource:: " <<this << std::endl;
+    this->eventNo = no;
+    this->mEvent = dataSource->gotoEvent(no);
+
+
 }
 
 void EventManager::NextEvent() {
-    std::cout << "EventManager::EventManager()" << std::endl;
-    TEveEventManager::NextEvent();
+    std::cout << "EventManager::NextEvent()" << std::endl;
+    this->GotoEvent(this->eventNo+1);
 }
 
 void EventManager::PrevEvent() {
     std::cout << "EventManager::PrevEvent()" << std::endl;
-    TEveEventManager::PrevEvent();
+    this->GotoEvent(this->eventNo-1);
 }
 
 void EventManager::Close() {

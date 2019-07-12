@@ -65,11 +65,13 @@ class ITSData {
 
     std::vector<o2::itsmft::ROFRecord> mTracksROF;
     std::vector<o2::its::TrackITS>* mTrackBuffer = nullptr;
+
+    int mLastEvent = 0;
+public:
     std::vector<o2::itsmft::Digit> mDigits;
     gsl::span<o2::itsmft::Cluster> mClusters;
     gsl::span<o2::its::TrackITS> mTracks;
-    int mLastEvent = 0;
-public:
+
     ITSData() {}
     int getLastEvent() const { return mLastEvent; }
     void setDigitPixelReader(TString input)
@@ -238,13 +240,196 @@ public:
 } its_data;
 
 
+class ITS_Display {
+    static constexpr float sizey = o2::itsmft::SegmentationAlpide::ActiveMatrixSizeRows;
+    static constexpr float sizex = o2::itsmft::SegmentationAlpide::ActiveMatrixSizeCols;
+    static constexpr float dy = o2::itsmft::SegmentationAlpide::PitchRow;
+    static constexpr float dx = o2::itsmft::SegmentationAlpide::PitchCol;
+    static constexpr float gap = 1e-4; // For a better visualization of pix
+
+    // TEve-related members
+    TEveElementList* mEvent = nullptr;
+    TEveElementList* mChip = nullptr;
+
+    TEveElement* getEveChipDigits(int chip, std::vector<o2::itsmft::Digit>& mDigits)
+    {
+        static TEveFrameBox* box = new TEveFrameBox();
+        box->SetAAQuadXY(0, 0, 0, sizex, sizey);
+        box->SetFrameColor(kGray);
+
+        // Digits
+        TEveQuadSet* qdigi = new TEveQuadSet("digits");
+        qdigi->SetOwnIds(kTRUE);
+        qdigi->SetFrame(box);
+        qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
+        auto gman = o2::its::GeometryTGeo::Instance();
+        std::vector<int> occup(gman->getNumberOfChips());
+        for (const auto& d : mDigits) {
+            auto id = d.getChipIndex();
+            occup[id]++;
+            if (id != chip)
+                continue;
+
+            int row = d.getRow();
+            int col = d.getColumn();
+            int charge = d.getCharge();
+            qdigi->AddQuad(col * dx + gap, row * dy + gap, 0., dx - 2 * gap, dy - 2 * gap);
+            qdigi->QuadValue(charge);
+        }
+        qdigi->RefitPlex();
+        TEveTrans& t = qdigi->RefMainTrans();
+        t.RotateLF(1, 3, 0.5 * TMath::Pi());
+        t.SetPos(0, 0, 0);
+
+        auto most = std::distance(occup.begin(), std::max_element(occup.begin(), occup.end()));
+        std::cout << "Most occupied chip: " << most << " (" << occup[most] << " digits)\n";
+        std::cout << "Chip " << chip << " number of digits " << occup[chip] << '\n';
+
+        return qdigi;
+    }
+
+    TEveElement* getEveChipClusters(int chip, gsl::span<o2::itsmft::Cluster>& mClusters)
+    {
+        static TEveFrameBox* box = new TEveFrameBox();
+        box->SetAAQuadXY(0, 0, 0, sizex, sizey);
+        box->SetFrameColor(kGray);
+
+        // Clusters
+        TEveQuadSet* qclus = new TEveQuadSet("clusters");
+        qclus->SetOwnIds(kTRUE);
+        qclus->SetFrame(box);
+        int ncl = 0;
+        qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
+        for (const auto& c : mClusters) {
+            auto id = c.getSensorID();
+            if (id != chip)
+                continue;
+            ncl++;
+
+            int row = c.getPatternRowMin();
+            int col = c.getPatternColMin();
+            int len = c.getPatternColSpan();
+            int wid = c.getPatternRowSpan();
+            qclus->AddLine(col * dx, row * dy, len * dx, 0.);
+            qclus->AddLine(col * dx, row * dy, 0., wid * dy);
+            qclus->AddLine((col + len) * dx, row * dy, 0., wid * dy);
+            qclus->AddLine(col * dx, (row + wid) * dy, len * dx, 0.);
+        }
+        qclus->RefitPlex();
+        TEveTrans& ct = qclus->RefMainTrans();
+        ct.RotateLF(1, 3, 0.5 * TMath::Pi());
+        ct.SetPos(0, 0, 0);
+
+        std::cout << "Chip " << chip << " number of clusters " << ncl << '\n';
+
+        return qclus;
+    }
+
+    TEveElement* getEveClusters(gsl::span<o2::itsmft::Cluster>& mClusters)
+    {
+        auto gman = o2::its::GeometryTGeo::Instance();
+        TEvePointSet* clusters = new TEvePointSet("clusters");
+        clusters->SetMarkerColor(kBlue);
+        for (const auto& c : mClusters) {
+            const auto& gloC = c.getXYZGloRot(*gman);
+            clusters->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
+        }
+        return clusters;
+    }
+
+    TEveElement* getEveTracks(gsl::span<o2::its::TrackITS>& mTracks, gsl::span<o2::itsmft::Cluster>& mClusters)
+    {
+        auto gman = o2::its::GeometryTGeo::Instance();
+        TEveTrackList* tracks = new TEveTrackList("tracks");
+        auto prop = tracks->GetPropagator();
+        prop->SetMagField(0.5);
+        prop->SetMaxR(50.);
+        for (const auto& rec : mTracks) {
+            std::array<float, 3> p;
+            rec.getPxPyPzGlo(p);
+            TEveRecTrackD t;
+            t.fP = { p[0], p[1], p[2] };
+            t.fSign = (rec.getSign() < 0) ? -1 : 1;
+            TEveTrack* track = new TEveTrack(&t, prop);
+            track->SetLineColor(kMagenta);
+            tracks->AddElement(track);
+
+            if (mClusters.empty())
+                continue;
+            TEvePointSet* tpoints = new TEvePointSet("tclusters");
+            tpoints->SetMarkerColor(kGreen);
+            int nc = rec.getNumberOfClusters();
+            while (nc--) {
+                //Int_t idx = rec.getClusterIndex(nc);
+                Int_t idx = 0;
+                const o2::itsmft::Cluster& c = mClusters[idx];
+                const auto& gloC = c.getXYZGloRot(*gman);
+                tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
+            }
+            track->AddElement(tpoints);
+        }
+        tracks->MakeTracks();
+
+        return tracks;
+    }
+
+
+public:
+    TEveElementList* displayData(int entry, int chip,
+            std::vector<o2::itsmft::Digit>& mDigits,
+            gsl::span<o2::its::TrackITS>& mTracks,
+            gsl::span<o2::itsmft::Cluster>& mClusters)
+    {
+        //mEvent = new TEveElementList("balbnka");
+        //return mEvent;
+
+
+        std::string ename("Event #");
+        ename += std::to_string(entry);
+
+        // Chip display
+        auto chipDigits = getEveChipDigits(chip, mDigits);
+        auto chipClusters = getEveChipClusters(chip, mClusters);
+        delete mChip;
+        std::string cname(ename + "  ALPIDE chip #");
+        cname += std::to_string(chip);
+        mChip = new TEveElementList(cname.c_str());
+        mChip->AddElement(chipDigits);
+        mChip->AddElement(chipClusters);
+        gEve->AddElement(mChip);
+
+        // Event display
+        auto clusters = getEveClusters(mClusters);
+        auto tracks = getEveTracks(mTracks,mClusters);
+        delete mEvent;
+        mEvent = new TEveElementList(ename.c_str());
+        mEvent->AddElement(clusters);
+        mEvent->AddElement(tracks);
+        return mEvent;
+        //auto multi = o2::event_visualisation::MultiView::getInstance();
+        //multi->registerEvent(mEvent);
+
+        //gEve->Redraw3D(kFALSE);
+    }
+} its_eve;
+
 
 
 o2::event_visualisation::DataSourceOfflineITS::DataSourceOfflineITS():DataSourceOffline(),
     digifile("itsdigits.root"),
     clusfile("o2clus_its.root"),
     tracfile("o2trac_its.root"){
+
+    std::string inputGeom = "O2geometry.root";
+
+    o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+    auto gman = o2::its::GeometryTGeo::Instance();
+    gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
+                                              o2::TransformType::L2G));
+
+
 }
+
 
 bool o2::event_visualisation::DataSourceOfflineITS::open() {
     TFile* file;
@@ -269,7 +454,11 @@ bool o2::event_visualisation::DataSourceOfflineITS::open() {
 
 }
 
-int o2::event_visualisation::DataSourceOfflineITS::gotoEvent(Int_t event) {
-    its_data.loadData(0);
+TEveElementList* o2::event_visualisation::DataSourceOfflineITS::gotoEvent(Int_t event) {
+    std::cout << "o2::event_visualisation::DataSourceOfflineITS::gotoEvent "<< event <<std::endl;
+    its_data.loadData(event);
+    TEveElementList* mEvent = its_eve.displayData(event,0, its_data.mDigits, its_data.mTracks, its_data.mClusters);
+    return mEvent;
+
 }
 
