@@ -57,12 +57,12 @@ class Cluster
 
   /// Return the unique ID of this cluster
   uint32_t getUniqueId() const { return mUid; }
-  /// Return chamber ID (0..), part of the unique ID
-  int getChamberId() const { return (mUid & 0xF0000000) >> 28; }
-  /// Return detection element ID, part of the unique ID
-  int getDEId() const { return (mUid & 0x0FFE0000) >> 17; }
+  /// Return the chamber ID (0..), part of the unique ID
+  int getChamberId() const { return ClusterStruct::getChamberId(mUid); }
+  /// Return the detection element ID, part of the unique ID
+  int getDEId() const { return ClusterStruct::getDEId(mUid); }
   /// Return the index of this cluster (0..), part of the unique ID
-  int getClusterIndex() const { return (mUid & 0x0001FFFF); }
+  int getClusterIndex() const { return ClusterStruct::getClusterIndex(mUid); }
 
  private:
   double mX;     ///< cluster position along x
