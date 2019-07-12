@@ -44,6 +44,7 @@ void doTypeChecks()
   // we require references to objects owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<int>(output))>::value);
   static_assert(std::is_lvalue_reference<decltype(allocator.make<std::string>(output, "test"))>::value);
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::vector<int>>(output))>::value);
 }
 
 namespace test
@@ -129,6 +130,10 @@ DataProcessorSpec getSourceSpec()
     auto& shrinkchunk = pc.outputs().newChunk(OutputRef{ "shrinkchunk", 0 }, 1000000);
     shrinkchunk.resize(sizeof(o2::test::TriviallyCopyable));
     memcpy(shrinkchunk.data(), &a, sizeof(o2::test::TriviallyCopyable));
+    auto& messageablevector = pc.outputs().make<std::vector<o2::test::TriviallyCopyable>>(OutputRef{ "messageablevector", 0 });
+    ASSERT_ERROR(messageablevector.size() == 0);
+    messageablevector.push_back(a);
+    messageablevector.emplace_back(10, 20, 0xacdc);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
@@ -138,6 +143,7 @@ DataProcessorSpec getSourceSpec()
                               OutputSpec{ { "makespan" }, "TST", "MAKESPAN", 0, Lifetime::Timeframe },
                               OutputSpec{ { "growchunk" }, "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ { "shrinkchunk" }, "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "messageablevector" }, "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
@@ -244,6 +250,12 @@ DataProcessorSpec getSinkSpec()
     auto object11 = pc.inputs().get<o2::test::TriviallyCopyable>("input11");
     ASSERT_ERROR(object11 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    LOG(INFO) << "extracting the original std::vector<o2::test::TriviallyCopyable> as span from input12";
+    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    ASSERT_ERROR(object12.size() == 2);
+    ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{ 42, 23, 0xdead }));
+    ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{ 10, 20, 0xacdc }));
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -258,7 +270,8 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input8", "TST", "MAKESPAN", 0, Lifetime::Timeframe },
                               InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               InputSpec{ "input10", "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
-                              InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe } },
+                              InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
+                              InputSpec{ "input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

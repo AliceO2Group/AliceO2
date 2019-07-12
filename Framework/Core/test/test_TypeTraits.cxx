@@ -106,6 +106,10 @@ BOOST_AUTO_TEST_CASE(TestIsStlContainer)
   BOOST_REQUIRE_EQUAL(is_container<decltype(b)>::value, false);
   BOOST_REQUIRE_EQUAL(is_container<decltype(c)>::value, true);
   BOOST_REQUIRE_EQUAL(is_container<decltype(d)>::value, true);
+
+  BOOST_REQUIRE_EQUAL(has_messageable_value_type<decltype(b)>::value, false);
+  BOOST_REQUIRE_EQUAL(has_messageable_value_type<std::vector<int>>::value, true);
+  BOOST_REQUIRE_EQUAL(has_messageable_value_type<decltype(c)>::value, false);
 }
 
 BOOST_AUTO_TEST_CASE(TestHasRootStreamer)
