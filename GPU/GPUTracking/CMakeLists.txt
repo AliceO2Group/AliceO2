@@ -236,6 +236,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
   install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
           DESTINATION include/GPU)
+  install(DIRECTORY Standalone/utils
+          DESTINATION include/GPU
+          FILES_MATCHING PATTERN *.h)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -319,8 +322,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_INSTALL} DESTINATION include)
   install(DIRECTORY Standalone/utils
           DESTINATION include
-          FILES_MATCHING
-          PATTERN *.h)
+          FILES_MATCHING PATTERN *.h)
 
   set(targetName Ali${MODULE})
   add_library(O2::${MODULE} ALIAS Ali${MODULE})
