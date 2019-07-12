@@ -125,7 +125,7 @@ TrackParam& TrackParam::operator=(const TrackParam& tp)
 }
 
 //__________________________________________________________________________
-void TrackParam::clear(Option_t* /*opt*/)
+void TrackParam::clear()
 {
   /// clear memory
   deleteCovariances();
@@ -423,24 +423,16 @@ TrackParamStruct TrackParam::getTrackParamStruct() const
 }
 
 //__________________________________________________________________________
-void TrackParam::print(Option_t* opt) const
+void TrackParam::print() const
 {
-  /// Printing TrackParam information
-  /// "full" option for printing all the information about the TrackParam
-  TString sopt(opt);
-  sopt.ToUpper();
-
-  if (sopt.Contains("FULL")) {
-    cout << "<TrackParam> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
-         << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
-         << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
-         << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)
-         << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << px() << ","
-         << setw(5) << setprecision(3) << py() << "," << setw(5) << setprecision(3) << pz() << ") GeV/c, "
-         << "local chi2=" << getLocalChi2() << endl;
-  } else {
-    cout << "<TrackParam>" << endl;
-  }
+  /// Printing TrackParam informations
+  cout << "<TrackParam> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
+       << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
+       << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
+       << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)
+       << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << px() << ","
+       << setw(5) << setprecision(3) << py() << "," << setw(5) << setprecision(3) << pz() << ") GeV/c, "
+       << "local chi2=" << getLocalChi2() << endl;
 }
 
 } // namespace mch

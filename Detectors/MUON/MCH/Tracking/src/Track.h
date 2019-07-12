@@ -63,6 +63,17 @@ class Track
   auto rend() const { return mParamAtClusters.rend(); }
 
   TrackParam& createParamAtCluster(const Cluster& cluster);
+  TrackParam& addParamAtCluster(TrackParam& param);
+  /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
+  auto removeParamAtCluster(std::list<TrackParam>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
+
+  int getNClustersInCommon(const Track& track, int stMin = 0, int stMax = 4) const;
+
+  bool isBetter(const Track& track) const;
+
+  void tagRemovableClusters(uint8_t requestedStationMask);
+
+  void print() const;
 
  private:
   TrackParam mParamAtVertex{};              ///< track parameters at vertex
