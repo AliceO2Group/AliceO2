@@ -17,7 +17,7 @@
 find_package(${CMAKE_FIND_PACKAGE_NAME}
              ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION} NO_MODULE REQUIRED)
 
-if(APPLE AND NOT TARGET vdt)
+if(NOT TARGET vdt)
   find_library(VDT_LIB vdt PATHS ${ROOT_LIBRARY_DIR})
   if(VDT_LIB)
     add_library(vdt SHARED IMPORTED)
