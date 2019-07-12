@@ -133,17 +133,15 @@ class MessageContext {
     /// default contructor forbidden, object always has to control message instances
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message
-    template <typename ContextType>
-    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t size)
+    template <typename ContextType, typename... Args>
+    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, Args&&... args)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
-        // backup of initially allocated size
-        mAllocatedSize{ size * sizeof(value_type) },
         // the transport factory
         mFactory{ context->proxy().getTransport(bindingChannel, index) },
         // the memory resource takes ownership of the message
         mResource{ mFactory ? mFactory->GetMemoryResource() : nullptr },
         // create the vector with apropriate underlying memory resource for the message
-        mData{ size, pmr::polymorphic_allocator<value_type>(mResource) }
+        mData{ std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(mResource) }
     {
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
@@ -185,7 +183,6 @@ class MessageContext {
     }
 
    private:
-    size_t mAllocatedSize;                          /// backup of initially allocated size
     FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
     pmr::FairMQMemoryResource* mResource = nullptr; /// message resource
     buffer_type mData;                              /// the data buffer

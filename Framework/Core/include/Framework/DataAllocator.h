@@ -108,7 +108,21 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
-    if constexpr (std::is_base_of_v<TObject, T>) {
+    if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
+      // this catches all std::vector objects with messageable value type before checking if is also
+      // has a root dictionary, so non-serialized transmission is preferred
+      using ValueType = typename T::value_type;
+      std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      auto context = mContextRegistry->get<MessageContext>();
+
+      // Note: initial payload size is 0 and will be set by the context before sending
+      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
+      return context->add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), channel, 0, std::forward<Args>(args)...).get();
+    } else if constexpr (std::is_base_of_v<TObject, T>) {
+      // TODO extend the support to non-TObjcts with the Root ClassDef interface
+      // (has_root_dictionary<T>::value == true && is_messageable<T>::value == false)
+      // This requires to change the RootObjectContext, alternatively we can drop the
+      // RootObjectContext and introduce a RootObject handler class to MessageContext
       auto obj = new T(args...);
       adopt(spec, obj);
       return *obj;

@@ -104,6 +104,14 @@ struct is_container<
     void>> : public std::true_type {
 };
 
+// Detect whether a container class has a type definition `value_type` of messageable type
+template <typename T, typename _ = void>
+struct has_messageable_value_type : std::false_type {
+};
+template <typename T>
+struct has_messageable_value_type<T, std::conditional_t<false, typename T::value_type, void>> : is_messageable<typename T::value_type> {
+};
+
 // Detect whether a class has a ROOT dictionary
 // This member detector idiom is implemented using SFINAE idiom to look for
 // a 'Class()' method.
