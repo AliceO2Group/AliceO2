@@ -38,12 +38,14 @@ install(FILES CheckClusters_mft.C
               run_collect_calib_tof.C
               run_digi.C
               run_digi2raw_its.C
+              run_digi2raw_mft.C
               run_digi_mft.C
               run_digi_tof.C
               run_match_TPCITS.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
+              run_rawdecoding_mft.C
               run_sim.C
               run_sim_emcal.C
               run_sim_mft.C
@@ -228,6 +230,14 @@ o2_add_test_root_macro(run_digi2raw_its.C
                        LABELS its)
 
 # FIXME: move to subsystem dir
+o2_add_test_root_macro(run_digi2raw_mft.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                                             O2::DataFormatsITSMFT
+                                             O2::ITSMFTBase
+                                             O2::ITSMFTReconstruction
+                       LABELS mft)
+
+# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_digi_mft.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
                                              O2::MFTSimulation
@@ -269,6 +279,13 @@ o2_add_test_root_macro(run_rawdecoding_its.C
                                              O2::DataFormatsITSMFT
                                              O2::CommonDataFormat
                        LABELS its)
+
+# FIXME: move to subsystem dir
+o2_add_test_root_macro(run_rawdecoding_mft.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                                             O2::DataFormatsITSMFT
+                                             O2::CommonDataFormat
+                       LABELS mft)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
