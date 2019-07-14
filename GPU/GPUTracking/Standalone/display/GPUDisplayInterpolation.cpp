@@ -13,7 +13,7 @@
 
 #include <cstdio>
 #include "GPUDisplay.h"
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 using namespace GPUCA_NAMESPACE::gpu;
 
