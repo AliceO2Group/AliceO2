@@ -32,8 +32,8 @@
 #pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
-#undef GPUCA_BUILD_EVENT_DISPLAY
 #endif
+#undef GPUCA_BUILD_EVENT_DISPLAY
 #endif
 #endif
 
