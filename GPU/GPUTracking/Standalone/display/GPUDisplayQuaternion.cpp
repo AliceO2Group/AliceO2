@@ -12,7 +12,7 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 #include <cmath>
 using namespace GPUCA_NAMESPACE::gpu;
