@@ -27,7 +27,7 @@ class TFile;
 class TH1D;
 typedef short int Color_t;
 
-#if !defined(BUILD_QA) || defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_BUILD_QA) || defined(GPUCA_GPUCODE)
 
 namespace GPUCA_NAMESPACE
 {

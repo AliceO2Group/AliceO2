@@ -336,7 +336,7 @@ endif()
 
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
-  target_compile_definitions(${targetName} PRIVATE BUILD_EVENT_DISPLAY)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
   target_link_libraries(${targetName}
                         PUBLIC ${GLEW_LIBRARIES} ${GLFW_LIBRARIES} OpenGL::GL
                                OpenGL::GLU)
@@ -344,7 +344,7 @@ endif()
 
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")
-  target_compile_definitions(${targetName} PRIVATE BUILD_QA)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_QA)
 endif()
 
 if(OpenMP_CXX_FOUND)
