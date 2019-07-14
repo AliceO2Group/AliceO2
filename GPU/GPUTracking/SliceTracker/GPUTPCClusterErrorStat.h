@@ -16,7 +16,7 @@
 
 //#define EXTRACT_RESIDUALS
 
-#if (defined(GPUCA_ALIROOT_LIB) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
+#if (defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
 #include "cagpu/GPUTPCGPURootDump.h"
 
 namespace GPUCA_NAMESPACE

@@ -14,7 +14,7 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef GPUCA_O2_LIB
 //#define GPUCA_DISPLAY_GL3W
 #endif
@@ -32,7 +32,7 @@
 #pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
-#undef BUILD_EVENT_DISPLAY
+#undef GPUCA_BUILD_EVENT_DISPLAY
 #endif
 #endif
 #endif
@@ -49,7 +49,7 @@ class GPUQA;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#ifndef BUILD_EVENT_DISPLAY
+#ifndef GPUCA_BUILD_EVENT_DISPLAY
 
 namespace GPUCA_NAMESPACE
 {

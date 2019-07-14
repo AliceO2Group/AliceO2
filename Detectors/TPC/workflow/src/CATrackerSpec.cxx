@@ -30,7 +30,7 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #endif
 #include "DataFormatsParameters/GRPObject.h"
@@ -129,7 +129,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             dump = true;
             printf("Dumping of input events enabled\n");
           } else if (strncmp(optPtr, "display", optLen) == 0) {
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
             processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
             display = processAttributes->displayBackend.get();
             printf("Event display enabled\n");

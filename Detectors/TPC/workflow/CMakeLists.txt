@@ -16,6 +16,7 @@ o2_add_library(TPCWorkflow
                        src/ClusterDecoderRawSpec.cxx
                        src/CATrackerSpec.cxx
                        src/TrackReaderSpec.cxx
+               TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction)
 
@@ -29,3 +30,9 @@ o2_add_test(workflow
             LABELS tpc workflow
             SOURCES test/test_TPCWorkflow.cxx
             PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+if(GPUCA_EVENT_DISPLAY OR
+                       (OPENGL_FOUND AND GLFW_FOUND AND GLEW_FOUND AND OPENGL_GLU_FOUND
+                       AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
+    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
+endif()

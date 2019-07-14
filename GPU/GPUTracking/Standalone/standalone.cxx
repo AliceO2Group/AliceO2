@@ -55,7 +55,7 @@
 #include "GPUChainITS.h"
 #endif
 
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
 #include "GPUDisplayBackendWindows.h"
 #else
@@ -152,13 +152,13 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef HAVE_O2HEADERS
   configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = 0;
 #endif
-#ifndef BUILD_QA
+#ifndef GPUCA_BUILD_QA
   if (configStandalone.qa || configStandalone.eventGenerator) {
     printf("QA not enabled in build\n");
     return (1);
   }
 #endif
-#ifndef BUILD_EVENT_DISPLAY
+#ifndef GPUCA_BUILD_EVENT_DISPLAY
   if (configStandalone.eventDisplay) {
     printf("EventDisplay not enabled in build\n");
     return (1);
@@ -289,7 +289,7 @@ int SetupReconstruction()
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
       eventDisplay.reset(new GPUDisplayBackendWindows);
