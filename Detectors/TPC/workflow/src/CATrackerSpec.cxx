@@ -176,9 +176,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
 
       config.configDeviceProcessing.nThreads = nThreads;
-      config.configDeviceProcessing.runQA = qa;             // Run QA after tracking
-      config.configDeviceProcessing.eventDisplay = display; // Ptr to event display backend, for running standalone OpenGL event display
-                                                            // config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendX11;
+      config.configDeviceProcessing.runQA = qa;              // Run QA after tracking
+      config.configDeviceProcessing.eventDisplay = display;  // Ptr to event display backend, for running standalone OpenGL event display
+      config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 
       config.configEvent.solenoidBz = solenoidBz;
       config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
