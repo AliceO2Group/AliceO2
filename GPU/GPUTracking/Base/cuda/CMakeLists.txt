@@ -68,6 +68,8 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=CUDA)
   add_library(${MODULE} SHARED ${SRCS})
+  target_link_libraries(${MODULE} PUBLIC GPUTracking cub::cub)
+  set(targetName ${MODULE})
   install(TARGETS GPUTrackingCUDA)
 endif()
 
