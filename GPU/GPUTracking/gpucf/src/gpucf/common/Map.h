@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gpucf/common/log.h>
 #include <gpucf/common/Position.h>
 
 #include <nonstd/span.hpp>
@@ -31,6 +32,17 @@ public:
         : Map(keys, [pred](const Digit &) { return pred; }, fallback)
     {
     }
+
+    Map(nonstd::span<const Digit> keys, nonstd::span<T> pred, T fallback)
+        : fallback(fallback)
+    {
+        ASSERT(keys.size() == pred.size());
+        for (size_t i = 0; i < size_t(keys.size()); i++)
+        {
+            data[keys[i]] = pred[i];
+        }
+    }
+
 
     const T &operator[](const Position &p) const
     {

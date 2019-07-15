@@ -3,6 +3,7 @@
 #include <gpucf/common/ClusterMap.h>
 #include <gpucf/common/log.h>
 #include <gpucf/common/RowInfo.h>
+#include <gpucf/debug/DigitDrawer.h>
 
 #include <shared/constants.h>
 
@@ -21,7 +22,9 @@ ClusterFinderTest::ClusterFinderTest(
 
 void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 {
-    auto res = gt.run(digits);
+    this->digits = digits;
+
+    res = gt.run(digits);
 
     log::Debug() << "send Digits to GPU";
     digitsToGPU.call(state, digits, queue);
@@ -53,23 +56,43 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
     queue.finish();
 }
 
-void ClusterFinderTest::checkIsPeaks(const std::vector<bool> &isPeakGT)
+void ClusterFinderTest::checkIsPeaks(nonstd::span<const unsigned char> isPeakGT)
 {
     std::vector<unsigned char> isPeak(state.digitnum);
 
     gpucpy<unsigned char>(state.isPeak, isPeak, isPeak.size(), queue, true);
 
     size_t correctPeaks = 0;
-    for (size_t i = 0; i < std::min(isPeak.size(), isPeakGT.size()); i++)
+    std::vector<size_t> wrongIds;
+    for (size_t i = 0; i < std::min(isPeak.size(), size_t(isPeakGT.size())); i++)
     {
-        correctPeaks += (isPeak[i] == isPeakGT[i]);
+        ASSERT(isPeak[i] == 0 || isPeak[i] == 1);
+        bool ok = (isPeak[i] == isPeakGT[i]);
+        correctPeaks += ok;
+
+        if (!ok)
+        {
+            wrongIds.push_back(i);
+        }
     }
 
     float correctFraction = 
-        std::min(correctPeaks, isPeakGT.size()) 
-            / float(std::max(correctPeaks, isPeakGT.size()));
+        std::min(correctPeaks, size_t(isPeakGT.size()))
+            / float(std::max(correctPeaks, size_t(isPeakGT.size())));
 
-    ASSERT(correctFraction >= 0.99f);
+    bool isPeaksOk = correctFraction >= 0.99f;
+
+    if (!isPeaksOk)
+    {
+        DigitDrawer drawer(digits, res.isPeak, isPeak);
+
+        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
+        {
+            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(digits[wrongIds[i]], 3);
+        }
+    }
+
+    ASSERT(isPeaksOk) << "\n  correctFraction = " << correctFraction;
 
     log::Success() << "isPeaks: OK (" << correctFraction << " correct)";
 
@@ -81,44 +104,72 @@ void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
 
     gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
 
-    Map<bool> peakLookup(peaks, true, false);
+    Map<bool> peakLookup(peakGT, true, false);
     log::Info() << "GT has   " << peakGT.size() << " peaks.";
     log::Info() << "Cf found " << peaks.size() << " peaks.";
 
     size_t correctPeaks = 0;
-    for (const Digit &d : peakGT)
+    std::vector<size_t> wrongIds;
+    for (size_t i = 0; i < peaks.size(); i++)
     {
-        correctPeaks += peakLookup[d];
+        bool ok = peakLookup[peaks[i]];
+        correctPeaks += ok;
+
+        if (!ok)
+        {
+            wrongIds.push_back(i);
+        }
     }
 
-    float correctFraction = float(correctPeaks) / peakGT.size();
+    float correctFraction = float(correctPeaks) / peaks.size();
 
     const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
-    ASSERT(correctFraction >= threshold) << "\n" << correctFraction;
+
+    bool peaksOk = correctFraction >= threshold;
+
+    if (!peaksOk)
+    {
+        DigitDrawer drawer(digits, peakGT, peaks);
+
+        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
+        {
+            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(peaks[wrongIds[i]], 3);
+        }
+    }
+
+    ASSERT(peaksOk) << "\n" << correctFraction;
 
     log::Success() << "Peaks: OK (" << correctFraction << " correct)";
 }
 
 void ClusterFinderTest::checkCluster(
-        const std::vector<Digit> &/*peaks*/, 
+        const std::vector<Digit> &peaksGT, 
         const std::vector<Cluster> &clusterGT)
 {
+    log::Info() << "Testing cluster...";
+
     std::vector<Cluster> cluster = clusterToCPU.call(state, queue);
 
-    ClusterMap cl;
-    cl.addAll(clusterGT);
-    cl.setClusterEqParams(0.f, 0.f, 
-            Cluster::Field_all ^ (Cluster::Field_timeSigma 
-                | Cluster::Field_padSigma));
+    log::Info() << "GT has   " << clusterGT.size() << " cluster.";
+    log::Info() << "Cf found " << cluster.size() << " cluster.";
+
+
+    ClusterMap clpos;
+    clpos.addAll(clusterGT);
+    clpos.setClusterEqParams(0.f, 0.f,
+            Cluster::Field_all
+              ^ (Cluster::Field_timeSigma | Cluster::Field_padSigma));
+
+    std::vector<Digit> peaks(state.peaknum);
+    gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
+
+    DigitDrawer drawer(digits, peaksGT, peaks);
 
     size_t correctCluster = 0;
     for (const Cluster &c : cluster)
     {
-        /* if (!cl.contains(c)) */
-        /* { */
-        /*     log::Debug() << c; */
-        /* } */
-        correctCluster += cl.contains(c);
+        bool posOk = clpos.contains(c);
+        correctCluster += posOk;
     }
 
     float correctFraction = float(correctCluster) / cluster.size();
