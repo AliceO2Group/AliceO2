@@ -23,6 +23,8 @@
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
 #include "EventVisualisationBase/DataSourceOfflineVSD.h"
+#include "EventVisualisationBase/EventRegistration.h"
+
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -55,6 +57,7 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   auto &eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
+  EventRegistration::setInstance(MultiView::getInstance());
 
   //TFile*  fFile = TFile::Open("AliESDs.root");
   //TFile*  fFile = TFile::Open("AliVSD.root");

@@ -12,7 +12,7 @@
 #include <TEveTrackPropagator.h>
 #include <TEveEventManager.h>
 #include <EventVisualisationBase/EventManager.h>
-#include <EventVisualisationView/MultiView.h>
+#include <EventVisualisationBase/EventRegistration.h>
 
 
 namespace o2  {
@@ -104,7 +104,7 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
             fTrackList->IncDenyDestroy();
         } else {
             fTrackList->DestroyElements();
-            MultiView::getInstance()->destroyAllEvents();
+            EventRegistration::getInstance()->destroyAllEvents();
         }
 
         TEveTrackPropagator *trkProp = fTrackList->GetPropagator();
@@ -128,7 +128,7 @@ DataSourceOfflineVSD::~DataSourceOfflineVSD()  {
 
         fTrackList->MakeTracks();
 
-        MultiView::getInstance()->registerEvent(fTrackList);
+        EventRegistration::getInstance()->registerEvent(fTrackList);
     }
 
     void DataSourceOfflineVSD::open(TString ESDFileName)  {
