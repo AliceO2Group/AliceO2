@@ -45,11 +45,13 @@ if(ENABLE_CUDA)
     find_package(cub)
     set_package_properties(cub PROPERTIES TYPE REQUIRED)
 
-    set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr")
-    set(CMAKE_CUDA_FLAGS_DEBUG "-Xptxas -O0 -Xcompiler -O0")
-    set(CMAKE_CUDA_FLAGS_RELEASE "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
-    set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELEASE}")
-    set(CMAKE_CUDA_FLAGS_COVERAGE "${CMAKE_CUDA_FLAGS_RELEASE}")
+    # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
+    STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
+    set(CMAKE_CUDA_FLAGS "-Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr -Xptxas -v")
+    set(CMAKE_CUDA_FLAGS_DEBUG "-Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      set(CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE} "-Xcompiler \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}\" -Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+    endif()
     if(CUDA_COMPUTETARGET)
       set(
         CMAKE_CUDA_FLAGS
