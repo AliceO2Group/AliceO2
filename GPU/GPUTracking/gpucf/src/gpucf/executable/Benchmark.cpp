@@ -1,7 +1,8 @@
 #include "Benchmark.h"
 
-#include <gpucf/common/DataSet.h>
 #include <gpucf/common/log.h>
+#include <gpucf/common/RawLabel.h>
+#include <gpucf/common/serialization.h>
 #include <gpucf/errors/FileErrors.h>
 
 #include <gpucf/experiments/TimeCf.h>
@@ -51,10 +52,7 @@ int Benchmark::mainImpl()
         throw DirectoryNotFoundError(baseDir);
     }
 
-    DataSet digitSet;
-    digitSet.read(args::get(*digitFile));
-
-    digits = digitSet.deserialize<Digit>();
+    digits = read<RawDigit, Digit>(args::get(*digitFile));
 
     registerExperiments();
 

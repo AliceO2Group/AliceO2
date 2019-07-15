@@ -333,7 +333,8 @@ std::vector<std::vector<int>> StreamCompaction::Worker::getNewIdxDump() const
 Step StreamCompaction::Worker::asStep(const std::string &name) const
 {
     Timestamp start = scanEvents.front().start();
-    Timestamp end   = readNewDigitNum.end();
+    /* Timestamp end   = readNewDigitNum.end(); */
+    Timestamp end   = compactArrEv.end();
     return {name, start, start, start, end};
 }
 
