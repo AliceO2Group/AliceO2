@@ -11,6 +11,7 @@
 set(MODULE GPUTrackingHIP)
 
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 message(STATUS "Building GPUTracking with HIP support")
 
