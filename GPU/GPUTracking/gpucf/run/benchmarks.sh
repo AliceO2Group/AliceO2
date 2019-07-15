@@ -14,7 +14,7 @@ ssh $remoteTgt <<-ENDSSH
     mkdir -p $measurementsDir/in
     mkdir -p $measurementsDir/out
     make -sC$buildDir/release benchmark -j64
-    ./$buildDir/release/bin/benchmark -scl -ddata/digits-big.txt -o$measurementsDir/in
+    ./$buildDir/release/bin/benchmark -scl -ddata/digits_ev100.bin -o$measurementsDir/in
 ENDSSH
 
 scp $remoteTgt:$tgtDir/$measurementsDir/in/* $measurementsDir/in
