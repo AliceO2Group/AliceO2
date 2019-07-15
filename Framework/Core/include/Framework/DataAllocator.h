@@ -118,14 +118,15 @@ class DataAllocator
       // Note: initial payload size is 0 and will be set by the context before sending
       FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
       return context->add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), channel, 0, std::forward<Args>(args)...).get();
-    } else if constexpr (std::is_base_of_v<TObject, T>) {
-      // TODO extend the support to non-TObjcts with the Root ClassDef interface
-      // (has_root_dictionary<T>::value == true && is_messageable<T>::value == false)
-      // This requires to change the RootObjectContext, alternatively we can drop the
-      // RootObjectContext and introduce a RootObject handler class to MessageContext
-      auto obj = new T(args...);
-      adopt(spec, obj);
-      return *obj;
+    } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
+      // Extended support for types implementing the Root ClassDef interface, both TObject
+      // derived types and others
+      std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      auto context = mContextRegistry->get<MessageContext>();
+
+      // Note: initial payload size is 0 and will be set by the context before sending
+      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);
+      return context->add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), channel, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
       std::string* s = new std::string(args...);
       adopt(spec, s);
