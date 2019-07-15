@@ -61,6 +61,21 @@ namespace framework
 {
 class ContextRegistry;
 
+namespace
+{
+template <typename T>
+struct type_dependent : std::false_type {
+};
+} // namespace
+
+#define ERROR_STRING                                          \
+  "data type T not supported by API, "                        \
+  "\n specializations available for"                          \
+  "\n - trivially copyable, non-polymorphic structures"       \
+  "\n - arrays of those"                                      \
+  "\n - TObject with additional constructor arguments"        \
+  "\n - Classes and structs with boost serialization support" \
+  "\n - std containers of those"
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
 /// have, messages get created on the channel for the reader of the current
@@ -84,98 +99,64 @@ class DataAllocator
 
   void adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
 
-  // In case no extra argument is provided and the passed type is trivially
-  // copyable and non polymorphic, the most likely wanted behavior is to create
-  // a message with that type, and so we do.
-  template <typename T>
-  typename std::enable_if<is_messageable<T>::value == true, T&>::type
-    make(const Output& spec)
-  {
-    return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-  }
-
-  // In case an extra argument is provided, we consider this an array /
-  // collection elements of that type
-  // FIXME: once the vector functionality with polymorphic allocator is fully in place, this might be dropped
-  template <typename T>
-  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>&>::type
-    make(const Output& spec, size_t nElements)
-  {
-    auto size = nElements * sizeof(T);
-    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
-    auto context = mContextRegistry->get<MessageContext>();
-
-    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
-    return context->add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
-  }
-
-  /// Use this in case you want to leave the creation
-  /// of a TObject to be transmitted to the framework.
-  /// @a spec is the specification for the output
-  /// @a args is the arguments for the constructor of T
-  /// @return a reference to the constructed object. Such an object
-  /// will be sent to all the consumers of the output @a spec
-  /// once the processing callback completes.
+  /// Generic helper to create an object which is owned by the framework and
+  /// returned as a reference to the own object.
+  /// Note: decltype(auto) will deduce the return type from the expression and it
+  /// will be lvalue reference for the framework-owned objects. Instances of local
+  /// variables like shared_ptr will be returned by value/move/return value optimization.
+  /// Objects created this way will be sent to the channel specified by @spec
   template <typename T, typename... Args>
-  typename std::enable_if<std::is_base_of<TObject, T>::value == true, T&>::type
-    make(const Output& spec, Args... args)
+  decltype(auto) make(const Output& spec, Args... args)
   {
-    auto obj = new T(args...);
-    adopt(spec, obj);
-    return *obj;
-  }
+    if constexpr (std::is_base_of_v<TObject, T>) {
+      auto obj = new T(args...);
+      adopt(spec, obj);
+      return *obj;
+    } else if constexpr (std::is_base_of_v<std::string, T>) {
+      std::string* s = new std::string(args...);
+      adopt(spec, s);
+      return *s;
+    } else if constexpr (std::is_base_of_v<TableBuilder, T>) {
+      TableBuilder* tb = new TableBuilder(args...);
+      adopt(spec, tb);
+      return *tb;
+    } else if constexpr (sizeof...(Args) == 0) {
+      if constexpr (is_messageable<T>::value == true) {
+        return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
+      } else if constexpr (is_specialization<T, BoostSerialized>::value == true) {
+        return make_boost<typename T::wrapped_type>(std::move(spec));
+      } else if constexpr (is_specialization<T, BoostSerialized>::value == false && framework::is_boost_serializable<T>::value == true && std::is_base_of<std::string, T>::value == false) {
+        return make_boost<T>(std::move(spec));
+      } else {
+        static_assert(type_dependent<T>::value, ERROR_STRING);
+      }
+    } else if constexpr (sizeof...(Args) == 1) {
+      using FirstArg = typename std::tuple_element<0, std::tuple<Args...>>::type;
+      if constexpr (std::is_integral_v<FirstArg>) {
+        if constexpr (is_messageable<T>::value == true) {
+          auto [nElements] = std::make_tuple(args...);
+          auto size = nElements * sizeof(T);
+          std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+          auto context = mContextRegistry->get<MessageContext>();
 
-  /// Helper to create an std::string which will be owned by the framework
-  /// and transmitted when the processing finishes.
-  template <typename T, typename... Args>
-  typename std::enable_if<std::is_base_of<std::string, T>::value == true, T&>::type
-    make(const Output& spec, Args... args)
-  {
-    std::string* s = new std::string(args...);
-    adopt(spec, s);
-    return *s;
-  }
-
-  /// Helper to create a TableBuilder which will be owned by the framework
-  /// FIXME: perfect forwarding?
-  template <typename T, typename... Args>
-  typename std::enable_if<std::is_base_of<TableBuilder, T>::value == true, T&>::type
-    make(const Output& spec, Args... args)
-  {
-    TableBuilder* tb = new TableBuilder(args...);
-    adopt(spec, tb);
-    return *tb;
-  }
-
-  /// Helper to create a arrow::ipc::RecordBatchWriter, owned by the framework
-  /// which creates record batches with the given @a schema in a FairMQMessage.
-  template <typename T>
-  typename std::enable_if_t<std::is_base_of_v<arrow::ipc::RecordBatchWriter, T> == true, std::shared_ptr<T>>
-    make(const Output& spec, std::shared_ptr<arrow::Schema> schema)
-  {
-    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-    create(spec, &writer, schema);
-    return writer;
-  }
-
-  /// Helper to create an byte stream buffer using boost serialization, which will be owned by the framework
-  /// and transmitted when the processing finishes.
-  template <typename T, typename WT = typename T::wrapped_type>
-  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, WT&>::type
-    make(const Output& specs)
-  {
-    return make_boost<WT>(std::move(specs));
-  }
-
-  template <typename T>
-  typename std::enable_if<is_specialization<T, BoostSerialized>::value == false   //
-                            && is_messageable<T>::value == false                  //
-                            && framework::is_boost_serializable<T>::value == true //
-                            && std::is_base_of<std::string, T>::value == false,
-                          T&>::type
-    make(const Output& spec)
-  {
-    return make_boost<T>(std::move(spec));
+          FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
+          return context->add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
+        }
+      } else if constexpr (std::is_same_v<FirstArg, std::shared_ptr<arrow::Schema>>) {
+        if constexpr (std::is_base_of_v<arrow::ipc::RecordBatchWriter, T>) {
+          auto [schema] = std::make_tuple(args...);
+          std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+          create(spec, &writer, schema);
+          return writer;
+        }
+      } else if constexpr (is_specialization<T, BoostSerialized>::value) {
+        return make_boost<FirstArg>(std::move(spec));
+      } else {
+        static_assert(type_dependent<T>::value, ERROR_STRING);
+      }
+    } else {
+      static_assert(type_dependent<T>::value, ERROR_STRING);
+    }
   }
 
   template <typename T>
@@ -184,67 +165,6 @@ class DataAllocator
     auto buff = new T{};
     adopt_boost(spec, buff);
     return *buff;
-  }
-
-  /// catching unsupported type for case without additional arguments
-  /// have to add three specializations because of the different role of
-  /// the arguments and the different return types
-  template <typename T>
-  typename std::enable_if<
-    is_specialization<T, BoostSerialized>::value == false     //
-      && std::is_base_of<TObject, T>::value == false          //
-      && std::is_base_of<TableBuilder, T>::value == false     //
-      && is_messageable<T>::value == false                    //
-      && std::is_same<std::string, T>::value == false         //
-      && framework::is_boost_serializable<T>::value == false, //
-    T&>::type
-    make(const Output&)
-  {
-    static_assert(always_static_assert_v<T>,
-                  "data type T not supported by API, \n specializations available for"
-                  "\n - trivially copyable, non-polymorphic structures"
-                  "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments"
-                  "\n - Classes and structs with boost serialization support"
-                  "\n - std containers of those");
-  }
-
-  /// catching unsupported type for case of span of objects
-  template <typename T>
-  typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false               //
-      && is_messageable<T>::value == false                    //
-      && std::is_same<std::string, T>::value == false         //
-      && framework::is_boost_serializable<T>::value == false, //
-    gsl::span<T>>::type
-    make(const Output&, size_t)
-  {
-    static_assert(always_static_assert_v<T>,
-                  "data type T not supported by API, \n specializations available for"
-                  "\n - trivially copyable, non-polymorphic structures"
-                  "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments"
-                  "\n - Classes and structs with boost serialization support"
-                  "\n - std containers of those");
-  }
-
-  /// catching unsupported type for case of at least two additional arguments
-  template <typename T, typename U, typename V, typename... Args>
-  typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false               //
-      && is_messageable<T>::value == false                    //
-      && std::is_same<std::string, T>::value == false         //
-      && framework::is_boost_serializable<T>::value == false, //
-    T&>::type
-    make(const Output&, U, V, Args...)
-  {
-    static_assert(always_static_assert_v<T>,
-                  "data type T not supported by API, \n specializations available for"
-                  "\n - trivially copyable, non-polymorphic structures"
-                  "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments"
-                  "\n - Classes and structs with boost serialization support"
-                  "\n - std containers of those");
   }
 
   /// Adopt a TObject in the framework and serialize / send
@@ -476,7 +396,7 @@ class DataAllocator
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
   template <typename T, typename... Args>
-  auto& make(OutputRef&& ref, Args&&... args)
+  decltype(auto) make(OutputRef&& ref, Args&&... args)
   {
     return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
