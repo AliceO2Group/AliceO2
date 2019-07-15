@@ -42,6 +42,8 @@ if(ENABLE_CUDA)
     if(NOT CUDA IN_LIST LANGUAGES)
       message(FATAL_ERROR "CUDA was found but cannot be enabled")
     endif()
+    find_package(cub)
+    set_package_properties(cub PROPERTIES TYPE REQUIRED)
 
     set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr")
     set(CMAKE_CUDA_FLAGS_DEBUG "-Xptxas -O0 -Xcompiler -O0")
