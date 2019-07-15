@@ -15,6 +15,8 @@ message(STATUS "Building GPUTracking with CUDA support")
 set(SRCS GPUReconstructionCUDA.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h)
 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --maxrregcount 64")
+
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
