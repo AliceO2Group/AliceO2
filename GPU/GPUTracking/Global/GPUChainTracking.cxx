@@ -720,7 +720,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       return 2;
     }
 
-    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), mRec->NStreams() - 1);
     WriteToConstantMemory((char*)processors()->tpcTrackers - (char*)processors(), processorsShadow()->tpcTrackers, sizeof(GPUTPCTracker) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
 
     for (int i = 0; i < mRec->NStreams() - 1; i++) {

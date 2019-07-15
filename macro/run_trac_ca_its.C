@@ -36,7 +36,6 @@
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
-#include "GPUChainTracking.h"
 #include "GPUChainITS.h"
 using namespace o2::gpu;
 
@@ -54,7 +53,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   gSystem->Load("libO2ITStracking.so");
 
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  //  auto* chainTracking = rec->AddChain<GPUChainTracking>();
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 
