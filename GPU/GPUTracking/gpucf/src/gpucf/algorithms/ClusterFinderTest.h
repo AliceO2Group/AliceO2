@@ -17,8 +17,10 @@ public:
 
 private:
     ReferenceClusterFinder gt;
+    ReferenceClusterFinder::Result res;
+    nonstd::span<const Digit> digits;
 
-    void checkIsPeaks(const std::vector<bool> &);
+    void checkIsPeaks(nonstd::span<const unsigned char>);
 
     void checkPeaks(const std::vector<Digit> &);
 

@@ -18,6 +18,7 @@ set(GPUCF_SRC
     "./common/RowInfo.cpp"
 
     "./debug/SCFuzzer.cpp"
+    "./debug/DigitDrawer.cpp"
 
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/common/Object.h>
+#include <gpucf/common/RawDigit.h>
 
 #include <shared/Digit.h>
 
@@ -15,6 +16,7 @@ class Digit : public PackedDigit
 {
 public:
     Digit();
+    Digit(const RawDigit &);
     Digit(float, int, int, int);
 
     Object serialize() const;

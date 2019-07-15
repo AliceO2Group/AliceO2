@@ -216,6 +216,8 @@ def bar(cnf):
 
         maxs, mins, medians = split(durations)
 
+        print(list(zip(steps, medians)))
+
         maxs -= medians
         mins = medians - mins
 

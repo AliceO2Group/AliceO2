@@ -18,6 +18,11 @@ Digit::Digit()
 {
 }
 
+Digit::Digit(const RawDigit &r)
+    : Digit(r.charge, r.row, r.pad, r.time)
+{
+}
+
 Digit::Digit(float _charge, int _row, int _pad, int _time)
 {
     charge = _charge;

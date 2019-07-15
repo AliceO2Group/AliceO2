@@ -19,7 +19,7 @@ public:
     {
         std::vector<Cluster> cluster;
         std::vector<Digit>   peaks;    
-        std::vector<bool>    isPeak;
+        std::vector<unsigned char>    isPeak;
     };
 
     ReferenceClusterFinder(ClusterFinderConfig);

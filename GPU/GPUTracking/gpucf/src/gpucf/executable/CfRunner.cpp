@@ -3,7 +3,9 @@
 #include <gpucf/algorithms/ClusterFinderTest.h>
 #include <gpucf/algorithms/ReferenceClusterFinder.h>
 #include <gpucf/common/DataSet.h>
+#include <gpucf/common/RawLabel.h>
 #include <gpucf/common/log.h>
+#include <gpucf/common/serialization.h>
 
 
 using namespace gpucf;
@@ -80,11 +82,12 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 int CfRunner::mainImpl()
 {
+    std::vector<Digit> digits = read<RawDigit, Digit>(args::get(*digitFile));
 
-    DataSet digitSet;
-    digitSet.read(args::get(*digitFile));
+    /* DataSet digitSet; */
+    /* digitSet.read(args::get(*digitFile)); */
 
-    std::vector<Digit> digits = digitSet.deserialize<Digit>();
+    /* std::vector<Digit> digits = digitSet.deserialize<Digit>(); */
 
     ClusterFinderConfig config;
 

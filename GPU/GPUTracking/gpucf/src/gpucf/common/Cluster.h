@@ -64,6 +64,8 @@ public:
     bool operator==(const Cluster &) const;
 
     bool eq(const Cluster &, float, float, FieldMask) const;
+
+    float dist(const Cluster &) const;
 };
 
 std::ostream &operator<<(std::ostream &, const Cluster &);
