@@ -1,5 +1,7 @@
 #include "ClusterMap.h"
 
+#include <limits>
+
 
 using namespace gpucf;
 
@@ -62,18 +64,21 @@ nonstd::optional<Cluster> ClusterMap::tryLookup(
 
     const std::vector<Cluster> &tgtRow = tgtEntry->second;
 
-    auto lookup = std::find_if(tgtRow.begin(), tgtRow.end(), 
-            [&](const Cluster &c2) 
-            { 
-                return c.eq(c2, epsilonSmall, epsilonBig, mask); 
-            });
+    float dist = std::numeric_limits<float>::infinity();
+    nonstd::optional<Cluster> lookup;
 
-    if (lookup == tgtRow.end())
+    for (const Cluster &other : tgtRow)
     {
-        return nonstd::nullopt;
+        if (other.eq(c, epsilonSmall, epsilonBig, mask))
+        {
+            if (c.dist(other) < dist)
+            {
+                lookup = other;
+            }
+        }
     }
 
-    return *lookup;
+    return lookup;
 }
 
 std::vector<Cluster> ClusterMap::findDuplicates() const
