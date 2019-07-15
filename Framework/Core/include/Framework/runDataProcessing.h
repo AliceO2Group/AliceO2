@@ -17,6 +17,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/BoostOptionsRetriever.h"
+#include "Framework/CustomWorkflowTerminationHook.h"
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
@@ -67,6 +68,10 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec> &globalWorkflowOptions) {}
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy> &completionPolicies) {}
+void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
+{
+  hook = [](const char*) {};
+}
 
 struct UserCustomizationsHelper {
   template <typename T>
@@ -124,6 +129,16 @@ int main(int argc, char** argv)
     LOG(ERROR) << "Unknown error while setting up workflow.";
   }
 
+  char* idstring = nullptr;
+  for (int argi = 0; argi < argc; argi++) {
+    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
+      idstring = argv[argi + 1];
+      break;
+    }
+  }
+  o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
+  UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
+  onWorkflowTerminationHook(idstring);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }
