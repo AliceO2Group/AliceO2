@@ -23,7 +23,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
       ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA cub::cub
     TARGETVARNAME targetName)
 
   target_compile_definitions(
@@ -61,6 +61,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
+
+  set(targetName Ali${MODULE})
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -68,3 +70,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
   install(TARGETS GPUTrackingCUDA)
 endif()
+
+# Since
+target_link_libraries(${targetName} PRIVATE cuda cudart)

@@ -25,7 +25,10 @@ endif()
 o2_add_library(DebugGUI
                SOURCES src/imgui.cpp src/imgui_draw.cpp src/imgui_extras.cpp
                        ${GUI_BACKEND}
-               PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation ${GUI_TARGET})
+               PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation ${GUI_TARGET}
+               TARGETVARNAME targetName)
+
+target_link_libraries(${targetName} PRIVATE dl)
 
 if(GLFW_FOUND)
   o2_add_executable(imgui
