@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
 
     cout<<"Initializing TEveManager"<<endl;
-    if(!TEveManager::Create()){
+    if(!TEveManager::Create(kTRUE, "FI")){
         cout<<"FATAL -- Could not create TEveManager!!"<<endl;
         exit(0);
     }

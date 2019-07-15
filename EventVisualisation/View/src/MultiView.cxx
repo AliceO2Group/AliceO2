@@ -116,9 +116,9 @@ void MultiView::setupMultiview()
   pack->SetShowTitleBar(kFALSE);
   
   pack->NewSlotWithWeight(2)->MakeCurrent(); // new slot is created from pack
-  mViews[View3d] = gEve->GetDefaultViewer();
-  mViews[View3d]->SetNameTitle("3D View", "");
-  gEve->GetWindowManager()->GetCurrentWindowAsSlot()->ReplaceWindow(mViews[View3d]);
+  mViews[View3d] = gEve->SpawnNewViewer("3D View", "");
+  mViews[View3d]->AddScene(mScenes[Scene3dGeom]);
+  mViews[View3d]->AddScene(mScenes[Scene3dEvent]);
   
   pack =  pack->NewSlot()->MakePack();
   pack->SetShowTitleBar(kFALSE);
