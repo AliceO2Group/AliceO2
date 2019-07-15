@@ -19,7 +19,7 @@ function profile()
     cfconfig=$@
 
     sudo $rcpBin $rcpCommonFlags -o $outfile \
-        $buildDir/release/bin/run_gpucf -scl -ddata/digits-big.txt \
+        $buildDir/release/bin/run_gpucf -scl -ddata/digits_ev100.bin \
         -o/tmp/clusters.txt $cfconfig
 }
 
