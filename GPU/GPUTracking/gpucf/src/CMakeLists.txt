@@ -21,6 +21,9 @@ target_link_libraries(benchmark gpucf)
 
 add_executable(args_test "args_test.cpp")
 
+add_executable(old_to_new "old_to_new.cpp")
+target_link_libraries(old_to_new gpucf)
+
 add_executable(testbench 
     "testbench.cpp"
     ${TEST_SRC})

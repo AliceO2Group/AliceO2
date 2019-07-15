@@ -2,6 +2,8 @@
 
 #include <filesystem/path.h>
 
+#include <nonstd/span.hpp>
+
 #include <cstdint>
 #include <fstream>
 #include <vector>
@@ -44,6 +46,17 @@ std::vector<R> read(filesystem::path f)
     in.read(reinterpret_cast<char *>(raw.data()), raw.size() * sizeof(R));
 
     return raw;
+}
+
+template<typename R>
+void write(filesystem::path f, nonstd::span<const R> data)
+{
+    std::ofstream out(f.str(), std::ios::binary);
+
+    uint64_t size = data.size();
+    out.write(reinterpret_cast<const char *>(&size), sizeof(uint64_t));
+
+    out.write(reinterpret_cast<const char *>(data.data()), size * sizeof(R));
 }
 
 } // namespace gpucf
