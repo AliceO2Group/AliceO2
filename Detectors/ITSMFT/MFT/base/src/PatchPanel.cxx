@@ -407,56 +407,56 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel(Int_t)
 
   ///////// shape for base --new
 
-  auto* s_circ_Ahole = new TGeoTube("S_CIRC_AHOLE", radin_A1, radout_A1, high_A1 / 2);
+  new TGeoTube("S_CIRC_AHOLE", radin_A1, radout_A1, high_A1 / 2);
 
-  auto* s_disc = new TGeoTubeSeg("S_DISC", radin_disc, radout_disc, high_disc / 2, ang_in_disc, ang_fin_disc);
+  new TGeoTubeSeg("S_DISC", radin_disc, radout_disc, high_disc / 2, ang_in_disc, ang_fin_disc);
 
-  auto* s_scut1 = new TGeoTubeSeg("S_SCUT1", radin_scut1, radout_scut1, high_scut1 / 2, ang_in_scut1, ang_fin_scut1);
+  new TGeoTubeSeg("S_SCUT1", radin_scut1, radout_scut1, high_scut1 / 2, ang_in_scut1, ang_fin_scut1);
 
-  auto* s_scut2 = new TGeoTubeSeg("S_SCUT2", radin_scut2, radout_scut2, high_scut2 / 2, ang_in_scut2, ang_fin_scut2);
+  new TGeoTubeSeg("S_SCUT2", radin_scut2, radout_scut2, high_scut2 / 2, ang_in_scut2, ang_fin_scut2);
 
-  auto* s_arm = new TGeoTubeSeg("S_ARM", radin_arm, radout_arm, high_arm / 2, angin_arm, angfin_arm);
+  new TGeoTubeSeg("S_ARM", radin_arm, radout_arm, high_arm / 2, angin_arm, angfin_arm);
 
-  auto* s_arm_R = new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR / 2, angin_armR, angfin_armR);
+  new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR / 2, angin_armR, angfin_armR);
 
-  auto* Abox = new TGeoBBox("Abox", x_Abox / 2, y_Abox / 2, z_Abox / 2);
+  new TGeoBBox("Abox", x_Abox / 2, y_Abox / 2, z_Abox / 2);
 
-  auto* smile = new TGeoTubeSeg("smile", radin_sm, radout_sm, high_sm / 2, angin_sm, angfin_sm);
+  new TGeoTubeSeg("smile", radin_sm, radout_sm, high_sm / 2, angin_sm, angfin_sm);
 
-  auto* c_ext = new TGeoTubeSeg("c_ext", radin_cext, radout_cext, high_cext / 2, angin_cext, angfin_cext);
+  new TGeoTubeSeg("c_ext", radin_cext, radout_cext, high_cext / 2, angin_cext, angfin_cext);
 
-  auto* kiroc = new TGeoTubeSeg("kiroc", radin_kiroc, radout_kiroc, high_kiroc / 2, angin_kiroc, angfin_kiroc);
+  new TGeoTubeSeg("kiroc", radin_kiroc, radout_kiroc, high_kiroc / 2, angin_kiroc, angfin_kiroc);
 
-  auto* cutlatL = new TGeoTubeSeg("cutlatL", radin_cutlatL, radout_cutlatL, high_cutlatL / 2, angin_cutlatL, angfin_cutlatL);
+  new TGeoTubeSeg("cutlatL", radin_cutlatL, radout_cutlatL, high_cutlatL / 2, angin_cutlatL, angfin_cutlatL);
 
-  auto* cutlatR = new TGeoTubeSeg("cutlatR", radin_cutlatR, radout_cutlatR, high_cutlatR / 2, angin_cutlatR, angfin_cutlatR);
+  new TGeoTubeSeg("cutlatR", radin_cutlatR, radout_cutlatR, high_cutlatR / 2, angin_cutlatR, angfin_cutlatR);
 
-  auto* slimdisL = new TGeoTubeSeg("slimdisL", radin_slimdisL, radout_slimdisL, high_slimdisL / 2, angin_slimdisL, angfin_slimdisL);
+  new TGeoTubeSeg("slimdisL", radin_slimdisL, radout_slimdisL, high_slimdisL / 2, angin_slimdisL, angfin_slimdisL);
 
-  auto* slimdisR = new TGeoTubeSeg("slimdisR", radin_slimdisR, radout_slimdisR, high_slimdisR / 2, angin_slimdisR, angfin_slimdisR);
+  new TGeoTubeSeg("slimdisR", radin_slimdisR, radout_slimdisR, high_slimdisR / 2, angin_slimdisR, angfin_slimdisR);
 
-  auto* s_1box = new TGeoBBox("BOX1", x_1box / 2, y_1box / 2, z_1box / 2);
-  auto* s_2box = new TGeoBBox("BOX2", x_2box / 2, y_2box / 2, z_2box / 2);
+  new TGeoBBox("BOX1", x_1box / 2, y_1box / 2, z_1box / 2);
+  new TGeoBBox("BOX2", x_2box / 2, y_2box / 2, z_2box / 2);
 
-  auto* s_labox = new TGeoBBox("LA_BOX", x_labox / 2, y_labox / 2, z_labox / 2);
+  new TGeoBBox("LA_BOX", x_labox / 2, y_labox / 2, z_labox / 2);
 
-  auto* s_2labox = new TGeoBBox("LA_2BOX", x_2labox / 2, y_2labox / 2, z_2labox / 2);
+  new TGeoBBox("LA_2BOX", x_2labox / 2, y_2labox / 2, z_2labox / 2);
 
-  TGeoShape* s_seg_1hole = new TGeoTubeSeg("SEG_1HOLE", radin_1hole, radout_1hole, high_1hole / 2, ang_in_1hole, ang_fin_1hole); 
+  new TGeoTubeSeg("SEG_1HOLE", radin_1hole, radout_1hole, high_1hole / 2, ang_in_1hole, ang_fin_1hole); 
 
-  TGeoShape* s_seg_hornL = new TGeoTubeSeg("S_SEG_HORNL", radin_hornL, radout_hornL, high_hornL / 2, angin_hornL, angfin_hornL);
+  new TGeoTubeSeg("S_SEG_HORNL", radin_hornL, radout_hornL, high_hornL / 2, angin_hornL, angfin_hornL);
 
-  TGeoShape* s_seg_hornR = new TGeoTubeSeg("S_SEG_HORNR", radin_hornR, radout_hornR, high_hornR / 2, angin_hornR, angfin_hornR);
+  new TGeoTubeSeg("S_SEG_HORNR", radin_hornR, radout_hornR, high_hornR / 2, angin_hornR, angfin_hornR);
 
-  auto* s_circ_hole = new TGeoTube("S_CIRC_HOLE1", radin_hole1, radout_hole1, high_hole1 / 2);
+  new TGeoTube("S_CIRC_HOLE1", radin_hole1, radout_hole1, high_hole1 / 2);
 
-  auto* s_circ_hole2 = new TGeoTube("S_CIRC_HOLE2", radin_hole2, radout_hole2, high_hole2 / 2);
+  new TGeoTube("S_CIRC_HOLE2", radin_hole2, radout_hole2, high_hole2 / 2);
 
-  auto* s_circ_holeB = new TGeoTube("S_CIRC_HOLEB", radin_holeB, radout_holeB, high_holeB / 2);
+  new TGeoTube("S_CIRC_HOLEB", radin_holeB, radout_holeB, high_holeB / 2);
 
-  auto* s_slideL = new TGeoTubeSeg("s_slideL", radin_slideL, radout_slideL, high_slideL / 2, angin_slideL, angfin_slideL);
+  new TGeoTubeSeg("s_slideL", radin_slideL, radout_slideL, high_slideL / 2, angin_slideL, angfin_slideL);
 
-  auto* s_slideR = new TGeoTubeSeg("s_slideR", radin_slideR, radout_slideR, high_slideR / 2, angin_slideR, angfin_slideR);
+  new TGeoTubeSeg("s_slideR", radin_slideR, radout_slideR, high_slideR / 2, angin_slideR, angfin_slideR);
 
   //// composite shape for base new 
   auto* baseA_Shape_0 = new TGeoCompositeShape( "baseA_Shape_0",
@@ -710,21 +710,21 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel(Int_t)
   TGeoTranslation* tra_B = new TGeoTranslation("tra_B", 0, 0, -4.8); //-4.8
   tra_B->RegisterYourself();
 
-  auto* s_discB = new TGeoTubeSeg("S_DISCB", radin_discB, radout_discB, high_discB / 2, angin_discB, angfin_discB);
+  new TGeoTubeSeg("S_DISCB", radin_discB, radout_discB, high_discB / 2, angin_discB, angfin_discB);
 
-  auto* nhawi_box = new TGeoBBox("nhawi_box", x_wibox / 2, y_wibox / 2, z_wibox / 2);
+  new TGeoBBox("nhawi_box", x_wibox / 2, y_wibox / 2, z_wibox / 2);
 
-  auto* vert_box = new TGeoBBox("vert_box", x_vbox / 2, y_vbox / 2, z_vbox / 2);
+  new TGeoBBox("vert_box", x_vbox / 2, y_vbox / 2, z_vbox / 2);
 
-  auto* boatL = new TGeoTubeSeg("boatL", radin_boatL, radout_boatL, high_boatL / 2, angin_boatL, angfin_boatL);
+  new TGeoTubeSeg("boatL", radin_boatL, radout_boatL, high_boatL / 2, angin_boatL, angfin_boatL);
 
-  auto* boatR = new TGeoTubeSeg("boatR", radin_boatR, radout_boatR, high_boatR / 2, angin_boatR, angfin_boatR);
+  new TGeoTubeSeg("boatR", radin_boatR, radout_boatR, high_boatR / 2, angin_boatR, angfin_boatR);
 
-  auto* arcutL = new TGeoTubeSeg("arcutL", radin_arcutL, radout_arcutL, high_arcutL / 2, angin_arcutL, angfin_arcutL);
+  new TGeoTubeSeg("arcutL", radin_arcutL, radout_arcutL, high_arcutL / 2, angin_arcutL, angfin_arcutL);
 
-  auto* arcutR = new TGeoTubeSeg("arcutR", radin_arcutR, radout_arcutR, high_arcutR / 2, angin_arcutR, angfin_arcutR);
+  new TGeoTubeSeg("arcutR", radin_arcutR, radout_arcutR, high_arcutR / 2, angin_arcutR, angfin_arcutR);
 
-  auto* lip = new TGeoTubeSeg("lip", radin_lip, radout_lip, high_lip / 2, angin_lip, angfin_lip);
+  new TGeoTubeSeg("lip", radin_lip, radout_lip, high_lip / 2, angin_lip, angfin_lip);
 
   //// composite shape for base ----
 
@@ -743,8 +743,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel(Int_t)
 
   auto* patchpanel_Shape = new TGeoCompositeShape( "patchpanel_Shape", "  baseA_Shape_3 + baseB_Shape_2");
 
-  auto* patchpanel_Volume =
-    new TGeoVolume("patchpanel_Volume", patchpanel_Shape, kMedAlu);
+  auto* patchpanel_Volume = new TGeoVolume("patchpanel_Volume", patchpanel_Shape, kMedAlu);
 
   patchpanel_Volume->SetLineColor(kGreen - 9);
   PatchPanelVolume->AddNode(patchpanel_Volume, 1);
