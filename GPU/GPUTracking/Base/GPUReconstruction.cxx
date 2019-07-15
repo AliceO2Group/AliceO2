@@ -141,6 +141,12 @@ int GPUReconstruction::Init()
     (mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
   }
 
+  if (IsGPU()) {
+    ActivateThreadContext();
+    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), -1);
+    ReleaseThreadContext();
+  }
+
   mInitialized = true;
   return 0;
 }
@@ -400,6 +406,10 @@ void GPUReconstruction::SetSettings(float solenoidBz)
 
 void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
+  if (mInitialized) {
+    printf("Cannot update settings while initialized\n");
+    throw std::runtime_error("Settings updated while initialized");
+  }
   mEventSettings = *settings;
   if (proc) {
     mDeviceProcessingSettings = *proc;

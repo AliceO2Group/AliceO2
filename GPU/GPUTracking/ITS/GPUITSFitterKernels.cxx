@@ -58,10 +58,9 @@ template <>
 GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
-  GPUTPCGMMerger& Merger = processors.tpcMerger;
 
   GPUTPCGMPropagator prop;
-  prop.SetPolynomialField(Merger.pField());
+  prop.SetPolynomialField(&processors.param.polynomialField);
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(0);
   prop.SetFitInProjections(1);

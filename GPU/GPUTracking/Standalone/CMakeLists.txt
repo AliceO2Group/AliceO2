@@ -37,7 +37,6 @@ find_package(X11 REQUIRED)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
 find_package(O2GPU)
-find_package(cub REQUIRED)
 
 include_directories(.
                     SliceTracker
