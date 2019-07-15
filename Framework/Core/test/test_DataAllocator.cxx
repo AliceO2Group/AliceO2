@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/OutputRoute.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
@@ -31,6 +32,19 @@ using namespace o2::framework;
   if ((condition) == false) {                                     \
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
+
+// this function is only used to do the static checks for API return types
+void doTypeChecks()
+{
+  TimingInfo* timingInfo = nullptr;
+  ContextRegistry* contextes = nullptr;
+  std::vector<OutputRoute> routes;
+  DataAllocator allocator(timingInfo, contextes, routes);
+  const Output output{ "TST", "DUMMY", 0, Lifetime::Timeframe };
+  // we require references to objects owned by allocator context
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<int>(output))>::value);
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::string>(output, "test"))>::value);
+}
 
 namespace test
 {
