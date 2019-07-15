@@ -9,3 +9,4 @@
 # submit itself to any jurisdiction.
 
 include("${CMAKE_CURRENT_LIST_DIR}/O2Dependencies.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/O2CompileFlags.cmake")
