@@ -2,6 +2,8 @@
 
 #include <gpucf/common/RowInfo.h>
 
+#include <shared/constants.h>
+
 #include <cmath>
 
 
@@ -19,7 +21,7 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(
     Map<float> chargemap(digits, [](const Digit &d) { return d.charge; }, 0.f);
 
     std::vector<Digit> peaks;
-    std::vector<bool> isPeakPred;
+    std::vector<unsigned char> isPeakPred;
 
     for (const Digit &d : digits)
     {
@@ -94,6 +96,11 @@ Cluster ReferenceClusterFinder::clusterize(
 bool ReferenceClusterFinder::isPeak(const Digit &d, const Map<float> &chargemap)
 {
     float q = d.charge;
+
+    if (q <= CHARGE_THRESHOLD)
+    {
+        return false;
+    }
 
     bool peak = true;
     peak &= chargemap[{d, -1, -1}] <= q;
@@ -195,8 +202,8 @@ void ReferenceClusterFinder::finalize(Cluster &c, const Digit &peak)
     padMean  += peak.pad;
     timeMean += peak.time;
 
-    c.Q    = qtot;
-    c.QMax = std::round(peak.charge);
+    c.Q    = int(qtot);
+    c.QMax = int(peak.charge);
     c.padMean = padMean;
     c.timeMean = timeMean;
     c.timeSigma = timeSigma;

@@ -146,6 +146,13 @@ bool Cluster::eq(
                 || !(mask & Field_padSigma));
 }
 
+float Cluster::dist(const Cluster &other) const
+{
+    float dt = timeMean - other.timeMean;
+    float dp = padMean  - other.padMean;
+    return std::sqrt(dp*dp + dt*dt);
+}
+
 std::ostream &gpucf::operator<<(std::ostream &os, const Cluster &c)
 {
     return os << c.serialize();
