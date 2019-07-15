@@ -33,9 +33,9 @@
 #pragma link C++ class o2::ccdb::GridStorageFactory + ;
 #pragma link C++ class o2::ccdb::GridStorageParameters + ;
 #pragma link C++ class o2::ccdb::XmlHandler + ;
+#pragma link C++ class o2::ccdb::CcdbApi + ;
 /// for the unit test
-#pragma link C++ class TestClass+;
-#pragma link C++ class o2::TObjectWrapper<TestClass>+;
-
+#pragma link C++ class TestClass + ;
+#pragma link C++ class o2::TObjectWrapper < TestClass> + ;
 
 #endif

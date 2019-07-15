@@ -57,6 +57,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/ObjectHandler.h
                                   include/CCDB/Storage.h
                                   include/CCDB/XmlHandler.h
+				  include/CCDB/CcdbApi.h
                                   include/CCDB/TObjectWrapper.h
                                   test/TestClass.h)
 
