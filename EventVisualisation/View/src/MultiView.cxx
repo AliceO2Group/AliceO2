@@ -121,6 +121,7 @@ void MultiView::setupMultiview()
   mViews[View3d]->AddScene(mScenes[Scene3dEvent]);
   
   pack =  pack->NewSlot()->MakePack();
+  pack->SetNameTitle("2D Views", "");
   pack->SetShowTitleBar(kFALSE);
   pack->NewSlot()->MakeCurrent();
   mViews[ViewRphi] = gEve->SpawnNewViewer("R-Phi View", "");
