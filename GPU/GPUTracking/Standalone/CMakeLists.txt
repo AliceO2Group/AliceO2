@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+include(FeatureSummary)
 
 set(ALIGPU_BUILD_TYPE "Standalone")
 add_definitions(-DGPUCA_STANDALONE -DHAVE_O2HEADERS)
@@ -34,7 +35,9 @@ find_package(Clang REQUIRED)
 find_package(LLVM REQUIRED)
 find_package(X11 REQUIRED)
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
 find_package(O2GPU)
+find_package(cub REQUIRED)
 
 include_directories(.
                     SliceTracker
@@ -74,9 +77,7 @@ add_subdirectory(../../ GPU)
 add_executable(ca standalone.cxx utils/qconfig.cpp qa/genEvents.cpp
                   Base/GPUReconstructionTimeframe.cxx)
 
-target_sources(
-  ca
-  PRIVATE
+add_library(o2_support
   ../../..//DataFormats/simulation/src/MCCompLabel.cxx
   ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
   ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
@@ -90,19 +91,20 @@ target_sources(
   ../../..//Detectors/Base/src/MatLayerCyl.cxx
   ../../..//Detectors/Base/src/Ray.cxx)
 
-target_sources(GPUTracking PUBLIC display/GPUDisplayBackendX11.cpp
+target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cpp
                display/GPUDisplayBackendGlut.cpp)
 
-target_link_libraries(GPUTracking
-                      PUBLIC TPCFastTransformation
+target_link_libraries(o2_support
+                      PUBLIC Vc::Vc
+                             X11::X11
+                             glfw
+                             glut
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
-                             ROOT::Gui
-                             Vc::Vc
-                             X11::X11
-                             glfw
-                             glut)
+                             ROOT::Gui)
+target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support)
+
 target_link_libraries(ca PUBLIC GPUTracking)
 target_compile_definitions(
   ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)

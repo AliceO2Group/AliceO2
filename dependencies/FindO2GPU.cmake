@@ -53,7 +53,7 @@ if(ENABLE_CUDA)
     if(CUDA_COMPUTETARGET)
       set(
         CMAKE_CUDA_FLAGS
-        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=compute_${CUDA_COMPUTETARGET}"
+        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=sm_${CUDA_COMPUTETARGET}"
         )
     endif()
 
@@ -155,4 +155,3 @@ endif()
 
 # if we end up here without a FATAL, it means we have found the "O2GPU" package
 set(O2GPU_FOUND TRUE)
-

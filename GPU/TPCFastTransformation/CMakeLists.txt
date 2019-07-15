@@ -38,6 +38,20 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   install(FILES ${HDRS_CINT_O2} DESTINATION include/GPU)
   file(COPY ${HDRS_CINT_O2} DESTINATION ${CMAKE_BINARY_DIR}/stage/include/GPU)
+
+  foreach(m
+          IrregularSpline1DTest.C
+          IrregularSpline2D3DCalibratorTest.C
+          IrregularSpline2D3DTest.C
+          RegularSpline1DTest.C
+          SemiregularSpline2D3DTest.C
+          fastTransformQA.C)
+    o2_add_test_root_macro(macro/${m}
+                           PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
+                                                 PUBLIC_INCLUDE_DIRECTORIES
+                                                 ${CMAKE_BINARY_DIR}/stage/include
+                           LABELS gpu tpc)
+  endforeach()
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
@@ -94,20 +108,6 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
 endif()
-
-foreach(m
-        IrregularSpline1DTest.C
-        IrregularSpline2D3DCalibratorTest.C
-        IrregularSpline2D3DTest.C
-        RegularSpline1DTest.C
-        SemiregularSpline2D3DTest.C
-        fastTransformQA.C)
-  o2_add_test_root_macro(macro/${m}
-                         PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
-                                               PUBLIC_INCLUDE_DIRECTORIES
-                                               ${CMAKE_BINARY_DIR}/stage/include
-                         LABELS gpu tpc)
-endforeach()
 
 #
 # FIXME: this one is misplaced : it depends (at least) on TPCSimulation which is
