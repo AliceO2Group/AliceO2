@@ -61,6 +61,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
+  target_link_libraries(${MODULE} GPUTracking)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
 endif()
@@ -70,7 +71,8 @@ if(HIP_AMDGPUTARGET)
 endif()
 
 target_compile_options(${targetName}
-                       PUBLIC -Wno-unused-command-line-argument
+                       PUBLIC -Wno-invalid-command-line-argument
+                              -Wno-unused-command-line-argument
                               -Wno-invalid-constexpr
                               -Wno-ignored-optimization-argument
                               -Wno-unused-private-field)
