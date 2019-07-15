@@ -25,6 +25,8 @@
 #include <fairmq/FairMQDevice.h>
 #include <vector>
 #include <chrono>
+#include <cstring>
+#include <TNamed.h>
 
 using namespace o2::framework;
 
@@ -130,6 +132,15 @@ DataProcessorSpec getSourceSpec()
     auto& shrinkchunk = pc.outputs().newChunk(OutputRef{ "shrinkchunk", 0 }, 1000000);
     shrinkchunk.resize(sizeof(o2::test::TriviallyCopyable));
     memcpy(shrinkchunk.data(), &a, sizeof(o2::test::TriviallyCopyable));
+    // make Root-serializable object derived from TObject
+    auto& rootobject = pc.outputs().make<TNamed>(OutputRef{ "maketobject", 0 }, "a_name", "a_title");
+    // make Root-serializable object Non-TObject
+    auto& rootpolymorphic = pc.outputs().make<o2::test::Polymorphic>(OutputRef{ "makerootserlzblobj", 0 }, b);
+    // make vector of Root-serializable objects
+    auto& rootserlzblvector = pc.outputs().make<std::vector<o2::test::Polymorphic>>(OutputRef{ "rootserlzblvector", 0 });
+    rootserlzblvector.emplace_back(0xacdc);
+    rootserlzblvector.emplace_back(0xbeef);
+    // make vector of messagable objects
     auto& messageablevector = pc.outputs().make<std::vector<o2::test::TriviallyCopyable>>(OutputRef{ "messageablevector", 0 });
     ASSERT_ERROR(messageablevector.size() == 0);
     messageablevector.push_back(a);
@@ -143,6 +154,9 @@ DataProcessorSpec getSourceSpec()
                               OutputSpec{ { "makespan" }, "TST", "MAKESPAN", 0, Lifetime::Timeframe },
                               OutputSpec{ { "growchunk" }, "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ { "shrinkchunk" }, "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "maketobject" }, "TST", "MAKETOBJECT", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "makerootserlzblobj" }, "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "rootserlzblvector" }, "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe },
                               OutputSpec{ { "messageablevector" }, "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
@@ -256,6 +270,20 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{ 42, 23, 0xdead }));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{ 10, 20, 0xacdc }));
 
+    LOG(INFO) << "extracting TNamed object from input13";
+    auto object13 = pc.inputs().get<TNamed*>("input13");
+    ASSERT_ERROR(strcmp(object13->GetName(), "a_name") == 0);
+    ASSERT_ERROR(strcmp(object13->GetTitle(), "a_title") == 0);
+
+    LOG(INFO) << "extracting Root-serialized Non-TObject from input14";
+    auto object14 = pc.inputs().get<o2::test::Polymorphic*>("input14");
+    ASSERT_ERROR(*object14 == o2::test::Polymorphic{ 0xbeef });
+
+    LOG(INFO) << "extracting Root-serialized vector from input15";
+    auto object15 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input15");
+    ASSERT_ERROR(object15[0] == o2::test::Polymorphic{ 0xacdc });
+    ASSERT_ERROR(object15[1] == o2::test::Polymorphic{ 0xbeef });
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -271,7 +299,10 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               InputSpec{ "input10", "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
                               InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
-                              InputSpec{ "input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe } },
+                              InputSpec{ "input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe },
+                              InputSpec{ "input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe },
+                              InputSpec{ "input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe },
+                              InputSpec{ "input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

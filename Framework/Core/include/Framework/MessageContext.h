@@ -12,6 +12,7 @@
 
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/TMessageSerializer.h"
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
 
@@ -239,8 +240,61 @@ class MessageContext {
    private:
     value_type mValue;
   };
+
+  /// RootSerializedObject keeps ownership to an object which can be Root-serialized
+  /// TODO: this should maybe be a separate header file to avoid including TMessageSerializer
+  /// in this header file, but we can always change this without affecting to much code.
+  template <typename T>
+  class RootSerializedObject : public ContextObject
+  {
+   public:
+    // Note: we strictly require the type to implement the ROOT ClassDef interface in order to be
+    // able to check for the existence of the dirctionary for this type. Could be dropped if any
+    // use case for a type having the dictionary at runtime pops up
+    static_assert(has_root_dictionary<T>::value == true, "unconsistent type: needs to implement ROOT ClassDef interface");
+    using value_type = T;
+    /// default constructor forbidden, object alwasy has to control messages
+    RootSerializedObject() = delete;
+    /// constructor taking header message by move and creating the object from variadic argument list
+    template <typename ContextType, typename... Args>
+    RootSerializedObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, Args&&... args)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel)
+    {
+      mObject = std::make_unique<value_type>(std::forward<Args>(args)...);
+      mPayloadMsg = context->proxy().createMessage();
+    }
+    ~RootSerializedObject() override = default;
+
+    /// @brief Finalize object and return parts by move
+    /// This retrieves the actual message from the vector object and moves it to the parts
+    FairMQParts finalize() final
+    {
+      assert(mParts.Size() == 1);
+      TMessageSerializer::Serialize(*mPayloadMsg, mObject.get(), nullptr);
+      mParts.AddPart(std::move(mPayloadMsg));
+      return ContextObject::finalize();
+    }
+
+    operator value_type&()
+    {
+      return *mObject;
+    }
+
+    value_type& get()
+    {
+      return *mObject;
+    }
+
+   private:
+    std::unique_ptr<value_type> mObject;
+    FairMQMessagePtr mPayloadMsg;
+  };
+
   using Messages = std::vector<std::unique_ptr<ContextObject>>;
 
+  /// Create the specified context object from the variadic arguments and add to message list
+  /// The context object type is specified as template argument, each context object implementation
+  /// must derive from the ContextObject interface
   template <typename T, typename... Args>
   auto& add(Args&&... args)
   {
