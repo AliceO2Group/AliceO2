@@ -8,9 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_package(cub)
-set_package_properties(cub PROPERTIES TYPE REQUIRED)
-
 message(STATUS "Building ITS CUDA tracker")
 
 o2_add_library(ITStrackingCUDA
