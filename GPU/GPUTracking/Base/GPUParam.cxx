@@ -116,11 +116,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   resetTimers = false;
 
   polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-  if (AssumeConstantBz) {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, BzkG, polynomialField);
-  } else {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
-  }
+  GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
 }
 
 void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)
@@ -132,6 +128,12 @@ void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsD
   if (p) {
     debugLevel = p->debugLevel;
     resetTimers = p->resetTimers;
+  }
+  polynomialField.Reset();
+  if (AssumeConstantBz) {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, BzkG, polynomialField);
+  } else {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
   }
 }
 
