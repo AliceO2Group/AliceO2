@@ -40,6 +40,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 
 #ifdef HAVE_O2HEADERS
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
+#include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #else
 namespace o2
 {
@@ -105,16 +106,19 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 
 GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCUDA(cfg); }
 
-void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits)
+void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
-  trackerTraits.reset(new o2::its::TrackerTraitsNV);
-  vertexerTraits.reset(new o2::its::VertexerTraits);
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::its::TrackerTraitsNV);
+  }
+  if (vertexerTraits) {
+    vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
+  }
 }
 
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-
   cudaDeviceProp cudaDeviceProp;
 
   int count, bestDevice = -1;

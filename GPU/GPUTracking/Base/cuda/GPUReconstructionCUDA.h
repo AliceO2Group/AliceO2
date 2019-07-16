@@ -56,7 +56,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   void ReleaseEvent(deviceEvent* ev) override;
   void RecordMarker(deviceEvent* ev, int stream) override;
 
-  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits) override;
+  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
