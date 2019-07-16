@@ -25,7 +25,8 @@ class PatchPanel
  //TGeoVolumeAssembly* mPatchPanel;
 
  private:
-  ClassDefOverride(PatchPanel, 1)
+  ClassDef(PatchPanel, 1)
+  //ClassDefOverride(PatchPanel, 1)
 };
 }
 }
