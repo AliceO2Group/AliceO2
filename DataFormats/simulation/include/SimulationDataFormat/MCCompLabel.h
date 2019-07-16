@@ -91,7 +91,7 @@ class MCCompLabel
   // allow to retrieve bare label
   ULong64_t getRawValue() const { return mLabel; }
 
-  // comparison operator, compares only label, not evential weight or correctness info
+  // comparison operator, compares only label, not eventual weight or correctness info
   bool operator==(const MCCompLabel& other) const { return (mLabel & maskFull) == (other.mLabel & maskFull); }
   // invalidate
   void unset() { mLabel = NotSet; }
