@@ -58,6 +58,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/Storage.h
                                   include/CCDB/XmlHandler.h
                                   include/CCDB/TObjectWrapper.h
+                                  include/CCDB/CcdbApi.h
                                   test/TestClass.h)
 
 o2_add_executable(conditions-server
