@@ -199,6 +199,8 @@ class CcdbApi //: public DatabaseInterface
 
   /// Base URL of the CCDB (with port)
   std::string mUrl;
+
+  ClassDefNV(CcdbApi, 1);
 };
 } // namespace ccdb
 } // namespace o2

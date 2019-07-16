@@ -18,7 +18,9 @@
 #include <string>
 #include <vector>
 
+#if !(defined(__CLING__) || defined(__ROOTCLING__))
 #include <FairMQDevice.h>
+#endif
 
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
@@ -39,7 +41,9 @@ class Backend
   virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;
 
   /// UnPack
+#if !(defined(__CLING__) || defined(__ROOTCLING__))
   virtual Condition* UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
+#endif
 
   /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
   void Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,
