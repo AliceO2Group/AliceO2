@@ -64,9 +64,8 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType t
 //        this->LoadClusters(this->fTRDClusters, "TRD", 2);
 //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
-  this->LoadEsdTracks();
-
-    return nullptr;
+    this->LoadEsdTracks();
+    return this->fTrackList;
 }
 
 void DataInterpreterVSD::LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id) {
@@ -149,8 +148,6 @@ void DataInterpreterVSD::LoadEsdTracks() {
   }
 
   fTrackList->MakeTracks();
-
-  EventRegistration::getInstance()->registerEvent(fTrackList);
 }
 
 }

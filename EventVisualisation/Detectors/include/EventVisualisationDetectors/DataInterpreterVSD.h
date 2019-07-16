@@ -45,7 +45,7 @@ public:
     DataInterpreterVSD();
 
     // Default destructor
-    ~DataInterpreterVSD() final;
+    virtual ~DataInterpreterVSD() final;
 
     // Returns a list of random tracks colored by PID
     TEveElement *interpretDataForType(TObject* data, EDataType type) final;
