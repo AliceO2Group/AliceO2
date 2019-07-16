@@ -59,9 +59,8 @@ class VertexerTraits
   VertexerTraits();
   virtual ~VertexerTraits() = default;
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
-  GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPU_HOST_DEVICE static const int4 getBinsRect2(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPU_HOST_DEVICE static const int2 getPhiBins(const int layerIndex, float phi, float deltaPhi);
+  GPU_HOST_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPU_HOST_DEVICE static const int2 getPhiBins(float phi, float deltaPhi);
 
   // virtual vertexer interface
   virtual void reset();
@@ -130,34 +129,14 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
   mVrtParams = vrtPar;
 }
 
-inline GPU_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
-{
-  const float zRangeMin = directionZIntersection - maxdeltaz;
-  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
-  const float zRangeMax = directionZIntersection + maxdeltaz;
-  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
-
-  if (zRangeMax < -constants::its::LayersZCoordinate()[layerIndex + 1] ||
-      zRangeMin > constants::its::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
-
-    return getEmptyBinsRect();
-  }
-
-  return int4{ gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax)) };
-}
-
-inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(const int layerIndex, float phi, float dPhi)
+inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
 {
   return int2{ index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
                index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi)) };
 }
 
-inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect2(const Cluster& currentCluster, const int layerIndex,
-                                                               const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                              const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;

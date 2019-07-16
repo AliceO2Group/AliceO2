@@ -109,7 +109,7 @@ GPU_GLOBAL void trackleterKernel(
       const int stride{ currentClusterIndex * maxTrackletsPerCluster };
       const Cluster currentCluster{ GPUclustersCurrent[currentClusterIndex] };
       const int layerIndex{ layerOrder == LAYER0_TO_LAYER1 ? 0 : 2 };
-      const int4 selectedBinsRect{ VertexerTraits::getBinsRect2(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
+      const int4 selectedBinsRect{ VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{ selectedBinsRect.w - selectedBinsRect.y + 1 };
         if (phiBinsNum < 0) {
@@ -119,7 +119,7 @@ GPU_GLOBAL void trackleterKernel(
           const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
           const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
           const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
-          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
+          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
             const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
             const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
