@@ -43,7 +43,9 @@ class BackendRiak : public Backend
   void Pack(const std::string& path, const std::string& key, std::string*& messageString) override;
 
   /// Deserializes and uncompresses an incoming message from the CCDB server
+#if !(defined(__CLING__) || defined(__ROOTCLING__))
   Condition* UnPack(std::unique_ptr<FairMQMessage> msg) override;
+#endif
 };
 }
 }
