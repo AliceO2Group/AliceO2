@@ -14,8 +14,8 @@ class EventRegistration {
 private:
     static EventRegistration* instance;
 public:
-    /// Registers an event to be drawn
-    virtual void registerEvent(TEveElement *event) = 0;
+    /// Registers an element to be drawn
+    virtual void registerElement(TEveElement *event) = 0;
 
     /// Removes all shapes representing current event
     virtual void destroyAllEvents() = 0;

@@ -97,7 +97,19 @@ MultiView::MultiView()
   sInstance = this;
 }
 
-MultiView::~MultiView() = default;
+MultiView::~MultiView() {
+//    for(int i=this->SceneRPhiGeom;i<this->NumberOfScenes;++i) {
+//        delete this->mScenes[i];
+//    }
+//
+//    for(int i=0;i<this->NumberOfProjections;++i) {
+//        delete mProjections[i];
+//    }
+//
+//    for(int i=ViewRphi;i<this->NumberOfViews;++i) {
+//        delete this->mViews[i];
+//    }
+}
 
 MultiView* MultiView::getInstance()
 {
@@ -192,9 +204,9 @@ void MultiView::destroyAllGeometries()
   }
 }
   
-void MultiView::registerEvent(TEveElement* event)
+void MultiView::registerElement(TEveElement* event)
 {
-  gEve->AddElement(event,getScene(Scene3dEvent));
+  gEve->GetCurrentEvent()->AddElement(event);
   getProjection(ProjectionRphi)->ImportElements(event,getScene(SceneRphiEvent));
   getProjection(ProjectionZrho)->ImportElements(event,getScene(SceneZrhoEvent));
   
@@ -203,7 +215,7 @@ void MultiView::registerEvent(TEveElement* event)
 
 void MultiView::destroyAllEvents()
 {
-  getScene(Scene3dEvent)->DestroyElements();
+  gEve->GetCurrentEvent()->RemoveElements();
   getScene(SceneRphiEvent)->DestroyElements();
   getScene(SceneZrhoEvent)->DestroyElements();
 }
@@ -212,9 +224,9 @@ void MultiView::drawRandomEvent()
 {
   DataInterpreterRND *dataInterpreterRND = new DataInterpreterRND();
   TEveElement *dataRND = dataInterpreterRND->interpretDataForType(nullptr, NoData);
-  registerEvent(dataRND);
+  registerElement(dataRND);
     TEveElement *dataRND1 = dataInterpreterRND->interpretDataForType(nullptr, NoData);
-    registerEvent(dataRND1);
+    registerElement(dataRND1);
 
 }
 }

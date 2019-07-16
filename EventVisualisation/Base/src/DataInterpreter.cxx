@@ -23,11 +23,6 @@ namespace event_visualisation {
 
 DataInterpreter* DataInterpreter::instance = nullptr;
 DataInterpreter::DataInterpreter() = default;
-
-DataInterpreter::~DataInterpreter()
-{
-  cout<<"Virtual destructor of the DataInterpreter -- should be implemented in deriving class!!"<<endl;
-}
   
 TEveElement* DataInterpreter::interpretDataForType(TObject* data, EDataType type) {
   cout<<"Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!"<<endl;
