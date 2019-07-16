@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared/tpc.h>
+
 #include <filesystem/path.h>
 
 #include <nonstd/span.hpp>
@@ -12,38 +14,35 @@
 namespace gpucf
 {
 
-template<typename R, class T>
-std::vector<T> read(filesystem::path f)
+template<typename T>
+struct SectorData
 {
-    std::ifstream in(f.str(), std::ios::binary);
-    
-    uint64_t size;
-    in.read(reinterpret_cast<char *>(&size), sizeof(uint64_t));
-
-    std::vector<R> raw(size);
-    in.read(reinterpret_cast<char *>(raw.data()), raw.size() * sizeof(R));
-
+    std::array<uint64_t, TPC_SECTORS> elemsBySector;
     std::vector<T> data;
-    data.reserve(raw.size());
 
-    for (const R &r : raw)
+    size_t sizeByHeader() const 
     {
-        data.emplace_back(r);
+        size_t n = 0;
+        for (auto s : elemsBySector)
+        {
+            n += s;    
+        }
+        return n;
     }
+};
 
-    return data;
-}
-
-template<typename R>
-std::vector<R> read(filesystem::path f)
+template<typename T>
+SectorData<T> read(filesystem::path f)
 {
     std::ifstream in(f.str(), std::ios::binary);
     
-    uint64_t size;
-    in.read(reinterpret_cast<char *>(&size), sizeof(uint64_t));
+    SectorData<T> raw;
+    in.read(reinterpret_cast<char *>(raw.elemsBySector.data()), 
+            sizeof(uint64_t) * raw.elemsBySector.size());
 
-    std::vector<R> raw(size);
-    in.read(reinterpret_cast<char *>(raw.data()), raw.size() * sizeof(R));
+    raw.data.resize(raw.sizeByHeader());
+
+    in.read(reinterpret_cast<char *>(raw.data.data()), raw.data.size() * sizeof(T));
 
     return raw;
 }

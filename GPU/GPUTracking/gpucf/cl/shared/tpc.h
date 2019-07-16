@@ -4,6 +4,7 @@
 #include "types.h"
 
 #define PADDING 2
+#define TPC_SECTORS 36
 #define TPC_ROWS_PER_CRU 18
 #define TPC_NUM_OF_ROWS 152
 #define TPC_PADS_PER_ROW 138

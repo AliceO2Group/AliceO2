@@ -52,7 +52,7 @@ int Benchmark::mainImpl()
         throw DirectoryNotFoundError(baseDir);
     }
 
-    digits = read<RawDigit, Digit>(args::get(*digitFile));
+    /* digits = read<RawDigit, Digit>(args::get(*digitFile)); */
 
     registerExperiments();
 
