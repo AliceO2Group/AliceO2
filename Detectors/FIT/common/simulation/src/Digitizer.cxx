@@ -25,27 +25,12 @@ using namespace o2::fit;
 
 ClassImp(Digitizer);
 
-double sinc(const double x)
-{
-  if (x == 0)
-    return 1;
-  return sin(x) / x;
-}
-double signalForm_i(double x)
-{
-  return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
-};
-
-double Digitizer::get_time(const std::vector<double>& times, double signal_width)
+double Digitizer::get_time(const std::vector<double>& times)
 {
   mHist->Reset();
   mHistsum->Reset();
   mHistshift->Reset();
-  /*
-  TH1F mHist("time_mHistogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F mHistsum("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F mHistshift("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  */
+
   /// Fill MHistrogram `mHist` with photoelectron induced voltage
   for (auto time : times) {
     for (int bin = mHist->FindBin(time); bin < mHist->GetSize(); ++bin)
@@ -53,37 +38,16 @@ double Digitizer::get_time(const std::vector<double>& times, double signal_width
         mHist->AddBinContent(bin, signalForm_i(mHist->GetBinCenter(bin) - time));
   }
   /// Add noise to `mHist`
-  double noiseVar = 0.1;
-  int noise_period = 1 / 0.9 / mHist->GetBinWidth(0);
-  for (int c = 0; c < mHist->GetSize(); c += noise_period) {
-    double val = gRandom->Gaus(0, noiseVar);
+  for (int c = 0; c < mHist->GetSize(); c += mNoisePeriod) {
+    double val = gRandom->Gaus(0, parameters.mNoiseVar);
     for (int bin = 0; bin < mHist->GetSize(); ++bin)
-      mHist->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
+      mHist->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
+    for (int bin = 0; bin < mBinshift; ++bin)
+      mHistshift->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
   }
-  int binshift = int(1.47 / (signal_width / 1000.));
-  /// Add noise to the initial part of `mHistshift` that would contain values before the timeframe
-  for (int c = 0; c < mHist->GetSize(); c += noise_period) {
-    double val = gRandom->Gaus(0, noiseVar);
-    for (int bin = 0; bin < binshift; ++bin)
-      mHistshift->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)noise_period));
-  }
-
-  /*
-  for (int bin = 0; bin < mHist->GetSize(); ++bin) {
-    Double_t gausnoise = gRandom->Gaus(0, noiseVar);
-    mHist->AddBinContent(bin, gausnoise);
-  }
-  
-  int binshift = int(1.47 / (signal_width / 1000.));
-  /// Add noise to the initial part of `mHistshift` that would contain values before the timeframe
-  for (int bin =0; bin < binshift; ++bin) {
-    Double_t gausnoise = gRandom->Gaus(0, noiseVar);
-    mHistshift->AddBinContent(bin, gausnoise);
-  }
-  */
   /// Shift `mHist` by 1.47 ns to `mHistshift`
-  for (int bin = 0; bin < mHist->GetSize() - binshift; ++bin)
-    mHistshift->SetBinContent(bin + binshift, mHist->GetBinContent(bin));
+  for (int bin = 0; bin < mHist->GetSize() - mBinshift; ++bin)
+    mHistshift->SetBinContent(bin + mBinshift, mHist->GetBinContent(bin));
 
   /// Add the signal and its shifted version to `mHistsum`
   mHist->Scale(-1);
@@ -105,6 +69,7 @@ double Digitizer::get_time(const std::vector<double>& times, double signal_width
 void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
 {
+
   auto sorted_hits{ *hits };
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::t0::HitType const& a, o2::t0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
@@ -159,14 +124,13 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<doubl
   //smeared CFD time for 50ps
   //  constexpr Float_t mMip_in_V = 7.;     // mV /250 ph.e.
   //  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
-  std::cout << " parameters.mMip_in_V " << parameters.mMip_in_V << "parameters.mPe_in_mip " << parameters.mPe_in_mip << std::endl;
   std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
-      double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
+      double smeared_time = get_time(channel_times[mcp]) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
       if (smeared_time < 1e9)
         mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
@@ -246,11 +210,13 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
 void Digitizer::initParameters()
 {
   mEventTime = 0;
-  float signal_width = 5.;
-  mHist = new TH1F("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  mHistsum = new TH1F("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  mHistshift = new TH1F("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  // murmur
+  float signal_width = 0.5 * parameters.mSignalWidth;
+  mHist = new TH1F("time_histogram", "", 1000, -signal_width, signal_width);
+  mHistsum = new TH1F("time_sum", "", 1000, -signal_width, signal_width);
+  mHistshift = new TH1F("time_shift", "", 1000, -signal_width, signal_width);
+
+  mNoisePeriod = parameters.mNoisePeriod / mHist->GetBinWidth(0);
+  mBinshift = int(parameters.mCFDShiftPos / (parameters.mSignalWidth / 1000.));
 }
 //_______________________________________________________________________
 void Digitizer::init()
@@ -258,10 +224,19 @@ void Digitizer::init()
   std::cout << " @@@ Digitizer::init " << std::endl;
 }
 //_______________________________________________________________________
-void Digitizer::finish() {}
-/*
+void Digitizer::finish()
+{
+  printParameters();
+}
+
 void Digitizer::printParameters()
 {
-  //murmur
+  std::cout << " Run Digitzation with parametrs: \n"
+            << "mBC_clk_center \n"
+            << parameters.mBC_clk_center << " CFD amplitude threshold \n " << parameters.mCFD_trsh_mip << " CFD signal gate in ns \n"
+            << parameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
+            << parameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
+            << parameters.mCFDShiftPos << "MIP -> mV " << parameters.mMip_in_V << " Pe in MIP \n"
+            << parameters.mPe_in_mip << "noise level " << parameters.mNoiseVar << " noise frequency \n"
+            << parameters.mNoisePeriod << std::endl;
 }
-*/

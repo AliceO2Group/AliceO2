@@ -30,6 +30,10 @@ struct DigitizationParameters {
   Float_t mCfdShift;    // time shift for CFD shape simulation
   Float_t mMip_in_V;    //MIP to mV
   Float_t mPe_in_mip;   // Np.e. in MIP
+
+  double mCFDShiftPos; // shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  double mNoiseVar;    //noise level
+  double mNoisePeriod; // low frequency noise period;
 };
 } // namespace o2::fit
 #endif
