@@ -42,10 +42,7 @@ void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
   pageLockedHostMem = gpuMem;
 }
 
-int GPUChainITS::Init()
-{
-  return 0;
-}
+int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
@@ -77,7 +74,7 @@ int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<Road>& roads, std::array<c
 
 int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
 {
-  ActivateThreadContext();
+  auto threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::ITSTracking);
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
   GPUITSFitter& Fitter = processors()->itsFitter;
@@ -121,7 +118,5 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
                                          trkin.mOuterParam.C[10], trkin.mOuterParam.C[11], trkin.mOuterParam.C[12], trkin.mOuterParam.C[13], trkin.mOuterParam.C[14] } },
                                      { { trkin.mClusters[0], trkin.mClusters[1], trkin.mClusters[2], trkin.mClusters[3], trkin.mClusters[4], trkin.mClusters[5], trkin.mClusters[6] } } });
   }
-
-  ReleaseThreadContext();
   return 0;
 }

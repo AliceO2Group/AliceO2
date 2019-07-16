@@ -144,7 +144,6 @@ void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
 {
   GPUImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d (%d))", mDeviceProcessingSettings.nDeviceHelperThreads, mNSlaveThreads);
   SynchronizeGPU();
-  ReleaseThreadContext();
   for (int i = 0; i < mDeviceProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].reset = true;
     if (helpers || i >= mDeviceProcessingSettings.nDeviceHelperThreads) {

@@ -316,7 +316,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
   }
 
-  ReleaseThreadContext();
+  cuCtxPopCurrent(&mInternals->CudaContext);
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -326,7 +326,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 {
   // Uninitialize CUDA
-  ActivateThreadContext();
+  cuCtxPushCurrent(mInternals->CudaContext);
 
   SynchronizeGPU();
 
@@ -420,14 +420,13 @@ void GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const vo
 }
 
 void GPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
-
 void GPUReconstructionCUDABackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream])); }
 
-void GPUReconstructionCUDABackend::ActivateThreadContext() { cuCtxPushCurrent(mInternals->CudaContext); }
-void GPUReconstructionCUDABackend::ReleaseThreadContext() { cuCtxPopCurrent(&mInternals->CudaContext); }
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context) { cuCtxPushCurrent(mContext->CudaContext); }
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::~GPUThreadContextCUDA() { cuCtxPopCurrent(&mContext->CudaContext); }
+std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDABackend::GetThreadContext() { return std::unique_ptr<GPUThreadContext>(new GPUThreadContextCUDA(mInternals)); }
 
 void GPUReconstructionCUDABackend::SynchronizeGPU() { GPUFailedMsg(cudaDeviceSynchronize()); }
-
 void GPUReconstructionCUDABackend::SynchronizeStream(int stream) { GPUFailedMsg(cudaStreamSynchronize(mInternals->CudaStreams[stream])); }
 
 void GPUReconstructionCUDABackend::SynchronizeEvents(deviceEvent* evList, int nEvents)
