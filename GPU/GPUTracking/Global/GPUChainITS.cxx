@@ -44,9 +44,23 @@ void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 
 int GPUChainITS::Init()
 {
-  mRec->GetITSTraits(mITSTrackerTraits, mITSVertexerTraits);
-  mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   return 0;
+}
+
+TrackerTraits* GPUChainITS::GetITSTrackerTraits()
+{
+  if (mITSTrackerTraits == nullptr) {
+    mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
+    mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
+  }
+  return mITSTrackerTraits.get();
+}
+VertexerTraits* GPUChainITS::GetITSVertexerTraits()
+{
+  if (mITSVertexerTraits == nullptr) {
+    mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
+  }
+  return mITSVertexerTraits.get();
 }
 
 int GPUChainITS::PrepareEvent() { return 0; }
