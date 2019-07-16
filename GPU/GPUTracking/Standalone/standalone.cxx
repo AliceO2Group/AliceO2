@@ -404,7 +404,7 @@ int main(int argc, char** argv)
   rec->SetDebugLevelTmp(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
 #ifdef HAVE_O2HEADERS
-  chainITS = rec->AddChain<GPUChainITS>();
+  chainITS = rec->AddChain<GPUChainITS>(0);
 #endif
 
   if (SetupReconstruction()) {
