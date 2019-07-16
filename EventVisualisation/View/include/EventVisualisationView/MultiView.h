@@ -79,8 +79,8 @@ class MultiView:public EventRegistration
     /// Removes all geometries
     void destroyAllGeometries();
   
-    /// Registers an event to be drawn
-    void registerEvent(TEveElement* event) override;
+    /// Registers an element to be drawn
+    void registerElement(TEveElement* event) override;
     /// Removes all shapes representing current event
     void destroyAllEvents() override;
   

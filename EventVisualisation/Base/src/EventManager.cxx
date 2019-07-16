@@ -81,7 +81,7 @@ void EventManager::GotoEvent(Int_t no) {
     TObject *data = getDataSource()->getEventData(no);
     if(data) {
       TEveElement* eveElement = DataInterpreter::getInstance()->interpretDataForType(data, NoData);
-      EventRegistration::getInstance()->registerEvent(eveElement);
+      EventRegistration::getInstance()->registerElement(eveElement);
       //delete data;
     }
 }

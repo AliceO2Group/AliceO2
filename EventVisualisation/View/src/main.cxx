@@ -58,7 +58,7 @@ using namespace o2::event_visualisation;
 extern TEveManager* gEve;
 void drawEvent(TEveElementList* mEvent) {
     auto multi = o2::event_visualisation::MultiView::getInstance();
-    multi->registerEvent(mEvent);
+    multi->registerElement(mEvent);
     gEve->Redraw3D(kFALSE);
 }
 

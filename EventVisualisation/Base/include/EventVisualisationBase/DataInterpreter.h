@@ -36,7 +36,7 @@ public:
   // Default constructor
   DataInterpreter();
   // Virtual destructor
-  virtual ~DataInterpreter();
+  virtual ~DataInterpreter() {};
   
   // Should return visualisation objects for required data type
   virtual TEveElement* interpretDataForType(TObject* data, EDataType type);
