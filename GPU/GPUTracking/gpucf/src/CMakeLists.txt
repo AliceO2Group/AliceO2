@@ -24,6 +24,9 @@ add_executable(args_test "args_test.cpp")
 add_executable(old_to_new "old_to_new.cpp")
 target_link_libraries(old_to_new gpucf)
 
+add_executable(load_label "load_label.cpp")
+target_link_libraries(load_label gpucf)
+
 add_executable(testbench 
     "testbench.cpp"
     ${TEST_SRC})
