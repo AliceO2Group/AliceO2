@@ -146,9 +146,8 @@ int GPUReconstruction::Init()
   }
 
   if (IsGPU()) {
-    ActivateThreadContext();
+    const auto threadContext = GetThreadContext();
     WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), -1);
-    ReleaseThreadContext();
   }
 
   mInitialized = true;
@@ -436,6 +435,8 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 }
 
 int GPUReconstruction::GetMaxThreads() { return mDeviceProcessingSettings.nThreads; }
+
+std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::make_unique<GPUThreadContext>(); }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {

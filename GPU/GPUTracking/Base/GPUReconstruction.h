@@ -200,9 +200,16 @@ class GPUReconstruction
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   virtual int InitDevice() = 0;
   virtual int ExitDevice() = 0;
-  virtual void ActivateThreadContext() = 0;
-  virtual void ReleaseThreadContext() = 0;
   virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+
+  // Management for GPU thread contexts
+  class GPUThreadContext
+  {
+   public:
+    GPUThreadContext() = default;
+    virtual ~GPUThreadContext() = default;
+  };
+  virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
   size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));

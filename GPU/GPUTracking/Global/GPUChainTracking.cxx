@@ -502,7 +502,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
 int GPUChainTracking::ConvertNativeToClusterData()
 {
 #ifdef HAVE_O2HEADERS
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCConversion);
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
   GPUTPCConvert& convert = processors()->tpcConverter;
@@ -539,8 +539,6 @@ int GPUChainTracking::ConvertNativeToClusterData()
     mIOPtrs.clusterData[i] = convert.mClusters + mClusterNativeAccess->clusterOffset[i][0];
     processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], mClusterNativeAccess->clusterOffset[i][0]);
   }
-
-  ReleaseThreadContext();
 #endif
   return 0;
 }
@@ -671,7 +669,7 @@ int GPUChainTracking::RunTPCTrackingSlices()
     return (1);
   }
 
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCSliceTracking);
 
   int retVal = RunTPCTrackingSlices_internal();
@@ -681,7 +679,6 @@ int GPUChainTracking::RunTPCTrackingSlices()
   if (retVal >= 2) {
     ResetHelperThreads(retVal >= 3);
   }
-  ReleaseThreadContext();
   return (retVal != 0);
 }
 
@@ -1118,7 +1115,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("Running TPC Merger");
   }
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCMerging);
 
   HighResTimer timer;
@@ -1206,7 +1203,6 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
-  ReleaseThreadContext();
   return 0;
 }
 
@@ -1216,7 +1212,7 @@ int GPUChainTracking::RunTPCCompression()
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCCompression);
 
   Compressor.mMerger = &processors()->tpcMerger;
@@ -1287,8 +1283,6 @@ int GPUChainTracking::RunTPCCompression()
   SynchronizeGPU();
 
   mIOPtrs.tpcCompressedClusters = &Compressor.mOutput;
-
-  ReleaseThreadContext();
 #endif
   return 0;
 }
@@ -1355,7 +1349,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   GPUTRDTracker& Tracker = processors()->trdTracker;
   GPUTRDTracker& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
 
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
   TrackerShadow.SetGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mTrdGeometry));
 
@@ -1372,7 +1366,6 @@ int GPUChainTracking::DoTRDGPUTracking()
     GPUInfo("GPU TRD tracker Finished");
   }
 
-  ReleaseThreadContext();
 #endif
   return (0);
 }

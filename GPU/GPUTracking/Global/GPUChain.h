@@ -79,8 +79,7 @@ class GPUChain
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
   void RecordMarker(deviceEvent* ev, int stream) { mRec->RecordMarker(ev, stream); }
-  void ActivateThreadContext() { mRec->ActivateThreadContext(); }
-  void ReleaseThreadContext() { mRec->ReleaseThreadContext(); }
+  virtual std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   void SynchronizeGPU() { mRec->SynchronizeGPU(); }
   void ReleaseEvent(deviceEvent* ev) { mRec->ReleaseEvent(ev); }
   template <class T>
