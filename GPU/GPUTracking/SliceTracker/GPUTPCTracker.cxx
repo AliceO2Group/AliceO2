@@ -336,9 +336,9 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour
   if (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS) {
     // printf("%d hits found\n", nHits);
     unsigned int hitId = CAMath::AtomicAdd(&sliceNeighbour.mCommonMem->nTrackHits, nHits);
-    if ((hitId + nHits) >= mNMaxTrackHits) {
+    if ((hitId + nHits) >= sliceNeighbour.mNMaxTrackHits) {
       mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW;
-      CAMath::AtomicExch(NTrackHits(), mNMaxTrackHits);
+      CAMath::AtomicExch(&sliceNeighbour.mCommonMem->nTrackHits, sliceNeighbour.mNMaxTrackHits);
       return (0);
     }
     unsigned int trackId = CAMath::AtomicAdd(&sliceNeighbour.mCommonMem->nTracks, 1);
