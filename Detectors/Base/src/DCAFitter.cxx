@@ -51,48 +51,36 @@ void DCAFitter::CrossInfo::set(const TrcAuxPar& trc0, const TrcAuxPar& trc1)
     if (TMath::Abs(xDist) < TMath::Abs(yDist)) {
       ftype_t a = (trcA.r * trcA.r - trcB.r * trcB.r + dist2) / (2. * yDist), b = -xDist / yDist, ab = a * b, bb = b * b;
       ftype_t det = ab * ab - (1. + bb) * (a * a - trcA.r * trcA.r);
-      if (det >= 0.) {
-        if (det > 0.) {
-          det = TMath::Sqrt(det);
-          xDCA[0] = (-ab + det) / (1. + b * b);
-          yDCA[0] = a + b * xDCA[0] + trcA.yCen;
-          xDCA[0] += trcA.xCen;
-          xDCA[1] = (-ab - det) / (1. + b * b);
-          yDCA[1] = a + b * xDCA[1] + trcA.yCen;
-          xDCA[1] += trcA.xCen;
-          nDCA = 2;
-        } else {
-          xDCA[0] = -ab / (1. + bb);
-          yDCA[0] = a + b * xDCA[0] + trcA.yCen;
-          xDCA[0] += trcA.xCen;
-          nDCA = 1;
-        }
-      } else {
-        printf("This should not happen\n");
-        return;
+      if (det > 0.) {
+        det = TMath::Sqrt(det);
+        xDCA[0] = (-ab + det) / (1. + b * b);
+        yDCA[0] = a + b * xDCA[0] + trcA.yCen;
+        xDCA[0] += trcA.xCen;
+        xDCA[1] = (-ab - det) / (1. + b * b);
+        yDCA[1] = a + b * xDCA[1] + trcA.yCen;
+        xDCA[1] += trcA.xCen;
+        nDCA = 2;
+      } else { // due to the finite precision the det<=0, i.e. the circles are barely touching, fall back to this special case
+        nDCA = 1;
+        xDCA[0] = 0.5 * (trcA.xCen + xDist * distI * (dist + trcA.r - trcB.r));
+        yDCA[0] = 0.5 * (trcA.yCen + yDist * distI * (dist + trcA.r - trcB.r));
       }
     } else {
       ftype_t a = (trcA.r * trcA.r - trcB.r * trcB.r + dist2) / (2. * xDist), b = -yDist / xDist, ab = a * b, bb = b * b;
       ftype_t det = ab * ab - (1. + bb) * (a * a - trcA.r * trcA.r);
-      if (det >= 0.) {
-        if (det > 0.) {
-          det = TMath::Sqrt(det);
-          yDCA[0] = (-ab + det) / (1. + bb);
-          xDCA[0] = a + b * yDCA[0] + trcA.xCen;
-          yDCA[0] += trcA.yCen;
-          yDCA[1] = (-ab - det) / (1. + bb);
-          xDCA[1] = a + b * yDCA[1] + trcA.xCen;
-          yDCA[1] += trcA.yCen;
-          nDCA = 2;
-        } else {
-          yDCA[0] = -ab / (1. + bb);
-          xDCA[0] = a + b * yDCA[0] + trcA.xCen;
-          yDCA[0] += trcA.yCen;
-          nDCA = 1;
-        }
-      } else {
-        printf("This should not happen\n");
-        return;
+      if (det > 0.) {
+        det = TMath::Sqrt(det);
+        yDCA[0] = (-ab + det) / (1. + bb);
+        xDCA[0] = a + b * yDCA[0] + trcA.xCen;
+        yDCA[0] += trcA.yCen;
+        yDCA[1] = (-ab - det) / (1. + bb);
+        xDCA[1] = a + b * yDCA[1] + trcA.xCen;
+        yDCA[1] += trcA.yCen;
+        nDCA = 2;
+      } else { // due to the finite precision the det<=0, i.e. the circles are barely touching, fall back to this special case
+        nDCA = 1;
+        xDCA[0] = 0.5 * (trcA.xCen + xDist * distI * (dist + trcA.r - trcB.r));
+        yDCA[0] = 0.5 * (trcA.yCen + yDist * distI * (dist + trcA.r - trcB.r));
       }
     }
   }
