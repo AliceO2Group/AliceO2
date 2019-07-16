@@ -50,9 +50,7 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType t
   this->DropEvent();
 
   // Connect to new event-data.
-
-
-  this->fDirectory = (TDirectory *) data;
+  this->fDirectory = dynamic_cast<TDirectory *>(data);
   this->fVSD->SetDirectory(this->fDirectory);
 
   this->AttachEvent();
@@ -94,6 +92,7 @@ void DataInterpreterVSD::AttachEvent() {
 }
 
 void DataInterpreterVSD::DropEvent() {
+  assert(fVSD != nullptr);
   // Drup currently held event data, release current directory.
 
   // Drop old visualization structures.
