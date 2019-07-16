@@ -406,6 +406,8 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
     DeviceMetricsInfo& metrics = metricsInfos[di];
+    assert(specs.size() == infos.size());
+    DeviceSpec const& spec = specs[di];
 
     if (info.unprinted.empty()) {
       continue;
@@ -467,7 +469,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
-        std::cout << "[" << info.pid << "]: " << token << std::endl;
+        std::cout << "[" << info.pid << ":" << spec.name << "]: " << token << std::endl;
       }
       // We keep track of the maximum log error a
       // device has seen.
