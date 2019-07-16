@@ -17,7 +17,7 @@ class PatchPanel
 
  public:
   PatchPanel();
-  ~PatchPanel() default;
+  ~PatchPanel() = default;
 
   TGeoVolumeAssembly* createPatchPanel();
 
