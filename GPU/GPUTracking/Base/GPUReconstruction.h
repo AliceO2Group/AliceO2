@@ -136,8 +136,8 @@ class GPUReconstruction
   };
 
   // Global steering functions
-  template <class T>
-  T* AddChain();
+  template <class T, typename... Args>
+  T* AddChain(Args... args);
 
   int Init();
   int Finalize();
@@ -311,10 +311,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   ptr = u.get();
 }
 
-template <class T>
-inline T* GPUReconstruction::AddChain()
+template <class T, typename... Args>
+inline T* GPUReconstruction::AddChain(Args... args)
 {
-  mChains.emplace_back(new T(this));
+  mChains.emplace_back(new T(this, args...));
   return (T*)mChains.back().get();
 }
 

@@ -52,9 +52,11 @@ class GPUChainITS : public GPUChain
   o2::its::VertexerTraits* GetITSVertexerTraits() { return mITSVertexerTraits.get(); }
 
  protected:
-  GPUChainITS(GPUReconstruction* rec);
+  GPUChainITS(GPUReconstruction* rec, unsigned int maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
   std::unique_ptr<o2::its::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
+
+  unsigned int mMaxTracks;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
