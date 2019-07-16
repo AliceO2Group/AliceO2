@@ -23,6 +23,8 @@
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
 #include "EventVisualisationBase/DataSourceOfflineVSD.h"
+#include "EventVisualisationBase/EventRegistration.h"
+#include "EventVisualisationDetectors/DataInterpreterVSD.h"
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -55,15 +57,19 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   auto &eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
-  eventManager.Open();
+  EventRegistration::setInstance(MultiView::getInstance());
+  DataInterpreter::setInstance(new DataInterpreterVSD());
 
   //TFile*  fFile = TFile::Open("AliESDs.root");
   //TFile*  fFile = TFile::Open("AliVSD.root");
 
-  //DataSourceOffline *ds = new DataSourceOfflineVSD();
-  //DataSourceOffline *ds = new DataSourceOffline();
-  //ds->open("AliVSD.root");
-  //eventManager.setDataSource(ds);
+//  DataSourceOffline *ds = new DataSourceOfflineVSD();
+////DataSourceOffline *ds = new DataSourceOffline();
+//  ds->open("AliVSD.root");
+//  eventManager.setDataSource(ds);
+  eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
+  eventManager.setDataSourcePath("events_0.root");
+  eventManager.Open();
 
   
   //gEve->AddEvent(&eventManager);
@@ -95,9 +101,8 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Temporary:
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
-  //gEve->AddEvent(&EventManager::getInstance());
-  //MultiView::getInstance()->drawRandomEvent();
-  gEve->AddEvent(&eventManager);
+  gEve->AddEvent(&EventManager::getInstance());
+//  MultiView::getInstance()->drawRandomEvent();
   frame->DoFirstEvent();
 }
 
@@ -112,7 +117,7 @@ void Initializer::setupGeometry()
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
   
-  for(int iDet=0; iDet<NvisualisationGroups; ++iDet){
+  for(int iDet=0;iDet<NvisualisationGroups;++iDet){
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
     if(settings.GetValue((detName+".draw").c_str(), false))

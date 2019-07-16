@@ -22,7 +22,6 @@ namespace o2  {
 namespace event_visualisation {
 
 enum EVisualisationGroup{
-  ITS,
   ACO,
   EMC,
   HMP,
@@ -40,7 +39,6 @@ enum EVisualisationGroup{
 };
   
 const std::string gVisualisationGroupName[NvisualisationGroups] = {
-  "ITS",
   "ACO",
   "EMC",
   "HMP",

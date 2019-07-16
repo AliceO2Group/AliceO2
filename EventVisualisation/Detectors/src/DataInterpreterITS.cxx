@@ -34,7 +34,7 @@ DataInterpreterITS::DataInterpreterITS() = default;
 
 DataInterpreterITS::~DataInterpreterITS() = default;
 
-TEveElement* DataInterpreterITS::interpretDataForType(EDataType type) {
+TEveElement* DataInterpreterITS::interpretDataForType(TObject* data, EDataType type) {
     int multiplicity = 500*((double)rand()/RAND_MAX)+100;
     MinimalisticEvent *minEvent = new MinimalisticEvent(
             15,             // event number

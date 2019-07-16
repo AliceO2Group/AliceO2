@@ -19,44 +19,23 @@ namespace event_visualisation {
 
 
 class DataSourceOfflineVSD : public DataSourceOffline {
-public:
-    TEveVSD *fVSD;       // Visualisation Summary Data
-
 
     TFile *fFile;
     TObjArray *fEvDirKeys;
     Int_t fMaxEv, fCurEv;
 
+public:
     // ----------------------------------------------------------
     // Event visualization structures
     // ----------------------------------------------------------
 
-    TEveTrackList *fTrackList;
-    TEvePointSet *fITSClusters;
-    TEvePointSet *fTPCClusters;
-    TEvePointSet *fTRDClusters;
-    TEvePointSet *fTOFClusters;
-    TDirectory *fDirectory;
 
+    Int_t GetEventCount() override { return fEvDirKeys->GetEntriesFast(); };
     DataSourceOfflineVSD();
-
-    void LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id);
-
     ~DataSourceOfflineVSD() override;
-
-    void AttachEvent();
-
-    TEveViewerList *viewers = nullptr;  // for debug purpose
-    void DropEvent();
-
-    void LoadEsdTracks();
-
-    bool open() override;
-
-    Bool_t GotoEvent(Int_t ev);
+    void open(TString ESDFileName) override;
+    TObject* getEventData(int no) override;
 };
-
-
 
 
 }

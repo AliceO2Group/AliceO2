@@ -13,9 +13,14 @@ namespace event_visualisation {
 
 class DataSourceOffline : public DataSource {
 protected:
+    TString fgESDFileName ;
+    bool isOpen = kFALSE;
 
 public:
-    TEveElementList* gotoEvent(Int_t event) override {};
+    virtual void open(TString ESDFileName) override {
+        this->fgESDFileName = ESDFileName;
+    };
+
     void nextEvent() override {};
     DataSourceOffline() {}
 

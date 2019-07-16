@@ -1917,6 +1917,7 @@ o2_define_bucket(
     data_format_itsmft_bucket
     #
     O2EventVisualisationDataConverter
+    #O2EventVisualisationDetectors
 	O2ITSMFTReconstruction
     O2DataFormatsITSMFT
     O2ITSBase

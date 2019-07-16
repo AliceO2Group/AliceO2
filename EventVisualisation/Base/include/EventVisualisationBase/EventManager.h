@@ -38,12 +38,6 @@ class DataSource;
 class EventManager : public TEveEventManager, public TQObject
 {
 public:
-    // sznurki
-    TEveElementList *mEvent;
-    int eventNo = 0;
-    int GetEventNo() { return  this->eventNo;}
-    std::string versionID;
-    // koniec sznurków
     enum EDataSource{
       SourceOnline,   ///< Online reconstruction is a source of events
       SourceOffline,  ///< Local files are the source of events
@@ -51,16 +45,20 @@ public:
     };
 
     /// Returns an instance of EventManager
-    static EventManager *instance;
     static EventManager& getInstance();
 
-    /// Setter of the current data source
-    inline void setDataSourceType(EDataSource source){mCurrentDataSourceType = source;}
+    /// Setter of the current data source type
+    inline void setDataSourceType(EDataSource source) {mCurrentDataSourceType = source;}
+    /// Setter of the current data source path
+    inline void setDataSourcePath(const TString& path) { dataPath = path;}
     /// Sets the CDB path in CCDB Manager
-    inline void setCdbPath(std::string path)
+    inline void setCdbPath(const TString& path)
     {
-      o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
+      o2::ccdb::Manager::Instance()->setDefaultStorage(path.Data());
     }
+    Int_t getCurrentEvent() {return currentEvent;}
+    DataSource *getDataSource() {return dataSource;}
+    void setDataSource(DataSource *dataSource) {this->dataSource = dataSource;}
 
     void Open() override ;
     void GotoEvent(Int_t /*event*/) override ;
@@ -70,13 +68,18 @@ public:
 
     void AfterNewEventLoaded() override;
 
-    void AddNewEventCommand(const TString& cmd) override ;;
-    void RemoveNewEventCommand(const TString& cmd) override ;;
-    void ClearNewEventCommands() override ;;
+    void AddNewEventCommand(const TString& cmd) override ;
+    void RemoveNewEventCommand(const TString& cmd) override ;
+    void ClearNewEventCommands() override ;
+
+    void DropEvent() {DestroyElements();}
 
 private:
-    EDataSource mCurrentDataSourceType; ///< enum type of the current data source
+    static EventManager *instance;
+    EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
     DataSource *dataSource = nullptr;
+    TString dataPath = "";
+    Int_t currentEvent = 0;
 
     /// Default constructor
     EventManager();

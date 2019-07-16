@@ -14,6 +14,7 @@ set(SRCS
     src/DataSourceOffline.cxx
     src/DataSourceOfflineVSD.cxx
     src/DataSourceOfflineITS.cxx
+    src/EventRegistration.cxx
     )
 
 # HEADERS is not needed if we don't generate a dictionary.
@@ -27,6 +28,7 @@ set(HEADERS
     include/${MODULE_NAME}/DataSourceOffline.h
     include/${MODULE_NAME}/DataSourceOfflineVSD.h
     include/${MODULE_NAME}/DataSourceOfflineITS.h
+    include/${MODULE_NAME}/EventRegistration.h
     )
 
 set(LIBRARY_NAME ${MODULE_NAME})

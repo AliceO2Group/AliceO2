@@ -19,8 +19,8 @@
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 #include "EventVisualisationBase/Track.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/DataSourceOfflineITS.h"
-#include "EventVisualisationView/MultiView.h"
+#include "EventVisualisationBase/DataSource.h"
+#include "EventVisualisationBase/DataInterpreter.h"
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -31,6 +31,7 @@
 #include <TGListTree.h>
 #include <TEveTrack.h>
 #include <iostream>
+#include <EventVisualisationBase/DataSourceOfflineVSD.h>
 
 
 using namespace std;
@@ -47,45 +48,63 @@ EventManager& EventManager::getInstance()
   return *instance;
 }
 
-EventManager::EventManager() : TEveEventManager("Event", ""), mCurrentDataSourceType(SourceOffline) {
-    std::cout << "EventManager::EventManager() " << this << std::endl;
-    dataSource = new DataSourceOfflineITS();
+EventManager::EventManager() : TEveEventManager("Event", "") {
+    std::cout << "EventManager::EventManager()" << std::endl;
 }
 
 void EventManager::Open() {
-    this->versionID = "balbinka";
-    std::cout << "EventManager::Open() "<< this->versionID << std::endl;
-    dataSource->open();
-
+    std::cout << "EventManager::Open()" << std::endl;
+    DataSource* source;
+    switch(mCurrentDataSourceType)
+    {
+        case SourceOnline:
+            break;
+        case SourceOffline:
+            source = new DataSourceOfflineVSD();
+            source->open(this->dataPath);
+            setDataSource(source);
+            break;
+        case SourceHLT:
+            break;
+    }
     //TEveEventManager::Open();
 }
 
-
-
-
 void EventManager::GotoEvent(Int_t no) {
     std::cout << "EventManager::GotoEvent("<<no<<")" << std::endl;
-    std::cout << "EventManager: " <<this << std::endl;
-    std::cout << "DataSource:: " <<this << std::endl;
-    this->eventNo = no;
-    this->mEvent = dataSource->gotoEvent(no);
-
-
+    //-1 means last event
+    if(no == -1) {
+        no = getDataSource()->GetEventCount();
+    }
+    this->currentEvent = no;
+    //getDataSource()->gotoEvent(no);
+    TObject *data = getDataSource()->getEventData(no);
+    if(data) {
+      DataInterpreter::getInstance()->interpretDataForType(data, NoData);
+      //delete data;
+    }
+    //TEveEventManager::GotoEvent( no);
 }
 
 void EventManager::NextEvent() {
     std::cout << "EventManager::NextEvent()" << std::endl;
-    this->GotoEvent(this->eventNo+1);
+    Int_t event = (this->currentEvent + 1) % getDataSource()->GetEventCount();
+    GotoEvent(event);
+    //TEveEventManager::NextEvent();
 }
 
 void EventManager::PrevEvent() {
     std::cout << "EventManager::PrevEvent()" << std::endl;
-    this->GotoEvent(this->eventNo-1);
+    GotoEvent(this->currentEvent - 1);
+    //TEveEventManager::PrevEvent();
 }
 
 void EventManager::Close() {
     std::cout << "EventManager::Close()" << std::endl;
-    TEveEventManager::Close();
+    this->dataSource->close();
+    delete this->dataSource;
+
+    //TEveEventManager::Close();
 }
 
 void EventManager::AfterNewEventLoaded() {

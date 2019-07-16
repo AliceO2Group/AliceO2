@@ -11,21 +11,14 @@ namespace o2 {
 namespace event_visualisation {
 
 
-
 class DataSourceOfflineITS : public DataSourceOffline {
 public:
 
-    std::string name() override { return "DataSourceOfflineITS"; }
-    TString digifile;
-    TString clusfile;
-    TString tracfile;
-    int entry = 0;
-    int chip = 13;
     DataSourceOfflineITS();
 
-    bool open() override;
+    void open(TString fileName) override;
 
-    TEveElementList* gotoEvent(Int_t event) override ;
+    Bool_t GotoEvent(Int_t ev);
 };
 
 }

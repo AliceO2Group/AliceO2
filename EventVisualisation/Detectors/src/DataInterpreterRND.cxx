@@ -34,7 +34,7 @@ DataInterpreterRND::DataInterpreterRND() = default;
 
 DataInterpreterRND::~DataInterpreterRND() = default;
 
-TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
+TEveElement* DataInterpreterRND::interpretDataForType(TObject* data, EDataType type)
 {
   int multiplicity = 500*((double)rand()/RAND_MAX)+100;
   MinimalisticEvent *minEvent = new MinimalisticEvent(15,123456,7000,multiplicity,"p-p",12736563);
