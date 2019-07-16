@@ -178,14 +178,14 @@ void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zD
   const float zOffsetFirstLayer = (LayersZCoordinate()[6] * LayersRCoordinate()[0]) / (LayersRCoordinate()[6] * static_cast<float>(zDivs));
   std::vector<float> x, y;
   std::array<std::vector<float>, 7> z;
-  const int rZDiv = static_cast<int>(zDivs/2);
+  const int rZDiv = static_cast<int>(zDivs / 2);
   for (size_t j{ 0 }; j < rZDiv; ++j) {
     for (size_t i{ 0 }; i < phiDivs; ++i) {
       x.emplace_back(cos(i * angleOffset + 0.001)); // put an epsilon to move from periods (e.g. 20 clusters vs 20 cells)
       y.emplace_back(sin(i * angleOffset + 0.001));
       const float zFirstLayer{ 2 * zOffsetFirstLayer * static_cast<float>(j) };
       z[0].emplace_back(zFirstLayer);
-      for( size_t iLayer { 1 }; iLayer < constants::its::LayersNumber; ++iLayer){
+      for (size_t iLayer{ 1 }; iLayer < constants::its::LayersNumber; ++iLayer) {
         z[iLayer].emplace_back(zFirstLayer * LayersRCoordinate()[iLayer] / LayersRCoordinate()[0]);
       }
     }
@@ -197,7 +197,7 @@ void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zD
       y.emplace_back(sin(i * angleOffset + 0.001));
       const float zFirstLayer{ -zOffsetFirstLayer * 2 * static_cast<float>(j) };
       z[0].emplace_back(zFirstLayer);
-      for( size_t iLayer { 1 }; iLayer < constants::its::LayersNumber; ++iLayer){
+      for (size_t iLayer{ 1 }; iLayer < constants::its::LayersNumber; ++iLayer) {
         z[iLayer].emplace_back(zFirstLayer * LayersRCoordinate()[iLayer] / LayersRCoordinate()[0]);
       }
     }
