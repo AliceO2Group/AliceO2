@@ -21,7 +21,7 @@ ClassImp(o2::mft::PatchPanel);
 //_____________________________________________________________________________
 PatchPanel::PatchPanel() //: TNamed(), mPatchPanel(nullptr)
 {
-  createPatchPanel()
+  createPatchPanel();
   // default constructor
 }
 
