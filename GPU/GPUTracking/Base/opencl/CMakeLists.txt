@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-set(MODULE GPUTrackingOpenCL)
+set(MODULE GPUTrackingOCL)
 
 # AMD APP SDK required for OpenCL tracker as it's using specific extensions
 # (currently) not provided by other vendors
@@ -127,5 +127,5 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=OCL1)
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} GPUTracking)
-  install(TARGETS GPUTrackingOpenCL)
+  install(TARGETS GPUTrackingOCL)
 endif()
