@@ -29,8 +29,9 @@ namespace event_visualisation {
 /// to interpret detector-specific data (such as hits, digits, clusters)
 /// as a set of visualisation objects (points, lines, boxes).
 
-class DataInterpreter
-{
+class DataInterpreter {
+private:
+  static DataInterpreter* instance;
 public:
   // Default constructor
   DataInterpreter();
@@ -38,7 +39,10 @@ public:
   virtual ~DataInterpreter();
   
   // Should return visualisation objects for required data type
-  virtual TEveElement* interpretDataForType(EDataType type);
+  virtual TEveElement* interpretDataForType(TObject* data, EDataType type);
+
+    static DataInterpreter* getInstance() { return instance;}
+    static void setInstance(DataInterpreter* instance) { DataInterpreter::instance = instance;}
 };
   
 }

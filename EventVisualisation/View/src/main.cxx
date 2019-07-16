@@ -53,7 +53,7 @@ using namespace o2::event_visualisation;
 
 #include <TEnv.h>
 #include <EventVisualisationBase/ConfigurationManager.h>
-
+#include <EventVisualisationBase/DataInterpreter.h>
 #include "EventVisualisationView/MultiView.h"
 extern TEveManager* gEve;
 void drawEvent(TEveElementList* mEvent) {
@@ -95,6 +95,7 @@ int main(int argc, char **argv)
     // Start the application
     app->Run(kTRUE);
 
+    delete DataInterpreter::getInstance();
     // Terminate application
     TEveManager::Terminate();
     app->Terminate(0);

@@ -20,6 +20,7 @@
 #include "EventVisualisationBase/Track.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataSource.h"
+#include "EventVisualisationBase/DataInterpreter.h"
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -76,7 +77,12 @@ void EventManager::GotoEvent(Int_t no) {
         no = getDataSource()->GetEventCount();
     }
     this->currentEvent = no;
-    getDataSource()->gotoEvent(no);
+    //getDataSource()->gotoEvent(no);
+    TObject *data = getDataSource()->getEventData(no);
+    if(data) {
+      DataInterpreter::getInstance()->interpretDataForType(data, NoData);
+      //delete data;
+    }
     //TEveEventManager::GotoEvent( no);
 }
 

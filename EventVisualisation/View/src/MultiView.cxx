@@ -211,9 +211,9 @@ void MultiView::destroyAllEvents()
 void MultiView::drawRandomEvent()
 {
   DataInterpreterRND *dataInterpreterRND = new DataInterpreterRND();
-  TEveElement *dataRND = dataInterpreterRND->interpretDataForType(NoData);
+  TEveElement *dataRND = dataInterpreterRND->interpretDataForType(nullptr, NoData);
   registerEvent(dataRND);
-    TEveElement *dataRND1 = dataInterpreterRND->interpretDataForType(NoData);
+    TEveElement *dataRND1 = dataInterpreterRND->interpretDataForType(nullptr, NoData);
     registerEvent(dataRND1);
 
 }

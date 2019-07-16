@@ -20,7 +20,7 @@ public:
     virtual void open(TString ESDFileName) override {
         this->fgESDFileName = ESDFileName;
     };
-    int gotoEvent(Int_t event) override {};
+
     void nextEvent() override {};
     DataSourceOffline() {}
 

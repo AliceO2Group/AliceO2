@@ -13,8 +13,9 @@ namespace event_visualisation {
 
 class DataSource : public TQObject {
 public:
-    virtual Int_t gotoEvent(Int_t event) {};
+
     virtual void nextEvent() {};
+    virtual TObject* getEventData(int no) { return nullptr;};
     virtual Int_t GetEventCount() { return 0; };
     virtual void open(TString ESDFileName) {};
     virtual void close() {};
