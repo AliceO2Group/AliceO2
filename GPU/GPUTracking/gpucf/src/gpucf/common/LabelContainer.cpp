@@ -6,10 +6,25 @@
 using namespace gpucf;
 
 
+std::vector<LabelContainer> LabelContainer::bySector(
+        const SectorData<RawLabel> &labels)
+{
+    std::vector<LabelContainer> containers;
+
+    size_t start = 0;
+    for (auto n : labels.elemsBySector)
+    {
+        nonstd::span<const RawLabel> data(&labels.data[start], n);
+        containers.emplace_back(data);
+        start += n;
+    }
+
+    return containers;
+}
+
 LabelContainer::LabelContainer(nonstd::span<const RawLabel> rawlabels)
 {
     ASSERT(!rawlabels.empty());
-
 
     labels.reserve(rawlabels.size());
 

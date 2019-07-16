@@ -29,26 +29,34 @@ int main(int argc, const char *argv[])
 
     gpucf::log::Info() << "Reading label file " << args::get(infile);
 
-    std::vector<RawLabel> rawlabels = gpucf::read<RawLabel>(args::get(infile));
+    SectorData<RawLabel> rawLabels = gpucf::read<RawLabel>(args::get(infile));
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        log::Debug() << rawLabels.data[i].id;
+    }
 
     gpucf::log::Info() << "Creating label container";
 
-    LabelContainer labels(rawlabels);
+    std::vector<LabelContainer> container = LabelContainer::bySector(rawLabels);
+
     std::unordered_map<MCLabel, size_t> digitsPerTrack;
 
-    for (size_t i = 0; i < labels.size(); i++) {
-        /* log::Info() << i << ": " << labels[i].size(); */
-
-        for (const MCLabel &l : labels[i])
+    for (const LabelContainer &labels : container)
+    {
+        for (size_t i = 0; i < labels.size(); i++) 
         {
-            auto lookup = digitsPerTrack.find(l);
-            if (lookup == digitsPerTrack.end())
+            for (const MCLabel &l : labels[i])
             {
-                digitsPerTrack[l] = 1;
-            }
-            else
-            {
-                lookup->second++;
+                auto lookup = digitsPerTrack.find(l);
+                if (lookup == digitsPerTrack.end())
+                {
+                    digitsPerTrack[l] = 1;
+                }
+                else
+                {
+                    lookup->second++;
+                }
             }
         }
     }
