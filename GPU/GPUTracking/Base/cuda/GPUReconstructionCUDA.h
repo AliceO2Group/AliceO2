@@ -40,8 +40,17 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   int ExitDevice_Runtime() override;
   void SetThreadCounts() override;
 
-  void ActivateThreadContext() override;
-  void ReleaseThreadContext() override;
+  class GPUThreadContextCUDA : public GPUThreadContext
+  {
+   public:
+    GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context);
+    virtual ~GPUThreadContextCUDA();
+
+   private:
+    GPUReconstructionCUDAInternals* mContext = nullptr;
+  };
+
+  virtual std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
   void SynchronizeStream(int stream) override;
