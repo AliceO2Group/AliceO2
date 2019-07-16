@@ -82,7 +82,17 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 int CfRunner::mainImpl()
 {
-    std::vector<Digit> digits = read<RawDigit, Digit>(args::get(*digitFile));
+    SectorData<RawDigit> rawdigits = read<RawDigit>(args::get(*digitFile));
+
+    for (auto n : rawdigits.elemsBySector)
+    {
+        log::Info() << n;
+    }
+
+    return 0;
+
+#if 0
+    /* std::vector<Digit> digits = read<RawDigit, Digit>(args::get(*digitFile)); */
 
     /* DataSet digitSet; */
     /* digitSet.read(args::get(*digitFile)); */
@@ -148,6 +158,7 @@ int CfRunner::mainImpl()
 #endif
 
     return 0;
+#endif
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
