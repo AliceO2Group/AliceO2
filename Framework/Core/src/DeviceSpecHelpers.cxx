@@ -718,7 +718,10 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         auto arguments = "--unused " + varmap[name].as<std::string>();
         wordexp_t expansions;
         wordexp(arguments.c_str(), &expansions, 0);
-        filterArgsFct(expansions.we_wordc, expansions.we_wordv, odesc);
+        bpo::options_description realOdesc = odesc;
+        realOdesc.add_options()("child-driver", bpo::value<std::string>());
+        realOdesc.add_options()("rate", bpo::value<std::string>());
+        filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
       }
