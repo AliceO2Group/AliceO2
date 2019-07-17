@@ -14,6 +14,9 @@ struct ClusterFinderConfig
 {
     #define CLUSTER_FINDER_FLAG(name, val, def, desc) bool name = val;
     #include <gpucf/algorithms/ClusterFinderFlags.def>
+    
+    #define CLUSTER_FINDER_PARAM(name, val, def, desc) int name = val;
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
 
     ChargemapLayout layout = ChargemapLayout::TimeMajor;
 

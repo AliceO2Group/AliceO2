@@ -4,6 +4,7 @@
 #include <gpucf/common/RawLabel.h>
 #include <gpucf/common/SectorMap.h>
 #include <gpucf/common/serialization.h>
+#include <gpucf/common/View.h>
 
 #include <nonstd/span.hpp>
 
@@ -23,9 +24,11 @@ public:
     LabelContainer() = default;
     LabelContainer(nonstd::span<const RawLabel>);
 
-    nonstd::span<const MCLabel> operator[](size_t) const;
+    View<MCLabel> operator[](size_t) const;
 
     size_t size() const;
+
+    View<MCLabel> allLabels() const;
 
 private:
 

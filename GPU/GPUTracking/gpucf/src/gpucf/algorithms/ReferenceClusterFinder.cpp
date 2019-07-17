@@ -15,8 +15,20 @@ ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
 {
 }
 
-ReferenceClusterFinder::Result ReferenceClusterFinder::run(
-        nonstd::span<const Digit> digits)
+SectorMap<ReferenceClusterFinder::Result> ReferenceClusterFinder::runOnSectors(
+        const SectorMap<std::vector<Digit>> &digits)
+{
+    SectorMap<Result> results;
+
+    for (size_t i = 0; i < TPC_SECTORS; i++)
+    {
+        results[i] = run(digits[i]);
+    }
+
+    return results;
+}
+
+ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
 {
     Map<float> chargemap(digits, [](const Digit &d) { return d.charge; }, 0.f);
 
@@ -97,7 +109,7 @@ bool ReferenceClusterFinder::isPeak(const Digit &d, const Map<float> &chargemap)
 {
     float q = d.charge;
 
-    if (q <= CHARGE_THRESHOLD)
+    if (q <= config.qmaxCutoff)
     {
         return false;
     }

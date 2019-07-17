@@ -58,7 +58,7 @@ LabelContainer::LabelContainer(nonstd::span<const RawLabel> rawlabels)
     viewById.emplace_back(&labels[start], elems);
 }
 
-nonstd::span<const MCLabel> LabelContainer::operator[](size_t id) const
+View<MCLabel> LabelContainer::operator[](size_t id) const
 {
     return viewById.at(id);
 }
@@ -66,6 +66,11 @@ nonstd::span<const MCLabel> LabelContainer::operator[](size_t id) const
 size_t LabelContainer::size() const
 {
     return viewById.size();
+}
+
+View<MCLabel> LabelContainer::allLabels() const
+{
+    return labels;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

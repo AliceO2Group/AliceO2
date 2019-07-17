@@ -73,6 +73,11 @@ ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid)
         }
     #include <gpucf/algorithms/ClusterFinderFlags.def>
 
+    #define CLUSTER_FINDER_PARAM(name, val, def, desc) \
+        addDefine(std::string(def) + std::string("=") \
+                + std::to_string(cfg.name));
+    #include <gpucf/algorithms/ClusterFinderFlags.def>
+
 #if defined(NDEBUG)
     addDefine("NDEBUG");
 #endif

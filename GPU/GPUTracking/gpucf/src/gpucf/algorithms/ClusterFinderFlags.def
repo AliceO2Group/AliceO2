@@ -3,10 +3,13 @@
 CLUSTER_FINDER_FLAG(halfs, false, "CHARGEMAP_TYPE_HALF", "Store charges with half precision.")
 CLUSTER_FINDER_FLAG(correctEdgeClusters, false, "CORRECT_EDGE_CLUSTERS", 
     "Use position of peak for COG of edge clusters.")
-CLUSTER_FINDER_FLAG(qtotCutoff, false, "CUT_QTOT", "Remove clusters below a threshold for qtot.")
 CLUSTER_FINDER_FLAG(dbg, false, "DEBUG_ON", "Enable debug macros.")
 CLUSTER_FINDER_FLAG(unrollLoops, false, "UNROLL_LOOPS", 
     "Unroll loops in fillScratchPad and updateCluster.")
+
+#elif defined(CLUSTER_FINDER_PARAM)
+CLUSTER_FINDER_PARAM(qmaxCutoff, 0, "QMAX_CUTOFF", "Remove peaks with charges lower than this cutoff.")
+CLUSTER_FINDER_PARAM(qtotCutoff, 0, "QTOT_CUTOFF", "Remove clusters with qtot lower than this cutoff.")
 
 #elif defined(MEMORY_LAYOUT)
 
@@ -29,5 +32,6 @@ CLUSTER_BUILDER(ScratchPad, "BUILD_CLUSTER_SCRATCH_PAD", "Use LDS to read charge
 
 
 #undef CLUSTER_FINDER_FLAG
+#undef CLUSTER_FINDER_PARAM
 #undef MEMORY_LAYOUT
 #undef CLUSTER_BUILDER

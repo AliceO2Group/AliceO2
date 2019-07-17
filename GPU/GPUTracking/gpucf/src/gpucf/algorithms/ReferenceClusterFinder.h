@@ -4,6 +4,7 @@
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Map.h>
+#include <gpucf/common/View.h>
 
 #include <vector>
 
@@ -24,7 +25,8 @@ public:
 
     ReferenceClusterFinder(ClusterFinderConfig);
 
-    Result run(nonstd::span<const Digit>);
+    SectorMap<Result> runOnSectors(const SectorMap<std::vector<Digit>> &);
+    Result run(View<Digit>);
 
 private:
 
