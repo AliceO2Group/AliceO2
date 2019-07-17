@@ -24,6 +24,7 @@
 #include <string>
 #include <type_traits>
 #include <stdexcept>
+#include <functional>
 
 class FairMQDevice;
 
@@ -34,9 +35,23 @@ namespace framework
 
 class MessageContext {
  public:
+  using DispatchCallback = std::function<void(FairMQParts&& message, std::string const&, int)>;
+  // so far we are only using one instance per named channel
+  static constexpr int DefaultChannelIndex = 0;
+
   MessageContext(FairMQDeviceProxy proxy)
     : mProxy{ proxy }
   {
+  }
+
+  MessageContext(FairMQDeviceProxy proxy, DispatchCallback&& dispatcher)
+    : mProxy{ proxy }, mDispatchCallback{ dispatcher }
+  {
+  }
+
+  void init(DispatchCallback&& dispatcher)
+  {
+    mDispatchCallback = dispatcher;
   }
 
   // this is the virtual interface for context objects
@@ -292,15 +307,93 @@ class MessageContext {
 
   using Messages = std::vector<std::unique_ptr<ContextObject>>;
 
-  /// Create the specified context object from the variadic arguments and add to message list
+  /// @class ScopeHook A special deleter to handle object going out of scope
+  /// This object is used together with the wrapper @a ContextObjectScope which
+  /// is a unique object returned to the called. When this scope handler goes out of
+  /// scope and is going to be deleted, the handled object is scheduled in the context,
+  /// or simply deleted if no context is available.
+  template <typename T, typename BASE = std::default_delete<T>>
+  class ScopeHook : public BASE
+  {
+   public:
+    using base = std::default_delete<T>;
+    using self_type = ScopeHook<T>;
+    ScopeHook() = default;
+    ScopeHook(MessageContext* context)
+      : mContext(context)
+    {
+    }
+    ~ScopeHook() = default;
+
+    // forbid assignment operator to prohibid changing the Deleter
+    // resource control property once used in the unique_ptr
+    self_type& operator=(const self_type&) = delete;
+
+    void operator()(T* ptr) const
+    {
+      if (!mContext) {
+        // TODO: decide whether this is an error or not
+        // can also check if the standard constructor can be dropped to make sure that
+        // the ScopeHook is always set up with a context
+        throw std::runtime_error("No context available to schedule the context object");
+        return base::operator()(ptr);
+      }
+      // keep the object alive and add to message list of the context
+      mContext->schedule(Messages::value_type(ptr));
+    }
+
+   private:
+    MessageContext* mContext = nullptr;
+  };
+
+  template <typename T>
+  using ContextObjectScope = std::unique_ptr<T, ScopeHook<T>>;
+
+  /// Create the specified context object from the variadic arguments and add to message list.
+  /// The context object is owned be the context and returned by reference.
   /// The context object type is specified as template argument, each context object implementation
-  /// must derive from the ContextObject interface
+  /// must derive from the ContextObject interface.
+  /// TODO: rename to make_ref
   template <typename T, typename... Args>
   auto& add(Args&&... args)
   {
-    static_assert(std::is_base_of<ContextObject, T>::value == true, "type must inherit ContextObject interface");
-    mMessages.push_back(std::move(std::make_unique<T>(this, std::forward<Args>(args)...)));
+    mMessages.push_back(std::move(make<T>(std::forward<Args>(args)...)));
+    // return a reference to the element in the vector of unique pointers
     return *dynamic_cast<T*>(mMessages.back().get());
+  }
+
+  /// Create the specified context object from the variadic arguments as a unique pointer of the context
+  /// object base class.
+  /// The context object type is specified as template argument, each context object implementation
+  /// must derive from the ContextObject interface.
+  template <typename T, typename... Args>
+  Messages::value_type make(Args&&... args)
+  {
+    static_assert(std::is_base_of<ContextObject, T>::value == true, "type must inherit ContextObject interface");
+    return std::make_unique<T>(this, std::forward<Args>(args)...);
+  }
+
+  /// Create scope handler managing the specified context object.
+  /// The context object is created from the variadic arguments and is owned by the scope handler.
+  /// If the handler goes out of scope, the object is scheduled in the context, either added to the
+  /// list of messages or directly sent via the optional callback.
+  template <typename T, typename... Args>
+  ContextObjectScope<T> make_scoped(Args&&... args)
+  {
+    ContextObjectScope<T> scope(dynamic_cast<T*>(make<T>(std::forward<Args>(args)...).release()), ScopeHook<T>(this));
+    return scope;
+  }
+
+  /// Schedule a context object for sending.
+  /// The object is considered complete at this point and is sent directly through the dispatcher callback
+  /// of the context if initialized. It is added to the list of messages otherwise.
+  void schedule(Messages::value_type&& message)
+  {
+    if (mDispatchCallback) {
+      mDispatchCallback(std::move(message->finalize()), message->channel(), DefaultChannelIndex);
+      return;
+    }
+    mMessages.push_back(std::move(message));
   }
 
   Messages::iterator begin()
@@ -345,6 +438,7 @@ class MessageContext {
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  DispatchCallback mDispatchCallback;
 };
 } // namespace framework
 } // namespace o2
