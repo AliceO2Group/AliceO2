@@ -17,6 +17,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -40,14 +41,11 @@ class TGeoMedium;
 
 using namespace TMath;
 using namespace o2::its;
+using namespace o2::itsmft;
 using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
-
-const Double_t V3Layer::sDefaultSensorThick = 18 * sMicron;
-const Double_t V3Layer::sDefaultChipThick = 50 * sMicron;
-const Double_t V3Layer::sMetalLayerThick = 15 * sMicron;
 
 // Inner Barrel Parameters
 const Int_t V3Layer::sIBChipsPerRow = 9;
@@ -298,37 +296,31 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
 
   // Check if the user set the proper parameters
   if (mLayerRadius <= 0) {
-    LOG(FATAL) << "Wrong layer radius " << mLayerRadius << FairLogger::endl;
+    LOG(FATAL) << "Wrong layer radius " << mLayerRadius;
   }
 
   if (mNumberOfStaves <= 0) {
-    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves;
   }
 
   if (mNumberOfChips <= 0) {
-    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips;
   }
 
   if (mLayerNumber >= sNumberOfInnerLayers && mNumberOfModules <= 0) {
-    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules;
   }
 
   if (mChipThickness <= 0) {
-    LOG(INFO) << "Chip thickness wrong or not set " << mChipThickness << " using default " << sDefaultChipThick
-              << FairLogger::endl;
-    mChipThickness = sDefaultChipThick;
+    LOG(FATAL) << "Chip thickness wrong or not set " << mChipThickness;
   }
 
   if (mSensorThickness <= 0) {
-    LOG(INFO) << "Sensor thickness wrong or not set " << mSensorThickness << " using default " << sDefaultSensorThick
-              << FairLogger::endl;
-    mSensorThickness = sDefaultSensorThick;
+    LOG(FATAL) << "Sensor thickness wrong or not set " << mSensorThickness;
   }
 
   if (mSensorThickness > mChipThickness) {
-    LOG(WARNING) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness
-                 << " fixing" << FairLogger::endl;
-    mSensorThickness = mChipThickness;
+    LOG(FATAL) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
   }
 
   // If a Turbo layer is requested, do it and exit
@@ -380,11 +372,11 @@ void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
 
   // Check if the user set the proper (remaining) parameters
   if (mStaveWidth <= 0) {
-    LOG(FATAL) << "Wrong stave width " << mStaveWidth << FairLogger::endl;
+    LOG(FATAL) << "Wrong stave width " << mStaveWidth;
   }
 
   if (Abs(mStaveTilt) > 45) {
-    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg" << FairLogger::endl;
+    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
@@ -865,13 +857,13 @@ TGeoVolume* V3Layer::createStaveStructInnerB(const TGeoManager* mgr)
     case Detector::kIBModel21:
     case Detector::kIBModel22:
     case Detector::kIBModel3:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported" << FairLogger::endl;
+      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kIBModel4:
       mechStavVol = createStaveModelInnerB4(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -1734,13 +1726,13 @@ TGeoVolume* V3Layer::createStaveOuterB(const TGeoManager* mgr)
       break;
     case Detector::kOBModel0:
     case Detector::kOBModel1:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported" << FairLogger::endl;
+      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kOBModel2:
       mechStavVol = createStaveModelOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -2603,7 +2595,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB(const TGeoManager* mgr)
       mechStavVol = createSpaceFrameOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
 
@@ -3388,7 +3380,7 @@ Double_t V3Layer::getGammaConversionRodDiam()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvDiam;
 }
@@ -3411,7 +3403,7 @@ Double_t V3Layer::getGammaConversionRodXPos()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvXPos;
 }
@@ -3453,7 +3445,7 @@ void V3Layer::setStaveTilt(const Double_t t)
   if (mIsTurbo) {
     mStaveTilt = t;
   } else {
-    LOG(ERROR) << "Not a Turbo layer" << FairLogger::endl;
+    LOG(ERROR) << "Not a Turbo layer";
   }
 }
 
@@ -3462,7 +3454,7 @@ void V3Layer::setStaveWidth(const Double_t w)
   if (mIsTurbo) {
     mStaveWidth = w;
   } else {
-    LOG(ERROR) << "Not a Turbo layer" << FairLogger::endl;
+    LOG(ERROR) << "Not a Turbo layer";
   }
 }
 

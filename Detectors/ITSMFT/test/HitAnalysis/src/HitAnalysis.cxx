@@ -89,7 +89,7 @@ InitStatus HitAnalysis::Init()
 
   // Create histograms
   // Ranges to be adjusted
-  Double_t maxLengthX(Segmentation::SensorSizeRows), maxLengthY(Segmentation::SensorThickness),
+  Double_t maxLengthX(Segmentation::SensorSizeRows), maxLengthY(Segmentation::SensorLayerThickness),
     maxLengthZ(Segmentation::SensorSizeCols);
 
   mLineSegment = new TH1D("lineSegment", "Length of the line segment within the chip", 500, 0.0, 0.01);
