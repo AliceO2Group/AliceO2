@@ -25,6 +25,11 @@ struct MCLabel
         return other.event == event && other.track == track;
     }
 
+    bool operator<(const MCLabel &other) const
+    {
+        return event < other.event || (event == other.event && track < other.track);
+    }
+
 };
 
 std::ostream &operator<<(std::ostream &o, const MCLabel &l);
