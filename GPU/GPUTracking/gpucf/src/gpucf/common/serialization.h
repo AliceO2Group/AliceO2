@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shared/tpc.h>
+#include <gpucf/common/SectorMap.h>
 
 #include <filesystem/path.h>
 
@@ -17,7 +17,7 @@ namespace gpucf
 template<typename T>
 struct SectorData
 {
-    std::array<uint64_t, TPC_SECTORS> elemsBySector;
+    SectorMap<uint64_t> elemsBySector;
     std::vector<T> data;
 
     size_t sizeByHeader() const 

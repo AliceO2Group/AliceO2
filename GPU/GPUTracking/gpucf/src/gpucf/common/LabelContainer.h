@@ -2,6 +2,7 @@
 
 #include <gpucf/common/MCLabel.h>
 #include <gpucf/common/RawLabel.h>
+#include <gpucf/common/SectorMap.h>
 #include <gpucf/common/serialization.h>
 
 #include <nonstd/span.hpp>
@@ -17,8 +18,9 @@ class LabelContainer
 
 public:
 
-    static std::vector<LabelContainer> bySector(const SectorData<RawLabel> &);
+    static SectorMap<LabelContainer> bySector(const SectorData<RawLabel> &);
 
+    LabelContainer() = default;
     LabelContainer(nonstd::span<const RawLabel>);
 
     nonstd::span<const MCLabel> operator[](size_t) const;

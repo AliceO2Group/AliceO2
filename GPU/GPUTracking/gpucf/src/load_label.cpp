@@ -38,7 +38,7 @@ int main(int argc, const char *argv[])
 
     gpucf::log::Info() << "Creating label container";
 
-    std::vector<LabelContainer> container = LabelContainer::bySector(rawLabels);
+    SectorMap<LabelContainer> container = LabelContainer::bySector(rawLabels);
 
     std::unordered_map<MCLabel, size_t> digitsPerTrack;
 
@@ -70,7 +70,4 @@ int main(int argc, const char *argv[])
     return 0;
 }
 
-
-
 // vim: set ts=4 sw=4 sts=4 expandtab:
-

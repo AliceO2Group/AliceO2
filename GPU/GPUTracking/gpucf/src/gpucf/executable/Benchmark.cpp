@@ -52,7 +52,9 @@ int Benchmark::mainImpl()
         throw DirectoryNotFoundError(baseDir);
     }
 
-    /* digits = read<RawDigit, Digit>(args::get(*digitFile)); */
+    SectorData<RawDigit> rawdigits = read<RawDigit>(args::get(*digitFile));
+    SectorMap<std::vector<Digit>> alldigits = Digit::bySector(rawdigits);
+    digits = alldigits[0];
 
     registerExperiments();
 
