@@ -684,15 +684,14 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
     mMCTruthOutputContainer->clear();
   }
 
-  printf("TOF fill output contatiner\n");
+  printf("TOF fill output container\n");
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
   }
 
   if (mContinuous) {
-    if (digits.size())
-      printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
+    printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
     mDigitsPerTimeFrame.push_back(digits);
   }
 
@@ -715,10 +714,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   mIcurrentReadoutWindow++;
   if (mIcurrentReadoutWindow >= MAXWINDOWS)
     mIcurrentReadoutWindow = 0;
-
   mStripsCurrent = &(mStrips[mIcurrentReadoutWindow]);
   mMCTruthContainerCurrent = &(mMCTruthContainer[mIcurrentReadoutWindow]);
-
   int k = mIcurrentReadoutWindow + 1;
   for (Int_t i = 0; i < MAXWINDOWS - 1; i++) {
     if (k >= MAXWINDOWS)
@@ -753,9 +750,10 @@ void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 void Digitizer::checkIfReuseFutureDigits()
 {
   // check if digits stored very far in future match the new readout windows currently available
-  int idigit = 0;
-  for (auto& digit : mFutureDigits) {
-    double timestamp = digit.getBC() * 25 + digit.getTDC() * Geo::TDCBIN * 1E-3;          // in ns
+  int idigit = mFutureDigits.size()-1;
+
+  for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit ) {
+    double timestamp = digit->getBC() * 25 + digit->getTDC() * Geo::TDCBIN * 1E-3;          // in ns
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time
     if (isnext < 0)                                                                       // we jump too ahead in future, digit will be not stored
       LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
@@ -769,27 +767,28 @@ void Digitizer::checkIfReuseFutureDigits()
           mcTruthContainer = mMCTruthContainerNext[isnext - 1];
         }
 
-        int trackID = mFutureItrackID[digit.getLabel()];
-        int sourceID = mFutureIsource[digit.getLabel()];
-        int eventID = mFutureIevent[digit.getLabel()];
-        fillDigitsInStrip(strips, mcTruthContainer, digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
+        int trackID = mFutureItrackID[digit->getLabel()];
+        int sourceID = mFutureIsource[digit->getLabel()];
+        int eventID = mFutureIevent[digit->getLabel()];
+        fillDigitsInStrip(strips, mcTruthContainer, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS, trackID, eventID, sourceID);
       }
-
       // remove the element from the buffers
-      mFutureItrackID.erase(mFutureItrackID.begin() + digit.getLabel());
-      mFutureIsource.erase(mFutureIsource.begin() + digit.getLabel());
-      mFutureIevent.erase(mFutureIevent.begin() + digit.getLabel());
+      mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
+      mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
+      mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
 
-      int labelremoved = digit.getLabel();
+      int labelremoved = digit->getLabel();
+      mFutureDigits.erase(mFutureDigits.begin() + idigit);
+
       // adjust labels
       for (auto& digit2 : mFutureDigits) {
-        if (digit2.getLabel() > labelremoved)
+        if (digit2.getLabel() > labelremoved){
           digit2.setLabel(digit2.getLabel() - 1);
+        }
       }
       // remove also digit from buffer
-      mFutureDigits.erase(mFutureDigits.begin() + idigit);
-    } else {
-      idigit++; // increment when moving to the next only if the current is not removed from the buffer
+//      mFutureDigits.erase(mFutureDigits.begin() + idigit);
     }
+    idigit--; // go back to the next position in the reverse iterator
   } // close future digit loop
 }

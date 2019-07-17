@@ -74,6 +74,7 @@ class Geo
   static constexpr Int_t NPLATES = 5;
 
   static constexpr int NCHANNELS = NSTRIPS * NPADS;
+  static constexpr int N_ELECTRONIC_CHANNELS = 72<<12;
 
   static constexpr Float_t MAXHZTOF = 370.6;      // Max half z-size of TOF (cm)
   static constexpr Float_t ZLENA = MAXHZTOF * 2.; // length (cm) of the A module
@@ -109,7 +110,7 @@ class Geo
   static constexpr Float_t DEADTIMETDC = DEADTIME / TDCBIN; ///< Single channel TDC dead time (ps)
   static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192;  // Matching window  (ps) 2^13=8192
   //  static constexpr Float_t READOUTWINDOW = 1000;           // Readout window (ns)
-  static constexpr Float_t READOUTWINDOW = 1e9;                    // Readout window (ns) - now put 1s for DPL to work fine, but it will be 29e3
+  static constexpr Float_t READOUTWINDOW = 29e3;                    // Readout window (ns)
   static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
@@ -248,6 +249,16 @@ class Geo
   static Float_t getPropagationDelay() { return CABLEPROPAGATIONDELAY; };
   static Int_t getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc); // return TOF channel index
 
+  static Int_t getCrateFromECH(int ech) {return ech >> 12;}
+  static Int_t getTRMFromECH(int ech) {return (ech%4096) >> 8;}
+  static Int_t getChainFromECH(int ech) {return (ech%256) >> 7;}
+  static Int_t getTDCFromECH(int ech) {return (ech%128) >>3;}
+  static Int_t getTDCChFromECH(int ech) {return (ech%8);}
+  static Int_t getECHFromElIndexes(int crate, int trm, int chain, int tdc, int chan) {return (crate >> 12) + (trm >> 8) + (chain >> 7) + (tdc >> 3) + chan;}
+  static Int_t getECHFromCH(int chan) {return CHAN_TO_ELCHAN[chan];} 
+  static Int_t getCHFromECH(int echan) {return ELCHAN_TO_CHAN[echan];}
+
+ 
  private:
   static void Init();
 
@@ -267,6 +278,9 @@ class Geo
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513;           // Propagation delay [ns/cm]
   static const Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3]; // not constexpr as we initialize it in CableLength.cxx at run time
+  static const Int_t CHAN_TO_ELCHAN[NCHANNELS];
+  static const Int_t ELCHAN_TO_CHAN[N_ELECTRONIC_CHANNELS];
+
 
   ClassDefNV(Geo, 1);
 };
