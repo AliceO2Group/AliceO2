@@ -18,7 +18,7 @@
 #include "TTree.h"
 #include "TBranch.h"
 #include "TFile.h"
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 

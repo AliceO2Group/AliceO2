@@ -12,34 +12,59 @@
 #define ALICEO2_EMCAL_CELL_H_
 
 #include <bitset>
+#include "Rtypes.h"
 
 // Structure:
-// Bits 25-34: ADC
-// Bits 16-24: Time (ns)
-// Bits  0-16: Tower ID
+// Bits 38-39: Cell type: 00=Low Gain, 01=High Gain, 10=LED mon, 11=TRU
+// Bits 24-37: Energy (input/output in GeV/c^2, resolution 1/16 ADC count)
+// Bits 15-23: Time (ns)
+// Bits  0-14: Tower ID
 
 namespace o2
 {
 namespace emcal
 {
+
+enum CellType {
+  kLowGain,
+  kHighGain,
+  kLEDMon,
+  kTRU
+};
+
 class Cell
 {
  public:
   Cell() = default;
-  Cell(Double_t amplitude, Double_t time, Short_t tower);
-  Cell(const Cell& c) { mBits = c.mBits; }
-  Cell& operator=(const Cell& c);
+  Cell(Short_t tower, Double_t energy, Double_t time, CellType ctype = CellType::kLowGain);
   ~Cell() = default; // override
-
-  void setAmplitudeToADC(Double_t amplitude);
-  void setADC(Short_t adc);
-  Short_t getADC() const;
-
-  void setTime(Double_t time);
-  Short_t getTime() const;
 
   void setTower(Short_t tower);
   Short_t getTower() const;
+
+  void setTimeStamp(Double_t time);
+  Short_t getTimeStamp() const;
+
+  void setEnergyBits(Short_t ebits);
+  Short_t getEnergyBits() const;
+
+  void setEnergy(Double_t energy);
+  Double_t getEnergy() const;
+
+  void setType(CellType ctype);
+  UInt_t getType() const;
+
+  void setLowGain();
+  Bool_t getLowGain() const;
+
+  void setHighGain();
+  Bool_t getHighGain() const;
+
+  void setLEDMon();
+  Bool_t getLEDMon() const;
+
+  void setTRU();
+  Bool_t getTRU() const;
 
   void setLong(ULong_t l);
   ULong_t getLong() const { return mBits.to_ulong(); }
@@ -48,6 +73,8 @@ class Cell
 
  private:
   std::bitset<40> mBits;
+
+  ClassDefNV(Cell, 1);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Cell& c);
