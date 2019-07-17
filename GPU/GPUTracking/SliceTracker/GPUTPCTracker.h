@@ -245,11 +245,12 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight);
+  void PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right);
 
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 
 #if !defined(GPUCA_GPUCODE)
-  GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+  GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction);
 #endif
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* mStageAtSync = nullptr; // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
