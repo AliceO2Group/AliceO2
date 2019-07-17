@@ -35,6 +35,7 @@ add_definitions(
     -Dspan_FEATURE_MAKE_SPAN=1
     -Dspan_FEATURE_MEMBER_BACK_FRONT=1
     -Dspan_FEATURE_MEMBER_AT=2
+    -Dspan_CONFIG_INDEX_TYPE=std::size_t
 )
 
 include_directories(src)
