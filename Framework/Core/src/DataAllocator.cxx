@@ -123,7 +123,10 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   DataHeader* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
   auto context = mContextRegistry->get<MessageContext>();
-  context->add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+  // make_scoped creates the context object inside of a scope handler, since it goes out of
+  // scope immediately, the created object is scheduled and can be directly sent if the context
+  // is configured with the dispatcher callback
+  context->make_scoped<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, TObject* ptr)
