@@ -17,7 +17,9 @@
 #include <fstream>
 #include <string>
 #include <cstdint>
-#include "DataFormat.h"
+#include "DataFormatsTOF/DataFormat.h"
+#include "TOFBase/Geo.h"
+#include "TOFBase/Digit.h"
 
 namespace o2
 {
@@ -37,7 +39,11 @@ class Encoder
 
   bool open(std::string name);
   bool alloc(long size);
-  bool encode(/*define input structure*/);
+
+  bool encode(std::vector<Digit> summary);
+  int encodeCrate(const std::vector<Digit> &summary, Int_t icrate, int &istart); // return next crate index
+  int encodeTRM(const std::vector<Digit> &summary, Int_t icrate, Int_t itrm, int &istart); // return next trm index
+
   bool flush();
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
