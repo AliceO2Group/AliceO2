@@ -249,9 +249,17 @@ int createPipes(int maxFd, int* pipes)
 // we simply note down the fact a signal arrived.
 // All the processing is done by the state machine.
 volatile sig_atomic_t graceful_exit = false;
+volatile sig_atomic_t forceful_exit = false;
 volatile sig_atomic_t sigchld_requested = false;
 
-static void handle_sigint(int) { graceful_exit = true; }
+static void handle_sigint(int)
+{
+  if (graceful_exit == false) {
+    graceful_exit = true;
+  } else {
+    forceful_exit = true;
+  }
+}
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
@@ -935,6 +943,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::QUIT_REQUESTED:
         LOG(INFO) << "QUIT_REQUESTED" << std::endl;
         guiQuitRequested = true;
+        // We send SIGCONT to make sure stopped children are resumed
+        killChildren(infos, SIGCONT);
         killChildren(infos, SIGTERM);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         driverInfo.states.push_back(DriverState::GUI);
@@ -942,6 +952,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::HANDLE_CHILDREN:
         // I allow queueing of more sigchld only when
         // I process the previous call
+        if (forceful_exit == true) {
+          LOG(INFO) << "Forceful exit requested.";
+          killChildren(infos, SIGCONT);
+          killChildren(infos, SIGKILL);
+        }
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
