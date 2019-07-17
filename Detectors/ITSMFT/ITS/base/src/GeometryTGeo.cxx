@@ -319,8 +319,8 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // Restore the modeler state.
   gGeoManager->PopPath();
 
-  // account for the difference between sensitive layer and physical sensor ticknesses
-  static TGeoTranslation tra(0., 0.5 * (Segmentation::SensorThickness - Segmentation::SensLayerThickness), 0.);
+  // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor ticknesses
+  static TGeoTranslation tra(0., 0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff), 0.);
 
   matTmp *= tra;
 
