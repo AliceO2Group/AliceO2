@@ -9,17 +9,14 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EMCALBase
-               SOURCES src/Digit.cxx src/Geometry.cxx src/Hit.cxx
+               SOURCES src/Geometry.cxx src/Hit.cxx
                        src/ShishKebabTrd1Module.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat Boost::serialization
-                                     O2::MathUtils O2::SimulationDataFormat
-                                     ROOT::Physics)
+                                     O2::MathUtils O2::DataFormatsEMCAL
+                                     O2::SimulationDataFormat ROOT::Physics)
 
 o2_target_root_dictionary(EMCALBase
-                          HEADERS include/EMCALBase/Cell.h
-                                  include/EMCALBase/Constants.h
-                                  include/EMCALBase/Digit.h
-                                  include/EMCALBase/GeometryBase.h
+                          HEADERS include/EMCALBase/GeometryBase.h
                                   include/EMCALBase/Geometry.h
                                   include/EMCALBase/Hit.h
                                   include/EMCALBase/ShishKebabTrd1Module.h)

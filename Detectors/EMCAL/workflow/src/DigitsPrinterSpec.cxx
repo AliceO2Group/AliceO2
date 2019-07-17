@@ -15,7 +15,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec()
@@ -36,8 +36,8 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinter
       std::cout << "[EMCALDigitsPrinter - process] receiveed " << digits.size() << " digits ..." << std::endl;
       if (digits.size()) {
         for (const auto& d : digits) {
-          std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.GetTower() << std::endl;
-          std::cout << "[EMCALDigitsPrinter - process] Amplitude: " << d.GetAmplitude() << std::endl;
+          std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.getTower() << std::endl;
+          std::cout << "[EMCALDigitsPrinter - process] Energy: " << d.getEnergy() << std::endl;
           //std::cout << d << std::endl;
         }
       }

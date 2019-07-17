@@ -10,7 +10,7 @@
 
 #include "EMCALSimulation/Digitizer.h"
 #include "EMCALSimulation/SimParam.h"
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
@@ -51,7 +51,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
     try {
       Int_t LabelIndex = mMCTruthContainer.getIndexedSize();
       Digit digit = hitToDigit(hit, LabelIndex);
-      Int_t id = digit.GetTower();
+      Int_t id = digit.getTower();
 
       if (id < 0 || id > mGeometry->GetNCells()) {
         LOG(WARNING) << "tower index out of range: " << id << FairLogger::endl;
@@ -62,7 +62,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       for (auto& digit0 : mDigits[id]) {
         if (digit0.canAdd(digit)) {
           digit0 += digit;
-          LabelIndex = digit0.GetLabel();
+          //LabelIndex = digit0.GetLabel();
           flag = true;
           break;
         }
@@ -87,7 +87,7 @@ o2::emcal::Digit Digitizer::hitToDigit(const Hit& hit, const Int_t label)
 {
   Int_t tower = hit.GetDetectorID();
   Double_t amplitude = hit.GetEnergyLoss();
-  Digit digit(tower, amplitude, mEventTime, label);
+  Digit digit(tower, amplitude, mEventTime);
   return digit;
 }
 
@@ -111,7 +111,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 
   for (auto tower : mDigits) {
     for (auto& digit : tower.second) {
-      if (mRemoveDigitsBelowThreshold && (digit.GetAmplitude() < mSimParam->GetDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
+      if (mRemoveDigitsBelowThreshold && (digit.getEnergy() < mSimParam->GetDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
         continue;
       }
 
@@ -133,11 +133,11 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 //_______________________________________________________________________
 void Digitizer::smearTimeEnergy(Digit& digit)
 {
-  Double_t energy = digit.GetAmplitude();
+  Double_t energy = digit.getEnergy();
   Double_t fluct = (energy * mSimParam->GetMeanPhotonElectron()) / mSimParam->GetGainFluctuations();
   energy *= mRandomGenerator->Poisson(fluct) / fluct;
   energy += mRandomGenerator->Gaus(0., mSimParam->GetPinNoise());
-  digit.SetAmplitude(energy);
+  digit.setEnergy(energy);
 
   Double_t res = mSimParam->GetTimeResolution(energy);
   if (res > 0.) {

@@ -15,7 +15,7 @@
 #include <cmath>
 #include "Rtypes.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "EMCALBase/Constants.h"
+#include "DataFormatsEMCAL/Constants.h"
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -33,7 +33,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Short_t tower, Double_t amplitude, Double_t time, Int_t label = -1);
+  Digit(Short_t tower, Double_t energy, Double_t time);
   ~Digit() = default; // override
 
   bool operator<(const Digit& other) const { return getTimeStamp() < other.getTimeStamp(); }
@@ -42,7 +42,7 @@ class Digit : public DigitBase
 
   bool canAdd(const Digit other)
   {
-    return (mTower == other.GetTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
+    return (mTower == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
   }
 
   Digit& operator+=(const Digit& other);              // Adds energy of other digits to this digit.
@@ -52,23 +52,19 @@ class Digit : public DigitBase
     return lhs;
   }
 
-  Short_t GetTower() const { return mTower; }
-  void SetTower(Short_t tower) { mTower = tower; }
+  void setTower(Short_t tower) { mTower = tower; }
+  Short_t getTower() const { return mTower; }
 
-  Double_t GetAmplitude() const { return mAmplitude; }
-  void SetAmplitude(Double_t amplitude) { mAmplitude = amplitude; }
-
-  Int_t GetLabel() const { return mLabel; }
-  void SetLabel(Int_t label) { mLabel = label; }
+  void setEnergy(Double_t energy) { mEnergy = energy; }
+  Double_t getEnergy() const { return mEnergy; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   friend class boost::serialization::access;
 
-  Double_t mAmplitude; ///< Amplitude
-  Int_t mLabel;        ///< Index of the corresponding entry/entries in the MC label array
-  Short_t mTower;      ///< Tower index (absolute cell ID)
+  Double_t mEnergy; ///< Energy (GeV/c^2)
+  Short_t mTower;   ///< Tower index (absolute cell ID)
 
   ClassDefNV(Digit, 1);
 };
