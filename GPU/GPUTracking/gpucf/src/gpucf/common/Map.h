@@ -33,7 +33,7 @@ public:
     {
     }
 
-    Map(nonstd::span<const Digit> keys, nonstd::span<T> pred, T fallback)
+    Map(nonstd::span<const Digit> keys, nonstd::span<const T> pred, T fallback)
         : fallback(fallback)
     {
         ASSERT(keys.size() == pred.size());
