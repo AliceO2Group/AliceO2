@@ -29,7 +29,7 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
     log::Debug() << "send Digits to GPU";
     digitsToGPU.call(state, digits, queue);
 
-    ASSERT(state.digitnum == size_t(digits.size()))
+    ASSERT(state.digitnum == digits.size())
         << "state.digitnum = " << state.digitnum;
 
     log::Debug() << "Fill charge map";
@@ -64,7 +64,7 @@ void ClusterFinderTest::checkIsPeaks(nonstd::span<const unsigned char> isPeakGT)
 
     size_t correctPeaks = 0;
     std::vector<size_t> wrongIds;
-    for (size_t i = 0; i < std::min(isPeak.size(), size_t(isPeakGT.size())); i++)
+    for (size_t i = 0; i < std::min(isPeak.size(), isPeakGT.size()); i++)
     {
         ASSERT(isPeak[i] == 0 || isPeak[i] == 1);
         bool ok = (isPeak[i] == isPeakGT[i]);
@@ -77,8 +77,8 @@ void ClusterFinderTest::checkIsPeaks(nonstd::span<const unsigned char> isPeakGT)
     }
 
     float correctFraction = 
-        std::min(correctPeaks, size_t(isPeakGT.size()))
-            / float(std::max(correctPeaks, size_t(isPeakGT.size())));
+        std::min(correctPeaks, isPeakGT.size())
+            / float(std::max(correctPeaks, isPeakGT.size()));
 
     bool isPeaksOk = correctFraction >= 0.99f;
 

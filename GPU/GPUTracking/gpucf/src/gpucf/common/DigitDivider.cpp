@@ -30,7 +30,7 @@ DigitDivider::DigitDivider(
 
 optional<Fragment> DigitDivider::nextChunk(size_t padding)
 {
-    if (start >= size_t(digits.size()))
+    if (start >= digits.size())
     {
         return nullopt;
     }
