@@ -79,13 +79,13 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 static void configITS(Detector* its)
 {
   // build ITS upgrade detector
-  const double kSiThickIB = 50e-4;
-  const double kSiThickOB = 50e-4;
-  //
   const int kNLr = 7;
   const int kNLrInner = 3;
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
+
+  const float ChipThicknessIB = 50.e-4;
+  const float ChipThicknessOB = 100.e-4;
 
   enum { kRmn,
          kRmd,
@@ -131,12 +131,12 @@ static void configITS(Detector* its)
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, kSiThickOB, Segmentation::SensorThickness,
+      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
                        kSensTypeID, kBuildLevel);
     } else {
       turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
       its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
-                            kSiThickIB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
+                            ChipThicknessIB, Segmentation::SensorLayerThickness, kSensTypeID, kBuildLevel);
     }
   }
 }
@@ -762,9 +762,6 @@ void Detector::constructDetectorGeometry()
 
     if (mChipThickness[j] == 0) {
       LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
-    }
-    if (mDetectorThickness[j] == 0) {
-      LOG(INFO) << "Sensor thickness for layer " << j << " not set, using default";
     }
   }
 

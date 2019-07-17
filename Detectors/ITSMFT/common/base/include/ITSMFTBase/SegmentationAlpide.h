@@ -38,14 +38,15 @@ class SegmentationAlpide
   static constexpr int   NPixels = NRows*NCols;
   static constexpr float PitchCol = 29.24e-4;
   static constexpr float PitchRow = 26.88e-4;
-  static constexpr float SensLayerThickness = 22.e-4; // effective thickness of sensitive layer, https://alice.its.cern.ch/jira/browse/AOC-46
   static constexpr float PassiveEdgeReadOut = 0.12f;  // width of the readout edge (Passive bottom)
   static constexpr float PassiveEdgeTop = 37.44e-4;   // Passive area on top
   static constexpr float PassiveEdgeSide = 29.12e-4;  // width of Passive area on left/right of the sensor
   static constexpr float ActiveMatrixSizeCols = PitchCol*NCols; // Active size along columns
   static constexpr float ActiveMatrixSizeRows = PitchRow*NRows; // Active size along rows
-  
-  static constexpr float SensorThickness = 30.e-4;     // effective thickness of sensitive part
+
+  // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
+  static constexpr float SensorLayerThicknessEff = 22.e-4;
+  static constexpr float SensorLayerThickness = 30.e-4;                                         // physical thickness of sensitive part
   static constexpr float SensorSizeCols = ActiveMatrixSizeCols+PassiveEdgeSide+PassiveEdgeSide; // SensorSize along columns
   static constexpr float SensorSizeRows = ActiveMatrixSizeRows+PassiveEdgeTop+PassiveEdgeReadOut; // SensorSize along rows
 
