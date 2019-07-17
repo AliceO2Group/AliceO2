@@ -17,6 +17,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -40,13 +41,14 @@ class TGeoMedium;
 
 using namespace TMath;
 using namespace o2::its;
+using namespace o2::itsmft;
 using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
 
-const Double_t V3Layer::sDefaultSensorThick = 18 * sMicron;
-const Double_t V3Layer::sDefaultChipThick = 50 * sMicron;
+const Double_t V3Layer::sDefaultSensorThick = SegmentationAlpide::SensLayerThickness;
+const Double_t V3Layer::sDefaultChipThick = SegmentationAlpide::SensorThickness;
 const Double_t V3Layer::sMetalLayerThick = 15 * sMicron;
 
 // Inner Barrel Parameters
