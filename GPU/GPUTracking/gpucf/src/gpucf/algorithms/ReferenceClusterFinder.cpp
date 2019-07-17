@@ -10,6 +10,8 @@
 using namespace gpucf;
 
 
+
+
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
     : config(config)
 {
@@ -160,7 +162,6 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
     {
         for (int dt = -1; dt <= 1; dt++)
         {
-
             peaks += peakmap[{d, dp, dt}];
         }
     }
@@ -185,6 +186,7 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
 
     return peaks;
 }
+
 
 void ReferenceClusterFinder::update(Cluster &c, float q, int dp, int dt)
 {
