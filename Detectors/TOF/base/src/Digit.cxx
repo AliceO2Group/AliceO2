@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFBase/Digit.h"
-#include "TOFBase/Geo.h"
 
 #include <iostream>
 

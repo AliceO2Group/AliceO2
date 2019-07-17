@@ -22,4 +22,5 @@ o2_target_root_dictionary(DataFormatsTOF
                                   include/DataFormatsTOF/CalibInfoTOFshort.h
                                   include/DataFormatsTOF/CalibInfoTOF.h
                                   include/DataFormatsTOF/CalibLHCphaseTOF.h
-                                  include/DataFormatsTOF/CalibTimeSlewingParamTOF.h)
+                                  include/DataFormatsTOF/CalibTimeSlewingParamTOF.h
+                                  include/DataFormatsTOF/DataFormat.h)

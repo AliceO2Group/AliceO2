@@ -13,6 +13,7 @@
 
 #include <iosfwd>
 #include "Rtypes.h"
+#include "TOFBase/Geo.h"
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -61,6 +62,14 @@ class Digit
 
   void setIsUsedInCluster() { mIsUsedInCluster = kTRUE; }
 
+  Int_t getElectronicIndex() const {return mElectronIndex;}
+  void setElectronicIndex(Int_t ind) {mElectronIndex = ind;}
+  Int_t getElCrateIndex() const {return Geo::getCrateFromECH(mElectronIndex);} // to be derived from mElectronIndex
+  Int_t	getElTRMIndex()	const {return Geo::getTRMFromECH(mElectronIndex);} // to be derived from mElectronIndex
+  Int_t	getElChainIndex()   const {return Geo::getChainFromECH(mElectronIndex);} // to be derived from mElectronIndex
+  Int_t	getElTDCIndex()   const {return Geo::getTDCFromECH(mElectronIndex);} // to be derived from mElectronIndex
+  Int_t	getElChIndex()   const {return Geo::getTDCChFromECH(mElectronIndex);} // to be derived from mElectronIndex
+
  private:
   friend class boost::serialization::access;
 
@@ -70,6 +79,7 @@ class Digit
   Int_t mBC;               ///< Bunch Crossing
   Int_t mLabel;            ///< Index of the corresponding entry in the MC label array
   Bool_t mIsUsedInCluster; //!/< flag to declare that the digit was used to build a cluster
+  Int_t mElectronIndex; //!/< index in electronic format
 
   ClassDefNV(Digit, 1);
 };
