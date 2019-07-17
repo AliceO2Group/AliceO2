@@ -17,7 +17,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
