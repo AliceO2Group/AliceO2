@@ -38,6 +38,11 @@ struct CrateHeader_t {
   uint32_t mustBeOne : 1;
 };
 
+struct CrateOrbit_t {
+    uint32_t orbitID : 32;
+};
+  
+
 struct FrameHeader_t {
   uint32_t numberOfHits : 16;
   uint32_t frameID : 8;
@@ -75,6 +80,7 @@ union Union_t {
   uint32_t data;
   Word_t word;
   CrateHeader_t crateHeader;
+  CrateOrbit_t crateOrbit;
   FrameHeader_t frameHeader;
   PackedHit_t packedHit;
   CrateTrailer_t crateTrailer;
