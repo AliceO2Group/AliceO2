@@ -6,16 +6,17 @@
 using namespace gpucf;
 
 
-std::vector<LabelContainer> LabelContainer::bySector(
+SectorMap<LabelContainer> LabelContainer::bySector(
         const SectorData<RawLabel> &labels)
 {
-    std::vector<LabelContainer> containers;
+    SectorMap<LabelContainer> containers;
 
     size_t start = 0;
-    for (auto n : labels.elemsBySector)
+    for (size_t i = 0; i < TPC_SECTORS; i++)
     {
+        size_t n = labels.elemsBySector[i];
         nonstd::span<const RawLabel> data(&labels.data[start], n);
-        containers.emplace_back(data);
+        containers[i] = LabelContainer(data);
         start += n;
     }
 
