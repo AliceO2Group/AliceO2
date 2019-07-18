@@ -15,36 +15,26 @@ namespace gpucf
 {
 
 template<typename T>
-struct SectorData
-{
-    SectorMap<uint64_t> elemsBySector;
-    std::vector<T> data;
-
-    size_t sizeByHeader() const 
-    {
-        size_t n = 0;
-        for (auto s : elemsBySector)
-        {
-            n += s;    
-        }
-        return n;
-    }
-};
-
-template<typename T>
-SectorData<T> read(filesystem::path f)
+SectorMap<std::vector<T>> read(filesystem::path f)
 {
     std::ifstream in(f.str(), std::ios::binary);
     
-    SectorData<T> raw;
-    in.read(reinterpret_cast<char *>(raw.elemsBySector.data()), 
-            sizeof(uint64_t) * raw.elemsBySector.size());
+    SectorMap<uint64_t> header;
+    in.read(reinterpret_cast<char *>(header.data()), 
+            sizeof(uint64_t) * header.size());
 
-    raw.data.resize(raw.sizeByHeader());
+    SectorMap<std::vector<T>> sectordata;
+    for (size_t sector = 0; sector < header.size(); sector++)
+    {
+        size_t n = header[sector]; 
+        std::vector<T> &data = sectordata[sector];
 
-    in.read(reinterpret_cast<char *>(raw.data.data()), raw.data.size() * sizeof(T));
+        data.resize(n);
+        in.read(reinterpret_cast<char *>(data.data()), 
+                data.size() * sizeof(T));
+    }
 
-    return raw;
+    return sectordata;
 }
 
 template<typename R>

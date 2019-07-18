@@ -7,23 +7,20 @@ using namespace gpucf;
 
 
 SectorMap<LabelContainer> LabelContainer::bySector(
-        const SectorData<RawLabel> &labels)
+        const SectorMap<std::vector<RawLabel>> &labels,
+        const SectorMap<std::vector<Digit>> &digits)
 {
     SectorMap<LabelContainer> containers;
 
-    size_t start = 0;
     for (size_t i = 0; i < TPC_SECTORS; i++)
     {
-        size_t n = labels.elemsBySector[i];
-        nonstd::span<const RawLabel> data(&labels.data[start], n);
-        containers[i] = LabelContainer(data);
-        start += n;
+        containers[i] = LabelContainer(labels[i], digits[i]);
     }
 
     return containers;
 }
 
-LabelContainer::LabelContainer(nonstd::span<const RawLabel> rawlabels)
+LabelContainer::LabelContainer(View<RawLabel> rawlabels, View<Digit> digits)
 {
     ASSERT(!rawlabels.empty());
 
@@ -37,14 +34,17 @@ LabelContainer::LabelContainer(nonstd::span<const RawLabel> rawlabels)
 
     labels.emplace_back(rawlabels.front());
 
-    for (const RawLabel &l : 
-            nonstd::span<const RawLabel>(&rawlabels[1], rawlabels.size()-1))
+    viewById.reserve(digits.size());
+
+    for (const RawLabel &l : View<RawLabel>(&rawlabels[1], rawlabels.size()-1))
     {
         ASSERT(l.id == id || l.id == id+1);
 
         if (l.id == id+1)
         {
-            viewById.emplace_back(&labels[start], elems); 
+            View<MCLabel> view(&labels[start], elems);
+            viewById.push_back(view); 
+            viewByPosition[digits[id]] = view;
 
             start = labels.size();
             elems = 0;
@@ -55,7 +55,14 @@ LabelContainer::LabelContainer(nonstd::span<const RawLabel> rawlabels)
         elems++;
     }
 
-    viewById.emplace_back(&labels[start], elems);
+    View<MCLabel> view(&labels[start], elems);
+    viewById.push_back(view); 
+    viewByPosition[digits[id]] = view;
+}
+
+View<MCLabel> LabelContainer::operator[](const Position &p) const
+{
+    return viewByPosition.at(p);
 }
 
 View<MCLabel> LabelContainer::operator[](size_t id) const
