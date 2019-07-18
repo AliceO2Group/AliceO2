@@ -20,7 +20,8 @@ class Digit : public PackedDigit
 
 public:
 
-    static SectorMap<std::vector<Digit>> bySector(const SectorData<RawDigit> &);
+    static SectorMap<std::vector<Digit>> bySector(
+            const SectorMap<std::vector<RawDigit>> &);
 
     Digit();
     Digit(const RawDigit &);
