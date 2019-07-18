@@ -35,6 +35,9 @@ constexpr int PrimaryVertexLayerId{ -1 };
 constexpr int EventLabelsSeparator{ -1 };
 } // namespace
 
+using o2::its::constants::its::LayersRCoordinate;
+using o2::its::constants::its::LayersZCoordinate;
+
 namespace o2
 {
 namespace its
@@ -166,6 +169,34 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, c
     clusterId++;
   }
   return number;
+}
+
+void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zDivs = 1)
+{
+  const float angleOffset = constants::math::TwoPi / static_cast<float>(phiDivs);
+  // Maximum z allowed on innermost layer should be: ~9,75
+  const float zOffsetFirstLayer = (zDivs == 1) ? 0 : 1.5 * (LayersZCoordinate()[6] * LayersRCoordinate()[0]) / (LayersRCoordinate()[6] * (static_cast<float>(zDivs) - 1));
+  std::vector<float> x, y;
+  std::array<std::vector<float>, 7> z;
+  for (size_t j{ 0 }; j < zDivs; ++j) {
+    for (size_t i{ 0 }; i < phiDivs; ++i) {
+      x.emplace_back(cos(i * angleOffset + 0.001)); // put an epsilon to move from periods (e.g. 20 clusters vs 20 cells)
+      y.emplace_back(sin(i * angleOffset + 0.001));
+      const float zFirstLayer{ -static_cast<float>((zDivs - 1.) / 2.) * zOffsetFirstLayer + zOffsetFirstLayer * static_cast<float>(j) };
+      z[0].emplace_back(zFirstLayer);
+      for (size_t iLayer{ 1 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+        z[iLayer].emplace_back(zFirstLayer * LayersRCoordinate()[iLayer] / LayersRCoordinate()[0]);
+      }
+    }
+  }
+
+  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int i = 0; i < phiDivs * zDivs; i++) {
+      o2::MCCompLabel label{ i, 0, 0, false };
+      event.addClusterLabelToLayer(iLayer, label);                                                                              //last argument : label, goes into mClustersLabel
+      event.addClusterToLayer(iLayer, LayersRCoordinate()[iLayer] * x[i], LayersRCoordinate()[iLayer] * y[i], z[iLayer][i], i); //uses 1st constructor for clusters
+    }
+  }
 }
 
 std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int eventsNum, const std::string& fileName)

@@ -61,6 +61,7 @@ void loadEventData(ROframe& events, const std::vector<itsmft::Cluster>* mCluster
                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, const std::vector<itsmft::Cluster>* mClustersArray,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
 
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
