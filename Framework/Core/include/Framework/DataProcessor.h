@@ -11,6 +11,7 @@
 #define FRAMEWORK_DATAPROCESSOR_H
 
 class FairMQDevice;
+class FairMQParts;
 
 namespace o2
 {
@@ -31,6 +32,7 @@ struct DataProcessor {
   static void doSend(FairMQDevice&, StringContext&);
   static void doSend(FairMQDevice&, ArrowContext&);
   static void doSend(FairMQDevice&, RawBufferContext&);
+  static void doSend(FairMQDevice&, FairMQParts&&, const char*, unsigned int);
 };
 
 } // namespace framework
