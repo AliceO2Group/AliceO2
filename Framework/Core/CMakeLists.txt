@@ -233,6 +233,7 @@ foreach(w
         DanglingInputs
         DanglingOutputs
         DataAllocator
+        StaggeringWorkflow
         Forwarding
         ParallelPipeline
         ParallelProducer
