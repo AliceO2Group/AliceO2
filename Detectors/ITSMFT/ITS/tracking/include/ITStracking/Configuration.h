@@ -137,6 +137,7 @@ struct VertexingParameters {
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
+  float tanLambdaCut = 0.025f;
   int clusterContributorsCut = 16;
   int phiSpan = -1;
   int zSpan = -1;

@@ -95,6 +95,7 @@ void trackletSelectionKernelSerial(
   std::vector<Line>& destTracklets,
   std::vector<std::array<float, 7>>& tlv,
   const float tanLambdaCut = 0.025f,
+  const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(2e3))
 {
   int offset01{ 0 };
@@ -104,7 +105,8 @@ void trackletSelectionKernelSerial(
     for (int iTracklet12{ offset12 }; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{ offset01 }; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda) };
-        if (deltaTanLambda < tanLambdaCut && validTracklets != maxTracklets) {
+        const float deltaPhi{ gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phiCoordinate - tracklets12[iTracklet12].phiCoordinate) };
+        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
 #if defined(__VERTEXER_ITS_DEBUG)
           tlv.push_back(std::array<float, 7>{ deltaTanLambda,
@@ -318,7 +320,9 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     foundTracklets01,
     foundTracklets12,
     mTracklets,
-    mDeltaTanlambdas);
+    mDeltaTanlambdas,
+    mVrtParams.phiCut,
+    mVrtParams.tanLambdaCut);
 }
 
 void VertexerTraits::computeVertices()
