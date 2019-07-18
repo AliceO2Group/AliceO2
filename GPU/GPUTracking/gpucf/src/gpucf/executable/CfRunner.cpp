@@ -82,7 +82,7 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 
 int CfRunner::mainImpl()
 {
-    SectorData<RawDigit> rawdigits = read<RawDigit>(args::get(*digitFile));
+    SectorMap<std::vector<RawDigit>> rawdigits = read<RawDigit>(args::get(*digitFile));
     SectorMap<std::vector<Digit>> alldigits = Digit::bySector(rawdigits);
 
     std::vector<Digit> &digits = alldigits[0];

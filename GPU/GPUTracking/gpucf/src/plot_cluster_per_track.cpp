@@ -54,6 +54,79 @@ struct PeakCount
 
 };
 
+
+class LabelBucketCounter
+{
+
+public:
+
+    LabelBucketCounter(const std::set<MCLabel> &keys)
+    {
+        for (const MCLabel &key : keys)
+        {
+            counts[key] = 0; 
+        }
+    }
+
+    void add(const LabelBucketCounter &other)
+    {
+        for (const auto &p : other.map())
+        {
+            counts[p.first] += p.second;
+        }
+    }
+
+    void add(View<size_t> peakIds, const LabelContainer &labels)
+    {
+        for (size_t id : peakIds)
+        {
+            add(labels[id]);
+        }
+    }
+
+    void add(View<MCLabel> labels)
+    {
+        for (const MCLabel &label : labels)
+        {
+            add(label);
+        }
+    }
+
+    void add(const MCLabel &key)
+    {
+        counts[key]++;
+    }
+
+    const std::unordered_map<MCLabel, int> &map() const
+    {
+        return counts;
+    }
+
+    std::vector<int> getPeaknumToTracknum() const
+    {
+        size_t maxPeaksPerTrack = 0;
+        for (auto &p : counts)
+        {
+            maxPeaksPerTrack = std::max(maxPeaksPerTrack, size_t(p.second));
+        }
+
+        std::vector<int> peaknumToTracknum(maxPeaksPerTrack+1);
+        std::fill(peaknumToTracknum.begin(), peaknumToTracknum.end(), 0);
+
+        for (auto &p : counts)
+        {
+            peaknumToTracknum[p.second]++;
+        }
+
+        return peaknumToTracknum;
+    }
+
+private:
+
+    std::unordered_map<MCLabel, int> counts;
+
+};
+
 std::ostream &operator<<(std::ostream &o, const PeakCount &pc)
 {
     return o << "Number of tracks with...\n"
@@ -70,27 +143,45 @@ int clamp(int x, int l, int r)
 }
 
 
-std::unordered_map<MCLabel, size_t> countPeaksPerTrackById(
-        View<size_t> peakIds,
-        const LabelContainer &labels)
+void plotPeaknumToTracknum(
+        View<int> peaknumToTracknum,
+        View<int> peaknumToTracknumNS,
+        View<int> peaknumToTracknumRaw)
 {
-    std::unordered_map<MCLabel, size_t> peaksPerTrack;
 
-    for (const MCLabel &label : labels.allLabels())
+    size_t n = std::max(peaknumToTracknum.size(), peaknumToTracknumNS.size());
+    n = std::max(n, peaknumToTracknumRaw.size());
+    std::vector<int> x(n);
+
+    for (size_t i = 0; i < x.size(); i++)
     {
-        peaksPerTrack[label] = 0;
+        x[i] = i;
     }
 
-    for (size_t id : peakIds)
-    {
-        for (const MCLabel &label : labels[id])
-        {
-            peaksPerTrack[label]++;
-        }
-    }
+    TCanvas *c = new TCanvas("c1", "Cluster per Track", 1200, 800);
+    TMultiGraph *mg = new TMultiGraph();
 
-    return peaksPerTrack;
+    TGraph *g2 = new TGraph(peaknumToTracknumRaw.size(), x.data(), peaknumToTracknumRaw.data());
+    g2->SetLineColor(4);
+    g2->SetTitle("No filters");
+    mg->Add(g2);
+
+    TGraph *g0 = new TGraph(peaknumToTracknum.size(), x.data(), peaknumToTracknum.data());
+    g0->SetLineColor(2);
+    g0->SetTitle("With qmaxCutoff");
+    mg->Add(g0);
+
+    TGraph *g1 = new TGraph(peaknumToTracknumNS.size(), x.data(), peaknumToTracknumNS.data());
+    g1->SetLineColor(3);
+    g1->SetTitle("5x5 Noise suppresion");
+    mg->Add(g1);
+
+    mg->Draw("AL");
+
+    c->BuildLegend();
+    c->SaveAs("peaknumToTracknum.pdf");
 }
+
 
 std::unordered_map<MCLabel, size_t> countPeaksPerTrack(
         const SectorMap<ReferenceClusterFinder::Result> &result,
@@ -203,35 +294,6 @@ void plotPeakCounts(View<PeakCount> counts)
 }
 
 
-template<typename T>
-class BucketCounter
-{
-
-public:
-
-    BucketCounter(const std::set<T> &keys)
-    {
-        for (const T &key : keys)
-        {
-            counts[key] = 0;        
-        }
-    }
-
-    void add(const T &key)
-    {
-        counts[key]++;
-    }
-
-    const std::unordered_map<T, size_t> &map() const
-    {
-        return counts;
-    }
-
-private:
-
-    std::unordered_map<T, size_t> counts;
-
-};
 
 std::set<MCLabel> makeLabelSet(const SectorMap<LabelContainer> &labels)
 {
@@ -276,11 +338,11 @@ std::vector<size_t> suppressNoise(View<Digit> digits, View<unsigned char> isPeak
 
                 float q = digits[i].charge;
                 float oq = chargemap[other];
-                float bq = chargemap[between];
+                /* float bq = chargemap[between]; */
 
                 bool otherIsPeak = peakmap[other];
 
-                removeMe |= otherIsPeak && (oq > q) && (q - bq >= 2);
+                removeMe |= otherIsPeak && (oq > q); //&& (q - bq <= 2);
             }
         }
 
@@ -319,12 +381,12 @@ int main(int argc, const char *argv[])
     parser.ParseCLI(argc, argv);
 
     gpucf::log::Info() << "Reading digit file " << args::get(digitfile);
-    SectorData<RawDigit> rawdigits = gpucf::read<RawDigit>(args::get(digitfile));
+    SectorMap<std::vector<RawDigit>> rawdigits = gpucf::read<RawDigit>(args::get(digitfile));
     SectorMap<std::vector<Digit>> digits = Digit::bySector(rawdigits);
 
     gpucf::log::Info() << "Reading label file " << args::get(labelfile);
-    SectorData<RawLabel> rawlabels = gpucf::read<RawLabel>(args::get(labelfile));
-    SectorMap<LabelContainer> labels = LabelContainer::bySector(rawlabels);
+    SectorMap<std::vector<RawLabel>> rawlabels = gpucf::read<RawLabel>(args::get(labelfile));
+    SectorMap<LabelContainer> labels = LabelContainer::bySector(rawlabels, digits);
 
     gpucf::log::Info() << "Running cluster finder";
 
@@ -333,34 +395,45 @@ int main(int argc, const char *argv[])
     ReferenceClusterFinder cf(cfg);
     SectorMap<ReferenceClusterFinder::Result> cluster = cf.runOnSectors(digits);
 
-    SectorMap<PeakCount> peakcounts;
-    SectorMap<PeakCount> peakcountsNS;
+    ClusterFinderConfig cfgRaw;
+    cfgRaw.qmaxCutoff = 0; 
+    ReferenceClusterFinder cfraw(cfgRaw);
+    SectorMap<ReferenceClusterFinder::Result> clusterRaw = cfraw.runOnSectors(digits);
+
+    std::set<MCLabel> uniqueLabels = makeLabelSet(labels);
+
+    LabelBucketCounter peakcounts(uniqueLabels);
+    LabelBucketCounter peakcountsRaw(uniqueLabels);
+    LabelBucketCounter peakcountsNS(uniqueLabels);
     for (size_t sector = 0; sector < TPC_SECTORS; sector++)
     {
         std::vector<size_t> peakIds = getPeakIds(cluster[sector].isPeak);
         std::vector<size_t> noiseSuppressionIds = 
             suppressNoise(digits[sector], cluster[sector].isPeak);
+        std::vector<size_t> rawIds = getPeakIds(clusterRaw[sector].isPeak);
 
         log::Info() << "Sector " << sector << ": "
             << peakIds.size() - noiseSuppressionIds.size()
             << " peaks removed";
 
-        std::unordered_map<MCLabel, size_t> peaksPerTrack   = 
-            countPeaksPerTrackById(peakIds, labels[sector]);
-        std::unordered_map<MCLabel, size_t> peaksPerTrackNS = 
-            countPeaksPerTrackById(noiseSuppressionIds, labels[sector]);
-
-
-        peakcounts[sector] = {peaksPerTrack};
-        peakcountsNS[sector] = {peaksPerTrackNS};
+        peakcounts.add(peakIds, labels[sector]);
+        peakcountsRaw.add(rawIds, labels[sector]);
+        peakcountsNS.add(noiseSuppressionIds, labels[sector]);
     }
 
-    PeakCount pc(peakcounts);
-    PeakCount pcns(peakcountsNS);
+    std::vector<int> peaknumToTracknum = peakcounts.getPeaknumToTracknum();
+    std::vector<int> peaknumToTracknumRaw = peakcountsRaw.getPeaknumToTracknum();
+    std::vector<int> peaknumToTracknumNS = peakcountsNS.getPeaknumToTracknum();
 
+    plotPeaknumToTracknum(peaknumToTracknum, peaknumToTracknumNS, peaknumToTracknumRaw);
 
-    log::Info() << "Without noise supression:\n" << pc;
-    log::Info() << "With noise supression:\n" << pcns;
+    /* for (size_t i = 0; i < peaknumToTracknum.size(); i++) */
+    /* { */
+    /*     log::Info() << i << ": " << peaknumToTracknum[i]; */
+    /* } */
+
+    /* log::Info() << "Without noise supression:\n" << pc; */
+    /* log::Info() << "With noise supression:\n" << pcns; */
 
         /* std::vector<PeakCount> peaksPerTrack = */ 
         /*     peaksPerTrackVaryQmaxCutoff(digits, labels, 100); */

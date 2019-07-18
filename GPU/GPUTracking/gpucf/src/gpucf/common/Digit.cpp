@@ -14,21 +14,19 @@ static_assert(sizeof(Digit) == sizeof(PackedDigit));
 static_assert(sizeof(PackedDigit) == PACKED_DIGIT_SIZE);
 
 
-SectorMap<std::vector<Digit>> Digit::bySector(const SectorData<RawDigit> &rawdigits)
+SectorMap<std::vector<Digit>> Digit::bySector(
+        const SectorMap<std::vector<RawDigit>> &rawdigits)
 {
     SectorMap<std::vector<Digit>> digits;  
 
-    size_t start = 0;
     for (size_t i = 0; i < TPC_SECTORS; i++)
     {
-        size_t n = rawdigits.elemsBySector[i];
-        View<RawDigit> data(&rawdigits.data[start], n);
-        digits[i].reserve(n);
-        for (auto rd : data)
+        const std::vector<RawDigit> &raw = rawdigits[i];
+        digits[i].reserve(raw.size());
+        for (auto rd : raw)
         {
             digits[i].emplace_back(rd);
         }
-        start += n;
     }
 
     return digits;

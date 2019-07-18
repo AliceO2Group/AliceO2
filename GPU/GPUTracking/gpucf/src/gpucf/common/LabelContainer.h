@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/common/MCLabel.h>
+#include <gpucf/common/Position.h>
 #include <gpucf/common/RawLabel.h>
 #include <gpucf/common/SectorMap.h>
 #include <gpucf/common/serialization.h>
@@ -19,12 +20,15 @@ class LabelContainer
 
 public:
 
-    static SectorMap<LabelContainer> bySector(const SectorData<RawLabel> &);
+    static SectorMap<LabelContainer> bySector(
+            const SectorMap<std::vector<RawLabel>> &,
+            const SectorMap<std::vector<Digit>> &);
 
     LabelContainer() = default;
-    LabelContainer(nonstd::span<const RawLabel>);
+    LabelContainer(View<RawLabel>, View<Digit>);
 
     View<MCLabel> operator[](size_t) const;
+    View<MCLabel> operator[](const Position &) const;
 
     size_t size() const;
 
@@ -32,7 +36,8 @@ public:
 
 private:
 
-    std::vector<nonstd::span<const MCLabel>> viewById;
+    std::unordered_map<Position, View<MCLabel>> viewByPosition;
+    std::vector<View<MCLabel>> viewById;
     std::vector<MCLabel> labels;
 
     void add(const RawLabel &);
