@@ -40,6 +40,7 @@ o2_add_library(Framework
                        src/DataSampling.cxx
                        src/DataSamplingConditionFactory.cxx
                        src/DataSamplingHeader.cxx
+                       src/DataSamplingConditionCustom.cxx
                        src/DataSamplingConditionNConsecutive.cxx
                        src/DataSamplingConditionPayloadSize.cxx
                        src/DataSamplingConditionRandom.cxx

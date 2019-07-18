@@ -559,6 +559,15 @@ The following sampling conditions are available. When more than one is used, a p
   "upperLimit": "500"
 }
 ```
+- **DataSamplingConditionCustom** - loads a custom condition, which should inherit from DataSamplingCondition, from a specified library.
+```json
+{
+  "condition": "custom",
+  "moduleName": "QcExample",
+  "className": "o2::quality_control_modules::example::ExampleCondition",
+  "customParam": "value"
+}
+```
 ## Document history
 
 * v0.9: proposal for approval at the O2 TB - 19th June 2018
