@@ -71,6 +71,7 @@
 #include <chrono>
 #include <utility>
 
+#include <fcntl.h>
 #include <netinet/ip.h>
 #include <sys/resource.h>
 #include <sys/select.h>
@@ -349,6 +350,16 @@ void spawnDevice(std::string const& forwardedStdin,
   }
   close(childstdin[1]); // Not allowing further communication...
 
+  // Setting them to non-blocking to avoid haing the driver hang when
+  // reading from child.
+  int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
+  if (resultCode == -1) {
+    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+  }
+  resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
+  if (resultCode == -1) {
+    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+  }
   FD_SET(childstdout[0], &childFdset);
   FD_SET(childstderr[0], &childFdset);
 }
