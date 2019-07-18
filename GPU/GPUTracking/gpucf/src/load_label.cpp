@@ -15,7 +15,8 @@ int main(int argc, const char *argv[])
     args::ArgumentParser parser("");
 
     args::HelpFlag help(parser, "help", "Display help menu", {'h', "help"});
-    args::ValueFlag<std::string> infile(parser, "IN", "Label file", {'i', "in"});
+    args::ValueFlag<std::string> infile(parser, "IN", "Label file", {'l', "labels"});
+    args::ValueFlag<std::string> digitfile(parser, "IN", "Label file", {'d', "digits"});
 
     try 
     {
@@ -29,16 +30,18 @@ int main(int argc, const char *argv[])
 
     gpucf::log::Info() << "Reading label file " << args::get(infile);
 
-    SectorData<RawLabel> rawLabels = gpucf::read<RawLabel>(args::get(infile));
+    SectorMap<std::vector<RawDigit>> rawdigits = gpucf::read<RawDigit>(args::get(digitfile));
+    SectorMap<std::vector<RawLabel>> rawLabels = gpucf::read<RawLabel>(args::get(infile));
 
     for (size_t i = 0; i < 10; i++)
     {
-        log::Debug() << rawLabels.data[i].id;
+        log::Debug() << rawLabels[0][i].id;
     }
 
     gpucf::log::Info() << "Creating label container";
 
-    SectorMap<LabelContainer> container = LabelContainer::bySector(rawLabels);
+    SectorMap<std::vector<Digit>> digits = Digit::bySector(rawdigits);
+    SectorMap<LabelContainer> container = LabelContainer::bySector(rawLabels, digits);
 
     std::unordered_map<MCLabel, size_t> digitsPerTrack;
 
