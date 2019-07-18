@@ -47,7 +47,16 @@ void Dispatcher::init(InitContext& ctx)
   mPolicies.clear();
 
   for (auto&& policyConfig : policiesTree) {
-    mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(policyConfig.second));
+    // we don't want the Dispatcher to exit due to one faulty Policy
+    try {
+      mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(policyConfig.second));
+    } catch (std::exception& ex) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
+    } catch (...) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
+    }
   }
 }
 
