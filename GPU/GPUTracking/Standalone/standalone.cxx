@@ -539,6 +539,9 @@ int main(int argc, char** argv)
               printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
           }
+          if (configStandalone.memoryStat) {
+            rec->PrintMemoryStatistics();
+          }
           rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {

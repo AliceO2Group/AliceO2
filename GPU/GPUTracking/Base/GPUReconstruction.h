@@ -146,6 +146,7 @@ class GPUReconstruction
   void DumpSettings(const char* dir = "");
   void ReadSettings(const char* dir = "");
 
+  void PrepareEvent();
   virtual int RunChains() = 0;
 
   // Helpers for memory allocation
@@ -161,7 +162,7 @@ class GPUReconstruction
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
-  void PrepareEvent();
+  void PrintMemoryStatistics();
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
