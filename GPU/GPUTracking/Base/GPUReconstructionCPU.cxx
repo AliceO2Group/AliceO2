@@ -163,13 +163,6 @@ int GPUReconstructionCPU::RunChains()
     }
   }
 
-  if (GetDeviceProcessingSettings().debugLevel >= 1) {
-    if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-      printf("Memory Allocation: Host %'lld / %'lld, Device %'lld / %'lld, %d chunks\n", (long long int)((char*)mHostMemoryPool - (char*)mHostMemoryBase), (long long int)mHostMemorySize, (long long int)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase),
-             (long long int)mDeviceMemorySize, (int)mMemoryResources.size());
-    }
-  }
-
   return 0;
 }
 

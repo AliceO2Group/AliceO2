@@ -16,6 +16,7 @@
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <map>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -355,6 +356,34 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   mHostMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
   mDeviceMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
   mUnmanagedChunks.clear();
+}
+
+static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
+
+void GPUReconstruction::PrintMemoryStatistics()
+{
+  std::map<std::string, std::array<size_t, 3>> sizes;
+  for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
+    auto& res = mMemoryResources[i];
+    auto& x = sizes[res.mName];
+    if (res.mPtr) {
+      x[0] += res.mSize;
+    }
+    if (res.mPtrDevice) {
+      x[1] += res.mSize;
+    }
+    if (res.mType & GPUMemoryResource::MemoryType::MEMORY_PERMANENT) {
+      x[2] = 1;
+    }
+  }
+  for (auto it = sizes.begin(); it != sizes.end(); it++) {
+    printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
+  }
+  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    printf("Memory Allocation: Host %'lld / %'lld (Permantnt %'lld), Device %'lld / %'lld, (Permantnt %'lld) %d chunks\n",
+           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+  }
 }
 
 void GPUReconstruction::PrepareEvent()
