@@ -1056,13 +1056,14 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     WaitForHelperThreads();
   } else {
     mSliceOutputReady = NSLICES;
-    if (param().rec.GlobalTracking) {
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+#ifdef GPUCA_HAVE_OPENMP
+#pragma omp parallel for num_threads(doGPU ? 1 : GetDeviceProcessingSettings().nThreads)
+#endif
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
       }
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        WriteOutput(iSlice, 0);
-      }
+      WriteOutput(iSlice, 0);
     }
   }
 
