@@ -823,6 +823,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
+                                                            driverInfo.dispatchPolicies,
                                                             deviceSpecs,
                                                             resources);
           // This should expand nodes so that we can build a consistent DAG.
@@ -1158,6 +1159,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
            std::vector<CompletionPolicy> const& completionPolicies,
+           std::vector<DispatchPolicy> const& dispatchPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -1285,6 +1287,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.sigchldRequested = false;
   driverInfo.channelPolicies = channelPolicies;
   driverInfo.completionPolicies = completionPolicies;
+  driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();

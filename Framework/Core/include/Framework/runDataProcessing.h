@@ -12,6 +12,7 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
@@ -68,6 +69,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec> &globalWorkflowOptions) {}
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy> &completionPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
 void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
 {
   hook = [](const char*) {};
@@ -91,9 +93,10 @@ struct UserCustomizationsHelper {
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
-           std::vector<o2::framework::CompletionPolicy> const &completionPolicies,
-           std::vector<o2::framework::ConfigParamSpec> const &workflowOptions,
-           o2::framework::ConfigContext &configContext);
+           std::vector<o2::framework::CompletionPolicy> const& completionPolicies,
+           std::vector<o2::framework::DispatchPolicy> const& dispatchPolicies,
+           std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
+           o2::framework::ConfigContext& configContext);
 
 int main(int argc, char** argv)
 {
@@ -118,11 +121,16 @@ int main(int argc, char** argv)
     auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
     completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
 
+    std::vector<DispatchPolicy> dispatchPolicies;
+    UserCustomizationsHelper::userDefinedCustomization(dispatchPolicies, 0);
+    auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
+    dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
+
     std::unique_ptr<ParamRetriever> retriever{ new BoostOptionsRetriever(workflowOptions, true, argc, argv) };
     ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
     ConfigContext configContext{ workflowOptionsRegistry };
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
-    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
+    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {
