@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/RangeReference.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
@@ -29,6 +30,7 @@ namespace emcal
 ///
 class Cluster : public o2::dataformats::TimeStamp<Float16_t>, public Point3D<Float16_t>
 {
+  using CellIndexRange = o2::dataformats::RangeRefComp<8>;
  public:
   class InvalidPositionException : public std::exception
   {
@@ -57,15 +59,18 @@ class Cluster : public o2::dataformats::TimeStamp<Float16_t>, public Point3D<Flo
   Float_t getDispersion() const { return mDispersion; }
   Float_t getDistanceToBadCell() const { return mDistanceToBadCell; }
   Bool_t isExotic() const { return mIsExotic; }
-  Int_t getNCells() const { return mCellIndices.size(); }
-  std::vector<unsigned short> getCellIndices() const { return mCellIndices; }
+  Int_t getNCells() const { return mCellIndices.getEntries(); }
+  Int_t getCellIndexFirst() const { return mCellIndices.getFirstEntry(); }
+  CellIndexRange getCellIndexRange() const {return mCellIndices; }
 
   void setIsExotic(Bool_t exotic) { mIsExotic = exotic; }
   void setM02(Float_t val) { mM02 = val; }
   void setM20(Float_t val) { mM20 = val; }
   void setDispersion(Float_t val) { mDispersion = val; }
   void setDistanceToBadCell(Float_t distance) { mDistanceToBadCell = distance; }
-  void setCellIndices(const std::vector<unsigned short> cells) { mCellIndices = cells; }
+  void setCellIndices(int firstcell, int ncells) { mCellIndices.setFirstEntry(firstcell); mCellIndices.setEntries(ncells); }
+  void setFirstCell(int firstcell) { mCellIndices.setFirstEntry(firstcell); }
+  void setNCells(int ncells) { mCellIndices.setEntries(ncells); }
 
   Vector3D<Float_t> getMomentum(const Point3D<Float_t>* vertex = nullptr) const;
 
@@ -78,7 +83,7 @@ class Cluster : public o2::dataformats::TimeStamp<Float16_t>, public Point3D<Flo
   Float16_t mM02;                           ///< M02 parameter (2-nd moment along the main eigen axis.)
   Float16_t mM20;                           ///< M20 parameter (2-nd moment along the second eigen axis.)
   Bool_t mIsExotic;                         ///< Mark cluster as exotic cluster
-  std::vector<unsigned short> mCellIndices; ///< Cells contributing to a cluser
+  CellIndexRange mCellIndices;              ///< Cells contributing to a cluser
 
   ClassDefNV(Cluster, 1);
 };
