@@ -322,7 +322,7 @@ void spawnDevice(std::string const& forwardedStdin,
     exit(1);
   }
 
-  LOG(INFO) << "Starting " << spec.id << " on pid " << id << "\n";
+  LOG(INFO) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -712,7 +712,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   if (driverInfo.batch == false && frameworkId.empty()) {
     window = initGUI("O2 Framework debug GUI");
   }
-  if (driverInfo.batch == false && window == nullptr) {
+  if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
     driverInfo.batch = true;
   }
@@ -941,7 +941,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::QUIT_REQUESTED:
-        LOG(INFO) << "QUIT_REQUESTED" << std::endl;
+        LOG(INFO) << "QUIT_REQUESTED";
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
