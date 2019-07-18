@@ -67,6 +67,13 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mProcessingCount{ 0 }
 {
   StateMonitoring<DataProcessingStatus>::start();
+  auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
+    DataProcessor::doSend(*this, std::move(parts), channel.c_str(), index);
+  };
+
+  if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
+    mFairMQContext.init(dispatcher);
+  }
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
