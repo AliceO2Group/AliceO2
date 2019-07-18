@@ -27,11 +27,12 @@ class ATask : public AnalysisTask
   {
     mSomeState += 1;
   }
+
   void run(ProcessingContext& pc)
   {
   }
 
-  void process(aod::Timeframe const&, aod::Tracks const& tracks)
+  void process(aod::Tracks const& tracks)
   {
     auto hPhi = new TH1F("phi", "Phi", 100, 0, 2 * M_PI);
     auto hEta = new TH1F("eta", "Eta", 100, 0, 2 * M_PI);
