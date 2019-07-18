@@ -79,4 +79,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   nStreams = 8;
   trackletConstructorInPipeline = true;
   trackletSelectorInPipeline = false;
+  forceMemoryPoolSize = 0;
 }

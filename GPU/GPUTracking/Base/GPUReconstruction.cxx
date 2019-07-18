@@ -120,9 +120,18 @@ int GPUReconstruction::Init()
   mDeviceProcessingSettings.nThreads = 1;
 #endif
 
+  mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->RegisterPermanentMemoryAndProcessors();
+    size_t memGpu, memHost;
+    mChains[i]->MemorySize(memGpu, memHost);
+    mDeviceMemorySize += memGpu;
+    mHostMemorySize += memHost;
   }
+  if (mDeviceProcessingSettings.forceMemoryPoolSize) {
+    mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
+  }
+
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
     (mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
   }

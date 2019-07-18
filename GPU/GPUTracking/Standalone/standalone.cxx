@@ -285,6 +285,7 @@ int SetupReconstruction()
     devProc.nThreads = configStandalone.OMPThreads;
   }
   devProc.deviceNum = configStandalone.cudaDevice;
+  devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
