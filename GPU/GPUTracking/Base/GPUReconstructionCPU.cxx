@@ -113,8 +113,10 @@ int GPUReconstructionCPU::GetThread()
 int GPUReconstructionCPU::InitDevice()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    mHostMemoryPermanent = mHostMemoryBase = operator new(GPUCA_HOST_MEMORY_SIZE);
-    mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
+    if (mDeviceMemorySize > mHostMemorySize) {
+      mHostMemorySize = mDeviceMemorySize;
+    }
+    mHostMemoryPermanent = mHostMemoryBase = operator new(mHostMemorySize);
     ClearAllocatedMemory();
   }
   SetThreadCounts();
