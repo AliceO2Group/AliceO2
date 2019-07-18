@@ -28,6 +28,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
+                       src/DispatchPolicy.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
                        src/DataAllocator.cxx

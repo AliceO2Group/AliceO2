@@ -20,6 +20,7 @@
 #include "Framework/InputRoute.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 
 #include <vector>
 #include <string>
@@ -51,6 +52,7 @@ struct DeviceSpec {
   size_t inputTimesliceId;
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
+  DispatchPolicy dispatchPolicy;
 };
 
 } // namespace framework

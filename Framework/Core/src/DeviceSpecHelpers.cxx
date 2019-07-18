@@ -565,8 +565,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
+                                                       std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<DeviceSpec>& devices,
-                                                       std::vector<ComputingResource> &resources)
+                                                       std::vector<ComputingResource>& resources)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -616,6 +617,12 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
     for (auto &policy : completionPolicies) {
       if (policy.matcher(device) == true) {
         device.completionPolicy = policy;
+        break;
+      }
+    }
+    for (auto& policy : dispatchPolicies) {
+      if (policy.deviceMatcher(device) == true) {
+        device.dispatchPolicy = policy;
         break;
       }
     }
