@@ -48,7 +48,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
     std::unique_ptr<DataSamplingPolicy> policy;
 
-    // we don't want the Dispatcher to exit due to one faulty Policy
+    // We don't want the Dispatcher to exit due to one faulty Policy
     try {
       policy = std::make_unique<DataSamplingPolicy>(policyConfig.second);
     } catch (const std::exception& ex) {
