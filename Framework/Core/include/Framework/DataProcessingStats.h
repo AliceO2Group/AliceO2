@@ -22,15 +22,15 @@ struct DataProcessingStats {
   // We use this to keep track of the latency of the first message we get for a given input record
   // and of the last one.
   struct InputLatency {
-    int minLatency;
-    int maxLatency;
+    int minLatency = 0;
+    int maxLatency = 0;
   };
-  int pendingInputs;
-  int incomplete;
-  int inputParts;
-  int lastElapsedTimeMs;
-  int lastTotalProcessedSize;
-  InputLatency lastLatency;
+  int pendingInputs = 0;
+  int incomplete = 0;
+  int inputParts = 0;
+  int lastElapsedTimeMs = 0;
+  int lastTotalProcessedSize = 0;
+  InputLatency lastLatency = {};
   std::vector<int> relayerState;
 };
 
