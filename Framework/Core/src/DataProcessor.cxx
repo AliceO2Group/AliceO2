@@ -31,6 +31,12 @@ namespace o2
 namespace framework
 {
 
+void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
+{
+  assert(parts.Size() == 2);
+  device.Send(parts, channel, index);
+}
+
 void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
   for (auto &message : context) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
