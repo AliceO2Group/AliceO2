@@ -15,6 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fv0::Hit + ;
-#pragma link C++ class vector < o2::fv0::Hit> + ;
+#pragma link C++ class vector < o2::fv0::Hit > +;
 
 #endif
