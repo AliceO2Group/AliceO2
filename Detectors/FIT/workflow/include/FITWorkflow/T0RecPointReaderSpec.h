@@ -37,7 +37,7 @@ class RecPointReader : public Task
  private:
   bool mFinished = false;
   bool mUseMC = true; // use MC truth
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 
   std::vector<o2::ft0::RecPoints>* mRecPoints = nullptr;
 

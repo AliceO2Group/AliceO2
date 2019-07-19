@@ -40,7 +40,7 @@ class T0RecPointWriter : public Task
   std::string mOutputFileName = "o2reco_t0.root";
   std::string mOutputTreeName = "o2sim";
   std::string mRPOutputBranchName = "T0Cluster";
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };
 
 /// create a processor spec
