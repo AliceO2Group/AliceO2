@@ -55,7 +55,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
   specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
 
   if (useFIT) {
-    specs.emplace_back(o2::t0::getT0RecPointReaderSpec(useMC));
+    specs.emplace_back(o2::ft0::getT0RecPointReaderSpec(useMC));
   }
 
   return specs;

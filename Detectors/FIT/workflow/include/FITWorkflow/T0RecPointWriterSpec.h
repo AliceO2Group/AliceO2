@@ -22,7 +22,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class T0RecPointWriter : public Task
@@ -47,7 +47,7 @@ class T0RecPointWriter : public Task
 /// write ITS clusters a root file
 framework::DataProcessorSpec getT0RecPointWriterSpec(bool useMC);
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 
 #endif /* O2_FIT_T0RECPOINTWRITER_H */

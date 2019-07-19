@@ -199,12 +199,12 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("T0")) {
     // FIT-T0
-    run->AddModule(new o2::t0::Detector(true));
+    run->AddModule(new o2::ft0::Detector(true));
   }
 
   if (isActivated("V0")) {
     // FIT-V0
-    run->AddModule(new o2::v0::Detector(true));
+    run->AddModule(new o2::fv0::Detector(true));
   }
 
   if (isActivated("FDD")) {

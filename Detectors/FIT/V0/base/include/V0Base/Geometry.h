@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace v0
+namespace fv0
 {
 /// FIT-V0+ Geometry
 class Geometry
@@ -82,6 +82,6 @@ class Geometry
 
   ClassDefNV(Geometry, 1);
 };
-} // namespace v0
+} // namespace fv0
 } // namespace o2
 #endif

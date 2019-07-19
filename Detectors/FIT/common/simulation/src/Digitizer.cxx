@@ -66,23 +66,23 @@ double Digitizer::get_time(const std::vector<double>& times)
   return 1e10;
 }
 
-void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
+void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
 {
 
   auto sorted_hits{ *hits };
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::t0::HitType const& a, o2::t0::HitType const& b) {
+  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
   digit->setTime(mEventTime);
   digit->setInteractionRecord(mIntRecord);
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  std::vector<o2::t0::ChannelData>& channel_data = digit->getChDgData();
+  std::vector<o2::ft0::ChannelData>& channel_data = digit->getChDgData();
   if (channel_data.size() == 0) {
     channel_data.reserve(parameters.mMCPs);
     for (int i = 0; i < parameters.mMCPs; ++i)
-      channel_data.emplace_back(o2::t0::ChannelData{ i, 0, 0, 0 });
+      channel_data.emplace_back(o2::ft0::ChannelData{ i, 0, 0, 0 });
   }
   if (channel_times.size() == 0)
     channel_times.resize(parameters.mMCPs);
@@ -107,7 +107,7 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
     if (parentID != parent) {
-      o2::t0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
+      o2::ft0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;
       if (mMCLabels) {
         lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
@@ -119,12 +119,12 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
 }
 
 //------------------------------------------------------------------------
-void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
+void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
   //  constexpr Float_t mMip_in_V = 7.;     // mV /250 ph.e.
   //  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
-  std::vector<o2::t0::ChannelData> mChDgDataArr;
+  std::vector<o2::ft0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
@@ -132,14 +132,14 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<doubl
     if (amp > parameters.mCFD_trsh_mip) {
       double smeared_time = get_time(channel_times[mcp]) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
       if (smeared_time < 1e9)
-        mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
+        mChDgDataArr.emplace_back(o2::ft0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
 }
 
 //------------------------------------------------------------------------
-void Digitizer::setTriggers(o2::t0::Digit* digit)
+void Digitizer::setTriggers(o2::ft0::Digit* digit)
 {
 
   constexpr Double_t trg_central_trh = 100.;    // mip

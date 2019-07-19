@@ -250,10 +250,10 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  const std::vector<o2::t0::RecPoints>* rpFIT = nullptr;
-  std::unique_ptr<const std::vector<o2::t0::RecPoints>> rpFITU;
+  const std::vector<o2::ft0::RecPoints>* rpFIT = nullptr;
+  std::unique_ptr<const std::vector<o2::ft0::RecPoints>> rpFITU;
   if (mUseFIT) {
-    rpFITU = pc.inputs().get<const std::vector<o2::t0::RecPoints>*>("fitInfo");
+    rpFITU = pc.inputs().get<const std::vector<o2::ft0::RecPoints>*>("fitInfo");
     rpFIT = rpFITU.get();
     mMatching.setFITInfoInp(rpFIT);
   }

@@ -88,11 +88,11 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::t0::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::t0::MCLabel> labelAccum;
-    o2::dataformats::MCTruthContainer<o2::t0::MCLabel> labels;
-    o2::t0::Digit digit;
-    std::vector<o2::t0::Digit> digitAccum; // digit accumulator
+    static std::vector<o2::ft0::HitType> hits;
+    o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
+    o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
+    o2::ft0::Digit digit;
+    std::vector<o2::ft0::Digit> digitAccum; // digit accumulator
     mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
@@ -159,7 +159,7 @@ class FITDPLDigitizerTask
   void retrieveHits(std::vector<TChain*> const& chains,
                     int sourceID,
                     int entryID,
-                    std::vector<o2::t0::HitType>* hits)
+                    std::vector<o2::ft0::HitType>* hits)
   {
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
@@ -179,7 +179,7 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
-  FITT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::t0::T0DigitizationParameters() }
+  FITT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::T0DigitizationParameters() }
   {
     mID = DETID;
     mOrigin = DETOR;

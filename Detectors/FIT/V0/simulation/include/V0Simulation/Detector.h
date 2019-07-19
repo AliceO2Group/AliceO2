@@ -29,7 +29,7 @@ class TGraph;
 
 namespace o2
 {
-namespace v0
+namespace fv0
 {
 class Geometry;
 }
@@ -37,7 +37,7 @@ class Geometry;
 
 namespace o2
 {
-namespace v0
+namespace fv0
 {
 class Geometry;
 class Detector : public o2::base::DetImpl<Detector>
@@ -66,7 +66,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced hits
-  std::vector<o2::v0::Hit>* getHits(Int_t iColl)
+  std::vector<o2::fv0::Hit>* getHits(Int_t iColl)
   {
     if (iColl == 0) {
       return mHits;
@@ -102,7 +102,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
  private:
   /// Container for hits
-  std::vector<o2::v0::Hit>* mHits = nullptr;
+  std::vector<o2::fv0::Hit>* mHits = nullptr;
 
   /// Geometry pointer
   Geometry* mGeometry = nullptr; //!
@@ -115,7 +115,7 @@ class Detector : public o2::base::DetImpl<Detector>
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
-  o2::v0::Hit* addHit(Int_t trackId, Int_t cellId,
+  o2::fv0::Hit* addHit(Int_t trackId, Int_t cellId,
                       TVector3 startPos, TVector3 endPos,
                       TVector3 startMom, double startE,
                       double endTime, double eLoss, Int_t particlePdg);
@@ -128,7 +128,7 @@ class Detector : public o2::base::DetImpl<Detector>
 // Input and output function for standard C++ input/output.
 std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
-} // namespace v0
+} // namespace fv0
 } // namespace o2
 #ifdef USESHM
 namespace o2
@@ -136,7 +136,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::v0::Detector> {
+struct UseShm<o2::fv0::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

@@ -25,7 +25,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class DigitReader : public Task
@@ -41,8 +41,8 @@ class DigitReader : public Task
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
 
-  std::vector<o2::t0::Digit>* mDigits = nullptr;
-  o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCTruth = nullptr;
+  std::vector<o2::ft0::Digit>* mDigits = nullptr;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruth = nullptr;
 
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";
@@ -54,7 +54,7 @@ class DigitReader : public Task
 /// read simulated ITS digits from a root file
 framework::DataProcessorSpec getT0DigitReaderSpec(bool useMC);
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 
 #endif /* O2_T0_DIGITREADER */

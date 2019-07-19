@@ -14,9 +14,9 @@
 #include <FairLogger.h>
 #include <sstream>
 
-ClassImp(o2::t0::Geometry);
+ClassImp(o2::ft0::Geometry);
 
-using namespace o2::t0;
+using namespace o2::ft0;
 
 Geometry::Geometry() : mMCP{ { 0, 0, 0 } }
 {

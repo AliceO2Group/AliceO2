@@ -13,7 +13,7 @@
 #include <FITSimulation/DigitizationParameters.h>
 #include <T0Base/Geometry.h>
 
-namespace o2::t0
+namespace o2::ft0
 {
 inline o2::fit::DigitizationParameters T0DigitizationParameters()
 {
@@ -39,5 +39,5 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
 
   return result;
 }
-} // namespace o2::t0
+} // namespace o2::ft0
 #endif

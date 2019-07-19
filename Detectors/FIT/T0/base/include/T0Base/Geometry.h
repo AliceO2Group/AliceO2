@@ -18,7 +18,7 @@
 #include <TVector3.h>
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 // FIT is not tracking detector, Geometry could be used in future but not now. So just simple settings
 class Geometry
@@ -52,6 +52,6 @@ class Geometry
 
   ClassDefNV(Geometry, 1);
 };
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 #endif
