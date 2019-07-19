@@ -75,20 +75,16 @@
 #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
+// Default maximum numbers
 #define GPUCA_MAX_CLUSTERS           ((size_t) 1024 * 1024 * 1024)     // Maximum number of TPC clusters
-#define GPUCA_MAX_TRACKLETS          ((size_t)          64 * 1024)     // Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
-#define GPUCA_MAX_TRACKS             ((size_t)          32 * 1024)     // Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
-#define GPUCA_MAX_ROWSTARTHITS       ((size_t)          32 * 1024)     // Maximum number of start hits per row
+#define GPUCA_MAX_TRD_TRACKLETS      ((size_t)         128 * 1024)     // Maximum number of TRD tracklets
 #define GPUCA_MAX_ITS_FIT_TRACKS     ((size_t)          96 * 1024)     // Max number of tracks for ITS track fit
-
 #define GPUCA_TRACKER_CONSTANT_MEM   ((size_t)          63 * 1024)     // Amount of Constant Memory to reserve
-
 #define GPUCA_MEMALIGN               ((size_t)          64 * 1024)     // Alignment of memory blocks, all constants above must be multiple of this!!!
 #define GPUCA_MEMALIGN_SMALL         ((size_t)          64 * 1024)     // Alignment of small blocks, GPUCA_MEMALIGN must be multiple of this!!!
 #define GPUCA_MEMORY_SIZE            ((size_t) 4096 * 1024 * 1024)     // Size of memory allocated on Device
 #define GPUCA_HOST_MEMORY_SIZE       ((size_t) 4096 * 1024 * 1024)     // Size of memory allocated on Host
-
-#define GPUCA_GPU_STACK_SIZE 8192                                      // Stack size per GPU thread
+#define GPUCA_GPU_STACK_SIZE         ((size_t)               8192)     // Stack size per GPU thread
 
 // Make sure options do not interfere
 

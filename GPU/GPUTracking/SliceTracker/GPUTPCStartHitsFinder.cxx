@@ -37,10 +37,10 @@ GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int 
   for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
     if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL) {
 #ifdef GPUCA_SORT_STARTHITS
-      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletTmpStartHits() + s.mIRow * GPUCA_MAX_ROWSTARTHITS;
+      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletTmpStartHits() + s.mIRow * tracker.NMaxRowStartHits();
       unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
       CONSTEXPR int errCode = GPUCA_ERROR_ROWSTARTHIT_OVERFLOW;
-      if (nextRowStartHits + 1 >= GPUCA_MAX_ROWSTARTHITS)
+      if (nextRowStartHits + 1 >= tracker.NMaxRowStartHits())
 #else
       GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletStartHits();
       unsigned int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
