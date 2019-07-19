@@ -46,7 +46,7 @@ class TrackTPC : public o2::track::TrackParCov
   unsigned short getClustersSideInfo() const { return mFlags & HasBothSidesClusters; }
   bool hasASideClusters() const { return mFlags & HasASideClusters; }
   bool hasCSideClusters() const { return mFlags & HasCSideClusters; }
-  bool hasBothSidesClusters() const { return mFlags & (HasASideClusters | HasCSideClusters); }
+  bool hasBothSidesClusters() const { return (mFlags & (HasASideClusters | HasCSideClusters)) == (HasASideClusters | HasCSideClusters); }
   bool hasASideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasASideClusters; }
   bool hasCSideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasCSideClusters; }
 
