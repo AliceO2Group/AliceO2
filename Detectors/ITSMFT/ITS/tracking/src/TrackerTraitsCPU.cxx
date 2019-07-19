@@ -43,10 +43,11 @@ void TrackerTraitsCPU::computeLayerTracklets()
     const int currentLayerClustersNum{ static_cast<int>(primaryVertexContext->getClusters()[iLayer].size()) };
 
     for (int iCluster{ 0 }; iCluster < currentLayerClustersNum; ++iCluster) {
-      if (primaryVertexContext->isClusterUsed(iLayer, iCluster)) {
+      const Cluster& currentCluster{ primaryVertexContext->getClusters()[iLayer][iCluster] };
+
+      if (primaryVertexContext->isClusterUsed(iLayer, currentCluster.clusterId)) {
         continue;
       }
-      const Cluster& currentCluster{ primaryVertexContext->getClusters()[iLayer][iCluster] };
 
       const float tanLambda{ (currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate };
       const float directionZIntersection{ tanLambda * (constants::its::LayersRCoordinate()[iLayer + 1] -
@@ -75,14 +76,12 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
         for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex;
              ++iNextLayerCluster) {
-          if (primaryVertexContext->isClusterUsed(iLayer + 1, iNextLayerCluster)) {
-            continue;
-          }
 
           const Cluster& nextCluster{ primaryVertexContext->getClusters()[iLayer + 1][iNextLayerCluster] };
 
-          if (primaryVertexContext->isClusterUsed(iLayer + 1, nextCluster.clusterId))
+          if (primaryVertexContext->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
             continue;
+          }
 
           const float deltaZ{ gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
                                                       currentCluster.zCoordinate - nextCluster.zCoordinate) };
