@@ -23,7 +23,6 @@ link_directories(${OpenCL_LIBRARY})
 
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT REQUIRED COMPONENTS RIO Net)
-# include(${ROOT_USE_FILE})
 include_directories(SYSTEM ${ROOT_INCLUDE_DIRS})
 link_directories(${ROOT_LIBRARY})
 
@@ -38,7 +37,15 @@ add_definitions(
     -Dspan_CONFIG_INDEX_TYPE=std::size_t
 )
 
-include_directories(src)
+
+function(executables)
+    foreach(exe IN LISTS ARGN)
+        add_executable(${exe} "${exe}.cpp")
+        target_link_libraries(${exe} gpucf)
+    endforeach()
+endfunction(executables)
+
 include_directories(SYSTEM external)
 include_directories(cl)
+include_directories(src)
 add_subdirectory(src)
