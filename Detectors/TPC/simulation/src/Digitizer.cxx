@@ -67,6 +67,9 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
   /// Reserve space in the digit container for the current event
   mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime));
 
+  /// obtain max drift_time + hitTime which can be processed
+  float maxEleTime = (int(mDigitContainer.size()) - nShapedPoints) * eleParam.ZbinWidth;
+
   for (auto& hitGroup : hits) {
     const int MCTrackID = hitGroup.GetTrackID();
     for (size_t hitindex = 0; hitindex < hitGroup.getSize(); ++hitindex) {
@@ -97,7 +100,12 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
         /// Drift and Diffusion
         const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
-        const float absoluteTime = driftTime + mEventTime + hitTime; /// in us
+        const float eleTime = driftTime + hitTime; /// in us
+        if (eleTime > maxEleTime) {
+          LOG(WARNING) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
+          continue;
+        }
+        const float absoluteTime = eleTime + mEventTime; /// in us
 
         /// Attachment
         if (electronTransport.isElectronAttachment(driftTime)) {
