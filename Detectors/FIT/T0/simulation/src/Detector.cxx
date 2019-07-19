@@ -471,7 +471,7 @@ void Detector::DefineOpticalProperties()
   const char* aliceO2env = std::getenv("O2_ROOT");
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/T0/files/";
+  inputDir += "/share/Detectors/FT0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path

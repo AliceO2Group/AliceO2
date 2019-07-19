@@ -112,31 +112,31 @@ class FITDPLDigitWriter
 };
 
 //_______________________________________________
-class T0DPLDigitWriter : public FITDPLDigitWriter
+class FT0DPLDigitWriter : public FITDPLDigitWriter
 {
  public:
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
-  T0DPLDigitWriter()
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
+  FT0DPLDigitWriter()
   {
     mID = DETID;
     mOrigin = DETOR;
   }
 };
 
-constexpr o2::detectors::DetID::ID T0DPLDigitWriter::DETID;
-constexpr o2::header::DataOrigin T0DPLDigitWriter::DETOR;
+constexpr o2::detectors::DetID::ID FT0DPLDigitWriter::DETID;
+constexpr o2::header::DataOrigin FT0DPLDigitWriter::DETOR;
 
 //_______________________________________________
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
-DataProcessorSpec getT0DigitWriterSpec()
+DataProcessorSpec getFT0DigitWriterSpec()
 {
-  std::string detStr = o2::detectors::DetID::getName(T0DPLDigitWriter::DETID);
+  std::string detStr = o2::detectors::DetID::getName(FT0DPLDigitWriter::DETID);
   std::string detStrL = detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
-  auto detOrig = T0DPLDigitWriter::DETOR;
+  auto detOrig = FT0DPLDigitWriter::DETOR;
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
@@ -146,7 +146,7 @@ DataProcessorSpec getT0DigitWriterSpec()
     (detStr + "DigitWriter").c_str(),
     inputs,
     {}, // no output
-    AlgorithmSpec(adaptFromTask<T0DPLDigitWriter>()),
+    AlgorithmSpec(adaptFromTask<FT0DPLDigitWriter>()),
     Options{
       { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
       { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },

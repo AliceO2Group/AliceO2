@@ -55,7 +55,7 @@ void T0RecPointWriter::run(ProcessingContext& pc)
 DataProcessorSpec getT0RecPointWriterSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
-  inputSpec.emplace_back("recpoints", o2::header::gDataOriginT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("recpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "t0-recpoint-writer",
     inputSpec,

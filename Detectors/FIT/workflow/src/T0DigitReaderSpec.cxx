@@ -80,9 +80,9 @@ void DigitReader::run(ProcessingContext& pc)
 DataProcessorSpec getT0DigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back(o2::header::gDataOriginT0, "DIGITS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputSpec.emplace_back(o2::header::gDataOriginT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

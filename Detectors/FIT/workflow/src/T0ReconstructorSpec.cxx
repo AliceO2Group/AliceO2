@@ -63,12 +63,12 @@ DataProcessorSpec getT0ReconstructorSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
-  inputSpec.emplace_back("digits", o2::header::gDataOriginT0, "DIGITS", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("digits", o2::header::gDataOriginFT0, "DIGITS", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(INFO) << "Currently T0Reconstructor does not consume and provide MC truth";
-    // inputSpec.emplace_back("labels", o2::header::gDataOriginT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
+    // inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-  outputSpec.emplace_back(o2::header::gDataOriginT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "t0-reconstructor",

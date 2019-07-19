@@ -15,7 +15,7 @@
 
 namespace o2::ft0
 {
-inline o2::fit::DigitizationParameters T0DigitizationParameters()
+inline o2::fit::DigitizationParameters FT0DigitizationParameters()
 {
   o2::fit::DigitizationParameters result;
   result.NCellsA = Geometry::NCellsA;
@@ -28,7 +28,7 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.mCFD_trsh_mip = 3.;                                  // [mV]
   result.mTime_trg_gate = 4.;                                 // ns
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
-  result.mIsT0 = true;
+  result.mIsFT0 = true;
   result.mSignalWidth = 5;
   result.mCfdShift = 1.66;       //ns
   result.mMip_in_V = 7;          //MIP to mV
