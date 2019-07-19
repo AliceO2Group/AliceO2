@@ -14,18 +14,18 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::t0::Digit + ;
-#pragma link C++ class o2::t0::ChannelData + ;
-#pragma link C++ class vector < o2::t0::ChannelData> + ;
-#pragma link C++ class vector < o2::t0::Digit> + ;
+#pragma link C++ class o2::ft0::Digit + ;
+#pragma link C++ class o2::ft0::ChannelData + ;
+#pragma link C++ class vector < o2::ft0::ChannelData> + ;
+#pragma link C++ class vector < o2::ft0::Digit> + ;
 
-#pragma link C++ class o2::t0::RecPoints + ;
-#pragma link C++ class vector < o2::t0::RecPoints> + ;
+#pragma link C++ class o2::ft0::RecPoints + ;
+#pragma link C++ class vector < o2::ft0::RecPoints> + ;
 
-#pragma link C++ class o2::t0::MCLabel + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::t0::MCLabel> + ;
+#pragma link C++ class o2::ft0::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::ft0::MCLabel> + ;
 
-#pragma link C++ class o2::t0::HitType + ;
-#pragma link C++ class vector < o2::t0::HitType> + ;
+#pragma link C++ class o2::ft0::HitType + ;
+#pragma link C++ class vector < o2::ft0::HitType> + ;
 
 #endif

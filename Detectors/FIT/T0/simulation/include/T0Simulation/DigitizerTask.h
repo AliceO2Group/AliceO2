@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class DigitizerTask : public FairTask
@@ -57,22 +57,22 @@ class DigitizerTask : public FairTask
   Int_t mSourceID = 0;                                      ///< current source
   Int_t mEventID = 0;                                       ///< current event id from the source
   Digitizer mDigitizer;                                     ///< Digitizer
-  const std::vector<o2::t0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
+  const std::vector<o2::ft0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
   TBranch* mQEDBranch = nullptr;                                //! optional special branch of hits from QED collitions
-  const std::vector<o2::t0::HitType>* mHitsArrayQED = nullptr;  //! array of MC hits from ED
+  const std::vector<o2::ft0::HitType>* mHitsArrayQED = nullptr;  //! array of MC hits from ED
   float mQEDEntryTimeBinNS = 0.f;                               ///< every entry in the QED branch integrates QED for so many nanosec.
   double mLastQEDTimeNS = 0.;                                   ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
   int mLastQEDEntry = -1;                                       ///< last used QED entry
   UChar_t mQEDSourceID = 0;                                     ///< MC ID source of the QED (stored in the labels)
 
-  o2::t0::Digit* mEventDigit = nullptr;
-  o2::dataformats::MCTruthContainer<o2::t0::MCLabel> mMCTruthArray;                      //! Labels containter
-  o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
+  o2::ft0::Digit* mEventDigit = nullptr;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> mMCTruthArray;                      //! Labels containter
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
 
   ClassDefOverride(DigitizerTask, 1);
 };
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 
 #endif /* ALICEO2_TOF_DIGITIZERTASK_H */

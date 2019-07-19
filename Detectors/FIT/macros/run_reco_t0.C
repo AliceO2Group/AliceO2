@@ -31,18 +31,18 @@ void run_reco_t0(std::string inpudDig = "t0digits.root",
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   digTree->Print();
-  std::vector<o2::t0::Digit>* digits = new std::vector<o2::t0::Digit>;
+  std::vector<o2::ft0::Digit>* digits = new std::vector<o2::ft0::Digit>;
   digTree->SetBranchAddress("T0Digit", &digits);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   std::cout << "Found " << nevD << " events with digits " << std::endl;
 
-  std::vector<o2::t0::RecPoints>* recPointsP = new std::vector<o2::t0::RecPoints>;
+  std::vector<o2::ft0::RecPoints>* recPointsP = new std::vector<o2::ft0::RecPoints>;
 
   TFile outFile(outName.c_str(), "recreate");
   TTree outTree("o2sim", "T0RecPoints");
   outTree.Branch("T0Cluster", &recPointsP);
 
-  o2::t0::CollisionTimeRecoTask recoFIT;
+  o2::ft0::CollisionTimeRecoTask recoFIT;
   timer.Start();
   for (int iEv = 0; iEv < nevD; iEv++) {
     digTree->GetEntry(iEv);

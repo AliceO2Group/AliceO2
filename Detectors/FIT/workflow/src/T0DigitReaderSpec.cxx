@@ -18,11 +18,11 @@
 #include "FITWorkflow/T0DigitReaderSpec.h"
 
 using namespace o2::framework;
-using namespace o2::t0;
+using namespace o2::ft0;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 DigitReader::DigitReader(bool useMC)
@@ -95,5 +95,5 @@ DataProcessorSpec getT0DigitReaderSpec(bool useMC)
   };
 }
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2

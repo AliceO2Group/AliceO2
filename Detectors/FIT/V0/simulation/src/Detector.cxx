@@ -29,14 +29,14 @@
 #include "V0Base/Geometry.h"
 #include "SimulationDataFormat/Stack.h"
 
-using namespace o2::v0;
-using o2::v0::Geometry;
+using namespace o2::fv0;
+using o2::fv0::Geometry;
 
 ClassImp(Detector);
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("V0", kTRUE),
-    mHits(o2::utils::createSimVector<o2::v0::Hit>()),
+    mHits(o2::utils::createSimVector<o2::fv0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
 {
@@ -55,7 +55,7 @@ Detector::~Detector()
 
 Detector::Detector(Bool_t isActive)
   : o2::base::DetImpl<Detector>("V0", isActive),
-    mHits(o2::utils::createSimVector<o2::v0::Hit>()),
+    mHits(o2::utils::createSimVector<o2::fv0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
 {
@@ -131,7 +131,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return kTRUE;
 }
 
-o2::v0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
+o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
                               TVector3 startPos, TVector3 endPos,
                               TVector3 startMom, double startE,
                               double endTime, double eLoss, Int_t particlePdg)

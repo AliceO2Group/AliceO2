@@ -31,8 +31,8 @@ class Digitizer
   ~Digitizer() = default;
 
   //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times);
-  void computeAverage(o2::t0::Digit& digit);
+  void process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digit* digit, std::vector<std::vector<double>>& channel_times);
+  void computeAverage(o2::ft0::Digit& digit);
 
   void initParameters();
   void printParameters();
@@ -50,13 +50,13 @@ class Digitizer
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
 
-  void setTriggers(o2::t0::Digit* digit);
-  void smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
+  void setTriggers(o2::ft0::Digit* digit);
+  void smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
 
   void init();
   void finish();
 
-  void setMCLabels(o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mclb) { mMCLabels = mclb; }
+  void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
 
  private:
@@ -72,7 +72,7 @@ class Digitizer
 
   DigitizationParameters parameters;
 
-  o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mMCLabels = nullptr;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
 
   static constexpr Float_t C_side_cable_cmps = 2.877; //ns
   static constexpr Float_t A_side_cable_cmps = 11.08; //ns

@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class RecPoints
@@ -35,7 +35,7 @@ class RecPoints
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 3>& collisiontime,
             Float_t vertex,
-            std::vector<o2::t0::ChannelData> timeamp)
+            std::vector<o2::ft0::ChannelData> timeamp)
     : mCollisionTime(collisiontime),
       mVertex(vertex),
       mTimeAmp(std::move(timeamp))
@@ -43,7 +43,7 @@ class RecPoints
   }
   ~RecPoints() = default;
 
-  void fillFromDigits(const o2::t0::Digit& digit);
+  void fillFromDigits(const o2::ft0::Digit& digit);
   float getCollisionTime(int side) const { return mCollisionTime[side]; }
   float getCollisionTimeMean() const { return getCollisionTime(TimeMean); }
   float getCollisionTimeA() const { return getCollisionTime(TimeC); }
@@ -59,9 +59,9 @@ class RecPoints
 
   void SetMgrEventTime(Double_t time) { mEventTime = time; }
 
-  const std::vector<o2::t0::ChannelData>& getChDgData() const { return mTimeAmp; }
-  void setChDgData(const std::vector<o2::t0::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
-  void setChDgData(std::vector<o2::t0::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
+  const std::vector<o2::ft0::ChannelData>& getChDgData() const { return mTimeAmp; }
+  void setChDgData(const std::vector<o2::ft0::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
+  void setChDgData(std::vector<o2::ft0::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
 
   void setInteractionRecord(uint16_t bc, uint32_t orbit)
   {
@@ -79,11 +79,11 @@ class RecPoints
                                             2 * o2::InteractionRecord::DummyTime };
   Float_t mVertex = 0;
   Double_t mEventTime = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
-  std::vector<o2::t0::ChannelData> mTimeAmp;
+  std::vector<o2::ft0::ChannelData> mTimeAmp;
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
 
   ClassDefNV(RecPoints, 1);
 };
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 #endif

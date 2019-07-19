@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 void T0ReconstructorDPL::init(InitContext& ic)
@@ -34,12 +34,12 @@ void T0ReconstructorDPL::run(ProcessingContext& pc)
     return;
   }
   mRecPoints.clear();
-  auto digits = pc.inputs().get<const std::vector<o2::t0::Digit>>("digits");
+  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
   // RS: if we need to process MC truth, uncomment lines below
-  //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::t0::MCLabel>> labels;
-  //const o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* lblPtr = nullptr;
+  //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
+  //const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* lblPtr = nullptr;
   if (mUseMC) {
-    //labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::t0::MCLabel>*>("labels");
+    //labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>*>("labels");
     //lblPtr = labels.get();
     LOG(INFO) << "Ignoring MC info";
   }
@@ -79,5 +79,5 @@ DataProcessorSpec getT0ReconstructorSpec(bool useMC)
   };
 }
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2

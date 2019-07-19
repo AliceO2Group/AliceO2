@@ -22,7 +22,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class T0ReconstructorDPL : public Task
@@ -36,15 +36,15 @@ class T0ReconstructorDPL : public Task
  private:
   bool mFinished = false;
   bool mUseMC = true;
-  std::vector<o2::t0::RecPoints> mRecPoints;
-  o2::t0::CollisionTimeRecoTask mReco;
+  std::vector<o2::ft0::RecPoints> mRecPoints;
+  o2::ft0::CollisionTimeRecoTask mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
 };
 
 /// create a processor spec
 framework::DataProcessorSpec getT0ReconstructorSpec(bool useMC = true);
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 
 #endif /* O2_FIT_T0RECONSTRUCTORDPL_H */

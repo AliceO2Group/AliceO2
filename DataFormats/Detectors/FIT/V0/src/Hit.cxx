@@ -15,11 +15,11 @@
 
 #include <iostream>
 
-ClassImp(o2::v0::Hit)
+ClassImp(o2::fv0::Hit)
 
   namespace o2
 {
-  namespace v0
+  namespace fv0
   {
 
   void Hit::Print(const Option_t* opt) const
@@ -31,5 +31,5 @@ ClassImp(o2::v0::Hit)
       GetStartX(), GetStartY(), GetStartZ(), GetX(), GetY(), GetZ());
   }
 
-  } // namespace v0
+  } // namespace fv0
 } // namespace o2
