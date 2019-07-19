@@ -650,7 +650,7 @@ constexpr o2::header::DataOrigin gDataOriginACO{ "ACO" };
 constexpr o2::header::DataOrigin gDataOriginCPV{ "CPV" };
 constexpr o2::header::DataOrigin gDataOriginCTP{ "CTP" };
 constexpr o2::header::DataOrigin gDataOriginEMC{ "EMC" };
-constexpr o2::header::DataOrigin gDataOriginT0{ "T0" };
+constexpr o2::header::DataOrigin gDataOriginT0{ "FT0" };
 constexpr o2::header::DataOrigin gDataOriginV0{ "V0" };
 constexpr o2::header::DataOrigin gDataOriginFDD{ "FDD" };
 constexpr o2::header::DataOrigin gDataOriginHMP{ "HMP" };
