@@ -23,7 +23,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataReaderWorkflow/TestDataReader.h"
+#include "ITSQCDataReaderWorkflow/TestDataReader.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <TCanvas.h>
 #include <iostream>
