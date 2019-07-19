@@ -45,6 +45,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUChain;
+class GPUMemorySizeScalers;
 
 class GPUReconstruction
 {
@@ -163,6 +164,7 @@ class GPUReconstruction
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void PrintMemoryStatistics();
+  GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
@@ -250,6 +252,7 @@ class GPUReconstruction
   GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at constructor level)
   GPUSettingsDeviceProcessing mDeviceProcessingSettings; // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                       // Controls the output of the individual components
+  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;

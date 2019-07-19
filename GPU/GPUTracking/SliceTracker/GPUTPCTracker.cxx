@@ -30,6 +30,7 @@
 #include <stdexcept>
 
 #include "GPUReconstruction.h"
+#include "GPUMemorySizeScalers.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -72,7 +73,7 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
     mem = SetPointersTracklets(mem);
   }
   if (mRec->IsGPU()) {
-    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_MAX_ROWSTARTHITS);
+    computePointerWithAlignment(mem, mTrackletTmpStartHits, GPUCA_ROW_COUNT * mNMaxRowStartHits);
     computePointerWithAlignment(mem, mRowStartHitCountOffset, GPUCA_ROW_COUNT);
   }
   return mem;
@@ -93,19 +94,19 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 
 void GPUTPCTracker::RegisterMemoryAllocation()
 {
-  mMemoryResLinksScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "SliceInput");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TrackerScratch");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TrackerHost");
-  mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TrackerCommon");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
+  mMemoryResLinksScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceLinks");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "TPCSliceInput");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCTrackerScratch");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TPCTrackerHost");
+  mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "TPCSliceRows");
 
   auto type = GPUMemoryResource::MEMORY_OUTPUT;
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
     type = GPUMemoryResource::MEMORY_CUSTOM;
-    mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TrackerTracklets");
+    mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TPCTrackerTracklets");
   }
-  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TrackerTracks");
+  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TPCTrackerTracks");
 }
 
 GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
@@ -129,15 +130,16 @@ void GPUTPCTracker::SetMaxData()
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mNMaxStartHits = mData.NumberOfHits();
   } else {
-    mNMaxStartHits = GPUCA_MAX_TRACKLETS;
+    mNMaxStartHits = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
   }
-  mNMaxTracklets = GPUCA_MAX_TRACKLETS;
-  mNMaxTracks = GPUCA_MAX_TRACKS;
-  mNMaxTrackHits = mData.NumberOfHits() + 1000;
+  mNMaxRowStartHits = mRec->MemoryScalers()->NTPCMaxRowStartHits(mData.NumberOfHits());
+  mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
+  mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
+  mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits());
 #ifdef GPUCA_SORT_STARTHITS
   if (mRec->IsGPU()) {
-    if (mNMaxStartHits > GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT) {
-      mNMaxStartHits = GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT;
+    if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_ROW_COUNT) {
+      mNMaxStartHits = mNMaxRowStartHits * GPUCA_ROW_COUNT;
     }
   }
 #endif
