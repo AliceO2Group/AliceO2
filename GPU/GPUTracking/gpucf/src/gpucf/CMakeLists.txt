@@ -35,6 +35,7 @@ set(GPUCF_SRC
     "./algorithms/ClusterFinderProfiler.cpp"
     "./algorithms/ClusterFinderState.cpp"
     "./algorithms/ClusterFinderTest.cpp"
+    "./algorithms/cpu.cpp"
     "./algorithms/ReferenceClusterFinder.cpp"
     "./algorithms/StreamCompaction.cpp"
 )

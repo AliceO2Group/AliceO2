@@ -1,5 +1,6 @@
 #include "ReferenceClusterFinder.h"
 
+#include <gpucf/algorithms/cpu.h>
 #include <gpucf/common/RowInfo.h>
 
 #include <shared/constants.h>
@@ -8,8 +9,6 @@
 
 
 using namespace gpucf;
-
-
 
 
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
@@ -39,7 +38,7 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
 
     for (const Digit &d : digits)
     {
-        bool p = isPeak(d, chargemap);
+        bool p = isPeak(d, chargemap, config.qmaxCutoff);
         isPeakPred.push_back(p);
 
         if (p)
@@ -106,28 +105,6 @@ Cluster ReferenceClusterFinder::clusterize(
     return c;
 }
 
-
-bool ReferenceClusterFinder::isPeak(const Digit &d, const Map<float> &chargemap)
-{
-    float q = d.charge;
-
-    if (q <= config.qmaxCutoff)
-    {
-        return false;
-    }
-
-    bool peak = true;
-    peak &= chargemap[{d, -1, -1}] <= q;
-    peak &= chargemap[{d, -1,  0}] <= q;
-    peak &= chargemap[{d, -1,  1}] <= q;
-    peak &= chargemap[{d,  0, -1}] <= q;
-    peak &= chargemap[{d,  0,  1}] <  q;
-    peak &= chargemap[{d,  1, -1}] <  q;
-    peak &= chargemap[{d,  1,  0}] <  q;
-    peak &= chargemap[{d,  1,  1}] <  q;
-
-    return peak;
-}
 
 Map<ReferenceClusterFinder::PeakCount> ReferenceClusterFinder::makePeakCountMap(
         nonstd::span<const Digit> digits,

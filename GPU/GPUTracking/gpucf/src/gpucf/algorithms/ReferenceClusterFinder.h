@@ -40,9 +40,6 @@ private:
 
     static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF);
 
-
-    bool isPeak(const Digit &, const Map<float> &);
-
     Map<PeakCount> makePeakCountMap(
             nonstd::span<const Digit>, 
             nonstd::span<const Digit>, 

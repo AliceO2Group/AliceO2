@@ -11,8 +11,8 @@ namespace gpucf
     
 struct MCLabel
 {
-    int event; 
-    int track;
+    short event; 
+    short track;
 
     MCLabel(const RawLabel &l)
         : event(l.event)
@@ -44,7 +44,8 @@ namespace std
     {
         size_t operator()(const gpucf::MCLabel &l) const
         {
-            return std::hash<int>()(l.event) ^ std::hash<int>()(l.track);
+            size_t h = size_t(l.event) << (8*sizeof(short)) | size_t(l.track);
+            return std::hash<size_t>()(h);
         }
     };
     

@@ -17,7 +17,10 @@ class Map
 {
 
 public:
+
     using Predicate = std::function<T(const Digit &)>;
+
+    Map() = default;
 
     Map(nonstd::span<const Digit> keys, Predicate pred, T fallback)
         : fallback(fallback)
@@ -51,6 +54,7 @@ public:
     }
 
 private:
+
     std::unordered_map<Position, T> data;
 
     T fallback;
