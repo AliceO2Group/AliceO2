@@ -132,9 +132,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 }
 
 o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                              TVector3 startPos, TVector3 endPos,
-                              TVector3 startMom, double startE,
-                              double endTime, double eLoss, Int_t particlePdg)
+                               TVector3 startPos, TVector3 endPos,
+                               TVector3 startMom, double startE,
+                               double endTime, double eLoss, Int_t particlePdg)
 {
 
   mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);

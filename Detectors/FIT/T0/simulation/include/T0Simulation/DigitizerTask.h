@@ -60,7 +60,7 @@ class DigitizerTask : public FairTask
   const std::vector<o2::ft0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
   TBranch* mQEDBranch = nullptr;                                //! optional special branch of hits from QED collitions
-  const std::vector<o2::ft0::HitType>* mHitsArrayQED = nullptr;  //! array of MC hits from ED
+  const std::vector<o2::ft0::HitType>* mHitsArrayQED = nullptr; //! array of MC hits from ED
   float mQEDEntryTimeBinNS = 0.f;                               ///< every entry in the QED branch integrates QED for so many nanosec.
   double mLastQEDTimeNS = 0.;                                   ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
   int mLastQEDEntry = -1;                                       ///< last used QED entry

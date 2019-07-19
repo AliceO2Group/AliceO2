@@ -116,9 +116,9 @@ class Detector : public o2::base::DetImpl<Detector>
   } mTrackData;                    //!
 
   o2::fv0::Hit* addHit(Int_t trackId, Int_t cellId,
-                      TVector3 startPos, TVector3 endPos,
-                      TVector3 startMom, double startE,
-                      double endTime, double eLoss, Int_t particlePdg);
+                       TVector3 startPos, TVector3 endPos,
+                       TVector3 startMom, double startE,
+                       double endTime, double eLoss, Int_t particlePdg);
 
   template <typename Det>
   friend class o2::base::DetImpl;
