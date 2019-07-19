@@ -58,7 +58,7 @@ class DetID
   static constexpr ID MCH = 9;
   static constexpr ID MID = 10;
   static constexpr ID ZDC = 11;
-  static constexpr ID T0 = 12;
+  static constexpr ID FT0 = 12;
   static constexpr ID V0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
@@ -114,7 +114,7 @@ class DetID
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
     { utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
       utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(T0), utils::bit2Mask(V0), utils::bit2Mask(FDD), utils::bit2Mask(ACO) };
+      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(V0), utils::bit2Mask(FDD), utils::bit2Mask(ACO) };
 
   ClassDefNV(DetID, 1);
 };

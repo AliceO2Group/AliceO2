@@ -38,7 +38,7 @@ class T0ReconstructorDPL : public Task
   bool mUseMC = true;
   std::vector<o2::ft0::RecPoints> mRecPoints;
   o2::ft0::CollisionTimeRecoTask mReco;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };
 
 /// create a processor spec

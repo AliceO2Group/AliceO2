@@ -76,7 +76,7 @@ void RecPointReader::run(ProcessingContext& pc)
 DataProcessorSpec getT0RecPointReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back(o2::header::gDataOriginT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(WARNING) << "MC-truth is not supported for T0 recpoints currently";
   }

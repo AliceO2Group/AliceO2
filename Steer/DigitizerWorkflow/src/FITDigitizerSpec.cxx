@@ -58,8 +58,8 @@ class FITDPLDigitizerTask
       mSimChains.emplace_back(new TChain("o2sim"));
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
-    static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
-    if (mID == o2::detectors::DetID::T0) {
+    static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
+    if (mID == o2::detectors::DetID::FT0) {
       mDigitizer.init();
     }
     const bool isContinuous = ic.options().get<int>("pileup");
@@ -177,9 +177,9 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
 {
  public:
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
-  FITT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::T0DigitizationParameters() }
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
+  FITT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::FT0DigitizationParameters() }
   {
     mID = DETID;
     mOrigin = DETOR;
