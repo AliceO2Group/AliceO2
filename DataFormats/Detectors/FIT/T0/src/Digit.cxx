@@ -11,7 +11,7 @@
 #include "DataFormatsFITT0/Digit.h"
 #include <iostream>
 
-using namespace o2::t0;
+using namespace o2::ft0;
 
 void Digit::printStream(std::ostream& stream) const
 {

@@ -18,11 +18,11 @@
 #include "FITWorkflow/T0RecPointReaderSpec.h"
 
 using namespace o2::framework;
-using namespace o2::t0;
+using namespace o2::ft0;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 RecPointReader::RecPointReader(bool useMC)
@@ -91,5 +91,5 @@ DataProcessorSpec getT0RecPointReaderSpec(bool useMC)
   };
 }
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2

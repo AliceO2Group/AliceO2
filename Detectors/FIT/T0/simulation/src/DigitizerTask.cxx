@@ -37,7 +37,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = mgr->InitObjectAs<const std::vector<o2::t0::HitType>*>("FITHit");
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ft0::HitType>*>("FITHit");
 
   if (!mHitsArray) {
     LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;

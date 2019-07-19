@@ -21,9 +21,9 @@
 #include <FairLogger.h>
 #include <sstream>
 
-ClassImp(o2::v0::Geometry);
+ClassImp(o2::fv0::Geometry);
 
-using namespace o2::v0;
+using namespace o2::fv0;
 
 Geometry::Geometry(EGeoType initType)
 {

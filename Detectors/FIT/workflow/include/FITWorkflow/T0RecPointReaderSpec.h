@@ -23,7 +23,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 class RecPointReader : public Task
@@ -39,7 +39,7 @@ class RecPointReader : public Task
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginT0;
 
-  std::vector<o2::t0::RecPoints>* mRecPoints = nullptr;
+  std::vector<o2::ft0::RecPoints>* mRecPoints = nullptr;
 
   std::string mInputFileName = "o2reco_t0.root";
   std::string mRecPointTreeName = "o2sim";
@@ -50,7 +50,7 @@ class RecPointReader : public Task
 /// read simulated ITS digits from a root file
 framework::DataProcessorSpec getT0RecPointReaderSpec(bool useMC);
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 
 #endif /* O2_T0_RECPOINTREADER */

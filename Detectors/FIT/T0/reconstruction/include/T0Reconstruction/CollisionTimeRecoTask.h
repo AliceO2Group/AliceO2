@@ -18,19 +18,19 @@
 #include "DataFormatsFITT0/RecPoints.h"
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 class CollisionTimeRecoTask
 {
  public:
   CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
-  void Process(const o2::t0::Digit& digits, RecPoints& recPoints) const;
+  void Process(const o2::ft0::Digit& digits, RecPoints& recPoints) const;
   void FinishTask();
 
  private:
   ClassDefNV(CollisionTimeRecoTask, 1);
 };
-} // namespace t0
+} // namespace ft0
 } // namespace o2
 #endif

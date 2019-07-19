@@ -14,7 +14,7 @@
 #include <iostream>
 #include <CommonDataFormat/InteractionRecord.h>
 
-using namespace o2::t0;
+using namespace o2::ft0;
 
 namespace
 {
@@ -22,7 +22,7 @@ constexpr int NCellsA = 24; // number of radiatiors on A side
 constexpr int NCellsC = 28; // number of radiatiors on C side
 } // namespace
 
-void RecPoints::fillFromDigits(const o2::t0::Digit& digit)
+void RecPoints::fillFromDigits(const o2::ft0::Digit& digit)
 {
   mCollisionTime = {};
 

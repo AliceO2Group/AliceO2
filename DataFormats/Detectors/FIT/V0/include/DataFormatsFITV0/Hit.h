@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace v0
+namespace fv0
 {
 
 class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
@@ -89,14 +89,14 @@ Hit::Hit(int trackID, int detID, const TVector3& startPos, const TVector3& endPo
 {
 }
 
-} // namespace v0
+} // namespace fv0
 } // namespace o2
 
 #ifdef USESHM
 namespace std
 {
 template <>
-class allocator<o2::v0::Hit> : public o2::utils::ShmAllocator<o2::v0::Hit>
+class allocator<o2::fv0::Hit> : public o2::utils::ShmAllocator<o2::fv0::Hit>
 {
 };
 

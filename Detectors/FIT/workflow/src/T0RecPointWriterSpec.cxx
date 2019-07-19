@@ -22,7 +22,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace t0
+namespace ft0
 {
 
 void T0RecPointWriter::init(InitContext& ic)
@@ -35,7 +35,7 @@ void T0RecPointWriter::run(ProcessingContext& pc)
     return;
   }
   // no MC infor treatment at the moment
-  auto recPoints = pc.inputs().get<const std::vector<o2::t0::RecPoints>>("recpoints");
+  auto recPoints = pc.inputs().get<const std::vector<o2::ft0::RecPoints>>("recpoints");
   auto recPointsPtr = &recPoints;
   LOG(INFO) << "T0RecPointWriter pulled " << recPoints.size() << " RecPoints";
 
@@ -69,5 +69,5 @@ DataProcessorSpec getT0RecPointWriterSpec(bool useMC)
   };
 }
 
-} // namespace t0
+} // namespace ft0
 } // namespace o2

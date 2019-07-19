@@ -14,7 +14,7 @@
 #include "T0Reconstruction/CollisionTimeRecoTask.h"
 #include "FairLogger.h" // for LOG
 
-using namespace o2::t0;
+using namespace o2::ft0;
 
 /*
 //_____________________________________________________________________
