@@ -556,7 +556,7 @@ class MatchTPCITS
   const std::vector<int>* mITSTrackClusIdxInp = nullptr;                     ///< input ITS track cluster indices
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
-  const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;               ///< optional input FIT info
+  const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;              ///< optional input FIT info
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;        ///< struct holding the TPC cluster indices
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
