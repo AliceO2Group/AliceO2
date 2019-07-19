@@ -108,7 +108,7 @@ class DetID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 
-    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "T0", "V0", "FDD", "ACO", nullptr };
+    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "V0", "FDD", "ACO", nullptr };
 
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks

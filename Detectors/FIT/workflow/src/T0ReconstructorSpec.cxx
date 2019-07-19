@@ -52,7 +52,7 @@ void T0ReconstructorDPL::run(ProcessingContext& pc)
   }
   // do we ignore MC in this task?
 
-  LOG(INFO) << "T0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
+  LOG(INFO) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{ mOrigin, "RECPOINTS", 0, Lifetime::Timeframe }, mRecPoints);
 
   mFinished = true;

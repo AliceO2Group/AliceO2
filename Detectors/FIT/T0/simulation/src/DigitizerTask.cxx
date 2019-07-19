@@ -19,7 +19,7 @@
 
 using namespace o2::fit;
 
-DigitizerTask::DigitizerTask() : FairTask("T0DigitizerTask"), mDigitizer() {}
+DigitizerTask::DigitizerTask() : FairTask("FT0DigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
   if (mEventDigit)

@@ -34,7 +34,7 @@ using o2::ft0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::base::DetImpl<Detector>("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
+  : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
 
 {
   // Gegeo  = GetGeometry() ;

@@ -247,8 +247,8 @@ void analyzePHS(TTree* reftree)
 
 void analyzeT0(TTree* reftree)
 {
-  auto refresult = analyse<o2::ft0::HitType, HitStats<o2::ft0::HitType>>(reftree, "T0Hit");
-  std::cout << gPrefix << " T0 ";
+  auto refresult = analyse<o2::ft0::HitType, HitStats<o2::ft0::HitType>>(reftree, "FT0Hit");
+  std::cout << gPrefix << " FT0 ";
   refresult.print();
 }
 
