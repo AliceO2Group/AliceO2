@@ -59,9 +59,10 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
       /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
+      int pass = iteration + iVertex; /// Do not reinitialise the context if we analyse pile-up events
       std::array<float, 3> pV = { event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z };
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
-                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, iteration);
+                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, pass);
       total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
@@ -448,12 +449,15 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
     return;
   }
 
+  mPrimaryVertexContext->initialiseRoadLabels();
+
   int roadsNum{ static_cast<int>(mPrimaryVertexContext->getRoads().size()) };
 
   for (int iRoad{ 0 }; iRoad < roadsNum; ++iRoad) {
 
     Road& currentRoad{ mPrimaryVertexContext->getRoads()[iRoad] };
-    int maxOccurrencesValue{ constants::its::UnusedIndex };
+    MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
+                                     constants::its::UnusedIndex, false };
     int count{ 0 };
     bool isFakeRoad{ false };
     bool isFirstRoadCell{ true };
@@ -475,7 +479,7 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
 
         const int cl0index{ mPrimaryVertexContext->getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId };
         auto& cl0labs{ event.getClusterLabels(iCell, cl0index) };
-        maxOccurrencesValue = cl0labs.getTrackID();
+        maxOccurrencesValue = cl0labs;
         count = 1;
 
         const int cl1index{
@@ -514,8 +518,7 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
     }
 
-    currentRoad.setLabel(maxOccurrencesValue);
-    currentRoad.setFakeRoad(isFakeRoad);
+    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
   }
 }
 
