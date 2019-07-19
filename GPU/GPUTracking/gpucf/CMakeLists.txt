@@ -41,7 +41,7 @@ add_definitions(
 function(executables)
     foreach(exe IN LISTS ARGN)
         add_executable(${exe} "${exe}.cpp")
-        target_link_libraries(${exe} gpucf)
+        target_link_libraries(${exe} gpucf ${ROOT_LIBRARIES})
     endforeach()
 endfunction(executables)
 
