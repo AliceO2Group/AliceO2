@@ -44,6 +44,7 @@ class GPUChain
   virtual int Finalize() = 0;
   virtual int RunChain() = 0;
   virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
+  virtual void PrintMemoryStatistics(){};
 
   constexpr static int NSLICES = GPUReconstruction::NSLICES;
 

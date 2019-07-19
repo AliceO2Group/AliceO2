@@ -42,7 +42,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     printf("Error obtaining instance of GPUReconstruction\n");
     return 1;
   }
-  mChain = mRec->AddChain<GPUChainTracking>();
+  mChain = mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);

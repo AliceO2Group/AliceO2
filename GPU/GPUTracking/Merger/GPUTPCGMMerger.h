@@ -87,6 +87,8 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUhd() int NClusters() const { return (mNClusters); }
   GPUhd() int NMaxClusters() const { return (mNMaxClusters); }
+  GPUhd() int NMaxTracks() const { return (mNMaxTracks); }
+  GPUhd() int NMaxOutputTrackClusters() const { return (mNMaxOutputTrackClusters); }
   GPUhd() int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
   GPUhd() GPUTPCGMMergedTrackHit* Clusters()

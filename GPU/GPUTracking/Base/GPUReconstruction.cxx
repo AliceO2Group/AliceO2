@@ -37,6 +37,7 @@
 
 #include "GPUMemoryResource.h"
 #include "GPUChain.h"
+#include "GPUMemorySizeScalers.h"
 
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
@@ -53,6 +54,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mDeviceProcessingSettings.SetDefaults();
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
+  mMemoryScalers.reset(new GPUMemorySizeScalers);
 }
 
 GPUReconstruction::~GPUReconstruction()
@@ -115,7 +117,6 @@ int GPUReconstruction::Init()
   } else {
     omp_set_num_threads(mDeviceProcessingSettings.nThreads);
   }
-
 #else
   mDeviceProcessingSettings.nThreads = 1;
 #endif
@@ -389,9 +390,12 @@ void GPUReconstruction::PrintMemoryStatistics()
     printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
   if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    printf("Memory Allocation: Host %'lld / %'lld (Permantnt %'lld), Device %'lld / %'lld, (Permantnt %'lld) %d chunks\n",
+    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
            ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
            ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+  }
+  for (unsigned int i = 0; i < mChains.size(); i++) {
+    mChains[i]->PrintMemoryStatistics();
   }
 }
 

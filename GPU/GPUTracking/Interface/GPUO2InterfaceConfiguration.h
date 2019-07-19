@@ -62,6 +62,10 @@ struct GPUO2InterfaceConfiguration {
   // Settings for the Interface class
   struct GPUInterfaceSettings {
     bool dumpEvents = false;
+    // These constants affect GPU memory allocation and do not limit the CPU processing
+    unsigned int maxTPCHits = 1024 * 1024 * 1024;
+    unsigned int maxTRDTracklets = 128 * 1024;
+    unsigned int maxITSTracks = 96 * 1024;
   };
 
   GPUSettingsProcessing configProcessing;

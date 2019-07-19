@@ -156,6 +156,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() unsigned int NMaxTracks() const { return mNMaxTracks; }
   GPUhd() unsigned int NMaxTrackHits() const { return mNMaxTrackHits; }
   GPUhd() unsigned int NMaxStartHits() const { return mNMaxStartHits; }
+  GPUhd() unsigned int NMaxRowStartHits() const { return mNMaxRowStartHits; }
 
   MEM_TEMPLATE()
   GPUd() void SetHitLinkUpData(const MEM_TYPE(GPUTPCRow) & row, int hitIndex, calink v) { mData.SetHitLinkUpData(row, hitIndex, v); }
@@ -267,6 +268,7 @@ class GPUTPCTracker : public GPUProcessor
   mData; // The SliceData object. It is used to encapsulate the storage in memory from the access
 
   unsigned int mNMaxStartHits;
+  unsigned int mNMaxRowStartHits;
   unsigned int mNMaxTracklets;
   unsigned int mNMaxTracks;
   unsigned int mNMaxTrackHits;
