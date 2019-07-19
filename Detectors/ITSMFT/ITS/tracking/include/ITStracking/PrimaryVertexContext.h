@@ -60,6 +60,11 @@ class PrimaryVertexContext
   std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& getTracklets();
   std::array<std::vector<int>, constants::its::CellsPerRoad>& getTrackletsLookupTable();
 
+  void initialiseRoadLabels();
+  void setRoadLabel(int i, const unsigned long long& lab, bool fake);
+  const unsigned long long& getRoadLabel(int i) const;
+  bool isRoadFake(int i) const;
+
  protected:
   float3 mPrimaryVertex;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
@@ -74,6 +79,8 @@ class PrimaryVertexContext
     mIndexTables;
   std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad> mTracklets;
   std::array<std::vector<int>, constants::its::CellsPerRoad> mTrackletsLookupTable;
+
+  std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
 
 inline const float3& PrimaryVertexContext::getPrimaryVertex() const { return mPrimaryVertex; }
@@ -121,6 +128,29 @@ inline std::array<std::vector<int>, constants::its::CellsPerRoad>& PrimaryVertex
 {
   return mTrackletsLookupTable;
 }
+
+inline void PrimaryVertexContext::initialiseRoadLabels()
+{
+  mRoadLabels.clear();
+  mRoadLabels.resize(mRoads.size());
+}
+
+inline void PrimaryVertexContext::setRoadLabel(int i, const unsigned long long& lab, bool fake)
+{
+  mRoadLabels[i].first = lab;
+  mRoadLabels[i].second = fake;
+}
+
+inline const unsigned long long& PrimaryVertexContext::getRoadLabel(int i) const
+{
+  return mRoadLabels[i].first;
+}
+
+inline bool PrimaryVertexContext::isRoadFake(int i) const
+{
+  return mRoadLabels[i].second;
+}
+
 } // namespace its
 } // namespace o2
 
