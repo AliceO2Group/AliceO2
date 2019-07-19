@@ -106,7 +106,7 @@ class TOFDPLRecoWorkflowTask
     if (mUseMC)
       mMatcher.initWorkflow(tracksRO.get(), clustersRO.get(), &toflab, itslab.get(), tpclab.get());
     else
-      mMatcher.initWorkflow(tracksRO.get(), clustersRO.get(), NULL, NULL, NULL);
+      mMatcher.initWorkflow(tracksRO.get(), clustersRO.get(), nullptr, nullptr, nullptr);
 
     mMatcher.run();
 
