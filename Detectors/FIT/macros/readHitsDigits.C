@@ -23,7 +23,7 @@ void readHitsDigits()
   TFile* fhit = new TFile("o2sim.root");
   TTree* hitTree = (TTree*)fhit->Get("o2sim");
   std::vector<o2::ft0::HitType>* hitArray = nullptr;
-  hitTree->SetBranchAddress("T0Hit", &hitArray);
+  hitTree->SetBranchAddress("FT0Hit", &hitArray);
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
   // std::cout << "Found " << nevH << " events with hits " << std::endl;
 
@@ -55,7 +55,7 @@ void readHitsDigits()
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   std::vector<o2::ft0::Digit>* digArr = new std::vector<o2::ft0::Digit>;
-  digTree->SetBranchAddress("T0Digit", &digArr);
+  digTree->SetBranchAddress("FT0Digit", &digArr);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   // std::cout << "Found " << nevD << " events with digits " << std::endl;
   Float_t cfd[208], amp[208], part[208];

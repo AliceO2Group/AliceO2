@@ -29,7 +29,7 @@ RecPointReader::RecPointReader(bool useMC)
 {
   mUseMC = useMC;
   if (useMC) {
-    LOG(WARNING) << "T0 RecPoint reader at the moment does not process MC";
+    LOG(WARNING) << "FT0 RecPoint reader at the moment does not process MC";
   }
 }
 
@@ -66,7 +66,7 @@ void RecPointReader::run(ProcessingContext& pc)
     rpFile.Close();
   }
 
-  LOG(INFO) << "T0 RecPointReader pushes " << mRecPoints->size() << " recpoints";
+  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints";
   pc.outputs().snapshot(Output{ mOrigin, "RECPOINTS", 0, Lifetime::Timeframe }, *mRecPoints);
 
   mFinished = true;

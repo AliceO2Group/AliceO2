@@ -290,7 +290,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
   }
   if (useFIT) {
-    inputs.emplace_back("fitInfo", "T0", "RECPOINTS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);

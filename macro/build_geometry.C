@@ -197,7 +197,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::cpv::Detector(true));
   }
 
-  if (isActivated("T0")) {
+  if (isActivated("FT0")) {
     // FIT-T0
     run->AddModule(new o2::ft0::Detector(true));
   }

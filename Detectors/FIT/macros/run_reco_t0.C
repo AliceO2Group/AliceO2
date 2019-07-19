@@ -32,7 +32,7 @@ void run_reco_t0(std::string inpudDig = "t0digits.root",
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   digTree->Print();
   std::vector<o2::ft0::Digit>* digits = new std::vector<o2::ft0::Digit>;
-  digTree->SetBranchAddress("T0Digit", &digits);
+  digTree->SetBranchAddress("FT0Digit", &digits);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   std::cout << "Found " << nevD << " events with digits " << std::endl;
 

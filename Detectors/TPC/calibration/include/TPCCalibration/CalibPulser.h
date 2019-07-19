@@ -169,7 +169,7 @@ class CalibPulser : public CalibRawBase
     /// return pointer to T0 histogram
     TH2S* getHistoT0(ROC roc, Bool_t force)
     {
-      return getHistogram(roc, mT0Histograms, mNbinsT0, mXminT0, mXmaxT0, "T0", force);
+      return getHistogram(roc, mT0Histograms, mNbinsT0, mXminT0, mXmaxT0, "FT0", force);
     }
 
     /// return pointer to Qtot histogram

@@ -67,7 +67,7 @@ void DigitReader::run(ProcessingContext& pc)
     digFile.Close();
   }
 
-  LOG(INFO) << "T0 DigitReader pushes " << mDigits->size() << " digits";
+  LOG(INFO) << "FT0 DigitReader pushes " << mDigits->size() << " digits";
   pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, *mDigits);
   if (mUseMC) {
     pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, *mMCTruth);
