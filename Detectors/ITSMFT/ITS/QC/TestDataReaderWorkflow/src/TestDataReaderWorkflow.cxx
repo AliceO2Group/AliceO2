@@ -10,9 +10,9 @@
 
 /// @file   TestDataReaderWorkflow.cxx
 
-#include "DataReaderWorkflow/TestDataReaderWorkflow.h"
-#include "DataReaderWorkflow/TestDataReader.h"
-#include "DataReaderWorkflow/TestDataGetter.h"
+#include "ITSQCDataReaderWorkflow/TestDataReaderWorkflow.h"
+#include "ITSQCDataReaderWorkflow/TestDataReader.h"
+#include "ITSQCDataReaderWorkflow/TestDataGetter.h"
 
 namespace o2
 {

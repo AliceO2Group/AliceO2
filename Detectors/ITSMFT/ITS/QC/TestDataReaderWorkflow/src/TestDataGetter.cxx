@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "Framework/ControlService.h"
-#include "DataReaderWorkflow/TestDataGetter.h"
+#include "ITSQCDataReaderWorkflow/TestDataGetter.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"

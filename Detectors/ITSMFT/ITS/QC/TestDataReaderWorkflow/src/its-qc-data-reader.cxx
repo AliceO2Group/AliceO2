@@ -10,7 +10,7 @@
 
 #include "Framework/runDataProcessing.h"
 
-#include "DataReaderWorkflow/TestDataReaderWorkflow.h"
+#include "ITSQCDataReaderWorkflow/TestDataReaderWorkflow.h"
 
 using namespace o2::framework;
 
