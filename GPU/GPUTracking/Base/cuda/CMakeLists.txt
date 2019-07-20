@@ -54,7 +54,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
   # CUDA run-time and driver
-  target_link_libraries(Ali${MODULE} AliGPUTracking)
+  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
 
   # Additional compilation flags
   set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
