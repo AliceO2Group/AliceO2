@@ -8,8 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendNone.cpp
+/// \file threadserver.cxx
 /// \author David Rohr
 
-#include "GPUDisplayBackendNone.h"
-using namespace GPUCA_NAMESPACE::gpu;
+#include <cstdio>
+
+#ifndef STD_OUT
+#define STD_OUT stdout
+#endif
+
+#include "threadserver.h"

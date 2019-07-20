@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionHIP.hip.cpp
+/// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
 #include "hip/hip_runtime.h"

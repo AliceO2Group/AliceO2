@@ -136,11 +136,11 @@ CUDADEFINES						= $(DEFINESUSE)
 DEPENDS							:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.d) $(CLFILES:%.cl=$(WORKPATH)/cl/%.d) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.d) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.d) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.d) \
 									$(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.d) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.d) $(CFILES:%.c=$(WORKPATH)/c/%.d) \
 									$(CPPFILES_MSCC:%.cpp=$(WORKPATH)/mscc/%.d) $(CPPFILES_CLANG:%.cpp=$(WORKPATH)/clang/%.d) $(CPPFILES_ICC:%.cpp=$(WORKPATH)/icc/%.d) $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.d) $(QTFILES:%.ui=$(WORKPATH)/qt/%.qtd) \
-									$(HIPFILES:%.hip.cpp=$(WORKPATH)/hip/%.d)
+									$(HIPFILES:%.hip.cxx=$(WORKPATH)/hip/%.d)
 CPPFILES						+= $(QTFILES:%.ui=$(WORKPATH)/cpp/%.$(OBJ)) $(QTCPPFILES)
 
 OBJFILES						:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.$(OBJ)) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.$(OBJ)) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.$(OBJ)) $(RESOURCEFILES:%=$(WORKPATH)/res/%.$(OBJ)) \
- 									$(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) $(QTCPPFILES:%.cpp=$(WORKPATH)/qt/%_moccpp.$(OBJ)) $(HIPFILES:%.hip.cpp=$(WORKPATH)/hip/%.$(OBJ))
+ 									$(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) $(QTCPPFILES:%.cpp=$(WORKPATH)/qt/%_moccpp.$(OBJ)) $(HIPFILES:%.hip.cxx=$(WORKPATH)/hip/%.$(OBJ))
 
 CPPFILES_ICC					:= $(CPPFILES_ICC:%.cpp=$(WORKPATH)/icc/%.$(OBJ))
 CPPFILES_GCC					:= $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.$(OBJ))
@@ -226,7 +226,7 @@ $(WORKPATH)/cu/%.$(OBJ):		$(WORKPATH)/cu/%.cpp $(ALLDEP)
 $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
 								
-$(WORKPATH)/hip/%.$(OBJ):		%.hip.cpp $(ALLDEP)
+$(WORKPATH)/hip/%.$(OBJ):		%.hip.cxx $(ALLDEP)
 								$(HIPCC) $(CLANGFLAGSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-unused-private-field -c $< -o $@
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
@@ -262,7 +262,7 @@ $(WORKPATH)/qt/%_moccpp.cpp:	%.h $(ALLDEP)
 $(WORKPATH)/qt/%.$(OBJ):		$(WORKPATH)/qt/%.cpp $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
-$(WORKPATH)/_makefiles_support_opencl.$(OBJ):	makefiles/makefile_opencl_compiler.cpp $(ALLDEP)
+$(WORKPATH)/_makefiles_support_opencl.$(OBJ):	makefiles/makefile_opencl_compiler.cxx $(ALLDEP)
 								$(HIDEECHOB) mkdir -p $(WORKPATH)
 								$(CC) $(INCLUDEPATHSUSE) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 $(WORKPATH)/_makefiles_support_opencl.exe:	$(WORKPATH)/_makefiles_support_opencl.$(OBJ) $(ALLDEP)
@@ -319,7 +319,7 @@ $(WORKPATH)/cl/%.d:				%.cl $(ALLDEP)
 $(WORKPATH)/cu/%.d:				%.cu $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -I$(GCCPATH)/include -D_MSC_VER=1700 -D__CUDACC__ | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cu/$*.$(OBJ) $(WORKPATH)/cu/$*.cpp $@ : ,g' $(DEPSED2)
 
-$(WORKPATH)/hip/%.d:			%.hip.cpp $(ALLDEP)
+$(WORKPATH)/hip/%.d:			%.hip.cxx $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) `hipconfig -C` | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/hip/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
 $(WORKPATH)/asm/%.d:			%.asm $(ALLDEP)

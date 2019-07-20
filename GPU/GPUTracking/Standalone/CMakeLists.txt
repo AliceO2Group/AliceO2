@@ -107,7 +107,7 @@ include_directories(.
 
 add_subdirectory(../../ GPU)
 
-add_executable(ca standalone.cxx qa/genEvents.cpp
+add_executable(ca standalone.cxx qa/genEvents.cxx
                   Base/GPUReconstructionTimeframe.cxx)
 
 add_library(o2_support
@@ -124,10 +124,10 @@ add_library(o2_support
   ../../..//Detectors/Base/src/MatLayerCyl.cxx
   ../../..//Detectors/Base/src/Ray.cxx)
 
-add_library(config utils/qconfig.cpp)
+add_library(config utils/qconfig.cxx)
 
-target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cpp
-               display/GPUDisplayBackendGlut.cpp)
+target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
+               display/GPUDisplayBackendGlut.cxx)
 
 target_link_libraries(o2_support
                       PUBLIC Vc::Vc

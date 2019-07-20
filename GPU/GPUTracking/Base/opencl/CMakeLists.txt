@@ -36,7 +36,7 @@ set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.bin)
 # * checks the correct vendor implementation (AMD)
 # * builds binary code (blob) for the found platform(s)
 add_executable(opencl_compiler
-               ${GPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cpp)
+               ${GPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cxx)
 target_link_libraries(opencl_compiler PUBLIC OpenCL::OpenCL)
 set_property(TARGET opencl_compiler
              PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

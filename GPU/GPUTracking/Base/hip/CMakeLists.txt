@@ -15,7 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 message(STATUS "Building GPUTracking with HIP support")
 
-set(SRCS GPUReconstructionHIP.hip.cpp)
+set(SRCS GPUReconstructionHIP.hip.cxx)
 set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

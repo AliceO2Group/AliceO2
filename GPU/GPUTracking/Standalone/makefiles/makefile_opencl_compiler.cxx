@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file makefile_opencl_compiler.cpp
+/// \file makefile_opencl_compiler.cxx
 /// \author David Rohr
 
 #define _CRT_SECURE_NO_WARNINGS

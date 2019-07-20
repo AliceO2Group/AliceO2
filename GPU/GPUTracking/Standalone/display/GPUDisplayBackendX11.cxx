@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendX11.cpp
+/// \file GPUDisplayBackendX11.cxx
 /// \author David Rohr
 
 // GLEW must be the first header

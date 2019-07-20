@@ -71,7 +71,7 @@ set(SRCS_NO_CINT
     Base/GPUReconstructionConvert.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
-    Standalone/utils/timer.cpp)
+    Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx)
@@ -146,7 +146,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   set(SRCS_NO_CINT
       ${SRCS_NO_CINT}
-      Standalone/display/GPUDisplayBackend.cpp
+      Standalone/display/GPUDisplayBackend.cxx
       Global/GPUChainITS.cxx
       ITS/GPUITSFitter.cxx
       ITS/GPUITSFitterKernels.cxx
@@ -168,18 +168,18 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/utils/qsem.cpp
-                   Standalone/display/GPUDisplay.cpp
-                   Standalone/display/GPUDisplayBackendGlfw.cpp)
-  set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cpp
-                Standalone/display/GPUDisplayInterpolation.cpp
-                Standalone/display/GPUDisplayKeys.cpp)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/utils/qsem.cxx
+                   Standalone/display/GPUDisplay.cxx
+                   Standalone/display/GPUDisplayBackendGlfw.cxx)
+  set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
+                Standalone/display/GPUDisplayInterpolation.cxx
+                Standalone/display/GPUDisplayKeys.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()
 
 if(GPUCA_QA)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cpp)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qa/GPUQA.h)
 endif()
