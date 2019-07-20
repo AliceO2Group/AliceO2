@@ -15,12 +15,11 @@ set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}")
 
-if(EXISTS "${CMAKE_INSTALL_PREFIX}/config.cmake")
-  include("${CMAKE_INSTALL_PREFIX}/config.cmake")
-else()
-  include("cmake/config.cmake")
-  install(FILES "cmake/config.cmake" DESTINATION "${CMAKE_INSTALL_PREFIX}")
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/config.cmake")
+  file(COPY "${CMAKE_SOURCE_DIR}/cmake/config.cmake" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
+include("${CMAKE_BINARY_DIR}/config.cmake")
+
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
 
 set(ALIGPU_BUILD_TYPE "Standalone")
@@ -36,6 +35,7 @@ else()
   set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Werror -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-write-strings")
   add_definitions(-DNDEBUG)
 endif()
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -Wl,--no-undefined")
 
 if(CONFIG_OPENMP)
   find_package(OpenMP REQUIRED)
@@ -107,7 +107,7 @@ include_directories(.
 
 add_subdirectory(../../ GPU)
 
-add_executable(ca standalone.cxx utils/qconfig.cpp qa/genEvents.cpp
+add_executable(ca standalone.cxx qa/genEvents.cpp
                   Base/GPUReconstructionTimeframe.cxx)
 
 add_library(o2_support
@@ -124,6 +124,8 @@ add_library(o2_support
   ../../..//Detectors/Base/src/MatLayerCyl.cxx
   ../../..//Detectors/Base/src/Ray.cxx)
 
+add_library(config utils/qconfig.cpp)
+
 target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cpp
                display/GPUDisplayBackendGlut.cpp)
 
@@ -136,11 +138,15 @@ target_link_libraries(o2_support
                              ROOT::RIO
                              ROOT::Hist
                              ROOT::Gui)
-target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support)
+if(CONFIG_VC)
+  target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
+endif()
+target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support config dl)
 
 target_link_libraries(ca PUBLIC GPUTracking)
-target_compile_definitions(
-  ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+target_compile_definitions(config PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
 install(TARGETS ca GPUTracking TPCFastTransformation o2_support)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")
