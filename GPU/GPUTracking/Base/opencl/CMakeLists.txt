@@ -20,7 +20,7 @@ if(NOT AMDAPPSDKROOT)
     )
 endif()
 
-message(STATUS "Building GPUTracking with OpenCL support")
+message(STATUS "Building GPUTracking with OpenCL 1.2 support")
 
 # convenience variables
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -99,7 +99,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   # declared PRIVATE) so we are not leaking them outside of the GPU**
   # directories
 
-  install(FILES ${HDRS} DESTINATION include)
+  install(FILES ${HDRS} DESTINATION include/GPU)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -115,7 +115,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
   # AMD OpenCL run-time and driver
-  target_link_libraries(Ali${MODULE} OpenCL AliGPUTracking)
+  target_link_libraries(Ali${MODULE} PUBLIC OpenCL AliGPUTracking)
 
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
@@ -126,6 +126,6 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=OCL1)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking)
+  target_link_libraries(${MODULE} GPUTracking OpenCL)
   install(TARGETS GPUTrackingOCL)
 endif()
