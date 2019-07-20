@@ -22,9 +22,7 @@ extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPURec
 extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_HIP(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionHIPInternals;
 
@@ -61,7 +59,6 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionHIP = GPUReconstructionKernels<GPUReconstructionHIPBackend>;
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
