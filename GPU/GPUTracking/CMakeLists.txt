@@ -96,7 +96,6 @@ set(HDRS_INSTALL
     Base/GPUReconstructionIncludes.h
     SliceTracker/GPUTPCDef.h
     SliceTracker/GPUTPCGeometry.h
-    SliceTracker/GPULogging.h
     TRDTracking/GPUTRDGeometry.h
     TRDTracking/GPUTRDTrackerDebug.h
     TRDTracking/GPUTRDInterfaces.h
