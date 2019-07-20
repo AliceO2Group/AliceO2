@@ -261,20 +261,20 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
     }
   }
 
+#if defined(__VERTEXER_ITS_DEBUG)
   for (auto& trklet01 : mComb01) {
     for (auto& trklet12 : mComb12) {
       if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(trklet01.tanLambda - trklet12.tanLambda) };
-#if defined(__VERTEXER_ITS_DEBUG)
         mDeltaTanlambdas.push_back(std::array<float, 8>{ deltaTanLambda,
                                                          mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
                                                          mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
                                                          mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate,
                                                          true });
-#endif
       }
     }
   }
+#endif
 
   for (auto& trk : mComb01) {
     mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data());
