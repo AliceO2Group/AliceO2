@@ -49,6 +49,9 @@ namespace its
 class TrackerTraitsNV : public TrackerTraits
 {
 };
+class VertexerTraitsGPU : public VertexerTraits
+{
+};
 } // namespace its
 } // namespace o2
 #endif

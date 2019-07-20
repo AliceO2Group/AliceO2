@@ -478,7 +478,7 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 
 int GPUReconstruction::GetMaxThreads() { return mDeviceProcessingSettings.nThreads; }
 
-std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::make_unique<GPUThreadContext>(); }
+std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::unique_ptr<GPUReconstruction::GPUThreadContext>(new GPUThreadContext); }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {
