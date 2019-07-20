@@ -78,26 +78,26 @@ CXXFILES					+= 	$(GPUCA_TRACKER_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
 								$(GPUCA_TRD_CXXFILES)
 
-CPPFILES					+= 	utils/timer.cpp \
-								utils/qsem.cpp \
-								utils/qconfig.cpp
+CXXFILES					+= 	utils/timer.cxx \
+								utils/qsem.cxx \
+								utils/qconfig.cxx
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/GPUDisplay.cpp display/GPUDisplayBackend.cpp display/GPUDisplayBackendGlut.cpp display/GPUDisplayBackendNone.cpp display/GPUDisplayInterpolation.cpp display/GPUDisplayQuaternion.cpp display/GPUDisplayKeys.cpp
+CXXFILES					+= display/GPUDisplay.cxx display/GPUDisplayBackend.cxx display/GPUDisplayBackendGlut.cxx display/GPUDisplayBackendNone.cxx display/GPUDisplayInterpolation.cxx display/GPUDisplayQuaternion.cxx display/GPUDisplayKeys.cxx
 CONFIG_OPENGL				= 1
 CONFIG_GLUT					= 1
 CONFIG_GLFW					= 1
 CONFIG_X11					= 1
 ifeq ($(ARCH_CYGWIN), 1)
-CPPFILES					+= display/GPUDisplayBackendWindows.cpp
+CXXFILES					+= display/GPUDisplayBackendWindows.cxx
 else
-CPPFILES					+= display/GPUDisplayBackendX11.cpp
-CPPFILES					+= display/GPUDisplayBackendGlfw.cpp
+CXXFILES					+= display/GPUDisplayBackendX11.cxx
+CXXFILES					+= display/GPUDisplayBackendGlfw.cxx
 endif
 endif
 
 ifeq ($(BUILD_QA), 1)
-CPPFILES					+= qa/GPUQA.cpp qa/genEvents.cpp
+CXXFILES					+= qa/GPUQA.cxx qa/genEvents.cxx
 endif
 
 ifeq ($(LINK_ROOT), 1)
