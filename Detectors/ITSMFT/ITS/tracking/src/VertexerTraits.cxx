@@ -12,11 +12,11 @@
 /// \brief
 ///
 
+#include <cassert>
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
-#include <iostream>
 
 #define LAYER0_TO_LAYER1 0
 #define LAYER1_TO_LAYER2 1
@@ -42,10 +42,12 @@ void trackleterKernelSerial(
   std::vector<Tracklet>& Tracklets,
   std::vector<int>& foundTracklets,
   const char isMc,
-  const std::vector<int>& nextLayerMClabels,
-  const std::vector<int>& currentLayerMClabels,
+  const ROframe* evt = nullptr,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
+  if (isMc) {
+    assert(evt != nullptr);
+  }
   foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
@@ -66,7 +68,9 @@ void trackleterKernelSerial(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{ firstRowClusterIndex }; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < (int)clustersNextLayer.size(); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{ clustersNextLayer[iNextLayerClusterIndex] };
-          const char testMC{ !isMc || (nextLayerMClabels[iNextLayerClusterIndex] == currentLayerMClabels[iCurrentLayerClusterIndex] && nextLayerMClabels[iNextLayerClusterIndex] != -1) };
+          const auto& lblNext = evt->getClusterLabels(layerIndex, nextCluster.clusterId);
+          const auto& lblCurr = evt->getClusterLabels(1, currentCluster.clusterId);
+          const unsigned char testMC{ !isMc || (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) };
           if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (layerOrder == LAYER0_TO_LAYER1) {
@@ -228,45 +232,49 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
 
 void VertexerTraits::computeTrackletsPureMontecarlo()
 {
-
-  std::cout << "Running in Montecarlo trivial mode\n";
+  assert(mEvent != nullptr);
 
   std::vector<int> foundTracklets01;
   std::vector<int> foundTracklets12;
 
-  std::vector<int> labelsMC0 = getMClabelsLayer(0);
-  std::vector<int> labelsMC1 = getMClabelsLayer(1);
-  std::vector<int> labelsMC2 = getMClabelsLayer(2);
-
   for (unsigned int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < mClusters[0].size(); ++iCurrentLayerClusterIndex) {
-    auto& cluster{ mClusters[0][iCurrentLayerClusterIndex] };
+    auto& currentCluster{ mClusters[0][iCurrentLayerClusterIndex] };
     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
-      if (labelsMC1[iNextLayerClusterIndex] == labelsMC0[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1)
-        mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, cluster, nextCluster);
+      const auto& lblNext = mEvent->getClusterLabels(1, nextCluster.clusterId);
+      const auto& lblCurr = mEvent->getClusterLabels(0, currentCluster.clusterId);
+      if (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) {
+        mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
+      }
     }
   }
 
   for (unsigned int iCurrentLayerClusterIndex{ 0 }; iCurrentLayerClusterIndex < mClusters[2].size(); ++iCurrentLayerClusterIndex) {
-    auto& cluster{ mClusters[2][iCurrentLayerClusterIndex] };
+    auto& currentCluster{ mClusters[2][iCurrentLayerClusterIndex] };
     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
-      if (labelsMC1[iNextLayerClusterIndex] == labelsMC2[iCurrentLayerClusterIndex] && labelsMC1[iNextLayerClusterIndex] != -1)
-        mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, cluster);
+      const auto& lblNext = mEvent->getClusterLabels(1, nextCluster.clusterId);
+      const auto& lblCurr = mEvent->getClusterLabels(2, currentCluster.clusterId);
+      if (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) {
+        mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
+      }
     }
   }
 
+#if defined(__VERTEXER_ITS_DEBUG)
   for (auto& trklet01 : mComb01) {
     for (auto& trklet12 : mComb12) {
       if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(trklet01.tanLambda - trklet12.tanLambda) };
-        mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
+        mDeltaTanlambdas.push_back(std::array<float, 8>{ deltaTanLambda,
                                                          mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
                                                          mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
-                                                         mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate });
+                                                         mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate,
+                                                         true });
       }
     }
   }
+#endif
 
   for (auto& trk : mComb01) {
     mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data());
@@ -275,17 +283,11 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
 
 void VertexerTraits::computeTracklets(const bool useMCLabel)
 {
-  // computeTrackletsPureMontecarlo();
   if (useMCLabel)
     std::cout << "Running in Montecarlo check mode\n";
 
   std::vector<int> foundTracklets01;
   std::vector<int> foundTracklets12;
-
-  ///TODO: Ugly hack!! The labels should be optionals in the trackleter kernel
-  std::vector<int> labelsMC0 = useMCLabel ? getMClabelsLayer(0) : std::vector<int>();
-  std::vector<int> labelsMC1 = useMCLabel ? getMClabelsLayer(1) : std::vector<int>();
-  std::vector<int> labelsMC2 = useMCLabel ? getMClabelsLayer(2) : std::vector<int>();
 
   trackleterKernelSerial(
     mClusters[0],
@@ -296,8 +298,7 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     mComb01,
     foundTracklets01,
     useMCLabel,
-    labelsMC0,
-    labelsMC1);
+    mEvent);
 
   trackleterKernelSerial(
     mClusters[2],
@@ -308,8 +309,7 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     mComb12,
     foundTracklets12,
     useMCLabel,
-    labelsMC2,
-    labelsMC1);
+    mEvent);
 
   trackletSelectionKernelSerial(
     mClusters[0],
