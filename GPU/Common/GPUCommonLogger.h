@@ -14,10 +14,16 @@
 #ifndef GPUCOMMONFAIRLOGGER_H
 #define GPUCOMMONFAIRLOGGER_H
 
-#if defined(GPUCA_STANDALONE) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY)
+#if defined(GPUCA_STANDALONE) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPUCODE_DEVICE) || !defined(__cplusplus) || __cplusplus < 201703L
 
 #include <iostream>
+#include <cstdio>
 #define LOG(type) std::cout
+#define LOGF(type, ...)  \
+  {                      \
+    printf(__VA_ARGS__); \
+    printf("\n");        \
+  }
 
 #else
 

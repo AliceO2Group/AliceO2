@@ -24,7 +24,8 @@ set(HDRS_INSTALL
     GPUDef.h
     GPUDefConstantsAndSettings.h
     GPUDefGPUParameters.h
-    GPUDefOpenCL12Templates.h)
+    GPUDefOpenCL12Templates.h
+    GPULogging.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
