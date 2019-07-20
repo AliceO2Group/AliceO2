@@ -20,9 +20,7 @@
 #include <unistd.h>
 #include <GL/glxext.h>
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplayBackendX11 : public GPUDisplayBackend
 {
@@ -52,7 +50,6 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

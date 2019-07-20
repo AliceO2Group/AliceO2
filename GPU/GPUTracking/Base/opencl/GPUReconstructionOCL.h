@@ -22,9 +22,7 @@ extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPURec
 extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionOCLInternals;
 
@@ -71,7 +69,6 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionOCL = GPUReconstructionKernels<GPUReconstructionOCLBackend>;
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

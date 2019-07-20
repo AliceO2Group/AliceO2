@@ -19,9 +19,7 @@
 #include <vector>
 #include <string>
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 static const char* opencl_error_string(int errorcode)
 {
@@ -178,7 +176,6 @@ struct GPUReconstructionOCLInternals {
 };
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

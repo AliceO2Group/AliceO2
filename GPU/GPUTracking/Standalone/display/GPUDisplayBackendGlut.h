@@ -17,9 +17,7 @@
 #include "GPUDisplayBackend.h"
 #include <pthread.h>
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplayBackendGlut : public GPUDisplayBackend
 {
@@ -57,7 +55,6 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
   int mHeight = INIT_HEIGHT;
   bool mFullScreen = false;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

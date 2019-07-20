@@ -14,9 +14,7 @@
 #ifndef GPURECONSTRUCTIONHIPINTERNALS_H
 #define GPURECONSTRUCTIONHIPINTERNALS_H
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionHIPInternals {
   hipStream_t HIPStreams[GPUCA_MAX_STREAMS]; // Pointer to array of HIP Streams
@@ -43,7 +41,6 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 }
 
 static_assert(std::is_convertible<hipEvent_t, void*>::value, "HIP event type incompatible to deviceEvent");
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
