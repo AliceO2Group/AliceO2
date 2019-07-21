@@ -26,17 +26,9 @@
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <arrow/ipc/reader.h>
+#include "../src/ArrowDebugHelpers.h"
 
 using namespace o2::framework;
-
-template class std::shared_ptr<arrow::Schema>;
-template class std::shared_ptr<arrow::Column>;
-template class std::vector<std::shared_ptr<arrow::Column>>;
-template class std::shared_ptr<arrow::Array>;
-template class std::vector<std::shared_ptr<arrow::Field>>;
-template class std::shared_ptr<arrow::ChunkedArray>;
-template class std::shared_ptr<arrow::Table>;
-template class std::shared_ptr<arrow::Field>;
 
 BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
