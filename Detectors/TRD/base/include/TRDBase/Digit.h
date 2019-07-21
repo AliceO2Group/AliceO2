@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include "Rtypes.h" // for ClassDef
 
-#include "TRDBase/TRDCommonParam.h" // For kNLayer
+#include "TRDBase/TRDCommonParam.h"
 
 namespace o2
 {
@@ -57,8 +57,28 @@ class Digit
   ArrayADC_t getADC() const { return mADC; }
 
   // Set of static helper methods
-  static int getPos(const int, const int, const int, const int);
-  static void convertSignalsToDigits(const std::vector<ADC_t>&, std::vector<Digit>&);
+  static int getPos(const int det, const int row, const int pad, const int tb)
+  {
+    // return det * (kNpad_rows * kNpads * kTB) + row * (kNpads * kTB) + pad * kTB + tb;
+    return ((det * kNpad_rows + row) * kNpads + pad) * kTB + tb;
+  };
+  static void convertSignalsToDigits(const std::vector<ADC_t>& signals, std::vector<Digit>& digits)
+  {
+    for (int det = 0; det < kNdet; ++det) {
+      for (int row = 0; row < kNpad_rows; row++) {
+        for (int col = 0; col < kNpads; col++) {
+          const int pos = getPos(det, row, col, 0);
+          // check if pad has no signals
+          const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
+          if (is_empty) {
+            continue; // go to the next row
+          }
+          ArrayADC_t adc(signals.begin() + pos, signals.begin() + pos + kTB);
+          digits.emplace_back(det, row, col, adc);
+        } // loop over cols
+      }   // loop over rows
+    }     // loop over dets
+  }
 
  private:
   std::uint16_t mDetector{ 0 }; // TRD detector number, 0-539
@@ -68,30 +88,6 @@ class Digit
 
   ClassDefNV(Digit, 1);
 };
-
-int getPos(const int det, const int row, const int pad, const int tb)
-{
-  // return det * (kNpad_rows * kNpads * kTB) + row * (kNpads * kTB) + pad * kTB + tb;
-  return ((det * kNpad_rows + row) * kNpads + pad) * kTB + tb;
-};
-
-void convertSignalsToDigits(const std::vector<ADC_t>& signals, std::vector<Digit>& digits)
-{
-  for (int det = 0; det < kNdet; ++det) {
-    for (int row = 0; row < kNpad_rows; row++) {
-      for (int col = 0; col < kNpads; col++) {
-        const int pos = Digit::calculateKey(det, row, col, 0);
-        // check if pad has no signals
-        const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
-        if (is_empty) {
-          continue; // go to the next row
-        }
-        ArrayADC_t adc(signals.begin() + pos, signals.begin() + pos + kTB);
-        digits.emplace_back(det, row, col, adc);
-      } // loop over cols
-    }   // loop over rows
-  }     // loop over dets
-}
 
 } // namespace trd
 } // namespace o2

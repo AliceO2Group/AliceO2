@@ -338,7 +338,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, std
           }
           // Add the signals
           // Get the old signal
-          const int pos = Digit::calculateKey(det, rowE, colPos, iTimeBin);
+          const int pos = Digit::getPos(det, rowE, colPos, iTimeBin);
           signalOld[iPad] = signals[pos];
           if (colPos != colE) {
             // Cross talk added to non-central pads
@@ -415,7 +415,7 @@ bool Digitizer::convertSignalsToADC(const int det, std::vector<ADC_t>& signals)
   // Create the digits for this chamber
   for (int row = 0; row < nRowMax; row++) {
     for (int col = 0; col < nColMax; col++) {
-      int pos = Digit::calculateKey(det, row, col, 0);
+      int pos = Digit::getPos(det, row, col, 0);
       // check if pad has no signals
       const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
       if (is_empty) {
