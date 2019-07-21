@@ -31,8 +31,8 @@ constexpr int kNpad_rows = 16, kNpads = 144; // number of pad rows and pads per 
 constexpr int KEY_MIN = 0;
 constexpr int KEY_MAX = 2211727;
 
-typedef std::uint16_t ADC_t;           // the ADC value type
-typedef std::vector<ADC_t> ArrayADC_t; // the array ADC
+typedef std::uint16_t ADC_t;               // the ADC value type
+typedef std::array<ADC_t, kTB> ArrayADC_t; // the array ADC
 
 class Digit
 {
@@ -73,7 +73,10 @@ class Digit
           if (is_empty) {
             continue; // go to the next row
           }
-          ArrayADC_t adc(signals.begin() + pos, signals.begin() + pos + kTB);
+          ArrayADC_t adc;
+          for (int t = 0; t < kTB; ++t) {
+            adc[t] = signals[pos + t];
+          }
           digits.emplace_back(det, row, col, adc);
         } // loop over cols
       }   // loop over rows
