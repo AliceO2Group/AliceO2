@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include "Rtypes.h" // for ClassDef
 
+#include "TRDBase/TRDCommonParam.h" // For kNLayer
+
 namespace o2
 {
 namespace trd
@@ -25,13 +27,12 @@ namespace trd
 class Digit;
 
 constexpr int kTB = 30;
+constexpr int kNpad_rows = 16, kNpads = 144; // number of pad rows and pads per row
 constexpr int KEY_MIN = 0;
 constexpr int KEY_MAX = 2211727;
 
-typedef std::uint16_t ADC_t;                                   // the ADC value type
-typedef std::array<ADC_t, kTB> ArrayADC_t;                     // the array ADC
-typedef std::vector<Digit> DigitContainer_t;                   // the digit container type
-typedef std::unordered_map<int, ArrayADC_t> SignalContainer_t; // a map container type for signal handling during digitization
+typedef std::uint16_t ADC_t;           // the ADC value type
+typedef std::vector<ADC_t> ArrayADC_t; // the array ADC
 
 class Digit
 {
@@ -56,38 +57,8 @@ class Digit
   ArrayADC_t getADC() const { return mADC; }
 
   // Set of static helper methods
-  static int calculateKey(const int det, const int row, const int col) { return ((det << 12) | (row << 8) | col); }
-  static int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }
-  static int getRowFromKey(const int key) { return (key >> 8) & 0xF; }
-  static int getColFromKey(const int key) { return key & 0xFF; }
-  static void convertMapToVectors(const SignalContainer_t& adcMapCont,
-                                  DigitContainer_t& digitCont)
-  {
-    //
-    // Create a digit and a digit-index container from a map container
-    //
-    digitCont.reserve(adcMapCont.size());
-    for (const auto& element : adcMapCont) {
-      const int key = element.first;
-      digitCont.emplace_back(Digit::getDetectorFromKey(key),
-                             Digit::getRowFromKey(key),
-                             Digit::getColFromKey(key),
-                             element.second);
-    }
-  }
-  static void convertVectorsToMap(const DigitContainer_t& digitCont,
-                                  SignalContainer_t& adcMapCont)
-  {
-    //
-    // Create a map container from a digit and a digit-index container
-    //
-    for (const auto& element : digitCont) {
-      const int key = calculateKey(element.getDetector(),
-                                   element.getRow(),
-                                   element.getPad());
-      adcMapCont[key] = element.getADC();
-    }
-  }
+  static int getPos(const int, const int, const int, const int);
+  static void convertSignalsToDigits(const std::vector<ADC_t>&, std::vector<Digit>&);
 
  private:
   std::uint16_t mDetector{ 0 }; // TRD detector number, 0-539
@@ -97,6 +68,30 @@ class Digit
 
   ClassDefNV(Digit, 1);
 };
+
+int getPos(const int det, const int row, const int pad, const int tb)
+{
+  // return det * (kNpad_rows * kNpads * kTB) + row * (kNpads * kTB) + pad * kTB + tb;
+  return ((det * kNpad_rows + row) * kNpads + pad) * kTB + tb;
+};
+
+void convertSignalsToDigits(const std::vector<ADC_t>& signals, std::vector<Digit>& digits)
+{
+  for (int det = 0; det < kNdet; ++det) {
+    for (int row = 0; row < kNpad_rows; row++) {
+      for (int col = 0; col < kNpads; col++) {
+        const int pos = Digit::calculateKey(det, row, col, 0);
+        // check if pad has no signals
+        const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
+        if (is_empty) {
+          continue; // go to the next row
+        }
+        ArrayADC_t adc(signals.begin() + pos, signals.begin() + pos + kTB);
+        digits.emplace_back(det, row, col, adc);
+      } // loop over cols
+    }   // loop over rows
+  }     // loop over dets
+}
 
 } // namespace trd
 } // namespace o2

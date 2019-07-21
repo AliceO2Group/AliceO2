@@ -34,7 +34,7 @@ class Digitizer
  public:
   Digitizer();
   ~Digitizer() = default;
-  void process(std::vector<HitType> const&, DigitContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void process(std::vector<HitType> const&, std::vector<Digit>&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
@@ -55,11 +55,11 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, SignalContainer_t&);                   // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, SignalContainer_t&);                  // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer_t&);                      // True if signal-to-ADC conversion is successful
-  bool diffusion(float, double, double, double&, double&, double&);             // True if diffusion is applied successfully
+  bool convertHits(const int, const std::vector<HitType>&, std::vector<ADC_t>&); // True if hit-to-signal conversion is successful
+  bool convertSignalsToDigits(const int, std::vector<ADC_t>&);                   // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(const int, std::vector<ADC_t>&);                  // True if signal-to-sdigit conversion is successful
+  bool convertSignalsToADC(const int, std::vector<ADC_t>&);                      // True if signal-to-ADC conversion is successful
+  bool diffusion(float, double, double, double&, double&, double&);              // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2

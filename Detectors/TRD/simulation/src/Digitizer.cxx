@@ -52,19 +52,19 @@ Digitizer::Digitizer()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::process(std::vector<HitType> const& hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   // (WIP) Implementation for digitization
 
   // Check if Geometry and if CCDB are available as they will be requiered
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
-
-  SignalContainer_t adcMapCont;
   mLabels.clear();
-
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
+
+  constexpr int kNelements = kNdet * kNpad_rows * kNpads * kTB;
+  std::vector<ADC_t> signals(kNelements);
 
   // Loop over all TRD detectors
   for (int det = 0; det < kNdet; ++det) {
@@ -83,19 +83,19 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], adcMapCont)) {
+    if (!convertHits(det, hitsPerDetector[det], signals)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
 
-    if (!convertSignalsToDigits(det, adcMapCont)) {
+    if (!convertSignalsToDigits(det, signals)) {
       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
       continue; // go to the next chamber
     }
   }
 
   // Finalize
-  Digit::convertMapToVectors(adcMapCont, digitCont);
+  Digit::convertSignalsToDigits(signals, digits);
 
   // MC labels
   for (int i = 0; i < mLabels.size(); ++i) {
@@ -115,7 +115,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, std::vector<ADC_t>& signals)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -338,11 +338,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Add the signals
           // Get the old signal
-          const int key = Digit::calculateKey(det, rowE, colPos);
-          if (key < KEY_MIN || key > KEY_MAX) {
-            LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
-          }
-          signalOld[iPad] = adcMapCont[key][iTimeBin];
+          const int pos = Digit::calculateKey(det, rowE, colPos, iTimeBin);
+          signalOld[iPad] = signals[pos];
           if (colPos != colE) {
             // Cross talk added to non-central pads
             signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
@@ -351,7 +348,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
             signalOld[iPad] += padSignal[iPad] * timeResponse;
           }
           // Update the final signal
-          adcMapCont[key][iTimeBin] = signalOld[iPad];
+          signals[pos] = signalOld[iPad];
           isDigit = true;
         } // Loop: pads
       }   // Loop: time bins
@@ -361,7 +358,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   return true;
 }
 
-bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToDigits(const int det, std::vector<ADC_t>& signals)
 {
   //
   // conversion of signals to digits
@@ -369,12 +366,12 @@ bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapC
 
   if (mSDigits) {
     // Convert the signal array to s-digits
-    if (!convertSignalsToSDigits(det, adcMapCont)) {
+    if (!convertSignalsToSDigits(det, signals)) {
       return false;
     }
   } else {
     // Convert the signal array to digits
-    if (!convertSignalsToADC(det, adcMapCont)) {
+    if (!convertSignalsToADC(det, signals)) {
       return false;
     }
     // Run digital processing for digits
@@ -383,7 +380,7 @@ bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapC
   return true;
 }
 
-bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToSDigits(const int det, std::vector<ADC_t>& signals)
 {
   //
   // Convert signals to S-digits
@@ -392,14 +389,11 @@ bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMap
   return false;
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToADC(const int det, std::vector<ADC_t>& signals)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
   //
-  if (adcMapCont.size() == 0) {
-    return false;
-  }
 
   constexpr double kEl2fC = 1.602e-19 * 1.0e15;                                 // Converts number of electrons to fC
   double coupling = mSimParam->GetPadCoupling() * mSimParam->GetTimeCoupling(); // Coupling factor
@@ -419,53 +413,57 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   float calGainFactorDetValue = 0.47; // +/- 0.06 // Defaults value  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
 
   // Create the digits for this chamber
-  // for (int row = 0; row < nRowMax; row++) {
-  //   for (int col = 0; col < nColMax; col++) {
-  for (auto& adcMapIter : adcMapCont) {
-    const int row = Digit::getRowFromKey(adcMapIter.first); // for the next line, when ccdb is ready
-    const int col = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
-    // halfchamber masking
-    int iMcm = (int)(col / 18);               // current group of 18 col pads
-    int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
-    // Halfchambers that are switched off, masked by mCalib
-    // if (mCalib->IsHalfChamberNoData(det, halfchamberside))
-    //   continue;
-    // Check whether pad is masked
-    // Bridged pads are not considered yet!!!
-    // if (mCalib->IsPadMasked(det, col, row) ||
-    //     mCalib->IsPadNotConnected(det, col, row)) {
-    //   continue;
-    // }
-
-    // The gain factors
-    float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
-    if (padgain <= 0) {
-      LOG(FATAL) << "Not a valid gain " << padgain
-                 << ", " << det
-                 << ", " << col
-                 << ", " << row;
-    }
-    // loop over time bins
-    // for (int tb = 0; tb < nTimeTotal; tb++) {
-    for (auto& adcArrayVal : adcMapIter.second) {
-      float signalAmp = (float)adcArrayVal; // The signal amplitude
-      signalAmp *= coupling;                // Pad and time coupling
-      signalAmp *= padgain;                 // Gain factors
-      // Add the noise, starting from minus ADC baseline in electrons
-      signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
-      signalAmp *= convert;  // Convert to mV
-      signalAmp += baseline; // Add ADC baseline in mV
-      // Convert to ADC counts
-      // Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
-      ADC_t adc = 0;
-      if (signalAmp >= mSimParam->GetADCinRange()) {
-        adc = ((ADC_t)mSimParam->GetADCoutRange());
-      } else {
-        adc = TMath::Nint(signalAmp * adcConvert);
+  for (int row = 0; row < nRowMax; row++) {
+    for (int col = 0; col < nColMax; col++) {
+      int pos = Digit::calculateKey(det, row, col, 0);
+      // check if pad has no signals
+      const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
+      if (is_empty) {
+        continue; // go to the next row
       }
-      // update the adc array value
-      adcArrayVal = adc;
-    } // for: tb
+      // halfchamber masking
+      int iMcm = (int)(col / 18);               // current group of 18 col pads
+      int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+      // Halfchambers that are switched off, masked by mCalib
+      // if (mCalib->IsHalfChamberNoData(det, halfchamberside))
+      //   continue;
+      // Check whether pad is masked
+      // Bridged pads are not considered yet!!!
+      // if (mCalib->IsPadMasked(det, col, row) ||
+      //     mCalib->IsPadNotConnected(det, col, row)) {
+      //   continue;
+      // }
+
+      // The gain factors
+      float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
+      if (padgain <= 0) {
+        LOG(FATAL) << "Not a valid gain " << padgain
+                   << ", " << det
+                   << ", " << col
+                   << ", " << row;
+      }
+      // loop over time bins
+      for (int tb = 0; tb < nTimeTotal; tb++) {
+        pos = pos + tb;
+        float signalAmp = (float)signals[pos]; // The signal amplitude
+        signalAmp *= coupling;                 // Pad and time coupling
+        signalAmp *= padgain;                  // Gain factors
+        // Add the noise, starting from minus ADC baseline in electrons
+        signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
+        signalAmp *= convert;  // Convert to mV
+        signalAmp += baseline; // Add ADC baseline in mV
+        // Convert to ADC counts
+        // Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
+        ADC_t adc = 0;
+        if (signalAmp >= mSimParam->GetADCinRange()) {
+          adc = ((ADC_t)mSimParam->GetADCoutRange());
+        } else {
+          adc = TMath::Nint(signalAmp * adcConvert);
+        }
+        // update the adc array value
+        signals[pos] = adc;
+      } // for: tb
+    }
   }
   return true;
 }
