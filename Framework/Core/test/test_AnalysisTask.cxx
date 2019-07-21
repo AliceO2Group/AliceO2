@@ -50,6 +50,12 @@ struct CTask : AnalysisTask {
   }
 };
 
+struct DTask : AnalysisTask {
+  void process(o2::aod::Tracks const&)
+  {
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -67,4 +73,8 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task3.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task3.inputs[1].binding, "Tracks");
+
+  auto task4 = adaptAnalysisTask<DTask>("test4");
+  BOOST_CHECK_EQUAL(task4.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "Tracks");
 }

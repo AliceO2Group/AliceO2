@@ -15,8 +15,9 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Kernels.h"
-#include "Framework/Traits.h"
+#include "Framework/Logger.h"
 #include "Framework/StructToTuple.h"
+#include "Framework/Traits.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -164,6 +165,30 @@ struct AnalysisDataProcessorBuilder {
             }
             task.process(groupingElement, groupedElement);
           }
+        } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
+          auto allGroupedTable = std::get<0>(associatedTables);
+          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
+          arrow::compute::FunctionContext ctx;
+          std::vector<arrow::compute::Datum> groupsCollection;
+          auto indexColumnName = std::string("fID4") + groupingMetadata::label();
+          auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
+                                                     allGroupedTable.asArrowTable(), &groupsCollection);
+          if (result.ok() == false) {
+            LOGF(ERROR, "Error while splitting second collection");
+            return;
+          }
+          size_t currentGrouping = 0;
+          auto groupingElement = groupingTable.begin();
+
+          // FIXME: this assumes every groupingElement has a group associated,
+          // which migh not be the case.
+          for (auto& groupedDatum : groupsCollection) {
+            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+            task.process(groupingElement, AssociatedType{ groupedElementsTable });
+            ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+          }
+        } else {
+          static_assert(always_static_assert_v<AssociatedType>, "I do not know how to iterate on this");
         }
       } else {
         static_assert(always_static_assert_v<Grouping>,

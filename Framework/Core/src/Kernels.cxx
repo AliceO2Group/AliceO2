@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Kernels.h"
 #include "Framework/TableBuilder.h"
+#include "ArrowDebugHelpers.h"
 
 #include <arrow/builder.h>
 #include <arrow/status.h>
@@ -127,7 +128,6 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
     }
     outputSlices->emplace_back(Datum(arrow::Table::Make(table->schema(), slicedColumns)));
   }
-  Datum out;
   return arrow::Status::OK();
 }
 
