@@ -213,6 +213,16 @@ class Table
     return end;
   }
 
+  std::shared_ptr<arrow::Table> asArrowTable()
+  {
+    return mTable;
+  }
+
+  std::size_t size() const
+  {
+    return mTable->num_rows();
+  }
+
  private:
   std::shared_ptr<arrow::Table> mTable;
 };
