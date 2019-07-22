@@ -1,31 +1,20 @@
-set(MODULE_NAME "MCHPreClustering")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MCHPreClustering
+               SOURCES src/PreClusterFinder.cxx
+               PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework)
 
-set(SRCS
-   src/PreClusterFinder.cxx
-)
-
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_preclustering_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_preclustering_bucket)
-
-# Define application
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME o2-mch-preclusterizer-workflow
-
-  SOURCES
-  src/PreClusterizerWorkflow.cxx
-  src/DigitSamplerSpec.cxx
-  src/PreClusterFinderSpec.cxx
-  src/PreClusterSinkSpec.cxx
-
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-
-  BUCKET_NAME ${BUCKET_NAME}
-)
+o2_add_executable(preclusterizer-workflow
+                  COMPONENT_NAME mch
+                  SOURCES src/PreClusterizerWorkflow.cxx
+                          src/DigitSamplerSpec.cxx src/PreClusterFinderSpec.cxx
+                          src/PreClusterSinkSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::MCHPreClustering)

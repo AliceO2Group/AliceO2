@@ -134,6 +134,7 @@ struct GPUSettingsDeviceProcessing {
   int nStreams;                       // Number of parallel GPU streams
   bool trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
+  size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

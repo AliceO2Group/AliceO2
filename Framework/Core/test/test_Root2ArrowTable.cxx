@@ -16,6 +16,7 @@
 
 #include "Framework/TableBuilder.h"
 #include "Framework/RootTableBuilderHelpers.h"
+#include "../src/ArrowDebugHelpers.h"
 
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -28,15 +29,6 @@
 #include <arrow/ipc/reader.h>
 
 using namespace o2::framework;
-
-template class std::shared_ptr<arrow::Schema>;
-template class std::shared_ptr<arrow::Column>;
-template class std::vector<std::shared_ptr<arrow::Column>>;
-template class std::shared_ptr<arrow::Array>;
-template class std::vector<std::shared_ptr<arrow::Field>>;
-template class std::shared_ptr<arrow::ChunkedArray>;
-template class std::shared_ptr<arrow::Table>;
-template class std::shared_ptr<arrow::Field>;
 
 BOOST_AUTO_TEST_CASE(RootTree2Table)
 {

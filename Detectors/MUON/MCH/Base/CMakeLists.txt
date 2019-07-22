@@ -1,28 +1,22 @@
-set(MODULE_NAME "MCHBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MCHBase
+               SOURCES src/Mapping.cxx src/DigitBlock.cxx
+                       src/PreClusterBlock.cxx src/ClusterBlock.cxx
+                       src/TrackBlock.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
 
-link_directories( ${LINK_DIRECTORIES})
-
-set(SRCS
-   src/Mapping.cxx
-   src/DigitBlock.cxx
-   src/PreClusterBlock.cxx
-   src/ClusterBlock.cxx
-   src/TrackBlock.cxx
-)
-
-set(HEADERS
-   include/${MODULE_NAME}/Mapping.h
-   include/${MODULE_NAME}/DigitBlock.h
-   include/${MODULE_NAME}/PreClusterBlock.h
-   include/${MODULE_NAME}/ClusterBlock.h
-   include/${MODULE_NAME}/TrackBlock.h
-)
-
-set(LINKDEF src/MCHBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_base_bucket)
-
-O2_GENERATE_LIBRARY()
-
+o2_target_root_dictionary(MCHBase
+                          HEADERS include/MCHBase/Mapping.h
+                                  include/MCHBase/DigitBlock.h
+                                  include/MCHBase/PreClusterBlock.h
+                                  include/MCHBase/ClusterBlock.h
+                                  include/MCHBase/TrackBlock.h)

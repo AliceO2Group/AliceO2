@@ -1,17 +1,15 @@
-set(MODULE_NAME "FDDBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(FDDBase
+               SOURCES src/Geometry.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Geom FairRoot::Base)
 
-set(SRCS
-  src/Geometry.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/Geometry.h
-    )
-
-Set(LINKDEF src/FDDBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fit_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(FDDBase HEADERS include/FDDBase/Geometry.h)

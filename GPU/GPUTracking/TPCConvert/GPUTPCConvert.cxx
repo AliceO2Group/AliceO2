@@ -15,7 +15,7 @@
 #include "TPCFastTransform.h"
 #include "GPUTPCClusterData.h"
 #include "GPUReconstruction.h"
-#include "ClusterNativeAccessExt.h"
+#include "GPUO2DataTypes.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -51,14 +51,9 @@ void GPUTPCConvert::RegisterMemoryAllocation()
 
 void GPUTPCConvert::SetMaxData()
 {
-  unsigned int offset = 0;
   if (mClustersNative) {
-    for (unsigned int i = 0; i < NSLICES; i++) {
-      for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
-        mClustersNative->clusterOffset[i][j] = offset;
-        offset += mClustersNative->nClusters[i][j];
-      }
-    }
+    mNClustersTotal = mClustersNative->nClustersTotal;
+  } else {
+    mNClustersTotal = 0;
   }
-  mNClustersTotal = offset;
 }

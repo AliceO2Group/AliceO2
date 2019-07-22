@@ -131,7 +131,7 @@ inline std::vector<int> ROframe::getTracksId(const int layerId, const std::vecto
 {
   std::vector<int> tracksId;
   for (auto& cluster : cl) {
-    tracksId.push_back(getClusterLabels(layerId, cluster).getTrackID());
+    tracksId.push_back(getClusterLabels(layerId, cluster).isNoise() ? -1 : getClusterLabels(layerId, cluster).getTrackID());
   }
   return tracksId;
 }

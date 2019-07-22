@@ -19,8 +19,8 @@
 #include "GPUTPCMCInfo.h"
 #include "GPUTPCClusterData.h"
 #include "AliHLTTPCRawCluster.h"
-#include "ClusterNativeAccessExt.h"
 #include "TPCFastTransform.h"
+#include "GPUO2DataTypes.h"
 
 #include <cstdio>
 #include <exception>
@@ -49,8 +49,8 @@ GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, 
     }
     mTrainDist = mMaxBunches / config.bunchTrainCount;
     mCollisionProbability = (float)config.interactionRate * (float)(mMaxBunchesFull * config.bunchSpacing / 1e9f) / (float)(config.bunchCount * config.bunchTrainCount);
-    printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n", config.bunchTrainCount, config.bunchCount, config.bunchSpacing,
-           mTrainDist, config.bunchSpacing, config.bunchCount * config.bunchTrainCount, mMaxBunches, mMaxBunchesFull, mCollisionProbability, mNEventsInDirectory);
+    printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n", config.bunchTrainCount, config.bunchCount, config.bunchSpacing, mTrainDist, config.bunchSpacing,
+           config.bunchCount * config.bunchTrainCount, mMaxBunches, mMaxBunchesFull, mCollisionProbability, mNEventsInDirectory);
   }
 
   mEventStride = configStandalone.seed;
@@ -136,7 +136,7 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
     }
   }
 
-  mShiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::tpc::ClusterNativeAccessFullTPC());
+  mShiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::tpc::ClusterNativeAccess());
   return nClusters;
 }
 

@@ -71,6 +71,7 @@
 #include <chrono>
 #include <utility>
 
+#include <fcntl.h>
 #include <netinet/ip.h>
 #include <sys/resource.h>
 #include <sys/select.h>
@@ -249,9 +250,17 @@ int createPipes(int maxFd, int* pipes)
 // we simply note down the fact a signal arrived.
 // All the processing is done by the state machine.
 volatile sig_atomic_t graceful_exit = false;
+volatile sig_atomic_t forceful_exit = false;
 volatile sig_atomic_t sigchld_requested = false;
 
-static void handle_sigint(int) { graceful_exit = true; }
+static void handle_sigint(int)
+{
+  if (graceful_exit == false) {
+    graceful_exit = true;
+  } else {
+    forceful_exit = true;
+  }
+}
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
@@ -314,7 +323,7 @@ void spawnDevice(std::string const& forwardedStdin,
     exit(1);
   }
 
-  LOG(INFO) << "Starting " << spec.id << " on pid " << id << "\n";
+  LOG(INFO) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -341,6 +350,16 @@ void spawnDevice(std::string const& forwardedStdin,
   }
   close(childstdin[1]); // Not allowing further communication...
 
+  // Setting them to non-blocking to avoid haing the driver hang when
+  // reading from child.
+  int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
+  if (resultCode == -1) {
+    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+  }
+  resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
+  if (resultCode == -1) {
+    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+  }
   FD_SET(childstdout[0], &childFdset);
   FD_SET(childstderr[0], &childFdset);
 }
@@ -406,6 +425,8 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
     DeviceMetricsInfo& metrics = metricsInfos[di];
+    assert(specs.size() == infos.size());
+    DeviceSpec const& spec = specs[di];
 
     if (info.unprinted.empty()) {
       continue;
@@ -467,7 +488,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
-        std::cout << "[" << info.pid << "]: " << token << std::endl;
+        std::cout << "[" << info.pid << ":" << spec.name << "]: " << token << std::endl;
       }
       // We keep track of the maximum log error a
       // device has seen.
@@ -702,7 +723,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   if (driverInfo.batch == false && frameworkId.empty()) {
     window = initGUI("O2 Framework debug GUI");
   }
-  if (driverInfo.batch == false && window == nullptr) {
+  if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
     driverInfo.batch = true;
   }
@@ -802,6 +823,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
+                                                            driverInfo.dispatchPolicies,
                                                             deviceSpecs,
                                                             resources);
           // This should expand nodes so that we can build a consistent DAG.
@@ -931,8 +953,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::QUIT_REQUESTED:
-        LOG(INFO) << "QUIT_REQUESTED" << std::endl;
+        LOG(INFO) << "QUIT_REQUESTED";
         guiQuitRequested = true;
+        // We send SIGCONT to make sure stopped children are resumed
+        killChildren(infos, SIGCONT);
         killChildren(infos, SIGTERM);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         driverInfo.states.push_back(DriverState::GUI);
@@ -940,6 +964,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::HANDLE_CHILDREN:
         // I allow queueing of more sigchld only when
         // I process the previous call
+        if (forceful_exit == true) {
+          LOG(INFO) << "Forceful exit requested.";
+          killChildren(infos, SIGCONT);
+          killChildren(infos, SIGKILL);
+        }
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
@@ -1130,6 +1159,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
            std::vector<CompletionPolicy> const& completionPolicies,
+           std::vector<DispatchPolicy> const& dispatchPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -1257,6 +1287,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.sigchldRequested = false;
   driverInfo.channelPolicies = channelPolicies;
   driverInfo.completionPolicies = completionPolicies;
+  driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();

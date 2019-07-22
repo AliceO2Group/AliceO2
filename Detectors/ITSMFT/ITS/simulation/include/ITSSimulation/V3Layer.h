@@ -329,7 +329,6 @@ class V3Layer : public V11Geometry
   static const Int_t sNumberOfInnerLayers; ///< Number of IB Layers
 
   static const Double_t sDefaultSensorThick; ///< Default sensor thickness
-  static const Double_t sDefaultChipThick;   ///< Default chip thickness
   static const Double_t sMetalLayerThick;    ///< Metal layer thickness
 
   // Inner Barrel Parameters

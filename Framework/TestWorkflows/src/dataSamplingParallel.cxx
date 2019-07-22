@@ -59,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm } },
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   auto processingStages = parallel(
@@ -74,7 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   auto inputsSink = mergeInputs(

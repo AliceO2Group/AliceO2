@@ -95,7 +95,6 @@ class GPUTPCGMMerger : public GPUProcessor
   }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return (mClusterAttachment); }
-  GPUhd() int MaxId() const { return (mMaxID); }
   GPUhd() unsigned int* TrackOrder() const { return (mTrackOrder); }
 
   enum attachTypes { attachAttached = 0x40000000,

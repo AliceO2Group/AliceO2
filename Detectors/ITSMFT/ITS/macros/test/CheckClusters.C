@@ -70,9 +70,10 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
       float dx = 0, dz = 0;
       int trID = lab.getTrackID();
+      bool isOK = lab.isValid();
       int ievH = lab.getEventID();
       Point3D<float> locH, locHsta;
-      if (trID >= 0) { // is this cluster from hit or noise ?
+      if (isOK) { // is this cluster from hit or noise ?
         Hit* p = nullptr;
         if (lastReadHitEv != ievH) {
           hitTree->GetEvent(ievH);
