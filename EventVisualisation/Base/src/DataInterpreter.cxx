@@ -21,7 +21,7 @@ using namespace std;
 namespace o2  {
 namespace event_visualisation {
 
-DataInterpreter* DataInterpreter::instance = nullptr;
+DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
 DataInterpreter::DataInterpreter() = default;
 
 TEveElement* DataInterpreter::interpretDataForType(TObject* data, EDataType type) {

@@ -52,8 +52,7 @@ public:
     /// Setter of the current data source path
     inline void setDataSourcePath(const TString& path) { dataPath = path;}
     /// Sets the CDB path in CCDB Manager
-    inline void setCdbPath(const TString& path)
-    {
+    inline void setCdbPath(const TString& path)  {
       o2::ccdb::Manager::Instance()->setDefaultStorage(path.Data());
     }
     Int_t getCurrentEvent() {return currentEvent;}

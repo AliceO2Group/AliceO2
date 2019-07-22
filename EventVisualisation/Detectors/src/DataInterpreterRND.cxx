@@ -56,11 +56,6 @@ TEveElement* DataInterpreterRND::interpretDataForType(TObject* data, EDataType t
   TEveElementList *container = new TEveElementList("Random tracks by PID");
   container->SetTitle(Form("Multiplicity = %d", minEvent->GetMultiplicity()));
 
-  gEve->AddElement(container);
-    gEve->Redraw3D(kTRUE);
-
-
-  
   TEveTrackList *trackList[nParticleTypes];
   trackList[0] = new TEveTrackList("Electrons");
   trackList[1] = new TEveTrackList("Muons");
@@ -115,8 +110,6 @@ TEveElement* DataInterpreterRND::interpretDataForType(TObject* data, EDataType t
     trackList[i]->SetTitle(Form("N tracks=%d", trackList[i]->NumChildren()));
     trackList[i]->MakeTracks();
   }
-  container->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
-  
   return container;
 }
   

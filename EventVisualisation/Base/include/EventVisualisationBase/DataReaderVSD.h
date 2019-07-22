@@ -5,7 +5,8 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
 
-#include <EventVisualisationBase/DataSourceOffline.h>
+#include <EventVisualisationBase/DataReader.h>
+#include <EventVisualisationBase/VisualisationConstants.h>
 #include <TString.h>
 #include <TEveTrack.h>
 #include <TEveViewer.h>
@@ -18,22 +19,16 @@ namespace o2  {
 namespace event_visualisation {
 
 
-class DataSourceOfflineVSD : public DataSourceOffline {
-
+class DataReaderVSD : public DataReader {
     TFile *fFile;
     TObjArray *fEvDirKeys;
     Int_t fMaxEv, fCurEv;
 
 public:
-    // ----------------------------------------------------------
-    // Event visualization structures
-    // ----------------------------------------------------------
-
-
     Int_t GetEventCount() override { return fEvDirKeys->GetEntriesFast(); };
-    DataSourceOfflineVSD();
-    ~DataSourceOfflineVSD() override;
-    void open(TString ESDFileName) override;
+    DataReaderVSD();
+    ~DataReaderVSD() override;
+    void open() override;
     TObject* getEventData(int no) override;
 };
 

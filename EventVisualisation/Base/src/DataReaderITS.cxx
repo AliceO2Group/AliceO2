@@ -2,7 +2,7 @@
 // Created by jmy on 09.07.19.
 //
 //#include "EventVisualisationView/MultiView.h"
-#include "EventVisualisationBase/DataSourceOfflineITS.h"
+#include "EventVisualisationBase/DataReaderITS.h"
 
 
 //
@@ -433,9 +433,7 @@ TEveElementList* ITSData::displayData(int entry, int chip)
     mEvent = new TEveElementList(ename.c_str());
     mEvent->AddElement(clusters);
     mEvent->AddElement(tracks);
-
     return mEvent;
-
 }
 
 
@@ -516,14 +514,14 @@ void ITSDisplayEvents()
 
 
 
-o2::event_visualisation::DataSourceOfflineITS::DataSourceOfflineITS() {
+o2::event_visualisation::DataReaderITS::DataReaderITS() {
 
 }
 
-void o2::event_visualisation::DataSourceOfflineITS::open(TString fileName) {
-    DataSourceOffline::open(fileName);
+void o2::event_visualisation::DataReaderITS::open() {
+
 }
 
-Bool_t o2::event_visualisation::DataSourceOfflineITS::GotoEvent(Int_t ev) {
+Bool_t o2::event_visualisation::DataReaderITS::GotoEvent(Int_t ev) {
     return 0;
 }

@@ -5,6 +5,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 
+#include <EventVisualisationBase/VisualisationConstants.h>
 #include <TQObject.h>
 
 
@@ -15,9 +16,9 @@ class DataSource : public TQObject {
 public:
 
     virtual void nextEvent() {};
-    virtual TObject* getEventData(int no) { return nullptr;};
+    virtual TObject* getEventData(int no, EVisualisationGroup purpose) { return nullptr;};
     virtual Int_t GetEventCount() { return 0; };
-    virtual void open(TString ESDFileName) {};
+    virtual void open() {};
     virtual void close() {};
 
     DataSource(){};

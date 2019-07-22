@@ -9,7 +9,7 @@
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationBase/DataSourceOffline.h>
-#include <EventVisualisationBase/DataSourceOfflineVSD.h>
+#include <EventVisualisationBase/DataReaderVSD.h>
 #include <Rtypes.h>
 #include <iostream>
 
@@ -84,7 +84,7 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame *p, const char *txt
 void EventManagerFrame::DoFirstEvent() {
     fM->GotoEvent(0);
     fEventId->SetIntNumber(fM->getCurrentEvent());
-//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    DataReaderVSD* offline = dynamic_cast<DataReaderVSD*>(fM->getDataSource());
 //    std::cout << "DoFirstEvent" << std::endl;
 //    fEventId->SetIntNumber(0);
 //    offline->GotoEvent(0);
@@ -95,7 +95,7 @@ void EventManagerFrame::DoPrevEvent() {
     fEventId->SetIntNumber(fM->getCurrentEvent());
 //    std::cout << "DoPrevEvent" << std::endl;
 //    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()-1));
-//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    DataReaderVSD* offline = dynamic_cast<DataReaderVSD*>(fM->getDataSource());
 //    offline->GotoEvent(fEventId->GetNumber());
 }
 
@@ -104,7 +104,7 @@ void EventManagerFrame::DoNextEvent() {
     fEventId->SetIntNumber(fM->getCurrentEvent());
 //    std::cout << "DoNextEvent" << std::endl;
 //    fEventId->SetIntNumber(fM->gotoEvent(fEventId->GetNumber()+1));
-//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    DataReaderVSD* offline = dynamic_cast<DataReaderVSD*>(fM->getDataSource());
 //    offline->GotoEvent(fEventId->GetNumber());
 }
 
@@ -113,7 +113,7 @@ void EventManagerFrame::DoLastEvent() {
     fEventId->SetIntNumber(fM->getCurrentEvent());
 //    std::cout << "DoLastEvent" << std::endl;
 //    fEventId->SetIntNumber(fM->gotoEvent(-1));      // -1 means last available
-//    DataSourceOfflineVSD* offline = dynamic_cast<DataSourceOfflineVSD*>(fM->getDataSource());
+//    DataReaderVSD* offline = dynamic_cast<DataReaderVSD*>(fM->getDataSource());
 //    offline->GotoEvent(fEventId->GetNumber());
 }
 

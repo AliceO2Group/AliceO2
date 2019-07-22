@@ -12,8 +12,8 @@ set(SRCS
     src/GeometryManager.cxx
     src/Track.cxx
     src/DataSourceOffline.cxx
-    src/DataSourceOfflineVSD.cxx
-    src/DataSourceOfflineITS.cxx
+    src/DataReaderVSD.cxx
+    src/DataReaderITS.cxx
     src/EventRegistration.cxx
     )
 
@@ -26,8 +26,9 @@ set(HEADERS
     include/${MODULE_NAME}/Track.h
     include/${MODULE_NAME}/VisualisationConstants.h
     include/${MODULE_NAME}/DataSourceOffline.h
-    include/${MODULE_NAME}/DataSourceOfflineVSD.h
-    include/${MODULE_NAME}/DataSourceOfflineITS.h
+    include/${MODULE_NAME}/DataReader.h
+    include/${MODULE_NAME}/DataReaderVSD.h
+    include/${MODULE_NAME}/DataReaderITS.h
     include/${MODULE_NAME}/EventRegistration.h
     )
 

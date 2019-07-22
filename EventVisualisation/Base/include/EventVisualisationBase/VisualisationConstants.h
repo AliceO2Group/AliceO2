@@ -21,7 +21,7 @@
 namespace o2  {
 namespace event_visualisation {
 
-enum EVisualisationGroup{
+enum EVisualisationGroup {
   ACO,
   EMC,
   HMP,
@@ -35,6 +35,7 @@ enum EVisualisationGroup{
   TPC,
   TRD,
   RND,
+  VSD,
   NvisualisationGroups
 };
   

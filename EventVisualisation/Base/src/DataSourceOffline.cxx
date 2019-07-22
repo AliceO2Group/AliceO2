@@ -19,6 +19,14 @@
 namespace o2 {
 namespace event_visualisation {
 
+DataReader* DataSourceOffline::instance[EVisualisationGroup::NvisualisationGroups];
+
+TObject* DataSourceOffline::getEventData(int no, EVisualisationGroup purpose) {
+  if( instance[purpose] == nullptr)
+    return nullptr;
+  return instance[purpose]->getEventData(no);
+}
+
 
 }
 }

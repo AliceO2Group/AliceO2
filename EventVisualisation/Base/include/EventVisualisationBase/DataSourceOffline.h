@@ -6,6 +6,7 @@
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINE_H
 
 #include <EventVisualisationBase/DataSource.h>
+#include <EventVisualisationBase/DataReader.h>
 #include <TString.h>
 
 namespace o2  {
@@ -13,13 +14,8 @@ namespace event_visualisation {
 
 class DataSourceOffline : public DataSource {
 protected:
-    TString fgESDFileName ;
-    bool isOpen = kFALSE;
-
+    static DataReader* instance[EVisualisationGroup::NvisualisationGroups];
 public:
-    virtual void open(TString ESDFileName) override {
-        this->fgESDFileName = ESDFileName;
-    };
 
     void nextEvent() override {};
     DataSourceOffline() {}
@@ -29,6 +25,18 @@ public:
     DataSourceOffline(DataSourceOffline const&) = delete;
     /// Deleted assignemt operator
     void operator=(DataSourceOffline const&) = delete;
+
+    Int_t GetEventCount() override {
+      for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++)
+        if(instance[i] != nullptr)
+          return instance[i]->GetEventCount();
+      return 1;
+    };
+
+    void registerReader(DataReader *reader, EVisualisationGroup purpose) {
+      instance[purpose] = reader;
+    };
+    TObject* getEventData(int no, EVisualisationGroup purpose) override;
 };
 
 

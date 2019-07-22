@@ -93,8 +93,7 @@ void DataInterpreterVSD::AttachEvent() {
 
 void DataInterpreterVSD::DropEvent() {
   assert(fVSD != nullptr);
-  // Drup currently held event data, release current directory.
-
+  // Drop currently held event data, release current directory.
   // Drop old visualization structures.
 
   this->viewers = gEve->GetViewers();
@@ -119,12 +118,12 @@ void DataInterpreterVSD::LoadEsdTracks() {
     fTrackList->SetMarkerColor(kYellow);
     fTrackList->SetMarkerStyle(4);
     fTrackList->SetMarkerSize(0.5);
-    fTrackList->SetLineWidth(5);
+    fTrackList->SetLineWidth(1);
 
     fTrackList->IncDenyDestroy();
   } else {
     fTrackList->DestroyElements();
-    EventRegistration::getInstance()->destroyAllEvents();
+
   }
 
   TEveTrackPropagator *trkProp = fTrackList->GetPropagator();
@@ -135,10 +134,12 @@ void DataInterpreterVSD::LoadEsdTracks() {
 
   Int_t nTracks = fVSD->fTreeR->GetEntries();
 
+
   for (Int_t n = 0; n < nTracks; n++) {
     fVSD->fTreeR->GetEntry(n);
 
     auto *track = new TEveTrack(&fVSD->fR, trkProp);
+    std::cout << track->GetIndex() << std::endl;
     track->SetAttLineAttMarker(fTrackList);
     track->SetName(Form("ESD Track %d", fVSD->fR.fIndex));
     track->SetStdTitle();
