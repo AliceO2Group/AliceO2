@@ -12,8 +12,8 @@
 #define ALICEO2_FIT_DIGITIZER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsFITT0/Digit.h"
-#include "DataFormatsFITT0/MCLabel.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/MCLabel.h"
 #include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

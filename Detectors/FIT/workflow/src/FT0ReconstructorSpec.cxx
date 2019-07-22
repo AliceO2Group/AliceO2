@@ -14,8 +14,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
 #include "FITWorkflow/FT0ReconstructorSpec.h"
-#include "DataFormatsFITT0/Digit.h"
-#include "DataFormatsFITT0/MCLabel.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/MCLabel.h"
 
 using namespace o2::framework;
 

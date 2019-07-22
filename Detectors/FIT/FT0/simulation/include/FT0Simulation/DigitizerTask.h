@@ -17,12 +17,12 @@
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 
-#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFT0/Digit.h"
 #include "FT0Simulation/Detector.h" // for HitType
 #include "FITSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "DataFormatsFITT0/MCLabel.h"
+#include "DataFormatsFT0/MCLabel.h"
 
 namespace o2
 {

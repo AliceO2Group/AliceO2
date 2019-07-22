@@ -16,7 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
-#include "DataFormatsFITT0/RecPoints.h"
+#include "DataFormatsFT0/RecPoints.h"
 
 using namespace o2::framework;
 

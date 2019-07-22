@@ -32,7 +32,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsFITT0/RecPoints.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
