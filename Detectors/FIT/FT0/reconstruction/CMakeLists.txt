@@ -10,7 +10,7 @@
 
 o2_add_library(FT0Reconstruction
                SOURCES src/CollisionTimeRecoTask.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsFITT0)
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0)
 
 o2_target_root_dictionary(
   FT0Reconstruction

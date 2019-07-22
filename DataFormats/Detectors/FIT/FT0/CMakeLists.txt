@@ -8,13 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsFITT0
+o2_add_library(DataFormatsFT0
                SOURCES src/Digit.cxx src/RecPoints.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::SimulationDataFormat)
 
-o2_target_root_dictionary(DataFormatsFITT0
-                          HEADERS include/DataFormatsFITT0/Digit.h
-                                  include/DataFormatsFITT0/RecPoints.h
-                                  include/DataFormatsFITT0/MCLabel.h
-                                  include/DataFormatsFITT0/HitType.h)
+o2_target_root_dictionary(DataFormatsFT0
+                          HEADERS include/DataFormatsFT0/Digit.h
+                                  include/DataFormatsFT0/RecPoints.h
+                                  include/DataFormatsFT0/MCLabel.h
+                                  include/DataFormatsFT0/HitType.h)
