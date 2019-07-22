@@ -16,7 +16,7 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "FITSimulation/Digitizer.h"
-#include "T0Simulation/DigitizationParameters.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include "DataFormatsFITT0/Digit.h"
 #include "DataFormatsFITT0/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
