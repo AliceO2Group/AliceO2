@@ -19,5 +19,5 @@ o2_add_test(Logger NAME test_FrameworkLogger_unittest_Logger
             COMPONENT_NAME framework
             PUBLIC_LINK_LIBRARIES O2::FrameworkLogger)
 
-install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/${baseTargetName}
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/Framework
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
