@@ -15,5 +15,5 @@ o2_add_test_root_macro(readHitsDigits.C
 o2_add_test_root_macro(run_reco_t0.C
                        PUBLIC_LINK_LIBRARIES FairRoot::Base
                                              FairLogger::FairLogger
-                                             O2::T0Reconstruction
+                                             O2::FT0Reconstruction
                        LABELS fit)

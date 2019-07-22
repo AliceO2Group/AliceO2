@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0ReconstructorSpec.cxx
+/// @file   FT0ReconstructorSpec.cxx
 
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
-#include "FITWorkflow/T0ReconstructorSpec.h"
+#include "FITWorkflow/FT0ReconstructorSpec.h"
 #include "DataFormatsFITT0/Digit.h"
 #include "DataFormatsFITT0/MCLabel.h"
 
@@ -24,11 +24,11 @@ namespace o2
 namespace ft0
 {
 
-void T0ReconstructorDPL::init(InitContext& ic)
+void FT0ReconstructorDPL::init(InitContext& ic)
 {
 }
 
-void T0ReconstructorDPL::run(ProcessingContext& pc)
+void FT0ReconstructorDPL::run(ProcessingContext& pc)
 {
   if (mFinished) {
     return;
@@ -59,13 +59,13 @@ void T0ReconstructorDPL::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getT0ReconstructorSpec(bool useMC)
+DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFT0, "DIGITS", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(INFO) << "Currently T0Reconstructor does not consume and provide MC truth";
+    LOG(INFO) << "Currently FT0Reconstructor does not consume and provide MC truth";
     // inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
@@ -74,7 +74,7 @@ DataProcessorSpec getT0ReconstructorSpec(bool useMC)
     "t0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<T0ReconstructorDPL>(useMC) },
+    AlgorithmSpec{ adaptFromTask<FT0ReconstructorDPL>(useMC) },
     Options{}
   };
 }

@@ -8,9 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(T0Simulation
-               SOURCES src/Detector.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::T0Base
-                                     O2::DataFormatsFITT0)
+o2_add_library(FT0Base
+               SOURCES src/Geometry.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Physics FairRoot::Base)
 
-o2_target_root_dictionary(T0Simulation HEADERS include/T0Simulation/Detector.h)
+o2_target_root_dictionary(FT0Base HEADERS include/FT0Base/Geometry.h)
+
+o2_data_file(COPY files DESTINATION Detectors/FT0/)

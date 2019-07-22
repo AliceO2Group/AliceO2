@@ -9,7 +9,7 @@
 
 #include "FairLogger.h"
 
-#include "T0Reconstruction/CollisionTimeRecoTask.h"
+#include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFITT0/RecPoints.h"
 #include "DataFormatsFITT0/Digit.h"
 #endif

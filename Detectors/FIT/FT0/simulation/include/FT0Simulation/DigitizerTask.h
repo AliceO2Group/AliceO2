@@ -18,7 +18,7 @@
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 
 #include "DataFormatsFITT0/Digit.h"
-#include "T0Simulation/Detector.h" // for HitType
+#include "FT0Simulation/Detector.h" // for HitType
 #include "FITSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

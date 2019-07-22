@@ -11,7 +11,7 @@
 /// \file  CollisionTimeRecoTask.cxx
 /// \brief Implementation of the FIT reconstruction task
 
-#include "T0Reconstruction/CollisionTimeRecoTask.h"
+#include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "FairLogger.h" // for LOG
 
 using namespace o2::ft0;

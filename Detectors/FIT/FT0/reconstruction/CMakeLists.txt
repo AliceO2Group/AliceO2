@@ -8,10 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(T0Reconstruction
+o2_add_library(FT0Reconstruction
                SOURCES src/CollisionTimeRecoTask.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFITT0)
 
 o2_target_root_dictionary(
-  T0Reconstruction
-  HEADERS include/T0Reconstruction/CollisionTimeRecoTask.h)
+  FT0Reconstruction
+  HEADERS include/FT0Reconstruction/CollisionTimeRecoTask.h)

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0RecPointReaderSpec.h
+/// @file   FT0RecPointReaderSpec.h
 
 #ifndef O2_T0_RECPOINTREADER
 #define O2_T0_RECPOINTREADER
@@ -48,7 +48,7 @@ class RecPointReader : public Task
 
 /// create a processor spec
 /// read simulated ITS digits from a root file
-framework::DataProcessorSpec getT0RecPointReaderSpec(bool useMC);
+framework::DataProcessorSpec getFT0RecPointReaderSpec(bool useMC);
 
 } // namespace ft0
 } // namespace o2
