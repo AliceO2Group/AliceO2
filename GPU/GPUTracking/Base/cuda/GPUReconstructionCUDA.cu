@@ -89,6 +89,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnl
   } else {
     runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
+  GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->CudaStreams[x.stream]));
   }
