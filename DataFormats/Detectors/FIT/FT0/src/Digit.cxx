@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFT0/Digit.h"
 #include <iostream>
 
 using namespace o2::ft0;

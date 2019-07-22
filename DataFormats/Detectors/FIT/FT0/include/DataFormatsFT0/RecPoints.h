@@ -18,7 +18,7 @@
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>
-#include <DataFormatsFITT0/Digit.h>
+#include <DataFormatsFT0/Digit.h>
 
 namespace o2
 {

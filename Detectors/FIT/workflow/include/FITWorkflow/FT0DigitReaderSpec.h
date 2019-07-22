@@ -17,8 +17,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsFITT0/Digit.h"
-#include "DataFormatsFITT0/MCLabel.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;

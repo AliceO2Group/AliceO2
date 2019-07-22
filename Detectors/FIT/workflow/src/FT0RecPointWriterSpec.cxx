@@ -16,7 +16,7 @@
 
 #include "Framework/ControlService.h"
 #include "FITWorkflow/FT0RecPointWriterSpec.h"
-#include "DataFormatsFITT0/RecPoints.h"
+#include "DataFormatsFT0/RecPoints.h"
 
 using namespace o2::framework;
 

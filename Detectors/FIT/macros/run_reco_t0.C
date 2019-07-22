@@ -10,8 +10,8 @@
 #include "FairLogger.h"
 
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
-#include "DataFormatsFITT0/RecPoints.h"
-#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFT0/RecPoints.h"
+#include "DataFormatsFT0/Digit.h"
 #endif
 
 void run_reco_t0(std::string inpudDig = "t0digits.root",
