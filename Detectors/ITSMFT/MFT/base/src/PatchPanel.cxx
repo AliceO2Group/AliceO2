@@ -459,30 +459,25 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   new TGeoTubeSeg("s_slideR", radin_slideR, radout_slideR, high_slideR / 2, angin_slideR, angfin_slideR);
 
   //// composite shape for base new
-  //auto* baseA_Shape_0 = 
+
   new TGeoCompositeShape("baseA_Shape_0",
-                                               "S_DISC -BOX1 -S_TRIA_CUT1 -S_TRIA_CUT2  -BOX2 "
-                                               "-SEG_1HOLE -S_SCUT1:tr_discL -S_SCUT2:tr_discR  -smile "
-                                               "-cutlatL - cutlatR ");
+                         "S_DISC -BOX1 -S_TRIA_CUT1 -S_TRIA_CUT2  -BOX2 "
+                         "-SEG_1HOLE -S_SCUT1:tr_discL -S_SCUT2:tr_discR  -smile "
+                         "-cutlatL - cutlatR ");
 
-  //auto* baseA_Shape_1 = 
   new TGeoCompositeShape("baseA_Shape_1",
-                                               "S_shoulder  - S_CIRC_AHOLE:tr_H  + S_SEG_HORNL:tr_hornl +  "
-                                               "S_SEG_HORNR:tr_hornR +Abox:combi_zp54 +Abox:combi_zn54 +pyramid "
-                                               " ");
+                         "S_shoulder  - S_CIRC_AHOLE:tr_H  + S_SEG_HORNL:tr_hornl +  "
+                         "S_SEG_HORNR:tr_hornR +Abox:combi_zp54 +Abox:combi_zn54 +pyramid "
+                         " ");
 
-  //auto* baseA_Shape_2 = 
   new TGeoCompositeShape("baseA_Shape_2",
-                                               " S_PART_HAND_L +hand_L +hand_R +part_handR  -S_CIRC_AHOLE:tr_B "
-                                               "- S_CIRC_AHOLE:tr_II -S_CIRC_AHOLE:tr_A1 +c_ext:tr_cext  "
-                                               "+kiroc:tr_cext +slimdisL:tr_slimL +slimdisR:tr_slimL + tanqL "
-                                               "+tanqR +frog_eyeL +frog_eyeR - s_slideL:tr_slide - "
-                                               "s_slideR:tr_slide");
+                         " S_PART_HAND_L +hand_L +hand_R +part_handR  -S_CIRC_AHOLE:tr_B "
+                         "- S_CIRC_AHOLE:tr_II -S_CIRC_AHOLE:tr_A1 +c_ext:tr_cext  "
+                         "+kiroc:tr_cext +slimdisL:tr_slimL +slimdisR:tr_slimL + tanqL "
+                         "+tanqR +frog_eyeL +frog_eyeR - s_slideL:tr_slide - "
+                         "s_slideR:tr_slide");
 
-  //auto* baseA_Shape_3 = 
   new TGeoCompositeShape("baseA_Shape_3", " (baseA_Shape_0  + baseA_Shape_2 - earL - earR):rot_A + baseA_Shape_1:rot_A");
-
-  //auto *baseA_Shape_3 = new TGeoCompositeShape(" baseA_Shape_3", " (baseA_Shape_0  + baseA_Shape_2 - earL - earR):rot_A + baseA_Shape_1:rot_A");
 
   ////////////////////////////////////////   B   /////////////////////////
 
@@ -732,20 +727,17 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
 
   //// composite shape for base ----
 
-  //auto* baseB_Shape_0 = 
   new TGeoCompositeShape("baseB_Shape_0",
-                                               "S_DISCB -BOX1 -S_TRIA_CUT1 -S_TRIA_CUT2 -central_cut - "
-                                               "S_CIRC_AHOLE:tr_B - arcutL -arcutR - canine_cutL "
-                                               "-canine_cutR - triacut_downL - triacut_downR");
+                         "S_DISCB -BOX1 -S_TRIA_CUT1 -S_TRIA_CUT2 -central_cut - "
+                         "S_CIRC_AHOLE:tr_B - arcutL -arcutR - canine_cutL "
+                         "-canine_cutR - triacut_downL - triacut_downR");
 
-  //auto* baseB_Shape_1 = 
   new TGeoCompositeShape("baseB_Shape_1",
-                                               " nhawi_box:tr_wiL +nhawi_box:tr_wiR + vert_box:tr_vboxL + "
-                                               "vert_box:tr_vboxR  +eyebrowL +eyebrowR  + axeR + axeL + sharkL + sharkR "
-                                               "+ boatL:tr_boatL + boatR:tr_boatR + lip:tr_lip + lip_cornerL + "
-                                               "lip_cornerR + tear_L + tear_R");
+                         " nhawi_box:tr_wiL +nhawi_box:tr_wiR + vert_box:tr_vboxL + "
+                         "vert_box:tr_vboxR  +eyebrowL +eyebrowR  + axeR + axeL + sharkL + sharkR "
+                         "+ boatL:tr_boatL + boatR:tr_boatR + lip:tr_lip + lip_cornerL + "
+                         "lip_cornerR + tear_L + tear_R");
 
-  //auto* baseB_Shape_2 = 
   new TGeoCompositeShape("baseB_Shape_2", " baseB_Shape_0:tra_B + baseB_Shape_1:tra_B");
 
   auto* patchpanel_Shape = new TGeoCompositeShape("patchpanel_Shape", "  baseA_Shape_3 + baseB_Shape_2");
