@@ -7,6 +7,10 @@
 
 #include <args/args.hxx>
 
+#include <TCanvas.h>
+#include <TGraph.h>
+#include <TMultiGraph.h>
+
 #include <memory>
 #include <vector>
 
@@ -80,6 +84,100 @@ protected:
 };
 
 
+class QmaxCutoff : public NoiseSuppression
+{
+    
+public:
+
+    QmaxCutoff() : NoiseSuppression("qmax cutoff")
+    {
+    }
+
+protected:
+
+    std::vector<Digit> runImpl(
+            View<Digit> digits,
+            const Map<bool> &,
+            const Map<float> &)
+    {
+        std::vector<Digit> filtered;
+        for (const Digit &d : digits)
+        {
+            if (d.charge > 2)
+            {
+                filtered.push_back(d);
+            }
+        }
+
+        return filtered;
+    }
+
+};
+
+
+class NoiseSuppression5x5 : public NoiseSuppression
+{
+
+public:
+
+    NoiseSuppression5x5() : NoiseSuppression("5x5 noise suppression")
+    {
+    }
+
+protected:
+
+    std::vector<Digit> runImpl(
+            View<Digit> peaks,
+            const Map<bool> &peakMap,
+            const Map<float> &chargeMap)
+    {
+        std::vector<Digit> filtered;
+
+        for (const Digit &p : peaks)
+        {
+
+            if (p.charge <= 2)
+            {
+                continue;
+            }
+            
+            bool removeMe = false;
+
+            for (int dp = -2; dp <= 2; dp++)
+            {
+                for (int dt = -2; dt <= 2; dt++)
+                {
+                    if (std::abs(dp) < 2 && std::abs(dt) < 2)
+                    {
+                        continue;
+                    }
+
+                    Position other(p, dp, dt);
+                    /* Position between(digits[i], clamp(dp, -1, 1), clamp(dt, -1, 1)); */
+
+                    float q = p.charge;
+                    float oq = chargeMap[other];
+                    /* float bq = chargemap[between]; */
+
+                    bool otherIsPeak = peakMap[other];
+
+                    removeMe |= otherIsPeak && (oq > q); //&& (q - bq <= 2);
+                }
+            }
+
+            if (!removeMe)
+            {
+                filtered.push_back(p);
+            }
+
+        }
+
+        return filtered;
+    }
+    
+};
+
+
 RowMap<Map<bool>> makePeakMapByRow(const RowMap<std::vector<Digit>> &peaks)
 {
     RowMap<Map<bool>> peakMaps;
@@ -115,9 +213,12 @@ namespace std
     {
         size_t operator()(const TpcHitPos &p) const
         {
-            size_t h = size_t(p.sector)      << (8*3*sizeof(short))
-                     | size_t(p.row)         << (8*2*sizeof(short))
-                     | size_t(p.label.event) << (8*1*sizeof(short))
+            static_assert(sizeof(p.label.event) == sizeof(short));
+            static_assert(sizeof(p.label.track) == sizeof(short));
+
+            size_t h = (size_t(p.sector)      << (8*3*sizeof(short)))
+                     | (size_t(p.row)         << (8*2*sizeof(short)))
+                     | (size_t(p.label.event) << (8*1*sizeof(short)))
                      | size_t(p.label.track);
             return std::hash<size_t>()(h);
         } 
@@ -158,6 +259,44 @@ std::vector<int> countPeaksPerTrack(
     }
 
     return peaknumToTracknum;
+}
+
+void plotPeaknumToTracknum(
+        const std::vector<std::string> &names,
+        const std::vector<std::vector<int>> &peaknumToTracknum,
+        const std::string &fname)
+{
+    size_t n = 0;
+    for (auto &vals : peaknumToTracknum)
+    {
+        n = std::max(n, vals.size());
+    }
+
+    std::vector<int> x(n);
+    for (size_t i = 0; i < x.size(); i++)
+    {
+        x[i] = i;
+    }
+
+    TCanvas *c = new TCanvas("c1", "Cluster per Track", 1200, 800);
+    c->SetLogy();
+    c->SetLogx();
+    TMultiGraph *mg = new TMultiGraph();
+
+    ASSERT(names.size() == peaknumToTracknum.size());
+    for (size_t i = 0; i < names.size(); i++)
+    {
+        const std::vector<int> &y = peaknumToTracknum[i];
+        TGraph *g = new TGraph(y.size(), x.data(), y.data());
+        g->SetLineColor(i+2);
+        g->SetMarkerColor(i+2);
+        g->SetTitle(names[i].c_str());
+        mg->Add(g);
+    }
+
+    mg->Draw("A*");
+    c->BuildLegend();
+    c->SaveAs(fname.c_str());
 }
 
 int main(int argc, const char *argv[])
@@ -202,6 +341,8 @@ int main(int argc, const char *argv[])
 
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
+    noiseSuppressionAlgos.emplace_back(new QmaxCutoff);
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppression5x5);
 
 
     // map algorithm id -> result of algorithm
@@ -227,7 +368,6 @@ int main(int argc, const char *argv[])
             noiseSuppressionAlgos.size());
     for (size_t id = 0; id < noiseSuppressionAlgos.size(); id++)
     {
-        // TODO countPeaksPerTrack
         peaknumToTracknum[id] = countPeaksPerTrack(filteredPeaks[id], labels);
     }
 
@@ -239,10 +379,10 @@ int main(int argc, const char *argv[])
     }
 
     //TODO plotPeaknumToTracknum
-    /* plotPeaknumToTracknum( */
-    /*         names, */
-    /*         peaknumToTracknum, */
-    /*         "peaknumToTracknum.pdf"); */
+    plotPeaknumToTracknum(
+            names,
+            peaknumToTracknum,
+            "peaknumToTracknum.pdf");
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
