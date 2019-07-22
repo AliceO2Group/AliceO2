@@ -12,7 +12,7 @@ namespace o2
 namespace mft
 {
 
-class PatchPanel 
+class PatchPanel
 {
 
  public:
@@ -21,14 +21,14 @@ class PatchPanel
 
   TGeoVolumeAssembly* createPatchPanel();
 
- //protected:
- //TGeoVolumeAssembly* mPatchPanel;
+  //protected:
+  //TGeoVolumeAssembly* mPatchPanel;
 
  private:
   ClassDef(PatchPanel, 1)
   //ClassDefOverride(PatchPanel, 1)
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif
