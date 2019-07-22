@@ -92,7 +92,7 @@ class GPUTPCTracker : public GPUProcessor
   void DumpHitWeights(std::ostream& out);   //....
   void DumpTrackHits(std::ostream& out);    // Same for Track Hits
   void DumpTrackletHits(std::ostream& out); // Same for Track Hits
-  void DumpOutput(FILE* out);               // Similar for output
+  void DumpOutput(std::ostream& out);       // Similar for output
 
   int ReadEvent();
 

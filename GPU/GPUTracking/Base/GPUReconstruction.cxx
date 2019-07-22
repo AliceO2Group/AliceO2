@@ -461,6 +461,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
   }
   if (workflow) {
     mRecoSteps = workflow->steps;
+    mRecoStepsGPU &= workflow->stepsGPUMask;
     mRecoStepsInputs = workflow->inputs;
     mRecoStepsOutputs = workflow->outputs;
   }

@@ -428,7 +428,7 @@ int GPUReconstructionOCLBackend::InitDevice_Runtime()
   mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    memset(mHostMemoryBase, 0, mHostMemorySize);
+    memset(mHostMemoryBase, 0xDD, mHostMemorySize);
   }
 
   GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", bestDevice, device_vendor, device_name, (int)freq, (int)shaders, (long long int)mDeviceMemorySize,
