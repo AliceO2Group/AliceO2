@@ -21,7 +21,7 @@
 
 #else
 
-#include <Framework/Logger.h>
+#include <FrameworkLogger/Logger.h>
 
 #endif
 

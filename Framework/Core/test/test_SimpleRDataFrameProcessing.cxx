@@ -13,7 +13,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 #include "Framework/ControlService.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableConsumer.h"
 #include <Monitoring/Monitoring.h>

@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
 #include <Monitoring/Monitoring.h>
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 #include <chrono>
 

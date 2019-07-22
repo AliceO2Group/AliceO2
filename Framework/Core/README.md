@@ -325,11 +325,11 @@ Some suffix for the metrics are reserved to represent vector and tabular metrics
 
 #### Generic Logger
 
-Generic logging capabilities of DPL are provided via Framework/Logger which wraps and extents
+Generic logging capabilities of DPL are provided via FrameworkLogger/Logger which wraps and extents
 FairLogger.
 
 ```C++
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 ...
 
 LOG(INFO) << "some message";      // streamer based API

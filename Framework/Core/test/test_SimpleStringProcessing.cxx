@@ -14,7 +14,7 @@
 #include <Monitoring/Monitoring.h>
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;

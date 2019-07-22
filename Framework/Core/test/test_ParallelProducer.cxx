@@ -11,7 +11,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include "Framework/ParallelContext.h"
 
 

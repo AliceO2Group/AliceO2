@@ -17,7 +17,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/OutputRoute.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include <chrono>

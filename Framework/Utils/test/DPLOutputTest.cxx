@@ -15,7 +15,7 @@
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "random"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 namespace o2f = o2::framework;
 

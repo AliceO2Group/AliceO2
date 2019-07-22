@@ -17,7 +17,7 @@
 #include "Framework/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>

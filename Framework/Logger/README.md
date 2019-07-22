@@ -5,7 +5,7 @@
 O2 wrapper around FairLogger. No other dependencies but FairLogger and fmt
 allowed.
 
-This introduces a new header file, Framework/Logger.h which should
+This introduces a new header file, FrameworkLogger/Logger.h which should
 be used for any AliceO2 logging needs.
 
 In the simple case, this simply forwards the API provided by FairLogger.

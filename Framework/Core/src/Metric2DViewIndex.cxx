@@ -12,7 +12,7 @@
 
 #include "Framework/DeviceMetricsInfo.h"
 
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 #include <algorithm>
 #include <functional>

@@ -12,7 +12,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 #include <chrono>
 #include <vector>

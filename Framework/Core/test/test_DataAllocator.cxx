@@ -21,7 +21,7 @@
 #include "Framework/OutputRoute.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include <fairmq/FairMQDevice.h>
 #include <vector>
 #include <chrono>

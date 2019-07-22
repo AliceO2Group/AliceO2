@@ -21,7 +21,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Headers/DataHeader.h"
 #include "../../Core/test/TestClasses.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include <TSystem.h>
 #include <TTree.h>
 #include <TFile.h>

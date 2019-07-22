@@ -19,7 +19,7 @@
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
 #include "DPLOutputTest.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 
 using namespace o2::framework;
 

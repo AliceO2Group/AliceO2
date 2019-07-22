@@ -25,7 +25,7 @@
 #include "Framework/FreePortFinder.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
-#include "Framework/Logger.h"
+#include "FrameworkLogger/Logger.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
