@@ -18,15 +18,6 @@
 #define ENABLE_GPUMC
 #endif
 
-#ifndef __OPENCL__
-#ifdef GPUCA_HAVE_OPENMP
-#include <omp.h>
-#endif
-#include <chrono>
-#include <vector>
-#include <algorithm>
-#endif
-
 #include "GPUTRDTracker.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
@@ -40,6 +31,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 class GPUTPCGMMerger;
 
+#ifndef GPUCA_GPUCODE
+
+#ifndef __OPENCL__
+#ifdef GPUCA_HAVE_OPENMP
+#include <omp.h>
+#endif
+#include <chrono>
+#include <vector>
+#endif
 #ifdef GPUCA_ALIROOT_LIB
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
@@ -49,7 +49,6 @@ static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
 static const float piMass = 0.139f;
 #endif
 
-#ifndef GPUCA_GPUCODE
 #include "GPUChainTracking.h"
 
 void GPUTRDTracker::SetMaxData()
