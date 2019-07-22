@@ -35,7 +35,7 @@ using o2::fv0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("V0", kTRUE),
+  : o2::base::DetImpl<Detector>("FV0", kTRUE),
     mHits(o2::utils::createSimVector<o2::fv0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
@@ -54,7 +54,7 @@ Detector::~Detector()
 }
 
 Detector::Detector(Bool_t isActive)
-  : o2::base::DetImpl<Detector>("V0", isActive),
+  : o2::base::DetImpl<Detector>("FV0", isActive),
     mHits(o2::utils::createSimVector<o2::fv0::Hit>()),
     mGeometry(nullptr),
     mTrackData()
@@ -64,13 +64,13 @@ Detector::Detector(Bool_t isActive)
 
 void Detector::InitializeO2Detector()
 {
-  LOG(INFO) << "FIT_V0: Initializing O2 detector. Adding sensitive volume.";
+  LOG(INFO) << "FV0: Initializing O2 detector. Adding sensitive volume.";
   TGeoVolume* volSensitive = gGeoManager->GetVolume("V0cell");
   if (!volSensitive) {
     LOG(FATAL) << "Can't find FIT V0 sensitive volume: cell";
   } else {
     AddSensitiveVolume(volSensitive);
-    LOG(INFO) << "FIT-V0: Sensitive volume: " << volSensitive->GetName() << "   " << volSensitive->GetNumber();
+    LOG(INFO) << "FV0: Sensitive volume: " << volSensitive->GetName() << "   " << volSensitive->GetNumber();
   }
 }
 
@@ -146,7 +146,7 @@ o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
 // TODO: -> verify Todos inside the function
 void Detector::createMaterials()
 {
-  LOG(INFO) << "FIT_V0: Creating materials";
+  LOG(INFO) << "FV0: Creating materials";
 
   // Air mixture
   const Int_t nAir = 4;
@@ -192,7 +192,7 @@ void Detector::createMaterials()
 
 void Detector::ConstructGeometry()
 {
-  LOG(INFO) << "FIT_V0: Constructing geometry";
+  LOG(INFO) << "FV0: Constructing geometry";
   createMaterials();
   mGeometry = new Geometry(Geometry::eOnlySensitive);
 }
