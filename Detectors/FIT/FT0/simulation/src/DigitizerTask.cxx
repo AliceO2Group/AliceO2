@@ -11,7 +11,7 @@
 /// \file DigitizerTask.cxx
 /// \brief Implementation of the TOF digitizer task
 
-#include "T0Simulation/DigitizerTask.h"
+#include "FT0Simulation/DigitizerTask.h"
 #include "MathUtils/Utils.h"
 
 #include "FairLogger.h"      // for LOG

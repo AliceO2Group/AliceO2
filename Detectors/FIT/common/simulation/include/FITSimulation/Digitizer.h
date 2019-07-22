@@ -14,7 +14,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFITT0/Digit.h"
 #include "DataFormatsFITT0/MCLabel.h"
-#include "T0Simulation/Detector.h"
+#include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FITSimulation/DigitizationParameters.h"

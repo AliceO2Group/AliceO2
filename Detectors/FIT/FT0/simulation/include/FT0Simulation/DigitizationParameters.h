@@ -11,7 +11,7 @@
 #ifndef ALICEO2_T0_DIGITIZATION_PARAMETERS
 #define ALICEO2_T0_DIGITIZATION_PARAMETERS
 #include <FITSimulation/DigitizationParameters.h>
-#include <T0Base/Geometry.h>
+#include <FT0Base/Geometry.h>
 
 namespace o2::ft0
 {

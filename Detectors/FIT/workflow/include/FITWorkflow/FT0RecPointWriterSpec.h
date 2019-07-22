@@ -8,18 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0DigitReaderSpec.h
+/// @file   FT0RecPointWriterSpec.h
 
-#ifndef O2_T0_DIGITREADER
-#define O2_T0_DIGITREADER
+#ifndef O2_FIT_T0RECPOINTWRITER_H
+#define O2_FIT_T0RECPOINTWRITER_H
 
 #include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsFITT0/Digit.h"
-#include "DataFormatsFITT0/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -28,33 +25,29 @@ namespace o2
 namespace ft0
 {
 
-class DigitReader : public Task
+class FT0RecPointWriter : public Task
 {
  public:
-  DigitReader(bool useMC = true);
-  ~DigitReader() override = default;
+  FT0RecPointWriter(bool useMC = true) : mUseMC(useMC) {}
+  ~FT0RecPointWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   bool mFinished = false;
-  bool mUseMC = true; // use MC truth
+  bool mUseMC = true;
+
+  std::string mOutputFileName = "o2reco_t0.root";
+  std::string mOutputTreeName = "o2sim";
+  std::string mRPOutputBranchName = "T0Cluster";
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
-
-  std::vector<o2::ft0::Digit>* mDigits = nullptr;
-  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruth = nullptr;
-
-  std::string mInputFileName = "";
-  std::string mDigitTreeName = "o2sim";
-  std::string mDigitBranchName = "FT0Digit";
-  std::string mDigitMCTruthBranchName = "T0DigitMCTruth";
 };
 
 /// create a processor spec
-/// read simulated ITS digits from a root file
-framework::DataProcessorSpec getT0DigitReaderSpec(bool useMC);
+/// write ITS clusters a root file
+framework::DataProcessorSpec getFT0RecPointWriterSpec(bool useMC);
 
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_T0_DIGITREADER */
+#endif /* O2_FIT_T0RECPOINTWRITER_H */

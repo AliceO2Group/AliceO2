@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0RecPointReaderSpec.cxx
+/// @file   FT0RecPointReaderSpec.cxx
 
 #include <vector>
 
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
-#include "FITWorkflow/T0RecPointReaderSpec.h"
+#include "FITWorkflow/FT0RecPointReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::ft0;
@@ -47,17 +47,17 @@ void RecPointReader::run(ProcessingContext& pc)
   { // load data from files
     TFile rpFile(mInputFileName.c_str(), "read");
     if (rpFile.IsZombie()) {
-      LOG(FATAL) << "Failed to open T0 recpoints file " << mInputFileName;
+      LOG(FATAL) << "Failed to open FT0 recpoints file " << mInputFileName;
     }
     TTree* rpTree = (TTree*)rpFile.Get(mRecPointTreeName.c_str());
     if (!rpTree) {
-      LOG(FATAL) << "Failed to load T0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
+      LOG(FATAL) << "Failed to load FT0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
     }
-    LOG(INFO) << "Loaded T0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
+    LOG(INFO) << "Loaded FT0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
 
     rpTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
     if (mUseMC) {
-      LOG(WARNING) << "MC-truth is not supported for T0 recpoints currently";
+      LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
       mUseMC = false;
     }
 
@@ -73,12 +73,12 @@ void RecPointReader::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getT0RecPointReaderSpec(bool useMC)
+DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(WARNING) << "MC-truth is not supported for T0 recpoints currently";
+    LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
   }
 
   return DataProcessorSpec{

@@ -8,15 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0ReconstructorSpec.h
+/// @file   T0DigitReaderSpec.h
 
-#ifndef O2_FIT_T0RECONSTRUCTORDPL_H
-#define O2_FIT_T0RECONSTRUCTORDPL_H
+#ifndef O2_T0_DIGITREADER
+#define O2_T0_DIGITREADER
+
+#include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "T0Reconstruction/CollisionTimeRecoTask.h"
-#include "DataFormatsFITT0/RecPoints.h"
+#include "DataFormatsFITT0/Digit.h"
+#include "DataFormatsFITT0/MCLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -25,26 +28,33 @@ namespace o2
 namespace ft0
 {
 
-class T0ReconstructorDPL : public Task
+class DigitReader : public Task
 {
  public:
-  T0ReconstructorDPL(bool useMC) : mUseMC(useMC) {}
-  ~T0ReconstructorDPL() override = default;
+  DigitReader(bool useMC = true);
+  ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   bool mFinished = false;
-  bool mUseMC = true;
-  std::vector<o2::ft0::RecPoints> mRecPoints;
-  o2::ft0::CollisionTimeRecoTask mReco;
+  bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
+
+  std::vector<o2::ft0::Digit>* mDigits = nullptr;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruth = nullptr;
+
+  std::string mInputFileName = "";
+  std::string mDigitTreeName = "o2sim";
+  std::string mDigitBranchName = "FT0Digit";
+  std::string mDigitMCTruthBranchName = "FT0DigitMCTruth";
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getT0ReconstructorSpec(bool useMC = true);
+/// read simulated ITS digits from a root file
+framework::DataProcessorSpec getFT0DigitReaderSpec(bool useMC);
 
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_FIT_T0RECONSTRUCTORDPL_H */
+#endif /* O2_T0_DIGITREADER */

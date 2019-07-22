@@ -44,13 +44,13 @@ void DigitReader::run(ProcessingContext& pc)
   { // load data from files
     TFile digFile(mInputFileName.c_str(), "read");
     if (digFile.IsZombie()) {
-      LOG(FATAL) << "Failed to open T0 digits file " << mInputFileName;
+      LOG(FATAL) << "Failed to open FT0 digits file " << mInputFileName;
     }
     TTree* digTree = (TTree*)digFile.Get(mDigitTreeName.c_str());
     if (!digTree) {
-      LOG(FATAL) << "Failed to load T0 digits tree " << mDigitTreeName << " from " << mInputFileName;
+      LOG(FATAL) << "Failed to load FT0 digits tree " << mDigitTreeName << " from " << mInputFileName;
     }
-    LOG(INFO) << "Loaded T0 digits tree " << mDigitTreeName << " from " << mInputFileName;
+    LOG(INFO) << "Loaded FT0 digits tree " << mDigitTreeName << " from " << mInputFileName;
 
     digTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigits);
     if (mUseMC) {
@@ -77,7 +77,7 @@ void DigitReader::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getT0DigitReaderSpec(bool useMC)
+DataProcessorSpec getFT0DigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITS", 0, Lifetime::Timeframe);

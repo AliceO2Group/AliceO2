@@ -24,8 +24,8 @@
 #include "FairVolume.h"
 
 #include <sstream>
-#include "T0Base/Geometry.h"
-#include "T0Simulation/Detector.h"
+#include "FT0Base/Geometry.h"
+#include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 
 using namespace o2::ft0;
