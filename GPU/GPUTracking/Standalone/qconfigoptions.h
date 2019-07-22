@@ -83,6 +83,8 @@ BeginSubConfig(structConfigProc, configProc, configStandalone, "PROC", 0, "Proce
 AddOption(nStreams, int, -1, "nStreams", 0, "Number of GPU streams / command queues")
 AddOption(constructorPipeline, int, -1, "constructorPipeline", 0, "Run tracklet constructor in pipeline")
 AddOption(selectorPipeline, int, -1, "selectorPipeline", 0, "Run tracklet selector in pipeline")
+AddOption(recoSteps, int, -1, "recoSteps", 0, "Bitmask for RecoSteps")
+AddOption(recoStepsGPU, int, -1, "recoStepsGPU", 0, "Bitmask for RecoSteps")
 AddHelp("help", 'h')
 EndConfig()
 

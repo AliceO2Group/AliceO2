@@ -23,17 +23,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-void GPUTPCTracker::DumpOutput(FILE* out)
+void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
-  fprintf(out, "Slice %d\n", mISlice);
+  out << "Slice " << mISlice << "\n";
   const GPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
   for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
-    fprintf(out, "Track %u (%d): ", j, track->NClusters());
+    out << "Track " << j << " (" << track->NClusters() << "): ";
     for (int k = 0; k < track->NClusters(); k++) {
-      fprintf(out, "(%2.3f,%2.3f,%2.4f) ", track->Cluster(k).GetX(), track->Cluster(k).GetY(), track->Cluster(k).GetZ());
+      out << "(" << track->Cluster(k).GetX() << "," << track->Cluster(k).GetY() << "," << track->Cluster(k).GetZ() << ") ";
     }
-    fprintf(out, " - (%8.5f %8.5f %8.5f %8.5f %8.5f)", track->Param().Y(), track->Param().Z(), track->Param().SinPhi(), track->Param().DzDs(), track->Param().QPt());
-    fprintf(out, "\n");
+    out << " - (" << track->Param().Y() << " " << track->Param().Z() << " " << track->Param().SinPhi() << " " << track->Param().DzDs() << " " << track->Param().QPt() << "\n";
     track = track->GetNextTrack();
   }
 }
