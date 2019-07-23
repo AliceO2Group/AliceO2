@@ -64,7 +64,7 @@ DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
     Options{
       { "t0-recpoint-outfile", VariantType::String, "o2reco_t0.root", { "Name of the output file" } },
       { "t0-recpoint-tree-name", VariantType::String, "o2sim", { "Name of the FT0 recpoints tree" } },
-      { "t0-recpoint-branch-name", VariantType::String, "T0Cluster", { "Name of the FT0 recpoints branch" } },
+      { "t0-recpoint-branch-name", VariantType::String, "FT0Cluster", { "Name of the FT0 recpoints branch" } },
     }
   };
 }

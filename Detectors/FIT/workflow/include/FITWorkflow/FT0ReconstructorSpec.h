@@ -10,8 +10,8 @@
 
 /// @file   FT0ReconstructorSpec.h
 
-#ifndef O2_FIT_T0RECONSTRUCTORDPL_H
-#define O2_FIT_T0RECONSTRUCTORDPL_H
+#ifndef O2_FT0RECONSTRUCTORDPL_H
+#define O2_FT0RECONSTRUCTORDPL_H
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -47,4 +47,4 @@ framework::DataProcessorSpec getFT0ReconstructorSpec(bool useMC = true);
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_FIT_T0RECONSTRUCTORDPL_H */
+#endif /* O2_FT0RECONSTRUCTORDPL_H */
