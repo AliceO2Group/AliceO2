@@ -301,6 +301,12 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
       unsigned char patt[Cluster::kMaxPatternBytes];
       clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
       UShort_t pattID = mPattIdConverter.findGroupID(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt);
+      if (mPattIdConverter.IsGroup(pattID)) {
+        int rowShift = 0, colShift = 0;
+        ClusterTopology::getCOGshift(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt, rowShift, colShift);
+        rowMin += rowShift;
+        colMin += colShift;
+      }
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID(), mChipData->getROFrame());
     }
 

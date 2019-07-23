@@ -45,7 +45,7 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
       int& rs = topInf.mSizeX = cluster.getRowSpan();
       int& cs = topInf.mSizeZ = cluster.getColumnSpan();
       //__________________COG_Deterrmination_____________
-      int tempyCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
+      int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
       unsigned char tempChar = 0;
       for (unsigned int i = 2; i < cluster.getUsedBytes() + 2; i++) {
         tempChar = cluster.getByte(i);
@@ -53,7 +53,7 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
         while (s > 0) {
           if ((tempChar & s) != 0) {
             tempFiredPixels++;
-            tempyCOG += ir;
+            tempxCOG += ir;
             tempzCOG += ic;
           }
           ic++;
@@ -70,8 +70,8 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
           break;
         }
       }
-      topInf.mCOGx = 0.5 + (float)tempyCOG / (float)tempFiredPixels;
-      topInf.mCOGz = 0.5 + (float)tempzCOG / (float)tempFiredPixels;
+      topInf.mCOGx = (float)tempxCOG / (float)tempFiredPixels;
+      topInf.mCOGz = (float)tempzCOG / (float)tempFiredPixels;
       topInf.mNpixels = tempFiredPixels;
       if (useDf) {
         topInf.mXmean = dX;
@@ -194,10 +194,11 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
       // rough estimation for the error considering a8 uniform distribution
       gr.mErrX = std::sqrt(mMapInfo.find(gr.mHash)->second.mXsigma2);
       gr.mErrZ = std::sqrt(mMapInfo.find(gr.mHash)->second.mZsigma2);
-      gr.mXCOG = mMapInfo.find(gr.mHash)->second.mCOGx;
-      gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz;
+      gr.mXCOG = -1 * mMapInfo.find(gr.mHash)->second.mCOGx * o2::itsmft::SegmentationAlpide::PitchRow;
+      gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz * o2::itsmft::SegmentationAlpide::PitchCol;
       gr.mNpixels = mMapInfo.find(gr.mHash)->second.mNpixels;
       gr.mPattern = mMapInfo.find(gr.mHash)->second.mPattern;
+      gr.mIsGroup = false;
       mDictionary.mVectorOfGroupIDs.push_back(gr);
       mDictionary.mFinalMap.insert(std::make_pair(gr.mHash, j));
       if (gr.mPattern.getUsedBytes() == 1)
@@ -217,9 +218,10 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
       GroupArray[index].mHash = provvHash;
       GroupArray[index].mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
       GroupArray[index].mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
-      GroupArray[index].mXCOG = rowBinEdge / 2;
-      GroupArray[index].mZCOG = colBinEdge / 2;
+      GroupArray[index].mXCOG = 0;
+      GroupArray[index].mZCOG = 0;
       GroupArray[index].mNpixels = rowBinEdge * colBinEdge;
+      GroupArray[index].mIsGroup = true;
       unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {
         0
       }; /// A dummy pattern with all fired pixels in the bounding box is assigned to groups of rare topologies.
@@ -250,6 +252,7 @@ ClassImp(o2::itsmft::BuildTopologyDictionary)
       GroupArray[index].mXCOG = 0;
       GroupArray[index].mZCOG = 0;
       GroupArray[index].mNpixels = 0;
+      GroupArray[index].mIsGroup = true;
       unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {
         0
       };
