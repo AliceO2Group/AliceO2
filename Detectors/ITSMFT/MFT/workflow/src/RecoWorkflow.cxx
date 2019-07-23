@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 namespace RecoWorkflow
@@ -31,13 +31,13 @@ framework::WorkflowSpec getWorkflow()
 {
   framework::WorkflowSpec specs;
 
-  //specs.emplace_back(o2::MFT::getDigitReaderSpec());
-  //specs.emplace_back(o2::MFT::getClustererSpec());
-  //specs.emplace_back(o2::MFT::getClusterWriterSpec());
+  //specs.emplace_back(o2::mft::getDigitReaderSpec());
+  //specs.emplace_back(o2::mft::getClustererSpec());
+  //specs.emplace_back(o2::mft::getClusterWriterSpec());
 
-  specs.emplace_back(o2::MFT::getClusterReaderSpec());
-  specs.emplace_back(o2::MFT::getTrackerSpec());
-  specs.emplace_back(o2::MFT::getTrackWriterSpec());
+  specs.emplace_back(o2::mft::getClusterReaderSpec());
+  specs.emplace_back(o2::mft::getTrackerSpec());
+  specs.emplace_back(o2::mft::getTrackWriterSpec());
 
   return specs;
 }

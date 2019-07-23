@@ -26,7 +26,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 void TrackWriter::init(InitContext& ic)
@@ -46,8 +46,8 @@ void TrackWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto tracks = pc.inputs().get<const std::vector<o2::MFT::TrackMFT>>("tracks");
-  auto tracksltf = pc.inputs().get<const std::vector<o2::MFT::TrackLTF>>("tracksltf");
+  auto tracks = pc.inputs().get<const std::vector<o2::mft::TrackMFT>>("tracks");
+  auto tracksltf = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto plabels = labels.get();
 
