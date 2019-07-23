@@ -8,9 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(FrameworkLogger
-               SOURCES src/Logger.cxx
-               PUBLIC_LINK_LIBRARIES fmt::fmt FairLogger::FairLogger)
+o2_add_header_only_library(FrameworkLogger
+               INTERFACE_LINK_LIBRARIES fmt::fmt FairLogger::FairLogger)
 
 # FIXME: the NAME parameter is just there to ease the comparison with previous
 # test names, can be omitted later on
