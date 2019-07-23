@@ -24,13 +24,13 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 namespace Constants
 {
 
-namespace MFT
+namespace mft
 {
 constexpr Int_t LayersNumber{ 10 };
 constexpr Int_t DisksNumber{ 5 };

@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class ClusterReader : public o2::framework::Task

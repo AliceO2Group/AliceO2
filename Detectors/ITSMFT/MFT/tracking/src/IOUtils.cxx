@@ -31,7 +31,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,

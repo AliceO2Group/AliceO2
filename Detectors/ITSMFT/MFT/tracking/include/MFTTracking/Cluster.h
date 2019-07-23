@@ -19,11 +19,11 @@
 
 #include "MFTTracking/IndexTableUtils.h"
 
-#include "AliTPCCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 struct Cluster final {

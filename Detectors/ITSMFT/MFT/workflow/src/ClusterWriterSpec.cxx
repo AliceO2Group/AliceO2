@@ -26,7 +26,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 void ClusterWriter::init(InitContext& ic)

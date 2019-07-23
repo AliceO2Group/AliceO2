@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 ROframe::ROframe(const Int_t ROframeId) : mROframeId{ ROframeId }
@@ -36,7 +36,7 @@ void ROframe::initialise()
 {
   sortClusters();
 
-  for (Int_t layer = 0; layer < Constants::MFT::LayersNumber; ++layer) {
+  for (Int_t layer = 0; layer < Constants::mft::LayersNumber; ++layer) {
     mUsedClusters[layer].clear();
     mUsedClusters[layer].resize(mClusters[layer].size(), kFALSE);
   }
@@ -46,7 +46,7 @@ void ROframe::sortClusters()
 {
   Int_t nClsInLayer, binPrevIndex, clsMinIndex, clsMaxIndex, jClsLayer;
   // sort the clusters in R-Phi
-  for (Int_t iLayer = 0; iLayer < Constants::MFT::LayersNumber; ++iLayer) {
+  for (Int_t iLayer = 0; iLayer < Constants::mft::LayersNumber; ++iLayer) {
     if (mClusters[iLayer].size() == 0)
       continue;
     // sort clusters in layer according to the bin index

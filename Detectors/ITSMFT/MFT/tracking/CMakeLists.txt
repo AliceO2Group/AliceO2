@@ -1,28 +1,27 @@
-set(MODULE_NAME "MFTTracking")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MFTTracking
+               TARGETVARNAME targetName
+               SOURCES src/Tracker.cxx
+	               src/ROframe.cxx
+	               src/Cluster.cxx
+	               src/IOUtils.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonConstants
+                                     O2::DataFormatsITSMFT
+                                     O2::SimulationDataFormat
+                                     O2::MFTBase
+                                     O2::DataFormatsMFT)
 
-set(NO_DICT_SRCS # sources not for the dictionary
-    src/Tracker.cxx
-    src/ROframe.cxx
-    src/Cluster.cxx
-    src/IOUtils.cxx
-    )
-
-# Headers from sources
-string(REPLACE ".cxx" ".h" NO_DICT_HEADERS "${NO_DICT_SRCS}")
-string(REPLACE "src" "include/${MODULE_NAME}" NO_DICT_HEADERS "${NO_DICT_HEADERS}")
-
-#set(NO_DICT_HEADERS
-#    ${NO_DICT_HEADERS}
-#    )
-
-set(HEADERS
-  include/${MODULE_NAME}/TrackCA.h
-)
-
-Set(LINKDEF src/${MODULE_NAME}LinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-Set(BUCKET_NAME mft_tracking_bucket)
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(MFTTracking
+                          HEADERS include/MFTTracking/TrackCA.h
+                          LINKDEF src/MFTTrackingLinkDef.h)
+				
 
