@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index)

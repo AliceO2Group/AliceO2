@@ -32,13 +32,13 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 void ClustererDPL::init(InitContext& ic)
 {
   o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-  o2::MFT::GeometryTGeo* geom = o2::MFT::GeometryTGeo::Instance();
+  o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();

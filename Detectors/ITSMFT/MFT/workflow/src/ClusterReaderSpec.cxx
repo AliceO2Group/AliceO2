@@ -27,7 +27,7 @@ using namespace o2::itsmft;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 void ClusterReader::init(InitContext& ic)

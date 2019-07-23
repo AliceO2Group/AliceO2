@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class ClustererDPL : public o2::framework::Task

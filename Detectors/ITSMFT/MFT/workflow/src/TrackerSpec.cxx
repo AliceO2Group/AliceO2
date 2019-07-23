@@ -37,7 +37,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 void TrackerDPL::init(InitContext& ic)
@@ -50,11 +50,11 @@ void TrackerDPL::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     o2::base::GeometryManager::loadGeometry();
-    o2::MFT::GeometryTGeo* geom = o2::MFT::GeometryTGeo::Instance();
+    o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                               o2::TransformType::T2G));
 
-    mTracker = std::make_unique<o2::MFT::Tracker>();
+    mTracker = std::make_unique<o2::mft::Tracker>();
     double origD[3] = { 0., 0., 0. };
     mTracker->setBz(field->getBz(origD));
   } else {
@@ -80,24 +80,24 @@ void TrackerDPL::run(ProcessingContext& pc)
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
-  std::vector<o2::MFT::TrackMFT> tracks;
+  std::vector<o2::mft::TrackMFT> tracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  std::vector<o2::MFT::TrackMFT> allTracks;
+  std::vector<o2::mft::TrackMFT> allTracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
-  std::vector<o2::MFT::TrackLTF> tracksLTF;
-  std::vector<o2::MFT::TrackLTF> allTracksLTF;
-  std::vector<o2::MFT::TrackCA> tracksCA;
-  std::vector<o2::MFT::TrackCA> allTracksCA;
+  std::vector<o2::mft::TrackLTF> tracksLTF;
+  std::vector<o2::mft::TrackLTF> allTracksLTF;
+  std::vector<o2::mft::TrackCA> tracksCA;
+  std::vector<o2::mft::TrackCA> allTracksCA;
 
   std::uint32_t roFrame = 0;
-  o2::MFT::ROframe event(0);
+  o2::mft::ROframe event(0);
 
   Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
   LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      Int_t nclUsed = o2::MFT::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
+      Int_t nclUsed = o2::mft::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialise();
@@ -120,7 +120,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   } else {
     /*
-    o2::MFT::IOUtils::loadEventData(event, &clusters, labels.get());
+    o2::mft::IOUtils::loadEventData(event, &clusters, labels.get());
     mTracker->clustersToTracks(event);
     allTracks.swap(mTracker->getTracks());
     allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.

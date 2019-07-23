@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class TrackCA final

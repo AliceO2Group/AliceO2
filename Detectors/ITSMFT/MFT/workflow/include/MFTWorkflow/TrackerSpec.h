@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class TrackerDPL : public o2::framework::Task
@@ -35,7 +35,7 @@ class TrackerDPL : public o2::framework::Task
  private:
   int mState = 0;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
-  std::unique_ptr<o2::MFT::Tracker> mTracker = nullptr;
+  std::unique_ptr<o2::mft::Tracker> mTracker = nullptr;
 };
 
 /// create a processor spec

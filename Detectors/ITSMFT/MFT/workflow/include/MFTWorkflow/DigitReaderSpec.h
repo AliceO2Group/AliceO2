@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class DigitReader : public o2::framework::Task

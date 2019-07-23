@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Road final
@@ -63,12 +63,12 @@ class Road final
   Int_t mNDisks;
   Int_t mNPoints;
   Bool_t mHasTracksCA;
-  std::array<std::vector<Float_t>, Constants::MFT::LayersNumber> mX;
-  std::array<std::vector<Float_t>, Constants::MFT::LayersNumber> mY;
-  std::array<std::vector<Float_t>, Constants::MFT::LayersNumber> mZ;
-  std::array<std::vector<Int_t>, Constants::MFT::LayersNumber> mClusterId;
-  std::array<std::vector<MCCompLabel>, Constants::MFT::LayersNumber> mMCCompLabel;
-  std::array<std::vector<Cell>, (Constants::MFT::LayersNumber - 1)> mCell;
+  std::array<std::vector<Float_t>, Constants::mft::LayersNumber> mX;
+  std::array<std::vector<Float_t>, Constants::mft::LayersNumber> mY;
+  std::array<std::vector<Float_t>, Constants::mft::LayersNumber> mZ;
+  std::array<std::vector<Int_t>, Constants::mft::LayersNumber> mClusterId;
+  std::array<std::vector<MCCompLabel>, Constants::mft::LayersNumber> mMCCompLabel;
+  std::array<std::vector<Cell>, (Constants::mft::LayersNumber - 1)> mCell;
 };
 
 inline Road::Road()
@@ -108,7 +108,7 @@ inline const Int_t Road::getNPointsInLayer(Int_t layer) const
 inline void Road::getLength(Int_t& layer1, Int_t& layer2) const
 {
   layer1 = -1, layer2 = 10;
-  for (Int_t layer = 0; layer < Constants::MFT::LayersNumber; ++layer) {
+  for (Int_t layer = 0; layer < Constants::mft::LayersNumber; ++layer) {
     if (mX[layer].size() > 0) {
       if (layer1 < 0) {
         layer1 = layer;

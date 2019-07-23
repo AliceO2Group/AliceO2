@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 namespace RecoWorkflow

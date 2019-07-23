@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class TrackWriter : public o2::framework::Task
