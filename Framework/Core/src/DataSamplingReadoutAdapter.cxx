@@ -31,7 +31,7 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       dh.dataOrigin = dataType.origin;
       dh.dataDescription = dataType.description;
-      dh.subSpecification = dbh->linkId;
+      dh.subSpecification = DataSpecUtils::getOptionalSubSpec(spec).value_or(dbh->linkId);
       dh.payloadSize = dbh->dataSize;
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
