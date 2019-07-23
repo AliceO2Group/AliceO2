@@ -173,31 +173,31 @@ class FITDPLDigitizerTask
   }
 };
 
-class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
+class FT0DPLDigitizerTask : public FITDPLDigitizerTask
 {
  public:
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
-  FITT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::FT0DigitizationParameters() }
+  FT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::FT0DigitizationParameters() }
   {
     mID = DETID;
     mOrigin = DETOR;
   }
 };
 
-constexpr o2::detectors::DetID::ID FITT0DPLDigitizerTask::DETID;
-constexpr o2::header::DataOrigin FITT0DPLDigitizerTask::DETOR;
+constexpr o2::detectors::DetID::ID FT0DPLDigitizerTask::DETID;
+constexpr o2::header::DataOrigin FT0DPLDigitizerTask::DETOR;
 
-o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
-  std::string detStr = o2::detectors::DetID::getName(FITT0DPLDigitizerTask::DETID);
-  auto detOrig = FITT0DPLDigitizerTask::DETOR;
+  std::string detStr = o2::detectors::DetID::getName(FT0DPLDigitizerTask::DETID);
+  auto detOrig = FT0DPLDigitizerTask::DETOR;
 
   return DataProcessorSpec{
     (detStr + "Digitizer").c_str(),
@@ -205,7 +205,7 @@ o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
     Outputs{ OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
              OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<FITT0DPLDigitizerTask>() },
+    AlgorithmSpec{ adaptFromTask<FT0DPLDigitizerTask>() },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
              { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }

@@ -402,11 +402,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
   }
 
-  // the FIT T0 part
+  // the FT0 part
   if (isEnabled(o2::detectors::DetID::FT0)) {
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFITT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fit::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
     specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
   }
