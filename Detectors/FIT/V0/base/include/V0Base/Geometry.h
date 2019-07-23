@@ -69,7 +69,7 @@ class Geometry
   void initializeLuts();
 
   void buildGeometry();
-  void assembleSectors(TGeoVolumeAssembly* volV0);
+  void assembleSectors(TGeoVolumeAssembly* volFV0);
   TGeoVolumeAssembly* buildSector(uint16_t iSector);
 
   std::vector<float> mvrAvgScint; // average ring radii (index 0 -> ring 1 min, index 1 -> ring 1 max and ring 2 min, ... index 5 -> ring 5 max)

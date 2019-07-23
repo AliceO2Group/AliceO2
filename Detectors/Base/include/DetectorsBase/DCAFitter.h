@@ -227,7 +227,7 @@ class DCAFitter
     setUseAbsDCA(false); // by default use weighted DCA definition (much slower)
   }
 
-  ///< number of validated V0 candidates (at most 2 are possible)
+  ///< number of validated FV0 candidates (at most 2 are possible)
   int getNCandidates() const { return mNCandidates; }
 
   ///< return PCA candidate (no check for its validity)
@@ -236,10 +236,10 @@ class DCAFitter
   ///< return Chi2 at PCA candidate (no check for its validity)
   ftype_t getChi2AtPCACandidate(int cand) const { return mChi2[cand]; }
 
-  ///< 1st track params propagated to V0 candidate (no check for the candidate validity)
+  ///< 1st track params propagated to FV0 candidate (no check for the candidate validity)
   const Track& getTrack0(int cand) const { return mCandTr0[cand]; }
 
-  ///< 2nd track params propagated to V0 candidate (no check for the candidate validity)
+  ///< 2nd track params propagated to FV0 candidate (no check for the candidate validity)
   const Track& getTrack1(int cand) const { return mCandTr1[cand]; }
 
   ///< calculate parameters tracks at PCA
