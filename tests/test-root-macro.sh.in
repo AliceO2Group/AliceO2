@@ -1,0 +1,39 @@
+#!/bin/bash -e
+
+# script to test the loading and possibly compilation of a Root macro
+# within a controlled environment
+#
+
+MACRO=$1
+COMPILE=$2
+INCPATH=$3
+
+LIBPATH=@CMAKE_LIBRARY_OUTPUT_DIRECTORY@:@LD_LIBRARY_PATH@
+
+[[ -z "$INCPATH" ]] && INCPATH=$ROOT_INCLUDE_PATH
+
+if [[ ! -f ${MACRO} ]]; then
+  echo "Could not find macro ${MACRO}"
+  exit 64
+fi
+
+ROOTCMD=".L ${MACRO}"
+
+[[ ${COMPILE} -eq 1 ]] && ROOTCMD="${ROOTCMD}++"
+
+ERRVARNAME="test_root_macro_sh_in_err"
+
+CMD="Int_t ${ERRVARNAME}; gROOT->ProcessLine(\"${ROOTCMD}\",&${ERRVARNAME});
+std::cout << \"Exit code=\" <<  ${ERRVARNAME} << \"\n\"; gSystem->Exit(${ERRVARNAME});" 
+
+echo "ROOT_INCLUDE_PATH to be used:"
+echo ${INCPATH} | tr ":" "\n"
+echo "LD_LIBRARY_PATH to be used:"
+echo ${LIBPATH} | tr ":" "\n"
+
+env ROOT_INCLUDE_PATH=${INCPATH} LD_LIBRARY_PATH=${LIBPATH} @ROOT_root_CMD@ -n -b -l -q -e "${CMD}"
+
+RV=$?
+
+exit $RV
+

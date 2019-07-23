@@ -235,9 +235,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0, mHostMemorySize);
     if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 143, mDeviceMemorySize))) {
-      GPUError("Error during HIP memset (non-fatal)");
-      //GPUFailedMsgI(hipDeviceReset());
-      //return (1);
+      GPUError("Error during HIP memset");
+      GPUFailedMsgI(hipDeviceReset());
+      return (1);
     }
   }
 
@@ -276,7 +276,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     }
   }
 
-  ReleaseThreadContext();
   GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, hipDeviceProp_t.name, hipDeviceProp_t.clockRate, hipDeviceProp_t.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -286,8 +285,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 {
   // Uninitialize HIP
-  ActivateThreadContext();
-
   SynchronizeGPU();
 
   GPUFailedMsgI(hipFree(mDeviceMemoryBase));

@@ -12,6 +12,7 @@
 
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/TMessageSerializer.h"
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
 
@@ -23,6 +24,7 @@
 #include <string>
 #include <type_traits>
 #include <stdexcept>
+#include <functional>
 
 class FairMQDevice;
 
@@ -33,9 +35,23 @@ namespace framework
 
 class MessageContext {
  public:
+  using DispatchCallback = std::function<void(FairMQParts&& message, std::string const&, int)>;
+  // so far we are only using one instance per named channel
+  static constexpr int DefaultChannelIndex = 0;
+
   MessageContext(FairMQDeviceProxy proxy)
     : mProxy{ proxy }
   {
+  }
+
+  MessageContext(FairMQDeviceProxy proxy, DispatchCallback&& dispatcher)
+    : mProxy{ proxy }, mDispatchCallback{ dispatcher }
+  {
+  }
+
+  void init(DispatchCallback&& dispatcher)
+  {
+    mDispatchCallback = dispatcher;
   }
 
   // this is the virtual interface for context objects
@@ -133,17 +149,15 @@ class MessageContext {
     /// default contructor forbidden, object always has to control message instances
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message
-    template <typename ContextType>
-    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t size)
+    template <typename ContextType, typename... Args>
+    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, Args&&... args)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
-        // backup of initially allocated size
-        mAllocatedSize{ size * sizeof(value_type) },
         // the transport factory
         mFactory{ context->proxy().getTransport(bindingChannel, index) },
         // the memory resource takes ownership of the message
         mResource{ mFactory ? mFactory->GetMemoryResource() : nullptr },
         // create the vector with apropriate underlying memory resource for the message
-        mData{ size, pmr::polymorphic_allocator<value_type>(mResource) }
+        mData{ std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(mResource) }
     {
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
@@ -185,7 +199,6 @@ class MessageContext {
     }
 
    private:
-    size_t mAllocatedSize;                          /// backup of initially allocated size
     FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
     pmr::FairMQMemoryResource* mResource = nullptr; /// message resource
     buffer_type mData;                              /// the data buffer
@@ -242,14 +255,145 @@ class MessageContext {
    private:
     value_type mValue;
   };
+
+  /// RootSerializedObject keeps ownership to an object which can be Root-serialized
+  /// TODO: this should maybe be a separate header file to avoid including TMessageSerializer
+  /// in this header file, but we can always change this without affecting to much code.
+  template <typename T>
+  class RootSerializedObject : public ContextObject
+  {
+   public:
+    // Note: we strictly require the type to implement the ROOT ClassDef interface in order to be
+    // able to check for the existence of the dirctionary for this type. Could be dropped if any
+    // use case for a type having the dictionary at runtime pops up
+    static_assert(has_root_dictionary<T>::value == true, "unconsistent type: needs to implement ROOT ClassDef interface");
+    using value_type = T;
+    /// default constructor forbidden, object alwasy has to control messages
+    RootSerializedObject() = delete;
+    /// constructor taking header message by move and creating the object from variadic argument list
+    template <typename ContextType, typename... Args>
+    RootSerializedObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, Args&&... args)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel)
+    {
+      mObject = std::make_unique<value_type>(std::forward<Args>(args)...);
+      mPayloadMsg = context->proxy().createMessage();
+    }
+    ~RootSerializedObject() override = default;
+
+    /// @brief Finalize object and return parts by move
+    /// This retrieves the actual message from the vector object and moves it to the parts
+    FairMQParts finalize() final
+    {
+      assert(mParts.Size() == 1);
+      TMessageSerializer::Serialize(*mPayloadMsg, mObject.get(), nullptr);
+      mParts.AddPart(std::move(mPayloadMsg));
+      return ContextObject::finalize();
+    }
+
+    operator value_type&()
+    {
+      return *mObject;
+    }
+
+    value_type& get()
+    {
+      return *mObject;
+    }
+
+   private:
+    std::unique_ptr<value_type> mObject;
+    FairMQMessagePtr mPayloadMsg;
+  };
+
   using Messages = std::vector<std::unique_ptr<ContextObject>>;
 
+  /// @class ScopeHook A special deleter to handle object going out of scope
+  /// This object is used together with the wrapper @a ContextObjectScope which
+  /// is a unique object returned to the called. When this scope handler goes out of
+  /// scope and is going to be deleted, the handled object is scheduled in the context,
+  /// or simply deleted if no context is available.
+  template <typename T, typename BASE = std::default_delete<T>>
+  class ScopeHook : public BASE
+  {
+   public:
+    using base = std::default_delete<T>;
+    using self_type = ScopeHook<T>;
+    ScopeHook() = default;
+    ScopeHook(MessageContext* context)
+      : mContext(context)
+    {
+    }
+    ~ScopeHook() = default;
+
+    // forbid assignment operator to prohibid changing the Deleter
+    // resource control property once used in the unique_ptr
+    self_type& operator=(const self_type&) = delete;
+
+    void operator()(T* ptr) const
+    {
+      if (!mContext) {
+        // TODO: decide whether this is an error or not
+        // can also check if the standard constructor can be dropped to make sure that
+        // the ScopeHook is always set up with a context
+        throw std::runtime_error("No context available to schedule the context object");
+        return base::operator()(ptr);
+      }
+      // keep the object alive and add to message list of the context
+      mContext->schedule(Messages::value_type(ptr));
+    }
+
+   private:
+    MessageContext* mContext = nullptr;
+  };
+
+  template <typename T>
+  using ContextObjectScope = std::unique_ptr<T, ScopeHook<T>>;
+
+  /// Create the specified context object from the variadic arguments and add to message list.
+  /// The context object is owned be the context and returned by reference.
+  /// The context object type is specified as template argument, each context object implementation
+  /// must derive from the ContextObject interface.
+  /// TODO: rename to make_ref
   template <typename T, typename... Args>
   auto& add(Args&&... args)
   {
-    static_assert(std::is_base_of<ContextObject, T>::value == true, "type must inherit ContextObject interface");
-    mMessages.push_back(std::move(std::make_unique<T>(this, std::forward<Args>(args)...)));
+    mMessages.push_back(std::move(make<T>(std::forward<Args>(args)...)));
+    // return a reference to the element in the vector of unique pointers
     return *dynamic_cast<T*>(mMessages.back().get());
+  }
+
+  /// Create the specified context object from the variadic arguments as a unique pointer of the context
+  /// object base class.
+  /// The context object type is specified as template argument, each context object implementation
+  /// must derive from the ContextObject interface.
+  template <typename T, typename... Args>
+  Messages::value_type make(Args&&... args)
+  {
+    static_assert(std::is_base_of<ContextObject, T>::value == true, "type must inherit ContextObject interface");
+    return std::make_unique<T>(this, std::forward<Args>(args)...);
+  }
+
+  /// Create scope handler managing the specified context object.
+  /// The context object is created from the variadic arguments and is owned by the scope handler.
+  /// If the handler goes out of scope, the object is scheduled in the context, either added to the
+  /// list of messages or directly sent via the optional callback.
+  template <typename T, typename... Args>
+  ContextObjectScope<T> make_scoped(Args&&... args)
+  {
+    ContextObjectScope<T> scope(dynamic_cast<T*>(make<T>(std::forward<Args>(args)...).release()), ScopeHook<T>(this));
+    return scope;
+  }
+
+  /// Schedule a context object for sending.
+  /// The object is considered complete at this point and is sent directly through the dispatcher callback
+  /// of the context if initialized. It is added to the list of messages otherwise.
+  void schedule(Messages::value_type&& message)
+  {
+    if (mDispatchCallback) {
+      mDispatchCallback(std::move(message->finalize()), message->channel(), DefaultChannelIndex);
+      return;
+    }
+    mMessages.push_back(std::move(message));
   }
 
   Messages::iterator begin()
@@ -294,6 +438,7 @@ class MessageContext {
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  DispatchCallback mDispatchCallback;
 };
 } // namespace framework
 } // namespace o2

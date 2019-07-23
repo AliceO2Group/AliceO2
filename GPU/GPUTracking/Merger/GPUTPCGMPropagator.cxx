@@ -15,10 +15,7 @@
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
-
-#ifdef HAVE_O2HEADERS
-#include "DetectorsBase/MatLayerCylSet.h"
-#endif
+#include "GPUO2DataTypes.h"
 
 #ifndef __OPENCL__
 #include <cmath>

@@ -30,15 +30,6 @@ using namespace o2::mft;
 ClassImp(o2::mft::GeometryBuilder);
 
 //_____________________________________________________________________________
-GeometryBuilder::GeometryBuilder() : TNamed()
-{
-  // default constructor
-}
-
-//_____________________________________________________________________________
-GeometryBuilder::~GeometryBuilder() = default;
-
-//_____________________________________________________________________________
 /// \brief Build the MFT Geometry
 void GeometryBuilder::buildGeometry()
 {

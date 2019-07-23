@@ -29,11 +29,11 @@ void MCCompLabel::print() const
 std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c)
 {
   // stream itself
-  if (c.isSet()) {
+  if (c.isValid()) {
     os << '[' << c.getSourceID() << '/' << c.getEventID() << '/'
-       << std::setw(6) << c.getTrackID() << ']';
+       << (c.isFake() ? '-' : '+') << std::setw(6) << c.getTrackID() << ']';
   } else {
-    os << "[unset]";
+    os << (c.isNoise() ? "[noise]" : "[unset]");
   }
   return os;
 }

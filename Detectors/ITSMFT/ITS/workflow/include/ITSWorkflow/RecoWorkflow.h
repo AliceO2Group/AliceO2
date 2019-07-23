@@ -20,9 +20,9 @@ namespace o2
 namespace its
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
-framework::WorkflowSpec getWorkflow(bool useMC);
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker);
 }
 
 } // namespace its

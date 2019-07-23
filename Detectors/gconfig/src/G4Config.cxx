@@ -20,6 +20,7 @@
 #include <DetectorsPassive/Cave.h>
 #include "DetectorsBase/MaterialManager.h"
 #include "SimSetup/GlobalProcessCutSimParam.h"
+#include "SimConfig/G4Params.h"
 
 //using declarations here since SetCuts.C and g4Config.C are included within namespace
 // these are needed for SetCuts.C inclusion

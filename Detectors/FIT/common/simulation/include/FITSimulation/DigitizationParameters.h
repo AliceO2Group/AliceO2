@@ -24,10 +24,16 @@ struct DigitizationParameters {
   Int_t mMCPs;            //number of MCPs
   Float_t mCFD_trsh_mip;  // = 4[mV] / 10[mV/mip]
   Float_t mTime_trg_gate; // ns
-  Int_t mAmpThreshold;    // number of photoelectrons
   Float_t mTimeDiffAC;
-  bool mIsT0; //amplitude T0(true) or V0 (false)
+  bool mIsT0;           //amplitude T0(true) or V0 (false)
   Float_t mSignalWidth; // Gate in ns
+  Float_t mCfdShift;    // time shift for CFD shape simulation
+  Float_t mMip_in_V;    //MIP to mV
+  Float_t mPe_in_mip;   // Np.e. in MIP
+
+  double mCFDShiftPos; // shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  double mNoiseVar;    //noise level
+  double mNoisePeriod; // low frequency noise period;
 };
 } // namespace o2::fit
 #endif

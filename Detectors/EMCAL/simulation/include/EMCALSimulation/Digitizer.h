@@ -20,7 +20,7 @@
 #include "TObject.h" // for TObject
 #include "TRandom3.h"
 
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"

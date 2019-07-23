@@ -1,22 +1,19 @@
-set(MODULE_NAME "ITSBase")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(ITSBase
+               SOURCES src/GeometryTGeo.cxx src/ContainerFactory.cxx
+                       src/MisalignmentParameter.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
 
-set(SRCS
-    src/GeometryTGeo.cxx
-    src/ContainerFactory.cxx
-    src/MisalignmentParameter.cxx
-    )
-
-set(HEADERS
-    include/${MODULE_NAME}/GeometryTGeo.h
-    include/${MODULE_NAME}/ContainerFactory.h
-    include/${MODULE_NAME}/MisalignmentParameter.h
-    )
-
-
-Set(LINKDEF src/ITSBaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME its_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(ITSBase
+                          HEADERS include/ITSBase/GeometryTGeo.h
+                                  include/ITSBase/ContainerFactory.h
+                                  include/ITSBase/MisalignmentParameter.h)

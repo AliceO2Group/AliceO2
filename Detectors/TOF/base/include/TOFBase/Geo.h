@@ -265,10 +265,12 @@ class Geo
   static Bool_t mToBeIntit;
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
   static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+  static Float_t mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
 
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513; // Propagation delay [ns/cm]
-  static Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3];
+  static const Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3]; // not constexpr as we initialize it in CableLength.cxx at run time
+
   ClassDefNV(Geo, 1);
 };
 }

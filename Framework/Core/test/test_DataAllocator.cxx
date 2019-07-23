@@ -18,12 +18,15 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/OutputRoute.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
 #include <fairmq/FairMQDevice.h>
 #include <vector>
 #include <chrono>
+#include <cstring>
+#include <TNamed.h>
 
 using namespace o2::framework;
 
@@ -31,6 +34,20 @@ using namespace o2::framework;
   if ((condition) == false) {                                     \
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
+
+// this function is only used to do the static checks for API return types
+void doTypeChecks()
+{
+  TimingInfo* timingInfo = nullptr;
+  ContextRegistry* contextes = nullptr;
+  std::vector<OutputRoute> routes;
+  DataAllocator allocator(timingInfo, contextes, routes);
+  const Output output{ "TST", "DUMMY", 0, Lifetime::Timeframe };
+  // we require references to objects owned by allocator context
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<int>(output))>::value);
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::string>(output, "test"))>::value);
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::vector<int>>(output))>::value);
+}
 
 namespace test
 {
@@ -115,6 +132,19 @@ DataProcessorSpec getSourceSpec()
     auto& shrinkchunk = pc.outputs().newChunk(OutputRef{ "shrinkchunk", 0 }, 1000000);
     shrinkchunk.resize(sizeof(o2::test::TriviallyCopyable));
     memcpy(shrinkchunk.data(), &a, sizeof(o2::test::TriviallyCopyable));
+    // make Root-serializable object derived from TObject
+    auto& rootobject = pc.outputs().make<TNamed>(OutputRef{ "maketobject", 0 }, "a_name", "a_title");
+    // make Root-serializable object Non-TObject
+    auto& rootpolymorphic = pc.outputs().make<o2::test::Polymorphic>(OutputRef{ "makerootserlzblobj", 0 }, b);
+    // make vector of Root-serializable objects
+    auto& rootserlzblvector = pc.outputs().make<std::vector<o2::test::Polymorphic>>(OutputRef{ "rootserlzblvector", 0 });
+    rootserlzblvector.emplace_back(0xacdc);
+    rootserlzblvector.emplace_back(0xbeef);
+    // make vector of messagable objects
+    auto& messageablevector = pc.outputs().make<std::vector<o2::test::TriviallyCopyable>>(OutputRef{ "messageablevector", 0 });
+    ASSERT_ERROR(messageablevector.size() == 0);
+    messageablevector.push_back(a);
+    messageablevector.emplace_back(10, 20, 0xacdc);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
@@ -124,6 +154,10 @@ DataProcessorSpec getSourceSpec()
                               OutputSpec{ { "makespan" }, "TST", "MAKESPAN", 0, Lifetime::Timeframe },
                               OutputSpec{ { "growchunk" }, "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ { "shrinkchunk" }, "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "maketobject" }, "TST", "MAKETOBJECT", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "makerootserlzblobj" }, "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "rootserlzblvector" }, "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "messageablevector" }, "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
@@ -230,6 +264,26 @@ DataProcessorSpec getSinkSpec()
     auto object11 = pc.inputs().get<o2::test::TriviallyCopyable>("input11");
     ASSERT_ERROR(object11 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    LOG(INFO) << "extracting the original std::vector<o2::test::TriviallyCopyable> as span from input12";
+    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    ASSERT_ERROR(object12.size() == 2);
+    ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{ 42, 23, 0xdead }));
+    ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{ 10, 20, 0xacdc }));
+
+    LOG(INFO) << "extracting TNamed object from input13";
+    auto object13 = pc.inputs().get<TNamed*>("input13");
+    ASSERT_ERROR(strcmp(object13->GetName(), "a_name") == 0);
+    ASSERT_ERROR(strcmp(object13->GetTitle(), "a_title") == 0);
+
+    LOG(INFO) << "extracting Root-serialized Non-TObject from input14";
+    auto object14 = pc.inputs().get<o2::test::Polymorphic*>("input14");
+    ASSERT_ERROR(*object14 == o2::test::Polymorphic{ 0xbeef });
+
+    LOG(INFO) << "extracting Root-serialized vector from input15";
+    auto object15 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input15");
+    ASSERT_ERROR(object15[0] == o2::test::Polymorphic{ 0xacdc });
+    ASSERT_ERROR(object15[1] == o2::test::Polymorphic{ 0xbeef });
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -244,7 +298,11 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input8", "TST", "MAKESPAN", 0, Lifetime::Timeframe },
                               InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               InputSpec{ "input10", "TST", "GROWCHUNK", 0, Lifetime::Timeframe },
-                              InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe } },
+                              InputSpec{ "input11", "TST", "SHRINKCHUNK", 0, Lifetime::Timeframe },
+                              InputSpec{ "input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe },
+                              InputSpec{ "input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe },
+                              InputSpec{ "input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe },
+                              InputSpec{ "input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

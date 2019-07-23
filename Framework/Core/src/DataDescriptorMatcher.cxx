@@ -10,7 +10,9 @@
 
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataMatcherWalker.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/VariantHelpers.h"
 #include <iostream>
 
 namespace o2
@@ -413,25 +415,32 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
 
 std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher const& matcher)
 {
-  auto printer = [&os](decltype(&matcher.mLeft) v) -> void {
-    if (auto left = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(v)) {
-      os << **left;
-    } else if (auto originMatcher = std::get_if<OriginValueMatcher>(v)) {
-      os << "origin:" << *originMatcher;
-    } else if (auto descriptionMatcher = std::get_if<DescriptionValueMatcher>(v)) {
-      os << "description:" << *descriptionMatcher;
-    } else if (auto subSpecMatcher = std::get_if<SubSpecificationTypeValueMatcher>(v)) {
-      os << "subSpec:" << *subSpecMatcher;
-    } else if (auto startTimeMatcher = std::get_if<StartTimeValueMatcher>(v)) {
-      os << "startTime:" << *startTimeMatcher;
-    }
+  auto edgeWalker = overloaded{
+    [&os](EdgeActions::EnterNode action) {
+      os << "(" << action.node->mOp;
+      if (action.node->mOp == DataDescriptorMatcher::Op::Just) {
+        return ChildAction::VisitLeft;
+      }
+      return ChildAction::VisitBoth;
+    },
+    [&os](EdgeActions::EnterLeft) { os << " "; },
+    [&os](EdgeActions::ExitLeft) { os << " "; },
+    [&os](EdgeActions::EnterRight) { os << " "; },
+    [&os](EdgeActions::ExitRight) { os << " "; },
+    [&os](EdgeActions::ExitNode) { os << ")"; },
+    [&os](auto) {}
   };
-
-  os << "(" << matcher.mOp << " ";
-  printer(&matcher.mLeft);
-  os << " ";
-  printer(&matcher.mRight);
-  os << ")";
+  auto leafWalker = overloaded{
+    [&os](OriginValueMatcher const& origin) { os << "origin:" << origin; },
+    [&os](DescriptionValueMatcher const& description) { os << "description:" << description; },
+    [&os](SubSpecificationTypeValueMatcher const& subSpec) { os << "subSpec:" << subSpec; },
+    [&os](StartTimeValueMatcher const& startTime) { os << "startTime:" << startTime; },
+    [&os](ConstantValueMatcher const& constant) {},
+    [&os](auto t) { os << "not implemented " << typeid(decltype(t)).name(); }
+  };
+  DataMatcherWalker::walk(matcher,
+                          edgeWalker,
+                          leafWalker);
 
   return os;
 }

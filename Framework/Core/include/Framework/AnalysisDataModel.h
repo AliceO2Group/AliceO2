@@ -23,7 +23,7 @@ DECLARE_SOA_STORE();
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fID4Tracks");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fID4Collisions");
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
@@ -88,7 +88,7 @@ using TrackExtra = TracksExtra::iterator;
 
 namespace calo
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fID4Calo");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fID4Collisions");
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int64_t, "fCellNumber");
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float, "fAmplitude");
 DECLARE_SOA_COLUMN(Time, time, float, "fTime");
@@ -101,7 +101,7 @@ using Calo = Calos::iterator;
 
 namespace muon
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fID4mu");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fID4Collisions");
 DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float, "fInverseBendingMomentum");
 DECLARE_SOA_COLUMN(ThetaX, thetaX, float, "fThetaX");
 DECLARE_SOA_COLUMN(ThetaY, thetaY, float, "fThetaY");
@@ -132,7 +132,7 @@ using VZero = VZeros::iterator;
 
 namespace collision
 {
-DECLARE_SOA_COLUMN(TimeframeID, timeframeID, uint64_t, "timeframeID");
+DECLARE_SOA_COLUMN(TimeframeID, timeframeID, uint64_t, "fID4Timeframes");
 DECLARE_SOA_COLUMN(NumTracks, numTracks, uint32_t, "numTracks");
 DECLARE_SOA_COLUMN(NumCalo, numCalo, uint32_t, "numCalo");
 DECLARE_SOA_COLUMN(NumMuons, numMuons, uint32_t, "numMuons");

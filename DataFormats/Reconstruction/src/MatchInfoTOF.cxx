@@ -15,4 +15,4 @@
 
 using namespace o2::dataformats;
 
-//ClassImp(o2::dataformats::MatchInfoTOF);
+ClassImp(o2::dataformats::MatchInfoTOF);

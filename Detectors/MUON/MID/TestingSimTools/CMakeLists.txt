@@ -1,18 +1,13 @@
-set(MODULE_NAME "MIDTestingSimTools")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
-
-set(SRCS
-   src/HitFinder.cxx
-   src/TrackGenerator.cxx
-)
-
-set(HEADERS
-   include/${MODULE_NAME}/HitFinder.h
-   include/${MODULE_NAME}/TrackGenerator.h
-)
-
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mid_testingSimTools_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_add_library(MIDTestingSimTools
+               SOURCES src/HitFinder.cxx src/TrackGenerator.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase)

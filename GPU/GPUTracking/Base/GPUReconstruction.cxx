@@ -16,6 +16,7 @@
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <map>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -61,10 +62,14 @@ GPUReconstruction::~GPUReconstruction()
   }
 }
 
-void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits)
+void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
-  trackerTraits.reset(new o2::its::TrackerTraitsCPU);
-  vertexerTraits.reset(new o2::its::VertexerTraits);
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::its::TrackerTraitsCPU);
+  }
+  if (vertexerTraits) {
+    vertexerTraits->reset(new o2::its::VertexerTraits);
+  }
 }
 
 int GPUReconstruction::Init()
@@ -115,9 +120,18 @@ int GPUReconstruction::Init()
   mDeviceProcessingSettings.nThreads = 1;
 #endif
 
+  mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->RegisterPermanentMemoryAndProcessors();
+    size_t memGpu, memHost;
+    mChains[i]->MemorySize(memGpu, memHost);
+    mDeviceMemorySize += memGpu;
+    mHostMemorySize += memHost;
   }
+  if (mDeviceProcessingSettings.forceMemoryPoolSize) {
+    mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
+  }
+
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
     (mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
   }
@@ -139,6 +153,11 @@ int GPUReconstruction::Init()
   }
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
     (mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
+  }
+
+  if (IsGPU()) {
+    const auto threadContext = GetThreadContext();
+    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), -1);
   }
 
   mInitialized = true;
@@ -317,10 +336,10 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
   }
 }
 
-void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom)
+void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom, bool freePermanent)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
-    if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && (freeCustom || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM))) {
+    if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && (freeCustom || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) && (freePermanent || !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_PERMANENT))) {
       FreeRegisteredMemory(i);
     }
   }
@@ -346,6 +365,34 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   mHostMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
   mDeviceMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
   mUnmanagedChunks.clear();
+}
+
+static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
+
+void GPUReconstruction::PrintMemoryStatistics()
+{
+  std::map<std::string, std::array<size_t, 3>> sizes;
+  for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
+    auto& res = mMemoryResources[i];
+    auto& x = sizes[res.mName];
+    if (res.mPtr) {
+      x[0] += res.mSize;
+    }
+    if (res.mPtrDevice) {
+      x[1] += res.mSize;
+    }
+    if (res.mType & GPUMemoryResource::MemoryType::MEMORY_PERMANENT) {
+      x[2] = 1;
+    }
+  }
+  for (auto it = sizes.begin(); it != sizes.end(); it++) {
+    printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
+  }
+  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    printf("Memory Allocation: Host %'lld / %'lld (Permantnt %'lld), Device %'lld / %'lld, (Permantnt %'lld) %d chunks\n",
+           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+  }
 }
 
 void GPUReconstruction::PrepareEvent()
@@ -400,6 +447,10 @@ void GPUReconstruction::SetSettings(float solenoidBz)
 
 void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
+  if (mInitialized) {
+    printf("Cannot update settings while initialized\n");
+    throw std::runtime_error("Settings updated while initialized");
+  }
   mEventSettings = *settings;
   if (proc) {
     mDeviceProcessingSettings = *proc;
@@ -422,6 +473,8 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 }
 
 int GPUReconstruction::GetMaxThreads() { return mDeviceProcessingSettings.nThreads; }
+
+std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::make_unique<GPUThreadContext>(); }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {

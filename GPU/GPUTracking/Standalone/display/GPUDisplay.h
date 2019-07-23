@@ -14,7 +14,7 @@
 #ifndef GPUDISPLAY_H
 #define GPUDISPLAY_H
 
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef GPUCA_O2_LIB
 //#define GPUCA_DISPLAY_GL3W
 #endif
@@ -28,10 +28,12 @@
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
 #error Unsupported OpenGL version < 4.5
+#elif defined(GPUCA_O2_LIB)
+#pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
-#undef BUILD_EVENT_DISPLAY
 #endif
+#undef GPUCA_BUILD_EVENT_DISPLAY
 #endif
 #endif
 
@@ -47,7 +49,7 @@ class GPUQA;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#ifndef BUILD_EVENT_DISPLAY
+#ifndef GPUCA_BUILD_EVENT_DISPLAY
 
 namespace GPUCA_NAMESPACE
 {
@@ -346,7 +348,8 @@ class GPUDisplay
   int mHideRejectedClusters = 1;
   int mHideUnmatchedClusters = 0;
   int mHideRejectedTracks = 1;
-  int markAdjacentClusters = 0;
+  int mMarkAdjacentClusters = 0;
+  int mMarkFakeClusters = 0;
 
   vecpod<std::array<int, 37>> mCollisionClusters;
   int mNCollissions = 1;

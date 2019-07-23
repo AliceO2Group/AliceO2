@@ -40,8 +40,17 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   int ExitDevice_Runtime() override;
   void SetThreadCounts() override;
 
-  void ActivateThreadContext() override;
-  void ReleaseThreadContext() override;
+  class GPUThreadContextCUDA : public GPUThreadContext
+  {
+   public:
+    GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context);
+    virtual ~GPUThreadContextCUDA();
+
+   private:
+    GPUReconstructionCUDAInternals* mContext = nullptr;
+  };
+
+  virtual std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
   void SynchronizeStream(int stream) override;
@@ -56,7 +65,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   void ReleaseEvent(deviceEvent* ev) override;
   void RecordMarker(deviceEvent* ev, int stream) override;
 
-  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits) override;
+  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);

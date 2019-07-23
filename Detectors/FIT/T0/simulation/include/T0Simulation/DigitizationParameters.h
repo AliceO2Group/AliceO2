@@ -25,12 +25,17 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.ChannelWidth = Geometry::ChannelWidth;
   result.mBC_clk_center = 12.5;                               // clk center
   result.mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
-  result.mCFD_trsh_mip = 0.4;                                 // = 4[mV] / 10[mV/mip]
+  result.mCFD_trsh_mip = 3.;                                  // [mV]
   result.mTime_trg_gate = 4.;                                 // ns
-  result.mAmpThreshold = 100;                                 // number of photoelectrons
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   result.mIsT0 = true;
   result.mSignalWidth = 5;
+  result.mCfdShift = 1.66;       //ns
+  result.mMip_in_V = 7;          //MIP to mV
+  result.mPe_in_mip = 250;       // Np.e. in MIP
+  result.mCFDShiftPos = 1.47;    //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  result.mNoiseVar = 0.1;        //noise level
+  result.mNoisePeriod = 1 / 0.9; // GHz low frequency noise period;
 
   return result;
 }

@@ -14,22 +14,23 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::mft::GeometryTGeo+;
-#pragma link C++ class o2::mft::Geometry+;
-#pragma link C++ class o2::mft::GeometryBuilder+;
-#pragma link C++ class o2::mft::VSegmentation+;
-#pragma link C++ class o2::mft::Segmentation+;
-#pragma link C++ class o2::mft::HalfSegmentation+;
-#pragma link C++ class o2::mft::HalfDiskSegmentation+;
-#pragma link C++ class o2::mft::LadderSegmentation+;
-#pragma link C++ class o2::mft::ChipSegmentation+;
-#pragma link C++ class o2::mft::HalfDetector+;
-#pragma link C++ class o2::mft::HalfDisk+;
-#pragma link C++ class o2::mft::Ladder+;
-#pragma link C++ class o2::mft::Flex+;
-#pragma link C++ class o2::mft::Support+;
-#pragma link C++ class o2::mft::HeatExchanger+;
-#pragma link C++ class o2::mft::HalfCone+;
-#pragma link C++ class o2::mft::PowerSupplyUnit+;
+#pragma link C++ class o2::mft::GeometryTGeo + ;
+#pragma link C++ class o2::mft::Geometry + ;
+#pragma link C++ class o2::mft::GeometryBuilder + ;
+#pragma link C++ class o2::mft::VSegmentation + ;
+#pragma link C++ class o2::mft::Segmentation + ;
+#pragma link C++ class o2::mft::HalfSegmentation + ;
+#pragma link C++ class o2::mft::HalfDiskSegmentation + ;
+#pragma link C++ class o2::mft::LadderSegmentation + ;
+#pragma link C++ class o2::mft::ChipSegmentation + ;
+#pragma link C++ class o2::mft::HalfDetector + ;
+#pragma link C++ class o2::mft::HalfDisk + ;
+#pragma link C++ class o2::mft::Ladder + ;
+#pragma link C++ class o2::mft::Flex + ;
+#pragma link C++ class o2::mft::Support + ;
+#pragma link C++ class o2::mft::HeatExchanger + ;
+#pragma link C++ class o2::mft::HalfCone + ;
+#pragma link C++ class o2::mft::PowerSupplyUnit + ;
+#pragma link C++ class o2::mft::Barrel + ;
 
 #endif
