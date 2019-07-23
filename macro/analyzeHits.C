@@ -273,7 +273,7 @@ void analyzeFDD(TTree* reftree)
   refresult.print();
 }
 
-void analyzeV0(TTree* reftree)
+void analyzeFV0(TTree* reftree)
 {
   auto refresult = analyse<o2::fv0::Hit, HitStats<o2::fv0::Hit>>(reftree, "V0Hit");
   std::cout << gPrefix << " FV0 ";
@@ -309,7 +309,7 @@ void analyzeHits(const char* filename = "o2sim.root", const char* prefix = "")
   analyzeTRD(reftree);
   analyzePHS(reftree);
   analyzeFT0(reftree);
-  analyzeV0(reftree);
+  analyzeFV0(reftree);
   analyzeFDD(reftree);
   analyzeHMP(reftree);
 }

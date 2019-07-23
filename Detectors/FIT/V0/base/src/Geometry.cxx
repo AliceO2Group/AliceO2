@@ -71,13 +71,13 @@ void Geometry::buildGeometry()
   }
 
   // Top volume of FIT V0 detector
-  TGeoVolumeAssembly* volV0 = new TGeoVolumeAssembly("FITV0");
-  LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << volV0->GetName();
-  assembleSectors(volV0);
+  TGeoVolumeAssembly* volFV0 = new TGeoVolumeAssembly("FITV0");
+  LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << volFV0->GetName();
+  assembleSectors(volFV0);
 
   TGeoTranslation* trGlobalZshift = new TGeoTranslation(0, 0, sZposition);
 
-  vALIC->AddNode(volV0, 0, trGlobalZshift);
+  vALIC->AddNode(volFV0, 0, trGlobalZshift);
 }
 
 TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector)
@@ -109,11 +109,11 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector)
   return sector;
 }
 
-void Geometry::assembleSectors(TGeoVolumeAssembly* volV0)
+void Geometry::assembleSectors(TGeoVolumeAssembly* volFV0)
 {
   for (uint16_t isector = 0; isector < mvPhiRot.size(); isector++) {
     TGeoVolumeAssembly* sector = buildSector(isector);
-    volV0->AddNode(sector, isector + 1, mvPhiRot.at(isector));
+    volFV0->AddNode(sector, isector + 1, mvPhiRot.at(isector));
   }
 }
 
