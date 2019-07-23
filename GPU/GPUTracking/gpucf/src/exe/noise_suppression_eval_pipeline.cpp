@@ -115,12 +115,16 @@ protected:
 };
 
 
-class NoiseSuppression5x5 : public NoiseSuppression
+class NoiseSuppressionOverArea : public NoiseSuppression
 {
 
 public:
 
-    NoiseSuppression5x5() : NoiseSuppression("5x5 noise suppression")
+    NoiseSuppressionOverArea(int radPad, int radTime) 
+        : NoiseSuppression(std::to_string(radPad*2+1) 
+                + "x" + std::to_string(radTime*2+1) + "noise suppression")
+        , radPad(radPad)
+        , radTime(radTime)
     {
     }
 
@@ -143,9 +147,9 @@ protected:
             
             bool removeMe = false;
 
-            for (int dp = -2; dp <= 2; dp++)
+            for (int dp = -radPad; dp <= radPad; dp++)
             {
-                for (int dt = -2; dt <= 2; dt++)
+                for (int dt = -radTime; dt <= radTime; dt++)
                 {
                     if (std::abs(dp) < 2 && std::abs(dt) < 2)
                     {
@@ -174,6 +178,39 @@ protected:
 
         return filtered;
     }
+
+private:
+
+    int radPad;
+    int radTime;
+
+    /* using RelativePosition = std::pair<int, int>; */
+
+    /* std::vector<RelativePosition> walk(const Digit &start, int dp, int dt) */
+    /* { */
+    /*     float m = dt / dp; */
+
+    /*     int signPad = std::sign(dp); */
+    /*     int signTime = std::sign(dt); */
+
+    /*     std::vector<RelativePosition> pos; */
+    /*     if (m <= 1) */
+    /*     { */
+    /*         for (int i = 0; i <= dp; i++) */
+    /*         { */
+    /*             pos.emplace_back(i * signPad, std::ceil(i * m * signTime)); */
+    /*         } */
+    /*     } */
+    /*     else */
+    /*     { */
+    /*         for (int i = 0; i <= dt; i++) */
+    /*         { */
+    /*             pos.emplace_back(std::ceil(i / m * signPad), i * signTime); */
+    /*         } */
+    /*     } */
+
+    /*     return pos; */
+    /* } */
     
 };
 
@@ -279,7 +316,7 @@ void plotPeaknumToTracknum(
     }
 
     TCanvas *c = new TCanvas("c1", "Cluster per Track", 1200, 800);
-    c->SetLogy();
+    /* c->SetLogy(); */
     c->SetLogx();
     TMultiGraph *mg = new TMultiGraph();
 
@@ -298,6 +335,52 @@ void plotPeaknumToTracknum(
     c->BuildLegend();
     c->SaveAs(fname.c_str());
 }
+
+std::unordered_set<TpcHitPos> getHitsOfPeaks(
+        const SectorMap<LabelContainer> &labels,
+        const SectorMap<RowMap<std::vector<Digit>>> &peaks)
+{
+    std::unordered_set<TpcHitPos> hits;
+    for (short sector = 0; sector < TPC_SECTORS; sector++)
+    {
+        for (short row = 0; row < TPC_NUM_OF_ROWS; row++)
+        {
+            for (const Digit &peak : peaks[sector][row])
+            {
+                for (const MCLabel &label : labels[sector][peak])
+                {
+                    hits.insert(TpcHitPos{sector, row, label});
+                }
+            }
+        }
+    }
+
+    return hits;
+}
+
+void countLostHits(
+        const SectorMap<LabelContainer> &labels,
+        const std::vector<std::string> &names,
+        const std::vector<SectorMap<RowMap<std::vector<Digit>>>> &peaks,
+        size_t baseline)
+{
+    ASSERT(names.size() == peaks.size());
+    ASSERT(baseline <= names.size());    
+
+    std::vector<std::unordered_set<TpcHitPos>> hits(names.size());
+    for (size_t i = 0; i < names.size(); i++)
+    {
+        hits[i] = getHitsOfPeaks(labels, peaks[i]);
+    }
+
+    log::Info() << "Lost hits:";
+    for (size_t i = 0; i < names.size(); i++)
+    {
+        log::Info() << "  " << names[i] << ": " 
+            << 1.f - float(hits[i].size()) / hits[baseline].size();
+    }
+}
+
 
 int main(int argc, const char *argv[])
 {
@@ -329,6 +412,7 @@ int main(int argc, const char *argv[])
     SectorMap<LabelContainer> labels = 
             LabelContainer::bySector(rawlabels, digits);
 
+    log::Info() << "Creating chargemap";
     SectorMap<Map<float>> chargemaps;
     for (size_t sector = 0; sector < TPC_SECTORS; sector++)
     {
@@ -342,7 +426,12 @@ int main(int argc, const char *argv[])
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
     noiseSuppressionAlgos.emplace_back(new QmaxCutoff);
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppression5x5);
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4));
+
+    size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
 
     // map algorithm id -> result of algorithm
@@ -350,6 +439,7 @@ int main(int argc, const char *argv[])
             noiseSuppressionAlgos.size());
     for (size_t sector = 0; sector < TPC_SECTORS; sector++)
     {
+        log::Info() << "Processing sector " << sector;
         RowMap<std::vector<Digit>> peaks = 
                 findPeaksByRow(digits[sector], chargemaps[sector]);
 
@@ -378,11 +468,16 @@ int main(int argc, const char *argv[])
         names.push_back(algo->getName());
     }
 
-    //TODO plotPeaknumToTracknum
     plotPeaknumToTracknum(
             names,
             peaknumToTracknum,
             "peaknumToTracknum.pdf");
+
+    countLostHits(
+        labels,
+        names,
+        filteredPeaks,
+        baseline);
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
