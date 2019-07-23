@@ -39,8 +39,8 @@ void run_reco_t0(std::string inpudDig = "t0digits.root",
   std::vector<o2::ft0::RecPoints>* recPointsP = new std::vector<o2::ft0::RecPoints>;
 
   TFile outFile(outName.c_str(), "recreate");
-  TTree outTree("o2sim", "T0RecPoints");
-  outTree.Branch("T0Cluster", &recPointsP);
+  TTree outTree("o2sim", "FT0RecPoints");
+  outTree.Branch("FT0Cluster", &recPointsP);
 
   o2::ft0::CollisionTimeRecoTask recoFIT;
   timer.Start();

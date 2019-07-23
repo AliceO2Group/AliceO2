@@ -43,7 +43,7 @@ class RecPointReader : public Task
 
   std::string mInputFileName = "o2reco_t0.root";
   std::string mRecPointTreeName = "o2sim";
-  std::string mRecPointBranchName = "T0Cluster";
+  std::string mRecPointBranchName = "FT0Cluster";
 };
 
 /// create a processor spec
