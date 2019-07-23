@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @brief  Processor spec for a ROOT file writer for FIT T0&V0 digits
+/// @brief  Processor spec for a ROOT file writer for FT0&FV0 digits
 
 #include "FITDigitWriterSpec.h"
 #include "Framework/CallbackService.h"

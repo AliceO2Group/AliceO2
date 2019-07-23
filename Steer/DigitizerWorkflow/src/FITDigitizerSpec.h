@@ -18,7 +18,7 @@ namespace o2
 namespace fit
 {
 
-o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel);
 //o2::framework::DataProcessorSpec getFITV0DigitizerSpec(int channel);
 
 } // end namespace fit
