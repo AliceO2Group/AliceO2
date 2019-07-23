@@ -3349,28 +3349,28 @@ _SOKOL_PRIVATE void _sg_create_pass(_sg_pass* pass, _sg_image** att_images, cons
     const sg_attachment_desc* att_desc;
     _sg_attachment* att;
     for (int i = 0; i < SG_MAX_COLOR_ATTACHMENTS; i++) {
-        SOKOL_ASSERT(0 == pass->color_atts[i].image);
-        att_desc = &desc->color_attachments[i];
-        if (att_desc->image.id != SG_INVALID_ID) {
-            pass->num_color_atts++;
-            SOKOL_ASSERT(att_images[i] && (att_images[i]->slot.id == att_desc->image.id));
-            SOKOL_ASSERT(_sg_is_valid_rendertarget_color_format(att_images[i]->pixel_format));
-            att = &pass->color_atts[i];
-            SOKOL_ASSERT((att->image == 0) && (att->image_id.id == SG_INVALID_ID));
-            att->image = att_images[i];
-            att->image_id = att_desc->image;
-            att->mip_level = att_desc->mip_level;
-            att->slice = att_desc->slice;
-        }
+      SOKOL_ASSERT(nullptr == pass->color_atts[i].image);
+      att_desc = &desc->color_attachments[i];
+      if (att_desc->image.id != SG_INVALID_ID) {
+        pass->num_color_atts++;
+        SOKOL_ASSERT(att_images[i] && (att_images[i]->slot.id == att_desc->image.id));
+        SOKOL_ASSERT(_sg_is_valid_rendertarget_color_format(att_images[i]->pixel_format));
+        att = &pass->color_atts[i];
+        SOKOL_ASSERT((att->image == nullptr) && (att->image_id.id == SG_INVALID_ID));
+        att->image = att_images[i];
+        att->image_id = att_desc->image;
+        att->mip_level = att_desc->mip_level;
+        att->slice = att_desc->slice;
+      }
     }
-    SOKOL_ASSERT(0 == pass->ds_att.image);
+    SOKOL_ASSERT(nullptr == pass->ds_att.image);
     att_desc = &desc->depth_stencil_attachment;
     const int ds_img_index = SG_MAX_COLOR_ATTACHMENTS;
     if (att_desc->image.id != SG_INVALID_ID) {
         SOKOL_ASSERT(att_images[ds_img_index] && (att_images[ds_img_index]->slot.id == att_desc->image.id));
         SOKOL_ASSERT(_sg_is_valid_rendertarget_depth_format(att_images[ds_img_index]->pixel_format));
         att = &pass->ds_att;
-        SOKOL_ASSERT((att->image == 0) && (att->image_id.id == SG_INVALID_ID));
+        SOKOL_ASSERT((att->image == nullptr) && (att->image_id.id == SG_INVALID_ID));
         att->image = att_images[ds_img_index];
         att->image_id = att_desc->image;
         att->mip_level = att_desc->mip_level;
