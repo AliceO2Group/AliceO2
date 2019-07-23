@@ -47,7 +47,7 @@ InitStatus DigitizerTask::Init()
   mDigitizer.setMCLabels(mMCTruthArrayPtr);
 
   // Register output container
-  mgr->RegisterAny("FITT0Digit", mEventDigit, kTRUE);
+  mgr->RegisterAny("T0Digit", mEventDigit, kTRUE);
   // mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
   mgr->RegisterAny("FITDigitMCTruth", mMCTruthArrayPtr, kTRUE);
   mDigitizer.init();

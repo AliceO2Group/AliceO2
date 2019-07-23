@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0DigitReaderSpec.h
+/// @file   FT0DigitReaderSpec.h
 
 #ifndef O2_T0_DIGITREADER
 #define O2_T0_DIGITREADER

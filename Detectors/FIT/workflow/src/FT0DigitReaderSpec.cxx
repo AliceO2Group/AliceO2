@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   T0DigitReaderSpec.cxx
+/// @file   FT0DigitReaderSpec.cxx
 
 #include <vector>
 
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
-#include "FITWorkflow/T0DigitReaderSpec.h"
+#include "FITWorkflow/FT0DigitReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::ft0;

@@ -10,8 +10,8 @@
 
 /// @file   FT0RecPointWriterSpec.h
 
-#ifndef O2_FIT_T0RECPOINTWRITER_H
-#define O2_FIT_T0RECPOINTWRITER_H
+#ifndef O2_FT0RECPOINTWRITER_H
+#define O2_FT0RECPOINTWRITER_H
 
 #include "TFile.h"
 
@@ -39,7 +39,7 @@ class FT0RecPointWriter : public Task
 
   std::string mOutputFileName = "o2reco_t0.root";
   std::string mOutputTreeName = "o2sim";
-  std::string mRPOutputBranchName = "T0Cluster";
+  std::string mRPOutputBranchName = "FT0Cluster";
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };
 
@@ -50,4 +50,4 @@ framework::DataProcessorSpec getFT0RecPointWriterSpec(bool useMC);
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_FIT_T0RECPOINTWRITER_H */
+#endif /* O2_FT0RECPOINTWRITER_H */

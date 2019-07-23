@@ -66,7 +66,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::ConstructGeometry()
 {
-  LOG(DEBUG) << "Creating FIT T0 geometry\n";
+  LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
   Float_t zdetA = 333;
