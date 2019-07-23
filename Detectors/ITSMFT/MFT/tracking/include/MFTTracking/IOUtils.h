@@ -39,7 +39,7 @@ namespace itsmft
 class Cluster;
 }
 
-namespace MFT
+namespace mft
 {
 
 namespace IOUtils

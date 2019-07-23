@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class TrackCA;
@@ -48,13 +48,13 @@ class ROframe final
 
   void setROFrameId(const Int_t rofid) { mROframeId = rofid; }
 
-  const std::array<std::vector<Cluster>, Constants::MFT::LayersNumber>& getClusters() const;
+  const std::array<std::vector<Cluster>, Constants::mft::LayersNumber>& getClusters() const;
   const std::vector<Cluster>& getClustersInLayer(Int_t layerId) const;
   const MCCompLabel& getClusterLabels(Int_t layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clId) const;
   const std::map<Int_t, std::pair<Int_t, Int_t>>& getClusterBinIndexRange(Int_t layerId) const;
   Int_t getClusterExternalIndex(Int_t layerId, const Int_t clId) const;
-  const std::array<std::vector<Cell>, Constants::MFT::LayersNumber>& getCells() const;
+  const std::array<std::vector<Cell>, Constants::mft::LayersNumber>& getCells() const;
   const std::vector<Cell>& getCellsInLayer(Int_t layerId) const;
   std::vector<TrackLTF>& getTracksLTF();
   TrackLTF& getCurrentTrackLTF();
@@ -89,12 +89,12 @@ class ROframe final
 
  private:
   Int_t mROframeId;
-  std::array<std::vector<Cluster>, Constants::MFT::LayersNumber> mClusters;
-  std::array<std::vector<MCCompLabel>, Constants::MFT::LayersNumber> mClusterLabels;
-  std::array<std::vector<Int_t>, Constants::MFT::LayersNumber> mClusterExternalIndices;
-  std::array<std::map<Int_t, std::pair<Int_t, Int_t>>, Constants::MFT::LayersNumber> mClusterBinIndexRange;
-  std::array<std::vector<Bool_t>, Constants::MFT::LayersNumber> mUsedClusters;
-  std::array<std::vector<Cell>, Constants::MFT::LayersNumber> mCells;
+  std::array<std::vector<Cluster>, Constants::mft::LayersNumber> mClusters;
+  std::array<std::vector<MCCompLabel>, Constants::mft::LayersNumber> mClusterLabels;
+  std::array<std::vector<Int_t>, Constants::mft::LayersNumber> mClusterExternalIndices;
+  std::array<std::map<Int_t, std::pair<Int_t, Int_t>>, Constants::mft::LayersNumber> mClusterBinIndexRange;
+  std::array<std::vector<Bool_t>, Constants::mft::LayersNumber> mUsedClusters;
+  std::array<std::vector<Cell>, Constants::mft::LayersNumber> mCells;
   std::vector<TrackLTF> mTracksLTF;
   std::vector<TrackCA> mTracksCA;
   std::vector<Road> mRoads;
@@ -102,7 +102,7 @@ class ROframe final
 
 inline Int_t ROframe::getROFrameId() const { return mROframeId; }
 
-inline const std::array<std::vector<Cluster>, Constants::MFT::LayersNumber>& ROframe::getClusters() const
+inline const std::array<std::vector<Cluster>, Constants::mft::LayersNumber>& ROframe::getClusters() const
 {
   return mClusters;
 }
@@ -225,7 +225,7 @@ inline std::vector<TrackCA>& ROframe::getTracksCA()
 
 inline void ROframe::clear()
 {
-  for (Int_t iLayer = 0; iLayer < Constants::MFT::LayersNumber; ++iLayer) {
+  for (Int_t iLayer = 0; iLayer < Constants::mft::LayersNumber; ++iLayer) {
     mClusters[iLayer].clear();
     mClusterLabels[iLayer].clear();
     mClusterExternalIndices[iLayer].clear();

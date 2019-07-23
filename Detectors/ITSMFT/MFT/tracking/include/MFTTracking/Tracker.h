@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class TrackLTF;
@@ -117,9 +117,9 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
 inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t layer1, const Int_t layer, Int_t& binR_proj, Int_t& binPhi_proj) const
 {
   Float_t dz, x_proj, y_proj, r_proj, phi_proj;
-  dz = Constants::MFT::LayerZCoordinate()[layer] - Constants::MFT::LayerZCoordinate()[layer1];
-  x_proj = cluster1.xCoordinate + dz * cluster1.xCoordinate * Constants::MFT::InverseLayerZCoordinate()[layer1];
-  y_proj = cluster1.yCoordinate + dz * cluster1.yCoordinate * Constants::MFT::InverseLayerZCoordinate()[layer1];
+  dz = Constants::mft::LayerZCoordinate()[layer] - Constants::mft::LayerZCoordinate()[layer1];
+  x_proj = cluster1.xCoordinate + dz * cluster1.xCoordinate * Constants::mft::InverseLayerZCoordinate()[layer1];
+  y_proj = cluster1.yCoordinate + dz * cluster1.yCoordinate * Constants::mft::InverseLayerZCoordinate()[layer1];
   auto clsPoint2D = Point2D<Float_t>(x_proj, y_proj);
   r_proj = clsPoint2D.R();
   phi_proj = clsPoint2D.Phi();
@@ -245,7 +245,7 @@ inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& c
   Float_t dy = cell1y2 - cell2y1;
   Float_t dr = MATH_SQRT(dx * dx + dy * dy);
 
-  if (dr > Constants::MFT::Resolution) {
+  if (dr > Constants::mft::Resolution) {
     return kFALSE;
   }
   return kTRUE;

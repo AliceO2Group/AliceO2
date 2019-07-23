@@ -11,7 +11,7 @@
   The mapping is generated from the local geometry file and
   should be put in the directory on which the PixelReader may depend
 */
-void extractMFTMapping_zones(const std::string inputGeom = "O2geometry.root")
+void extractMFTMapping(const std::string inputGeom = "O2geometry.root")
 {
 
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
