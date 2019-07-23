@@ -11,6 +11,7 @@
 ///
 /// \file    VisualisationConstants.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
 ///
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONCONSTANTS_H

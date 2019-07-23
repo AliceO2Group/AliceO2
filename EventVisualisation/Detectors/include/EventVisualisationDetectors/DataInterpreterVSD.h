@@ -1,11 +1,23 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by jmy on 25.06.19.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file DataInterpreterVSD.h
+/// \brief converting VSD data to Event Visualisation primitives
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
+
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
 
-/// DataInterpreterVSD prepares random events
+
 ///
 /// This class overrides DataInterpreter and implements method
 /// returning visualisation objects representing data from VSD file
@@ -29,7 +41,6 @@ private:
   void AttachEvent();
 
   TEveViewerList *viewers = nullptr;  // for debug purpose
-
 
   void LoadEsdTracks();
   TEveTrackList *fTrackList = nullptr;

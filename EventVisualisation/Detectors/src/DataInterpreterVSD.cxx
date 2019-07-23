@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file DataInterpreterVSD.cxx
+/// \brief converting VSD data to Event Visualisation primitives
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
+
 ///
 /// \file    DataInterpreterVSD.cxx
 /// \author  Julian Myrcha

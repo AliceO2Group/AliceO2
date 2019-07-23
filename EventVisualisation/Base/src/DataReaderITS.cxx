@@ -1,13 +1,20 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by jmy on 09.07.19.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
-//#include "EventVisualisationView/MultiView.h"
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+///
+/// \file   DataReaderITS.cxx
+/// \brief  ITS Detector-specific reading from file(s)
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
+
 #include "EventVisualisationBase/DataReaderITS.h"
-
-
-//
-
-
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
@@ -20,17 +27,11 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "TGenericClassInfo.h"
-
 #include <TEveElement.h>
-
-
-
-
 #include <iostream>
 #include <array>
 #include <algorithm>
 #include <fstream>
-
 #include <TFile.h>
 #include <TTree.h>
 #include <TEveManager.h>
@@ -48,9 +49,6 @@
 #include <TEveTrack.h>
 #include <Rtypes.h>
 #include <gsl/span>
-
-
-
 
 
 using namespace o2::itsmft;
@@ -118,10 +116,6 @@ private:
     TEveElement* getEveClusters();
     TEveElement* getEveTracks();
 } its_data;
-
-
-
-
 
 void ITSData::loadDigits()
 {

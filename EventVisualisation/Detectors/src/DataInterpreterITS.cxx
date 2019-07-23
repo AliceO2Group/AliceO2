@@ -8,9 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DataInterpreterITS.cxx
-/// \author  Julian Myrcha
+/// \file DataInterpreterITS.cxx
+/// \brief converting ITS data to Event Visualisation primitives
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
 
 #include "EventVisualisationDetectors/DataInterpreterITS.h"
 

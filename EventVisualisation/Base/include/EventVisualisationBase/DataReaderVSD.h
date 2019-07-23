@@ -1,6 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by jmy on 26.02.19.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file DataReaderITS.h
+/// \brief VSD specific reading from file(s) (Visualisation Summary Data)
+/// \author julian.myrcha@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
@@ -12,12 +22,8 @@
 #include <TEveViewer.h>
 #include <TEveVSD.h>
 
-
-
-
 namespace o2  {
 namespace event_visualisation {
-
 
 class DataReaderVSD : public DataReader {
     TFile *fFile;
