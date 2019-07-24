@@ -10,8 +10,8 @@
 
 /// @file   FT0DigitReaderSpec.h
 
-#ifndef O2_T0_DIGITREADER
-#define O2_T0_DIGITREADER
+#ifndef O2_FT0_DIGITREADER
+#define O2_FT0_DIGITREADER
 
 #include "TFile.h"
 
@@ -57,4 +57,4 @@ framework::DataProcessorSpec getFT0DigitReaderSpec(bool useMC);
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_T0_DIGITREADER */
+#endif /* O2_FT0_DIGITREADER */

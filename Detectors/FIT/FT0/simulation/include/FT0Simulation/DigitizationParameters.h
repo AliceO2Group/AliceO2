@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_T0_DIGITIZATION_PARAMETERS
-#define ALICEO2_T0_DIGITIZATION_PARAMETERS
+#ifndef ALICEO2_FT0_DIGITIZATION_PARAMETERS
+#define ALICEO2_FT0_DIGITIZATION_PARAMETERS
 #include <FITSimulation/DigitizationParameters.h>
 #include <FT0Base/Geometry.h>
 

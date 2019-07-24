@@ -14,8 +14,8 @@
 #include "DataFormatsFT0/Digit.h"
 #endif
 
-void run_reco_t0(std::string inpudDig = "t0digits.root",
-                 std::string outName = "o2reco_t0.root",
+void run_reco_ft0(std::string inpudDig = "ft0digits.root",
+                 std::string outName = "o2reco_ft0.root",
                  std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -27,7 +27,7 @@ void run_reco_t0(std::string inpudDig = "t0digits.root",
   // Setup timer
   TStopwatch timer;
 
-  TFile* fdig = TFile::Open("t0digits.root");
+  TFile* fdig = TFile::Open("ft0digits.root");
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   digTree->Print();

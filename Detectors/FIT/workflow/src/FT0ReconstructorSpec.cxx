@@ -71,7 +71,7 @@ DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "t0-reconstructor",
+    "ft0-reconstructor",
     inputSpec,
     outputSpec,
     AlgorithmSpec{ adaptFromTask<FT0ReconstructorDPL>(useMC) },

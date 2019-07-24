@@ -35,7 +35,7 @@ RecPointReader::RecPointReader(bool useMC)
 
 void RecPointReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("t0-recpoints-infile");
+  mInputFileName = ic.options().get<std::string>("ft0-recpoints-infile");
 }
 
 void RecPointReader::run(ProcessingContext& pc)
@@ -82,12 +82,12 @@ DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)
   }
 
   return DataProcessorSpec{
-    "t0-recpoints-reader",
+    "ft0-recpoints-reader",
     Inputs{},
     outputSpec,
     AlgorithmSpec{ adaptFromTask<RecPointReader>() },
     Options{
-      { "t0-recpoints-infile", VariantType::String, "o2reco_t0.root", { "Name of the input file" } } }
+      { "ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", { "Name of the input file" } } }
   };
 }
 
