@@ -1,38 +1,22 @@
-# @author  Jeremi Niedziela
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "EventVisualisationBase")
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-# Define the source and header files
-set(SRCS
-    src/ConfigurationManager.cxx
-    src/DataInterpreter.cxx
-    src/EventManager.cxx
-    src/GeometryManager.cxx
-    src/Track.cxx
-    src/DataSourceOffline.cxx
-    src/DataReaderVSD.cxx
-    src/DataReaderITS.cxx
-    src/EventRegistration.cxx
-    )
-
-# HEADERS is not needed if we don't generate a dictionary.
-set(HEADERS
-    include/${MODULE_NAME}/ConfigurationManager.h
-    include/${MODULE_NAME}/DataInterpreter.h
-    include/${MODULE_NAME}/EventManager.h
-    include/${MODULE_NAME}/GeometryManager.h
-    include/${MODULE_NAME}/Track.h
-    include/${MODULE_NAME}/VisualisationConstants.h
-    include/${MODULE_NAME}/DataSourceOffline.h
-    include/${MODULE_NAME}/DataReader.h
-    include/${MODULE_NAME}/DataReaderVSD.h
-    include/${MODULE_NAME}/DataReaderITS.h
-    include/${MODULE_NAME}/EventRegistration.h
-    )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME event_visualisation_base_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_add_library(EventVisualisationBase
+               SOURCES src/ConfigurationManager.cxx
+                       src/DataInterpreter.cxx
+                       src/DataReaderITS.cxx
+                       src/DataReaderVSD.cxx
+                       src/DataSourceOffline.cxx
+                       src/EventManager.cxx
+                       src/EventRegistration.cxx
+                       src/GeometryManager.cxx
+                       src/Track.cxx
+               PUBLIC_LINK_LIBRARIES O2::CCDB ROOT::Eve
+                                     O2::EventVisualisationDataConverter)
