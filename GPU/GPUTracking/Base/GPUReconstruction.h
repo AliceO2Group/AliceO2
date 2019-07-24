@@ -30,6 +30,7 @@
 #include "GPUConstantMem.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUDataTypes.h"
+#include "GPULogging.h"
 
 namespace o2
 {
@@ -431,7 +432,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
   }
   (void)r;
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d %s\n", (int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %d %s", (int)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -461,7 +462,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
-    printf("ERROR reading %s, invalid size: %lld (%lld expected)\n", file, (long long int)size[0], (long long int)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
     return nullptr;
   }
   std::unique_ptr<T> retVal(new T);
@@ -470,7 +471,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -508,7 +509,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
   return std::move(newObj);
 }
@@ -529,7 +530,7 @@ inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
 }
 } // namespace gpu

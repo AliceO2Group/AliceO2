@@ -495,12 +495,12 @@ void GPUReconstructionOCLBackend::TransferMemoryInternal(GPUMemoryResource* res,
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+      GPUInfo("Skipped transfer of non-GPU memory resource: %s", res->Name());
     }
     return;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
+    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
   }
   GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

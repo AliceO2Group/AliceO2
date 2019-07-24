@@ -359,7 +359,7 @@ void genEvents::RunEventGenerator(GPUChainTracking* rec)
   gen->InitEventGenerator();
 
   for (int i = 0; i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents); i++) {
-    printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
+    GPUInfo("Generating event %d/%d", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
     snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
     gen->GenerateEvent(rec->GetParam(), dirname);
   }
