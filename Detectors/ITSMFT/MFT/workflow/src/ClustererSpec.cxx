@@ -141,5 +141,5 @@ DataProcessorSpec getClustererSpec()
   };
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

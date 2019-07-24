@@ -86,7 +86,7 @@ class ClustererTask
 
   ClassDefNV(ClustererTask, 1);
 };
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif
