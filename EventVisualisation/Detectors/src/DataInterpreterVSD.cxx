@@ -144,7 +144,7 @@ void DataInterpreterVSD::LoadEsdTracks() {
     fVSD->fTreeR->GetEntry(n);
 
     auto *track = new TEveTrack(&fVSD->fR, trkProp);
-    std::cout << track->GetIndex() << std::endl;
+
     track->SetAttLineAttMarker(fTrackList);
     track->SetName(Form("ESD Track %d", fVSD->fR.fIndex));
     track->SetStdTitle();

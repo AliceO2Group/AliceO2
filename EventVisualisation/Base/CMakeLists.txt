@@ -11,7 +11,6 @@
 o2_add_library(EventVisualisationBase
                SOURCES src/ConfigurationManager.cxx
                        src/DataInterpreter.cxx
-                       src/DataReaderITS.cxx
                        src/DataReaderVSD.cxx
                        src/DataSourceOffline.cxx
                        src/EventManager.cxx
@@ -22,7 +21,5 @@ o2_add_library(EventVisualisationBase
                                      O2::CCDB 
                                      O2::EventVisualisationDataConverter
 									 O2::DetectorsBase 
-                                     #O2::ITSMFTReconstruction
 
-                                
 )
