@@ -221,7 +221,12 @@
 
 #endif /* #ifndef HANDMADE_MATH_NO_SSE */
 
+#ifdef __cplusplus
+#include <cstdint> // This is for types
+#include <cmath>
+#else
 #include <stdint.h> // This is for types
+#endif
 
 #ifdef HANDMADE_MATH__USE_SSE
 #include <xmmintrin.h>
@@ -250,9 +255,11 @@ extern "C"
 #if !defined(HMM_SINF) || !defined(HMM_COSF) || !defined(HMM_TANF) || \
     !defined(HMM_SQRTF) || !defined(HMM_EXPF) || !defined(HMM_LOGF) || \
     !defined(HMM_ACOSF) || !defined(HMM_ATANF)|| !defined(HMM_ATAN2F)
+#ifndef __cplusplus
 #include <math.h>
 #endif
-    
+#endif
+
 #ifndef HMM_SINF
 #define HMM_SINF sinf
 #endif

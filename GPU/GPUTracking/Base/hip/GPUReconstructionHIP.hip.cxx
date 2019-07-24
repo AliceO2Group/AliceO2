@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionHIP.hip.cpp
+/// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
 #include "hip/hip_runtime.h"
@@ -32,6 +32,13 @@ __global__ void gGPUConstantMemBuffer_dummy(uint4* p) { p[0] = gGPUConstantMemBu
 #define GPUCA_CONSMEM_CALL (const uint4*)mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
+
+__global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
+{
+  for (size_t i = get_global_id(); i < size; i += get_global_size()) {
+    ptr[i] = val;
+  }
+}
 
 namespace o2
 {
@@ -76,6 +83,7 @@ int GPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlR
   } else {
     hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIPMulti<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
+  GPUFailedMsg(hipGetLastError());
   if (z.ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->HIPStreams[x.stream]));
   }
@@ -234,7 +242,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0, mHostMemorySize);
-    if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 143, mDeviceMemorySize))) {
+    if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
+      //hipLaunchKernelGGL(HIP_KERNEL_NAME(gHIPMemSetWorkaround), dim3(mCoreCount), dim3(256), 0, 0, (char*)mDeviceMemoryBase, 0xDD, mDeviceMemorySize);
+      //if (GPUFailedMsgI(hipGetLastError()) || GPUFailedMsgI(hipDeviceSynchronize())) {
       GPUError("Error during HIP memset");
       GPUFailedMsgI(hipDeviceReset());
       return (1);
@@ -277,7 +287,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, hipDeviceProp_t.name, hipDeviceProp_t.clockRate, hipDeviceProp_t.multiProcessorCount, (long long int)mHostMemorySize,
-          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+          (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
 }

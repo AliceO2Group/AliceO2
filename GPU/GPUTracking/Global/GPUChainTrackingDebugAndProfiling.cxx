@@ -102,3 +102,39 @@ int GPUChainTracking::DoProfile()
 #endif
   return 0;
 }
+
+void GPUChainTracking::PrintMemoryStatistics()
+{
+  unsigned int nTracklets = 0, nMaxTracklets = 0;
+  unsigned int nSectorTracks = 0, nMaxSectorTracks = 0;
+  unsigned int nSectorTrackHits = 0, nMaxSectorTrackHits = 0;
+  for (int i = 0; i < NSLICES; i++) {
+    nMaxTracklets += processors()->tpcTrackers[i].NMaxTracklets();
+    nTracklets += *processors()->tpcTrackers[i].NTracklets();
+    nMaxSectorTracks += processors()->tpcTrackers[i].NMaxTracks();
+    nSectorTracks += *processors()->tpcTrackers[i].NTracks();
+    nMaxSectorTrackHits += processors()->tpcTrackers[i].NMaxTrackHits();
+    nSectorTrackHits += *processors()->tpcTrackers[i].NTrackHits();
+  }
+  unsigned int nTracks = processors()->tpcMerger.NOutputTracks();
+  unsigned int nMaxTracks = processors()->tpcMerger.NMaxTracks();
+  unsigned int nTrackHits = processors()->tpcMerger.NOutputTrackClusters();
+  unsigned int nMaxTrackHits = processors()->tpcMerger.NMaxOutputTrackClusters();
+
+  printf("Mem Usage Tracklets      : %7u / %7u (%3.0f%%)\n", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets);
+  printf("Mem Usage SectorTracks   : %7u / %7u (%3.0f%%)\n", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks);
+  printf("Mem Usage SectorTrackHits: %7u / %7u (%3.0f%%)\n", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits);
+  printf("Mem Usage Tracks         : %7u / %7u (%3.0f%%)\n", nTracks, nMaxTracks, 100.f * nTracks / nMaxTracks);
+  printf("Mem Usage TrackHits      : %7u / %7u (%3.0f%%)\n", nTrackHits, nMaxTrackHits, 100.f * nTrackHits / nMaxTrackHits);
+}
+
+void GPUChainTracking::PrintMemoryRelations()
+{
+  for (int i = 0; i < NSLICES; i++) {
+    printf("MEMREL Tracklets NCl %d NTrkl %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracklets());
+    printf("MEMREL SectorTracks NCl %d NTrk %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracks());
+    printf("MEMREL SectorTrackHits NCl %d NTrkH %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTrackHits());
+  }
+  printf("MEMREL Tracks NCl %d NTrk %d\n", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTracks());
+  printf("MEMREL TrackHitss NCl %d NTrkH %d\n", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTrackClusters());
+}

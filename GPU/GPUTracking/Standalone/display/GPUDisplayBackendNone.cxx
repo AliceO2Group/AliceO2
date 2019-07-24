@@ -7,3 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+/// \file GPUDisplayBackendNone.cxx
+/// \author David Rohr
+
+#include "GPUDisplayBackendNone.h"
+using namespace GPUCA_NAMESPACE::gpu;

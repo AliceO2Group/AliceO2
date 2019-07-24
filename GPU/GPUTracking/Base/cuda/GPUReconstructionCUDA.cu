@@ -49,6 +49,9 @@ namespace its
 class TrackerTraitsNV : public TrackerTraits
 {
 };
+class VertexerTraitsGPU : public VertexerTraits
+{
+};
 } // namespace its
 } // namespace o2
 #endif
@@ -86,6 +89,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnl
   } else {
     runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
+  GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->CudaStreams[x.stream]));
   }
@@ -318,7 +322,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
   cuCtxPopCurrent(&mInternals->CudaContext);
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
-          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+          (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
 }
