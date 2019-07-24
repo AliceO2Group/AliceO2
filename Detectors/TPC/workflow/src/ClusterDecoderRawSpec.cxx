@@ -49,15 +49,27 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// MC labels are received as MCLabelContainers
 DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 {
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using DataDescription = o2::header::DataDescription;
   std::string processorName = "tpc-cluster-decoder";
+  struct ProcessAttributes {
+    std::unique_ptr<HardwareClusterDecoder> decoder;
+    std::set<o2::header::DataHeader::SubSpecificationType> activeInputs;
+    bool readyToQuit = false;
+    bool verbosity = 0;
+    bool sendMC = false;
+  };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // there is nothing to init at the moment
-    auto verbosity = 0;
-    auto decoder = std::make_shared<HardwareClusterDecoder>();
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->decoder = std::make_unique<HardwareClusterDecoder>();
+    processAttributes->sendMC = sendMC;
 
-    auto processSectorFunction = [verbosity, decoder](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+    auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+      auto& decoder = processAttributes->decoder;
+      auto& verbosity = processAttributes->verbosity;
+      auto& activeInputs = processAttributes->activeInputs;
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get(inputKey.c_str());
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -172,9 +184,8 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       return false;
     };
 
-    auto processingFct = [verbosity, decoder, processSectorFunction](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
+    auto processingFct = [processAttributes, processSectorFunction](ProcessingContext& pc) {
+      if (processAttributes->readyToQuit) {
         return;
       }
 
@@ -184,6 +195,10 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
+          // this input slot is empty
+          continue;
+        }
         // loop over all inputs and associate data and mc channels by the subspecification. DPL makes sure that
         // each origin/description/subspecification identifier is only once in the inputs, no other overwrite
         // protection in the list of keys.
@@ -195,16 +210,26 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
         }
       }
+      if (processAttributes->sendMC) {
+        // need to check whether data-MC pairs are complete
+        for (auto const& input : inputs) {
+          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
+            // we wait for the data set to be complete next time
+            return;
+          }
+        }
+      }
       // will stay true if all inputs signal finished
       // this implies that all inputs are always processed together, when changing this policy the
       // status of each input needs to be kept individually
-      finished = true;
+      bool finished = true;
       for (auto const& input : inputs) {
         finished = finished & processSectorFunction(pc, input.second.inputKey, input.second.labelKey);
       }
       if (finished) {
         // got EOD on all inputs
         pc.services().get<ControlService>().readyToQuit(false);
+        processAttributes->readyToQuit = true;
       }
     };
 

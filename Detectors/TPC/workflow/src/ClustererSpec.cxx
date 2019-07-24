@@ -51,14 +51,16 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     std::array<std::shared_ptr<o2::tpc::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
     bool finished = false;
+    bool sendMC = false;
   };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // FIXME: the clusterer needs to be initialized with the sector number, so we need one
     // per sector. Taking a closer look to the HwClusterer, the sector number is only used
     // for calculating the CRU id. This could be achieved by passing the current sector as
     // parameter to the clusterer processing function.
     auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->sendMC = sendMC;
 
     auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
       auto& clusterArray = processAttributes->clusterArray;
@@ -142,12 +144,26 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
+          // this input slot is empty
+          continue;
+        }
         auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
         assert(dataHeader);
         if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITS")) {
           inputs[dataHeader->subSpecification].inputKey = inputRef.spec->binding;
         } else if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITSMCTR")) {
           inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
+        }
+      }
+      if (processAttributes->sendMC) {
+        // need to check whether data-MC pairs are complete
+        // probably not needed as the framework seems to take care of the two messages send in pairs
+        for (auto const& input : inputs) {
+          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
+            // we wait for the data set to be complete next time
+            return;
+          }
         }
       }
       bool finished = true;

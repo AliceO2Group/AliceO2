@@ -14,13 +14,22 @@
 /// @brief  Basic DPL workflow for TPC reconstruction starting from digits
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
+#include "Framework/PartRef.h"
 #include "TPCWorkflow/RecoWorkflow.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
+
+// we need a global variable to know how many parts are expected in the completion policy check
+bool gDoMC = true;
+bool gDispatchPrompt = true;
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -32,8 +41,85 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", o2::framework::VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
+    {"dispatching-mode", o2::framework::VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
   };
   std::swap(workflowOptions, options);
+}
+
+// customize dispatch policy, dispatch immediately what is ready
+void customize(std::vector<o2::framework::DispatchPolicy>& policies)
+{
+  // we customize all devices to dispatch data immediately
+  policies.push_back({"prompt-for-all", [](auto const&) { return gDispatchPrompt; }, o2::framework::DispatchPolicy::DispatchOp::WhenReady});
+}
+
+// customize clusterers and cluster decoders to process immediately what comes in
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // we customize the processors to consume data as it comes
+  policies.push_back({"tpc-sector-processors",
+                      [](o2::framework::DeviceSpec const& spec) {
+                        // the decoder should process immediately
+                        bool apply = spec.name.find("decoder") != std::string::npos || spec.name.find("clusterer") != std::string::npos;
+                        if (apply) {
+                          LOG(INFO) << "Applying completion policy 'consume' to device " << spec.name;
+                        }
+                        return apply;
+                      },
+                      [](gsl::span<o2::framework::PartRef const> const& inputs) {
+                        o2::framework::CompletionPolicy::CompletionOp policy = o2::framework::CompletionPolicy::CompletionOp::Wait;
+                        int nValidParts = 0;
+                        bool eod = false;
+                        if (!gDoMC) {
+                          for (auto const& part : inputs) {
+                            if (part.header == nullptr) {
+                              continue;
+                            }
+                            nValidParts++;
+                            auto const* header = o2::header::get<o2::header::DataHeader*>(part.header->GetData(), part.header->GetSize());
+                            auto const* sectorHeader = o2::header::get<o2::tpc::TPCSectorHeader*>(part.header->GetData(), part.header->GetSize());
+                            if (sectorHeader && sectorHeader->sector < 0) {
+                              eod = true;
+                            }
+                          }
+                          if (nValidParts == inputs.size()) {
+                            policy = o2::framework::CompletionPolicy::CompletionOp::Consume;
+                          } else if (eod == false) {
+                            policy = o2::framework::CompletionPolicy::CompletionOp::Consume;
+                          }
+                          return policy;
+                        }
+                        using IndexType = o2::header::DataHeader::SubSpecificationType;
+
+                        std::set<IndexType> matchIndices;
+                        for (auto const& part : inputs) {
+                          if (part.header == nullptr) {
+                            continue;
+                          }
+                          nValidParts++;
+                          auto const* header = o2::header::get<o2::header::DataHeader*>(part.header->GetData(), part.header->GetSize());
+                          assert(header != nullptr);
+                          auto haveAlready = matchIndices.find(header->subSpecification);
+                          if (haveAlready != matchIndices.end()) {
+                            // inputs should be data-mc pairs if the index is already in the list
+                            // the pair is complete and we can remove the index
+                            matchIndices.erase(haveAlready);
+                          } else {
+                            // store the index in order to check if there is a pair
+                            matchIndices.emplace(header->subSpecification);
+                          }
+                          auto const* sectorHeader = o2::header::get<o2::tpc::TPCSectorHeader*>(part.header->GetData(), part.header->GetSize());
+                          if (sectorHeader && sectorHeader->sector < 0) {
+                            eod = true;
+                          }
+                        }
+                        if (nValidParts == inputs.size()) {
+                          policy = o2::framework::CompletionPolicy::CompletionOp::Consume;
+                        } else if (matchIndices.size() == 0 && eod == false) {
+                          policy = o2::framework::CompletionPolicy::CompletionOp::Consume;
+                        }
+                        return policy;
+                      }});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -69,9 +155,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     laneConfiguration = tpcSectors;
   }
 
+  gDoMC = not cfgc.options().get<bool>("disable-mc");
+  auto dispmode = cfgc.options().get<std::string>("dispatching-mode");
+  gDispatchPrompt = !(dispmode == "single");
   return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                    // sector configuration
                                              laneConfiguration,                             // lane configuration
-                                             not cfgc.options().get<bool>("disable-mc"),    //
+                                             gDoMC,                                         //
                                              nLanes,                                        //
                                              inputType,                                     //
                                              cfgc.options().get<std::string>("output-type") //
