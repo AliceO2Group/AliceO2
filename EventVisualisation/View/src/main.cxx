@@ -23,6 +23,7 @@
 #include <TEveManager.h>
 #include <TEnv.h>
 
+#include <unistd.h>
 #include <ctime>
 #include <iostream>
 
