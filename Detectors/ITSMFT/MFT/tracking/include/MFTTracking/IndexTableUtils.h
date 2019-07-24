@@ -47,7 +47,7 @@ inline Int_t IndexTableUtils::getBinIndex(const Int_t rIndex, const Int_t phiInd
 {
   return -1;
 }
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_INDEXTABLEUTILS_H_ */

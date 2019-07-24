@@ -16,7 +16,6 @@
 #define O2_MFT_TRACKER_H_
 
 #include "MFTTracking/ROframe.h"
-#include "MFTTracking/Definitions.h"
 
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian2D.h"
@@ -110,7 +109,7 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
   dz = cluster.zCoordinate - cluster1.zCoordinate;
   xSeed = cluster1.xCoordinate + dxSeed * dz / dzSeed;
   ySeed = cluster1.yCoordinate + dySeed * dz / dzSeed;
-  dR = MATH_SQRT((cluster.xCoordinate - xSeed) * (cluster.xCoordinate - xSeed) + (cluster.yCoordinate - ySeed) * (cluster.yCoordinate - ySeed));
+  dR = std::sqrt((cluster.xCoordinate - xSeed) * (cluster.xCoordinate - xSeed) + (cluster.yCoordinate - ySeed) * (cluster.yCoordinate - ySeed));
   return dR;
 }
 
@@ -190,12 +189,12 @@ inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell&
   Float_t cell2dy = cell2y2 - cell2y1;
   Float_t cell2dz = cell2z2 - cell2z1;
 
-  Float_t cell1mod = MATH_SQRT(cell1dx * cell1dx + cell1dy * cell1dy + cell1dz * cell1dz);
-  Float_t cell2mod = MATH_SQRT(cell2dx * cell2dx + cell2dy * cell2dy + cell2dz * cell2dz);
+  Float_t cell1mod = std::sqrt(cell1dx * cell1dx + cell1dy * cell1dy + cell1dz * cell1dz);
+  Float_t cell2mod = std::sqrt(cell2dx * cell2dx + cell2dy * cell2dy + cell2dz * cell2dz);
 
   Float_t cosAngle = (cell1dx * cell2dx + cell1dy * cell2dy + cell1dz * cell2dz) / (cell1mod * cell2mod);
 
-  return MATH_ACOS(cosAngle);
+  return std::acos(cosAngle);
 }
 
 inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& cell1, const Cell& cell2) const
@@ -243,7 +242,7 @@ inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& c
 
   Float_t dx = cell1x2 - cell2x1;
   Float_t dy = cell1y2 - cell2y1;
-  Float_t dr = MATH_SQRT(dx * dx + dy * dy);
+  Float_t dr = std::sqrt(dx * dx + dy * dy);
 
   if (dr > Constants::mft::Resolution) {
     return kFALSE;
@@ -251,7 +250,7 @@ inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& c
   return kTRUE;
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_TRACKER_H_ */

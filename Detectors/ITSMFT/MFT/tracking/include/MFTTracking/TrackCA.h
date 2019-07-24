@@ -170,6 +170,6 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
   mMCCompLabels.emplace_back(label);
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 #endif /* O2_MFT_TRACKCA_H_ */

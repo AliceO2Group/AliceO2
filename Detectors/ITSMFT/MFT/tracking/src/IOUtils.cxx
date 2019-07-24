@@ -93,5 +93,5 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
   }
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

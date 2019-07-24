@@ -41,17 +41,18 @@ constexpr Int_t UnusedIndex{ -1 };
 constexpr Float_t Resolution{ 0.0005f };
 constexpr std::array<Float_t, LayersNumber> LayerZCoordinate()
 {
-  return std::array<Float_t, LayersNumber>{ -45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -68.0, -69.4, -76.1, -77.5 };
+  return std::array<Float_t, LayersNumber>{ -45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5 };
 }
 constexpr std::array<Float_t, LayersNumber> InverseLayerZCoordinate()
 {
-  return std::array<Float_t, LayersNumber>{ -1. / 45.3, -1. / 46.7, -1. / 48.6, -1. / 50.0, -1. / 52.4, -1. / 53.8, -1. / 68.0, -1. / 69.4, -1. / 76.1, -1. / 77.5 };
+  return std::array<Float_t, LayersNumber>{ -1. / 45.3, -1. / 46.7, -1. / 48.6, -1. / 50.0, -1. / 52.4, -1. / 53.8, -1. / 67.7, -1. / 69.1, -1. / 76.1, -1. / 77.5 };
 }
 constexpr Int_t MinTrackPoints{ 4 };
 constexpr Int_t MaxTrackPoints{ 20 };
 constexpr Float_t LTFclsRCut{ 0.0100 };
 constexpr Float_t ROADclsRCut{ 0.0400 };
-} // namespace MFT
+constexpr Int_t MaxCellNeighbours{ 10 };
+} // namespace mft
 
 namespace IndexTable
 {
@@ -91,7 +92,7 @@ constexpr Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex)
 } // namespace IndexTable
 
 } // namespace Constants
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_CONSTANTS_H_ */

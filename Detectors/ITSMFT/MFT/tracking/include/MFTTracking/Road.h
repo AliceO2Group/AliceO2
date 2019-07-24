@@ -174,7 +174,7 @@ inline void Road::setCellLevel(const Int_t layer, const Int_t cellId, const Int_
   mCell[layer][cellId].setLevel(level);
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_ROAD_H_ */

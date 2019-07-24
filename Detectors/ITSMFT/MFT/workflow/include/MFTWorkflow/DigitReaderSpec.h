@@ -40,7 +40,7 @@ class DigitReader : public o2::framework::Task
 /// read simulated MFT digits from a root file
 o2::framework::DataProcessorSpec getDigitReaderSpec();
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_DIGITREADER */

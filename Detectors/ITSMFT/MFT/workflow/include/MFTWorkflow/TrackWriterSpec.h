@@ -40,7 +40,7 @@ class TrackWriter : public o2::framework::Task
 /// write MFT tracks a root file
 o2::framework::DataProcessorSpec getTrackWriterSpec();
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_TRACKWRITER_H_ */

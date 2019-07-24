@@ -53,5 +53,5 @@ Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
   o2::utils::BringTo02PiGen(phiCoordinate);
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

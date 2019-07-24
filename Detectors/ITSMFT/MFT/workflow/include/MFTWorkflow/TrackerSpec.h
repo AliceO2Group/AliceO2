@@ -42,7 +42,7 @@ class TrackerDPL : public o2::framework::Task
 /// run MFT CA tracker
 o2::framework::DataProcessorSpec getTrackerSpec();
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_TRACKERDPL */

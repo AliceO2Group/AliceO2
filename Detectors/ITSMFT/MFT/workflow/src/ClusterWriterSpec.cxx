@@ -90,5 +90,5 @@ DataProcessorSpec getClusterWriterSpec()
   };
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
