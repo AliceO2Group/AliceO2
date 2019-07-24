@@ -10,7 +10,10 @@
 
 set(MODULE GPUTrackingCUDA)
 
-message(STATUS "Building GPUTracking with CUDA support")
+if(DEFINED CUDA_COMPUTETARGET)
+  set(TMP_TARGET "(Compute Target ${CUDA_COMPUTETARGET})")
+endif()
+message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionCUDA.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h)
@@ -24,7 +27,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     PRIVATE_INCLUDE_DIRECTORIES
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
-      ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
     PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA cub::cub
     TARGETVARNAME targetName)
 
@@ -44,7 +46,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  message(STATUS "TEST ${incdirs}")
   generate_dictionary("Ali${MODULE}" "" "GPUReconstructionCUDA.h"
                       "${incdirs} .")
 

@@ -11,6 +11,8 @@
 /// \file GPUReconstructionOCLInternals.h
 /// \author David Rohr, Sergey Gorbunov
 
+// All OpenCL-header related stuff goes here, so we can run CING over GPUReconstructionOCL
+
 #ifndef GPUTPCGPUTRACKEROPENCLINTERNALS_H
 #define GPUTPCGPUTRACKEROPENCLINTERNALS_H
 
@@ -18,6 +20,7 @@
 #include <CL/cl_ext.h>
 #include <vector>
 #include <string>
+#include <memory>
 #include "GPULogging.h"
 
 namespace GPUCA_NAMESPACE::gpu
@@ -164,8 +167,10 @@ static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_
 }
 
 struct GPUReconstructionOCLInternals {
+  cl_platform_id platform;
   cl_device_id device;
-  cl_device_id* devices;
+  std::unique_ptr<cl_platform_id[]> platforms;
+  std::unique_ptr<cl_device_id[]> devices;
   cl_context context;
   cl_command_queue command_queue[GPUCA_MAX_STREAMS];
   cl_mem mem_gpu;
@@ -175,6 +180,25 @@ struct GPUReconstructionOCLInternals {
 
   std::vector<std::pair<cl_kernel, std::string>> kernels;
 };
+
+template <class T, int I>
+inline int GPUReconstructionOCL::FindKernel(int num)
+{
+  std::string name("GPUTPCProcess_");
+  if (num >= 1) {
+    name += "Multi_";
+  }
+  name += typeid(T).name();
+  name += std::to_string(I);
+
+  for (unsigned int k = 0; k < mInternals->kernels.size(); k++) {
+    if (mInternals->kernels[k].second == name) {
+      return ((int)k);
+    }
+  }
+  GPUError("Could not find OpenCL kernel %s", name.c_str());
+  throw ::std::runtime_error("Requested unsupported OpenCL kernel");
+}
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");
 } // namespace GPUCA_NAMESPACE::gpu
