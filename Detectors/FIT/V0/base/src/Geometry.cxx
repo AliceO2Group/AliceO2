@@ -70,7 +70,7 @@ void Geometry::buildGeometry()
     LOG(FATAL) << "Could not find the top volume";
   }
 
-  // Top volume of FIT V0 detector
+  // Top volume of FV0 detector
   TGeoVolumeAssembly* volFV0 = new TGeoVolumeAssembly("FITV0");
   LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << volFV0->GetName();
   assembleSectors(volFV0);
@@ -100,8 +100,8 @@ TGeoVolumeAssembly* Geometry::buildSector(uint16_t iSector)
     booleanFormula += (std::string) "-boolBoxScintSeparator" + ":rotPhiSector1"; // subtract clockwise box (same but rotated by 45 degrees)
     TGeoCompositeShape* geoCell = new TGeoCompositeShape(ssNameGeoComposite.str().c_str(), booleanFormula.c_str());
 
-    TGeoMedium* kMed = gGeoManager->GetMedium("V0_Scintillator$");
-    TGeoVolume* volCell = new TGeoVolume("V0cell", geoCell, kMed);
+    TGeoMedium* kMed = gGeoManager->GetMedium("FV0_Scintillator$");
+    TGeoVolume* volCell = new TGeoVolume("FV0cell", geoCell, kMed);
 
     volCell->SetLineColor(kYellow);
     sector->AddNode(volCell, iCell + 1);

@@ -275,7 +275,7 @@ void analyzeFDD(TTree* reftree)
 
 void analyzeFV0(TTree* reftree)
 {
-  auto refresult = analyse<o2::fv0::Hit, HitStats<o2::fv0::Hit>>(reftree, "V0Hit");
+  auto refresult = analyse<o2::fv0::Hit, HitStats<o2::fv0::Hit>>(reftree, "FV0Hit");
   std::cout << gPrefix << " FV0 ";
   refresult.print();
 }
