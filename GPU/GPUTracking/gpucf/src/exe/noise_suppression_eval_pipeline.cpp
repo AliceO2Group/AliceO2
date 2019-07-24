@@ -4,6 +4,7 @@
 #include <gpucf/common/RowMap.h>
 #include <gpucf/common/SectorMap.h>
 #include <gpucf/common/serialization.h>
+#include <gpucf/common/TpcHitPos.h>
 
 #include <args/args.hxx>
 
@@ -89,7 +90,9 @@ class QmaxCutoff : public NoiseSuppression
     
 public:
 
-    QmaxCutoff() : NoiseSuppression("qmax cutoff")
+    QmaxCutoff(int cutoff) 
+        : NoiseSuppression("qmaxCutoff{" + std::to_string(cutoff) + "}")
+        , cutoff(cutoff)
     {
     }
 
@@ -103,7 +106,7 @@ protected:
         std::vector<Digit> filtered;
         for (const Digit &d : digits)
         {
-            if (d.charge > 2)
+            if (d.charge > cutoff)
             {
                 filtered.push_back(d);
             }
@@ -111,6 +114,10 @@ protected:
 
         return filtered;
     }
+
+private:
+
+    int cutoff;
 
 };
 
@@ -120,11 +127,12 @@ class NoiseSuppressionOverArea : public NoiseSuppression
 
 public:
 
-    NoiseSuppressionOverArea(int radPad, int radTime) 
-        : NoiseSuppression(std::to_string(radPad*2+1) 
-                + "x" + std::to_string(radTime*2+1) + "noise suppression")
+    NoiseSuppressionOverArea(int radPad, int radTime, int cutoff)
+        : NoiseSuppression("noiseSuppression{" + std::to_string(radPad*2+1) 
+                + "x" + std::to_string(radTime*2+1) + "}")
         , radPad(radPad)
         , radTime(radTime)
+        , cutoff(cutoff)
     {
     }
 
@@ -140,7 +148,7 @@ protected:
         for (const Digit &p : peaks)
         {
 
-            if (p.charge <= 2)
+            if (p.charge <= cutoff)
             {
                 continue;
             }
@@ -183,6 +191,7 @@ private:
 
     int radPad;
     int radTime;
+    int cutoff;
 
     /* using RelativePosition = std::pair<int, int>; */
 
@@ -215,6 +224,17 @@ private:
 };
 
 
+size_t countTracks(const SectorMap<LabelContainer> &labels)
+{
+    size_t tracks = 0;
+    for (const LabelContainer &container : labels)
+    {
+        tracks += container.countTracks();
+    }
+    return tracks;
+}
+
+
 RowMap<Map<bool>> makePeakMapByRow(const RowMap<std::vector<Digit>> &peaks)
 {
     RowMap<Map<bool>> peakMaps;
@@ -228,40 +248,6 @@ RowMap<Map<bool>> makePeakMapByRow(const RowMap<std::vector<Digit>> &peaks)
 }
 
 
-struct TpcHitPos
-{
-    short sector;
-    short row;
-    MCLabel label;
-
-    bool operator==(const TpcHitPos &other) const
-    {
-        return sector == other.sector 
-            && row == other.row 
-            && label == other.label;
-    }
-};
-
-namespace std
-{
-    
-    template<>
-    struct hash<TpcHitPos>
-    {
-        size_t operator()(const TpcHitPos &p) const
-        {
-            static_assert(sizeof(p.label.event) == sizeof(short));
-            static_assert(sizeof(p.label.track) == sizeof(short));
-
-            size_t h = (size_t(p.sector)      << (8*3*sizeof(short)))
-                     | (size_t(p.row)         << (8*2*sizeof(short)))
-                     | (size_t(p.label.event) << (8*1*sizeof(short)))
-                     | size_t(p.label.track);
-            return std::hash<size_t>()(h);
-        } 
-    };
-
-} // namespace std
 
 std::vector<int> countPeaksPerTrack(
         const SectorMap<RowMap<std::vector<Digit>>> &peaks, 
@@ -336,11 +322,11 @@ void plotPeaknumToTracknum(
     c->SaveAs(fname.c_str());
 }
 
-std::unordered_set<TpcHitPos> getHitsOfPeaks(
+std::unordered_map<TpcHitPos, int> countPeaksPerHit(
         const SectorMap<LabelContainer> &labels,
         const SectorMap<RowMap<std::vector<Digit>>> &peaks)
 {
-    std::unordered_set<TpcHitPos> hits;
+    std::unordered_map<TpcHitPos, int> hits;
     for (short sector = 0; sector < TPC_SECTORS; sector++)
     {
         for (short row = 0; row < TPC_NUM_OF_ROWS; row++)
@@ -349,7 +335,7 @@ std::unordered_set<TpcHitPos> getHitsOfPeaks(
             {
                 for (const MCLabel &label : labels[sector][peak])
                 {
-                    hits.insert(TpcHitPos{sector, row, label});
+                    hits[{sector, row, label}]++;
                 }
             }
         }
@@ -367,17 +353,51 @@ void countLostHits(
     ASSERT(names.size() == peaks.size());
     ASSERT(baseline <= names.size());    
 
-    std::vector<std::unordered_set<TpcHitPos>> hits(names.size());
+    std::vector<std::unordered_map<TpcHitPos, int>> hits(names.size());
     for (size_t i = 0; i < names.size(); i++)
     {
-        hits[i] = getHitsOfPeaks(labels, peaks[i]);
+        hits[i] = countPeaksPerHit(labels, peaks[i]);
     }
 
-    log::Info() << "Lost hits:";
     for (size_t i = 0; i < names.size(); i++)
     {
-        log::Info() << "  " << names[i] << ": " 
-            << 1.f - float(hits[i].size()) / hits[baseline].size();
+        size_t lostHits = 0;
+        size_t hitsWithOnePeak = 0;
+        size_t hitsWithTwoPeaks = 0;
+        size_t hitsWithTenPeaks = 0;
+        size_t hitsWithMoreThanPeaks = 0;
+
+        for (const auto &hit : hits[baseline])
+        {
+            auto hitWithPeaknum = hits[i].find(hit.first);
+
+            if (hitWithPeaknum == hits[i].end())
+            {
+                lostHits++;
+            }
+            else
+            {
+                int peaks = hitWithPeaknum->second;
+                hitsWithOnePeak += (peaks == 1);
+                hitsWithTwoPeaks += (peaks == 2);
+                hitsWithTenPeaks += (peaks > 2 && peaks <= 10);
+                hitsWithMoreThanPeaks += (peaks > 10);
+            }
+        }
+
+        float totalHits = hits[baseline].size();
+
+        log::Info() << names[i] << ":\n"
+                    << "  lost hits   : " 
+                         <<  lostHits / totalHits << "\n"
+                    << "  1 peak     / hit: " 
+                         << hitsWithOnePeak / totalHits << "\n"
+                    << "  2 peaks    / hit: " 
+                         << hitsWithTwoPeaks / totalHits << "\n"
+                    << " <= 10 peaks / hit: " 
+                        << hitsWithTenPeaks / totalHits << "\n"
+                    << " > 10 peaks  / hit: " 
+                        << hitsWithMoreThanPeaks / totalHits;
     }
 }
 
@@ -412,6 +432,9 @@ int main(int argc, const char *argv[])
     SectorMap<LabelContainer> labels = 
             LabelContainer::bySector(rawlabels, digits);
 
+
+    log::Info() << "Found " << countTracks(labels) << " tracks in label data.";
+
     log::Info() << "Creating chargemap";
     SectorMap<Map<float>> chargemaps;
     for (size_t sector = 0; sector < TPC_SECTORS; sector++)
@@ -425,11 +448,15 @@ int main(int argc, const char *argv[])
 
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
-    noiseSuppressionAlgos.emplace_back(new QmaxCutoff);
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4));
+    noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2));
+    noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3));
 
     size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
