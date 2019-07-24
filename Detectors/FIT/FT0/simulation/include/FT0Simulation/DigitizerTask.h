@@ -54,9 +54,9 @@ class DigitizerTask : public FairTask
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
-  Int_t mSourceID = 0;                                      ///< current source
-  Int_t mEventID = 0;                                       ///< current event id from the source
-  Digitizer mDigitizer;                                     ///< Digitizer
+  Int_t mSourceID = 0;                                       ///< current source
+  Int_t mEventID = 0;                                        ///< current event id from the source
+  Digitizer mDigitizer;                                      ///< Digitizer
   const std::vector<o2::ft0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
   TBranch* mQEDBranch = nullptr;                                //! optional special branch of hits from QED collitions

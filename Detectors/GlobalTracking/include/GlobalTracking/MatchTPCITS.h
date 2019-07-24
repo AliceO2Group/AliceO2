@@ -611,7 +611,7 @@ class MatchTPCITS
   std::string mITSClusterROFRecBranchName = "ITSClustersROF"; ///< name of branch containing input ITS clusters ROFRecords
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels
   std::string mTPCMCTruthBranchName = "TracksMCTruth";   ///< name of branch containing input TPC tracks
-  std::string mFITInfoBranchName = "FT0Cluster";          ///< name of branch containing input FIT Info
+  std::string mFITInfoBranchName = "FT0Cluster";         ///< name of branch containing input FIT Info
   std::string mOutTPCITSTracksBranchName = "TPCITS";     ///< name of branch containing output matched tracks
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
