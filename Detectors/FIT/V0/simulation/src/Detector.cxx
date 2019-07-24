@@ -65,9 +65,9 @@ Detector::Detector(Bool_t isActive)
 void Detector::InitializeO2Detector()
 {
   LOG(INFO) << "FV0: Initializing O2 detector. Adding sensitive volume.";
-  TGeoVolume* volSensitive = gGeoManager->GetVolume("V0cell");
+  TGeoVolume* volSensitive = gGeoManager->GetVolume("FV0cell");
   if (!volSensitive) {
-    LOG(FATAL) << "Can't find FIT V0 sensitive volume: cell";
+    LOG(FATAL) << "Can't find FV0 sensitive volume: cell";
   } else {
     AddSensitiveVolume(volSensitive);
     LOG(INFO) << "FV0: Sensitive volume: " << volSensitive->GetName() << "   " << volSensitive->GetNumber();
