@@ -138,7 +138,7 @@ class IrregularSpline2D3D : public FlatObject
 
   /// Get interpolated value for f(u,v) using data array correctedData[getNumberOfKnots()] with corrected edges
   template <typename T>
-  GPUd() void getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const;
+  GPUd() void getSpline(GPUgeneric() const T* correctedData, float u, float v, GPUgeneric() T& x, GPUgeneric() T& y, GPUgeneric() T& z) const;
 
   /// Same as getSpline, but using vectorized calculation.
   /// \param correctedData should be at least 128-bit aligned
@@ -286,7 +286,7 @@ GPUd() void IrregularSpline2D3D::correctEdges(T* data) const
 }
 
 template <typename T>
-GPUdi() void IrregularSpline2D3D::getSpline(const T* correctedData, float u, float v, T& x, T& y, T& z) const
+GPUdi() void IrregularSpline2D3D::getSpline(GPUgeneric() const T* correctedData, float u, float v, GPUgeneric() T& x, GPUgeneric() T& y, GPUgeneric() T& z) const
 {
   // Get interpolated value for f(u,v) using data array correctedData[getNumberOfKnots()] with corrected edges
 
