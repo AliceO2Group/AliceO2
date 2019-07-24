@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_TRACKINTERPOLATION_H_
 
 #include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
@@ -35,20 +36,6 @@ namespace o2
 {
 namespace tpc
 {
-
-/// Intermediate structure filled with TPC position information based in ITS-TOF interpolation (per track)
-struct CacheMeanPosInTPC {
-  std::array<std::array<float, 2>, Constants::MAXGLOBALPADROW> posExt{}; ///< y and z coordinate for extrapolated ITS tracks
-  std::array<std::array<float, 3>, Constants::MAXGLOBALPADROW> covExt{}; ///< covarince for extrapolated ITS tracks
-  std::array<std::array<float, 2>, Constants::MAXGLOBALPADROW> posInt{}; ///< y and z coordinate for interpolated TOF/TRD tracks
-  std::array<std::array<float, 3>, Constants::MAXGLOBALPADROW> covInt{}; ///< covarince for interpolated TOF/TRD tracks
-  std::array<std::array<float, 2>, Constants::MAXGLOBALPADROW> pos{};    ///< weighted average of posExt and posInt
-  std::array<std::array<float, 2>, Constants::MAXGLOBALPADROW> clYZ{};   ///< TPC cluster y/z position
-  std::array<float, Constants::MAXGLOBALPADROW> clAngle{};               ///< alpha for TPC cluster
-  std::array<unsigned short, Constants::MAXGLOBALPADROW> clAvailable{};  ///< if a TPC cluster is available in a given row this is set to 1
-  std::array<float, Constants::MAXGLOBALPADROW> phi{};                   ///< track phi (taken from extrapolation)
-  std::array<float, Constants::MAXGLOBALPADROW> tgl{};                   ///< track tgl (taken from extrapolation)
-};
 
 /// Structure used to store the TPC cluster residuals
 struct TPCClusterResiduals {
@@ -71,17 +58,18 @@ struct TPCClusterResiduals {
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
-  int trkId{};              ///< track ID for debugging
-  float eta{};              ///< track dip angle
-  float phi{};              ///< track azimuthal angle
-  float qPt{};              ///< track q/pT
-  float chi2TPC{};          ///< chi2 of TPC track
-  float chi2ITS{};          ///< chi2 of ITS track
-  unsigned short nClsTPC{}; ///< number of attached TPC clusters
-  unsigned short nClsITS{}; ///< number of attached ITS clusters
+  int trkId{};                 ///< track ID for debugging
+  float eta{};                 ///< track dip angle
+  float phi{};                 ///< track azimuthal angle
+  float qPt{};                 ///< track q/pT
+  float chi2TPC{};             ///< chi2 of TPC track
+  float chi2ITS{};             ///< chi2 of ITS track
+  unsigned short nClsTPC{};    ///< number of attached TPC clusters
+  unsigned short nClsITS{};    ///< number of attached ITS clusters
+  unsigned short nTrkltsTRD{}; ///< number of attached TRD tracklets
   // TODO: Add an additional structure with event information and reference to the tracks for given event?
-  int nTracksInEvent{};               ///< total number of tracks in given event / timeframe ? Used for multiplicity estimate
-  o2::dataformats::EvIndex<> clIdx{}; ///< the event number refers to the first cluster residual of this track, the index to the total number of cluster residuals of this track
+  int nTracksInEvent{};                      ///< total number of tracks in given event / timeframe ? Used for multiplicity estimate
+  o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of cluster residuals of this track
 };
 
 /// \class TrackInterpolation
@@ -93,6 +81,29 @@ class TrackInterpolation
  public:
   /// Default constructor
   TrackInterpolation() = default;
+
+  /// Enumeration for indexing the arrays of the CacheStruct
+  enum {
+    ExtOut = 0, ///< extrapolation outwards of ITS track
+    ExtIn,      ///< extrapolation inwards of TRD/TOF track
+    Int,        ///< interpolation (mean positions of both extrapolations)
+    NIndices    ///< total number of indices (3)
+  };
+
+  /// Structure for caching positions, covariances and angles for extrapolations from ITS and TRD/TOF and for interpolation
+  struct CacheStruct {
+    std::array<float, NIndices> y{};
+    std::array<float, NIndices> z{};
+    std::array<float, NIndices> sy2{};
+    std::array<float, NIndices> szy{};
+    std::array<float, NIndices> sz2{};
+    std::array<float, NIndices> phi{};
+    std::array<float, NIndices> tgl{};
+    float clY{ 0.f };
+    float clZ{ 0.f };
+    float clAngle{ 0.f };
+    unsigned short clAvailable{ 0 };
+  };
 
   /// Initialize everything
   void init();
@@ -229,8 +240,7 @@ class TrackInterpolation
   std::vector<TPCClusterResiduals>* mClResPtr{ &mClRes }; ///< pointer to vector with residuals
 
   // cache
-  // TODO a single CacheMeanPosInTPC struct could probably also be put on the stack (ca. 10 kbytes)
-  std::unique_ptr<CacheMeanPosInTPC> mCache{}; ///< store here for each track the mean position + error in the TPC
+  std::array<CacheStruct, Constants::MAXGLOBALPADROW> mCache{ {} }; ///< caching positions, covariances and angles for track extrapolations and interpolation
 
   // helpers
   std::unique_ptr<TPCFastTransform> mFastTransform{}; ///< TPC cluster transformation

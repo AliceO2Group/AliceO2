@@ -144,7 +144,7 @@ void TrackResiduals::reset()
 }
 
 //______________________________________________________________________________
-int TrackResiduals::getXBin(const float x) const
+int TrackResiduals::getXBin(float x) const
 {
   // convert x to bin ID, following pad row widths
   if (mUniformBins[VoxX]) {
@@ -384,10 +384,10 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
 
     fillLocalResidualsTrees();
   }
+  printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
+  printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
   LOG(info) << "Accepted " << nTracksSelected << " tracks. With outliers it would be " << nTracksSelectedWithOutliers;
   writeLocalResidualTreesToFile();
-  //printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
-  //printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
 }
 
 void TrackResiduals::fillLocalResidualsTrees()
@@ -623,8 +623,8 @@ void TrackResiduals::convertToLocalResiduals()
   // loop over tracks
   for (const auto& trk : mTrackData) {
     int iRow = 0;
-    for (int iCl = 0; iCl < trk.clIdx.getIndex(); ++iCl) {
-      int clIdx = trk.clIdx.getEvent() + iCl;
+    for (int iCl = 0; iCl < trk.clIdx.getEntries(); ++iCl) {
+      int clIdx = trk.clIdx.getFirstEntry() + iCl;
       std::array<unsigned char, VoxDim> bvox;
       iRow += mClRes[clIdx].dRow;
       float xPos = param::RowX[iRow];

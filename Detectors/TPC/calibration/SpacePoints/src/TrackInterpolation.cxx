@@ -34,8 +34,6 @@ void TrackInterpolation::init()
   std::unique_ptr<TPCFastTransform> fastTransform = (TPCFastTransformHelperO2::instance()->create(0));
   mFastTransform = std::move(fastTransform);
 
-  mCache = std::make_unique<CacheMeanPosInTPC>();
-
   if (mTreeOutTrackData && mTreeOutClusterRes) {
     prepareOutputTrees();
   }
@@ -152,8 +150,11 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC().getIndex());
   const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS().getIndex());
   auto trkWork = trkITS.getParamOut();
-  *mCache = {};                                     // reset the cache
-  mTrackData[trkIdx].clIdx.setEvent(mClRes.size()); // reference the first cluster residual belonging to this track
+  // reset the cache array (sufficient to set )
+  for (auto& elem : mCache) {
+    elem.clAvailable = 0;
+  }
+  mTrackData[trkIdx].clIdx.setFirstEntry(mClRes.size()); // reference the first cluster residual belonging to this track
   //printf("=== New Track with pt = %.3f, nClsTPC = %i ===\n", trkWork.getQ2Pt(), trkTPC.getNClusterReferences());
 
   // store the TPC cluster positions in the cache
@@ -165,20 +166,20 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
     const auto& clTPC = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
     float clTPCX;
     std::array<float, 2> clTPCYZ;
-    mFastTransform->Transform(sector, row, clTPC.getPad(), clTPC.getTime() - clusterTimeBinOffset, clTPCX, clTPCYZ[0], clTPCYZ[1]);
+    mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
     sector %= SECTORSPERSIDE;
-    mCache->clAvailable[row] = 1;
-    mCache->clYZ[row][0] = clTPCYZ[0];
-    mCache->clYZ[row][1] = clTPCYZ[1];
-    mCache->clAngle[row] = o2::utils::Sector2Angle(sector);
+    mCache[row].clAvailable = 1;
+    mCache[row].clY = clTPCYZ[0];
+    mCache[row].clZ = clTPCYZ[1];
+    mCache[row].clAngle = o2::utils::Sector2Angle(sector);
   }
 
   // first extrapolate through TPC and store track position at each pad row
   for (int iRow = 0; iRow < param::NPadRows; ++iRow) {
-    if (!mCache->clAvailable[iRow]) {
+    if (!mCache[iRow].clAvailable) {
       continue;
     }
-    if (!trkWork.rotate(mCache->clAngle[iRow])) {
+    if (!trkWork.rotate(mCache[iRow].clAngle)) {
       LOG(debug) << "Failed to rotate track during first extrapolation";
       return false;
     }
@@ -186,13 +187,13 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
       LOG(debug) << "Failed on first extrapolation";
       return false;
     }
-    mCache->posExt[iRow][0] = trkWork.getY();
-    mCache->posExt[iRow][1] = trkWork.getZ();
-    mCache->covExt[iRow][0] = trkWork.getSigmaY2();
-    mCache->covExt[iRow][1] = trkWork.getSigmaZY();
-    mCache->covExt[iRow][2] = trkWork.getSigmaZ2();
-    mCache->phi[iRow] = trkWork.getSnp();
-    mCache->tgl[iRow] = trkWork.getTgl();
+    mCache[iRow].y[ExtOut] = trkWork.getY();
+    mCache[iRow].z[ExtOut] = trkWork.getZ();
+    mCache[iRow].sy2[ExtOut] = trkWork.getSigmaY2();
+    mCache[iRow].szy[ExtOut] = trkWork.getSigmaZY();
+    mCache[iRow].sz2[ExtOut] = trkWork.getSigmaZ2();
+    mCache[iRow].phi[ExtOut] = trkWork.getSnp();
+    mCache[iRow].tgl[ExtOut] = trkWork.getTgl();
     //printf("Track alpha at row %i: %.2f, Y(%.2f), Z(%.2f)\n", iRow, trkWork.getAlpha(), trkWork.getY(), trkWork.getZ());
   }
 
@@ -219,10 +220,10 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
 
   // go back through the TPC and store updated track positions
   for (int iRow = param::NPadRows; iRow--;) {
-    if (!mCache->clAvailable[iRow]) {
+    if (!mCache[iRow].clAvailable) {
       continue;
     }
-    if (!trkWork.rotate(mCache->clAngle[iRow])) {
+    if (!trkWork.rotate(mCache[iRow].clAngle)) {
       LOG(debug) << "Failed to rotate track during back propagation";
       return false;
     }
@@ -231,34 +232,40 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
       //printf("trkX(%.2f), clX(%.2f), clY(%.2f), clZ(%.2f), alphaTOF(%.2f)\n", trkWork.getX(), param::RowX[iRow], clTOFYZ[0], clTOFYZ[1], clTOFAlpha);
       return false;
     }
-    mCache->posInt[iRow][0] = trkWork.getY();
-    mCache->posInt[iRow][1] = trkWork.getZ();
-    mCache->covInt[iRow][0] = trkWork.getSigmaY2();
-    mCache->covInt[iRow][1] = trkWork.getSigmaZY();
-    mCache->covInt[iRow][2] = trkWork.getSigmaZ2();
+    mCache[iRow].y[ExtIn] = trkWork.getY();
+    mCache[iRow].z[ExtIn] = trkWork.getZ();
+    mCache[iRow].sy2[ExtIn] = trkWork.getSigmaY2();
+    mCache[iRow].szy[ExtIn] = trkWork.getSigmaZY();
+    mCache[iRow].sz2[ExtIn] = trkWork.getSigmaZ2();
+    mCache[iRow].phi[ExtIn] = trkWork.getSnp();
+    mCache[iRow].tgl[ExtIn] = trkWork.getTgl();
   }
 
   // calculate weighted mean at each pad row (assume for now y and z are uncorrelated) and store residuals to TPC clusters
   unsigned short deltaRow = 0;
   unsigned short nMeasurements = 0;
   for (int iRow = 0; iRow < param::NPadRows; ++iRow) {
-    if (!mCache->clAvailable[iRow]) {
+    if (!mCache[iRow].clAvailable) {
       ++deltaRow;
       continue;
     }
-    float wTotY = 1.f / mCache->covExt[iRow][0] + 1.f / mCache->covInt[iRow][0];
-    float wTotZ = 1.f / mCache->covExt[iRow][2] + 1.f / mCache->covInt[iRow][2];
-    mCache->pos[iRow][0] = (mCache->posExt[iRow][0] / mCache->covExt[iRow][0] + mCache->posInt[iRow][0] / mCache->covInt[iRow][0]) / wTotY;
-    mCache->pos[iRow][1] = (mCache->posExt[iRow][1] / mCache->covExt[iRow][2] + mCache->posInt[iRow][1] / mCache->covInt[iRow][2]) / wTotZ;
+    float wTotY = 1.f / mCache[iRow].sy2[ExtOut] + 1.f / mCache[iRow].sy2[ExtIn];
+    float wTotZ = 1.f / mCache[iRow].sz2[ExtOut] + 1.f / mCache[iRow].sz2[ExtIn];
+    mCache[iRow].y[Int] = (mCache[iRow].y[ExtOut] / mCache[iRow].sy2[ExtOut] + mCache[iRow].y[ExtIn] / mCache[iRow].sy2[ExtIn]) / wTotY;
+    mCache[iRow].z[Int] = (mCache[iRow].z[ExtOut] / mCache[iRow].sz2[ExtOut] + mCache[iRow].z[ExtIn] / mCache[iRow].sz2[ExtIn]) / wTotZ;
+
+    // simple average w/o weighting for angles
+    mCache[iRow].phi[Int] = (mCache[iRow].phi[ExtOut] + mCache[iRow].phi[ExtIn]) / 2.f;
+    mCache[iRow].tgl[Int] = (mCache[iRow].tgl[ExtOut] + mCache[iRow].tgl[ExtIn]) / 2.f;
 
     TPCClusterResiduals res;
-    res.setDY(mCache->clYZ[iRow][0] - mCache->pos[iRow][0]);
-    res.setDZ(mCache->clYZ[iRow][1] - mCache->pos[iRow][1]);
-    res.setY(mCache->pos[iRow][0]);
-    res.setZ(mCache->pos[iRow][1]);
-    res.setPhi(mCache->phi[iRow]);
-    res.setTgl(mCache->tgl[iRow]);
-    res.sec = o2::utils::Angle2Sector(mCache->clAngle[iRow]);
+    res.setDY(mCache[iRow].clY - mCache[iRow].y[Int]);
+    res.setDZ(mCache[iRow].clZ - mCache[iRow].z[Int]);
+    res.setY(mCache[iRow].y[Int]);
+    res.setZ(mCache[iRow].z[Int]);
+    res.setPhi(mCache[iRow].phi[Int]);
+    res.setTgl(mCache[iRow].tgl[Int]);
+    res.sec = o2::utils::Angle2Sector(mCache[iRow].clAngle);
     res.dRow = deltaRow;
     res.row = iRow;
     mClRes.push_back(std::move(res));
@@ -274,7 +281,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   mTrackData[trkIdx].chi2ITS = trkITS.getChi2();
   mTrackData[trkIdx].nClsTPC = trkTPC.getNClusterReferences();
   mTrackData[trkIdx].nClsITS = trkITS.getNumberOfClusters();
-  mTrackData[trkIdx].clIdx.setIndex(nMeasurements);
+  mTrackData[trkIdx].clIdx.setEntries(nMeasurements);
 
   return true;
 }
@@ -283,7 +290,7 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
 {
   // extrapolate ITS-only track through TPC and store residuals to TPC clusters in the output vectors
   size_t trkIdx = mTrackData.size() - 1;
-  mTrackData[trkIdx].clIdx.setEvent(mClRes.size());
+  mTrackData[trkIdx].clIdx.setFirstEntry(mClRes.size());
   auto trk = trkITS.getParamOut();
   float clusterTimeBinOffset = trkTime / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
@@ -295,7 +302,7 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
     trkTPC.getClusterReference(iCl, sector, row, clusterIndexInRow);
     const auto& cl = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
     float x = 0, y = 0, z = 0;
-    mFastTransform->Transform(sector, row, cl.getPad(), cl.getTime() - clusterTimeBinOffset, x, y, z);
+    mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trk.rotate(o2::utils::Sector2Angle(sector))) {
       return false;
     }
@@ -324,7 +331,7 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
   mTrackData[trkIdx].chi2ITS = trkITS.getChi2();
   mTrackData[trkIdx].nClsTPC = trkTPC.getNClusterReferences();
   mTrackData[trkIdx].nClsITS = trkITS.getNumberOfClusters();
-  mTrackData[trkIdx].clIdx.setIndex(nMeasurements);
+  mTrackData[trkIdx].clIdx.setEntries(nMeasurements);
 
   return true;
 }
