@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include <iomanip>
 //#include <TVector3.h>
-#include "V0Base/Geometry.h"
+#include "FV0Base/Geometry.h"
 
 #include <TGeoManager.h>
 #include <TGeoBBox.h>
@@ -71,7 +71,7 @@ void Geometry::buildGeometry()
   }
 
   // Top volume of FV0 detector
-  TGeoVolumeAssembly* volFV0 = new TGeoVolumeAssembly("FITV0");
+  TGeoVolumeAssembly* volFV0 = new TGeoVolumeAssembly("FV0");
   LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << volFV0->GetName();
   assembleSectors(volFV0);
 
