@@ -798,7 +798,7 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
     chiZ = CAMath::Abs((w1 * z0 + w2 * z1) * z1);
   }
   float dChi2 = chiY + chiZ;
-  // printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, mChi2, chiY, chiZ, z0, z1);
+  // GPUInfo("hits %d chi2 %f, new %f %f (dy %f dz %f)", N, mChi2, chiY, chiZ, z0, z1);
   if (mSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) {
     return 2; // DR: TOTO get rid of stupid specialerror
   }

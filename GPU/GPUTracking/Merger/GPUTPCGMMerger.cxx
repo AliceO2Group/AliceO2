@@ -101,7 +101,7 @@ void GPUTPCGMMerger::CheckMergedTracks()
     while (true) {
       int iTrk = tr - mSliceTrackInfos;
       if (trkUsed[iTrk]) {
-        printf("FAILURE: double use\n");
+        GPUError("FAILURE: double use");
       }
       trkUsed[iTrk] = true;
 
@@ -127,7 +127,7 @@ void GPUTPCGMMerger::CheckMergedTracks()
   }
   for (int i = 0; i < SliceTrackInfoLocalTotal(); i++) {
     if (trkUsed[i] == false) {
-      printf("FAILURE: trk missed\n");
+      GPUError("FAILURE: trk missed");
     }
   }
 }
@@ -284,7 +284,7 @@ void GPUTPCGMMerger::UnpackSlices()
       if (!track.FilterErrors(*mCAParam, GPUCA_MAX_SIN_PHI, 0.1f)) {
         continue;
       }
-      CADEBUG(printf("INPUT Slice %d, Track %u, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs()));
+      CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
       track.SetPrevNeighbour(-1);
       track.SetNextNeighbour(-1);
       track.SetNextSegmentNeighbour(-1);
@@ -407,7 +407,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
     return;
   }
 
-  CADEBUG(printf("\nMERGING Slices %d %d NTracks %d %d CROSS %d\n", iSlice1, iSlice2, N1, N2, crossCE));
+  CADEBUG(GPUInfo("\nMERGING Slices %d %d NTracks %d %d CROSS %d", iSlice1, iSlice2, N1, N2, crossCE));
   int statAll = 0, statMerged = 0;
   float factor2ys = 1.5; // 1.5;//SG!!!
   float factor2zt = 1.5; // 1.5;//SG!!!
@@ -539,11 +539,11 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
     }
     statMerged++;
 
-    CADEBUG(printf("Found match %d %d\n", b1.TrackID(), iBest2));
+    CADEBUG(GPUInfo("Found match %d %d", b1.TrackID(), iBest2));
 
     mTrackLinks[b1.TrackID()] = iBest2;
   }
-  // printf("STAT: slices %d, %d: all %d merged %d\n", iSlice1, iSlice2, statAll, statMerged);
+  // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
 }
 
 void GPUTPCGMMerger::MergeWithingSlices()
@@ -605,11 +605,11 @@ void GPUTPCGMMerger::PrintMergeGraph(GPUTPCGMSliceTrack* trk)
   }
 
   int nextId = trk - mSliceTrackInfos;
-  printf("Graph of track %d\n", (int)(orgTrack - mSliceTrackInfos));
+  GPUInfo("Graph of track %d", (int)(orgTrack - mSliceTrackInfos));
   while (nextId >= 0) {
     trk = &mSliceTrackInfos[nextId];
     if (trk->PrevSegmentNeighbour() >= 0) {
-      printf("TRACK TREE INVALID!!! %d --> %d\n", trk->PrevSegmentNeighbour(), nextId);
+      GPUError("TRACK TREE INVALID!!! %d --> %d", trk->PrevSegmentNeighbour(), nextId);
     }
     printf(trk == orgTower ? "--" : "  ");
     while (nextId >= 0) {
@@ -669,7 +669,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
     GPUTPCGMSliceTrack* track2Base = track2;
 
     bool sameSegment = fabsf(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
-    // printf("\nMerge %d with %d - same segment %d\n", itr, itr2, (int) sameSegment);
+    // GPUInfo("\nMerge %d with %d - same segment %d", itr, itr2, (int) sameSegment);
     // PrintMergeGraph(track1);
     // PrintMergeGraph(track2);
 
@@ -737,7 +737,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
       if (track1->Neighbour(goUp) < 0 && track2->Neighbour(!goUp) < 0) {
         track1->SetNeighbor(track2 - mSliceTrackInfos, goUp);
         track2->SetNeighbor(track1 - mSliceTrackInfos, !goUp);
-        // printf("Result (simple neighbor)\n");
+        // GPUInfo("Result (simple neighbor)");
         // PrintMergeGraph(track1);
         continue;
       } else if (track1->Neighbour(goUp) < 0) {
@@ -784,7 +784,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
         }
       }
     }
-    // printf("Result\n");
+    // GPUInfo("Result");
     // PrintMergeGraph(track1);
   NextTrack:;
   }

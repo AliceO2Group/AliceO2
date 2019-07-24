@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayBackendGlfw.h"
+#include "GPULogging.h"
 
 //#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
 //#include "../src/GL/gl3w.h"
@@ -140,7 +141,7 @@ void GPUDisplayBackendGlfw::GetKey(int key, int scancode, int mods, int& keyOut,
   if ((mods & GLFW_MOD_SHIFT) && localeKey >= 'a' && localeKey <= 'z') {
     localeKey += 'A' - 'a';
   }
-  // printf("Key: key %d (%c) -> %d (%c) special %d (%c)\n", key, (char) key, (int) localeKey, localeKey, specialKey, (char) specialKey);
+  // GPUInfo("Key: key %d (%c) -> %d (%c) special %d (%c)", key, (char) key, (int) localeKey, localeKey, specialKey, (char) specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -319,7 +320,7 @@ void GPUDisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r
 
 void GPUDisplayBackendGlfw::SwitchFullscreen(bool set)
 {
-  printf("Setting Full Screen %d\n", (int)set);
+  GPUInfo("Setting Full Screen %d", (int)set);
   if (set) {
     glfwGetWindowPos(mWindow, &mWindowX, &mWindowY);
     glfwGetWindowSize(mWindow, &mWindowWidth, &mWindowHeight);
@@ -346,7 +347,7 @@ int GPUDisplayBackendGlfw::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
-    printf("Coult not Create GL Thread...\n");
+    GPUError("Coult not Create GL Thread...");
     return (1);
   }
   return (0);

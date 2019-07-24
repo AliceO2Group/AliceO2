@@ -160,7 +160,7 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
           yzUp[nNeighUp] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
         }
         if (++nNeighUp >= GPUCA_MAXN) {
-          // printf("Neighbors buffer ran full...\n");
+          // GPUInfo("Neighbors buffer ran full...");
           break;
         }
       } while (1);
