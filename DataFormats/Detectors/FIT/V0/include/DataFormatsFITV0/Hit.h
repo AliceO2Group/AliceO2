@@ -9,10 +9,10 @@
 // or submit itself to any jurisdiction.
 
 /// \file Hit.h
-/// \brief Definition of the FIT-V0 Hit class (based on ITSMFT)
+/// \brief Definition of the FV0 Hit class (based on ITSMFT)
 
-#ifndef ALICEO2_FIT_V0_HIT_H_
-#define ALICEO2_FIT_V0_HIT_H_
+#ifndef ALICEO2_FV0_HIT_H_
+#define ALICEO2_FV0_HIT_H_
 
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 #include "Rtypes.h"                        // for Bool_t, Double_t, Int_t, Double32_t, etc
@@ -102,4 +102,4 @@ class allocator<o2::fv0::Hit> : public o2::utils::ShmAllocator<o2::fv0::Hit>
 
 } // namespace std
 #endif /* USESHM */
-#endif /* ALICEO2_FIT_V0_HIT_H_ */
+#endif /* ALICEO2_FV0_HIT_H_ */

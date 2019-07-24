@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Geometry.h
-/// \brief Base definition of FIT-V0+ geometry.
+/// \brief Base definition of FV0+ geometry.
 ///
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 
@@ -24,7 +24,7 @@ namespace o2
 {
 namespace fv0
 {
-/// FIT-V0+ Geometry
+/// FV0+ Geometry
 class Geometry
 {
  public:
