@@ -237,7 +237,7 @@ inline void ROframe::clear()
   mRoads.clear();
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_ROFRAME_H_ */

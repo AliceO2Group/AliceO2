@@ -47,7 +47,7 @@ struct Cluster final {
   Int_t indexTableBin;
 };
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_CLUSTER_H_ */

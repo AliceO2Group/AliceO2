@@ -40,7 +40,7 @@ class ClusterWriter : public o2::framework::Task
 /// write MFT clusters a root file
 o2::framework::DataProcessorSpec getClusterWriterSpec();
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_CLUSTERWRITER_H */

@@ -31,9 +31,9 @@ framework::WorkflowSpec getWorkflow()
 {
   framework::WorkflowSpec specs;
 
-  //specs.emplace_back(o2::mft::getDigitReaderSpec());
-  //specs.emplace_back(o2::mft::getClustererSpec());
-  //specs.emplace_back(o2::mft::getClusterWriterSpec());
+  specs.emplace_back(o2::mft::getDigitReaderSpec());
+  specs.emplace_back(o2::mft::getClustererSpec());
+  specs.emplace_back(o2::mft::getClusterWriterSpec());
 
   specs.emplace_back(o2::mft::getClusterReaderSpec());
   specs.emplace_back(o2::mft::getTrackerSpec());
@@ -44,5 +44,5 @@ framework::WorkflowSpec getWorkflow()
 
 } // namespace RecoWorkflow
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
