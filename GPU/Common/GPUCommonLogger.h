@@ -19,10 +19,9 @@
 #include <iostream>
 #include <cstdio>
 #define LOG(type) std::cout
-#define LOGF(type, ...)  \
-  {                      \
-    printf(__VA_ARGS__); \
-    printf("\n");        \
+#define LOGF(type, string, ...)         \
+  {                                     \
+    printf(string "\n", ##__VA_ARGS__); \
   }
 
 #else

@@ -65,7 +65,7 @@ void GPUDisplay::PrintHelp()
 {
   mInfoHelpTimer.ResetStart();
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    printf("%s\n", HelpText[i]);
+    GPUInfo("%s", HelpText[i]);
   }
 }
 
@@ -308,7 +308,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == mBackend->KEY_F2) {
     mCfg.drawTRD ^= 1;
   } else if (key == 't') {
-    printf("Taking screenshot\n");
+    GPUInfo("Taking screenshot");
     static int nScreenshot = 1;
     char fname[32];
     sprintf(fname, "screenshot%d.bmp", nScreenshot++);
@@ -358,13 +358,13 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     if (ftmp) {
       int retval = fwrite(&mCurrentMatrix[0], sizeof(mCurrentMatrix[0]), 16, ftmp);
       if (retval != 16) {
-        printf("Error writing position to file\n");
+        GPUError("Error writing position to file");
       } else {
-        printf("Position stored to file\n");
+        GPUInfo("Position stored to file");
       }
       fclose(ftmp);
     } else {
-      printf("Error opening file\n");
+      GPUError("Error opening file");
     }
     SetInfo("Camera position stored to file", 1);
   } else if (key == 'p') {
@@ -376,13 +376,13 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrixf(tmp);
         glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
-        printf("Position read from file\n");
+        GPUInfo("Position read from file");
       } else {
-        printf("Error reading position from file\n");
+        GPUError("Error reading position from file");
       }
       fclose(ftmp);
     } else {
-      printf("Error opening file\n");
+      GPUError("Error opening file");
     }
     SetInfo("Camera position loaded from file", 1);
   } else if (key == 'O') {
@@ -397,7 +397,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
       fclose(ftmp);
     } else {
-      printf("Error opening file\n");
+      GPUError("Error opening file");
     }
     SetInfo("Animation path stored to file %s", "glanimation.tmp");
   } else if (key == 'P') {
@@ -416,7 +416,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       fclose(ftmp);
       updateConfig();
     } else {
-      printf("Error opening file\n");
+      GPUError("Error opening file");
     }
     SetInfo("Animation path loaded from file %s", "glanimation.tmp");
   } else if (key == 'h') {
@@ -433,7 +433,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
 
 void GPUDisplay::HandleSendKey(int key)
 {
-  // fprintf(stderr, "key %d '%c'\n", key, (char) key);
+  // GPUError("key %d '%c'", key, (char) key);
 
   bool shifted = key >= 'A' && key <= 'Z';
   int press = key;

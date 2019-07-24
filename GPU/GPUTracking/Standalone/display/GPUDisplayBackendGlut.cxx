@@ -16,6 +16,7 @@
 
 // Now the other headers
 #include "GPUDisplayBackendGlut.h"
+#include "GPULogging.h"
 #include <cstdio>
 #include <cstring>
 #include <GL/freeglut.h>
@@ -108,7 +109,7 @@ int GPUDisplayBackendGlut::GetKey(int key)
 void GPUDisplayBackendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool special)
 {
   int specialKey = special ? GetKey(key) : 0;
-  // printf("Key: key %d (%c) (special %d) -> %d (%c) special %d (%c)\n", key, (char) key, (int) special, (int) key, key, specialKey, (char) specialKey);
+  // GPUInfo("Key: key %d (%c) (special %d) -> %d (%c) special %d (%c)", key, (char) key, (int) special, (int) key, key, specialKey, (char) specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -280,7 +281,7 @@ int GPUDisplayBackendGlut::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
-    printf("Coult not Create GL Thread...\n");
+    GPUError("Coult not Create GL Thread...");
     return (1);
   }
   return (0);

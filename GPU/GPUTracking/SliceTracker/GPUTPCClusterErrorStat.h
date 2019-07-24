@@ -40,7 +40,7 @@ struct GPUTPCClusterErrorStat {
                 (fP[3] * fTupBuf[ihit][8] + fTupBuf[ihit][3] * fC[9]) / (fTupBuf[ihit][8] + fC[9]), (fP[4] * fTupBuf[ihit][9] + fTupBuf[ihit][4] * fC[14]) / (fTupBuf[ihit][9] + fC[14]), fC[0] * fTupBuf[ihit][5] / (fC[0] + fTupBuf[ihit][5]),
                 fC[2] * fTupBuf[ihit][6] / (fC[2] + fTupBuf[ihit][6]), fC[5] * fTupBuf[ihit][7] / (fC[5] + fTupBuf[ihit][7]), fC[9] * fTupBuf[ihit][8] / (fC[9] + fTupBuf[ihit][8]), fC[14] * fTupBuf[ihit][9] / (fC[14] + fTupBuf[ihit][9]));
       if (++fCount == 2000000) {
-        printf("Reached %lld clusters in error stat, exiting\n", fCount);
+        GPUInfo("Reached %lld clusters in error stat, exiting", fCount);
         fTup.~GPUTPCGPURootDump<TNtuple>();
         exit(0);
       }

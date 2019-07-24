@@ -39,7 +39,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
   mRec.reset(GPUReconstruction::CreateInstance(mConfig->configProcessing));
   if (mRec == nullptr) {
-    printf("Error obtaining instance of GPUReconstruction\n");
+    GPUError("Error obtaining instance of GPUReconstruction");
     return 1;
   }
   mChain = mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);

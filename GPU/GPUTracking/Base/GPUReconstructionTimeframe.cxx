@@ -39,18 +39,18 @@ GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, 
   mMaxBunches = (TIME_ORBIT - config.abortGapTime) / config.bunchSpacing;
 
   if (config.overlayRaw && chain->GetTPCTransform() == nullptr) {
-    printf("Overlay Raw Events requires TPC Fast Transform\n");
+    GPUInfo("Overlay Raw Events requires TPC Fast Transform");
     throw std::exception();
   }
   if (config.bunchSim) {
     if (config.bunchCount * config.bunchTrainCount > mMaxBunches) {
-      printf("Invalid timeframe settings: too many colliding bunches requested!\n");
+      GPUInfo("Invalid timeframe settings: too many colliding bunches requested!");
       throw std::exception();
     }
     mTrainDist = mMaxBunches / config.bunchTrainCount;
     mCollisionProbability = (float)config.interactionRate * (float)(mMaxBunchesFull * config.bunchSpacing / 1e9f) / (float)(config.bunchCount * config.bunchTrainCount);
-    printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n", config.bunchTrainCount, config.bunchCount, config.bunchSpacing, mTrainDist, config.bunchSpacing,
-           config.bunchCount * config.bunchTrainCount, mMaxBunches, mMaxBunchesFull, mCollisionProbability, mNEventsInDirectory);
+    GPUInfo("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events", config.bunchTrainCount, config.bunchCount, config.bunchSpacing, mTrainDist, config.bunchSpacing,
+            config.bunchCount * config.bunchTrainCount, mMaxBunches, mMaxBunchesFull, mCollisionProbability, mNEventsInDirectory);
   }
 
   mEventStride = configStandalone.seed;
@@ -106,11 +106,11 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
           if (mChain->mIOPtrs.nMCLabelsTPC > currentClusterTotal && nClusters != currentClusterTotal) {
             mChain->mIOMem.mcLabelsTPC[nClusters] = mChain->mIOMem.mcLabelsTPC[currentClusterTotal];
           }
-          // printf("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)\n", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice, nClusters, currentClusterSlice);
+          // GPUInfo("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice, nClusters, currentClusterSlice);
           currentClusterSlice++;
           nClusters++;
         } else {
-          // printf("Removing Cluster ID %d (ID in slice %d) Z=%f (sector %d)\n", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice);
+          // GPUInfo("Removing Cluster ID %d (ID in slice %d) Z=%f (sector %d)", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice);
           removed++;
         }
         currentClusterTotal++;
@@ -130,9 +130,9 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
   }
 
   if (!silent) {
-    printf("Read %u Clusters with %d MC labels and %d MC tracks\n", nClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
+    GPUInfo("Read %u Clusters with %d MC labels and %d MC tracks", nClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
     if (minZ > -1e6 || maxZ > 1e6) {
-      printf("\tRemoved %u / %u clusters\n", removed, nClusters + removed);
+      GPUInfo("\tRemoved %u / %u clusters", removed, nClusters + removed);
     }
   }
 
@@ -164,11 +164,11 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     nClustersTotalRaw += mChain->mIOPtrs.nRawClusters[i];
   }
   if (nClustersTotalRaw && nClustersTotalRaw != nClustersTotal) {
-    printf("Inconsitency between raw clusters and cluster data\n");
+    GPUError("Inconsitency between raw clusters and cluster data");
     throw std::exception();
   }
   if (mChain->mIOPtrs.nMCLabelsTPC && nClustersTotal != mChain->mIOPtrs.nMCLabelsTPC) {
-    printf("Inconsitency between TPC clusters and MC labels\n");
+    GPUError("Inconsitency between TPC clusters and MC labels");
     throw std::exception();
   }
   mChain->AllocateIOMemory();
@@ -207,7 +207,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     nTrackOffset += ptr.nMCInfosTPC;
   }
 
-  printf("Merged %d events, %u clusters total\n", (int)mShiftedEvents.size(), nClustersTotal);
+  GPUInfo("Merged %d events, %u clusters total", (int)mShiftedEvents.size(), nClustersTotal);
 
   mShiftedEvents.clear();
 }
@@ -245,7 +245,7 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
             break;
           }
           if (nCollisionsInTrain >= mNEventsInDirectory) {
-            printf("Error: insuffient events for mixing!\n");
+            GPUError("Error: insuffient events for mixing!");
             return (1);
           }
           if (nCollisionsInTrain == 0 && config.noEventRepeat == 0) {
@@ -271,12 +271,12 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
           double shift = (double)nBunch * (double)config.bunchSpacing * (double)TPCZ / (double)DRIFT_TIME;
           int nClusters = ReadEventShifted(useEvent, shift, 0, (double)config.timeFrameLen * (double)TPCZ / (double)DRIFT_TIME, true);
           if (nClusters < 0) {
-            printf("Unexpected error\n");
+            GPUInfo("Unexpected error");
             return (1);
           }
           nTotalClusters += nClusters;
-          printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
-                 nCollisions, nBunch, nTrain, nClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
+          GPUInfo("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)", nCollisions, nBorderCollisions, useEvent, shift, (int)(nBunch * config.bunchSpacing), inTF ? " inside" : "outside",
+                  nCollisions, nBunch, nTrain, nClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
           nInBunchPileUp++;
           nCollisionsInTrain++;
           p2 *= mCollisionProbability / nInBunchPileUp;
@@ -302,10 +302,10 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
     nBunch += mMaxBunchesFull - mTrainDist * config.bunchTrainCount;
   }
   mNTotalCollisions += nCollisions;
-  printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float)nCollisions / (float)(config.timeFrameLen - DRIFT_TIME) * 1e9, nMultipleCollisions,
-         nTrainMultipleCollisions);
+  GPUInfo("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)", nCollisions, nBorderCollisions, nTrainCollissions, (float)nCollisions / (float)(config.timeFrameLen - DRIFT_TIME) * 1e9, nMultipleCollisions,
+          nTrainMultipleCollisions);
   MergeShiftedEvents();
-  printf("\tTotal clusters: %u, MC Labels %d, MC Infos %d\n", nTotalClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
+  GPUInfo("\tTotal clusters: %u, MC Labels %d, MC Infos %d", nTotalClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
 
   if (!config.noBorder && mChain->GetQA()) {
     mChain->GetQA()->SetMCTrackRange(mcMin, mcMax);

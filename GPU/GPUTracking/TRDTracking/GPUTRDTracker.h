@@ -22,6 +22,7 @@
 #include "GPUDef.h"
 #include "GPUTRDTrackerDebug.h"
 #include "GPUTRDTrack.h"
+#include "GPULogging.h"
 
 #ifndef __OPENCL__
 #include <vector>
@@ -110,13 +111,13 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() int LoadTrack(const T& trk, const int label = -1)
   {
     if (mNTracks >= mNMaxTracks) {
-#ifndef GPUCA_GPUCODE_DEVICE
-      printf("Error: Track dropped (no memory available) -> must not happen\n");
+#ifndef GPUCA_GPUCODE
+      GPUError("Error: Track dropped (no memory available) -> must not happen");
 #endif
       return (1);
     }
 #ifdef GPUCA_ALIROOT_LIB
-    new (&mTracks[mNTracks++]) GPUTRDTrack(trk);
+    new (&mTracks[mNTracks++]) GPUTRDTrack(trk); // We need placement new, since the class is virtual
 #else
     mTracks[mNTracks++] = trk;
 #endif

@@ -16,6 +16,7 @@
 
 // Now the other headers
 #include "GPUDisplayBackendX11.h"
+#include "GPULogging.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -126,7 +127,7 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
   }
   int specialKey = GetKey(sym);
   int localeKey = tmpString[0];
-  // printf("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)\n", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
+  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -146,7 +147,7 @@ void GPUDisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r,
   glColor4f(r, g, b, a);
   glRasterPos2f(x, y);
   if (!glIsList(mFontBase)) {
-    fprintf(stderr, "print string: Bad display list.\n");
+    GPUError("print string: Bad display list.");
     exit(1);
   } else if (s && strlen(s)) {
     glPushAttrib(GL_LIST_BIT);
@@ -170,19 +171,19 @@ int GPUDisplayBackendX11::OpenGLMain()
   mDisplay = XOpenDisplay(nullptr);
 
   if (mDisplay == nullptr) {
-    fprintf(stderr, "glxsimple: %s\n", "could not open display");
+    GPUError("glxsimple: %s", "could not open display");
     return (-1);
   }
 
   // Make sure OpenGL's GLX extension supported
   if (!glXQueryExtension(mDisplay, &errorBase, &eventBase)) {
-    fprintf(stderr, "glxsimple: %s\n", "X server has no OpenGL GLX extension");
+    GPUError("glxsimple: %s", "X server has no OpenGL GLX extension");
     return (-1);
   }
 
   const char* glxExt = glXQueryExtensionsString(mDisplay, DefaultScreen(mDisplay));
   if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
-    fprintf(stderr, "No vsync support!\n");
+    GPUError("No vsync support!");
     return (-1);
   }
 
@@ -196,7 +197,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   int fbcount;
   GLXFBConfig* fbc = glXChooseFBConfig(mDisplay, DefaultScreen(mDisplay), attribs, &fbcount);
   if (fbc == nullptr || fbcount == 0) {
-    fprintf(stderr, "Failed to get MSAA GLXFBConfig\n");
+    GPUError("Failed to get MSAA GLXFBConfig");
     return (-1);
   }
   fbconfig = fbc[0];
@@ -204,14 +205,14 @@ int GPUDisplayBackendX11::OpenGLMain()
   visualInfo = glXGetVisualFromFBConfig(mDisplay, fbconfig);
 
   if (visualInfo == nullptr) {
-    fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
+    GPUError("glxsimple: %s", "no RGB visual with depth buffer");
     return (-1);
   }
 
   // Create an OpenGL rendering context
   glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
   if (glxContext == nullptr) {
-    fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
+    GPUError("glxsimple: %s", "could not create rendering context");
     return (-1);
   }
 
@@ -238,13 +239,13 @@ int GPUDisplayBackendX11::OpenGLMain()
   // Prepare fonts
   mFontBase = glGenLists(256);
   if (!glIsList(mFontBase)) {
-    fprintf(stderr, "Out of display lists.\n");
+    GPUError("Out of display lists.");
     return (-1);
   }
   const char* f = "fixed";
   XFontStruct* font_info = XLoadQueryFont(mDisplay, f);
   if (!font_info) {
-    fprintf(stderr, "XLoadQueryFont failed.\n");
+    GPUError("XLoadQueryFont failed.");
     return (-1);
   } else {
     int first = font_info->min_char_or_byte2;
@@ -264,7 +265,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   // Enable vsync
   mGlXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
   if (mGlXSwapIntervalEXT == nullptr) {
-    fprintf(stderr, "Cannot enable vsync\n");
+    GPUError("Cannot enable vsync");
     return (-1);
   }
   mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
@@ -289,7 +290,7 @@ int GPUDisplayBackendX11::OpenGLMain()
       tv.tv_sec = 0;
       num_ready_fds = mMaxFPSRate || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
       if (num_ready_fds < 0) {
-        fprintf(stderr, "Error\n");
+        GPUError("Error (num_ready_fds)");
       }
       if (mDisplayControl == 2) {
         break;
@@ -455,7 +456,7 @@ int GPUDisplayBackendX11::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
-    printf("Coult not Create GL Thread...\n");
+    GPUError("Coult not Create GL Thread...");
     return (1);
   }
   return (0);

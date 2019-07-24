@@ -410,7 +410,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
           mcInfo[i].pZ = ref->Pz();
         }
 
-        // if (ref) printf("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
+        // if (ref) HLTImportant("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
       }
       for (int i = 0; i < nTracks; i++) {
         delete trackRefs[i];

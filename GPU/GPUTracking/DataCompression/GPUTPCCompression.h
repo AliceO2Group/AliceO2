@@ -117,7 +117,7 @@ GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits
       ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
     }
     val &= ((1 << ldz) - 1) ^ ((1 << (ldz - nBits)) - 1);
-    // printf("CHANGING X %x --> %x\n", (unsigned int) v, val);
+    // GPUInfo("CHANGING X %x --> %x", (unsigned int) v, val);
     v = val;
   }
 }

@@ -121,20 +121,20 @@ void GPUChainTracking::PrintMemoryStatistics()
   unsigned int nTrackHits = processors()->tpcMerger.NOutputTrackClusters();
   unsigned int nMaxTrackHits = processors()->tpcMerger.NMaxOutputTrackClusters();
 
-  printf("Mem Usage Tracklets      : %7u / %7u (%3.0f%%)\n", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets);
-  printf("Mem Usage SectorTracks   : %7u / %7u (%3.0f%%)\n", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks);
-  printf("Mem Usage SectorTrackHits: %7u / %7u (%3.0f%%)\n", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits);
-  printf("Mem Usage Tracks         : %7u / %7u (%3.0f%%)\n", nTracks, nMaxTracks, 100.f * nTracks / nMaxTracks);
-  printf("Mem Usage TrackHits      : %7u / %7u (%3.0f%%)\n", nTrackHits, nMaxTrackHits, 100.f * nTrackHits / nMaxTrackHits);
+  GPUInfo("Mem Usage Tracklets      : %7u / %7u (%3.0f%%)", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets);
+  GPUInfo("Mem Usage SectorTracks   : %7u / %7u (%3.0f%%)", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks);
+  GPUInfo("Mem Usage SectorTrackHits: %7u / %7u (%3.0f%%)", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits);
+  GPUInfo("Mem Usage Tracks         : %7u / %7u (%3.0f%%)", nTracks, nMaxTracks, 100.f * nTracks / nMaxTracks);
+  GPUInfo("Mem Usage TrackHits      : %7u / %7u (%3.0f%%)", nTrackHits, nMaxTrackHits, 100.f * nTrackHits / nMaxTrackHits);
 }
 
 void GPUChainTracking::PrintMemoryRelations()
 {
   for (int i = 0; i < NSLICES; i++) {
-    printf("MEMREL Tracklets NCl %d NTrkl %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracklets());
-    printf("MEMREL SectorTracks NCl %d NTrk %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracks());
-    printf("MEMREL SectorTrackHits NCl %d NTrkH %d\n", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTrackHits());
+    GPUInfo("MEMREL Tracklets NCl %d NTrkl %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracklets());
+    GPUInfo("MEMREL SectorTracks NCl %d NTrk %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTracks());
+    GPUInfo("MEMREL SectorTrackHits NCl %d NTrkH %d", processors()->tpcTrackers[i].NHitsTotal(), *processors()->tpcTrackers[i].NTrackHits());
   }
-  printf("MEMREL Tracks NCl %d NTrk %d\n", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTracks());
-  printf("MEMREL TrackHitss NCl %d NTrkH %d\n", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTrackClusters());
+  GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTracks());
+  GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTrackClusters());
 }

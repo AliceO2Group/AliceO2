@@ -216,7 +216,7 @@ int GPUTRDTrackletReaderComponent::DoDeinit()
 // void GPUTRDTrackletReaderComponent::DbgLog(const char* prefix, const char* msg){
 //  AliHLTEventID_t eventNumber = fEventId;
 //  int runNumber = -1;
-//  printf("TRDGM %s-%s: [PRE] %s%s\n",
+//  HLTInfo("TRDGM %s-%s: [PRE] %s%s",
 //   (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
 //   (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
 //   (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "", msg);

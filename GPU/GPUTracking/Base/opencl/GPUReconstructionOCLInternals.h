@@ -18,6 +18,7 @@
 #include <CL/cl_ext.h>
 #include <vector>
 #include <string>
+#include "GPULogging.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
@@ -130,7 +131,7 @@ static int GPUFailedMsgAI(int error, const char* file, int line)
   if (error == CL_SUCCESS) {
     return (0);
   }
-  printf("OCL Error: %d / %s (%s:%d)\n", error, opencl_error_string(error), file, line);
+  GPUError("OCL Error: %d / %s (%s:%d)", error, opencl_error_string(error), file, line);
   return 1;
 }
 

@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "GPUDisplayBackendWindows.h"
+#include "GPULogging.h"
 #include <windows.h>
 #include <winbase.h>
 #include <windowsx.h>
@@ -120,7 +121,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
     dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
     if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
-      printf("The Requested Fullscreen Mode Is Not Supported By Your Video Card.\n");
+      GPUError("The Requested Fullscreen Mode Is Not Supported By Your Video Card.");
       return (FALSE);
     }
 
@@ -267,7 +268,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
       HandleKeyRelease(wParam);
       mKeysShift[wParam] = false;
 
-      printf("Key: %d\n", wParam);
+      GPUInfo("Key: %d", wParam);
       return 0;
 
     case WM_SIZE:
@@ -331,7 +332,7 @@ int GPUDisplayBackendWindows::OpenGLMain()
 
   if (InitGL()) {
     KillGLWindow();
-    printf("Initialization Failed.\n");
+    GPUError("Initialization Failed.");
     return 1;
   }
 
@@ -372,7 +373,7 @@ int GPUDisplayBackendWindows::StartDisplay()
 {
   HANDLE hThread;
   if ((hThread = CreateThread(nullptr, nullptr, &OpenGLWrapper, this, nullptr, nullptr)) == nullptr) {
-    printf("Coult not Create GL Thread...\n");
+    GPUError("Coult not Create GL Thread...");
     return (1);
   }
   return (0);

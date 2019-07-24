@@ -88,7 +88,7 @@ struct GPUTPCGMOfflineStatisticalErrors {
 
     AliTPCcalibDB::Instance()->GetTransform()->ErrY2Z2Syst(&cl, tgp, dzds, serry2, serrz2);
 
-    // printf("TEST Sector %d Row %d: X %f %f Y %f %f Z %f %f - Err Y %f + %f, Z %f + %f\n", mCurCluster->mSlice, mCurCluster->mRow, mCurCluster->mX, cl.GetX(), mCurCluster->fY, cl.GetY(), mCurCluster->fZ, cl.GetZ(), err2Y, serry2, err2Z, serrz2);
+    // GPUInfo("TEST Sector %d Row %d: X %f %f Y %f %f Z %f %f - Err Y %f + %f, Z %f + %f", mCurCluster->mSlice, mCurCluster->mRow, mCurCluster->mX, cl.GetX(), mCurCluster->fY, cl.GetY(), mCurCluster->fZ, cl.GetZ(), err2Y, serry2, err2Z, serrz2);
 
     err2Y += serry2;
     err2Z += serrz2;

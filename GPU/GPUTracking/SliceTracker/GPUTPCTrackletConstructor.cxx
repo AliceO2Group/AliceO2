@@ -57,14 +57,14 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
     r.mNHits = 0;
   }
 
-  /*printf("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n", r.mItr, r.mNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
+  /*GPUInfo("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f", r.mItr, r.mNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
           tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9],
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
   GPUglobalref() MEM_GLOBAL(GPUTPCTracklet)& tracklet = tracker.Tracklets()[r.mItr];
 
   tracklet.SetNHits(r.mNHits);
-  CADEBUG(printf("    DONE %d hits\n", r.mNHits));
+  CADEBUG(GPUInfo("    DONE %d hits", r.mNHits));
 
   if (r.mNHits > 0) {
     tracklet.SetFirstRow(r.mFirstRow);
@@ -305,7 +305,7 @@ GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nTh
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
 
-      CADEBUG(printf("%14s: SEA Hit %5d, Res %f %f\n", "", best, tParam.Y() - y, tParam.Z() - z));
+      CADEBUG(GPUInfo("%14s: SEA Hit %5d, Res %f %f", "", best, tParam.Y() - y, tParam.Z() - z));
 
       calink oldHit = (r.mStage == 2 && iRow >= r.mStartRow) ? CA_GET_ROW_HIT(iRow) : CALINK_INVAL;
       if (oldHit != best && !tParam.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL)) {

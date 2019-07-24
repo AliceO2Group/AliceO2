@@ -138,7 +138,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   const int reqVerMin = 0;
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Examining device %d\n", i);
+      GPUInfo("Examining device %d", i);
     }
     size_t free, total;
     cuInit(0);
@@ -151,13 +151,13 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
     cuCtxDestroy(tmpContext);
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Obtained current memory usage for device %d\n", i);
+      GPUInfo("Obtained current memory usage for device %d", i);
     }
     if (GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp, i))) {
       continue;
     }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Obtained device properties for device %d\n", i);
+      GPUInfo("Obtained device properties for device %d", i);
     }
     int deviceOK = true;
     const char* deviceFailure = "";
@@ -391,12 +391,12 @@ void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+      GPUInfo("Skipped transfer of non-GPU memory resource: %s", res->Name());
     }
     return;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
+    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
   }
   GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

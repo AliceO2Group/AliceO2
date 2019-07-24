@@ -205,11 +205,11 @@ int GPUTPCSliceData::InitFromClusterData()
   int tmpOffset = 0;
   for (int i = mFirstRow; i <= mLastRow; i++) {
     if ((long long int)NumberOfClustersInRow[i] >= ((long long int)1 << (sizeof(calink) * 8))) {
-      printf("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient\n", i, NumberOfClustersInRow[i], ((long long int)1 << (sizeof(calink) * 8)));
+      GPUError("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient", i, NumberOfClustersInRow[i], ((long long int)1 << (sizeof(calink) * 8)));
       return (1);
     }
     if (NumberOfClustersInRow[i] >= (1 << 24)) {
-      printf("Too many clusters in row %d for hit id indexing (%d >= %d), indexing insufficient\n", i, NumberOfClustersInRow[i], 1 << 24);
+      GPUError("Too many clusters in row %d for hit id indexing (%d >= %d), indexing insufficient", i, NumberOfClustersInRow[i], 1 << 24);
       return (1);
     }
     RowOffset[i] = tmpOffset;
@@ -292,7 +292,7 @@ int GPUTPCSliceData::InitFromClusterData()
     const GPUTPCGrid& grid = row.mGrid;
     const int numberOfBins = grid.N();
     if ((long long int)numberOfBins >= ((long long int)1 << (sizeof(calink) * 8))) {
-      printf("Too many bins in row %d for grid (%d >= %lld), indexing insufficient\n", rowIndex, numberOfBins, ((long long int)1 << (sizeof(calink) * 8)));
+      GPUError("Too many bins in row %d for grid (%d >= %lld), indexing insufficient", rowIndex, numberOfBins, ((long long int)1 << (sizeof(calink) * 8)));
       return (1);
     }
 

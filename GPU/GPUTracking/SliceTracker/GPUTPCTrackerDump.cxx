@@ -170,7 +170,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
             for (int k = tmpTracklets[i].FirstRow(); k <= tmpTracklets[i].LastRow(); k++) {
               const int pos = k * nTracklets + j;
               if (pos < 0 || pos >= (int)mNMaxTracklets * GPUCA_ROW_COUNT) {
-                printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
+                GPUError("internal error: invalid tracklet position k=%d j=%d pos=%d", k, j, pos);
               } else {
                 mTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
               }
@@ -193,7 +193,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     if (Tracklets()[j].NHits() == 0) {
       ;
     } else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT)) {
-      printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+      GPUError("Error: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
       out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
 // if (Tracklets()[j].RowHit(i) != CALINK_INVAL)

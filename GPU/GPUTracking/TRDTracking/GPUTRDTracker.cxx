@@ -275,11 +275,11 @@ void GPUTRDTracker::PrintSettings() const
   //--------------------------------------------------------------------
   // print current settings to screen
   //--------------------------------------------------------------------
-  printf("##############################################################\n");
-  printf("Current settings for GPU TRD tracker:\n");
-  printf(" mMaxChi2(%.2f)\n mChi2Penalty(%.2f)\n nCandidates(%i)\n maxMissingLayers(%i)\n", mMaxChi2, mChi2Penalty, mNCandidates, mMaxMissingLy);
-  printf(" ptCut = %.2f GeV\n abs(eta) < %.2f\n", mMinPt, mMaxEta);
-  printf("##############################################################\n");
+  GPUInfo("##############################################################");
+  GPUInfo("Current settings for GPU TRD tracker:");
+  GPUInfo(" mMaxChi2(%.2f)\n mChi2Penalty(%.2f)\n nCandidates(%i)\n maxMissingLayers(%i)", mMaxChi2, mChi2Penalty, mNCandidates, mMaxMissingLy);
+  GPUInfo(" ptCut = %.2f GeV\n abs(eta) < %.2f", mMinPt, mMaxEta);
+  GPUInfo("##############################################################");
 }
 
 void GPUTRDTracker::CountMatches(const int trackID, std::vector<int>* matches) const
@@ -376,7 +376,7 @@ GPUd() void GPUTRDTracker::CheckTrackRefs(const int trackID, bool* findableMC) c
     }
     if (layer < 0) {
       Error("CheckTrackRefs", "No layer can be determined");
-      printf("x=%f, y=%f, z=%f, layer=%i\n", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
+      GPUError("x=%f, y=%f, z=%f, layer=%i", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
       continue;
     }
     findableMC[layer] = true;
@@ -412,7 +412,7 @@ GPUd() void GPUTRDTracker::DumpTracks()
   //--------------------------------------------------------------------
   for (int i = 0; i < mNTracks; ++i) {
     GPUTRDTrack* trk = &(mTracks[i]);
-    printf("track %i: x=%f, alpha=%f, nTracklets=%i, pt=%f\n", i, trk->getX(), trk->getAlpha(), trk->GetNtracklets(), trk->getPt());
+    GPUInfo("track %i: x=%f, alpha=%f, nTracklets=%i, pt=%f", i, trk->getX(), trk->getAlpha(), trk->GetNtracklets(), trk->getPt());
   }
 }
 
@@ -479,7 +479,7 @@ GPUd() bool GPUTRDTracker::CalculateSpacePoints()
       int modId = mGeo->GetSector(iDet) * GPUTRDGeometry::kNstack + mGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = mGeo->GetGeomManagerVolUID(iDet, modId);
       mSpacePoints[trkltIdx].mVolumeId = volId;
-      // printf("Space point %i: x=%f, y=%f, z=%f\n", iTrklt, mSpacePoints[trkltIdx].mR, mSpacePoints[trkltIdx].mX[0], mSpacePoints[trkltIdx].mX[1]);
+      // GPUInfo("Space point %i: x=%f, y=%f, z=%f", iTrklt, mSpacePoints[trkltIdx].mR, mSpacePoints[trkltIdx].mX[0], mSpacePoints[trkltIdx].mX[1]);
     }
   }
   return result;
@@ -656,7 +656,7 @@ GPUd() bool GPUTRDTracker::FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrac
             // tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
             RecalcTrkltCov(tilt, mCandidates[2 * iCandidate + currIdx].getSnp(), pad->GetRowSize(mTracklets[trkltIdx].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
-            // printf("layer %i: chi2 = %f\n", iLayer, chi2);
+            // GPUInfo("layer %i: chi2 = %f", iLayer, chi2);
             if (chi2 < mMaxChi2) {
               Hypothesis hypo(mCandidates[2 * iCandidate + currIdx].GetNlayers(), iCandidate, trkltIdx, mCandidates[2 * iCandidate + currIdx].GetChi2() + chi2);
               InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
@@ -713,8 +713,8 @@ GPUd() bool GPUTRDTracker::FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrac
     // loop over the best N_candidates hypothesis
     //
     // --------------------------------------------------------------------------------
-    // printf("nCurrHypothesis=%i, nCandidates=%i\n", nCurrHypothesis, nCandidates);
-    // for (int idx=0; idx<10; ++idx) { printf("mHypothesis[%i]: candidateId=%i, nLayers=%i, trackletId=%i, chi2=%f\n", idx, mHypothesis[idx].mCandidateId,  mHypothesis[idx].mLayers, mHypothesis[idx].mTrackletId, mHypothesis[idx].mChi2); }
+    // GPUInfo("nCurrHypothesis=%i, nCandidates=%i", nCurrHypothesis, nCandidates);
+    // for (int idx=0; idx<10; ++idx) { GPUInfo("mHypothesis[%i]: candidateId=%i, nLayers=%i, trackletId=%i, chi2=%f", idx, mHypothesis[idx].mCandidateId,  mHypothesis[idx].mLayers, mHypothesis[idx].mTrackletId, mHypothesis[idx].mChi2); }
     for (int iUpdate = 0; iUpdate < nCurrHypothesis && iUpdate < mNCandidates; iUpdate++) {
       if (mHypothesis[iUpdate + hypothesisIdxOffset].mCandidateId == -1) {
         // no more candidates

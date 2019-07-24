@@ -30,7 +30,7 @@ void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<floa
   int k = x.size() - 1;
   if (mVerbose) {
     for (unsigned int i = 0; i < x.size(); i++) {
-      printf("Point %u: %f --> %f\n", i, x[i], y[i]);
+      GPUInfo("Point %u: %f --> %f", i, x[i], y[i]);
     }
   }
   ma.resize(k + 1);
@@ -84,7 +84,7 @@ float GPUDisplay::opengl_spline::evaluate(float x)
   x *= xx;
   retVal += md[base] * x;
   if (mVerbose) {
-    printf("Evaluate: %f --> %f (basepoint %d)\n", xx, retVal, base);
+    GPUInfo("Evaluate: %f --> %f (basepoint %d)", xx, retVal, base);
   }
   return (retVal);
 }

@@ -193,9 +193,9 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     Fitter.tracks()[trackId] = temporaryTrack;
   }
 #ifdef CA_DEBUG
-  printf("Roads: %i %i %i %i\n", roadCounters[0], roadCounters[1], roadCounters[2], roadCounters[3]);
-  printf("Fitted tracks: %i %i %i %i\n", fitCounters[0], fitCounters[1], fitCounters[2], fitCounters[3]);
-  printf("Backpropagated tracks: %i %i %i %i\n", backpropagatedCounters[0], backpropagatedCounters[1], backpropagatedCounters[2], backpropagatedCounters[3]);
-  printf("Refitted tracks: %i %i %i %i\n", refitCounters[0], refitCounters[1], refitCounters[2], refitCounters[3]);
+  GPUInfo("Roads: %i %i %i %i", roadCounters[0], roadCounters[1], roadCounters[2], roadCounters[3]);
+  GPUInfo("Fitted tracks: %i %i %i %i", fitCounters[0], fitCounters[1], fitCounters[2], fitCounters[3]);
+  GPUInfo("Backpropagated tracks: %i %i %i %i", backpropagatedCounters[0], backpropagatedCounters[1], backpropagatedCounters[2], backpropagatedCounters[3]);
+  GPUInfo("Refitted tracks: %i %i %i %i", refitCounters[0], refitCounters[1], refitCounters[2], refitCounters[3]);
 #endif
 }
