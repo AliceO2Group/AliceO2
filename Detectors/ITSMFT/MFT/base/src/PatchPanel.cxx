@@ -1,9 +1,23 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file PatchPanel.cxx
+/// \brief Class building the MFT Patch-Panel
+
 #include "TGeoManager.h"
 #include "TGeoMatrix.h"
 #include "TGeoManager.h"
 #include "TGeoCompositeShape.h"
 #include "TGeoShape.h"
 #include "TGeoCone.h"
+#include "TGeoBBox.h"
 #include "TGeoVolume.h"
 #include "TGeoMaterial.h"
 #include "TGeoMedium.h"
@@ -11,7 +25,6 @@
 #include "TGeoTrd1.h"
 #include "TMath.h"
 #include "TGeoXtru.h"
-
 #include "MFTBase/PatchPanel.h"
 
 using namespace o2::mft;
