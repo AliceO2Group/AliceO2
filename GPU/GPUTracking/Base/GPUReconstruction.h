@@ -80,7 +80,7 @@ class GPUReconstruction
   static constexpr GeometryType geometryType = GeometryType::ALIROOT;
 #endif
 
-  static constexpr const char* const DEVICE_TYPE_NAMES[] = { "INVALID", "CPU", "CUDA", "HIP", "OCL" };
+  static constexpr const char* const DEVICE_TYPE_NAMES[] = { "INVALID", "CPU", "CUDA", "HIP", "OCL", "OCL2" };
   static DeviceType GetDeviceType(const char* type);
   enum InOutPointerType : unsigned int { CLUSTER_DATA = 0,
                                          SLICE_OUT_TRACK = 1,
@@ -306,7 +306,7 @@ class GPUReconstruction
     void* mGPULib;
     void* mGPUEntry;
   };
-  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
+  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL, sLibOCL2;
 
  private:
   static GPUReconstruction* GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg);

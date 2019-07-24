@@ -11,6 +11,7 @@
 /// \file GPUReconstructionHIPInternals.h
 /// \author David Rohr
 
+// All HIP-header related stuff goes here, so we can run CING over GPUReconstructionHIP
 #ifndef GPURECONSTRUCTIONHIPINTERNALS_H
 #define GPURECONSTRUCTIONHIPINTERNALS_H
 

@@ -275,7 +275,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl2
                       ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation)
   alice_usevc()
 
@@ -369,15 +371,21 @@ if(HIP_ENABLED)
   target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()
 
-if(CUDA_ENABLED OR OPENCL1_ENABLED OR HIP_ENABLED)
+if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     if(CUDA_ENABLED)
       add_subdirectory(Base/cuda)
     endif()
+    if(OPENCL1_ENABLED OR OPENCL2_ENABLED)
+      add_subdirectory(Base/opencl-common)
+    endif()
     if(OPENCL1_ENABLED)
       add_subdirectory(Base/opencl)
+    endif()
+    if(OPENCL2_ENABLED)
+      add_subdirectory(Base/opencl2)
     endif()
     if(HIP_ENABLED)
       add_subdirectory(Base/hip)
