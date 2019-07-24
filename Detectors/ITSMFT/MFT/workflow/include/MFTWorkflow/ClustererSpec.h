@@ -43,7 +43,7 @@ class ClustererDPL : public o2::framework::Task
 /// run MFT cluster finder
 o2::framework::DataProcessorSpec getClustererSpec();
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_CLUSTERERDPL */

@@ -48,17 +48,20 @@ void TrackWriter::run(ProcessingContext& pc)
 
   auto tracks = pc.inputs().get<const std::vector<o2::mft::TrackMFT>>("tracks");
   auto tracksltf = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
+  auto tracksca = pc.inputs().get<const std::vector<o2::mft::TrackCA>>("tracksca");
   auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto plabels = labels.get();
 
   LOG(INFO) << "MFTTrackWriter pulled "
             << tracks.size() << " tracks, "
             << tracksltf.size() << " tracks LTF, "
+            << tracksca.size() << " tracks CA, "
             << labels->getIndexedSize() << " MC label objects";
 
   TTree tree("o2sim", "Tree with MFT tracks");
   tree.Branch("MFTTrack", &tracks);
   tree.Branch("MFTTrackLTF", &tracksltf);
+  tree.Branch("MFTTrackCA", &tracksca);
   tree.Branch("MFTTrackMCTruth", &plabels);
   tree.Fill();
   tree.Write();
@@ -75,6 +78,7 @@ DataProcessorSpec getTrackWriterSpec()
     Inputs{
       InputSpec{ "tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe },
       InputSpec{ "tracksltf", "MFT", "TRACKSLTF", 0, Lifetime::Timeframe },
+      InputSpec{ "tracksca", "MFT", "TRACKSCA", 0, Lifetime::Timeframe },
       InputSpec{ "labels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe } },
     Outputs{},
     AlgorithmSpec{ adaptFromTask<TrackWriter>() },
@@ -83,5 +87,5 @@ DataProcessorSpec getTrackWriterSpec()
   };
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

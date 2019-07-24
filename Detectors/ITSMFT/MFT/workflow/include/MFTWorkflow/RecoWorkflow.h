@@ -25,6 +25,6 @@ namespace RecoWorkflow
 framework::WorkflowSpec getWorkflow();
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 #endif

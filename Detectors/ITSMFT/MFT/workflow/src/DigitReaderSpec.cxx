@@ -105,5 +105,5 @@ DataProcessorSpec getDigitReaderSpec()
   };
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

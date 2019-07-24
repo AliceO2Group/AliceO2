@@ -73,5 +73,5 @@ void ROframe::sortClusters()
   } // layers
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

@@ -419,7 +419,7 @@ void Tracker::computeCellsInRoad(Road& road)
   Int_t cellId = 0;
   for (layer1 = layer1min; layer1 <= layer1max; ++layer1) {
     layer2min = layer1 + 1;
-    layer2max = MATH_MIN(layer1 + (Constants::mft::DisksNumber - isDiskFace(layer1)), Constants::mft::LayersNumber - 1);
+    layer2max = std::min(layer1 + (Constants::mft::DisksNumber - isDiskFace(layer1)), Constants::mft::LayersNumber - 1);
     nPtsInLayer1 = road.getNPointsInLayer(layer1);
     for (Int_t point1 = 0; point1 < nPtsInLayer1; ++point1) {
       clsLayer1 = road.getClustersIdInLayer(layer1)[point1];
@@ -553,7 +553,8 @@ void Tracker::runBackwardInRoad(ROframe& event)
         // loop over left neighbours
         deviationPrev = o2::constants::math::TwoPI;
         chisquarePrev = 1.E5;
-        for (auto leftNeighbour : cellRC.getLeftNeighbours()) {
+        for (Int_t iLN = 0; iLN < cellRC.getNLeftNeighbours(); ++iLN) {
+          auto leftNeighbour = cellRC.getLeftNeighbours()[iLN];
           Int_t layerL = leftNeighbour.first;
           Int_t cellIdL = leftNeighbour.second;
 
@@ -650,7 +651,7 @@ void Tracker::updateCellStatusInRoad(Road& road)
   for (Int_t layer = 0; layer < (Constants::mft::LayersNumber - 1); ++layer) {
     for (Int_t icell = 0; icell < road.getCellsInLayer(layer).size(); ++icell) {
       road.updateCellLevel(layer, icell);
-      mMaxCellLevel = MATH_MAX(mMaxCellLevel, road.getCellLevel(layer, icell));
+      mMaxCellLevel = std::max(mMaxCellLevel, road.getCellLevel(layer, icell));
     }
   }
 }
@@ -711,7 +712,7 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
     const Float_t yLast = trackCA.getYCoordinates()[trackCA.getNPoints() - 1];
     Float_t dx = xLast - cluster2.xCoordinate;
     Float_t dy = yLast - cluster2.yCoordinate;
-    Float_t dr = MATH_SQRT(dx * dx + dy * dy);
+    Float_t dr = std::sqrt(dx * dx + dy * dy);
     if (dr > Constants::mft::Resolution) {
       return kFALSE;
     }
@@ -825,9 +826,9 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
   SsXY -= (Float_t)ipoints * (Ym * Xm);
   Float_t eps = 1.E-24;
   if ((ipoints > 2) && (TMath::Abs(difx) > eps) && ((SsYY - (SsXY * SsXY) / SsXX) > 0.0)) {
-    s = MATH_SQRT((SsYY - (SsXY * SsXY) / SsXX) / (ipoints - 2));
-    bparerr = s * MATH_SQRT(1. / (Float_t)ipoints + (Xm * Xm) / SsXX);
-    aparerr = s / MATH_SQRT(SsXX);
+    s = std::sqrt((SsYY - (SsXY * SsXY) / SsXX) / (ipoints - 2));
+    bparerr = s * std::sqrt(1. / (Float_t)ipoints + (Xm * Xm) / SsXX);
+    aparerr = s / std::sqrt(SsXX);
   } else {
     bparerr = 0.;
     aparerr = 0.;
@@ -836,5 +837,5 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
   return kTRUE;
 }
 
-} // namespace MFT
+} // namespace mft
 } // namespace o2

@@ -48,7 +48,7 @@ Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const st
 void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                    const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace IOUtils
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif /* O2_MFT_IOUTILS_H_ */
