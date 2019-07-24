@@ -51,7 +51,7 @@ void readHitsDigits()
     }
   }
 
-  TFile* fdig = TFile::Open("t0digits.root");
+  TFile* fdig = TFile::Open("ft0digits.root");
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   std::vector<o2::ft0::Digit>* digArr = new std::vector<o2::ft0::Digit>;

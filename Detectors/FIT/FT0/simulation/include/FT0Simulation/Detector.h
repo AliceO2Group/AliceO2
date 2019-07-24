@@ -11,8 +11,8 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
-#ifndef ALICEO2_T0_DETECTOR_H_
-#define ALICEO2_T0_DETECTOR_H_
+#ifndef ALICEO2_FT0_DETECTOR_H_
+#define ALICEO2_FT0_DETECTOR_H_
 
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
