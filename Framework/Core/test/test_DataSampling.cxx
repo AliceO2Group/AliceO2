@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   std::cout << "config file : "
-            << "json://" << configFilePath << std::endl;
-  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
+            << "json:/" << configFilePath << std::endl;
+  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));
 
   std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
-  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
+  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath);
 
   for (int i = 0; i < 3; ++i) {
     auto disp = std::find_if(workflow.begin(), workflow.end(),
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
   };
 
   std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
-  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath, 3);
+  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath, 3);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
@@ -165,8 +165,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
                            });
 
   BOOST_REQUIRE(disp != workflow.end());
-  BOOST_CHECK_EQUAL(disp->inputs.size(), 2);
-  BOOST_CHECK_EQUAL(disp->outputs.size(), 2);
+  BOOST_CHECK_EQUAL(disp->inputs.size(), 3);
+  BOOST_CHECK_EQUAL(disp->outputs.size(), 3);
   BOOST_CHECK(disp->algorithm.onInit != nullptr);
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);
 }
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
   };
 
   std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
-  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
+  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
@@ -195,7 +195,6 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
                               return DataSpecUtils::match(in, ConcreteDataMatcher{ DataOrigin("TPC"), DataDescription("RAWDATA"), 0 }) && in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
-  BOOST_CHECK_EQUAL(disp->outputs.size(), 1);
 
   auto channelConfig = std::find_if(disp->options.begin(), disp->options.end(),
                                     [](const ConfigParamSpec& opt) {
@@ -206,14 +205,14 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
 
 BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
 {
-  std::string configFilePath = "json://" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+  std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   std::vector<InputSpec> inputs = DataSampling::InputSpecsForPolicy(configFilePath, "tpcclusters");
 
   BOOST_CHECK_EQUAL(inputs.size(), 2);
-  BOOST_CHECK(DataSpecUtils::match(inputs[0], ConcreteDataMatcher{ "DS", "tpcclusters-1", static_cast<DataHeader::SubSpecificationType>(-1) }));
-  BOOST_CHECK_EQUAL(inputs[0].binding, "clusters_p");
-  BOOST_CHECK(DataSpecUtils::match(inputs[1], ConcreteDataMatcher{ "DS", "tpcclusters-0", static_cast<DataHeader::SubSpecificationType>(-1) }));
-  BOOST_CHECK_EQUAL(inputs[1].binding, "clusters");
+  BOOST_CHECK(DataSpecUtils::match(inputs[0], ConcreteDataTypeMatcher{ "DS", "tpcclusters-0" }));
+  BOOST_CHECK_EQUAL(inputs[0].binding, "clusters");
+  BOOST_CHECK(DataSpecUtils::match(inputs[1], ConcreteDataTypeMatcher{ "DS", "tpcclusters-1" }));
+  BOOST_CHECK_EQUAL(inputs[1].binding, "clusters_p");
 
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(configFilePath);
   inputs = DataSampling::InputSpecsForPolicy(config.get(), "tpcclusters");
