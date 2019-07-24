@@ -9,4 +9,4 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(FT0)
-add_subdirectory(V0)
+add_subdirectory(FV0)

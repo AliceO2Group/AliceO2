@@ -13,8 +13,8 @@
 ///
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 
-#ifndef ALICEO2_FITV0_GEOMETRY_H_
-#define ALICEO2_FITV0_GEOMETRY_H_
+#ifndef ALICEO2_FV0_GEOMETRY_H_
+#define ALICEO2_FV0_GEOMETRY_H_
 
 #include <vector>
 #include <TGeoMatrix.h>

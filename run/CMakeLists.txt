@@ -32,7 +32,7 @@ target_link_libraries(allsim
                                 O2::TOFSimulation
                                 O2::TPCSimulation
                                 O2::TRDSimulation
-                                O2::V0Simulation
+                                O2::FV0Simulation
                                 O2::ZDCSimulation
                                 O2::Generators)
 

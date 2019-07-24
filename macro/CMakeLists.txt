@@ -83,7 +83,7 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::EMCALBase
                                              O2::TRDSimulation
                                              O2::FT0Simulation
-                                             O2::DataFormatsFITV0
+                                             O2::DataFormatsFV0
                                              O2::HMPIDBase
                                              O2::TPCSimulation
                                              O2::PHOSBase
@@ -101,7 +101,7 @@ o2_add_test_root_macro(build_geometry.C
                                              O2::TOFSimulation
                                              O2::TRDSimulation
                                              O2::FT0Simulation
-                                             O2::V0Simulation
+                                             O2::FV0Simulation
                                              O2::FDDSimulation
                                              O2::HMPIDSimulation
                                              O2::PHOSSimulation
@@ -139,7 +139,7 @@ o2_add_test_root_macro(o2sim.C
                                              O2::TOFSimulation
                                              O2::TRDSimulation
                                              O2::FT0Simulation
-                                             O2::V0Simulation
+                                             O2::FV0Simulation
                                              O2::FDDSimulation
                                              O2::HMPIDSimulation
                                              O2::PHOSSimulation

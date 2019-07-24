@@ -44,7 +44,7 @@
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <FT0Simulation/Detector.h>
-#include <V0Simulation/Detector.h>
+#include <FV0Simulation/Detector.h>
 #include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
