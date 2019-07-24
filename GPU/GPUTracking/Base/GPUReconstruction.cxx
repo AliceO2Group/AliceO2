@@ -60,7 +60,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
 GPUReconstruction::~GPUReconstruction()
 {
   if (mInitialized) {
-    printf("ERROR, GPU Reconstruction not properly deinitialized!\n");
+    GPUError("GPU Reconstruction not properly deinitialized!");
   }
 }
 
@@ -196,7 +196,7 @@ void GPUReconstruction::RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProces
 size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
 {
   if (mDeviceProcessingSettings.debugLevel >= 5) {
-    printf("Allocating memory %p\n", proc);
+    GPUInfo("Allocating memory %p", (void*)proc);
   }
   size_t total = 0;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
@@ -205,7 +205,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
     }
   }
   if (mDeviceProcessingSettings.debugLevel >= 5) {
-    printf("Allocating memory done\n");
+    GPUInfo("Allocating memory done");
   }
   return total;
 }
@@ -213,7 +213,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
 size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
 {
   if (mDeviceProcessingSettings.debugLevel >= 5) {
-    printf("Allocating Permanent Memory\n");
+    GPUInfo("Allocating Permanent Memory");
   }
   int total = 0;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
@@ -224,7 +224,7 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
   mHostMemoryPermanent = mHostMemoryPool;
   mDeviceMemoryPermanent = mDeviceMemoryPool;
   if (mDeviceProcessingSettings.debugLevel >= 5) {
-    printf("Permanent Memory Done\n");
+    GPUInfo("Permanent Memory Done");
   }
   return total;
 }
@@ -232,7 +232,7 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
 size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*))
 {
   if (memorypool == nullptr) {
-    printf("Memory pool uninitialized\n");
+    GPUInfo("Memory pool uninitialized");
     throw std::bad_alloc();
   }
   ptr = memorypool;
@@ -272,7 +272,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
     }
   } else {
     if (res->mPtr != nullptr) {
-      printf("Double allocation! (%s)\n", res->mName);
+      GPUError("Double allocation! (%s)", res->mName);
       throw std::bad_alloc();
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
@@ -280,7 +280,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
       if (res->mProcessor->mDeviceProcessor == nullptr) {
-        printf("Device Processor not set (%s)\n", res->mName);
+        GPUError("Device Processor not set (%s)", res->mName);
         throw std::bad_alloc();
       }
       size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &GPUMemoryResource::SetDevicePointers);
@@ -288,7 +288,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
       if (!(res->mType & GPUMemoryResource::MEMORY_HOST) || (res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
         res->mSize = size;
       } else if (size != res->mSize) {
-        printf("Inconsistent device memory allocation (%s)\n", res->mName);
+        GPUError("Inconsistent device memory allocation (%s)", res->mName);
         throw std::bad_alloc();
       }
     }
@@ -387,12 +387,12 @@ void GPUReconstruction::PrintMemoryStatistics()
     }
   }
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
-    printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
+    GPUInfo("Allocation %30s %s: Size %'13lld / %'13lld", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
   if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
-           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
-           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+    GPUInfo("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks",
+            ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+            ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
   }
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->PrintMemoryStatistics();
@@ -452,7 +452,7 @@ void GPUReconstruction::SetSettings(float solenoidBz)
 void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
   if (mInitialized) {
-    printf("Cannot update settings while initialized\n");
+    GPUError("Cannot update settings while initialized");
     throw std::runtime_error("Settings updated while initialized");
   }
   mEventSettings = *settings;
@@ -509,21 +509,21 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing
       retVal->mMyLib = sLibOCL;
     }
   } else {
-    printf("Error: Invalid device type %u\n", type);
+    GPUError("Error: Invalid device type %u", type);
     return nullptr;
   }
 
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
-      printf("Error: Could not load GPUReconstruction for specified device: %s (%u)\n", DEVICE_TYPE_NAMES[type], type);
+      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", DEVICE_TYPE_NAMES[type], type);
     } else {
-      printf("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version\n", DEVICE_TYPE_NAMES[type], type);
+      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", DEVICE_TYPE_NAMES[type], type);
       GPUSettingsProcessing cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
       retVal = CreateInstance(cfg2);
     }
   } else {
-    printf("Created GPUReconstruction instance for device type %s (%u)\n", DEVICE_TYPE_NAMES[type], type);
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u)", DEVICE_TYPE_NAMES[type], type);
   }
 
   return retVal;
@@ -533,7 +533,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forc
 {
   DeviceType t = GetDeviceType(type);
   if (t == DeviceType::INVALID_DEVICE) {
-    printf("Invalid device type: %s\n", type);
+    GPUError("Invalid device type: %s", type);
     return nullptr;
   }
   return CreateInstance(t, forceType);

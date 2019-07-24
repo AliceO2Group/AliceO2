@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #include "GPUTPCClusterStatistics.h"
+#include "GPULogging.h"
 #include "GPUO2DataTypes.h"
 #include <algorithm>
 #include <cstring>
@@ -112,7 +113,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
-          printf("Number of clusters mismatch slice %u row %u: expected %d v.s. decoded %d\n", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
+          GPUError("Number of clusters mismatch slice %u row %u: expected %d v.s. decoded %d", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
           decodingError = true;
           continue;
         }
@@ -131,8 +132,8 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
           const o2::tpc::ClusterNative& c1 = tmpClusters[k];
           const o2::tpc::ClusterNative& c2 = clustersNativeDecoded.clusters[i][j][k];
           if (c1.timeFlagsPacked != c2.timeFlagsPacked || c1.padPacked != c2.padPacked || c1.sigmaTimePacked != c2.sigmaTimePacked || c1.sigmaPadPacked != c2.sigmaPadPacked || c1.qMax != c2.qMax || c1.qTot != c2.qTot) {
-            printf("Cluster mismatch: slice %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d\n", i, j, k, (int)c1.getTimePacked(), (int)c1.getFlags(), (int)c1.padPacked, (int)c1.sigmaTimePacked, (int)c1.sigmaPadPacked, (int)c1.qMax, (int)c1.qTot);
-            printf("%45s %6d %3d %4d %3d %3d %4d %4d\n", "", (int)c2.getTimePacked(), (int)c2.getFlags(), (int)c2.padPacked, (int)c2.sigmaTimePacked, (int)c2.sigmaPadPacked, (int)c2.qMax, (int)c2.qTot);
+            GPUWarning("Cluster mismatch: slice %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d", i, j, k, (int)c1.getTimePacked(), (int)c1.getFlags(), (int)c1.padPacked, (int)c1.sigmaTimePacked, (int)c1.sigmaPadPacked, (int)c1.qMax, (int)c1.qTot);
+            GPUWarning("%45s %6d %3d %4d %3d %3d %4d %4d", "", (int)c2.getTimePacked(), (int)c2.getFlags(), (int)c2.padPacked, (int)c2.sigmaTimePacked, (int)c2.sigmaPadPacked, (int)c2.qMax, (int)c2.qTot);
             decodingError = true;
           }
         }
@@ -141,7 +142,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
     if (decodingError) {
       mDecodingError = true;
     } else {
-      printf("Cluster decoding verification: PASSED\n");
+      GPUInfo("Cluster decoding verification: PASSED");
     }
   }
 
@@ -177,13 +178,13 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
 void GPUTPCClusterStatistics::Finish()
 {
   if (mDecodingError) {
-    printf("-----------------------------------------\nERROR - INCORRECT CLUSTER DECODING!\n-----------------------------------------\n");
+    GPUError("-----------------------------------------\nERROR - INCORRECT CLUSTER DECODING!\n-----------------------------------------");
   }
   if (mNTotalClusters == 0) {
     return;
   }
 
-  printf("\nRunning cluster compression entropy statistics\n");
+  GPUInfo("\nRunning cluster compression entropy statistics");
   Analyze(mPqTotA, "qTot Attached");
   Analyze(mPqMaxA, "qMax Attached");
   Analyze(mPflagsA, "flags Attached");
@@ -211,10 +212,11 @@ void GPUTPCClusterStatistics::Finish()
   eSigmaCombined += Analyze(mPsigmaU, "combined sigma Unattached");
   double eRowSliceCombined = Analyze(mProwSliceA, "combined row/slice Attached");
 
-  printf("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)\n", eRowSlice, eRowSliceCombined, 100. * (eRowSlice - eRowSliceCombined) / eRowSlice);
-  printf("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)\n", eSigma, eSigmaCombined, 100. * (eSigma - eSigmaCombined) / eSigma);
+  GPUInfo("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)", eRowSlice, eRowSliceCombined, 100. * (eRowSlice - eRowSliceCombined) / eRowSlice);
+  GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, 100. * (eSigma - eSigmaCombined) / eSigma);
 
-  printf("\nConbined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
+  GPUInfo("\nConbined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
+  GPUInfo("-");
 }
 
 float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bool count)
@@ -252,7 +254,7 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
     mEntropy += entropy * total;
     mHuffman += huffmanSize * total;
   }
-  printf("Size: %30s: Entropy %7.4f Huffman %7.4f\n", name, entropy, huffmanSize);
+  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f", name, entropy, huffmanSize);
   return entropy;
 }
 

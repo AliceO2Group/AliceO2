@@ -14,6 +14,8 @@
 #ifndef GPURECONSTRUCTIONHIPINTERNALS_H
 #define GPURECONSTRUCTIONHIPINTERNALS_H
 
+#include "GPULogging.h"
+
 namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionHIPInternals {
@@ -29,7 +31,7 @@ static int GPUFailedMsgAI(const long long int error, const char* file, int line)
   if (error == hipSuccess) {
     return (0);
   }
-  printf("HIP Error: %lld / %s (%s:%d)\n", error, hipGetErrorString((hipError_t)error), file, line);
+  GPUError("HIP Error: %lld / %s (%s:%d)", error, hipGetErrorString((hipError_t)error), file, line);
   return 1;
 }
 
