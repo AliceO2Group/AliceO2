@@ -15,8 +15,8 @@
 #endif
 
 void run_reco_ft0(std::string inpudDig = "ft0digits.root",
-                 std::string outName = "o2reco_ft0.root",
-                 std::string inputGRP = "o2sim_grp.root")
+                  std::string outName = "o2reco_ft0.root",
+                  std::string inputGRP = "o2sim_grp.root")
 {
 
   // Initialize logger
