@@ -8,27 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DataInterpreter.cxx
-/// \author  Jeremi Niedziela
+/// \file DataReader.h
+/// \brief Abstract base class for Detector-specific reading from file(s)
+/// \author julian.myrcha@cern.ch
 
-#include "EventVisualisationBase/DataInterpreter.h"
+#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
+#define ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
 
-#include <iostream>
-
-using namespace std;
+#include <TObject.h>
 
 namespace o2  {
 namespace event_visualisation {
 
-DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
-DataInterpreter::DataInterpreter() = default;
 
-TEveElement* DataInterpreter::interpretDataForType(TObject* data, EDataType type) {
-  cout<<"Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!"<<endl;
-  
-  return nullptr;
+class DataReader {
+public:
+  virtual Int_t GetEventCount() = 0;
+  virtual ~DataReader() = default;
+  virtual void open() = 0;
+  virtual TObject* getEventData(int no) = 0;
+};
+
+
 }
-  
 }
-}
+
+#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H

@@ -9,26 +9,16 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    DataInterpreter.cxx
-/// \author  Jeremi Niedziela
+/// \file   EventRegistration.cxx
+/// \brief  breaking link dependency between EventVisualisation modules (here MultiView can register)
+/// \author julian.myrcha@cern.ch
 
-#include "EventVisualisationBase/DataInterpreter.h"
-
-#include <iostream>
-
-using namespace std;
+#include <EventVisualisationBase/EventRegistration.h>
 
 namespace o2  {
 namespace event_visualisation {
 
-DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
-DataInterpreter::DataInterpreter() = default;
+EventRegistration* EventRegistration::instance = nullptr;
 
-TEveElement* DataInterpreter::interpretDataForType(TObject* data, EDataType type) {
-  cout<<"Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!"<<endl;
-  
-  return nullptr;
-}
-  
 }
 }
