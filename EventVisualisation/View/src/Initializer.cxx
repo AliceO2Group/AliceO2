@@ -70,7 +70,7 @@ Initializer::Initializer(const Options options, EventManager::EDataSource defaul
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();
 
-  gEve->AddEvent(&eventManager);
+  //gEve->AddEvent(&eventManager);
   
   setupGeometry();
   gSystem->ProcessEvents();

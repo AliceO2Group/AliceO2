@@ -18,5 +18,11 @@ o2_add_library(EventVisualisationBase
                        src/EventRegistration.cxx
                        src/GeometryManager.cxx
                        src/Track.cxx
-               PUBLIC_LINK_LIBRARIES O2::CCDB ROOT::Eve
-                                     O2::EventVisualisationDataConverter)
+               PUBLIC_LINK_LIBRARIES ROOT::Eve
+                                     O2::CCDB 
+                                     O2::EventVisualisationDataConverter
+									 O2::DetectorsBase 
+                                     #O2::ITSMFTReconstruction
+
+                                
+)

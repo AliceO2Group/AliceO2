@@ -20,13 +20,14 @@
 namespace o2 {
 namespace event_visualisation {
 
-
+/*
 class DataReaderITS : public DataReader {
 public:
     DataReaderITS();
     void open() override;
     Bool_t GotoEvent(Int_t ev);
 };
+*/
 
 }
 }

@@ -16,7 +16,7 @@
 
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/Track.h"
-#include "EventVisualisationView/MultiView.h"
+//#include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 
 #include <TEveManager.h>

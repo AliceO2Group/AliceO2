@@ -13,7 +13,7 @@
 /// \brief  ITS Detector-specific reading from file(s)
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
-
+/*
 #include "EventVisualisationBase/DataReaderITS.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
@@ -519,3 +519,4 @@ void o2::event_visualisation::DataReaderITS::open() {
 Bool_t o2::event_visualisation::DataReaderITS::GotoEvent(Int_t ev) {
     return 0;
 }
+*/
