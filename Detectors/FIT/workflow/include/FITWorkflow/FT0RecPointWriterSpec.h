@@ -37,7 +37,7 @@ class FT0RecPointWriter : public Task
   bool mFinished = false;
   bool mUseMC = true;
 
-  std::string mOutputFileName = "o2reco_t0.root";
+  std::string mOutputFileName = "o2reco_ft0.root";
   std::string mOutputTreeName = "o2sim";
   std::string mRPOutputBranchName = "FT0Cluster";
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;

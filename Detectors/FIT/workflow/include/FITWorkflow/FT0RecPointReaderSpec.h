@@ -10,8 +10,8 @@
 
 /// @file   FT0RecPointReaderSpec.h
 
-#ifndef O2_T0_RECPOINTREADER
-#define O2_T0_RECPOINTREADER
+#ifndef O2_FT0_RECPOINTREADER
+#define O2_FT0_RECPOINTREADER
 
 #include "TFile.h"
 
@@ -41,7 +41,7 @@ class RecPointReader : public Task
 
   std::vector<o2::ft0::RecPoints>* mRecPoints = nullptr;
 
-  std::string mInputFileName = "o2reco_t0.root";
+  std::string mInputFileName = "o2reco_ft0.root";
   std::string mRecPointTreeName = "o2sim";
   std::string mRecPointBranchName = "FT0Cluster";
 };
@@ -53,4 +53,4 @@ framework::DataProcessorSpec getFT0RecPointReaderSpec(bool useMC);
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_T0_RECPOINTREADER */
+#endif /* O2_FT0_RECPOINTREADER */

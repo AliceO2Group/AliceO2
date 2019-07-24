@@ -57,14 +57,14 @@ DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
   std::vector<InputSpec> inputSpec;
   inputSpec.emplace_back("recpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
-    "t0-recpoint-writer",
+    "ft0-recpoint-writer",
     inputSpec,
     Outputs{},
     AlgorithmSpec{ adaptFromTask<FT0RecPointWriter>(useMC) },
     Options{
-      { "t0-recpoint-outfile", VariantType::String, "o2reco_t0.root", { "Name of the output file" } },
-      { "t0-recpoint-tree-name", VariantType::String, "o2sim", { "Name of the FT0 recpoints tree" } },
-      { "t0-recpoint-branch-name", VariantType::String, "FT0Cluster", { "Name of the FT0 recpoints branch" } },
+      { "ft0-recpoint-outfile", VariantType::String, "o2reco_ft0.root", { "Name of the output file" } },
+      { "ft0-recpoint-tree-name", VariantType::String, "o2sim", { "Name of the FT0 recpoints tree" } },
+      { "ft0-recpoint-branch-name", VariantType::String, "FT0Cluster", { "Name of the FT0 recpoints branch" } },
     }
   };
 }

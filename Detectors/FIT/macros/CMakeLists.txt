@@ -12,7 +12,7 @@ o2_add_test_root_macro(readHitsDigits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
 
-o2_add_test_root_macro(run_reco_t0.C
+o2_add_test_root_macro(run_reco_ft0.C
                        PUBLIC_LINK_LIBRARIES FairRoot::Base
                                              FairLogger::FairLogger
                                              O2::FT0Reconstruction

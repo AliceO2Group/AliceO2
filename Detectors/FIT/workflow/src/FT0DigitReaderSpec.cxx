@@ -32,7 +32,7 @@ DigitReader::DigitReader(bool useMC)
 
 void DigitReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("t0-digits-infile");
+  mInputFileName = ic.options().get<std::string>("ft0-digits-infile");
 }
 
 void DigitReader::run(ProcessingContext& pc)
@@ -86,12 +86,12 @@ DataProcessorSpec getFT0DigitReaderSpec(bool useMC)
   }
 
   return DataProcessorSpec{
-    "t0-digit-reader",
+    "ft0-digit-reader",
     Inputs{},
     outputSpec,
     AlgorithmSpec{ adaptFromTask<DigitReader>() },
     Options{
-      { "t0-digits-infile", VariantType::String, "t0digits.root", { "Name of the input file" } } }
+      { "ft0-digits-infile", VariantType::String, "ft0digits.root", { "Name of the input file" } } }
   };
 }
 
