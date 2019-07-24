@@ -475,7 +475,7 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
     "aido2flp2"
   ],                                    # list of data that should be sampled, the format is:
                                         # binding1:origin1/description1/subSpec1[;binding2:...]
-  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/CLUSTERS/0",
+  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
   "samplingConditions": [               # list of sampling conditions
     {
       "condition": "random",            # condition type
