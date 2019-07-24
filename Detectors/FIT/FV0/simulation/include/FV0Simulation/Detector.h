@@ -11,15 +11,15 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
-#ifndef ALICEO2_V0_DETECTOR_H_
-#define ALICEO2_V0_DETECTOR_H_
+#ifndef ALICEO2_FV0_DETECTOR_H_
+#define ALICEO2_FV0_DETECTOR_H_
 
 #include "TLorentzVector.h"
 
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
-#include "V0Base/Geometry.h"
-#include "DataFormatsFITV0/Hit.h"
+#include "FV0Base/Geometry.h"
+#include "DataFormatsFV0/Hit.h"
 
 class FairModule;
 

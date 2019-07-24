@@ -7,7 +7,7 @@
 #include "EMCALBase/Hit.h"
 #include "TRDSimulation/Detector.h" // For TRD Hit
 #include "FT0Simulation/Detector.h"  // for Fit Hit
-#include "DataFormatsFITV0/Hit.h"
+#include "DataFormatsFV0/Hit.h"
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
