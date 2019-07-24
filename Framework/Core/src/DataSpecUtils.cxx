@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
 #include <cstring>
 #include <cinttypes>
@@ -48,10 +49,14 @@ bool DataSpecUtils::match(const OutputSpec& spec,
   ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
 
   return std::visit(overloaded{ [&dataType, &origin, &description, &subSpec](ConcreteDataMatcher const& matcher) -> bool {
-                      return dataType.origin == origin &&
-                             dataType.description == description &&
-                             matcher.subSpec == subSpec;
-                    } },
+                                 return dataType.origin == origin &&
+                                        dataType.description == description &&
+                                        matcher.subSpec == subSpec;
+                               },
+                                [&dataType, &origin, &description](ConcreteDataTypeMatcher const& matcher) {
+                                  return dataType.origin == origin &&
+                                         dataType.description == description;
+                                } },
                     spec.matcher);
 }
 
@@ -69,8 +74,10 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
 
 std::string DataSpecUtils::describe(OutputSpec const& spec)
 {
-  auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-  return join(concrete, "/");
+  return std::visit([](auto const& concrete) {
+    return join(concrete, "/");
+  },
+                    spec.matcher);
 }
 
 void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
@@ -130,17 +137,27 @@ void DataSpecUtils::updateMatchingSubspec(InputSpec& spec, header::DataHeader::S
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
     concrete->subSpec = subSpec;
   } else {
-    throw std::runtime_error("Unsupported InputSpec kind");
+    // FIXME: this will only work for the cases in which we do have a dataType defined.
+    auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+    spec.matcher = ConcreteDataMatcher(dataType.origin, dataType.description, subSpec);
   }
 }
 
 void DataSpecUtils::updateMatchingSubspec(OutputSpec& spec, header::DataHeader::SubSpecificationType subSpec)
 {
-  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
-    concrete->subSpec = subSpec;
-  } else {
-    throw std::runtime_error("Unsupported InputSpec kind");
-  }
+  std::visit(overloaded{
+               [&subSpec](ConcreteDataMatcher& concrete) {
+                 concrete.subSpec = subSpec;
+               },
+               [&spec, &subSpec](ConcreteDataTypeMatcher& dataType) {
+                 spec.matcher = ConcreteDataMatcher{
+                   dataType.origin,
+                   dataType.description,
+                   subSpec
+                 };
+               },
+             },
+             spec.matcher);
 }
 
 bool DataSpecUtils::validate(InputSpec const& spec)
@@ -205,25 +222,40 @@ bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataMatcher const& targ
 
 bool DataSpecUtils::match(OutputSpec const& spec, ConcreteDataMatcher const& target)
 {
-  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
-    return *concrete == target;
-  } else {
-    throw std::runtime_error("Unsupported InputSpec");
-  }
+  return std::visit(overloaded{
+                      [&target](ConcreteDataMatcher const& concrete) {
+                        return concrete == target;
+                      },
+                      [&target](ConcreteDataTypeMatcher const& concrete) {
+                        return concrete.origin == target.origin &&
+                               concrete.description == target.description;
+                      } },
+                    spec.matcher);
 }
 
 bool DataSpecUtils::match(InputSpec const& input, OutputSpec const& output)
 {
-  auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
-  return DataSpecUtils::match(input, concrete);
+  return std::visit([&input](auto const& concrete) -> bool {
+    return DataSpecUtils::match(input, concrete);
+  },
+                    output.matcher);
+}
+
+bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataOrigin const& origin)
+{
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(output);
+  return dataType.origin == origin;
+}
+
+bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin const& origin)
+{
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
+  return dataType.origin == origin;
 }
 
 ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
 {
-  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
-    return ConcreteDataMatcher{ concrete->origin, concrete->description, concrete->subSpec };
-  }
-  throw std::runtime_error("Unsupported matching pattern");
+  return std::get<ConcreteDataMatcher>(spec.matcher);
 }
 
 ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
@@ -233,26 +265,181 @@ ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
 
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
 {
-  auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-  return ConcreteDataTypeMatcher{ concrete.origin, concrete.description };
+  return std::visit([](auto const& concrete) {
+    return ConcreteDataTypeMatcher{ concrete.origin, concrete.description };
+  },
+                    spec.matcher);
+}
+
+struct MatcherInfo {
+  header::DataOrigin origin = header::gDataOriginInvalid;                // Whether or not we found an origins (should be a bad query!)
+  header::DataDescription description = header::gDataDescriptionInvalid; // Whether or not we found a description
+  header::DataHeader::SubSpecificationType subSpec = 0;                  // Whether or not we found a description
+  bool hasOrigin = false;
+  bool hasDescription = false;
+  bool hasSubSpec = false;
+  bool hasUniqueOrigin = false;      // Whether the matcher involves a unique origin
+  bool hasUniqueDescription = false; // Whether the matcher involves a unique origin
+  bool hasUniqueSubSpec = false;
+  bool hasError = false;
+};
+
+MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
+{
+  using namespace data_matcher;
+  using ops = DataDescriptorMatcher::Op;
+
+  MatcherInfo state;
+  auto nodeWalker = overloaded{
+    [&state](EdgeActions::EnterNode action) {
+      if (state.hasError) {
+        return VisitNone;
+      }
+      // For now we do not support extracting a type from things
+      // which have an OR, so we reset all the uniqueness attributes.
+      if (action.node->getOp() == ops::Or || action.node->getOp() == ops::Xor) {
+        state.hasError = true;
+        return VisitNone;
+      }
+      if (action.node->getOp() == ops::Just) {
+        return VisitLeft;
+      }
+      return VisitBoth;
+    },
+    [](auto) { return VisitNone; }
+  };
+
+  auto leafWalker = overloaded{
+    [&state](OriginValueMatcher const& valueMatcher) {
+      // FIXME: If we found already more than one data origin, it means
+      // we are ANDing two incompatible origins.  Until we support OR,
+      // this is an error.
+      // In case we find a ContextRef, it means we have
+      // a wildcard, so there is not a unique origin.
+      if (state.hasOrigin) {
+        state.hasError = false;
+        return;
+      }
+      state.hasOrigin = true;
+
+      valueMatcher.visit(overloaded{
+        [&state](std::string const& s) {
+          strncpy(state.origin.str, s.data(), 4);
+          state.hasUniqueOrigin = true;
+        },
+        [&state](auto) { state.hasUniqueOrigin = false; } });
+    },
+    [&state](DescriptionValueMatcher const& valueMatcher) {
+      if (state.hasDescription) {
+        state.hasError = true;
+        return;
+      }
+      state.hasDescription = true;
+      valueMatcher.visit(overloaded{
+        [&state](std::string const& s) {
+          strncpy(state.description.str, s.data(), 16);
+          state.hasUniqueDescription = true;
+        },
+        [&state](auto) { state.hasUniqueDescription = false; } });
+    },
+    [&state](SubSpecificationTypeValueMatcher const& valueMatcher) {
+      if (state.hasSubSpec) {
+        state.hasError = true;
+        return;
+      }
+      state.hasSubSpec = true;
+      valueMatcher.visit(overloaded{
+        [&state](uint32_t const& data) {
+          state.subSpec = data;
+          state.hasUniqueSubSpec = true;
+        },
+        [&state](auto) { state.hasUniqueSubSpec = false; } });
+    },
+    [](auto t) {}
+  };
+  DataMatcherWalker::walk(top, nodeWalker, leafWalker);
+  return state;
+}
+
+ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) {
+                        return ConcreteDataTypeMatcher{ concrete.origin, concrete.description };
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin && state.hasUniqueDescription) {
+                          return ConcreteDataTypeMatcher{ state.origin, state.description };
+                        }
+                        throw std::runtime_error("Could not extract data type from query");
+                      } },
+                    spec.matcher);
+}
+
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
+{
+  auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
+    DataDescriptorMatcher::Op::And,
+    DescriptionValueMatcher{ dataType.description.as<std::string>() },
+    StartTimeValueMatcher(ContextRef{ 0 }));
+  return std::move(DataDescriptorMatcher(
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ dataType.origin.as<std::string>() },
+    std::move(timeDescriptionMatcher)));
 }
 
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
 {
-  ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-  return InputSpec{
-    spec.binding.value,
-    concrete.origin,
-    concrete.description,
-    concrete.subSpec,
-    spec.lifetime
-  };
+  return std::visit(overloaded{
+                      [&spec](ConcreteDataMatcher const& concrete) -> InputSpec {
+                        return InputSpec{
+                          spec.binding.value,
+                          concrete.origin,
+                          concrete.description,
+                          concrete.subSpec,
+                          spec.lifetime
+                        };
+                      },
+                      [&spec](ConcreteDataTypeMatcher const& dataType) -> InputSpec {
+                        auto&& matcher = DataSpecUtils::dataDescriptorMatcherFrom(dataType);
+                        return InputSpec{
+                          spec.binding.value,
+                          std::move(matcher)
+                        };
+                      } },
+                    spec.matcher);
 }
 
 std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(OutputSpec const& spec)
 {
-  ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-  return concrete.subSpec;
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataHeader::SubSpecificationType> {
+                        return std::make_optional(concrete.subSpec);
+                      },
+                      [](ConcreteDataTypeMatcher const&) -> std::optional<header::DataHeader::SubSpecificationType> {
+                        return {};
+                      } },
+                    spec.matcher);
+}
+
+std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(InputSpec const& spec)
+{
+  // FIXME: try to address at least a few cases.
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataHeader::SubSpecificationType> {
+                        return std::make_optional(concrete.subSpec);
+                      },
+                      [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataHeader::SubSpecificationType> {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueSubSpec) {
+                          return std::make_optional(state.subSpec);
+                        } else if (state.hasError) {
+                          throw std::runtime_error("Could not extract subSpec from query");
+                        }
+                        return {};
+                      } },
+                    spec.matcher);
 }
 
 } // namespace o2::framework

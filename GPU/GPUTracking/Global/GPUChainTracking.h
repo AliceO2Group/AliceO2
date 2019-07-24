@@ -162,7 +162,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     void* constructor;
   };
 
-  GPUChainTracking(GPUReconstruction* rec);
+  GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits = GPUCA_MAX_CLUSTERS, unsigned int maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
 
   int ReadEvent(int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
@@ -170,6 +170,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   int PrepareProfile();
   int DoProfile();
+  void PrintMemoryRelations();
+  void PrintMemoryStatistics() override;
 
   bool ValidateSteps();
 
@@ -193,10 +195,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
   const o2::trd::TRDGeometryFlat* mTRDGeometry = nullptr;             //
 
+  // Upper bounds for memory allocation
+  unsigned int mMaxTPCHits;
+  unsigned int mMaxTRDTracklets;
+
+  // Timers and debug
   HighResTimer timerTPCtracking[NSLICES][10];
-  eventStruct* mEvents = nullptr;
   std::ofstream mDebugFile;
 
+  // Synchronization and Locks
+  eventStruct* mEvents = nullptr;
 #ifdef __ROOT__ // ROOT5 BUG: cint doesn't do volatile
 #define volatile
 #endif

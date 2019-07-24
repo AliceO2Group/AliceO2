@@ -40,29 +40,33 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
                        { OutputSpec{ { "bar" }, "G", "H" } },
                        AlgorithmSpec{ [](ProcessingContext& ctx) {} },
                        {} },
-
+    DataProcessorSpec{ "D",
+                       { InputSpec{ "foo", { "C", "D" } } },
+                       { OutputSpec{ { "bar" }, { "I", "L" } } },
+                       AlgorithmSpec{ [](ProcessingContext& ctx) {} },
+                       {} }
   };
 
   std::vector<DataProcessorInfo> metadataOut{
     { "A", "test_Framework_test_SerializationWorkflow", { "foo" }, { ConfigParamSpec{ "aBool", VariantType::Bool, true, { "A Bool" } } } },
     { "B", "test_Framework_test_SerializationWorkflow", { "b-bar", "bfoof", "fbdbfaso" } },
     { "C", "test_Framework_test_SerializationWorkflow", {} },
+    { "D", "test_Framework_test_SerializationWorkflow", {} },
   };
 
   std::vector<DataProcessorInfo> metadataIn{};
 
-  std::ostringstream os;
-  WorkflowSerializationHelpers::dump(os, w0, metadataOut);
+  std::ostringstream firstDump;
+  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut);
   std::istringstream is;
-  is.str(os.str());
+  is.str(firstDump.str());
   WorkflowSpec w1;
   WorkflowSerializationHelpers::import(is, w1, metadataIn);
 
-  std::cout << "--" << std::endl;
-  std::ostringstream os2;
-  WorkflowSerializationHelpers::dump(os2, w1, metadataIn);
+  std::ostringstream secondDump;
+  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn);
 
-  BOOST_REQUIRE_EQUAL(w0.size(), 3);
+  BOOST_REQUIRE_EQUAL(w0.size(), 4);
   BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
-  BOOST_CHECK_EQUAL(os.str(), os2.str());
+  BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
 }

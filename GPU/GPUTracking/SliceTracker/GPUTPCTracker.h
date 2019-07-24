@@ -92,7 +92,7 @@ class GPUTPCTracker : public GPUProcessor
   void DumpHitWeights(std::ostream& out);   //....
   void DumpTrackHits(std::ostream& out);    // Same for Track Hits
   void DumpTrackletHits(std::ostream& out); // Same for Track Hits
-  void DumpOutput(FILE* out);               // Similar for output
+  void DumpOutput(std::ostream& out);       // Similar for output
 
   int ReadEvent();
 
@@ -156,6 +156,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() unsigned int NMaxTracks() const { return mNMaxTracks; }
   GPUhd() unsigned int NMaxTrackHits() const { return mNMaxTrackHits; }
   GPUhd() unsigned int NMaxStartHits() const { return mNMaxStartHits; }
+  GPUhd() unsigned int NMaxRowStartHits() const { return mNMaxRowStartHits; }
 
   MEM_TEMPLATE()
   GPUd() void SetHitLinkUpData(const MEM_TYPE(GPUTPCRow) & row, int hitIndex, calink v) { mData.SetHitLinkUpData(row, hitIndex, v); }
@@ -245,11 +246,12 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight);
+  void PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right);
 
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 
 #if !defined(GPUCA_GPUCODE)
-  GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+  GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction);
 #endif
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* mStageAtSync = nullptr; // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
@@ -266,6 +268,7 @@ class GPUTPCTracker : public GPUProcessor
   mData; // The SliceData object. It is used to encapsulate the storage in memory from the access
 
   unsigned int mNMaxStartHits;
+  unsigned int mNMaxRowStartHits;
   unsigned int mNMaxTracklets;
   unsigned int mNMaxTracks;
   unsigned int mNMaxTrackHits;

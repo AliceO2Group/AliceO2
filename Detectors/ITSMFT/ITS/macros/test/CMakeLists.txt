@@ -28,6 +28,11 @@ o2_add_test_root_macro(CheckDigits.C
                                              O2::DetectorsBase
                        LABELS its)
 
+o2_add_test_root_macro(CheckLookUp.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                                             O2::DataFormatsITSMFT
+                       LABELS its)
+
 o2_add_test_root_macro(CheckLUtime.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
                                              O2::DataFormatsITSMFT

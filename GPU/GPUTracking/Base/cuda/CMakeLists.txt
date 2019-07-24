@@ -15,6 +15,8 @@ message(STATUS "Building GPUTracking with CUDA support")
 set(SRCS GPUReconstructionCUDA.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h)
 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --maxrregcount 64")
+
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
@@ -23,7 +25,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
       ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA cub::cub
     TARGETVARNAME targetName)
 
   target_compile_definitions(
@@ -52,7 +54,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
   # CUDA run-time and driver
-  target_link_libraries(Ali${MODULE} AliGPUTracking)
+  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
 
   # Additional compilation flags
   set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
@@ -61,10 +63,17 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
+
+  set(targetName Ali${MODULE})
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=CUDA)
   add_library(${MODULE} SHARED ${SRCS})
+  target_link_libraries(${MODULE} PUBLIC GPUTracking cub::cub)
+  set(targetName ${MODULE})
   install(TARGETS GPUTrackingCUDA)
 endif()
+
+# Since
+target_link_libraries(${targetName} PRIVATE cuda cudart)

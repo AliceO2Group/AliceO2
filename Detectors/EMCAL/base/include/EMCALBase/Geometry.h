@@ -22,7 +22,7 @@
 #include <TParticle.h>
 #include <TVector3.h>
 
-#include "EMCALBase/Constants.h"
+#include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/GeometryBase.h"
 #include "MathUtils/Cartesian3D.h"
 

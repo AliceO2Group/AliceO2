@@ -45,6 +45,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUChain;
+class GPUMemorySizeScalers;
 
 class GPUReconstruction
 {
@@ -136,8 +137,8 @@ class GPUReconstruction
   };
 
   // Global steering functions
-  template <class T>
-  T* AddChain();
+  template <class T, typename... Args>
+  T* AddChain(Args... args);
 
   int Init();
   int Finalize();
@@ -146,6 +147,7 @@ class GPUReconstruction
   void DumpSettings(const char* dir = "");
   void ReadSettings(const char* dir = "");
 
+  void PrepareEvent();
   virtual int RunChains() = 0;
 
   // Helpers for memory allocation
@@ -161,10 +163,11 @@ class GPUReconstruction
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
-  void PrepareEvent();
+  void PrintMemoryStatistics();
+  GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
-  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits);
+  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
 
   // Getters / setters for parameters
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }
@@ -176,8 +179,8 @@ class GPUReconstruction
   bool IsInitialized() const { return mInitialized; }
   void SetSettings(float solenoidBz);
   void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsDeviceProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
-  void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; }
-  void SetDebugLevel(int level) { mDeviceProcessingSettings.debugLevel = level; }
+  void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; } // May update also after Init()
+  void SetDebugLevelTmp(int level) { mDeviceProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
@@ -200,6 +203,16 @@ class GPUReconstruction
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   virtual int InitDevice() = 0;
   virtual int ExitDevice() = 0;
+  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+
+  // Management for GPU thread contexts
+  class GPUThreadContext
+  {
+   public:
+    GPUThreadContext() = default;
+    virtual ~GPUThreadContext() = default;
+  };
+  virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
   size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
@@ -239,6 +252,7 @@ class GPUReconstruction
   GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at constructor level)
   GPUSettingsDeviceProcessing mDeviceProcessingSettings; // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                       // Controls the output of the individual components
+  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
@@ -308,10 +322,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   ptr = u.get();
 }
 
-template <class T>
-inline T* GPUReconstruction::AddChain()
+template <class T, typename... Args>
+inline T* GPUReconstruction::AddChain(Args... args)
 {
-  mChains.emplace_back(new T(this));
+  mChains.emplace_back(new T(this, args...));
   return (T*)mChains.back().get();
 }
 

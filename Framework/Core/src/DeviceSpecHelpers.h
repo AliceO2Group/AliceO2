@@ -15,6 +15,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceSpec.h"
@@ -39,12 +40,23 @@ struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
   /// to an actual set of devices which will have to run.
   static void dataProcessorSpecs2DeviceSpecs(
-      const WorkflowSpec &workflow,
-      std::vector<ChannelConfigurationPolicy> const &channelPolicies,
-      std::vector<CompletionPolicy> const &completionPolicies,
-      std::vector<DeviceSpec> &devices,
-      std::vector<ComputingResource> &resources
-      );
+    const WorkflowSpec& workflow,
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::vector<CompletionPolicy> const& completionPolicies,
+    std::vector<DispatchPolicy> const& dispatchPolicies,
+    std::vector<DeviceSpec>& devices,
+    std::vector<ComputingResource>& resources);
+
+  static void dataProcessorSpecs2DeviceSpecs(
+    const WorkflowSpec& workflow,
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::vector<CompletionPolicy> const& completionPolicies,
+    std::vector<DeviceSpec>& devices,
+    std::vector<ComputingResource>& resources)
+  {
+    std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
+    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resources);
+  }
 
   /// Helper to prepare the arguments which will be used to 
   /// start the various devices.

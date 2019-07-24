@@ -17,20 +17,23 @@ set(HDRS_INSTALL
     GPUCommonDef.h
     GPUCommonDefAPI.h
     GPUCommonDefSettings.h
-    GPUCommonFairLogger.h
+    GPUCommonLogger.h
     GPUCommonMath.h
     GPUCommonRtypes.h
     GPUCommonTransform3D.h
     GPUDef.h
     GPUDefConstantsAndSettings.h
     GPUDefGPUParameters.h
-    GPUDefOpenCL12Templates.h)
+    GPUDefOpenCL12Templates.h
+    GPULogging.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
-                 PUBLIC_LINK_LIBRARIES FairLogger::FairLogger ROOT::RIO
-                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR})
+                 PUBLIC_LINK_LIBRARIES O2::FrameworkLogger ROOT::RIO)
+  target_include_directories(${targetName}
+                             PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+                                    $<INSTALL_INTERFACE:include/GPU>)
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT}

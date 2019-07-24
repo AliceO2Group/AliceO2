@@ -111,7 +111,7 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
       readMask |= AODTypeMask::Muon;
     } else if (description == header::DataDescription{ "VZERO" }) {
       readMask |= AODTypeMask::VZero;
-    } else if (description == header::DataDescription{ "COLLISIONS" }) {
+    } else if (description == header::DataDescription{ "COLLISION" }) {
       readMask |= AODTypeMask::Collisions;
     } else if (description == header::DataDescription{ "TIMEFRAME" }) {
       readMask |= AODTypeMask::Timeframe;
@@ -216,8 +216,8 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "MUON" }, batch->schema());
           } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "VZERO" }, batch->schema());
-          } else if (meta["description"] == "COLLISIONS" && (readMask & AODTypeMask::Collisions)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "COLLISIONS" }, batch->schema());
+          } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "COLLISION" }, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TIMEFRAME" }, batch->schema());
           } else {

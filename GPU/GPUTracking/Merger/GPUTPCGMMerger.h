@@ -87,6 +87,8 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUhd() int NClusters() const { return (mNClusters); }
   GPUhd() int NMaxClusters() const { return (mNMaxClusters); }
+  GPUhd() int NMaxTracks() const { return (mNMaxTracks); }
+  GPUhd() int NMaxOutputTrackClusters() const { return (mNMaxOutputTrackClusters); }
   GPUhd() int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
   GPUhd() GPUTPCGMMergedTrackHit* Clusters()
@@ -95,7 +97,6 @@ class GPUTPCGMMerger : public GPUProcessor
   }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return (mClusterAttachment); }
-  GPUhd() int MaxId() const { return (mMaxID); }
   GPUhd() unsigned int* TrackOrder() const { return (mTrackOrder); }
 
   enum attachTypes { attachAttached = 0x40000000,

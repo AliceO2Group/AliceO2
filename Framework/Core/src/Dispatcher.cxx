@@ -47,7 +47,16 @@ void Dispatcher::init(InitContext& ctx)
   mPolicies.clear();
 
   for (auto&& policyConfig : policiesTree) {
-    mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(policyConfig.second));
+    // we don't want the Dispatcher to exit due to one faulty Policy
+    try {
+      mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(policyConfig.second));
+    } catch (std::exception& ex) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
+    } catch (...) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
+    }
   }
 }
 
@@ -55,18 +64,21 @@ void Dispatcher::run(ProcessingContext& ctx)
 {
   for (const auto& input : ctx.inputs()) {
     if (input.header != nullptr && input.spec != nullptr) {
+      const auto* inputHeader = header::get<header::DataHeader*>(input.header);
+      ConcreteDataMatcher inputMatcher{ inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification };
 
       for (auto& policy : mPolicies) {
         // todo: consider getting the outputSpec in match to improve performance
         // todo: consider matching (and deciding) in completion policy to save some time
-        if (policy->match(*input.spec) && policy->decide(input)) {
+
+        if (policy->match(inputMatcher) && policy->decide(input)) {
 
           DataSamplingHeader dsHeader = prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>());
 
           if (!policy->getFairMQOutputChannel().empty()) {
             sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(dsHeader));
           } else {
-            Output output = policy->prepareOutput(*input.spec);
+            Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
             output.metaHeader = { output.metaHeader, dsHeader };
             send(ctx.outputs(), input, std::move(output));
           }

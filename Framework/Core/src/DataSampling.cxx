@@ -46,40 +46,28 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
   for (auto&& policyConfig : policiesTree) {
 
-    DataSamplingPolicy policy(policyConfig.second);
+    std::unique_ptr<DataSamplingPolicy> policy;
 
-    // Dispatcher gets connected to any available outputs, which are listed in policies (active or not).
-    // policies partially fulfilled are also taken into account - the user might need data from different FLPs,
-    // but corresponding to the same event.
-    // If there is a strong need, it can be changed to subscribe to every output in the workflow, which would allow to
-    // modify input streams during the runtime.
-
-    LOG(DEBUG) << "Checking if the topology can provide any data for policy '" << policy.getName() << "'.";
-
-    bool dataFound = false;
-    for (const auto& dataProcessor : workflow) {
-      for (const auto& externalOutput : dataProcessor.outputs) {
-        InputSpec candidateInputSpec = DataSpecUtils::matchingInput(externalOutput);
-        candidateInputSpec.binding = "doesnt-matter";
-        
-        if (policy.match(candidateInputSpec)) {
-          Output output = policy.prepareOutput(candidateInputSpec);
-          OutputSpec outputSpec{
-            output.origin,
-            output.description,
-            output.subSpec,
-            output.lifetime
-          };
-
-          dispatcher.registerPath({ candidateInputSpec, outputSpec });
-          dataFound = true;
-          LOG(DEBUG) << " - found " << externalOutput << ", it will be published in " << outputSpec;
-        }
-      }
+    // We don't want the Dispatcher to exit due to one faulty Policy
+    try {
+      policy = std::make_unique<DataSamplingPolicy>(policyConfig.second);
+    } catch (const std::exception& ex) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
+      continue;
+    } catch (...) {
+      LOG(WARN) << "Could not load the Data Sampling Policy '"
+                << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
+      continue;
     }
-    if (dataFound && !policy.getFairMQOutputChannel().empty()) {
-      options.push_back({ "channel-config", VariantType::String, policy.getFairMQOutputChannel().c_str(), { "Out-of-band channel config" } });
-      LOG(DEBUG) << " - registering output FairMQ channel '" << policy.getFairMQOutputChannel() << "'";
+
+    for (const auto& path : policy->getPathMap()) {
+      dispatcher.registerPath({ path.first, path.second });
+    }
+
+    if (!policy->getFairMQOutputChannel().empty()) {
+      options.push_back({ "channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), { "Out-of-band channel config" } });
+      LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
 
@@ -125,10 +113,6 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       DataSamplingPolicy policy(policyConfig.second);
-      if (policy.getSubSpec() == -1) {
-        //fixme: support it, when wildcards are available
-        LOG(WARNING) << "InputSpecsForPolicy does not support subscriptions to all subSpecs yet.";
-      }
       for (const auto& path : policy.getPathMap()) {
         InputSpec input = DataSpecUtils::matchingInput(path.second);
         inputs.push_back(input);

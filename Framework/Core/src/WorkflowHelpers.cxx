@@ -118,6 +118,30 @@ std::vector<TopoIndexInfo>
   return S;
 }
 
+void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
+                               std::vector<InputSpec> requestedInputs,
+                               DataProcessorSpec& publisher)
+{
+  auto matchingOutputFor = [](InputSpec const& requested) {
+    return [&requested](OutputSpec const& provided) {
+      return DataSpecUtils::match(requested, provided);
+    };
+  };
+  auto last = std::unique(requestedInputs.begin(), requestedInputs.end());
+  requestedInputs.erase(last, requestedInputs.end());
+  for (InputSpec const& requested : requestedInputs) {
+    auto provided = std::find_if(providedOutputs.begin(),
+                                 providedOutputs.end(),
+                                 matchingOutputFor(requested));
+
+    if (provided != providedOutputs.end()) {
+      continue;
+    }
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
+    publisher.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec });
+  }
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
 {
   auto fakeCallback = AlgorithmSpec{ [](InitContext& ic) {
@@ -186,12 +210,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
   };
 
-  std::vector<ConcreteDataMatcher> requestedAODs;
-  std::vector<ConcreteDataMatcher> providedAODs;
-  std::vector<ConcreteDataMatcher> requestedRUN2s;
-  std::vector<ConcreteDataMatcher> providedRUN2s;
-  std::vector<ConcreteDataMatcher> requestedCCDBs;
-  std::vector<ConcreteDataMatcher> providedCCDBs;
+  std::vector<InputSpec> requestedAODs;
+  std::vector<OutputSpec> providedAODs;
+  std::vector<InputSpec> requestedRUN2s;
+  std::vector<OutputSpec> providedRUN2s;
+  std::vector<InputSpec> requestedCCDBs;
+  std::vector<OutputSpec> providedCCDBs;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -224,75 +248,37 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
           timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
         } break;
         case Lifetime::Condition: {
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           if (hasConditionOption == false) {
             processor.options.emplace_back(ConfigParamSpec{ "condition-backend", VariantType::String, "http://localhost:8080", { "Url for CCDB" } }),
               hasConditionOption = true;
           }
-          requestedCCDBs.emplace_back(concrete);
+          requestedCCDBs.emplace_back(input);
         } break;
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
           break;
       }
-      // AODs for now can only be specified with their full
-      // name.
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-      if (concrete.origin == header::DataOrigin{ "AOD" }) {
-        requestedAODs.emplace_back(concrete);
-      } else if (concrete.origin == header::DataOrigin{ "RN2" }) {
-        requestedRUN2s.emplace_back(concrete);
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{ "AOD" })) {
+        requestedAODs.emplace_back(input);
+      } else if (DataSpecUtils::partialMatch(input, header::DataOrigin{ "RN2" })) {
+        requestedRUN2s.emplace_back(input);
       }
     }
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
-      if (concrete.origin == header::DataOrigin{ "AOD" }) {
-        providedAODs.emplace_back(concrete);
+      if (DataSpecUtils::partialMatch(output, header::DataOrigin{ "AOD" })) {
+        providedAODs.emplace_back(output);
       }
       if (output.lifetime == Lifetime::Condition) {
-        providedCCDBs.emplace_back(concrete);
+        providedCCDBs.push_back(output);
       }
     }
   }
 
-  auto lastAOD = std::unique(requestedAODs.begin(), requestedAODs.end());
-  requestedAODs.erase(lastAOD, requestedAODs.end());
-  for (auto concrete : requestedAODs) {
-    if (std::find(providedAODs.begin(), providedAODs.end(), concrete) != providedAODs.end()) {
-      continue;
-    }
-    OutputSpec output{ concrete.origin,
-                       concrete.description,
-                       concrete.subSpec,
-                       Lifetime::Timeframe };
-    aodReader.outputs.emplace_back(output);
-  }
-
-  auto lastRUN2 = std::unique(requestedRUN2s.begin(), requestedRUN2s.end());
-  requestedRUN2s.erase(lastRUN2, requestedRUN2s.end());
-  for (auto concrete : requestedRUN2s) {
-    if (std::find(providedRUN2s.begin(), providedRUN2s.end(), concrete) != providedRUN2s.end()) {
-      continue;
-    }
-    OutputSpec output{ concrete.origin,
-                       concrete.description,
-                       concrete.subSpec,
-                       Lifetime::Timeframe };
-    run2Converter.outputs.emplace_back(output);
-  }
-
-  for (auto concrete : requestedCCDBs) {
-    if (std::find(providedCCDBs.begin(), providedCCDBs.end(), concrete) != providedCCDBs.end()) {
-      continue;
-    }
-    OutputSpec output{ concrete.origin,
-                       concrete.description,
-                       concrete.subSpec,
-                       Lifetime::Condition };
-    ccdbBackend.outputs.emplace_back(output);
-  }
+  addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
+  addMissingOutputsToReader(providedRUN2s, requestedRUN2s, run2Converter);
+  addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
 

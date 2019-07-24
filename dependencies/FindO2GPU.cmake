@@ -42,16 +42,20 @@ if(ENABLE_CUDA)
     if(NOT CUDA IN_LIST LANGUAGES)
       message(FATAL_ERROR "CUDA was found but cannot be enabled")
     endif()
+    find_package(cub)
+    set_package_properties(cub PROPERTIES TYPE REQUIRED)
 
-    set(CMAKE_CUDA_FLAGS "--expt-relaxed-constexpr")
-    set(CMAKE_CUDA_FLAGS_DEBUG "-Xptxas -O0 -Xcompiler -O0")
-    set(CMAKE_CUDA_FLAGS_RELEASE "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
-    set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELEASE}")
-    set(CMAKE_CUDA_FLAGS_COVERAGE "${CMAKE_CUDA_FLAGS_RELEASE}")
+    # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
+    STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
+    set(CMAKE_CUDA_FLAGS "-Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr -Xptxas -v")
+    set(CMAKE_CUDA_FLAGS_DEBUG "-Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      set(CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE} "-Xcompiler \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}\" -Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+    endif()
     if(CUDA_COMPUTETARGET)
       set(
         CMAKE_CUDA_FLAGS
-        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=compute_${CUDA_COMPUTETARGET}"
+        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=sm_${CUDA_COMPUTETARGET}"
         )
     endif()
 
@@ -153,4 +157,3 @@ endif()
 
 # if we end up here without a FATAL, it means we have found the "O2GPU" package
 set(O2GPU_FOUND TRUE)
-

@@ -93,10 +93,10 @@ ifeq ($(BUILD_HIP), 1)
 DEFINES						+= HIP_ENABLED
 endif
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-DEFINES						+= BUILD_EVENT_DISPLAY
+DEFINES						+= GPUCA_BUILD_EVENT_DISPLAY
 endif
 ifeq ($(BUILD_QA), 1)
-DEFINES						+= BUILD_QA
+DEFINES						+= GPUCA_BUILD_QA
 endif
 
 

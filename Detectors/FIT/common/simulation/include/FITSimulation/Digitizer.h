@@ -18,6 +18,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FITSimulation/DigitizationParameters.h"
+#include <TH1F.h>
 
 namespace o2
 {
@@ -34,7 +35,7 @@ class Digitizer
   void computeAverage(o2::t0::Digit& digit);
 
   void initParameters();
-  // void printParameters();
+  void printParameters();
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
@@ -56,6 +57,7 @@ class Digitizer
   void finish();
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::t0::MCLabel>* mclb) { mMCLabels = mclb; }
+  double get_time(const std::vector<double>& times);
 
  private:
   // digit info
@@ -65,6 +67,8 @@ class Digitizer
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
+  int mNoisePeriod;    //low frequency noise period
+  int mBinshift;       // number of bin to shift positive part of CFD signal
 
   DigitizationParameters parameters;
 
@@ -72,11 +76,25 @@ class Digitizer
 
   static constexpr Float_t C_side_cable_cmps = 2.877; //ns
   static constexpr Float_t A_side_cable_cmps = 11.08; //ns
+
+  TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+  TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
+
   //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
   //static std::vector<double> aggregate_channels(const std::vector<o2::fit::HitType>& hits, DigitizationParameters const& parameters);
 
   ClassDefNV(Digitizer, 1);
+};
+inline double sinc(const double x)
+{
+  return (std::abs(x) < 1e-12) ? 1 : std::sin(x) / x;
+}
+inline double signalForm_i(double x)
+{
+  return x > 0 ? -(exp(-0.83344945 * x) - exp(-0.45458 * x)) / 7.8446501 : 0.;
+  //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
 } // namespace fit
 } // namespace o2

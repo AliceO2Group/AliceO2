@@ -331,3 +331,14 @@ timePipeline(DataProcessorSpec{
 
 which will result in two devices, one for even time periods, the other one for
 odd timeperiods.
+
+
+### Disabling monitoring
+
+Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
+
+```bash
+some-workflow --monitoring-backend=no-op://
+```
+
+notice that the GUI will not function properly if you do so.

@@ -15,21 +15,16 @@
 #define GPUCHAINITS_H
 
 #include "GPUChain.h"
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class Cluster;
 class Road;
 class Cell;
 class TrackingFrameInfo;
 class TrackITSExt;
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainITS : public GPUChain
 {
@@ -48,15 +43,16 @@ class GPUChainITS : public GPUChain
   int PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
   int RunITSTrackFit(std::vector<o2::its::Road>& roads, std::array<const o2::its::Cluster*, 7> clusters, std::array<const o2::its::Cell*, 5> cells, const std::array<std::vector<o2::its::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
 
-  o2::its::TrackerTraits* GetITSTrackerTraits() { return mITSTrackerTraits.get(); }
-  o2::its::VertexerTraits* GetITSVertexerTraits() { return mITSVertexerTraits.get(); }
+  o2::its::TrackerTraits* GetITSTrackerTraits();
+  o2::its::VertexerTraits* GetITSVertexerTraits();
 
  protected:
-  GPUChainITS(GPUReconstruction* rec);
+  GPUChainITS(GPUReconstruction* rec, unsigned int maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
   std::unique_ptr<o2::its::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
+
+  unsigned int mMaxTracks;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
