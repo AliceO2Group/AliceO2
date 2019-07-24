@@ -70,7 +70,8 @@ class GPUDataTypes
                               CPU = 1,
                               CUDA = 2,
                               HIP = 3,
-                              OCL = 4 };
+                              OCL = 4,
+                              OCL2 = 5 };
   enum ENUM_CLASS RecoStep { TPCConversion = 1,
                              TPCSliceTracking = 2,
                              TPCMerging = 4,

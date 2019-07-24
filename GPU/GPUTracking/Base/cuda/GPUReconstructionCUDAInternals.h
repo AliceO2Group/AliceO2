@@ -11,6 +11,8 @@
 /// \file GPUReconstructionCUDAInternals.h
 /// \author David Rohr
 
+// All CUDA-header related stuff goes here, so we can run CING over GPUReconstructionCUDA
+
 #ifndef GPURECONSTRUCTIONCUDAINTERNALS_H
 #define GPURECONSTRUCTIONCUDAINTERNALS_H
 

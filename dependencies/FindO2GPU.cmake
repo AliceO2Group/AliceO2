@@ -94,17 +94,29 @@ endif()
 
 # Detect and enable OpenCL 2.x
 if(ENABLE_OPENCL2)
+  find_package(LLVM)
+  if(LLVM_FOUND)
+    find_package(Clang)
+  endif()
+  find_package(ROCM PATHS /opt/rocm)
+  if(NOT ROCM_DIR STREQUAL "ROCM_DIR-NOTFOUND")
+    get_filename_component(ROCM_ROOT "${ROCM_DIR}/../../../" ABSOLUTE)
+  else()
+    set(ROCM_ROOT "/opt/rocm")
+  endif()
+  find_program(CLANG_OCL clang-ocl PATHS "${ROCM_ROOT}/bin")
   if(OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.0
      AND Clang_FOUND
      AND LLVM_FOUND
-     AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 9.0)
+     AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 10.0
+     AND NOT CLANG_OCL STREQUAL "CLANG_OCL-NOTFOUND")
     set(OPENCL2_ENABLED ON)
     message(
       STATUS
-        "Found OpenCL 2 (${OpenCL_VERSION_STRING} compiled by LLVM/Clang ${LLVM_PACKAGE_VERSION})"
+        "Found OpenCL 2 (${OpenCL_VERSION_STRING} compiled by LLVM/Clang ${LLVM_PACKAGE_VERSION} / ${CLANG_OCL})"
       )
   elseif(NOT ENABLE_OPENCL2 STREQUAL "AUTO")
-    # message(FATAL_ERROR "OpenCL 2.x not yet implemented")
+    message(FATAL_ERROR "OpenCL 2.x not yet implemented")
   endif()
 endif()
 

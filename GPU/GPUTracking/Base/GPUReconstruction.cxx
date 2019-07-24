@@ -508,6 +508,10 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing
     if ((retVal = sLibOCL->GetPtr(cfg))) {
       retVal->mMyLib = sLibOCL;
     }
+  } else if (type == DeviceType::OCL2) {
+    if ((retVal = sLibOCL2->GetPtr(cfg))) {
+      retVal->mMyLib = sLibOCL2;
+    }
   } else {
     GPUError("Error: Invalid device type %u", type);
     return nullptr;
@@ -583,6 +587,11 @@ std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL(new
                                                                                                                   "OCL" LIBRARY_EXTENSION,
                                                                                                                   "GPUReconstruction_Create_"
                                                                                                                   "OCL"));
+
+std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL2(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
+                                                                                                                   "OCL2" LIBRARY_EXTENSION,
+                                                                                                                   "GPUReconstruction_Create_"
+                                                                                                                   "OCL2"));
 
 GPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr) {}
 
