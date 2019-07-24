@@ -4,6 +4,24 @@
 using namespace gpucf;
 
 
+std::vector<Digit> gpucf::findPeaks(
+        View<Digit> digits,
+        const Map<float> &chargeMap)
+{
+    std::vector<Digit> peaks;
+
+    for (const Digit &d : digits)
+    {
+        if (isPeak(d, chargeMap))
+        {
+            peaks.push_back(d);
+        }
+    }
+
+    return peaks;
+}
+
+
 RowMap<std::vector<Digit>> gpucf::findPeaksByRow(
         View<Digit> digits, 
         const Map<float> &chargeMap)

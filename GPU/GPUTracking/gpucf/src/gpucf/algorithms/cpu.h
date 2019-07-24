@@ -9,9 +9,12 @@
 namespace gpucf
 {
 
+std::vector<Digit> findPeaks(View<Digit>, const Map<float> &);
+
 RowMap<std::vector<Digit>> findPeaksByRow(View<Digit>, const Map<float> &);
 
 bool isPeak(const Digit &, const Map<float> &, float cutoff=0.f);
+
 
 } // namespace gpucf
 

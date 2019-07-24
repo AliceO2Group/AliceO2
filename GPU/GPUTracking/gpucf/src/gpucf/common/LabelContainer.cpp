@@ -2,6 +2,8 @@
 
 #include <gpucf/common/log.h>
 
+#include <unordered_set>
+
 
 using namespace gpucf;
 
@@ -78,6 +80,18 @@ size_t LabelContainer::size() const
 View<MCLabel> LabelContainer::allLabels() const
 {
     return labels;
+}
+
+size_t LabelContainer::countTracks() const
+{
+    std::unordered_set<MCLabel> uniqueTracks;
+
+    for (const MCLabel &label : labels)
+    {
+        uniqueTracks.insert(label);
+    }
+
+    return uniqueTracks.size();
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

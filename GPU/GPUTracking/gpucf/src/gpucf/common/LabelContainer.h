@@ -34,6 +34,8 @@ public:
 
     View<MCLabel> allLabels() const;
 
+    size_t countTracks() const;
+
 private:
 
     std::unordered_map<Position, View<MCLabel>> viewByPosition;
