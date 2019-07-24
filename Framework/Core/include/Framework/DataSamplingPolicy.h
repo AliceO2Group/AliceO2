@@ -37,13 +37,13 @@ namespace framework
 class DataSamplingPolicy
 {
  private:
-  using V = std::vector<std::pair<InputSpec, OutputSpec>>;
-  class PathMap : public V
+  using PathVectorBase = std::vector<std::pair<InputSpec, OutputSpec>>;
+  class PathMap : public PathVectorBase
   {
    public:
     ~PathMap() = default;
     PathMap() = default;
-    const V::const_iterator find(const ConcreteDataMatcher& input) const
+    const PathVectorBase::const_iterator find(const ConcreteDataMatcher& input) const
     {
       return std::find_if(begin(), end(), [input](const auto& el) {
         return DataSpecUtils::match(el.first, input);
