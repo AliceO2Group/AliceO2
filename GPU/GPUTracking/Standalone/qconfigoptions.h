@@ -96,13 +96,15 @@ AddOption(runGPU, bool, false, "gpu", 'g', "Use GPU for processing", message("GP
 #endif
 AddOptionSet(runGPU, bool, false, "cpu", 'c', "Use CPU for processing", message("CPU enabled"))
 #if defined(CUDA_ENABLED)
-AddOption(gpuType, const char*, "CUDA", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
+AddOption(gpuType, const char*, "CUDA", "gpuType", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
+#elif defined(OPENCL2_ENABLED)
+AddOption(gpuType, const char*, "OCL2", "gpuType", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #elif defined(OPENCL1_ENABLED)
-AddOption(gpuType, const char*, "OCL", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
+AddOption(gpuType, const char*, "OCL", "gpuType", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #elif defined(HIP_ENABLED)
-AddOption(gpuType, const char*, "HIP", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
+AddOption(gpuType, const char*, "HIP", "gpuType", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #else
-AddOption(gpuType, const char*, "", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
+AddOption(gpuType, const char*, "", "gpuType", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #endif
 AddOption(runGPUforce, bool, true, "gpuForce", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(gpuInitMutex, bool, false, "gpuInitMutex", 0, "Use mutex to synchronize initialization of multiple GPU instances")

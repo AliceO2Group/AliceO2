@@ -64,7 +64,6 @@ if(CONFIG_O2)
 endif()
 
 find_package(ROOT CONFIG REQUIRED)
-find_package(fmt REQUIRED)
 find_package(Clang REQUIRED)
 find_package(LLVM REQUIRED)
 find_package(X11 REQUIRED)
@@ -72,45 +71,45 @@ find_package(X11 REQUIRED)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
 find_package(O2GPU)
 
-include_directories(.
-                    SliceTracker
-                    HLTHeaders
-                    Merger
-                    Base
-                    Global
-                    TRDTracking
-                    ITS
-                    dEdx
-                    TPCConvert
-                    DataCompression
-                    Common
-                    TPCFastTransformation
-                    display
-                    qa
-                    ../../../Common/Constants/include
-                    ../../../Common/MathUtils/include
-                    ../../../DataFormats/common/include
-                    ../../../Detectors/TPC/base/include
-                    ../../../DataFormats/Detectors/TPC/include
-                    ../../../DataFormats/common/include
-                    ../../../Detectors/TRD/base/include
-                    ../../../Detectors/TRD/base/src
-                    ../../../Detectors/ITSMFT/ITS/tracking/include
-                    ../../../Detectors/ITSMFT/ITS/tracking/cuda/include
-                    ../../../Detectors/ITSMFT/ITS/tracking/cuda/src
-                    ../../../DataFormats/Detectors/ITSMFT/ITS/include
-                    ../../../DataFormats/Reconstruction/include
-                    ../../../DataFormats/simulation/include
-                    ../../../Detectors/Base/src
-                    ../../../Detectors/Base/include
-                    ../../../DataFormats/Detectors/Common/include)
+include_directories(${CMAKE_SOURCE_DIR}
+                    ${CMAKE_SOURCE_DIR}/Base
+                    ${CMAKE_SOURCE_DIR}/Base/opencl-common
+                    ${CMAKE_SOURCE_DIR}/Common
+                    ${CMAKE_SOURCE_DIR}/DataCompression
+                    ${CMAKE_SOURCE_DIR}/dEdx
+                    ${CMAKE_SOURCE_DIR}/display
+                    ${CMAKE_SOURCE_DIR}/Global
+                    ${CMAKE_SOURCE_DIR}/HLTHeaders
+                    ${CMAKE_SOURCE_DIR}/ITS
+                    ${CMAKE_SOURCE_DIR}/Merger
+                    ${CMAKE_SOURCE_DIR}/qa
+                    ${CMAKE_SOURCE_DIR}/SliceTracker
+                    ${CMAKE_SOURCE_DIR}/TPCConvert
+                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
+                    ${CMAKE_SOURCE_DIR}/TRDTracking
+                    ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
+                    ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
 
 add_subdirectory(../../ GPU)
 
 add_executable(ca standalone.cxx qa/genEvents.cxx
                   Base/GPUReconstructionTimeframe.cxx)
 
-add_library(o2_support
+add_library(o2_support SHARED
   ../../..//DataFormats/simulation/src/MCCompLabel.cxx
   ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
   ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
@@ -124,7 +123,7 @@ add_library(o2_support
   ../../..//Detectors/Base/src/MatLayerCyl.cxx
   ../../..//Detectors/Base/src/Ray.cxx)
 
-add_library(config utils/qconfig.cxx)
+add_library(standalone_config SHARED utils/qconfig.cxx)
 
 target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
                display/GPUDisplayBackendGlut.cxx)
@@ -141,12 +140,12 @@ target_link_libraries(o2_support
 if(CONFIG_VC)
   target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
-target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support config dl)
+target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support standalone_config dl)
 
 target_link_libraries(ca PUBLIC GPUTracking)
 target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
-target_compile_definitions(config PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+target_compile_definitions(standalone_config PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
-install(TARGETS ca GPUTracking TPCFastTransformation o2_support)
+install(TARGETS ca GPUTracking TPCFastTransformation o2_support standalone_config)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

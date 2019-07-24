@@ -11,9 +11,10 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
+#define GPUCA_GPUTYPE_PASCAL
+
 #include <cuda.h>
 #include <sm_20_atomic_functions.h>
-#define GPUCA_GPUTYPE_PASCAL
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"

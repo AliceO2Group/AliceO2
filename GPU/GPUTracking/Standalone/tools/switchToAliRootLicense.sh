@@ -1,12 +1,12 @@
 #!/bin/bash
-cd ../../../
-if [ $(ls | grep GPUTracking | wc -l) != "1" ]; then
+cd ../../../../
+if [ $(ls | grep GPU | wc -l) != "1" ]; then
     echo Incorrect directory
     exit 1
 fi
 
 git grep -l "^// Copyright CERN and copyright holders of ALICE O2. This software is" | \
-    grep "^Common/\|^GPUTracking/\|TPCFastTransformation" | \
+    grep "^GPU/Common/\|^GPU/GPUTracking/\|^GPU/TPCFastTransformation|^GPU/TPCSpaceChargeBase\|^cmake" | \
     xargs -r -n 1 \
     sed -i -e '/Copyright CERN and copyright holders of ALICE O2. This software is/,/or submit itself to any jurisdiction/c\
 //**************************************************************************\

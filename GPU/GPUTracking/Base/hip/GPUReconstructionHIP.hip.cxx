@@ -11,8 +11,8 @@
 /// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
-#include "hip/hip_runtime.h"
 #define GPUCA_GPUTYPE_HIP
+#include "hip/hip_runtime.h"
 
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"

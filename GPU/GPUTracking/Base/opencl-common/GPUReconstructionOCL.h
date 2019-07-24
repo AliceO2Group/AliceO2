@@ -26,14 +26,13 @@ namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionOCLInternals;
 
-class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
+class GPUReconstructionOCL : public GPUReconstructionDeviceBase
 {
  public:
-  ~GPUReconstructionOCLBackend() override;
+  ~GPUReconstructionOCL() override;
+  GPUReconstructionOCL(const GPUSettingsProcessing& cfg);
 
  protected:
-  GPUReconstructionOCLBackend(const GPUSettingsProcessing& cfg);
-
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
   void SetThreadCounts() override;
@@ -51,14 +50,10 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
   void ReleaseEvent(deviceEvent* ev) override;
   void RecordMarker(deviceEvent* ev, int stream) override;
 
-  template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+  virtual int GetOCLPrograms() = 0;
+  virtual bool CheckPlatform(unsigned int i) = 0;
+  virtual bool ContextForAllPlatforms() { return false; }
 
-  RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
-
- private:
-  template <class S, class T, int I = 0>
-  S& getKernelObject(int num);
   template <class T, int I = 0>
   int AddKernel(bool multi = false);
   template <class T, int I = 0>
@@ -68,7 +63,6 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
   int mCoreCount = 0;
 };
 
-using GPUReconstructionOCL = GPUReconstructionKernels<GPUReconstructionOCLBackend>;
 } // namespace GPUCA_NAMESPACE::gpu
 
 #endif
