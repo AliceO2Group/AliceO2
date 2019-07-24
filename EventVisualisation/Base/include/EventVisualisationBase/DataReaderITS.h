@@ -8,14 +8,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file DataReaderITS.h
+/// \brief ITS Detector-specific reading from file(s)
+/// \author julian.myrcha@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2EVE_DATAREADERITS_H
+#define O2EVE_DATAREADERITS_H
 
-#pragma link C++ class o2::event_visualisation::MultiView +;
-#pragma link C++ class o2::event_visualisation::Initializer +;
-#pragma link C++ class o2::event_visualisation::EventManagerFrame +;
+#include <EventVisualisationBase/DataReader.h>
 
-#endif
+namespace o2 {
+namespace event_visualisation {
+
+/*
+class DataReaderITS : public DataReader {
+public:
+    DataReaderITS();
+    void open() override;
+    Bool_t GotoEvent(Int_t ev);
+};
+*/
+
+}
+}
+
+#endif //O2EVE_DATAREADERITS_H

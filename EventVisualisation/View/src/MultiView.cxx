@@ -27,6 +27,7 @@
 #include <TEveManager.h>
 #include <TEveProjectionAxes.h>
 #include <TEveProjectionManager.h>
+#include <TEveWindowManager.h>
 
 #include <iostream>
 
@@ -53,9 +54,15 @@ MultiView::MultiView()
   mSceneDescriptions[Scene3dEvent]   = "Scene holding 3D event.";
   mSceneDescriptions[SceneRphiEvent] = "Scene holding projected event for the R-Phi view.";
   mSceneDescriptions[SceneZrhoEvent] = "Scene holding projected event for the Rho-Z view.";
-  
+
   // spawn scenes
-  for(int i=0;i<NumberOfScenes;++i){
+  mScenes[Scene3dGeom] = gEve->GetGlobalScene();
+  mScenes[Scene3dGeom]->SetNameTitle(mSceneNames[Scene3dGeom].c_str(), mSceneDescriptions[Scene3dGeom].c_str());
+
+  mScenes[Scene3dEvent] = gEve->GetEventScene();
+  mScenes[Scene3dEvent]->SetNameTitle(mSceneNames[Scene3dEvent].c_str(), mSceneDescriptions[Scene3dEvent].c_str());
+
+  for(int i=SceneRPhiGeom;i<NumberOfScenes;++i){
     mScenes[i] = gEve->SpawnNewScene(mSceneNames[i].c_str(), mSceneDescriptions[i].c_str());
   }
   
@@ -90,7 +97,19 @@ MultiView::MultiView()
   sInstance = this;
 }
 
-MultiView::~MultiView() = default;
+MultiView::~MultiView() {
+//    for(int i=this->SceneRPhiGeom;i<this->NumberOfScenes;++i) {
+//        delete this->mScenes[i];
+//    }
+//
+//    for(int i=0;i<this->NumberOfProjections;++i) {
+//        delete mProjections[i];
+//    }
+//
+//    for(int i=ViewRphi;i<this->NumberOfViews;++i) {
+//        delete this->mViews[i];
+//    }
+}
 
 MultiView* MultiView::getInstance()
 {
@@ -114,6 +133,7 @@ void MultiView::setupMultiview()
   mViews[View3d]->AddScene(mScenes[Scene3dEvent]);
   
   pack =  pack->NewSlot()->MakePack();
+  pack->SetNameTitle("2D Views", "");
   pack->SetShowTitleBar(kFALSE);
   pack->NewSlot()->MakeCurrent();
   mViews[ViewRphi] = gEve->SpawnNewViewer("R-Phi View", "");
@@ -184,9 +204,9 @@ void MultiView::destroyAllGeometries()
   }
 }
   
-void MultiView::registerEvent(TEveElement* event)
+void MultiView::registerElement(TEveElement* event)
 {
-  gEve->AddElement(event,getScene(Scene3dEvent));
+  gEve->GetCurrentEvent()->AddElement(event);
   getProjection(ProjectionRphi)->ImportElements(event,getScene(SceneRphiEvent));
   getProjection(ProjectionZrho)->ImportElements(event,getScene(SceneZrhoEvent));
   
@@ -195,7 +215,7 @@ void MultiView::registerEvent(TEveElement* event)
 
 void MultiView::destroyAllEvents()
 {
-  getScene(Scene3dEvent)->DestroyElements();
+  gEve->GetCurrentEvent()->RemoveElements();
   getScene(SceneRphiEvent)->DestroyElements();
   getScene(SceneZrhoEvent)->DestroyElements();
 }
@@ -203,9 +223,11 @@ void MultiView::destroyAllEvents()
 void MultiView::drawRandomEvent()
 {
   DataInterpreterRND *dataInterpreterRND = new DataInterpreterRND();
-  TEveElement *dataRND = dataInterpreterRND->interpretDataForType(NoData);
-  registerEvent(dataRND);
+  TEveElement *dataRND = dataInterpreterRND->interpretDataForType(nullptr, NoData);
+  registerElement(dataRND);
+    TEveElement *dataRND1 = dataInterpreterRND->interpretDataForType(nullptr, NoData);
+    registerElement(dataRND1);
+
 }
-  
 }
 }
