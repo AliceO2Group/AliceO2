@@ -59,19 +59,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyConfiguration)
   ptree config;
   config.put("id", "my_policy");
   config.put("active", "true");
-  ptree dataHeaders;
-  ptree dh1;
-  dh1.put("binding", "");
-  dh1.put("dataOrigin", "TST");
-  dh1.put("dataDescription", "CHLEB");
-  ptree dh2;
-  dh2.put("binding", "");
-  dh2.put("dataOrigin", "TST");
-  dh2.put("dataDescription", "MLEKO");
-  dataHeaders.push_back(std::make_pair("", dh1));
-  dataHeaders.push_back(std::make_pair("", dh2));
-  config.add_child("dataHeaders", dataHeaders);
-  config.put("subSpec", "33");
+  config.put("query", "c:TST/CHLEB/33;m:TST/MLEKO/33");
   ptree samplingConditions;
   ptree conditionRandom;
   conditionRandom.put("condition", "random");
@@ -84,16 +72,15 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyConfiguration)
   policy.configure(config);
 
   BOOST_CHECK_EQUAL(policy.getName(), "my_policy");
-  BOOST_CHECK_EQUAL(policy.getSubSpec(), 33);
-  BOOST_CHECK((policy.prepareOutput(InputSpec{ "", "TST", "CHLEB", 33 })) == (Output{ "DS", "my_policy-0", 33 }));
-  BOOST_CHECK((policy.prepareOutput(InputSpec{ "", "TST", "MLEKO", 33 })) == (Output{ "DS", "my_policy-1", 33 }));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{ "TST", "CHLEB", 33 })) == (Output{ "DS", "my_policy-0", 33 }));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{ "TST", "MLEKO", 33 })) == (Output{ "DS", "my_policy-1", 33 }));
   const auto& map = policy.getPathMap();
-  BOOST_CHECK((*map.find(InputSpec{ "", "TST", "CHLEB", 33 })).second == (OutputSpec{ "DS", "my_policy-0", 33 }));
-  BOOST_CHECK((*map.find(InputSpec{ "", "TST", "MLEKO", 33 })).second == (OutputSpec{ "DS", "my_policy-1", 33 }));
+  BOOST_CHECK((*map.find(ConcreteDataMatcher{ "TST", "CHLEB", 33 })).second == (OutputSpec{ "DS", "my_policy-0", 33 }));
+  BOOST_CHECK((*map.find(ConcreteDataMatcher{ "TST", "MLEKO", 33 })).second == (OutputSpec{ "DS", "my_policy-1", 33 }));
   BOOST_CHECK_EQUAL(map.size(), 2);
 
-  BOOST_CHECK(policy.match(InputSpec{ "", "TST", "CHLEB", 33 }));
-  BOOST_CHECK(!policy.match(InputSpec{ "", "TST", "SZYNKA", 33 }));
+  BOOST_CHECK(policy.match(ConcreteDataMatcher{ "TST", "CHLEB", 33 }));
+  BOOST_CHECK(!policy.match(ConcreteDataMatcher{ "TST", "SZYNKA", 33 }));
 
   DataProcessingHeader dph{ 555, 0 };
   o2::header::Stack headerStack{ dph };
@@ -103,7 +90,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyConfiguration)
   config.put("id", "too-long-policy-name");
   policy.configure(config);
   BOOST_CHECK_EQUAL(policy.getName(), "too-long-polic");
-  BOOST_CHECK((policy.prepareOutput(InputSpec{ "", "TST", "CHLEB", 33 })) == (Output{ "DS", "too-long-polic-0", 33 }));
-  BOOST_CHECK((policy.prepareOutput(InputSpec{ "", "TST", "MLEKO", 33 })) == (Output{ "DS", "too-long-polic-1", 33 }));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{ "TST", "CHLEB", 33 })) == (Output{ "DS", "too-long-polic-0", 33 }));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{ "TST", "MLEKO", 33 })) == (Output{ "DS", "too-long-polic-1", 33 }));
   BOOST_CHECK_EQUAL(policy.getPathMap().size(), 2); // previous paths should be cleared
 }

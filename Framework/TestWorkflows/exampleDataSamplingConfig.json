@@ -4,19 +4,7 @@
       "id": "simpleQcTask",
       "active": "true",
       "machines": [],
-      "dataHeaders": [
-        {
-          "binding": "TPC_CLUSTERS_S",
-          "dataOrigin": "TPC",
-          "dataDescription": "CLUSTERS"
-        },
-        {
-          "binding": "TPC_CLUSTERS_P_S",
-          "dataOrigin": "TPC",
-          "dataDescription": "CLUSTERS_P"
-        }
-      ],
-      "subSpec": "-1",
+      "query": "TPC_CLUSTERS_S:TPC/CLUSTERS;TPC_CLUSTERS_P_S/TPC/CLUSTERS_P",
       "samplingConditions": [
         {
           "condition": "random",
@@ -30,19 +18,7 @@
       "id": "rootQcTask",
       "active": "true",
       "machines": [],
-      "dataHeaders": [
-        {
-          "binding": "TST_HISTOS_S",
-          "dataOrigin": "TST",
-          "dataDescription": "HISTOS"
-        },
-        {
-          "binding": "TST_STRING_S",
-          "dataOrigin": "TST",
-          "dataDescription": "STRING"
-        }
-      ],
-      "subSpec": "-1",
+      "query": "TST_HISTOS_S:TST/HISTOS/0;TST_STRING_S/TST/STRING/0",
       "samplingConditions": [
         {
           "condition": "random",

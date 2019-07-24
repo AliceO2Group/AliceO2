@@ -473,20 +473,9 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
   "machines": [                         # list of machines where the policy should be run (now ignored)
     "aido2flp1",
     "aido2flp2"
-  ],
-  "dataHeaders": [                      # list of data that should be sampled
-    {
-      "binding": "clusters",            # binding of the data in InputRecord
-      "dataOrigin": "TPC",              # data origin in DataHeader
-      "dataDescription": "CLUSTERS"     # data description in DataHeader
-    },
-    {
-      "binding": "tracks",
-      "dataOrigin": "TPC",
-      "dataDescription": "TRACKS"
-    }
-  ],
-  "subSpec": "0",                       # subspecification in DataHeader, use -1 for all
+  ],                                    # list of data that should be sampled, the format is:
+                                        # binding1:origin1/description1/subSpec1[;binding2:...]
+  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
   "samplingConditions": [               # list of sampling conditions
     {
       "condition": "random",            # condition type

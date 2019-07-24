@@ -54,8 +54,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec podDataProducer{
     "podDataProducer",
     Inputs{},
-    { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
+    { OutputSpec{ { "TPC", "CLUSTERS" } },
+      OutputSpec{ { "ITS", "CLUSTERS" } } },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
   };
@@ -63,11 +63,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
-      { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      { "dataITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
+      { "dataTPC", { "TPC", "CLUSTERS" } },
+      { "dataITS", { "ITS", "CLUSTERS" } } },
     Outputs{
-      { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
+      { { "TPC", "CLUSTERS_P" } },
+      { { "ITS", "CLUSTERS_P" } } },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm }
   };
@@ -75,8 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
+      { "dataTPC-proc", { "TPC", "CLUSTERS_P" } },
+      { "dataITS-proc", { "ITS", "CLUSTERS_P" } } },
     Outputs{},
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
@@ -86,8 +86,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0",   0, Lifetime::Timeframe },
-      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0, Lifetime::Timeframe }
+      { "TPC_CLUSTERS_S",   {"DS", "simpleQcTask-0"}},
+      { "TPC_CLUSTERS_P_S", {"DS", "simpleQcTask-1"}}
     },
     Outputs{},
     AlgorithmSpec{
@@ -179,8 +179,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", "DS", "rootQcTask-0", 0, Lifetime::Timeframe },
-      InputSpec{ "TST_STRING_S", "DS", "rootQcTask-1", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_HISTOS_S", {"DS", "rootQcTask-0"}},
+      InputSpec{ "TST_STRING_S", {"DS", "rootQcTask-1"}},
     },
     Outputs{},
     AlgorithmSpec{
@@ -218,7 +218,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   // a non overwriting setenv.
   setenv("BASEDIR", ".", 0);
   std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
-  DataSampling::GenerateInfrastructure(specs, configurationSource, 2);
+  LOG(INFO) << "Using config source: " << configurationSource;
+  DataSampling::GenerateInfrastructure(specs, configurationSource, 1);
   return specs;
 }
 // clang-format on
