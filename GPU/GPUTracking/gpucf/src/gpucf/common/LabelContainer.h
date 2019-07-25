@@ -35,6 +35,7 @@ public:
     View<MCLabel> allLabels() const;
 
     size_t countTracks() const;
+    size_t countHits() const;
 
 private:
 

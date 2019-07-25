@@ -8,6 +8,7 @@
 
 #include <args/args.hxx>
 
+#include <TAxis.h>
 #include <TCanvas.h>
 #include <TGraph.h>
 #include <TMultiGraph.h>
@@ -134,6 +135,44 @@ public:
         , radTime(radTime)
         , cutoff(cutoff)
     {
+        outerToInner = {
+            { {-2, -2}, {{-1, -1}} },
+            { {-2,  2}, {{-1,  1}} },
+            { { 2, -2}, {{ 1, -1}} },
+            { {-2, -2}, {{-1, -1}} },
+
+            { {-2,  0}, {{-1,  0}} },
+            { { 0, -2}, {{ 0, -1}} },
+            { { 0,  2}, {{ 0,  1}} },
+            { { 2,  0}, {{ 1,  0}} },
+
+            { {-2,  1}, {{-1,  1}} },
+            { {-2, -1}, {{-1, -1}} },
+            { {-1, -2}, {{-1, -1}} },
+            { {-1,  2}, {{-1,  1}} },
+            { { 1, -2}, {{ 1, -1}} },
+            { { 1,  2}, {{ 1,  1}} },
+            { {-2, -1}, {{-1, -1}} },
+            { {-2,  1}, {{-1,  1}} },
+
+
+            { {-3, -3}, {{-2, -2}, {-1, -1}} },
+            { {-3,  3}, {{-2,  2}, {-1,  1}} },
+            { { 3, -3}, {{ 2, -2}, { 1, -1}} },
+            { { 3,  3}, {{ 2,  2}, { 1,  1}} },
+
+            { {-3,  0}, {{-2, 0}, {-1, 0}} },
+            { { 0, -3}, {{ 0,-2}, { 0,-1}} },
+            { { 0,  3}, {{ 0, 2}, { 0, 1}} },
+            { { 3,  0}, {{ 2, 0}, { 1, 0}} },
+
+            // TODO lookup table
+            { {-3, -2}, {{-2, -1}, {-1, -1}} },
+            { {-3, -1}, {{-2, -1}, {-1,  0}} },
+
+            { {-3,  1}, {{-2,  1}, {-1,  0}} },
+            { {-3,  2}, {{-2,  1}, {-1,  1}} },
+        };
     }
 
 protected:
@@ -188,6 +227,8 @@ protected:
     }
 
 private:
+    using Delta = std::pair<int, int>;
+    std::unordered_map<Delta, std::vector<Delta>> outerToInner;
 
     int radPad;
     int radTime;
@@ -275,11 +316,15 @@ std::vector<int> countPeaksPerTrack(
         maxPeaks = std::max(maxPeaks, p.second);
     }
 
+    log::Debug() << "maxPeaks = " << maxPeaks;
+
     std::vector<int> peaknumToTracknum(maxPeaks+1);
     for (auto &p : trackToPeaknum)
     {
         peaknumToTracknum[p.second]++;
     }
+
+    log::Debug() << "# hits with one peak: " << peaknumToTracknum[1];
 
     return peaknumToTracknum;
 }
@@ -311,12 +356,15 @@ void plotPeaknumToTracknum(
     {
         const std::vector<int> &y = peaknumToTracknum[i];
         TGraph *g = new TGraph(y.size(), x.data(), y.data());
+
         g->SetLineColor(i+2);
         g->SetMarkerColor(i+2);
         g->SetTitle(names[i].c_str());
         mg->Add(g);
     }
 
+    mg->GetXaxis()->SetTitle("# peaks");
+    mg->GetYaxis()->SetTitle("# hits");
     mg->Draw("A*");
     c->BuildLegend();
     c->SaveAs(fname.c_str());
@@ -388,15 +436,15 @@ void countLostHits(
         float totalHits = hits[baseline].size();
 
         log::Info() << names[i] << ":\n"
-                    << "  lost hits   : " 
+                    << "  lost hits       : " 
                          <<  lostHits / totalHits << "\n"
                     << "  1 peak     / hit: " 
                          << hitsWithOnePeak / totalHits << "\n"
                     << "  2 peaks    / hit: " 
                          << hitsWithTwoPeaks / totalHits << "\n"
-                    << " <= 10 peaks / hit: " 
+                    << "  3-10 peaks / hit: " 
                         << hitsWithTenPeaks / totalHits << "\n"
-                    << " > 10 peaks  / hit: " 
+                    << "  > 10 peaks / hit: " 
                         << hitsWithMoreThanPeaks / totalHits;
     }
 }
@@ -434,6 +482,7 @@ int main(int argc, const char *argv[])
 
 
     log::Info() << "Found " << countTracks(labels) << " tracks in label data.";
+    /* log::Info() << "... generating " << countHits(labels) << " hits."; */
 
     log::Info() << "Creating chargemap";
     SectorMap<Map<float>> chargemaps;
@@ -448,15 +497,16 @@ int main(int argc, const char *argv[])
 
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
-    noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2));
+    /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2)); */
     noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
+    /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3));
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3)); */
 
     size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
