@@ -31,14 +31,14 @@ LabelContainer::LabelContainer(View<RawLabel> rawlabels, View<Digit> digits)
     ASSERT(rawlabels.front().id == 0);
 
     size_t start = 0;
-    size_t elems = 1;
+    size_t elems = 0;
     int id = 0;
-
-    labels.emplace_back(rawlabels.front());
 
     viewById.reserve(digits.size());
 
-    for (const RawLabel &l : View<RawLabel>(&rawlabels[1], rawlabels.size()-1))
+    size_t noise = 0;
+
+    for (const RawLabel &l : rawlabels)
     {
         ASSERT(l.id == id || l.id == id+1);
 
@@ -52,14 +52,21 @@ LabelContainer::LabelContainer(View<RawLabel> rawlabels, View<Digit> digits)
             elems = 0;
             id++;
         }
+
+        noise += l.isNoise;
         
-        labels.emplace_back(l);
-        elems++;
+        if (l.isSet && !l.isNoise)
+        {
+            labels.emplace_back(l);
+            elems++;
+        }
     }
 
     View<MCLabel> view(&labels[start], elems);
     viewById.push_back(view); 
     viewByPosition[digits[id]] = view;
+
+    log::Debug() << "Found " << noise << " labels generated from noise";
 }
 
 View<MCLabel> LabelContainer::operator[](const Position &p) const
