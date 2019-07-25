@@ -797,6 +797,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.states.push_back(DriverState::GUI);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
+#ifdef NDEBUG
+        LOGF(info, "Optimised build. O2DEBUG / LOG(DEBUG) / LOGF(DEBUG) / assert statement will not be shown.");
+#endif
         break;
       case DriverState::IMPORT_CURRENT_WORKFLOW:
         // This state is needed to fill the metadata structure
