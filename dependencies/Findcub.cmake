@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${cub_ROOT} NO_DEFAULT_PATH)
+find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${cub_ROOT} ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 if(NOT CUB_INCLUDE_DIR)
   set(CUB_FOUND FALSE)
@@ -20,9 +20,7 @@ set(CUB_FOUND TRUE)
 
 if(NOT TARGET cub::cub)
   add_library(cub::cub INTERFACE IMPORTED)
-  set_target_properties(cub::cub
-                        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                   ${CUB_INCLUDE_DIR})
+  target_include_directories(cub::cub SYSTEM INTERFACE ${CUB_INCLUDE_DIR})
 endif()
 
 mark_as_advanced(CUB_INCLUDE_DIR)
