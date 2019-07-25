@@ -9,9 +9,10 @@ namespace gpucf
 struct RawLabel
 {
     int32_t id;
-    int32_t source;
     int32_t event;
     int32_t track;
+    int16_t isNoise;
+    int16_t isSet;
 };
 
 } // namespace gpucf
