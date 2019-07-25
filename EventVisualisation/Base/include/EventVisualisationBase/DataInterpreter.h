@@ -36,7 +36,7 @@ public:
   // Default constructor
   DataInterpreter();
   // Virtual destructor
-  virtual ~DataInterpreter() {};
+  virtual ~DataInterpreter() = default;
   static void removeInstances() {
     for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++)
       if(instance[i] != nullptr) {

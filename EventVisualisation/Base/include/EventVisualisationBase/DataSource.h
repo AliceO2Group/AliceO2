@@ -33,10 +33,10 @@ public:
     virtual void open() {};
     virtual void close() {};
 
-    DataSource(){};
+    DataSource() = default;
 
     /// Default destructor
-    virtual ~DataSource(){};
+    virtual ~DataSource() = default;
 
     /// Deleted copy constructor
     DataSource(DataSource const &) = delete;

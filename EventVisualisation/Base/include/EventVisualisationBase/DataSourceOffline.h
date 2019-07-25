@@ -29,9 +29,9 @@ protected:
 public:
 
     void nextEvent() override {};
-    DataSourceOffline() {}
+    DataSourceOffline() = default;
 
-    ~DataSourceOffline() override {};
+    ~DataSourceOffline() override = default;
 
     DataSourceOffline(DataSourceOffline const&) = delete;
     /// Deleted assignemt operator

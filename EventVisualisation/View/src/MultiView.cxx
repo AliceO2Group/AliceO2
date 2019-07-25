@@ -97,19 +97,7 @@ MultiView::MultiView()
   sInstance = this;
 }
 
-MultiView::~MultiView() {
-//    for(int i=this->SceneRPhiGeom;i<this->NumberOfScenes;++i) {
-//        delete this->mScenes[i];
-//    }
-//
-//    for(int i=0;i<this->NumberOfProjections;++i) {
-//        delete mProjections[i];
-//    }
-//
-//    for(int i=ViewRphi;i<this->NumberOfViews;++i) {
-//        delete this->mViews[i];
-//    }
-}
+
 
 MultiView* MultiView::getInstance()
 {

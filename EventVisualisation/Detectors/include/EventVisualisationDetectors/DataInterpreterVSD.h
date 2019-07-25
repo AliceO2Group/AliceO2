@@ -40,16 +40,16 @@ private:
   void LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id);
   void AttachEvent();
 
-  TEveViewerList *viewers = nullptr;  // for debug purpose
+  TEveViewerList *mViewers = nullptr;  // for debug purpose
 
   void LoadEsdTracks();
-  TEveTrackList *fTrackList = nullptr;
-  TEvePointSet *fITSClusters = nullptr;
-  TEvePointSet *fTPCClusters = nullptr;
-  TEvePointSet *fTRDClusters = nullptr;
-  TEvePointSet *fTOFClusters = nullptr;
-  TDirectory *fDirectory = nullptr;
-  TEveVSD *fVSD = nullptr;       // Visualisation Summary Data
+  TEveTrackList *mTrackList = nullptr;
+  TEvePointSet *mITSClusters = nullptr;
+  TEvePointSet *mTPCClusters = nullptr;
+  TEvePointSet *mTRDClusters = nullptr;
+  TEvePointSet *mTOFClusters = nullptr;
+  TDirectory *mDirectory = nullptr;
+  TEveVSD *mVSD = nullptr;       // Visualisation Summary Data
 public:
   void DropEvent();
     // Default constructor

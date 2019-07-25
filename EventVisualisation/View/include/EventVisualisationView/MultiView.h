@@ -92,7 +92,7 @@ class MultiView:public EventRegistration
     /// Default constructor
     MultiView();
     /// Default destructor
-    ~MultiView();
+    ~MultiView() = default;
     
     static MultiView *sInstance;                              ///< Single instance of the multiview
 

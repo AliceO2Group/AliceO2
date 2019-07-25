@@ -26,12 +26,12 @@ namespace o2  {
 namespace event_visualisation {
 
 class DataReaderVSD : public DataReader {
-    TFile *fFile;
-    TObjArray *fEvDirKeys;
-    Int_t fMaxEv, fCurEv;
+    TFile *mFile;
+    TObjArray *mEvDirKeys;
+    Int_t mMaxEv, mCurEv;
 
 public:
-    Int_t GetEventCount() override { return fEvDirKeys->GetEntriesFast(); };
+    Int_t GetEventCount() override { return mEvDirKeys->GetEntriesFast(); };
     DataReaderVSD();
     ~DataReaderVSD() override;
     void open() override;

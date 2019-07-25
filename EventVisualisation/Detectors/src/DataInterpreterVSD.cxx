@@ -43,20 +43,20 @@ DataInterpreterVSD::DataInterpreterVSD() {
 
 DataInterpreterVSD::~DataInterpreterVSD() {
   //this->DropEvent();
-  if (fVSD) {
-    delete fVSD;
-    fVSD = nullptr;
+  if (mVSD) {
+    delete mVSD;
+    mVSD = nullptr;
   }
 }
 
 TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType type) {
-  if (fVSD == nullptr)
-    fVSD = new TEveVSD;
+  if (mVSD == nullptr)
+    mVSD = new TEveVSD;
   this->DropEvent();
 
   // Connect to new event-data.
-  this->fDirectory = dynamic_cast<TDirectory *>(data);
-  this->fVSD->SetDirectory(this->fDirectory);
+  this->mDirectory = dynamic_cast<TDirectory *>(data);
+  this->mVSD->SetDirectory(this->mDirectory);
 
   this->AttachEvent();
 
@@ -68,7 +68,7 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType t
 //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
     this->LoadEsdTracks();
-    return this->fTrackList;
+    return this->mTrackList;
 }
 
 void DataInterpreterVSD::LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id) {
@@ -92,67 +92,67 @@ void DataInterpreterVSD::LoadClusters(TEvePointSet *&ps, const TString &det_name
 void DataInterpreterVSD::AttachEvent() {
   // Attach event data from current directory.
 
-  fVSD->LoadTrees();
-  fVSD->SetBranchAddresses();
+  mVSD->LoadTrees();
+  mVSD->SetBranchAddresses();
 }
 
 void DataInterpreterVSD::DropEvent() {
-  assert(fVSD != nullptr);
+  assert(mVSD != nullptr);
   // Drop currently held event data, release current directory.
   // Drop old visualization structures.
 
-  this->viewers = gEve->GetViewers();
-  this->viewers->DeleteAnnotations();
+  this->mViewers = gEve->GetViewers();
+  this->mViewers->DeleteAnnotations();
   //TEveEventManager *manager = gEve->GetCurrentEvent();
   //assert(manager != nullptr);
   //manager->DestroyElements();
 
   // Drop old event-data.
 
-  fVSD->DeleteTrees();
-  delete fDirectory;
-  fDirectory = 0;
+  mVSD->DeleteTrees();
+  delete mDirectory;
+  mDirectory = 0;
 }
 
 void DataInterpreterVSD::LoadEsdTracks() {
   // Read reconstructed tracks from current event.
 
-  if (fTrackList == 0) {
-    fTrackList = new TEveTrackList("ESD Tracks");
-    fTrackList->SetMainColor(6);
-    fTrackList->SetMarkerColor(kYellow);
-    fTrackList->SetMarkerStyle(4);
-    fTrackList->SetMarkerSize(0.5);
-    fTrackList->SetLineWidth(1);
+  if (mTrackList == 0) {
+    mTrackList = new TEveTrackList("ESD Tracks");
+    mTrackList->SetMainColor(6);
+    mTrackList->SetMarkerColor(kYellow);
+    mTrackList->SetMarkerStyle(4);
+    mTrackList->SetMarkerSize(0.5);
+    mTrackList->SetLineWidth(1);
 
-    fTrackList->IncDenyDestroy();
+    mTrackList->IncDenyDestroy();
   } else {
-    fTrackList->DestroyElements();
+    mTrackList->DestroyElements();
 
   }
 
-  TEveTrackPropagator *trkProp = fTrackList->GetPropagator();
+  TEveTrackPropagator *trkProp = mTrackList->GetPropagator();
   // !!!! Need to store field on file !!!!
   // Can store TEveMagField ?
   trkProp->SetMagField(0.5);
   trkProp->SetStepper(TEveTrackPropagator::kRungeKutta);
 
-  Int_t nTracks = fVSD->fTreeR->GetEntries();
+  Int_t nTracks = mVSD->fTreeR->GetEntries();
 
 
   for (Int_t n = 0; n < nTracks; n++) {
-    fVSD->fTreeR->GetEntry(n);
+    mVSD->fTreeR->GetEntry(n);
 
-    auto *track = new TEveTrack(&fVSD->fR, trkProp);
+    auto *track = new TEveTrack(&mVSD->fR, trkProp);
 
-    track->SetAttLineAttMarker(fTrackList);
-    track->SetName(Form("ESD Track %d", fVSD->fR.fIndex));
+    track->SetAttLineAttMarker(mTrackList);
+    track->SetName(Form("ESD Track %d", mVSD->fR.fIndex));
     track->SetStdTitle();
-    track->SetAttLineAttMarker(fTrackList);
-    fTrackList->AddElement(track);
+    track->SetAttLineAttMarker(mTrackList);
+    mTrackList->AddElement(track);
   }
 
-  fTrackList->MakeTracks();
+  mTrackList->MakeTracks();
 }
 
 }
