@@ -21,7 +21,7 @@ struct Foo {
 // FIXME: this should really struct Bar : Foo, but a c++17 bug
 // in GCC 7.3 (solved in 7.4 / 8.x) prevents us from doing so
 // for now.
-struct Bar : Foo {
+struct Bar {
   int foo = 1;
   int bar = 2;
 };
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(TestStructToTuple)
   //#BOOST_CHECK_EQUAL(std::get<0>(t1), 1);
   // Expand a struct which inherits from
   // another..
-  Bar bar{ {}, 4, 5 };
+  Bar bar{ 4, 5 };
   BOOST_CHECK_EQUAL(bar.foo, 4);
   BOOST_CHECK_EQUAL(bar.bar, 5);
   auto t2 = o2::framework::to_tuple(bar);

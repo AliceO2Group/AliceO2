@@ -38,18 +38,19 @@ auto constexpr to_tuple(T&& object) noexcept
 {
   using type = std::decay_t<T>;
   if constexpr (is_braces_constructible<type, any_type, any_type, any_type, any_type>{}) {
-    auto&& [p1, p2, p3] = object;
-    return std::make_tuple(p1, p2, p3);
+    auto&& [p0, p1, p2, p3] = object;
+    return std::make_tuple(p0, p1, p2, p3);
   } else if constexpr (is_braces_constructible<type, any_type, any_type, any_type>{}) {
-    auto&& [p1, p2] = object;
-    return std::make_tuple(p1, p2);
+    auto&& [p0, p1, p2] = object;
+    return std::make_tuple(p0, p1, p2);
   } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
-    auto&& [p1] = object;
-    return std::make_tuple(p1);
+    auto&& [p0, p1] = object;
+    return std::make_tuple(p0, p1);
   } else if constexpr (is_braces_constructible<type, any_type>{}) {
-    return std::make_tuple();
+    auto&& [p0] = object;
+    return std::make_tuple(p0);
   } else {
-    static_assert(always_static_assert<type>(), "You must inherit from AnalysisTask");
+    static_assert(always_static_assert<type>(), "Empty struct");
   }
 }
 
@@ -60,18 +61,19 @@ auto constexpr to_tuple_refs(T&& object) noexcept
 {
   using type = std::decay_t<T>;
   if constexpr (is_braces_constructible<type, any_type, any_type, any_type, any_type>{}) {
-    auto&& [p1, p2, p3] = object;
-    return std::tie(p1, p2, p3);
+    auto&& [p0, p1, p2, p3] = object;
+    return std::tie(p0, p1, p2, p3);
   } else if constexpr (is_braces_constructible<type, any_type, any_type, any_type>{}) {
-    auto&& [p1, p2] = object;
-    return std::tie(p1, p2);
+    auto&& [p0, p1, p2] = object;
+    return std::tie(p0, p1, p2);
   } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
-    auto&& [p1] = object;
-    return std::tie(p1);
+    auto&& [p0, p1] = object;
+    return std::tie(p0, p1);
   } else if constexpr (is_braces_constructible<type, any_type>{}) {
-    return std::make_tuple();
+    auto&& [p0] = object;
+    return std::make_tuple(p0);
   } else {
-    static_assert(always_static_assert<type>(), "You must inherit from AnalysisTask");
+    static_assert(always_static_assert<type>(), "Empty struct");
   }
 }
 
