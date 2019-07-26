@@ -50,7 +50,7 @@ auto constexpr to_tuple(T&& object) noexcept
     auto&& [p0] = object;
     return std::make_tuple(p0);
   } else {
-    static_assert(always_static_assert<type>(), "Empty struct");
+    return std::make_tuple();
   }
 }
 
@@ -73,7 +73,7 @@ auto constexpr to_tuple_refs(T&& object) noexcept
     auto&& [p0] = object;
     return std::make_tuple(p0);
   } else {
-    static_assert(always_static_assert<type>(), "Empty struct");
+    return std::make_tuple();
   }
 }
 
