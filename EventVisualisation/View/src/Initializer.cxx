@@ -46,10 +46,7 @@ using namespace std;
 namespace o2  {
 namespace event_visualisation {
 
-
-
-Initializer::Initializer(const Options options, EventManager::EDataSource defaultDataSource)
-{
+void Initializer::setup(const Options options, EventManager::EDataSource defaultDataSource) {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
   
@@ -104,7 +101,7 @@ Initializer::Initializer(const Options options, EventManager::EDataSource defaul
   frame->DoFirstEvent();
 }
 
-Initializer::~Initializer() = default;
+
 
 void Initializer::setupGeometry()
 {

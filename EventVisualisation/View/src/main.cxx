@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     }
 
     // Initialize o2 Event Visualisation
-    auto initializer(new Initializer(*options));
+    Initializer::setup(*options);
 
     // Start the application
     app->Run(kTRUE);

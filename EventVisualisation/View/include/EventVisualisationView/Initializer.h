@@ -35,21 +35,17 @@ struct Options {
 /// setup camera and background and finally resize and position
 /// the main window.
 
-class Initializer
-{
+class Initializer {
   public:
     /// Default constructor
-    explicit Initializer(const Options options, const EventManager::EDataSource defaultDataSource = EventManager::SourceOffline);// default data source will be moved to a config file
-    /// Default destructor
-    ~Initializer();
-  
+    static void setup(const Options options, const EventManager::EDataSource defaultDataSource = EventManager::SourceOffline);// default data source will be moved to a config file
   private:
     /// Loads geometry for all detectors
-    void setupGeometry();
+    static void setupGeometry();
     /// Sets up background color
-    void setupBackground();
+    static void setupBackground();
     /// Sets up camera position
-    void setupCamera();
+    static void setupCamera();
 };
 
 
