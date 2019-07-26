@@ -19,6 +19,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 
+// #define __VERTEXER_ITS_DEBUG
 #if defined(__VERTEXER_ITS_GPU)
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -39,14 +40,22 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
-  // gSystem->Load("libO2ITStracking.so");
-
   std::string outfile;
+
   if (useGPU) {
-    outfile = "vertexer_gpu_data.root";
+    if (useMCcheck) {
+      outfile = "vertexer_gpu_data_MCCheck.root";
+    } else {
+      outfile = "vertexer_gpu_data.root";
+    }
   } else {
-    outfile = "vertexer_serial_data.root";
+    if (useMCcheck) {
+      outfile = "vertexer_serial_data_MCCheck.root";
+    } else {
+      outfile = "vertexer_serial_data.root";
+    }
   }
+
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   const bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   const bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
@@ -102,7 +111,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   TNtuple comb12("comb12", "comb12", "tanLambda:phi");
   TNtuple clusPhi01("clus_phi01", "clus_phi01", "phi0:phi1");
   TNtuple clusPhi12("clus_phi12", "clus_phi12", "phi1:phi2");
-  TNtuple trackdeltaTanLambdas("dtl", "dtl", "deltatanlambda:c0z:c0r:c1z:c1r:c2z:c2r");
+  TNtuple trackdeltaTanLambdas("dtl", "dtl", "deltatanlambda:c0z:c0r:c1z:c1r:c2z:c2r:evtId:valid");
   TNtuple centroids("centroids", "centroids", "id:x:y:z:dca");
   TNtuple linesData("ld", "linesdata", "x:xy:xz:y:yz:z");
   const o2::its::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
@@ -157,7 +166,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     // vertexer.findVerticesDBS();
 
 #if defined(__VERTEXER_ITS_DEBUG)
-    vertexer.processLines();
+    // vertexer.processLines();
     vertexer.dumpTraits();
     std::vector<std::array<float, 6>> linesdata = vertexer.getLinesData();
     std::vector<std::array<float, 4>> centroidsData = vertexer.getCentroids();
@@ -165,7 +174,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     std::vector<o2::its::Tracklet> c01 = vertexer.getTracklets01();
     std::vector<o2::its::Tracklet> c12 = vertexer.getTracklets12();
     std::array<std::vector<o2::its::Cluster>, 3> clusters = vertexer.getClusters();
-    std::vector<std::array<float, 7>> dtlambdas = vertexer.getDeltaTanLambdas();
+    std::vector<std::array<float, 9>> dtlambdas = vertexer.getDeltaTanLambdas();
     for (auto& line : lines)
       tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2],
                      o2::its::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::its::Line::getDCA(line, zAxis));
@@ -193,7 +202,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     const size_t numVert = vertITS.size();
     foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert) /* , static_cast<float>(linesdata.size())*/);
     verticesITS->swap(vertITS);
-    // std::array<float,3> trueVertex{mcHeader->GetX(),mcHeader->GetY(),mcHeader->GetZ()}; // UNCOMMENT TO GET THE MC VERTEX POS FOR CURRENT ROFRAME
+    // TODO: get vertexer postion form MC truth
 
     if (numVert > 0) {
       timeBenchmark.Fill(total[0], total[1], total[2]);

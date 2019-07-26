@@ -86,7 +86,7 @@ class VertexerTraits
   std::vector<Tracklet> mComb01;
   std::vector<Tracklet> mComb12;
   std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
-  std::vector<std::array<float, 7>> mDeltaTanlambdas;
+  std::vector<std::array<float, 9>> mTrackletInfo;
   std::vector<std::array<float, 6>> mLinesData;
   std::vector<std::array<float, 4>> mCentroids;
   void processLines();
