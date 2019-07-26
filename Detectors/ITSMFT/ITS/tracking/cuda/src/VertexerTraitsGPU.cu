@@ -329,10 +329,12 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
       for (int k{ 0 }; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda) };
-        mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
-                                                         mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
-                                                         mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
-                                                         mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate });
+        mTrackletInfo.push_back(std::array<float, 9>{ deltaTanLambda,
+                                                      mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
+                                                      mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
+                                                      mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
+                                                      42.f, /* dummy */
+                                                      true /* dummy */ });
       }
     }
   }
