@@ -24,14 +24,10 @@
 namespace o2 {
 namespace event_visualisation {
 
-class DataSource : public TQObject {
+class DataSource {
 public:
-
-    virtual void nextEvent() {};
-    virtual TObject* getEventData(int no, EVisualisationGroup purpose) { return nullptr;};
+    virtual TObject* getEventData(int /*no*/, EVisualisationGroup /*purpose*/) { return nullptr;};
     virtual Int_t GetEventCount() { return 0; };
-    virtual void open() {};
-    virtual void close() {};
 
     DataSource() = default;
 

@@ -53,7 +53,7 @@ private:
 public:
   void DropEvent();
     // Default constructor
-    DataInterpreterVSD();
+    DataInterpreterVSD() = default;
 
     // Default destructor
     ~DataInterpreterVSD() final;

@@ -36,9 +36,6 @@ using namespace std;
 namespace o2 {
 namespace event_visualisation {
 
-DataInterpreterVSD::DataInterpreterVSD() {
-
-}
 
 
 DataInterpreterVSD::~DataInterpreterVSD() {
@@ -72,7 +69,7 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType t
 }
 
 void DataInterpreterVSD::LoadClusters(TEvePointSet *&ps, const TString &det_name, Int_t det_id) {
-  if (ps == 0) {
+  if (ps == nullptr) {
     ps = new TEvePointSet(det_name);
     ps->SetMainColor((Color_t) (det_id + 2));
     ps->SetMarkerSize(0.5);
@@ -111,13 +108,13 @@ void DataInterpreterVSD::DropEvent() {
 
   mVSD->DeleteTrees();
   delete mDirectory;
-  mDirectory = 0;
+  mDirectory = nullptr;
 }
 
 void DataInterpreterVSD::LoadEsdTracks() {
   // Read reconstructed tracks from current event.
 
-  if (mTrackList == 0) {
+  if (mTrackList == nullptr) {
     mTrackList = new TEveTrackList("ESD Tracks");
     mTrackList->SetMainColor(6);
     mTrackList->SetMarkerColor(kYellow);
@@ -128,7 +125,6 @@ void DataInterpreterVSD::LoadEsdTracks() {
     mTrackList->IncDenyDestroy();
   } else {
     mTrackList->DestroyElements();
-
   }
 
   TEveTrackPropagator *trkProp = mTrackList->GetPropagator();

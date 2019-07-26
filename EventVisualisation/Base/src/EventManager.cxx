@@ -110,8 +110,8 @@ void EventManager::PrevEvent() {
 
 void EventManager::Close() {
     std::cout << "EventManager::Close()" << std::endl;
-    this->dataSource->close();
     delete this->dataSource;
+    this->dataSource = nullptr;
 }
 
 void EventManager::AfterNewEventLoaded() {

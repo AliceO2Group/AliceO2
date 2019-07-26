@@ -27,13 +27,11 @@ class DataSourceOffline : public DataSource {
 protected:
     static DataReader* instance[EVisualisationGroup::NvisualisationGroups];
 public:
-
-    void nextEvent() override {};
     DataSourceOffline() = default;
 
     ~DataSourceOffline() override = default;
-
     DataSourceOffline(DataSourceOffline const&) = delete;
+
     /// Deleted assignemt operator
     void operator=(DataSourceOffline const&) = delete;
 
