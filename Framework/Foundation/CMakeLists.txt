@@ -14,3 +14,8 @@ o2_add_test(test_Traits NAME test_FrameworkFoundation_test_Traits
             COMPONENT_NAME FrameworkFoundation
             SOURCES test/test_Traits.cxx
             PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+
+o2_add_test(test_StructToTuple NAME test_FrameworkFoundation_StructToTuple
+            COMPONENT_NAME FrameworkFoundation
+            SOURCES test/test_StructToTuple.cxx
+            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
