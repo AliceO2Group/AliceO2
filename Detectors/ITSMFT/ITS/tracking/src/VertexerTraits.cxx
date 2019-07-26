@@ -70,7 +70,7 @@ void trackleterKernelSerial(
           const Cluster& nextCluster{ clustersNextLayer[iNextLayerClusterIndex] };
           const auto& lblNext = evt->getClusterLabels(layerIndex, nextCluster.clusterId);
           const auto& lblCurr = evt->getClusterLabels(1, currentCluster.clusterId);
-          const unsigned char testMC{ !isMc || (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) };
+          const unsigned char testMC{ !isMc || (lblNext.compare(lblCurr) == 1) };
           if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (layerOrder == LAYER0_TO_LAYER1) {
@@ -97,7 +97,8 @@ void trackletSelectionKernelSerial(
   const std::vector<int>& foundTracklets01,
   const std::vector<int>& foundTracklets12,
   std::vector<Line>& destTracklets,
-  std::vector<std::array<float, 7>>& tlv,
+  std::vector<std::array<float, 9>>& tlv,
+  const ROframe* evt = nullptr,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(2e3))
@@ -113,10 +114,15 @@ void trackletSelectionKernelSerial(
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
 #if defined(__VERTEXER_ITS_DEBUG)
-          tlv.push_back(std::array<float, 7>{ deltaTanLambda,
+          const auto& lblClus0 = evt->getClusterLabels(0, clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].clusterId);
+          const auto& lblClus1 = evt->getClusterLabels(1, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].clusterId);
+          const auto& lblClus2 = evt->getClusterLabels(2, debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].clusterId);
+          const unsigned char isValidated{ (lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1) };
+          tlv.push_back(std::array<float, 9>{ deltaTanLambda,
                                               clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].zCoordinate, clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].rCoordinate,
                                               clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].zCoordinate, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].rCoordinate,
-                                              debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].zCoordinate, debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].rCoordinate });
+                                              debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].zCoordinate, debugClustersLayer2[tracklets12[iTracklet12].secondClusterIndex].rCoordinate,
+                                              static_cast<float>(lblClus0.getEventID()), static_cast<float>(isValidated) });
 #endif
           destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
           ++validTracklets;
@@ -125,14 +131,6 @@ void trackletSelectionKernelSerial(
     }
     offset01 += foundTracklets01[iCurrentLayerClusterIndex];
     offset12 += foundTracklets12[iCurrentLayerClusterIndex];
-
-#if defined(__VERTEXER_ITS_DEBUG)
-    if (validTracklets != maxTracklets) {
-      new (destTracklets + stride + validTracklets) Line(); // always complete line with empty one unless all spaces taken
-    } else {
-      printf("[INFO]: Fulfilled all the space with tracklets.\n");
-    }
-#endif
   }
 }
 
@@ -158,7 +156,7 @@ void VertexerTraits::reset()
   mVertices.clear();
   mComb01.clear();
   mComb12.clear();
-  mDeltaTanlambdas.clear();
+  mTrackletInfo.clear();
   mCentroids.clear();
   mLinesData.clear();
   mAverageClustersRadii = { 0.f, 0.f, 0.f };
@@ -243,7 +241,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
       const auto& lblNext = mEvent->getClusterLabels(1, nextCluster.clusterId);
       const auto& lblCurr = mEvent->getClusterLabels(0, currentCluster.clusterId);
-      if (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) {
+      if (lblNext.compare(lblCurr) == 1) {
         mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
       }
     }
@@ -255,7 +253,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
       const Cluster& nextCluster{ mClusters[1][iNextLayerClusterIndex] };
       const auto& lblNext = mEvent->getClusterLabels(1, nextCluster.clusterId);
       const auto& lblCurr = mEvent->getClusterLabels(2, currentCluster.clusterId);
-      if (lblNext.getTrackID() == lblCurr.getTrackID() && lblCurr.isValid()) {
+      if (lblNext.compare(lblCurr) == 1) {
         mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
       }
     }
@@ -265,12 +263,14 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
   for (auto& trklet01 : mComb01) {
     for (auto& trklet12 : mComb12) {
       if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
+        const float evtID = static_cast<float>(mEvent->getClusterLabels(0, mClusters[0][trklet01.firstClusterIndex].clusterId));
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(trklet01.tanLambda - trklet12.tanLambda) };
-        mDeltaTanlambdas.push_back(std::array<float, 8>{ deltaTanLambda,
-                                                         mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
-                                                         mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
-                                                         mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate,
-                                                         true });
+        mTrackletInfo.push_back(std::array<float, 9>{ deltaTanLambda,
+                                                      mClusters[0][trklet01.firstClusterIndex].zCoordinate, mClusters[0][trklet01.firstClusterIndex].rCoordinate,
+                                                      mClusters[1][trklet01.secondClusterIndex].zCoordinate, mClusters[1][trklet01.secondClusterIndex].rCoordinate,
+                                                      mClusters[2][trklet12.secondClusterIndex].zCoordinate, mClusters[2][trklet12.secondClusterIndex].rCoordinate,
+                                                      evtID,
+                                                      true });
       }
     }
   }
@@ -320,7 +320,8 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     foundTracklets01,
     foundTracklets12,
     mTracklets,
-    mDeltaTanlambdas,
+    mTrackletInfo,
+    mEvent,
     mVrtParams.phiCut,
     mVrtParams.tanLambdaCut);
 }
