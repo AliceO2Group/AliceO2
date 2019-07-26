@@ -29,7 +29,9 @@ DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
 DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI", track::Eta, track::Phi);
 } // namespace o2::aod
 
-struct ATask : AnalysisTask {
+// FIXME: for the moment we do not derive from AnalysisTask as 
+// we need GCC 7.4+ to fix a bug.
+struct ATask {
   Produces<aod::EtaPhis> phis;
 
   void process(o2::aod::Track const& track)
@@ -38,19 +40,25 @@ struct ATask : AnalysisTask {
   }
 };
 
-struct BTask : AnalysisTask {
+// FIXME: for the moment we do not derive from AnalysisTask as 
+// we need GCC 7.4+ to fix a bug.
+struct BTask {
   void process(o2::aod::Collision const&, o2::aod::Track const&)
   {
   }
 };
 
-struct CTask : AnalysisTask {
+// FIXME: for the moment we do not derive from AnalysisTask as 
+// we need GCC 7.4+ to fix a bug.
+struct CTask {
   void process(o2::aod::Collision const&, o2::aod::Tracks const&)
   {
   }
 };
 
-struct DTask : AnalysisTask {
+// FIXME: for the moment we do not derive from AnalysisTask as 
+// we need GCC 7.4+ to fix a bug.
+struct DTask {
   void process(o2::aod::Tracks const&)
   {
   }

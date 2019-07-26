@@ -17,7 +17,9 @@ using namespace o2;
 using namespace o2::framework;
 
 // Another example
-struct ATask : AnalysisTask {
+// FIXME: this should really inherit from AnalysisTask but
+//        we need GCC 7.4+ for that
+struct ATask {
   void init(InitContext&)
   {
     count = 0;
