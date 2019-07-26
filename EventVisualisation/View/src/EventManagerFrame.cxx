@@ -66,9 +66,6 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     MapWindow();
 }
 
-EventManagerFrame::~EventManagerFrame() {
-
-}
 
 TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame *p, const char *txt,
         Int_t width, Int_t lo, Int_t ro, Int_t to, Int_t bo) {

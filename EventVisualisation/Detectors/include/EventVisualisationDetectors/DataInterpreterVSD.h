@@ -59,7 +59,7 @@ public:
     ~DataInterpreterVSD() final;
 
     // Returns a list of random tracks colored by PID
-    TEveElement *interpretDataForType(TObject* data, EDataType type) final;
+    TEveElement *interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
 
 }

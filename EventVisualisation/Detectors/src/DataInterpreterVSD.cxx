@@ -46,7 +46,7 @@ DataInterpreterVSD::~DataInterpreterVSD() {
   }
 }
 
-TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EDataType type) {
+TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type) {
   if (mVSD == nullptr)
     mVSD = new TEveVSD;
   this->DropEvent();

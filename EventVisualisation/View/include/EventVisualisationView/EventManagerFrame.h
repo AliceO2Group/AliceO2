@@ -37,7 +37,7 @@ protected:
     TGNumberEntry        *mEventId;               // Display/edit current event id
 public:
     EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
-    virtual ~EventManagerFrame();
+    ~EventManagerFrame() override = default;
     ClassDef(EventManagerFrame, 0); // GUI window for AliEveEventManager.
 
 

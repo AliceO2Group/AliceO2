@@ -46,7 +46,7 @@ public:
   }
   
   // Should return visualisation objects for required data type
-  virtual TEveElement* interpretDataForType(TObject* data, EDataType type);
+  virtual TEveElement* interpretDataForType(TObject* data, EVisualisationDataType type);
 
   static DataInterpreter* getInstance(EVisualisationGroup type) { return instance[type];}
   static void setInstance(DataInterpreter* instance, EVisualisationGroup type) { DataInterpreter::instance[type] = instance;}

@@ -56,7 +56,7 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "RND"
 };
   
-enum EDataType{
+enum EVisualisationDataType{
   Raw,      ///< Raw data
   Hits,     ///< Hits
   Digits,   ///< Digits
