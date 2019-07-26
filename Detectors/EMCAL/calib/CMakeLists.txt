@@ -48,4 +48,20 @@ o2_add_test_root_macro(macros/BadChannelMap_CalibDBtest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
 
+o2_add_test_root_macro(macros/TimeCalibrationParams_CCDBApiTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TimeCalibrationParams_CalibDBTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TempCalibrationParams_CCDBApiTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TempCalibrationParams_CalibDBTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
 o2_data_file(COPY files DESTINATION Detectors/EMCAL)
