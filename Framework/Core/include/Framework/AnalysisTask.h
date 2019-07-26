@@ -39,19 +39,23 @@ namespace framework
 ///
 /// adaptAnalysisTask<YourDerivedTask>(constructor args, ...);
 ///
-struct AnalysisTask {
-  template <typename T>
-  struct Produces {
-    static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
-  };
+// FIXME: for the moment this needs to stay outside AnalysisTask
+//        because we cannot inherit from it due to a C++17 bug
+//        in GCC 7.3. We need to move to 7.4+
+template <typename T>
+struct Produces {
+  static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
+};
 
-  template <typename... C>
-  struct Produces<soa::Table<C...>> {
-    void operator()(typename C::type...)
-    {
-      assert(false);
-    }
-  };
+template <typename... C>
+struct Produces<soa::Table<C...>> {
+  void operator()(typename C::type...)
+  {
+    assert(false);
+  }
+};
+
+struct AnalysisTask {
 };
 
 // Helper struct which builds a DataProcessorSpec from
@@ -210,8 +214,8 @@ struct OutputAppender {
 };
 
 template <typename TABLE>
-struct OutputAppender<AnalysisTask::Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec> &outputs, AnalysisTask::Produces<TABLE> &what) {
+struct OutputAppender<Produces<TABLE>> {
+  static bool appendOutput(std::vector<OutputSpec> &outputs, Produces<TABLE> &what) {
     using metadata = typename aod::MetadataTrait<std::decay_t<TABLE>>::metadata;
     outputs.emplace_back(OutputSpec{ OutputLabel{ metadata::label() }, metadata::origin(), metadata::description() });
     return true;
