@@ -18,7 +18,9 @@ using namespace o2::framework;
 
 // This is a very simple example showing how to iterate over tracks
 // and operate on them.
-struct ATask : AnalysisTask {
+// FIXME: this should really inherit from AnalysisTask but
+//        we need GCC 7.4+ for that
+struct ATask {
   void process(aod::Tracks const& tracks)
   {
     // FIXME: to see some output, we create the histogram

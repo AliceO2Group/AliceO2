@@ -17,9 +17,8 @@ using namespace o2;
 using namespace o2::framework;
 
 // This is a stateful task, where we send the state downstream.
-class ATask : public AnalysisTask
+struct ATask
 {
- public:
   explicit ATask(int state)
     : mSomeState{ state } {}
 
@@ -49,7 +48,6 @@ class ATask : public AnalysisTask
     hEta->Write();
   }
 
- private:
   int mSomeState;
 };
 
