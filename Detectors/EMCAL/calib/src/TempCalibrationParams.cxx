@@ -47,7 +47,7 @@ float TempCalibrationParams::getTempCalibParamPerSM(unsigned short iSM) const
 TH1* TempCalibrationParams::getHistogramRepresentationSlope() const
 {
 
-  auto hist = new TH1S("TempCalibrationParamsSlope", "Temp Calibration Params Slope", 17664, 0, 17664);
+  auto hist = new TH1F("TempCalibrationParamsSlope", "Temp Calibration Params Slope", 17664, 0, 17664);
   hist->SetDirectory(nullptr);
 
   for (std::size_t icell{ 0 }; icell < mTempCalibParamsSlope.size(); ++icell)
@@ -59,7 +59,7 @@ TH1* TempCalibrationParams::getHistogramRepresentationSlope() const
 TH1* TempCalibrationParams::getHistogramRepresentationA0() const
 {
 
-  auto hist = new TH1S("TempCalibrationParamsA0", "Temp Calibration Params A0", 17664, 0, 17664);
+  auto hist = new TH1F("TempCalibrationParamsA0", "Temp Calibration Params A0", 17664, 0, 17664);
   hist->SetDirectory(nullptr);
 
   for (std::size_t icell{ 0 }; icell < mTempCalibParamsA0.size(); ++icell)
