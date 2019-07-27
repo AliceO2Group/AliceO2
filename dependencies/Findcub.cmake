@@ -12,7 +12,6 @@ find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${cub_ROOT} ${CMAKE_CUDA_TOOLKIT_INC
 
 if(NOT CUB_INCLUDE_DIR)
   set(CUB_FOUND FALSE)
-  message(FATAL_ERROR "CUB not found")
   return()
 endif()
 
