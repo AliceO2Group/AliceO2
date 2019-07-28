@@ -123,17 +123,48 @@ private:
 };
 
 
+struct Delta
+{
+
+    int time;
+    int pad;
+
+    bool operator==(const Delta &other) const
+    {
+        return other.time == time && other.pad == pad;
+    }
+
+};
+
+namespace std
+{
+
+    template<>
+    struct hash<Delta>
+    {
+        size_t operator()(const Delta &d) const
+        {
+            static_assert(sizeof(size_t) >= 2*sizeof(int));
+            size_t h = size_t(d.time) | (size_t(d.pad) << sizeof(int));
+            return std::hash<size_t>()(h);
+        }
+    };
+
+} // namespace std
+
+
 class NoiseSuppressionOverArea : public NoiseSuppression
 {
 
 public:
 
-    NoiseSuppressionOverArea(int radPad, int radTime, int cutoff)
+    NoiseSuppressionOverArea(int radPad, int radTime, int cutoff, int epsilon)
         : NoiseSuppression("noiseSuppression{" + std::to_string(radPad*2+1) 
                 + "x" + std::to_string(radTime*2+1) + "}")
         , radPad(radPad)
         , radTime(radTime)
         , cutoff(cutoff)
+        , epsilon(epsilon)
     {
         outerToInner = {
             { {-2, -2}, {{-1, -1}} },
@@ -161,18 +192,53 @@ public:
             { { 3, -3}, {{ 2, -2}, { 1, -1}} },
             { { 3,  3}, {{ 2,  2}, { 1,  1}} },
 
-            { {-3,  0}, {{-2, 0}, {-1, 0}} },
-            { { 0, -3}, {{ 0,-2}, { 0,-1}} },
-            { { 0,  3}, {{ 0, 2}, { 0, 1}} },
-            { { 3,  0}, {{ 2, 0}, { 1, 0}} },
+            { {-3,  0}, {{-2,  0}, {-1,  0}} },
+            { { 0, -3}, {{ 0, -2}, { 0, -1}} },
+            { { 0,  3}, {{ 0,  2}, { 0,  1}} },
+            { { 3,  0}, {{ 2,  0}, { 1,  0}} },
 
-            // TODO lookup table
             { {-3, -2}, {{-2, -1}, {-1, -1}} },
-            { {-3, -1}, {{-2, -1}, {-1,  0}} },
-
-            { {-3,  1}, {{-2,  1}, {-1,  0}} },
+            { {-2, -3}, {{-1, -2}, {-1, -1}} },
             { {-3,  2}, {{-2,  1}, {-1,  1}} },
+            { {-2,  3}, {{-1,  2}, {-1,  1}} },
+            { { 3, -2}, {{ 2, -1}, { 1, -1}} },
+            { { 2, -3}, {{ 1, -2}, { 1, -1}} },
+            { { 3,  2}, {{ 2,  1}, { 1,  1}} },
+            { { 2,  3}, {{ 1,  2}, { 1,  1}} },
+
+            { { 3,  1}, {{ 2,  1}, { 1,  1}} },
+            { { 1,  3}, {{ 1,  2}, { 1,  1}} },
+            { {-3,  1}, {{-2,  1}, {-1,  1}} },
+            { {-1,  3}, {{-1,  2}, {-1,  1}} },
+            { { 3, -1}, {{ 2, -1}, { 1, -1}} },
+            { { 1, -3}, {{ 1, -2}, { 1, -1}} },
+            { {-3, -1}, {{-2, -1}, {-1, -1}} },
+            { {-1, -3}, {{-1, -2}, {-1, -1}} },
+
+            { { 4,  3}, {{ 3,  2}, { 2,  2}, { 1,  1}} },
+            { { 4,  2}, {{ 3,  2}, { 2,  1}, { 1,  1}} },
+            { { 4,  1}, {{ 3,  1}, { 2,  1}, { 1,  1}} },
+            { {-4,  3}, {{-3,  2}, {-2,  2}, {-1,  1}} },
+            { {-4,  2}, {{-3,  2}, {-2,  1}, {-1,  1}} },
+            { {-4,  1}, {{-3,  1}, {-2,  1}, {-1,  1}} },
+            { { 4, -3}, {{ 3, -2}, { 2, -2}, { 1, -1}} },
+            { { 4, -2}, {{ 3, -2}, { 2, -1}, { 1, -1}} },
+            { { 4, -1}, {{ 3, -1}, { 2, -1}, { 1, -1}} },
+            { {-4, -3}, {{-3, -2}, {-2, -2}, {-1, -1}} },
+            { {-4, -2}, {{-3, -2}, {-2, -1}, {-1, -1}} },
+            { {-4, -1}, {{-3, -1}, {-2, -1}, {-1, -1}} },
+
+            { { 4,  0}, {{ 3,  0}, { 2,  0}, { 1,  0}} },
+            { {-4,  0}, {{-3,  0}, {-2,  0}, {-1,  0}} },
         };
+
+        for (auto &p : outerToInner)
+        {
+            if (p.first.pad <= radPad && p.first.time <= radTime)
+            {
+                neighbors.push_back(p);    
+            }
+        }
     }
 
 protected:
@@ -186,7 +252,6 @@ protected:
 
         for (const Digit &p : peaks)
         {
-
             if (p.charge <= cutoff)
             {
                 continue;
@@ -194,25 +259,38 @@ protected:
             
             bool removeMe = false;
 
-            for (int dp = -radPad; dp <= radPad; dp++)
+            for (const auto &n : neighbors)
             {
-                for (int dt = -radTime; dt <= radTime; dt++)
+                if (removeMe)
                 {
-                    if (std::abs(dp) < 2 && std::abs(dt) < 2)
-                    {
-                        continue;
-                    }
+                    break;
+                }
 
-                    Position other(p, dp, dt);
-                    /* Position between(digits[i], clamp(dp, -1, 1), clamp(dt, -1, 1)); */
+                int dp = n.first.pad;
+                int dt = n.first.time;
 
-                    float q = p.charge;
-                    float oq = chargeMap[other];
-                    /* float bq = chargemap[between]; */
+                Position other(p, dp, dt);
 
-                    bool otherIsPeak = peakMap[other];
+                bool otherIsPeak = peakMap[other];
+                if (!otherIsPeak)
+                {
+                    continue;
+                }
 
-                    removeMe |= otherIsPeak && (oq > q); //&& (q - bq <= 2);
+                float q = p.charge;
+                float oq = chargeMap[other];
+                if (oq < q)
+                {
+                    continue;
+                }
+
+                for (const Delta &b : n.second)
+                {
+                    Position between(p, b.pad, b.time);
+
+                    float bq = chargeMap[between];
+
+                    removeMe |= (q - bq <= epsilon);
                 }
             }
 
@@ -227,41 +305,14 @@ protected:
     }
 
 private:
-    using Delta = std::pair<int, int>;
     std::unordered_map<Delta, std::vector<Delta>> outerToInner;
+
+    std::vector<std::pair<Delta, std::vector<Delta>>> neighbors;
 
     int radPad;
     int radTime;
     int cutoff;
-
-    /* using RelativePosition = std::pair<int, int>; */
-
-    /* std::vector<RelativePosition> walk(const Digit &start, int dp, int dt) */
-    /* { */
-    /*     float m = dt / dp; */
-
-    /*     int signPad = std::sign(dp); */
-    /*     int signTime = std::sign(dt); */
-
-    /*     std::vector<RelativePosition> pos; */
-    /*     if (m <= 1) */
-    /*     { */
-    /*         for (int i = 0; i <= dp; i++) */
-    /*         { */
-    /*             pos.emplace_back(i * signPad, std::ceil(i * m * signTime)); */
-    /*         } */
-    /*     } */
-    /*     else */
-    /*     { */
-    /*         for (int i = 0; i <= dt; i++) */
-    /*         { */
-    /*             pos.emplace_back(std::ceil(i / m * signPad), i * signTime); */
-    /*         } */
-    /*     } */
-
-    /*     return pos; */
-    /* } */
-    
+    int epsilon;
 };
 
 
@@ -370,11 +421,11 @@ void plotPeaknumToTracknum(
     c->SaveAs(fname.c_str());
 }
 
-std::unordered_map<TpcHitPos, int> countPeaksPerHit(
+std::unordered_map<TpcHitPos, std::vector<Digit>> sortPeaksByHit(
         const SectorMap<LabelContainer> &labels,
         const SectorMap<RowMap<std::vector<Digit>>> &peaks)
 {
-    std::unordered_map<TpcHitPos, int> hits;
+    std::unordered_map<TpcHitPos, std::vector<Digit>> hits;
     for (short sector = 0; sector < TPC_SECTORS; sector++)
     {
         for (short row = 0; row < TPC_NUM_OF_ROWS; row++)
@@ -383,13 +434,42 @@ std::unordered_map<TpcHitPos, int> countPeaksPerHit(
             {
                 for (const MCLabel &label : labels[sector][peak])
                 {
-                    hits[{sector, row, label}]++;
+                    hits[{sector, row, label}].push_back(peak);
                 }
             }
         }
     }
 
     return hits;
+}
+
+
+bool peaksOverlap(const Digit &p1, const Digit &p2, const LabelContainer &c)
+{
+    View<MCLabel> labels1 = c[p1];
+    View<MCLabel> labels2 = c[p2];
+
+    size_t sharedLabels = 0;
+    for (const MCLabel &l1 : labels1)
+    {
+        for (const MCLabel &l2 : labels2)
+        {
+            sharedLabels += (l1 == l2);
+        }
+    }
+
+    return (sharedLabels >= 2);
+
+    /* if (l1.size() != 2 || l2.size() != 2) */
+    /* { */
+    /*     return false; */
+    /* } */
+    /* else */
+    /* { */
+    /*     return (l1[0] == l2[0] && l1[1] == l2[1]) */ 
+    /*         || (l1[0] == l2[1] && l1[1] == l2[0]); */
+    /* } */
+
 }
 
 void countLostHits(
@@ -401,50 +481,67 @@ void countLostHits(
     ASSERT(names.size() == peaks.size());
     ASSERT(baseline <= names.size());    
 
-    std::vector<std::unordered_map<TpcHitPos, int>> hits(names.size());
+    std::vector<std::unordered_map<TpcHitPos, std::vector<Digit>>> hits(names.size());
     for (size_t i = 0; i < names.size(); i++)
     {
-        hits[i] = countPeaksPerHit(labels, peaks[i]);
+        hits[i] = sortPeaksByHit(labels, peaks[i]);
     }
 
     for (size_t i = 0; i < names.size(); i++)
     {
         size_t lostHits = 0;
         size_t hitsWithOnePeak = 0;
-        size_t hitsWithTwoPeaks = 0;
+        size_t hitsWithTwoPeaksOverlap = 0;
+        size_t hitsWithTwoPeaksNoOverlap = 0;
         size_t hitsWithTenPeaks = 0;
         size_t hitsWithMoreThanPeaks = 0;
 
         for (const auto &hit : hits[baseline])
         {
-            auto hitWithPeaknum = hits[i].find(hit.first);
+            auto hitWithPeaks = hits[i].find(hit.first);
 
-            if (hitWithPeaknum == hits[i].end())
+            if (hitWithPeaks == hits[i].end())
             {
                 lostHits++;
             }
             else
             {
-                int peaks = hitWithPeaknum->second;
-                hitsWithOnePeak += (peaks == 1);
-                hitsWithTwoPeaks += (peaks == 2);
-                hitsWithTenPeaks += (peaks > 2 && peaks <= 10);
-                hitsWithMoreThanPeaks += (peaks > 10);
+                const std::vector<Digit> &peaks = hitWithPeaks->second;
+                size_t peaknum = peaks.size();
+
+                if (peaknum == 2)
+                {
+                    bool overlap = peaksOverlap(
+                            peaks[0],
+                            peaks[1],
+                            labels[hitWithPeaks->first.sector]);
+
+                    hitsWithTwoPeaksOverlap   += overlap;
+                    hitsWithTwoPeaksNoOverlap += !overlap;
+                }
+                else
+                {
+                    hitsWithOnePeak += (peaknum == 1);
+                    hitsWithTenPeaks += (peaknum > 2 && peaknum <= 10);
+                    hitsWithMoreThanPeaks += (peaknum > 10);
+                }
             }
         }
 
         float totalHits = hits[baseline].size();
 
         log::Info() << names[i] << ":\n"
-                    << "  lost hits       : " 
+                    << "  lost hits              : " 
                          <<  lostHits / totalHits << "\n"
-                    << "  1 peak     / hit: " 
+                    << "  1 peak            / hit: " 
                          << hitsWithOnePeak / totalHits << "\n"
-                    << "  2 peaks    / hit: " 
-                         << hitsWithTwoPeaks / totalHits << "\n"
-                    << "  3-10 peaks / hit: " 
+                    << "  2 peaks (overlap) / hit: " 
+                         << hitsWithTwoPeaksOverlap / totalHits << "\n"
+                    << "  2 peaks           / hit: "
+                         << hitsWithTwoPeaksNoOverlap / totalHits << "\n"
+                    << "  3-10 peaks        / hit: " 
                         << hitsWithTenPeaks / totalHits << "\n"
-                    << "  > 10 peaks / hit: " 
+                    << "  > 10 peaks        / hit: " 
                         << hitsWithMoreThanPeaks / totalHits;
     }
 }
@@ -469,64 +566,71 @@ int main(int argc, const char *argv[])
         std::exit(1);
     }
 
-    log::Info() << "Reading digit file " << args::get(digitfile);
-    SectorMap<std::vector<RawDigit>> rawdigits = 
-            gpucf::read<RawDigit>(args::get(digitfile));
-    SectorMap<std::vector<Digit>> digits = Digit::bySector(rawdigits);
-
-    log::Info() << "Reading label file " << args::get(labelfile);
-    SectorMap<std::vector<RawLabel>> rawlabels = 
-            gpucf::read<RawLabel>(args::get(labelfile));
-    SectorMap<LabelContainer> labels = 
-            LabelContainer::bySector(rawlabels, digits);
-
-
-    log::Info() << "Found " << countTracks(labels) << " tracks in label data.";
-    /* log::Info() << "... generating " << countHits(labels) << " hits."; */
-
-    log::Info() << "Creating chargemap";
-    SectorMap<Map<float>> chargemaps;
-    for (size_t sector = 0; sector < TPC_SECTORS; sector++)
-    {
-        chargemaps[sector] = Map<float>(
-                digits[sector], 
-                [](const Digit &d) { return d.charge; }, 
-                0.f);
-    }
-
 
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2)); */
-    noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
+    /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3)); */
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025));
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3)); */
 
-    size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
+    size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
     // map algorithm id -> result of algorithm
     std::vector<SectorMap<RowMap<std::vector<Digit>>>> filteredPeaks(
             noiseSuppressionAlgos.size());
-    for (size_t sector = 0; sector < TPC_SECTORS; sector++)
+
+    SectorMap<std::vector<Digit>> digits;
     {
-        log::Info() << "Processing sector " << sector;
-        RowMap<std::vector<Digit>> peaks = 
+        log::Info() << "Reading digit file " << args::get(digitfile);
+        SectorMap<std::vector<RawDigit>> rawdigits = 
+            gpucf::read<RawDigit>(args::get(digitfile));
+        digits = Digit::bySector(rawdigits);
+    }
+
+    SectorMap<LabelContainer> labels;
+    {
+        log::Info() << "Reading label file " << args::get(labelfile);
+        SectorMap<std::vector<RawLabel>> rawlabels = 
+            gpucf::read<RawLabel>(args::get(labelfile));
+        labels = LabelContainer::bySector(rawlabels, digits);
+    }
+
+    {
+        log::Info() << "Found " << countTracks(labels) << " tracks in label data.";
+        /* log::Info() << "... generating " << countHits(labels) << " hits."; */
+
+        log::Info() << "Creating chargemap";
+        SectorMap<Map<float>> chargemaps;
+        for (size_t sector = 0; sector < TPC_SECTORS; sector++)
+        {
+            chargemaps[sector] = Map<float>(
+                    digits[sector], 
+                    [](const Digit &d) { return d.charge; }, 
+                    0.f);
+        }
+
+        for (size_t sector = 0; sector < TPC_SECTORS; sector++)
+        {
+            log::Info() << "Processing sector " << sector;
+            RowMap<std::vector<Digit>> peaks = 
                 findPeaksByRow(digits[sector], chargemaps[sector]);
 
-        RowMap<Map<bool>> peakmap = makePeakMapByRow(peaks);
+            RowMap<Map<bool>> peakmap = makePeakMapByRow(peaks);
 
-        for (size_t id = 0; id < noiseSuppressionAlgos.size(); id++)
-        {
-            auto &algo = noiseSuppressionAlgos[id];
-            filteredPeaks[id][sector] = 
+            for (size_t id = 0; id < noiseSuppressionAlgos.size(); id++)
+            {
+                auto &algo = noiseSuppressionAlgos[id];
+                filteredPeaks[id][sector] = 
                     algo->run(peaks, peakmap, chargemaps[sector]);
+            }
         }
     }
 
@@ -551,10 +655,10 @@ int main(int argc, const char *argv[])
             "peaknumToTracknum.pdf");
 
     countLostHits(
-        labels,
-        names,
-        filteredPeaks,
-        baseline);
+            labels,
+            names,
+            filteredPeaks,
+            baseline);
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
