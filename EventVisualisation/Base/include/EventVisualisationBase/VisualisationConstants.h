@@ -11,6 +11,7 @@
 ///
 /// \file    VisualisationConstants.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
 ///
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONCONSTANTS_H
@@ -21,7 +22,7 @@
 namespace o2  {
 namespace event_visualisation {
 
-enum EVisualisationGroup{
+enum EVisualisationGroup {
   ACO,
   EMC,
   HMP,
@@ -35,9 +36,10 @@ enum EVisualisationGroup{
   TPC,
   TRD,
   RND,
+  VSD,
   NvisualisationGroups
 };
-  
+
 const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "ACO",
   "EMC",
@@ -53,16 +55,16 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "TRD",
   "RND"
 };
-  
-enum EDataType{
-  Raw,      ///< Raw data
-  Hits,     ///< Hits
-  Digits,   ///< Digits
-  Clusters, ///< Reconstructed clusters (RecPoints)
-  ESD,      ///< Event Summary Data
-  AOD,      ///< Analysis Object Data
-  NoData,   ///< no data was loaded
-  NdataTypes///< number of supported data types
+
+enum EVisualisationDataType {
+  Raw,       ///< Raw data
+  Hits,      ///< Hits
+  Digits,    ///< Digits
+  Clusters,  ///< Reconstructed clusters (RecPoints)
+  ESD,       ///< Event Summary Data
+  AOD,       ///< Analysis Object Data
+  NoData,    ///< no data was loaded
+  NdataTypes ///< number of supported data types
 };
 
 const std::string gDataTypeNames[NdataTypes] = {

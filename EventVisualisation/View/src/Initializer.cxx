@@ -11,6 +11,8 @@
 ///
 /// \file    Initializer.cxx
 /// \author  Jeremi Niedziela
+/// \author  julian.myrcha@cern.ch
+/// \author  p.nowakowski@cern.ch
 ///
 
 #include "EventVisualisationView/Initializer.h"
@@ -20,6 +22,12 @@
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
+#include "EventVisualisationView/EventManagerFrame.h"
+#include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationBase/DataReaderVSD.h"
+#include "EventVisualisationBase/EventRegistration.h"
+#include "EventVisualisationDetectors/DataInterpreterVSD.h"
+#include "EventVisualisationDetectors/DataInterpreterRND.h"
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -29,15 +37,15 @@
 #include <TSystem.h>
 #include <TSystemDirectory.h>
 #include <TROOT.h>
-
+#include <TEveWindowManager.h>
 #include <iostream>
-
+#include <TFile.h>
 using namespace std;
 
 namespace o2  {
 namespace event_visualisation {
 
-Initializer::Initializer(EventManager::EDataSource defaultDataSource)
+void Initializer::setup(const Options options, EventManager::EDataSource defaultDataSource)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -49,9 +57,18 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   auto &eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
-  
-//  gEve->AddEvent(eventManager);
-  
+
+  EventRegistration::setInstance(MultiView::getInstance());
+  if (options.randomTracks)
+    DataInterpreter::setInstance(new DataInterpreterRND(), EVisualisationGroup::RND);
+  if (options.vsd)
+    DataInterpreter::setInstance(new DataInterpreterVSD(), EVisualisationGroup::VSD);
+
+  eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
+  eventManager.Open();
+
+  //gEve->AddEvent(&eventManager);
+
   setupGeometry();
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
@@ -62,7 +79,11 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   TEveBrowser *browser = gEve->GetBrowser();
   browser->GetTabRight()->SetTab(1);
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(),gClient->GetDisplayHeight() - 32);
-  
+
+  browser->StartEmbedding(TRootBrowser::kBottom);
+  EventManagerFrame* frame = new EventManagerFrame(eventManager);
+  browser->StopEmbedding("EventCtrl Balbinka");
+
   if(fullscreen){
     ((TGWindow*)gEve->GetBrowser()->GetTabLeft()->GetParent())->Resize(1,0);
     ((TGWindow*)gEve->GetBrowser()->GetTabBottom()->GetParent())->Resize(0,1);
@@ -75,10 +96,10 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Temporary:
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
-  MultiView::getInstance()->drawRandomEvent();
+  gEve->AddEvent(&EventManager::getInstance());
+  //  MultiView::getInstance()->drawRandomEvent();
+  frame->DoFirstEvent();
 }
-
-Initializer::~Initializer() = default;
 
 void Initializer::setupGeometry()
 {
@@ -145,10 +166,11 @@ void Initializer::setupBackground()
   // get viewers of multiview and change color to the value from config file
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
-  
-  for(int viewIter=0;viewIter<MultiView::NumberOfViews;++viewIter){
+  Color_t col = settings.GetValue("background.color", 1);
+
+  for (int viewIter = 0; viewIter < MultiView::NumberOfViews; ++viewIter) {
     TEveViewer *view = MultiView::getInstance()->getView(static_cast<MultiView::EViews>(viewIter));
-    view->GetGLViewer()->SetClearColor(settings.GetValue("background.color",1));
+    view->GetGLViewer()->SetClearColor(col);
   }
 }
 
