@@ -8,14 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+///
+/// \file   EventRegistration.cxx
+/// \brief  breaking link dependency between EventVisualisation modules (here MultiView can register)
+/// \author julian.myrcha@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <EventVisualisationBase/EventRegistration.h>
 
-#pragma link C++ class o2::event_visualisation::MultiView + ;
-#pragma link C++ class o2::event_visualisation::Initializer + ;
-#pragma link C++ class o2::event_visualisation::EventManagerFrame + ;
+namespace o2
+{
+namespace event_visualisation
+{
 
-#endif
+EventRegistration* EventRegistration::instance = nullptr;
+}
+} // namespace o2

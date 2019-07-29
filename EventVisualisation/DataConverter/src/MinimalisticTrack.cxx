@@ -26,31 +26,29 @@ namespace event_visualisation {
 MinimalisticTrack::MinimalisticTrack() = default;
 
 MinimalisticTrack::MinimalisticTrack(
-                                     int charge,
-                                     double energy,
-                                     int ID,
-                                     int PID,
-                                     double mass,
-                                     double signedPT,
-                                     double startXYZ[],
-                                     double endXYZ[],
-                                     double pxpypz[],
-                                     int parentID,
-                                     double phi,
-                                     double theta,
-                                     double helixCurvature,
-                                     int type
-                                     )
-:
-mCharge(charge),
-mEnergy(energy),
-mParentID(parentID),
-mMass(mass),
-mPID(PID),
-mSignedPT(signedPT),
-mPhi(phi),
-mTheta(theta),
-mHelixCurvature(helixCurvature)
+  int charge,
+  double energy,
+  int ID,
+  int PID,
+  double mass,
+  double signedPT,
+  double startXYZ[],
+  double endXYZ[],
+  double pxpypz[],
+  int parentID,
+  double phi,
+  double theta,
+  double helixCurvature,
+  int type)
+  : mCharge(charge),
+    mEnergy(energy),
+    mParentID(parentID),
+    mPID(PID),
+    mSignedPT(signedPT),
+    mMass(mass),
+    mHelixCurvature(helixCurvature),
+    mTheta(theta),
+    mPhi(phi)
 {
   addMomentum(pxpypz);
   addStartCoordinates(startXYZ);

@@ -16,7 +16,7 @@
 
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/Track.h"
-
+//#include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 
 #include <TEveManager.h>
@@ -34,7 +34,7 @@ DataInterpreterRND::DataInterpreterRND() = default;
 
 DataInterpreterRND::~DataInterpreterRND() = default;
 
-TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
+TEveElement* DataInterpreterRND::interpretDataForType(TObject* /*data*/, EVisualisationDataType /*type*/)
 {
   int multiplicity = 500*((double)rand()/RAND_MAX)+100;
   MinimalisticEvent *minEvent = new MinimalisticEvent(15,123456,7000,multiplicity,"p-p",12736563);
@@ -55,8 +55,7 @@ TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
   
   TEveElementList *container = new TEveElementList("Random tracks by PID");
   container->SetTitle(Form("Multiplicity = %d", minEvent->GetMultiplicity()));
-  gEve->AddElement(container);
-  
+
   TEveTrackList *trackList[nParticleTypes];
   trackList[0] = new TEveTrackList("Electrons");
   trackList[1] = new TEveTrackList("Muons");
@@ -111,8 +110,6 @@ TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
     trackList[i]->SetTitle(Form("N tracks=%d", trackList[i]->NumChildren()));
     trackList[i]->MakeTracks();
   }
-  container->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
-  
   return container;
 }
   

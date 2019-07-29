@@ -15,6 +15,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
 
+#include <EventVisualisationBase/EventRegistration.h>
 #include <TGLViewer.h>
 #include <TEveGeoShape.h>
 #include <TEveScene.h>
@@ -31,8 +32,8 @@ namespace event_visualisation {
 /// and descriptions and provide pointers to these objects. It also allows to draw
 /// or remove simplified geometries. One can also register visualisation objects for
 /// drawing in the MultiView, which will be imported to 3D view and projections.
-  
-class MultiView
+
+class MultiView : public EventRegistration
 {
   public:
     enum EViews{
@@ -41,14 +42,14 @@ class MultiView
       ViewZrho ,    ///< Z-Rho view
       NumberOfViews ///< Total number of views
     };
-    
-    enum EScenes{
+
+    enum EScenes {
       Scene3dGeom,    ///< 3D scene of geometry
-      SceneRPhiGeom,  ///< R-Phi scene of geometry
-      SceneZrhoGeom , ///< Z-Pho scene of geometry
       Scene3dEvent,   ///< 3D scene of event
+      SceneRPhiGeom,  ///< R-Phi scene of geometry
+      SceneZrhoGeom,  ///< Z-Pho scene of geometry
       SceneRphiEvent, ///< R-Phi scene of event
-      SceneZrhoEvent ,///< Z-Rho scene of event
+      SceneZrhoEvent, ///< Z-Rho scene of event
       NumberOfScenes  ///< Total number of scenes
     };
     enum EProjections{
@@ -77,19 +78,22 @@ class MultiView
     void registerGeometry(TEveGeoShape *geom,bool threeD=true, bool rPhi=true, bool zRho=true);
     /// Removes all geometries
     void destroyAllGeometries();
-  
-    /// Registers an event to be drawn
-    void registerEvent(TEveElement* event);
+
+    /// Registers an element to be drawn
+    void registerElement(TEveElement* event) override;
+
+    ///
+    void registerEvent(TEveElement* event) { return registerElement(event); }
     /// Removes all shapes representing current event
-    void destroyAllEvents();
-  
+    void destroyAllEvents() override;
+
     void drawRandomEvent();
   private:
     /// Default constructor
     MultiView();
     /// Default destructor
-    ~MultiView();
-    
+    ~MultiView() = default;
+
     static MultiView *sInstance;                              ///< Single instance of the multiview
 
     TEveViewer *mViews[NumberOfViews];                        ///< Array of all views

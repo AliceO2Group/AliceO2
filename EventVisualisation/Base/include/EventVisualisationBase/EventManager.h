@@ -11,6 +11,8 @@
 ///
 /// \file    EventManager.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
@@ -33,37 +35,63 @@ namespace event_visualisation {
 /// interpret data from different formats as visualisation objects (points, lines...) and register them
 /// for drawing in the MultiView.
 
+class DataSource;
+
 class EventManager : public TEveEventManager, public TQObject
 {
-  public:
-    enum EDataSource{
-      SourceOnline,   ///< Online reconstruction is a source of events
-      SourceOffline,  ///< Local files are the source of events
-      SourceHLT       ///< HLT reconstruction is a source of events
-    };
+ public:
+  enum EDataSource {
+    SourceOnline,  ///< Online reconstruction is a source of events
+    SourceOffline, ///< Local files are the source of events
+    SourceHLT      ///< HLT reconstruction is a source of events
+  };
 
-    /// Returns an instance of EventManager
-    static EventManager& getInstance();
+  /// Returns an instance of EventManager
+  static EventManager& getInstance();
 
-    /// Setter of the current data source
-    inline void setDataSourceType(EDataSource source){mCurrentDataSourceType = source;}
-    /// Sets the CDB path in CCDB Manager
-    inline void setCdbPath(std::string path)
-    {
-      o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
-    }
+  /// Setter of the current data source type
+  inline void setDataSourceType(EDataSource source) { mCurrentDataSourceType = source; }
+  /// Setter of the current data source path
+  inline void setDataSourcePath(const TString& path) { dataPath = path; }
+  /// Sets the CDB path in CCDB Manager
+  inline void setCdbPath(const TString& path)
+  {
+    o2::ccdb::Manager::Instance()->setDefaultStorage(path.Data());
+  }
 
-   private:
-    EDataSource mCurrentDataSourceType; ///< enum type of the current data source
+  Int_t getCurrentEvent() { return currentEvent; }
+  DataSource* getDataSource() { return dataSource; }
+  void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
 
-    /// Default constructor
-    EventManager();
-    /// Default destructor
-    ~EventManager() final;
-    /// Deleted copy constructor
-    EventManager(EventManager const&) = delete;
-    /// Deleted assignemt operator
-    void operator=(EventManager const&) = delete;
+  void Open() override;
+  void GotoEvent(Int_t /*event*/) override;
+  void NextEvent() override;
+  void PrevEvent() override;
+  void Close() override;
+
+  void AfterNewEventLoaded() override;
+
+  void AddNewEventCommand(const TString& cmd) override;
+  void RemoveNewEventCommand(const TString& cmd) override;
+  void ClearNewEventCommands() override;
+
+  void DropEvent();
+
+ private:
+  static EventManager* instance;
+  EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
+  DataSource* dataSource = nullptr;
+  TString dataPath = "";
+  Int_t currentEvent = 0;
+
+  /// Default constructor
+  EventManager();
+  /// Default destructor
+  ~EventManager() final;
+  /// Deleted copy constructor
+  EventManager(EventManager const&) = delete;
+  /// Deleted assignemt operator
+  void operator=(EventManager const&) = delete;
 };
 
 }
