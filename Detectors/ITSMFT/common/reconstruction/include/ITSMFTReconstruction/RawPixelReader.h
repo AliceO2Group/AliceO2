@@ -915,10 +915,11 @@ class RawPixelReader : public PixelReader
       printRDH(rdh);
     }
 #endif
-    ruLink->packetCounter = rdh->packetCounter;
 
     ruDecData.nCables = ruDecData.ruInfo->nCables;
     while (1) {
+      ruLink->packetCounter = rdh->packetCounter;
+
       mDecodingStat.nBytesProcessed += rdh->memorySize;
       mDecodingStat.nPagesProcessed++;
       raw += rdh->headerSize;
@@ -996,7 +997,6 @@ class RawPixelReader : public PixelReader
 
 #ifdef _RAW_READER_ERROR_CHECKS_
         ruDecData.cableLinkID[cableSW] = linkIDinRU;
-
         ruLink->lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
         if (ruLink->lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
@@ -1041,7 +1041,7 @@ class RawPixelReader : public PixelReader
 
 #ifdef _RAW_READER_ERROR_CHECKS_
         // make sure all lane stops for finished page are received
-        if (ruLink->lanesActive != ruLink->lanesStop && nGBTWords) {
+        if ((ruLink->lanesActive & ~ruLink->lanesStop) && nGBTWords) {
           if (rdh->triggerType != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
             std::bitset<32> active(ruLink->lanesActive), stopped(ruLink->lanesStop);
             LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " end of FEE data but not all lanes received stop"

@@ -73,9 +73,10 @@ DPL to exit.
 On linux you might need to start the debugger with `sudo` to have the permission
 to attach, e.g. set O2DPLDEBUG to
 ```bash
-export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID'
+export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID &'
 ```
 Be sure to use single quotes to avoid direct expansion of O2DEBUGGEDPID variable.
+The `&` character add the end is needed to start gdb in a separate process.
 
 
 ### Debug GUI
@@ -330,3 +331,14 @@ timePipeline(DataProcessorSpec{
 
 which will result in two devices, one for even time periods, the other one for
 odd timeperiods.
+
+
+### Disabling monitoring
+
+Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
+
+```bash
+some-workflow --monitoring-backend=no-op://
+```
+
+notice that the GUI will not function properly if you do so.

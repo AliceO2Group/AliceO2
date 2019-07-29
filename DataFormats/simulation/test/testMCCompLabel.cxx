@@ -28,20 +28,27 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
   int ev = 200, src = 10;
   std::unordered_map<MCCompLabel, int> labelMap;
   for (int tr=-100;tr<200;tr+=150) {
-    MCCompLabel lb(tr, ev, src);
+    MCCompLabel lb(std::abs(tr), ev, src, tr < 0);
     std::cout << "Input:   [" << src << '/' << ev << '/'
               << std::setw(6) << tr << ']' << std::endl;
     std::cout << "Encoded: " << lb << " (packed: " << ULong_t(lb) << ")" << std::endl;
     labelMap[lb] = tr;
     int trE, evE, srcE;
-    lb.get(trE, evE, srcE);
+    bool fake;
+    lb.get(trE, evE, srcE, fake);
     std::cout << "Decoded: [" << srcE << '/' << evE << '/'
-              << std::setw(6) << trE << ']' << std::endl;
+              << std::setw(6) << (fake ? '-' : '+') << trE << ']' << std::endl;
 
-    BOOST_CHECK(tr == trE && ev == evE && src == srcE);
+    BOOST_CHECK((fake && (tr == -trE)) || (!fake && (tr == trE)) && ev == evE && src == srcE);
   }
 
   for (auto& [key, value] : labelMap) {
-    BOOST_CHECK(key.getTrackID() == value);
+    BOOST_CHECK(key.getTrackIDSigned() == value);
+    BOOST_CHECK(key.getTrackID() == std::abs(value) && ((value < 0) == key.isFake()));
   }
+
+  MCCompLabel noise(true);
+  BOOST_CHECK(noise.isNoise() && !noise.isEmpty() && noise.isFake() && !noise.isValid());
+  MCCompLabel dummy;
+  BOOST_CHECK(dummy.isEmpty() && !dummy.isNoise() && dummy.isFake() && !dummy.isValid());
 }

@@ -79,6 +79,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUITSFitterKernels.cxx"
 #if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
 #include "TrackerTraitsNV.cu"
+#include "VertexerTraitsGPU.cu"
 #include "Context.cu"
 #include "Stream.cu"
 #include "DeviceStoreNV.cu"

@@ -37,14 +37,14 @@ namespace o2
 namespace its
 {
 
-using constants::IndexTable::PhiBins;
-using constants::IndexTable::ZBins;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::its::LayersRCoordinate;
 using constants::its::LayersZCoordinate;
-using constants::Math::TwoPi;
-using IndexTableUtils::getPhiBinIndex;
-using IndexTableUtils::getZBinIndex;
-using MathUtils::getNormalizedPhiCoordinate;
+using constants::math::TwoPi;
+using index_table_utils::getPhiBinIndex;
+using index_table_utils::getZBinIndex;
+using math_utils::getNormalizedPhiCoordinate;
 
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
@@ -109,17 +109,17 @@ GPU_GLOBAL void trackleterKernel(
       const int stride{ currentClusterIndex * maxTrackletsPerCluster };
       const Cluster currentCluster{ GPUclustersCurrent[currentClusterIndex] };
       const int layerIndex{ layerOrder == LAYER0_TO_LAYER1 ? 0 : 2 };
-      const int4 selectedBinsRect{ VertexerTraits::getBinsRect2(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
+      const int4 selectedBinsRect{ VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{ selectedBinsRect.w - selectedBinsRect.y + 1 };
         if (phiBinsNum < 0) {
           phiBinsNum += PhiBins;
         }
         for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-          const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect.x, iPhiBin) };
+          const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
           const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
           const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
-          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
+          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
             const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
             const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
@@ -329,10 +329,12 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
       for (int k{ 0 }; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
         const float deltaTanLambda{ gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda) };
-        mDeltaTanlambdas.push_back(std::array<float, 7>{ deltaTanLambda,
-                                                         mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
-                                                         mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
-                                                         mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate });
+        mTrackletInfo.push_back(std::array<float, 9>{ deltaTanLambda,
+                                                      mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
+                                                      mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
+                                                      mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
+                                                      42.f, /* dummy */
+                                                      true /* dummy */ });
       }
     }
   }

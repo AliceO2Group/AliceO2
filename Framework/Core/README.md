@@ -325,13 +325,17 @@ Some suffix for the metrics are reserved to represent vector and tabular metrics
 
 #### Generic Logger
 
-Generic logging capabilities of DPL are provided via FairLogger.
+Generic logging capabilities of DPL are provided via Framework/Logger which wraps and extents
+FairLogger.
 
 ```C++
-#include <FairLogger.h>
+#include "Framework/Logger.h"
 ...
 
-LOG(INFO) << "some message";
+LOG(INFO) << "some message";      // streamer based API
+LOGF(INFO, "%s", "some message"); // printf based API
+LOGP(INFO, "{}", "some message"); // python / fmt based API
+O2INFO("{}", "some message);      // same but with less typing.
 ```
 
 #### InfoLogger service
@@ -469,20 +473,9 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
   "machines": [                         # list of machines where the policy should be run (now ignored)
     "aido2flp1",
     "aido2flp2"
-  ],
-  "dataHeaders": [                      # list of data that should be sampled
-    {
-      "binding": "clusters",            # binding of the data in InputRecord
-      "dataOrigin": "TPC",              # data origin in DataHeader
-      "dataDescription": "CLUSTERS"     # data description in DataHeader
-    },
-    {
-      "binding": "tracks",
-      "dataOrigin": "TPC",
-      "dataDescription": "TRACKS"
-    }
-  ],
-  "subSpec": "0",                       # subspecification in DataHeader, use -1 for all
+  ],                                    # list of data that should be sampled, the format is:
+                                        # binding1:origin1/description1/subSpec1[;binding2:...]
+  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
   "samplingConditions": [               # list of sampling conditions
     {
       "condition": "random",            # condition type
@@ -553,6 +546,15 @@ The following sampling conditions are available. When more than one is used, a p
   "condition": "payloadSize",
   "lowerLimit": "300",
   "upperLimit": "500"
+}
+```
+- **DataSamplingConditionCustom** - loads a custom condition, which should inherit from DataSamplingCondition, from a specified library.
+```json
+{
+  "condition": "custom",
+  "moduleName": "QcExample",
+  "className": "o2::quality_control_modules::example::ExampleCondition",
+  "customParam": "value"
 }
 ```
 ## Document history

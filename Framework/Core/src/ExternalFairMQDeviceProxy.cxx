@@ -7,14 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/AlgorithmSpec.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/DataProcessingHeader.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/InitContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/InitContext.h"
-#include "Framework/ConfigParamSpec.h"
-#include "Framework/AlgorithmSpec.h"
+
 #include "Headers/DataHeader.h"
-#include "Framework/DataProcessingHeader.h"
+
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
 #include <cstring>
@@ -111,9 +114,12 @@ InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime
     // adding the appropriate O2 header.
     for (size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
-      dh.dataOrigin = spec.origin;
-      dh.dataDescription = spec.description;
-      dh.subSpecification = spec.subSpec;
+
+      // FIXME: this only supports fully specified output specs...
+      ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(spec);
+      dh.dataOrigin = matcher.origin;
+      dh.dataDescription = matcher.description;
+      dh.subSpecification = matcher.subSpec;
       dh.payloadSize = parts.At(i)->GetSize();
 
       DataProcessingHeader dph{*timesliceId, 0};

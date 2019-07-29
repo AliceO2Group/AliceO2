@@ -94,7 +94,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
 
         if (mRegisteredLabelContainer) {
           auto labels = mTmpLabelContainer.getLabels(index);
-          o2::MCCompLabel newlabel(hit.GetTrackID(), mEventID, mSrcID);
+          o2::MCCompLabel newlabel(hit.GetTrackID(), mEventID, mSrcID, false);
           bool newlabelneeded = true;
           for (auto& l : labels) {
             if (l == newlabel) {
@@ -114,7 +114,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
 
         if (mRegisteredLabelContainer) {
           // add label for this digit
-          mTmpLabelContainer.addElement(mDigits.size() - 1, o2::MCCompLabel(hit.GetTrackID(), mEventID, mSrcID));
+          mTmpLabelContainer.addElement(mDigits.size() - 1, o2::MCCompLabel(hit.GetTrackID(), mEventID, mSrcID, false));
         }
       }
     }

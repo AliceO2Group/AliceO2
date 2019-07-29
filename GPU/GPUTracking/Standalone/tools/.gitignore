@@ -1,5 +1,4 @@
-test.o
-test.bc
-test.cl
-test.spv
-
+*.o
+*.bc
+*.cl
+*.spv

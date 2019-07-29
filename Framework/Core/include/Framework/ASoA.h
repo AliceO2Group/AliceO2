@@ -213,12 +213,37 @@ class Table
     return end;
   }
 
+  std::shared_ptr<arrow::Table> asArrowTable()
+  {
+    return mTable;
+  }
+
+  std::size_t size() const
+  {
+    return mTable->num_rows();
+  }
+
  private:
   std::shared_ptr<arrow::Table> mTable;
 };
 
+template <typename INHERIT>
+class TableMetadata
+{
+ public:
+  static constexpr char const* label() { return INHERIT::mLabel; }
+  static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
+  static constexpr char const (&description())[16] { return INHERIT::mDescription; }
+};
 } // namespace soa
+
 } // namespace o2
+
+#define DECLARE_SOA_STORE()          \
+  template <typename T>              \
+  struct MetadataTrait {             \
+    using metadata = std::void_t<T>; \
+  }
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_) \
   struct _Name_ : o2::soa::Column<_Type_, _Name_> {           \
@@ -229,6 +254,26 @@ class Table
     {                                                         \
       return *mColumnIterator;                                \
     }                                                         \
-  };
+  }
+
+#define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                          \
+                                                                       \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> { \
+    using table_t = _Name_;                                            \
+    static constexpr char const* mLabel = #_Name_;                     \
+    static constexpr char const mOrigin[4] = _Origin_;                 \
+    static constexpr char const mDescription[16] = _Description_;      \
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  struct MetadataTrait<_Name_> {                                       \
+    using metadata = _Name_##Metadata;                                 \
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  struct MetadataTrait<_Name_::iterator> {                             \
+    using metadata = _Name_##Metadata;                                 \
+  }
 
 #endif // O2_FRAMEWORK_ASOA_H_

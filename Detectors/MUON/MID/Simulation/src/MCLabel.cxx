@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-MCLabel::MCLabel(int trackID, int eventID, int srcID, int deId, int columnId, int cathode, int firstStrip, int lastStrip) : o2::MCCompLabel(trackID, eventID, srcID)
+MCLabel::MCLabel(int trackID, int eventID, int srcID, int deId, int columnId, int cathode, int firstStrip, int lastStrip) : o2::MCCompLabel(trackID, eventID, srcID, false)
 {
   /// Constructor
   setDEId(deId);
@@ -37,6 +37,14 @@ void MCLabel::set(int value, unsigned int mask, unsigned int offset)
   /// Sets the value
   mStripsInfo &= ~(mask << offset);
   mStripsInfo |= ((value & mask) << offset);
+}
+
+bool MCLabel::operator==(const MCLabel& other) const
+{
+  if (compare(other) != 1) {
+    return false;
+  }
+  return (mStripsInfo == other.mStripsInfo);
 }
 
 } // namespace mid

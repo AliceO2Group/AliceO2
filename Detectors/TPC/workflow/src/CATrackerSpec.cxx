@@ -30,7 +30,7 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #endif
 #include "DataFormatsParameters/GRPObject.h"
@@ -53,8 +53,6 @@ namespace o2
 {
 namespace tpc
 {
-
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds)
 {
@@ -93,14 +91,16 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // This should go away eventually.
 
       // Default Settings
-      float solenoidBz = 5.00668;  // B-field
-      float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;     // time frame data v.s. triggered events
-      int nThreads = 1;            // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;         // use a GPU for processing, if false uses GPU
-      bool dump = false;           // create memory dump of processed events for standalone runs
-      char gpuType[1024] = "CUDA"; // Type of GPU device, if useGPU is set to true
-      GPUDisplayBackend* display = nullptr;
+      float solenoidBz = 5.00668;           // B-field
+      float refX = 83.;                     // transport tracks to this x after tracking, >500 for disabling
+      bool continuous = false;              // time frame data v.s. triggered events
+      int nThreads = 1;                     // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
+      bool useGPU = false;                  // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;                   // Enable additional debug output
+      bool dump = false;                    // create memory dump of processed events for standalone runs
+      char gpuType[1024] = "CUDA";          // Type of GPU device, if useGPU is set to true
+      GPUDisplayBackend* display = nullptr; // Ptr to display backend (enables event display)
+      bool qa = false;                      // Run the QA after tracking
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -130,19 +130,25 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             dump = true;
             printf("Dumping of input events enabled\n");
           } else if (strncmp(optPtr, "display", optLen) == 0) {
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
             processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
             display = processAttributes->displayBackend.get();
             printf("Event display enabled\n");
 #else
             printf("Standalone Event Display not enabled at build time!\n");
 #endif
+          } else if (strncmp(optPtr, "qa", optLen) == 0) {
+            qa = true;
+            printf("Enabling TPC Standalone QA\n");
           } else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
             sscanf(optPtr + 3, "%f", &solenoidBz);
             printf("Using solenoid field %f\n", solenoidBz);
           } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
             sscanf(optPtr + 5, "%f", &refX);
             printf("Propagating to reference X %f\n", refX);
+          } else if (optLen > 5 && strncmp(optPtr, "debug=", 6) == 0) {
+            sscanf(optPtr + 6, "%d", &debugLevel);
+            printf("Debug level set to %d\n", debugLevel);
           } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
             sscanf(optPtr + 8, "%d", &nThreads);
             printf("Using %d threads\n", nThreads);
@@ -170,9 +176,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
 
       config.configDeviceProcessing.nThreads = nThreads;
-      config.configDeviceProcessing.runQA = false;          // Run QA after tracking
-      config.configDeviceProcessing.eventDisplay = display; // Ptr to event display backend, for running standalone OpenGL event display
-                                                            // config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendX11;
+      config.configDeviceProcessing.runQA = qa;              // Run QA after tracking
+      config.configDeviceProcessing.eventDisplay = display;  // Ptr to event display backend, for running standalone OpenGL event display
+      config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 
       config.configEvent.solenoidBz = solenoidBz;
       config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
@@ -256,7 +262,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             // have already data for this sector, this should not happen in the current
             // sequential implementation, for parallel path merged at the tracker stage
             // multiple buffers need to be handled
-            throw std::runtime_error("can only have one data set per sector");
+            throw std::runtime_error("can only have one MC data set per sector");
           }
           mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
           validMcInputs.set(sector);
@@ -302,7 +308,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           // have already data for this sector, this should not happen in the current
           // sequential implementation, for parallel path merged at the tracker stage
           // multiple buffers need to be handled
-          throw std::runtime_error("can only have one data set per sector");
+          throw std::runtime_error("can only have one cluster data set per sector");
         }
         activeSectors |= sectorHeader->activeSectors;
         validInputs.set(sector);
@@ -405,9 +411,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         }
         LOG(INFO) << "running tracking for sector(s) " << bitInfo;
       }
-      ClusterNativeAccessFullTPC clusterIndex;
+      ClusterNativeAccess clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
-      ClusterNativeHelper::Reader::fillIndex(clusterIndex, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
+      std::unique_ptr<ClusterNative[]> clusterBuffer;
+      MCLabelContainer clustersMCBuffer;
+      ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
 
       GPUO2InterfaceIOPtrs ptrs;
       std::vector<TrackTPC> tracks;
@@ -431,7 +439,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters; // This is a ROOT-serializable container with compressed TPC clusters
       // Example to decompress clusters
       //#include "TPCClusterDecompressor.cxx"
-      //o2::tpc::ClusterNativeAccessFullTPC clustersNativeDecoded; // Cluster native access structure as used by the tracker
+      //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
 

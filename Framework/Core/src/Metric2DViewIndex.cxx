@@ -12,7 +12,7 @@
 
 #include "Framework/DeviceMetricsInfo.h"
 
-#include <fairmq/FairMQLogger.h>
+#include "Framework/Logger.h"
 
 #include <algorithm>
 #include <functional>

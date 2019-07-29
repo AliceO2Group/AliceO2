@@ -24,6 +24,7 @@
 #include "FairSystemInfo.h"
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <unistd.h>
 #include <sstream>
 #endif

@@ -16,9 +16,7 @@
 
 #include "GPUDisplayBackend.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplayBackendWindows : public GPUDisplayBackend
 {
@@ -36,7 +34,6 @@ class GPUDisplayBackendWindows : public GPUDisplayBackend
  private:
   int OpenGLMain() override;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

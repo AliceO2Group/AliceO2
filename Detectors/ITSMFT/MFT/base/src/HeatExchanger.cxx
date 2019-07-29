@@ -32,8 +32,7 @@ ClassImp(o2::mft::HeatExchanger);
 
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger()
-  : TNamed(),
-    mHalfDisk(nullptr),
+  : mHalfDisk(nullptr),
     mHalfDiskRotation(nullptr),
     mHalfDiskTransformation(nullptr),
     mRWater(0.),
@@ -94,8 +93,7 @@ HeatExchanger::HeatExchanger()
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger(Double_t rWater, Double_t dRPipe, Double_t heatExchangerThickness,
                              Double_t carbonThickness)
-  : TNamed(),
-    mHalfDisk(nullptr),
+  : mHalfDisk(nullptr),
     mHalfDiskRotation(nullptr),
     mHalfDiskTransformation(nullptr),
     mRWater(rWater),

@@ -132,9 +132,9 @@ class TrackParam
 
   Bool_t isCompatibleTrackParam(const TrackParam& trackParam, Double_t sigma2Cut, Double_t& normChi2) const;
 
-  void print(Option_t* opt = "") const;
+  void print() const;
 
-  void clear(Option_t* opt = "");
+  void clear();
 
  private:
   Double_t mZ = 0.; ///< Z coordinate (cm)

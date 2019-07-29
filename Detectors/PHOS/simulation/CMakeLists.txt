@@ -1,23 +1,20 @@
-SET(MODULE_NAME PHOSSimulation)
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(PHOSSimulation
+               SOURCES src/Detector.cxx src/GeometryParams.cxx src/Digitizer.cxx
+                       src/DigitizerTask.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::PHOSBase)
 
-set(SRCS
-  src/Detector.cxx
-  src/GeometryParams.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
-)
-
-set(HEADERS
-  include/PHOSSimulation/Detector.h
-  include/PHOSSimulation/GeometryParams.h
-  include/PHOSSimulation/Digitizer.h
-  include/PHOSSimulation/DigitizerTask.h
-)
-
-SET(LINKDEF src/PHOSSimulationLinkDef.h)
-SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME phos_simulation_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_target_root_dictionary(PHOSSimulation
+                          HEADERS include/PHOSSimulation/Detector.h
+                                  include/PHOSSimulation/GeometryParams.h
+                                  include/PHOSSimulation/Digitizer.h
+                                  include/PHOSSimulation/DigitizerTask.h)

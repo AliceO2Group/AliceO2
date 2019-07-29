@@ -48,11 +48,11 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
-  void setParameters(const VertexingParameters& verPar) { mVertParams = verPar; }
+  void setParameters(const VertexingParameters& verPar);
+  VertexingParameters getVertParameters() const;
 
   uint32_t getROFrame() const { return mROframe; }
   std::vector<Vertex> exportVertices();
-  VertexingParameters getVertParameters() const { return mVertParams; }
   VertexerTraits* getTraits() const { return mTraits; };
 
   float clustersToVertices(ROframe&, const bool useMc = false, std::ostream& = std::cout);
@@ -77,7 +77,7 @@ class Vertexer
   std::vector<Tracklet> getTracklets01() const;
   std::vector<Tracklet> getTracklets12() const;
   std::array<std::vector<Cluster>, 3> getClusters() const;
-  std::vector<std::array<float, 7>> getDeltaTanLambdas() const;
+  std::vector<std::array<float, 9>> getDeltaTanLambdas() const;
   std::vector<std::array<float, 4>> getCentroids() const;
   std::vector<std::array<float, 6>> getLinesData() const;
   void processLines();
@@ -85,7 +85,6 @@ class Vertexer
  private:
   std::uint32_t mROframe = 0;
   VertexerTraits* mTraits = nullptr;
-  VertexingParameters mVertParams;
 };
 
 template <typename... T>
@@ -103,6 +102,16 @@ void Vertexer::findTracklets(T&&... args)
 inline void Vertexer::findTrivialMCTracklets()
 {
   mTraits->computeTrackletsPureMontecarlo();
+}
+
+inline VertexingParameters Vertexer::getVertParameters() const
+{
+  return mTraits->getVertexingParameters();
+}
+
+inline void Vertexer::setParameters(const VertexingParameters& verPar)
+{
+  mTraits->updateVertexingParameters(verPar);
 }
 
 inline void Vertexer::dumpTraits()
@@ -168,9 +177,9 @@ inline std::array<std::vector<Cluster>, 3> Vertexer::getClusters() const
   return mTraits->mClusters;
 }
 
-inline std::vector<std::array<float, 7>> Vertexer::getDeltaTanLambdas() const
+inline std::vector<std::array<float, 9>> Vertexer::getDeltaTanLambdas() const
 {
-  return mTraits->mDeltaTanlambdas;
+  return mTraits->mTrackletInfo;
 }
 
 inline std::vector<std::array<float, 4>> Vertexer::getCentroids() const

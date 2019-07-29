@@ -11,12 +11,13 @@
 /// \file GPUReconstructionHIPInternals.h
 /// \author David Rohr
 
+// All HIP-header related stuff goes here, so we can run CING over GPUReconstructionHIP
 #ifndef GPURECONSTRUCTIONHIPINTERNALS_H
 #define GPURECONSTRUCTIONHIPINTERNALS_H
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+#include "GPULogging.h"
+
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUReconstructionHIPInternals {
   hipStream_t HIPStreams[GPUCA_MAX_STREAMS]; // Pointer to array of HIP Streams
@@ -31,7 +32,7 @@ static int GPUFailedMsgAI(const long long int error, const char* file, int line)
   if (error == hipSuccess) {
     return (0);
   }
-  printf("HIP Error: %lld / %s (%s:%d)\n", error, hipGetErrorString((hipError_t)error), file, line);
+  GPUError("HIP Error: %lld / %s (%s:%d)", error, hipGetErrorString((hipError_t)error), file, line);
   return 1;
 }
 
@@ -43,7 +44,6 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 }
 
 static_assert(std::is_convertible<hipEvent_t, void*>::value, "HIP event type incompatible to deviceEvent");
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

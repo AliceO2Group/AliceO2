@@ -18,31 +18,58 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <optional>
 
 using namespace o2::fit;
 //using o2::fit::Geometry;
 
 ClassImp(Digitizer);
 
-double get_time(const std::vector<double>& times, double signal_width)
+double Digitizer::get_time(const std::vector<double>& times)
 {
-  TH1F hist("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  auto signalForm = [](double x) {
-    return -(exp(-0.83344945 * x) - exp(-0.45458 * x));
-  };
-  for (auto time : times)
-    for (int bin = hist.FindBin(time); bin < hist.GetSize(); ++bin)
-      if (hist.GetBinCenter(bin) > time)
-        hist.AddBinContent(bin, signalForm(hist.GetBinCenter(bin) - time));
-  double maximum{ hist.GetMaximum() };
-  int binfound{ hist.FindFirstBinAbove(maximum * 0.4) };
-  //  std::cout<<"@@@@@!!! max "<<maximum<<" binfound "<<binfound<<" return "<<hist.GetBinCenter(binfound)<<std::endl;
-  return hist.GetBinCenter(binfound);
+  mHist->Reset();
+  mHistsum->Reset();
+  mHistshift->Reset();
+
+  /// Fill MHistrogram `mHist` with photoelectron induced voltage
+  for (auto time : times) {
+    for (int bin = mHist->FindBin(time); bin < mHist->GetSize(); ++bin)
+      if (mHist->GetBinCenter(bin) > time)
+        mHist->AddBinContent(bin, signalForm_i(mHist->GetBinCenter(bin) - time));
+  }
+  /// Add noise to `mHist`
+  for (int c = 0; c < mHist->GetSize(); c += mNoisePeriod) {
+    double val = gRandom->Gaus(0, parameters.mNoiseVar);
+    for (int bin = 0; bin < mHist->GetSize(); ++bin)
+      mHist->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
+    for (int bin = 0; bin < mBinshift; ++bin)
+      mHistshift->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
+  }
+  /// Shift `mHist` by 1.47 ns to `mHistshift`
+  for (int bin = 0; bin < mHist->GetSize() - mBinshift; ++bin)
+    mHistshift->SetBinContent(bin + mBinshift, mHist->GetBinContent(bin));
+
+  /// Add the signal and its shifted version to `mHistsum`
+  mHist->Scale(-1);
+  mHistsum->Add(mHistshift, mHist, 5, 1);
+  for (int bin = 1; bin < mHist->GetSize(); ++bin) {
+    /// Find the point where zero is crossed in `mHistsum` ...
+    if (mHistsum->GetBinContent(bin - 1) < 0 && mHistsum->GetBinContent(bin) >= 0) {
+      /// ... and voltage is above 3 mV
+      if (std::abs(mHist->GetBinContent(bin)) > 3) {
+        //std::cout << "Amp high enough: " << mHist->GetBinContent(bin) << " mV of " << maxBin << " mV at " << mHist->GetBinCenter(bin) << " ns\n";
+        return mHistsum->GetBinCenter(bin);
+      }
+    }
+  }
+  std::cout << "CFD failed to find peak\n";
+  return 1e10;
 }
 
 void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit* digit, std::vector<std::vector<double>>& channel_times)
 
 {
+
   auto sorted_hits{ *hits };
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::t0::HitType const& a, o2::t0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
@@ -91,38 +118,21 @@ void Digitizer::process(const std::vector<o2::t0::HitType>* hits, o2::t0::Digit*
   }
 }
 
-void Digitizer::computeAverage(o2::t0::Digit& digit)
-{
-  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
-  auto& channel_data = digit.getChDgData();
-  for (auto& ch_data : channel_data) {
-    if (ch_data.numberOfParticles == 0)
-      continue;
-    ch_data.CFDTime /= ch_data.numberOfParticles;
-    if (parameters.mIsT0)
-      ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
-  }
-  channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
-                                    [this](o2::t0::ChannelData const& ch_data) {
-                                      return ch_data.QTCAmpl < parameters.mCFD_trsh_mip;
-                                    }),
-                     channel_data.end());
-}
-
 //------------------------------------------------------------------------
 void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
+  //  constexpr Float_t mMip_in_V = 7.;     // mV /250 ph.e.
+  //  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
   std::vector<o2::t0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Double_t cfd = d.CFDTime;
-    Float_t amp = d.QTCAmpl;
+    Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
-      //Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
-      double smeared_time = get_time(channel_times[mcp], parameters.mSignalWidth) + parameters.mBC_clk_center + mEventTime;
-      mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
+      double smeared_time = get_time(channel_times[mcp]) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
+      if (smeared_time < 1e9)
+        mChDgDataArr.emplace_back(o2::t0::ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
@@ -131,7 +141,7 @@ void Digitizer::smearCFDtime(o2::t0::Digit* digit, std::vector<std::vector<doubl
 //------------------------------------------------------------------------
 void Digitizer::setTriggers(o2::t0::Digit* digit)
 {
-  constexpr Double_t BC_clk_center = 12.5;      // clk center
+
   constexpr Double_t trg_central_trh = 100.;    // mip
   constexpr Double_t trg_semicentral_trh = 50.; // mip
   constexpr Double_t trg_vertex_min = -3.;      //ns
@@ -149,7 +159,7 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime;
+    cfd[mcp] = d.CFDTime - parameters.mBC_clk_center - mEventTime /*+ parameters.mCfdShift*/;
     amp[mcp] = d.QTCAmpl;
     if (amp[mcp] < parameters.mCFD_trsh_mip)
       continue;
@@ -175,8 +185,8 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
 
   mean_time_A = is_A ? mean_time_A / n_hit_A : 0;
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0;
-  vertex_time = (mean_time_A + mean_time_C) * .5;
-  Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
+  vertex_time = (mean_time_A - mean_time_C) * .5;
+  Bool_t is_Vertex = is_A && is_C && (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
 
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
@@ -199,15 +209,14 @@ void Digitizer::setTriggers(o2::t0::Digit* digit)
 
 void Digitizer::initParameters()
 {
-  /*
-  parameters.mBC_clk_center = 12.5; // clk center
-  parameters.mMCPs = (parameters.NCellsA + parameters.NCellsC) * 4;
-  parameters.mCFD_trsh_mip = 0.4; // = 4[mV] / 10[mV/mip]
-  parameters.mTime_trg_gate = 4.; // ns
-  parameters.mAmpThreshold = 100;
-  */
   mEventTime = 0;
-  // murmur
+  float signal_width = 0.5 * parameters.mSignalWidth;
+  mHist = new TH1F("time_histogram", "", 1000, -signal_width, signal_width);
+  mHistsum = new TH1F("time_sum", "", 1000, -signal_width, signal_width);
+  mHistshift = new TH1F("time_shift", "", 1000, -signal_width, signal_width);
+
+  mNoisePeriod = parameters.mNoisePeriod / mHist->GetBinWidth(0);
+  mBinshift = int(parameters.mCFDShiftPos / (parameters.mSignalWidth / 1000.));
 }
 //_______________________________________________________________________
 void Digitizer::init()
@@ -215,10 +224,19 @@ void Digitizer::init()
   std::cout << " @@@ Digitizer::init " << std::endl;
 }
 //_______________________________________________________________________
-void Digitizer::finish() {}
-/*
+void Digitizer::finish()
+{
+  printParameters();
+}
+
 void Digitizer::printParameters()
 {
-  //murmur
+  std::cout << " Run Digitzation with parametrs: \n"
+            << "mBC_clk_center \n"
+            << parameters.mBC_clk_center << " CFD amplitude threshold \n " << parameters.mCFD_trsh_mip << " CFD signal gate in ns \n"
+            << parameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
+            << parameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
+            << parameters.mCFDShiftPos << "MIP -> mV " << parameters.mMip_in_V << " Pe in MIP \n"
+            << parameters.mPe_in_mip << "noise level " << parameters.mNoiseVar << " noise frequency \n"
+            << parameters.mNoisePeriod << std::endl;
 }
-*/

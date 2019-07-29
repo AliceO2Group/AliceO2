@@ -38,7 +38,6 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-
 class GPUReconstructionCPUBackend : public GPUReconstruction
 {
  public:
@@ -88,7 +87,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   {
     int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) : 0;
     if (mDeviceProcessingSettings.debugLevel >= 3) {
-      printf("Running %s (Stream %d, Range %d/%d) on %s\n", typeid(S).name(), x.stream, y.start, y.num, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+      GPUInfo("Running %s (Stream %d, Range %d/%d) on %s", typeid(S).name(), x.stream, y.start, y.num, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
     }
     if (t && mDeviceProcessingSettings.debugLevel) {
       t->Start();
@@ -122,7 +121,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
   virtual void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
   virtual void GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr);
+  void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
   void SetThreadCounts(RecoStep step);
@@ -145,8 +144,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
   virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return true; }
   virtual void RecordMarker(deviceEvent* ev, int stream) {}
-  virtual void ActivateThreadContext() {}
-  virtual void ReleaseThreadContext() {}
   virtual void SynchronizeGPU() {}
   virtual void ReleaseEvent(deviceEvent* ev) {}
   virtual int StartHelperThreads() { return 0; }

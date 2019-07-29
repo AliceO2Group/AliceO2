@@ -30,6 +30,7 @@
 #include "GPUConstantMem.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUDataTypes.h"
+#include "GPULogging.h"
 
 namespace o2
 {
@@ -45,6 +46,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUChain;
+class GPUMemorySizeScalers;
 
 class GPUReconstruction
 {
@@ -78,7 +80,7 @@ class GPUReconstruction
   static constexpr GeometryType geometryType = GeometryType::ALIROOT;
 #endif
 
-  static constexpr const char* const DEVICE_TYPE_NAMES[] = { "INVALID", "CPU", "CUDA", "HIP", "OCL" };
+  static constexpr const char* const DEVICE_TYPE_NAMES[] = { "INVALID", "CPU", "CUDA", "HIP", "OCL", "OCL2" };
   static DeviceType GetDeviceType(const char* type);
   enum InOutPointerType : unsigned int { CLUSTER_DATA = 0,
                                          SLICE_OUT_TRACK = 1,
@@ -93,8 +95,8 @@ class GPUReconstruction
                                          CLUSTERS_NATIVE = 10,
                                          TRD_TRACKLET_MC = 11,
                                          TPC_COMPRESSED_CL = 12 };
-  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters",
-                                                       "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters" };
+  static constexpr const char* const IOTYPENAMES[] = { "TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
+                                                       "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters" };
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);
@@ -136,8 +138,8 @@ class GPUReconstruction
   };
 
   // Global steering functions
-  template <class T>
-  T* AddChain();
+  template <class T, typename... Args>
+  T* AddChain(Args... args);
 
   int Init();
   int Finalize();
@@ -146,6 +148,7 @@ class GPUReconstruction
   void DumpSettings(const char* dir = "");
   void ReadSettings(const char* dir = "");
 
+  void PrepareEvent();
   virtual int RunChains() = 0;
 
   // Helpers for memory allocation
@@ -156,15 +159,16 @@ class GPUReconstruction
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
   size_t AllocateRegisteredMemory(short res);
   void* AllocateUnmanagedMemory(size_t size, int type);
-  void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false);
+  void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
-  void PrepareEvent();
+  void PrintMemoryStatistics();
+  GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
-  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>& trackerTraits, std::unique_ptr<o2::its::VertexerTraits>& vertexerTraits);
+  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
 
   // Getters / setters for parameters
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }
@@ -176,8 +180,8 @@ class GPUReconstruction
   bool IsInitialized() const { return mInitialized; }
   void SetSettings(float solenoidBz);
   void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsDeviceProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
-  void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; }
-  void SetDebugLevel(int level) { mDeviceProcessingSettings.debugLevel = level; }
+  void SetResetTimers(bool reset) { mDeviceProcessingSettings.resetTimers = reset; } // May update also after Init()
+  void SetDebugLevelTmp(int level) { mDeviceProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
@@ -200,6 +204,16 @@ class GPUReconstruction
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   virtual int InitDevice() = 0;
   virtual int ExitDevice() = 0;
+  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+
+  // Management for GPU thread contexts
+  class GPUThreadContext
+  {
+   public:
+    GPUThreadContext() = default;
+    virtual ~GPUThreadContext() = default;
+  };
+  virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
   size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
@@ -239,6 +253,7 @@ class GPUReconstruction
   GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at constructor level)
   GPUSettingsDeviceProcessing mDeviceProcessingSettings; // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                       // Controls the output of the individual components
+  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
@@ -291,7 +306,7 @@ class GPUReconstruction
     void* mGPULib;
     void* mGPUEntry;
   };
-  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
+  static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL, sLibOCL2;
 
  private:
   static GPUReconstruction* GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg);
@@ -308,10 +323,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   ptr = u.get();
 }
 
-template <class T>
-inline T* GPUReconstruction::AddChain()
+template <class T, typename... Args>
+inline T* GPUReconstruction::AddChain(Args... args)
 {
-  mChains.emplace_back(new T(this));
+  mChains.emplace_back(new T(this, args...));
   return (T*)mChains.back().get();
 }
 
@@ -367,8 +382,6 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
   int count;
   if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  } else if (type == CLUSTERS_NATIVE) {
-    count = NSLICES * GPUCA_ROW_COUNT;
   } else {
     count = 1;
   }
@@ -405,8 +418,6 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
   int count;
   if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  } else if (type == CLUSTERS_NATIVE) {
-    count = NSLICES * GPUCA_ROW_COUNT;
   } else {
     count = 1;
   }
@@ -421,7 +432,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
   }
   (void)r;
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d %s\n", (int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %d %s", (int)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -451,7 +462,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
-    printf("ERROR reading %s, invalid size: %lld (%lld expected)\n", file, (long long int)size[0], (long long int)sizeof(T));
+    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
     return nullptr;
   }
   std::unique_ptr<T> retVal(new T);
@@ -460,7 +471,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -498,7 +509,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
   return std::move(newObj);
 }
@@ -519,7 +530,7 @@ inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    printf("Read %d bytes from %s\n", (int)r, file);
+    GPUInfo("Read %d bytes from %s", (int)r, file);
   }
 }
 } // namespace gpu

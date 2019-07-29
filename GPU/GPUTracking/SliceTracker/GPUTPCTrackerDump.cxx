@@ -23,17 +23,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-void GPUTPCTracker::DumpOutput(FILE* out)
+void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
-  fprintf(out, "Slice %d\n", mISlice);
+  out << "Slice " << mISlice << "\n";
   const GPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
   for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
-    fprintf(out, "Track %u (%d): ", j, track->NClusters());
+    out << "Track " << j << " (" << track->NClusters() << "): ";
     for (int k = 0; k < track->NClusters(); k++) {
-      fprintf(out, "(%2.3f,%2.3f,%2.4f) ", track->Cluster(k).GetX(), track->Cluster(k).GetY(), track->Cluster(k).GetZ());
+      out << "(" << track->Cluster(k).GetX() << "," << track->Cluster(k).GetY() << "," << track->Cluster(k).GetZ() << ") ";
     }
-    fprintf(out, " - (%8.5f %8.5f %8.5f %8.5f %8.5f)", track->Param().Y(), track->Param().Z(), track->Param().SinPhi(), track->Param().DzDs(), track->Param().QPt());
-    fprintf(out, "\n");
+    out << " - (" << track->Param().Y() << " " << track->Param().Z() << " " << track->Param().SinPhi() << " " << track->Param().DzDs() << " " << track->Param().QPt() << "\n";
     track = track->GetNextTrack();
   }
 }
@@ -171,7 +170,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
             for (int k = tmpTracklets[i].FirstRow(); k <= tmpTracklets[i].LastRow(); k++) {
               const int pos = k * nTracklets + j;
               if (pos < 0 || pos >= (int)mNMaxTracklets * GPUCA_ROW_COUNT) {
-                printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
+                GPUError("internal error: invalid tracklet position k=%d j=%d pos=%d", k, j, pos);
               } else {
                 mTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
               }
@@ -194,7 +193,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     if (Tracklets()[j].NHits() == 0) {
       ;
     } else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT)) {
-      printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+      GPUError("Error: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
       out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
 // if (Tracklets()[j].RowHit(i) != CALINK_INVAL)

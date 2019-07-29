@@ -18,7 +18,6 @@
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
-#include "ClusterNativeAccessExt.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -51,13 +50,12 @@
 #include <vector>
 #include <xmmintrin.h>
 
+#include "GPUO2DataTypes.h"
 #ifdef HAVE_O2HEADERS
-#include "DataFormatsTPC/ClusterNative.h"
-#include "DataFormatsTPC/ClusterHardware.h"
 #include "GPUChainITS.h"
 #endif
 
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
 #include "GPUDisplayBackendWindows.h"
 #else
@@ -136,6 +134,7 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.fpe) {
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
+
 #else
   if (configStandalone.affinity != -1) {
     printf("Affinity setting not supported on Windows\n");
@@ -153,13 +152,13 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef HAVE_O2HEADERS
   configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = 0;
 #endif
-#ifndef BUILD_QA
+#ifndef GPUCA_BUILD_QA
   if (configStandalone.qa || configStandalone.eventGenerator) {
     printf("QA not enabled in build\n");
     return (1);
   }
 #endif
-#ifndef BUILD_EVENT_DISPLAY
+#ifndef GPUCA_BUILD_EVENT_DISPLAY
   if (configStandalone.eventDisplay) {
     printf("EventDisplay not enabled in build\n");
     return (1);
@@ -174,10 +173,12 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.configTF.nMerge) {
     double len = configStandalone.configTF.nMerge - 1;
-    if (configStandalone.configTF.randomizeDistance)
+    if (configStandalone.configTF.randomizeDistance) {
       len += 0.5;
-    if (configStandalone.configTF.shiftFirstEvent)
+    }
+    if (configStandalone.configTF.shiftFirstEvent) {
       len += 0.5;
+    }
     configStandalone.configTF.timeFrameLen = (len * configStandalone.configTF.averageDistance / GPUReconstructionTimeframe::TPCZ + 1) * GPUReconstructionTimeframe::DRIFT_TIME;
   }
   if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {
@@ -213,7 +214,7 @@ int ReadConfiguration(int argc, char** argv)
     outputmemory.reset(new char[configStandalone.outputcontrolmem]);
   }
 
-#if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL) || defined(BUILD_HIP))
+#if !(defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED))
   if (configStandalone.runGPU) {
     printf("GPU disables at build time!\n");
     printf("Press a key to exit!\n");
@@ -284,11 +285,12 @@ int SetupReconstruction()
     devProc.nThreads = configStandalone.OMPThreads;
   }
   devProc.deviceNum = configStandalone.cudaDevice;
+  devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
-#ifdef BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
       eventDisplay.reset(new GPUDisplayBackendWindows);
@@ -358,6 +360,12 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
+  if (configStandalone.configProc.recoSteps >= 0) {
+    steps.steps &= configStandalone.configProc.recoSteps;
+  }
+  if (configStandalone.configProc.recoStepsGPU >= 0) {
+    steps.stepsGPUMask &= configStandalone.configProc.recoStepsGPU;
+  }
 
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
@@ -400,10 +408,10 @@ int main(int argc, char** argv)
     printf("Error initializing GPUReconstruction\n");
     return (1);
   }
-  rec->SetDebugLevel(configStandalone.DebugLevel);
+  rec->SetDebugLevelTmp(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
 #ifdef HAVE_O2HEADERS
-  chainITS = rec->AddChain<GPUChainITS>();
+  chainITS = rec->AddChain<GPUChainITS>(0);
 #endif
 
   if (SetupReconstruction()) {
@@ -538,6 +546,9 @@ int main(int argc, char** argv)
               printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
           }
+          if (configStandalone.memoryStat) {
+            rec->PrintMemoryStatistics();
+          }
           rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {
@@ -559,19 +570,11 @@ int main(int argc, char** argv)
   }
 breakrun:
 
-  if (configStandalone.qa) {
 #ifndef _WIN32
-    if (configStandalone.fpe) {
-      fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
-    }
-
-#endif
-    if (chainTracking->GetQA() == nullptr) {
-      printf("QA Unavailable\n");
-      return 1;
-    }
-    chainTracking->GetQA()->DrawQAHistograms();
+  if (configStandalone.qa && configStandalone.fpe) {
+    fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
+#endif
 
   rec->Finalize();
   rec->Exit();

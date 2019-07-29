@@ -16,7 +16,7 @@
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
 #include "o2_sim_tpc.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::framework;
 using namespace o2::workflows;

@@ -16,9 +16,7 @@
 
 #include "GPUDisplayBackend.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplayBackendNone : public GPUDisplayBackend
 {
@@ -32,7 +30,6 @@ class GPUDisplayBackendNone : public GPUDisplayBackend
   void SetVSync(bool enable) override {}
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

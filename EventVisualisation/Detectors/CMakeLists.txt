@@ -1,20 +1,13 @@
-# @author  Jeremi Niedziela
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-set(MODULE_NAME "EventVisualisationDetectors")
-
-O2_SETUP(NAME ${MODULE_NAME})
-
-# Define the source and header files
-set(SRCS
-    src/DataInterpreterRND.cxx
-    )
-
-# HEADERS is not needed if we don't generate a dictionary.
-set(HEADERS
-    include/${MODULE_NAME}/DataInterpreterRND.h
-    )
-
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME event_visualisation_detectors_bucket)
-
-O2_GENERATE_LIBRARY()
+o2_add_library(EventVisualisationDetectors
+               SOURCES src/DataInterpreterRND.cxx
+               PUBLIC_LINK_LIBRARIES O2::EventVisualisationBase)

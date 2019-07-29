@@ -35,7 +35,7 @@ using namespace o2::mft;
 ClassImp(o2::mft::HalfCone);
 
 //_____________________________________________________________________________
-HalfCone::HalfCone() : TNamed(), mHalfCone(nullptr)
+HalfCone::HalfCone() : mHalfCone(nullptr)
 {
 
   // default constructor

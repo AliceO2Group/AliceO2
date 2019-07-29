@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# Ensure (part of) our executable naming convention
+# (see https://github.com/AliceO2Group/CodingGuidelines)
+#
+# what we test here is that all the names of the executables
+# in @CMAKE_INSTALL_PREFIX@/bin/ :
+# - are all lowercases
+# - contain no special character other than "-"
+# - start with o2- (or test)
+# - (unless it's a test) is of the form o2-xxx
+# where xxx is in a list of known sub-systems for the AliceO2 repository
+#
+
+RC=0
+
+error_msg() {
+  echo "ERROR: executable name $1 does not follow naming convention : $2" >&2
+  RC=1
+}
+
+warning_unknown_subsystem() {
+  echo "WARNING: in $1 the subsystem $2 is not in the list of know subsystem"
+}
+
+RE_IS_TEST="^o2-test"
+RE_IS_BENCH="^o2-bench"
+RE_START_WITH_O2_OR_TEST="^o2-"
+RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA="^[a-z0-9]([a-z0-9\.]+|-)+[a-z0-9]$"
+RE_SUBSYSTEM="(o2)-([a-z,0-9]+)+" # o2-subsystem
+
+KNOWN_GROUPS="alicehlt \
+analysis aod d0 simple \
+data datapublisher datasampling \
+ccdb \
+sim \
+eve example start \
+fake dummy diamond parallel \
+fit its mch mid tpc \
+tpcits \
+flp heartbeat message epn \
+mergers \
+subframebuilder sync timeframe framework"
+
+[[ -d @CMAKE_RUNTIME_OUTPUT_DIRECTORY@ ]] || exit 0
+
+cd @CMAKE_RUNTIME_OUTPUT_DIRECTORY@
+
+for F in *; do
+  [[ -x $F && -f $F ]] || continue
+  [[ $F =~ $RE_IS_TEST ]] && continue # convention for tests is yet to come
+  [[ $F =~ $RE_IS_BENCH ]] && continue # convention for tests is yet to come
+  [[ ! $F =~ $RE_START_WITH_O2_OR_TEST ]] && error_msg $F "does not start with o2-"
+  [[ ! $F =~ $RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA ]] && error_msg $F "should only contains lowercase letters, numbers, or dashes"
+  [[ $F =~ $RE_SUBSYSTEM ]] && SUBSYSTEM=${BASH_REMATCH[2]}
+  [[ ! " $KNOWN_GROUPS " =~  .*\ $SUBSYSTEM\ .* ]] && warning_unknown_subsystem $F $SUBSYSTEM
+done
+
+exit $RC
+
