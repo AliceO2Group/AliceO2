@@ -11,7 +11,7 @@
 o2_add_library(FDDSimulation
                SOURCES src/Detector.cxx
 	       	       src/Digitizer.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FDDBase
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FDDBase O2::DataFormatsFDD
                                      ROOT::Physics)
 
 o2_target_root_dictionary(FDDSimulation

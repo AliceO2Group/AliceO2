@@ -35,7 +35,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelData> channelData, Double_t time, uint16_t bc, uint32_t orbit, std::vector<Bool_t> triggers)
+  Digit(std::vector<ChannelData> const& channelData, Double_t time, uint16_t bc, uint32_t orbit, std::vector<Bool_t> triggers)
   {
     SetChannelData(std::move(channelData));
     SetTime(time);
