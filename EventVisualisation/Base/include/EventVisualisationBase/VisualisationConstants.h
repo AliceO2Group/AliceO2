@@ -11,6 +11,7 @@
 ///
 /// \file    VisualisationConstants.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
 ///
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONCONSTANTS_H
@@ -21,7 +22,7 @@
 namespace o2  {
 namespace event_visualisation {
 
-enum EVisualisationGroup{
+enum EVisualisationGroup {
   ACO,
   EMC,
   HMP,
@@ -35,6 +36,7 @@ enum EVisualisationGroup{
   TPC,
   TRD,
   RND,
+  VSD,
   NvisualisationGroups
 };
   
@@ -54,7 +56,7 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "RND"
 };
   
-enum EDataType{
+enum EVisualisationDataType{
   Raw,      ///< Raw data
   Hits,     ///< Hits
   Digits,   ///< Digits

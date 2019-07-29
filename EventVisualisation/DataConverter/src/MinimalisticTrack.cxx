@@ -45,12 +45,12 @@ MinimalisticTrack::MinimalisticTrack(
 mCharge(charge),
 mEnergy(energy),
 mParentID(parentID),
-mMass(mass),
 mPID(PID),
 mSignedPT(signedPT),
-mPhi(phi),
+mMass(mass),
+mHelixCurvature(helixCurvature),
 mTheta(theta),
-mHelixCurvature(helixCurvature)
+mPhi(phi)
 {
   addMomentum(pxpypz);
   addStartCoordinates(startXYZ);
