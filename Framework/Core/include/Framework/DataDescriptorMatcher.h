@@ -111,6 +111,12 @@ class ValueHolder
   template <typename V>
   friend std::ostream& operator<<(std::ostream& os, ValueHolder<V> const& holder);
 
+  template <typename VISITOR>
+  decltype(auto) visit(VISITOR visitor) const
+  {
+    return std::visit(visitor, mValue);
+  }
+
  protected:
   std::variant<T, ContextRef> mValue;
 };
@@ -243,6 +249,7 @@ class DataDescriptorMatcher
   /// FIXME: these are not really part of the DataDescriptorMatcher API
   /// and should really be relegated to external helpers...
   bool match(ConcreteDataMatcher const& matcher, VariableContext& context) const;
+  bool match(ConcreteDataTypeMatcher const& matcher, VariableContext& context) const;
   bool match(header::DataHeader const& header, VariableContext& context) const;
   bool match(header::Stack const& stack, VariableContext& context) const;
 

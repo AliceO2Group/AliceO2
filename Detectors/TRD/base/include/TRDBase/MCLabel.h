@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// Declaration of a transient MC label class for ZDC
+// Declaration of a transient MC label class for TRD
 
 #ifndef ALICEO2_TRD_MCLABEL_H_
 #define ALICEO2_TRD_MCLABEL_H_
@@ -28,7 +28,7 @@ class MCLabel : public o2::MCCompLabel
  public:
   MCLabel() = default;
   MCLabel(int trackID, int eventID, int srcID, int isDigit)
-    : o2::MCCompLabel(trackID, eventID, srcID), mIsDigit(isDigit) {}
+    : o2::MCCompLabel(trackID, eventID, srcID, false), mIsDigit(isDigit) {}
   int isDigit() const { return mIsDigit; }
 
   ClassDefNV(MCLabel, 1);

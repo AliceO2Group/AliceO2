@@ -36,7 +36,6 @@
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
-#include "GPUChainTracking.h"
 #include "GPUChainITS.h"
 using namespace o2::gpu;
 
@@ -51,10 +50,10 @@ void run_trac_ca_its(bool useITSVertex = false,
                      std::string paramfilename = "o2sim_par.root")
 {
 
-  gSystem->Load("libITStracking.so");
+  gSystem->Load("libO2ITStracking.so");
 
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  auto* chainTracking = rec->AddChain<GPUChainTracking>();
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 
@@ -146,7 +145,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
-    o2::its::IOUtils::loadROFrameData(rof, event, clusters, labels);
+    o2::its::ioutils::loadROFrameData(rof, event, clusters, labels);
     if (useITSVertex) {
       vertexer.initialiseVertexer(&event);
 

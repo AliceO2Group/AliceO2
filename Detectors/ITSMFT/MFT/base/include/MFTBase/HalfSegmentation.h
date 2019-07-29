@@ -28,7 +28,7 @@ namespace mft
 {
 class HalfDiskSegmentation;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -46,7 +46,7 @@ class HalfSegmentation : public VSegmentation
   ~HalfSegmentation() override;
   void Clear(const Option_t* /*opt*/) override;
 
-  Bool_t getID() const { return (GetUniqueID() >> 12); };
+  // Bool_t getID() const { return (GetUniqueID() >> 12); };
 
   Int_t getNHalfDisks() const { return mHalfDisks->GetEntries(); }
 
@@ -66,7 +66,7 @@ class HalfSegmentation : public VSegmentation
 
   ClassDefOverride(HalfSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

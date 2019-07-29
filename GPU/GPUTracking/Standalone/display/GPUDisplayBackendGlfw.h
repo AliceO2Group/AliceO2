@@ -19,9 +19,7 @@
 
 struct GLFWwindow;
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
@@ -59,7 +57,6 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   int mWindowWidth = INIT_WIDTH;
   int mWindowHeight = INIT_HEIGHT;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

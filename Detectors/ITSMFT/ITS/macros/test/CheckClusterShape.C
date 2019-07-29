@@ -13,7 +13,6 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTBase/Digit.h"
-#include "TPCSimulation/Point.h"
 #include "ITSMFTSimulation/ClusterShape.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

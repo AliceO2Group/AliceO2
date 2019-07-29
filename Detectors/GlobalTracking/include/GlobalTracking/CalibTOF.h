@@ -20,9 +20,9 @@
 #include <vector>
 #include <string>
 #include <TStopwatch.h>
-#include "ReconstructionDataFormats/CalibInfoTOFshort.h"
-#include "ReconstructionDataFormats/CalibLHCphaseTOF.h"
-#include "ReconstructionDataFormats/CalibTimeSlewingParamTOF.h"
+#include "DataFormatsTOF/CalibInfoTOFshort.h"
+#include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
 #include "TH1D.h"

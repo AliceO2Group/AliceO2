@@ -14,7 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::event_visualisation::MultiView;
-#pragma link C++ class o2::event_visualisation::Initializer;
+#pragma link C++ class o2::event_visualisation::MultiView +;
+#pragma link C++ class o2::event_visualisation::Initializer +;
+#pragma link C++ class o2::event_visualisation::EventManagerFrame +;
 
 #endif

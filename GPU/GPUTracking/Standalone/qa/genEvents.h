@@ -23,7 +23,7 @@ namespace gpu
 class GPUChainTracking;
 struct GPUParam;
 class GPUTPCGMPhysicalTrackModel;
-#if !defined(BUILD_QA) || defined(_WIN32)
+#if !defined(GPUCA_BUILD_QA) || defined(_WIN32)
 class genEvents
 {
  public:

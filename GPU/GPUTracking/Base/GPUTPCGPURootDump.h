@@ -14,7 +14,7 @@
 #ifndef GPUTPCGPUROOTDUMP_H
 #define GPUTPCGPUROOTDUMP_H
 
-#if (!defined(GPUCA_STANDALONE) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_QA)) && !defined(GPUCA_GPUCODE)
 #include <TTree.h>
 #include <TFile.h>
 #include <TNtuple.h>

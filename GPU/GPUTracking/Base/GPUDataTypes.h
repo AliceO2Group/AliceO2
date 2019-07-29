@@ -26,7 +26,7 @@ namespace o2
 {
 namespace tpc
 {
-struct ClusterNativeAccessFullTPC;
+struct ClusterNativeAccess;
 template <class T>
 struct CompressedClustersPtrs_helper;
 struct CompressedClustersCounters;
@@ -51,7 +51,7 @@ namespace gpu
 #endif
 
 #ifdef __OPENCL__
-MEM_CLASS_PRE()
+MEM_CLASS_PRE() // Macro with some template magic for OpenCL 1.2
 #endif
 class GPUTPCTrack;
 class GPUTPCHitId;
@@ -60,7 +60,6 @@ struct GPUTPCGMMergedTrackHit;
 class GPUTRDTrackletWord;
 class GPUTPCMCInfo;
 struct GPUTPCClusterData;
-struct ClusterNativeAccessExt;
 struct GPUTRDTrackletLabels;
 
 class GPUDataTypes
@@ -100,6 +99,7 @@ class GPUDataTypes
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 struct GPURecoStepConfiguration {
   GPUDataTypes::RecoStepField steps = 0;
+  GPUDataTypes::RecoStepField stepsGPUMask = GPUDataTypes::RecoStep::AllRecoSteps;
   GPUDataTypes::InOutTypeField inputs = 0;
   GPUDataTypes::InOutTypeField outputs = 0;
 };
@@ -113,7 +113,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nClusterData[NSLICES] = { 0 };
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
   unsigned int nRawClusters[NSLICES] = { 0 };
-  const o2::tpc::ClusterNativeAccessFullTPC* clustersNative = nullptr;
+  const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
   const GPUTPCTrack* sliceOutTracks[NSLICES] = { nullptr };
   unsigned int nSliceOutTracks[NSLICES] = { 0 };
   const GPUTPCHitId* sliceOutClusters[NSLICES] = { nullptr };

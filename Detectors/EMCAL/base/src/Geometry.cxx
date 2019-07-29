@@ -760,6 +760,40 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
   return GetAbsCellId(nSupMod, std::get<2>(indexmod), nIphi, nIeta);
 }
 
+std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
+{
+  auto indexes = GetCellIndex(cellID);
+  auto supermodule = std::get<0>(indexes),
+       module = std::get<1>(indexes),
+       nPhiInMod = std::get<2>(indexes),
+       nEtaInMod = std::get<3>(indexes);
+  auto rcSupermodule = GetCellPhiEtaIndexInSModule(supermodule, nPhiInMod, nPhiInMod, nEtaInMod);
+  auto row = std::get<0>(rcSupermodule),
+       col = std::get<1>(rcSupermodule);
+  // add offsets (row / col per supermodule)
+  if (supermodule % 2)
+    col += mNZ * 2;
+  int sector = supermodule / 2;
+  if (sector > 0) {
+    for (int isec = 0; isec < sector - 1; isec++) {
+      auto smtype = GetSMType(isec * 2);
+      auto nphism = (smtype == EMCAL_THIRD || smtype == DCAL_EXT) ? GetNPhi() / 3 : GetNPhi();
+      row += 2 * nphism;
+    }
+  }
+  return std::make_tuple(row, col);
+}
+
+int Geometry::GlobalCol(int cellID) const
+{
+  return std::get<1>(GlobalRowColFromIndex(cellID));
+}
+
+int Geometry::GlobalRow(int cellID) const
+{
+  return std::get<0>(GlobalRowColFromIndex(cellID));
+}
+
 Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
 {
   if (TMath::Abs(eta) > mEtaMaxOfTRD1)
@@ -900,8 +934,8 @@ std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_
   return std::make_tuple(int(nModule % nphi), int(nModule / nphi));
 }
 
-std::tuple<double, double> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi,
-                                                                 Int_t nIeta) const
+std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi,
+                                                           Int_t nIeta) const
 {
   auto indices = GetModulePhiEtaIndexInSModule(nSupMod, nModule);
   Int_t iphim = std::get<0>(indices), ietam = std::get<1>(indices);

@@ -28,13 +28,13 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
-#include "ClusterNativeAccessExt.h"
 #include "GPUTRDTrackletLabels.h"
 #include "GPUDisplay.h"
 #include "GPUQA.h"
 #include "GPUTPCClusterStatistics.h"
 #include "GPULogging.h"
 #include "GPUReconstructionConvert.h"
+#include "GPUMemorySizeScalers.h"
 
 #include "TPCFastTransform.h"
 
@@ -42,32 +42,15 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifdef HAVE_O2HEADERS
-#include "TRDBase/TRDGeometryFlat.h"
-#include "DetectorsBase/MatLayerCylSet.h"
-#else
-namespace o2
-{
-namespace trd
-{
-class TRDGeometryFlat
-{
-};
-} // namespace trd
-namespace base
-{
-class MatLayerCylSet
-{
-};
-} // namespace base
-} // namespace o2
-#endif
+#include "GPUO2DataTypes.h"
+
+using namespace o2::tpc;
 using namespace o2::trd;
 
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-GPUChainTracking::GPUChainTracking(GPUReconstruction* rec) : GPUChain(rec), mClusterNativeAccess(new ClusterNativeAccessExt)
+GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits, unsigned int maxTRDTracklets) : GPUChain(rec), mClusterNativeAccess(new ClusterNativeAccess), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets)
 {
   mFlatObjectsShadow.mChainTracking = this;
   mFlatObjectsDevice.mChainTracking = this;
@@ -81,16 +64,27 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   mFlatObjectsDevice.InitGPUProcessor(mRec, GPUProcessor::PROCESSOR_TYPE_DEVICE, &mFlatObjectsShadow);
   mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &GPUTrackingFlatObjects::SetPointersFlatObjects, GPUMemoryResource::MEMORY_PERMANENT, "Processors");
 
-  for (unsigned int i = 0; i < NSLICES; i++) {
-    mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+  if (GetRecoSteps() & RecoStep::TPCSliceTracking) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      mRec->RegisterGPUProcessor(&processors()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+    }
   }
-  processors()->tpcMerger.SetTrackingChain(this);
-  mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
-  processors()->trdTracker.SetTrackingChain(this);
-  mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+  if (GetRecoSteps() & RecoStep::TPCMerging) {
+    processors()->tpcMerger.SetTrackingChain(this);
+    mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
+  }
+  if (GetRecoSteps() & RecoStep::TRDTracking) {
+    processors()->trdTracker.SetTrackingChain(this);
+    mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+  }
 #ifdef HAVE_O2HEADERS
-  mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
-  mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
+  if (GetRecoSteps() & RecoStep::TPCConversion) {
+    mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
+  }
+  if (GetRecoSteps() & RecoStep::TPCCompression) {
+    mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
+  }
+
 #endif
   mRec->AddGPUEvents(mEvents);
 }
@@ -155,10 +149,7 @@ bool GPUChainTracking::ValidateSteps()
     return false;
   }
 #endif
-  if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion) ||
-       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) ||
-       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) ||
-       (GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx)) &&
+  if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx)) &&
       !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters)) {
     printf("Invalid Inputs, TPC Clusters required\n");
     return false;
@@ -260,9 +251,8 @@ int GPUChainTracking::Init()
 
 int GPUChainTracking::PrepareEvent()
 {
-  int offset = 0;
   if (mIOPtrs.clustersNative) {
-    o2::tpc::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
+    ClusterNativeAccess* tmp = mClusterNativeAccess.get();
     if (tmp != mIOPtrs.clustersNative) {
       *tmp = *mIOPtrs.clustersNative;
     }
@@ -270,21 +260,21 @@ int GPUChainTracking::PrepareEvent()
     processors()->tpcConverter.mClustersNative = mClusterNativeAccess.get();
 
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      int nCl = 0;
-      for (unsigned int k = 0; k < o2::tpc::Constants::MAXGLOBALPADROW; k++) {
-        nCl += mIOPtrs.clustersNative->nClusters[iSlice][k];
-      }
-      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, nCl, offset);
-      offset += nCl;
+      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[iSlice], mIOPtrs.clustersNative->clusterOffset[iSlice][0]);
     }
+    processors()->tpcCompressor.mMaxClusters = mIOPtrs.clustersNative->nClustersTotal;
+    mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
   } else {
+    int offset = 0;
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       processors()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
       offset += mIOPtrs.nClusterData[iSlice];
     }
+    processors()->tpcCompressor.mMaxClusters = offset;
+    mRec->MemoryScalers()->nTPCHits = offset;
   }
-  printf("Event has %d TPC Clusters\n", offset);
-  processors()->tpcCompressor.mMaxClusters = offset;
+  mRec->MemoryScalers()->nTRDTracklets = mIOPtrs.nTRDTracklets;
+  printf("Event has %d TPC Clusters\n", processors()->tpcCompressor.mMaxClusters);
 
   if (mRec->IsGPU()) {
     memcpy((void*)processorsShadow(), (const void*)processors(), sizeof(*processors()));
@@ -295,6 +285,9 @@ int GPUChainTracking::PrepareEvent()
 
 int GPUChainTracking::Finalize()
 {
+  if (GetDeviceProcessingSettings().runQA && mQAInitialized) {
+    mQA->DrawQAHistograms();
+  }
   if (GetDeviceProcessingSettings().debugLevel >= 4) {
     mDebugFile.close();
   }
@@ -339,9 +332,7 @@ void GPUChainTracking::AllocateIOMemory()
     AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
     AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
   }
-  for (unsigned int i = 0; i < NSLICES * GPUCA_ROW_COUNT; i++) {
-    AllocateIOMemoryHelper((&mClusterNativeAccess->nClusters[0][0])[i], (&mClusterNativeAccess->clusters[0][0])[i], mIOMem.clustersNative[i]);
-  }
+  AllocateIOMemoryHelper(mClusterNativeAccess->nClustersTotal, mClusterNativeAccess->clustersLinear, mIOMem.clustersNative);
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
   AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
@@ -368,7 +359,8 @@ void GPUChainTracking::DumpData(const char* filename)
   DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
   if (mIOPtrs.clustersNative) {
-    DumpData(fp, &mIOPtrs.clustersNative->clusters[0][0], &mIOPtrs.clustersNative->nClusters[0][0], InOutPointerType::CLUSTERS_NATIVE);
+    DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE);
+    fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
   }
   DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
   DumpData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
@@ -440,7 +432,6 @@ int GPUChainTracking::ReadData(const char* filename)
     fclose(fp);
     return 1;
   }
-  (void)r;
   ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
   int nClustersTotal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -449,7 +440,13 @@ int GPUChainTracking::ReadData(const char* filename)
     }
   }
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
-  mIOPtrs.clustersNative = ReadData<o2::tpc::ClusterNative>(fp, (const o2::tpc::ClusterNative**)&mClusterNativeAccess->clusters[0][0], &mClusterNativeAccess->nClusters[0][0], mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE) ? mClusterNativeAccess.get() : nullptr;
+#ifdef HAVE_O2HEADERS
+  if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
+    mIOPtrs.clustersNative = mClusterNativeAccess.get();
+    r = fread(&mClusterNativeAccess->nClusters[0][0], sizeof(mClusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
+    mClusterNativeAccess->setOffsetPtrs();
+  }
+#endif
   ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
   ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -460,6 +457,7 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
   ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
   fclose(fp);
+  (void)r;
 
   return (0);
 }
@@ -510,13 +508,13 @@ void GPUChainTracking::ReadSettings(const char* dir)
 int GPUChainTracking::ConvertNativeToClusterData()
 {
 #ifdef HAVE_O2HEADERS
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCConversion);
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
   GPUTPCConvert& convert = processors()->tpcConverter;
   GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
-  ClusterNativeAccessExt* tmpExt = mClusterNativeAccess.get();
+  ClusterNativeAccess* tmpExt = mClusterNativeAccess.get();
   convert.set(tmpExt, mTPCFastTransform);
   SetupGPUProcessor(&convert, false);
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
@@ -524,8 +522,8 @@ int GPUChainTracking::ConvertNativeToClusterData()
     *convert.mClustersNativeBuffer = *mClusterNativeAccess.get();
     for (unsigned int i = 0; i < NSLICES; i++) {
       convert.mMemory->clusters[i] = convertShadow.mClusters + tmpExt->clusterOffset[i][0];
-      for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
-        o2::tpc::ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
+      for (unsigned int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+        ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
         convert.mClustersNativeBuffer->clusters[i][j] = ptr;
         mRec->GPUMemCpy(ptr, mClusterNativeAccess->clusters[i][j], sizeof(mClusterNativeAccess->clusters[i][j][0]) * mClusterNativeAccess->nClusters[i][j], 0, true);
       }
@@ -547,15 +545,13 @@ int GPUChainTracking::ConvertNativeToClusterData()
     mIOPtrs.clusterData[i] = convert.mClusters + mClusterNativeAccess->clusterOffset[i][0];
     processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], mClusterNativeAccess->clusterOffset[i][0]);
   }
-
-  ReleaseThreadContext();
 #endif
   return 0;
 }
 
 void GPUChainTracking::ConvertNativeToClusterDataLegacy()
 {
-  o2::tpc::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
+  ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   if (tmp != mIOPtrs.clustersNative) {
     *tmp = *mIOPtrs.clustersNative;
   }
@@ -564,15 +560,13 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
     mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
   }
   mIOPtrs.clustersNative = nullptr;
-  for (unsigned int i = 0; i < NSLICES * GPUCA_ROW_COUNT; i++) {
-    mIOMem.clustersNative[i].reset(nullptr);
-  }
+  mIOMem.clustersNative.reset(nullptr);
   memset((void*)mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
 }
 
 void GPUChainTracking::ConvertRun2RawToNative()
 {
-  GPUReconstructionConvert::ConvertRun2RawToNative(mClusterNativeAccess.get(), mIOMem.clustersNative, mIOPtrs.rawClusters, mIOPtrs.nRawClusters);
+  GPUReconstructionConvert::ConvertRun2RawToNative(*mClusterNativeAccess, mIOMem.clustersNative, mIOPtrs.rawClusters, mIOPtrs.nRawClusters);
   for (unsigned int i = 0; i < NSLICES; i++) {
     mIOPtrs.rawClusters[i] = nullptr;
     mIOPtrs.nRawClusters[i] = 0;
@@ -681,7 +675,7 @@ int GPUChainTracking::RunTPCTrackingSlices()
     return (1);
   }
 
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCSliceTracking);
 
   int retVal = RunTPCTrackingSlices_internal();
@@ -691,7 +685,6 @@ int GPUChainTracking::RunTPCTrackingSlices()
   if (retVal >= 2) {
     ResetHelperThreads(retVal >= 3);
   }
-  ReleaseThreadContext();
   return (retVal != 0);
 }
 
@@ -730,7 +723,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       return 2;
     }
 
-    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), mRec->NStreams() - 1);
     WriteToConstantMemory((char*)processors()->tpcTrackers - (char*)processors(), processorsShadow()->tpcTrackers, sizeof(GPUTPCTracker) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
 
     for (int i = 0; i < mRec->NStreams() - 1; i++) {
@@ -793,7 +785,11 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (GetDeviceProcessingSettings().debugLevel >= 3) {
       GPUInfo("Copying Slice Data to GPU and initializing temporary memory");
     }
-    runKernel<GPUMemClean16>({ BlockCount(), ThreadCount(), useStream }, &timerTPCtracking[iSlice][5], krnlRunRangeNone, {}, trkShadow.Data().HitWeights(), trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
+    if (GetDeviceProcessingSettings().keepAllMemory) {
+      memset((void*)trk.Data().HitWeights(), 0, trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
+    } else {
+      runKernel<GPUMemClean16>({ BlockCount(), ThreadCount(), useStream }, &timerTPCtracking[iSlice][5], krnlRunRangeNone, {}, trkShadow.Data().HitWeights(), trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
+    }
 
     // Copy Data to GPU Global Memory
     timerTPCtracking[iSlice][0].Start();
@@ -851,8 +847,8 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
     if (!doGPU || GetDeviceProcessingSettings().trackletConstructorInPipeline) {
       runKernel<GPUTPCTrackletConstructor>({ ConstructorBlockCount(), ConstructorThreadCount(), useStream }, &timerTPCtracking[iSlice][6], { iSlice });
-      if (GetDeviceProcessingSettings().debugLevel >= 3) {
-        printf("Slice %u, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
+      if (GetDeviceProcessingSettings().debugLevel >= 4) {
+        TransferMemoryResourcesToHost(&trk, -1, true);
       }
       if (GetDeviceProcessingSettings().debugMask & 128) {
         trk.DumpTrackletHits(mDebugFile);
@@ -868,6 +864,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       streamMap[iSlice] = useStream;
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         printf("Slice %u, Number of tracks: %d\n", iSlice, *trk.NTracks());
+      }
+      if (GetDeviceProcessingSettings().debugLevel >= 4) {
+        TransferMemoryResourcesToHost(&trk, -1, true);
       }
       if (GetDeviceProcessingSettings().debugMask & 512) {
         trk.DumpTrackHits(mDebugFile);
@@ -974,11 +973,15 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
       if (GetDeviceProcessingSettings().keepAllMemory) {
         TransferMemoryResourcesToHost(&processors()->tpcTrackers[iSlice], -1, true);
-        if (GetDeviceProcessingSettings().debugMask & 256 && !GetDeviceProcessingSettings().comparableDebutOutput) {
-          processors()->tpcTrackers[iSlice].DumpHitWeights(mDebugFile);
+        if (!GetDeviceProcessingSettings().trackletConstructorInPipeline) {
+          if (GetDeviceProcessingSettings().debugMask & 256 && !GetDeviceProcessingSettings().comparableDebutOutput) {
+            processors()->tpcTrackers[iSlice].DumpHitWeights(mDebugFile);
+          }
         }
-        if (GetDeviceProcessingSettings().debugMask & 512) {
-          processors()->tpcTrackers[iSlice].DumpTrackHits(mDebugFile);
+        if (!GetDeviceProcessingSettings().trackletSelectorInPipeline) {
+          if (GetDeviceProcessingSettings().debugMask & 512) {
+            processors()->tpcTrackers[iSlice].DumpTrackHits(mDebugFile);
+          }
         }
       }
 
@@ -1070,13 +1073,14 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     WaitForHelperThreads();
   } else {
     mSliceOutputReady = NSLICES;
-    if (param().rec.GlobalTracking) {
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+#ifdef GPUCA_HAVE_OPENMP
+#pragma omp parallel for num_threads(doGPU ? 1 : GetDeviceProcessingSettings().nThreads)
+#endif
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
       }
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        WriteOutput(iSlice, 0);
-      }
+      WriteOutput(iSlice, 0);
     }
   }
 
@@ -1098,9 +1102,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   }
 
-  if (GetDeviceProcessingSettings().debugMask & 1024) {
+  if (GetDeviceProcessingSettings().debugMask & 1024 && !GetDeviceProcessingSettings().comparableDebutOutput) {
     for (unsigned int i = 0; i < NSLICES; i++) {
-      processors()->tpcTrackers[i].DumpOutput(stdout);
+      processors()->tpcTrackers[i].DumpOutput(mDebugFile);
     }
   }
   if (DoProfile()) {
@@ -1129,7 +1133,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("Running TPC Merger");
   }
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCMerging);
 
   HighResTimer timer;
@@ -1217,7 +1221,6 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
-  ReleaseThreadContext();
   return 0;
 }
 
@@ -1227,7 +1230,7 @@ int GPUChainTracking::RunTPCCompression()
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   mRec->SetThreadCounts(RecoStep::TPCCompression);
 
   Compressor.mMerger = &processors()->tpcMerger;
@@ -1298,8 +1301,6 @@ int GPUChainTracking::RunTPCCompression()
   SynchronizeGPU();
 
   mIOPtrs.tpcCompressedClusters = &Compressor.mOutput;
-
-  ReleaseThreadContext();
 #endif
   return 0;
 }
@@ -1366,7 +1367,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   GPUTRDTracker& Tracker = processors()->trdTracker;
   GPUTRDTracker& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
 
-  ActivateThreadContext();
+  const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
   TrackerShadow.SetGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mTrdGeometry));
 
@@ -1383,7 +1384,6 @@ int GPUChainTracking::DoTRDGPUTracking()
     GPUInfo("GPU TRD tracker Finished");
   }
 
-  ReleaseThreadContext();
 #endif
   return (0);
 }
@@ -1559,6 +1559,8 @@ int GPUChainTracking::RunChain()
 
     mEventDisplay->WaitForNextEvent();
   }
+
+  //PrintMemoryRelations();
   return 0;
 }
 

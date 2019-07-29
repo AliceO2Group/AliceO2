@@ -16,6 +16,8 @@
 
 #include "Framework/TableBuilder.h"
 #include "Framework/TableConsumer.h"
+#include "Framework/DataAllocator.h"
+#include "Framework/OutputRoute.h"
 #include <arrow/table.h>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -24,17 +26,9 @@
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <arrow/ipc/reader.h>
+#include "../src/ArrowDebugHelpers.h"
 
 using namespace o2::framework;
-
-template class std::shared_ptr<arrow::Schema>;
-template class std::shared_ptr<arrow::Column>;
-template class std::vector<std::shared_ptr<arrow::Column>>;
-template class std::shared_ptr<arrow::Array>;
-template class std::vector<std::shared_ptr<arrow::Field>>;
-template class std::shared_ptr<arrow::ChunkedArray>;
-template class std::shared_ptr<arrow::Table>;
-template class std::shared_ptr<arrow::Field>;
 
 BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
@@ -246,4 +240,15 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
     BOOST_CHECK_EQUAL(row.y(), i);
     ++i;
   }
+}
+
+BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
+{
+  TimingInfo* timingInfo = nullptr;
+  ContextRegistry* contextes = nullptr;
+  std::vector<OutputRoute> routes;
+  DataAllocator allocator(timingInfo, contextes, routes);
+  const Output output{ "TST", "DUMMY", 0, Lifetime::Timeframe };
+  // we require reference to object owned by allocator context
+  static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);
 }

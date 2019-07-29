@@ -24,7 +24,6 @@
 using namespace o2::gpu;
 
 #include "DataFormatsTPC/ClusterNative.h"
-#include "ClusterNativeAccessExt.h"
 
 GPUTPCO2Interface::GPUTPCO2Interface() = default;
 
@@ -39,7 +38,11 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mDumpEvents = mConfig->configInterface.dumpEvents;
   mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
   mRec.reset(GPUReconstruction::CreateInstance(mConfig->configProcessing));
-  mChain = mRec->AddChain<GPUChainTracking>();
+  if (mRec == nullptr) {
+    printf("Error obtaining instance of GPUReconstruction\n");
+    return 1;
+  }
+  mChain = mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);
@@ -84,7 +87,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   mRec->RunChains();
   *data = mChain->mIOPtrs;
 
-  const ClusterNativeAccessExt* ext = mChain->GetClusterNativeAccessExt();
+  const o2::tpc::ClusterNativeAccess* ext = mChain->GetClusterNativeAccess();
   for (int i = 0; i < data->nMergedTrackHits; i++) {
     GPUTPCGMMergedTrackHit& cl = (GPUTPCGMMergedTrackHit&)data->mergedTrackHits[i];
     cl.num -= ext->clusterOffset[cl.slice][cl.row];
@@ -94,10 +97,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   return (0);
 }
 
-void GPUTPCO2Interface::Clear(bool clearOutputs)
-{
-  mRec->ClearAllocatedMemory(clearOutputs);
-}
+void GPUTPCO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(clearOutputs); }
 
 void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {

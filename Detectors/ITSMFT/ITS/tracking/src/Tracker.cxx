@@ -59,9 +59,10 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
       /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
+      int pass = iteration + iVertex; /// Do not reinitialise the context if we analyse pile-up events
       std::array<float, 3> pV = { event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z };
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
-                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, iteration);
+                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, pass);
       total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
@@ -448,12 +449,15 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
     return;
   }
 
+  mPrimaryVertexContext->initialiseRoadLabels();
+
   int roadsNum{ static_cast<int>(mPrimaryVertexContext->getRoads().size()) };
 
   for (int iRoad{ 0 }; iRoad < roadsNum; ++iRoad) {
 
     Road& currentRoad{ mPrimaryVertexContext->getRoads()[iRoad] };
-    int maxOccurrencesValue{ constants::its::UnusedIndex };
+    MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
+                                     constants::its::UnusedIndex, false };
     int count{ 0 };
     bool isFakeRoad{ false };
     bool isFirstRoadCell{ true };
@@ -475,7 +479,7 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
 
         const int cl0index{ mPrimaryVertexContext->getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId };
         auto& cl0labs{ event.getClusterLabels(iCell, cl0index) };
-        maxOccurrencesValue = cl0labs.getTrackID();
+        maxOccurrencesValue = cl0labs;
         count = 1;
 
         const int cl1index{
@@ -514,8 +518,7 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
     }
 
-    currentRoad.setLabel(maxOccurrencesValue);
-    currentRoad.setFakeRoad(isFakeRoad);
+    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
   }
 }
 
@@ -531,7 +534,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
   for (auto& track : mTracks) {
 
     MCCompLabel maxOccurrencesValue{ constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                     constants::its::UnusedIndex };
+                                     constants::its::UnusedIndex, false };
     int count{ 0 };
     bool isFakeTrack{ false };
 
@@ -558,9 +561,9 @@ void Tracker::computeTracksMClabels(const ROframe& event)
       track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
 
-    if (isFakeTrack)
-      maxOccurrencesValue.set(-maxOccurrencesValue.getTrackID(), maxOccurrencesValue.getEventID(),
-                              maxOccurrencesValue.getSourceID());
+    if (isFakeTrack) {
+      maxOccurrencesValue.setFakeFlag();
+    }
     mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
   }
 }
@@ -583,14 +586,14 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = MathUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = MathUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-  const float tgl12 = MathUtils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = MathUtils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+  const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+  const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
   const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
   const float& tz = fy;
-  const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
+  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
                    (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
                    20.f; // FIXME: MS contribution to the cov[14] (*20 added)
   constexpr float s2 = constants::its::Resolution * constants::its::Resolution;

@@ -62,6 +62,10 @@ struct GPUO2InterfaceConfiguration {
   // Settings for the Interface class
   struct GPUInterfaceSettings {
     bool dumpEvents = false;
+    // These constants affect GPU memory allocation and do not limit the CPU processing
+    unsigned int maxTPCHits = 1024 * 1024 * 1024;
+    unsigned int maxTRDTracklets = 128 * 1024;
+    unsigned int maxITSTracks = 96 * 1024;
   };
 
   GPUSettingsProcessing configProcessing;
@@ -88,7 +92,7 @@ struct GPUO2InterfaceConfiguration {
 // location if it is not a nullptr.
 struct GPUO2InterfaceIOPtrs {
   // TPC clusters in cluster native format, const as it can only be input
-  const o2::tpc::ClusterNativeAccessFullTPC* clusters = nullptr;
+  const o2::tpc::ClusterNativeAccess* clusters = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
   std::vector<o2::tpc::TrackTPC>* outputTracks = nullptr;
