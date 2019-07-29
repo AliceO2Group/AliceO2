@@ -63,7 +63,6 @@ find_package(Boost 1.59
                         log_setup
                         unit_test_framework
                         date_time
-                        signals
                         iostreams)
 set_package_properties(Boost PROPERTIES TYPE REQUIRED)
 
