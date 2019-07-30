@@ -67,6 +67,7 @@ class PrimaryVertexContext
 
  protected:
   float3 mPrimaryVertex;
+  std::array<std::vector<Cluster>, constants::its::LayersNumber> mUnsortedClusters;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
   std::array<std::vector<bool>, constants::its::LayersNumber> mUsedClusters;
   std::array<std::vector<Cell>, constants::its::CellsPerRoad> mCells;
