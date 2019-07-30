@@ -25,7 +25,7 @@ set(CL_SRC ${GPUDIR}/Base/opencl-common/GPUReconstructionOCL.cl)
 set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code.bin)
 
 if(NOT DEFINED OCL2_GPUTARGET)
-  execute_process(COMMAND /opt/rocm/bin/rocm_agent_enumerator OUTPUT_VARIABLE OCL2_GPUTARGET)
+  execute_process(COMMAND /opt/rocm/bin/rocm_agent_enumerator COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
 endif()
 
 # executes OpenCL compiler wrapper to build binary object
