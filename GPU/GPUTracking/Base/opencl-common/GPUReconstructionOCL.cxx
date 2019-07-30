@@ -116,11 +116,13 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Available OPENCL devices:");
   }
+  std::vector<bool> devicesOK(count, false);
   for (unsigned int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 3) {
       GPUInfo("Examining device %d", i);
     }
     cl_uint nbits;
+    cl_bool endian;
 
     clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_NAME, 64, device_name, nullptr);
     clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
@@ -128,6 +130,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, nullptr);
     clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
     clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, nullptr);
+    clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ENDIAN_LITTLE, sizeof(endian), &endian, nullptr);
     int deviceOK = true;
     const char* deviceFailure = "";
     if (mDeviceProcessingSettings.gpuDeviceOnly && ((device_type & CL_DEVICE_TYPE_CPU) || !(device_type & CL_DEVICE_TYPE_GPU))) {
@@ -138,6 +141,10 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       deviceOK = false;
       deviceFailure = "No 64 bit device";
     }
+    if (!endian) {
+      deviceOK = false;
+      deviceFailure = "No Little Endian Mode";
+    }
 
     double bestDeviceSpeed = -1, deviceSpeed = (double)freq * (double)shaders;
     if (mDeviceProcessingSettings.debugLevel >= 2) {
@@ -146,6 +153,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     if (!deviceOK) {
       continue;
     }
+    devicesOK[i] = true;
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
@@ -161,10 +169,14 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   }
 
   if (mDeviceProcessingSettings.deviceNum > -1) {
-    if (mDeviceProcessingSettings.deviceNum < (signed)count) {
-      bestDevice = mDeviceProcessingSettings.deviceNum;
+    if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
+      GPUWarning("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
+      return (1);
+    } else if (!devicesOK[mDeviceProcessingSettings.deviceNum]) {
+      GPUWarning("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
+      return (1);
     } else {
-      GPUWarning("Requested device ID %d non existend, falling back to default device id %d", mDeviceProcessingSettings.deviceNum, bestDevice);
+      bestDevice = mDeviceProcessingSettings.deviceNum;
     }
   }
   mInternals->device = mInternals->devices[bestDevice];
