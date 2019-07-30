@@ -340,7 +340,6 @@ GPUdi() void TPCFastTransform::TransformIdeal(int slice, int row, float pad, flo
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
   x = rowInfo.x;
   float u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;

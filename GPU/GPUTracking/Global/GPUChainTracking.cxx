@@ -1195,22 +1195,22 @@ int GPUChainTracking::RunTPCTrackingMerger()
   nCount++;
   if (GetDeviceProcessingSettings().debugLevel > 0) {
     int copysize = 4 * Merger.NOutputTrackClusters() * sizeof(float) + Merger.NOutputTrackClusters() * sizeof(unsigned int) + Merger.NOutputTracks() * sizeof(GPUTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(GPUParam);
-    GPUInfo("Merge Time:\tUnpack Slices:\t%'7d us", (int)(times[0] * 1000000 / nCount));
-    GPUInfo("\t\tMerge Within:\t%'7d us", (int)(times[1] * 1000000 / nCount));
-    GPUInfo("\t\tMerge Slices:\t%'7d us", (int)(times[2] * 1000000 / nCount));
-    GPUInfo("\t\tMerge CE:\t%'7d us", (int)(times[3] * 1000000 / nCount));
-    GPUInfo("\t\tCollect:\t%'7d us", (int)(times[4] * 1000000 / nCount));
-    GPUInfo("\t\tClusters:\t%'7d us", (int)(times[5] * 1000000 / nCount));
+    printf("Merge Time:\tUnpack Slices:\t%'7d us\n", (int)(times[0] * 1000000 / nCount));
+    printf("\t\tMerge Within:\t%'7d us\n", (int)(times[1] * 1000000 / nCount));
+    printf("\t\tMerge Slices:\t%'7d us\n", (int)(times[2] * 1000000 / nCount));
+    printf("\t\tMerge CE:\t%'7d us\n", (int)(times[3] * 1000000 / nCount));
+    printf("\t\tCollect:\t%'7d us\n", (int)(times[4] * 1000000 / nCount));
+    printf("\t\tClusters:\t%'7d us\n", (int)(times[5] * 1000000 / nCount));
     double speed = (double)copysize / std::max(1., times[6]) * nCount / 1e9;
     if (doGPU) {
-      GPUInfo("\t\tCopy From:\t%'7d us (%6.3f GB/s)", (int)(times[6] * 1000000 / nCount), speed);
+      printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int)(times[6] * 1000000 / nCount), speed);
     }
-    GPUInfo("\t\tRefit:\t\t%'7d us", (int)(times[7] * 1000000 / nCount));
+    printf("\t\tRefit:\t\t%'7d us\n", (int)(times[7] * 1000000 / nCount));
     speed = (double)copysize / std::max(1., times[8]) * nCount / 1e9;
     if (doGPU) {
-      GPUInfo("\t\tCopy To:\t%'7d us (%6.3f GB/s)", (int)(times[8] * 1000000 / nCount), speed);
+      printf("\t\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int)(times[8] * 1000000 / nCount), speed);
     }
-    GPUInfo("\t\tFinalize:\t%'7d us", (int)(times[9] * 1000000 / nCount));
+    printf("\t\tFinalize:\t%'7d us\n", (int)(times[9] * 1000000 / nCount));
   }
 
   mIOPtrs.mergedTracks = Merger.OutputTracks();
@@ -1461,16 +1461,16 @@ int GPUChainTracking::RunChain()
     if (nCount > 1) {
       sprintf(nAverageInfo, " (%d)", nCount);
     }
-    GPUInfo("Tracking Time: %'d us%s", (int)(1000000 * timerTracking.GetElapsedTime() / nCount), nAverageInfo);
-    GPUInfo("Merging and Refit Time: %'d us", (int)(1000000 * timerMerger.GetElapsedTime() / nCount));
+    printf("Tracking Time: %'d us%s\n", (int)(1000000 * timerTracking.GetElapsedTime() / nCount), nAverageInfo);
+    printf("Merging and Refit Time: %'d us\n", (int)(1000000 * timerMerger.GetElapsedTime() / nCount));
     if (GetDeviceProcessingSettings().runQA) {
-      GPUInfo("QA Time: %'d us", (int)(1000000 * timerQA.GetElapsedTime() / nCount));
+      printf("QA Time: %'d us\n", (int)(1000000 * timerQA.GetElapsedTime() / nCount));
     }
     if (mIOPtrs.clustersNative) {
-      GPUInfo("TPC Transformation Time: %'d us", (int)(1000000 * timerTransform.GetElapsedTime() / nCount));
+      printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime() / nCount));
     }
     if (mIOPtrs.clustersNative) {
-      GPUInfo("TPC Compression Time: %'d us", (int)(1000000 * timerCompression.GetElapsedTime() / nCount));
+      printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime() / nCount));
     }
   }
 
@@ -1488,9 +1488,9 @@ int GPUChainTracking::RunChain()
         time /= GetDeviceProcessingSettings().nThreads;
       }
 
-      GPUInfo("Execution Time: Task: %20s Time: %'7d us", tmpNames[i], (int)(time * 1000000 / nCount));
+      printf("Execution Time: Task: %20s Time: %'7d us\n", tmpNames[i], (int)(time * 1000000 / nCount));
     }
-    GPUInfo("Execution Time: Task: %20s Time: %'7d us", "Merger", (int)(timerMerger.GetElapsedTime() * 1000000. / nCount));
+    printf("Execution Time: Task: %20s Time: %'7d us\n", "Merger", (int)(timerMerger.GetElapsedTime() * 1000000. / nCount));
     if (!GPUCA_TIMING_SUM) {
       timerTracking.Reset();
       timerMerger.Reset();
@@ -1507,7 +1507,7 @@ int GPUChainTracking::RunChain()
         return 1;
       }
       if (GetDeviceProcessingSettings().debugLevel >= 1) {
-        GPUInfo("TRD tracking time: %'d us", (int)(1000000 * timer.GetCurrentElapsedTime()));
+        printf("TRD tracking time: %'d us\n", (int)(1000000 * timer.GetCurrentElapsedTime()));
       }
     } else {
       processors()->trdTracker.Reset();

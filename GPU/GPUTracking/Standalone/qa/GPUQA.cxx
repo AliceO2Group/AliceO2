@@ -2013,34 +2013,34 @@ int GPUQA::DrawQAHistograms()
       if (counts[N_CLS_HIST - 1]) {
         if (mcAvail) {
           for (int i = 0; i < N_CLS_HIST; i++) {
-            GPUInfo("\t%35s: %'12llu (%6.2f%%)", CLUSTER_NAMES[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
+            printf("\t%35s: %'12llu (%6.2f%%)\n", CLUSTER_NAMES[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
           }
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]);      // Attached + Adjacent (also fake) - protected
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Unaccessible", (unsigned long long int)mNRecClustersUnaccessible, 100.f * mNRecClustersUnaccessible / counts[N_CLS_HIST - 1]); // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]);      // Attached + Adjacent (also fake) - protected
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", (unsigned long long int)mNRecClustersUnaccessible, 100.f * mNRecClustersUnaccessible / counts[N_CLS_HIST - 1]); // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
         } else {
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "All Clusters", counts[N_CLS_HIST - 1], 100.f);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Used in Physics", mNRecClustersPhysics, 100.f * mNRecClustersPhysics / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Protected", mNRecClustersProt, 100.f * mNRecClustersProt / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Unattached", mNRecClustersUnattached, 100.f * mNRecClustersUnattached / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Removed", mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt, 100.f * (mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt) / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "All Clusters", counts[N_CLS_HIST - 1], 100.f);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Used in Physics", mNRecClustersPhysics, 100.f * mNRecClustersPhysics / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Protected", mNRecClustersProt, 100.f * mNRecClustersProt / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", mNRecClustersUnattached, 100.f * mNRecClustersUnattached / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt, 100.f * (mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt) / counts[N_CLS_HIST - 1]);
         }
 
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "High Inclination Angle", mNRecClustersHighIncl, 100.f * mNRecClustersHighIncl / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Rejected", mNRecClustersRejected, 100.f * mNRecClustersRejected / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Tube (> 200 MeV)", mNRecClustersTube, 100.f * mNRecClustersTube / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Tube (< 200 MeV)", mNRecClustersTube200, 100.f * mNRecClustersTube200 / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Looping Legs", mNRecClustersLoopers, 100.f * mNRecClustersLoopers / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Low Pt < 50 MeV", mNRecClustersLowPt, 100.f * mNRecClustersLowPt / counts[N_CLS_HIST - 1]);
-        GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Low Pt < 200 MeV", mNRecClusters200MeV, 100.f * mNRecClusters200MeV / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", mNRecClustersHighIncl, 100.f * mNRecClustersHighIncl / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", mNRecClustersRejected, 100.f * mNRecClustersRejected / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", mNRecClustersTube, 100.f * mNRecClustersTube / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (< 200 MeV)", mNRecClustersTube200, 100.f * mNRecClustersTube200 / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Looping Legs", mNRecClustersLoopers, 100.f * mNRecClustersLoopers / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", mNRecClustersLowPt, 100.f * mNRecClustersLowPt / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", mNRecClusters200MeV, 100.f * mNRecClusters200MeV / counts[N_CLS_HIST - 1]);
 
         if (mcAvail) {
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Tracks > 400 MeV", mNRecClustersAbove400, 100.f * mNRecClustersAbove400 / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Fake Removed (> 400 MeV)", mNRecClustersFakeRemove400, 100.f * mNRecClustersFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Full Fake Removed (> 400 MeV)", mNRecClustersFullFakeRemove400, 100.f * mNRecClustersFullFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", mNRecClustersAbove400, 100.f * mNRecClustersAbove400 / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", mNRecClustersFakeRemove400, 100.f * mNRecClustersFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Full Fake Removed (> 400 MeV)", mNRecClustersFullFakeRemove400, 100.f * mNRecClustersFullFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
 
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Tracks < 40 MeV", mNRecClustersBelow40, 100.f * mNRecClustersBelow40 / counts[N_CLS_HIST - 1]);
-          GPUInfo("\t%35s: %'12llu (%6.2f%%)", "Fake Protect (< 40 MeV)", mNRecClustersFakeProtect40, 100.f * mNRecClustersFakeProtect40 / std::max(mNRecClustersBelow40, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks < 40 MeV", mNRecClustersBelow40, 100.f * mNRecClustersBelow40 / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Protect (< 40 MeV)", mNRecClustersFakeProtect40, 100.f * mNRecClustersFakeProtect40 / std::max(mNRecClustersBelow40, 1ll));
         }
       }
 
