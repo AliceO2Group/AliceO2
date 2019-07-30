@@ -20,20 +20,14 @@
 #include <string>
 
 enum ETrackType {
-  Standard,
+   Standard,
 
   KinkMother,
   KinkDaughter,
 
-<<<<<<< HEAD
-  FV0NegativeDaughter,
-  FV0PositiveDaughter,
-  FV0Mother,
-=======
   V0NegativeDaughter,
   V0PositiveDaughter,
   V0Mother,
->>>>>>> ecdc23ad0bc8f30ce485fc5540bdd5ad190817de
 
   CascadePrimaryMother,
   CascadePrimaryDaughter,
@@ -88,15 +82,9 @@ const std::string gTrackTypes[nTrackTypes] = {
   "kink_mother",
   "kink_daughter",
 
-<<<<<<< HEAD
-  "FV0_negative_daughter",
-  "FV0_positive_daughter",
-  "FV0_mother",
-=======
   "V0_negative_daughter",
   "V0_positive_daughter",
   "V0_mother",
->>>>>>> ecdc23ad0bc8f30ce485fc5540bdd5ad190817de
 
   "cascade_primary_mother",
   "cascade_primary_daughter",

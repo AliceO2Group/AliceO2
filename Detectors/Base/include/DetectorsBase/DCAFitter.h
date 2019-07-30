@@ -227,7 +227,7 @@ class DCAFitter
     setUseAbsDCA(false); // by default use weighted DCA definition (much slower)
   }
 
-  ///< number of validated FV0 candidates (at most 2 are possible)
+  ///< number of validated V0 candidates (at most 2 are possible)
   int getNCandidates() const { return mNCandidates; }
 
   ///< return PCA candidate (no check for its validity)
