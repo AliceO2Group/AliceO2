@@ -220,7 +220,7 @@ void CalibPulser::analyse()
 void CalibPulser::dumpToFile(const std::string filename)
 {
   auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
-  f->WriteObject(&mT0, "FT0");
+  f->WriteObject(&mT0, "T0");
   f->WriteObject(&mWidth, "Width");
   f->WriteObject(&mQtot,  "Qtot");
 
