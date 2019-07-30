@@ -24,6 +24,10 @@
 #include "FairLogger.h"
 #include <boost/property_tree/ptree.hpp>
 #include <functional>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <cassert>
 
 using namespace o2::conf;
 
@@ -126,11 +130,16 @@ const char* asString(TDataMember const& dm, char* pointer)
     // For enums we grab the string value of the member
     // and use that instead if its int value
     if (dm.IsEnum()) {
-      auto opts = dm.GetOptions();
-      for (int i = 0; i < opts->GetSize(); ++i) {
-        auto opt = (TOptionListItem*)opts->At(i);
-        if (val == std::to_string((int)opt->fValue)) {
-          return opt->fOptName;
+      const auto enumtype = TEnum::GetEnum(dm.GetTypeName());
+      assert(enumtype != nullptr);
+      const auto constantlist = enumtype->GetConstants();
+      assert(constantlist != nullptr);
+      if (enumtype) {
+        for (int i = 0; i < constantlist->GetEntries(); ++i) {
+          const auto e = (TEnumConstant*)(constantlist->At(i));
+          if (val == std::to_string((int)e->GetValue())) {
+            return e->GetName();
+          }
         }
       }
     }
