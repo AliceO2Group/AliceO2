@@ -38,6 +38,9 @@ set(GPUCF_SRC
     "./algorithms/cpu.cpp"
     "./algorithms/ReferenceClusterFinder.cpp"
     "./algorithms/StreamCompaction.cpp"
+
+    "./noisesuppression/NoiseSuppression.cpp"
+    "./noisesuppression/NoiseSuppressionOverArea.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})
