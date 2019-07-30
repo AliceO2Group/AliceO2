@@ -33,12 +33,8 @@ class PatchPanel
 
   TGeoVolumeAssembly* createPatchPanel();
 
-  //protected:
-  //TGeoVolumeAssembly* mPatchPanel;
-
  private:
   ClassDef(PatchPanel, 1)
-  //ClassDefOverride(PatchPanel, 1)
 };
 } // namespace mft
 } // namespace o2
