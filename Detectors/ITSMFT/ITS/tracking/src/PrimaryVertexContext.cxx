@@ -33,19 +33,40 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
     if (iteration == 0) {
       mClusters[iLayer].clear();
-      mClusters[iLayer].reserve(clustersNum);
+      mClusters[iLayer].resize(clustersNum);
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-
-        const Cluster& currentCluster{currentLayer.at(iCluster)};
-        mClusters[iLayer].emplace_back(iLayer, mPrimaryVertex, currentCluster);
+      constexpr int _size = constants::index_table::PhiBins * constants::index_table::ZBins;
+      std::array<int, _size> clsPerBin;
+      std::array<int, _size> lutPerBin;
+      for (int iB{0}; iB < _size; ++iB) {
+        clsPerBin[iB] = 0;
+        lutPerBin[iB] = 0;
       }
 
-      std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
-        return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
-      });
+      std::vector<int> bins(clustersNum);
+      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+        const float& x = currentLayer.at(iCluster).xCoordinate;
+        const float& y = currentLayer.at(iCluster).yCoordinate;
+        const float& z = currentLayer.at(iCluster).zCoordinate;
+        const float phi =  math_utils::calculatePhiCoordinate(x - pVtx[0], y - pVtx[1]);
+        int bin = index_table_utils::getBinIndex(index_table_utils::getZBinIndex(iLayer, z),
+                                                 index_table_utils::getPhiBinIndex(phi));
+        bins[iCluster] = bin;
+        clsPerBin[bin]++;
+      }
+
+      for (int iB{1}; iB < _size; ++iB) {
+        lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
+      }
+
+      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+        const int& bin = bins[iCluster];
+        mClusters[iLayer][lutPerBin[bin]].Init(iLayer, mPrimaryVertex, currentLayer.at(iCluster));
+        lutPerBin[bin]++;
+      }
+
     }
 
     if (iLayer < constants::its::CellsPerRoad) {

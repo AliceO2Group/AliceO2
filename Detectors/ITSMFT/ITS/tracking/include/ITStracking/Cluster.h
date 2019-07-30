@@ -29,17 +29,19 @@ namespace its
 {
 
 struct Cluster final {
+  Cluster() = default;
   Cluster(const float x, const float y, const float z, const int idx);
   Cluster(const int, const Cluster&);
   Cluster(const int, const float3&, const Cluster&);
+  void Init(const int, const float3&, const Cluster&);
 
-  float xCoordinate;
-  float yCoordinate;
-  float zCoordinate;
-  float phiCoordinate;
-  float rCoordinate;
-  int clusterId;
-  int indexTableBinIndex;
+  float xCoordinate = -999.f;
+  float yCoordinate = -999.f;
+  float zCoordinate = -999.f;
+  float phiCoordinate = -999.f;
+  float rCoordinate = -999.f;
+  int clusterId = -1;
+  int indexTableBinIndex = -1;
 };
 
 struct TrackingFrameInfo {

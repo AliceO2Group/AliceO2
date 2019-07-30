@@ -66,6 +66,19 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
   // Nothing to do
 }
 
+void Cluster::Init(const int layerIndex, const float3& primaryVertex, const Cluster& other)
+{
+  xCoordinate = other.xCoordinate;
+  yCoordinate = other.yCoordinate;
+  zCoordinate = other.zCoordinate;
+  phiCoordinate = getNormalizedPhiCoordinate(
+    calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y));
+  rCoordinate = calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y);
+  clusterId = other.clusterId;
+  indexTableBinIndex = index_table_utils::getBinIndex(index_table_utils::getZBinIndex(layerIndex, zCoordinate),
+                                                     index_table_utils::getPhiBinIndex(phiCoordinate));
+}
+
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
                                      GPUArray<float, 3>&& covTF)
   : xCoordinate{x}, yCoordinate{y}, zCoordinate{z}, xTrackingFrame{xTF}, alphaTrackingFrame{alpha},
