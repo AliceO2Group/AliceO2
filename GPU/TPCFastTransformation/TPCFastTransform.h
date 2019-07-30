@@ -126,9 +126,13 @@ class TPCFastTransform : public FlatObject
   /// taking calibration + alignment into account.
   ///
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
-  GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
 
+  /// Transformation in the time frame
+  GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
+
+  /// Ideal transformation with Vdrift only - without calibration
+  GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
 
   GPUd() void convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
   GPUd() void convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const;
@@ -324,6 +328,25 @@ GPUdi() void TPCFastTransform::InverseTransformInTimeFrame(int slice, int row, f
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
   convUVtoPadTimeInTimeFrame(slice, row, u, v, pad, time, maxTimeBin);
+}
+
+GPUdi() void TPCFastTransform::TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+{
+  /// _______________ The main method: cluster transformation _______________________
+  ///
+  /// Transforms raw TPC coordinates to local XYZ withing a slice
+  /// Ideal transformation: only Vdrift from DCS.
+  /// No space charge distortions, no time of flight correction
+  ///
+
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
+
+  x = rowInfo.x;
+  float u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  float v = (time - mT0 - vertexTime) * mVdrift; // drift length cm
+
+  getGeometry().convUVtoLocal(slice, u, v, y, z);
 }
 
 } // namespace gpu
