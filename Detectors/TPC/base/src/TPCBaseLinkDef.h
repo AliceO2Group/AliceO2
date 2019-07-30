@@ -67,7 +67,9 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterElectronics > +;
 #pragma link C++ class o2::tpc::ParameterGas;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGas > +;
-#pragma link C++ class o2::tpc::ParameterGEM;
+#pragma link C++ enum o2::tpc::AmplificationMode;
+#pragma link C++ enum o2::tpc::DigitzationMode;
+#pragma link C++ struct o2::tpc::ParameterGEM;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM > +;
 
 #endif

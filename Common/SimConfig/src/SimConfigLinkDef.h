@@ -20,7 +20,8 @@
 #pragma link C++ class o2::conf::SimCutParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimCutParams > +;
 
-#pragma link C++ class o2::conf::G4Params + ;
+#pragma link C++ enum o2::conf::EG4Physics;
+#pragma link C++ struct o2::conf::G4Params + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::G4Params> + ;
 
 #endif
