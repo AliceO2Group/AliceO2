@@ -85,7 +85,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   TH1D* den = new TH1D("den", ";#it{p}_{T} (GeV/#it{c});Den", nb, xbins);
   den->Sumw2();
 
-  for (Int_t n = 0; n < nev; n++) {
+  for (Int_t n = 0; n < 50; n++) {
     std::cout << "\nMC event " << n << '/' << nev << std::endl;
     Int_t nGen = 0, nGoo = 0, nFak = 0;
     mcTree->GetEvent(n);
@@ -118,6 +118,52 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       cf++;
     }
 
+    std::vector<int> clusMap(nmc, 0);
+    for (uint i = 0; i < clusArr->size(); i++) {
+      const Cluster& c = (*clusArr)[i];
+      auto lab = (clusLabArr->getLabels(i))[0];
+      if (!lab.isCorrect())
+        continue;
+      if (lab.getEventID() != n)
+        continue;
+
+      if (lab.getTrackID() >= nmc)
+        clusMap.resize(lab.getTrackID());
+      int& ok = clusMap[lab.getTrackID()];
+      auto r = c.getX();
+      if (TMath::Abs(r - 2.2) < 0.5)
+        ok |= 0b1;
+      if (TMath::Abs(r - 3.0) < 0.5)
+        ok |= 0b10;
+      if (TMath::Abs(r - 3.8) < 0.5)
+        ok |= 0b100;
+      if (TMath::Abs(r - 19.5) < 0.5)
+        ok |= 0b1000;
+      if (TMath::Abs(r - 24.5) < 0.5)
+        ok |= 0b10000;
+      if (TMath::Abs(r - 34.5) < 0.5)
+        ok |= 0b100000;
+      if (TMath::Abs(r - 39.5) < 0.5)
+        ok |= 0b1000000;
+    }
+
+    std::vector<const TrackITS*> trackMap(clusMap.size(), nullptr);
+    std::vector<o2::MCCompLabel> trackLabelMap;
+    trackLabelMap.resize(clusMap.size());
+
+    for (Int_t i = 0; i < nrec; i++) {
+      const TrackITS& recTrack = (*recArr)[i];
+      const auto& mclab = (trkLabArr->getLabels(i))[0];
+      auto id = mclab.getEventID();
+      if (!mclab.isValid())
+        continue;
+      if (id != n)
+        continue;
+      int lab = mclab.getTrackID();
+      trackMap[lab] = &recTrack;
+      trackLabelMap[lab] = mclab;
+    }
+
     while (nmc--) {
       const auto& mcTrack = (*mcArr)[nmc];
       Int_t mID = mcTrack.getMotherTrackId();
@@ -127,32 +173,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
 
-      int ok = 0;
-      // Check the availability of clusters
-      for (uint i = 0; i < clusArr->size(); i++) {
-        const Cluster& c = (*clusArr)[i];
-        auto lab = (clusLabArr->getLabels(i))[0];
-        if (lab.getEventID() != n)
-          continue;
-        if (lab.getTrackID() != nmc)
-          continue;
-        auto r = c.getX();
-        if (TMath::Abs(r - 2.2) < 0.5)
-          ok |= 0b1;
-        if (TMath::Abs(r - 3.0) < 0.5)
-          ok |= 0b10;
-        if (TMath::Abs(r - 3.8) < 0.5)
-          ok |= 0b100;
-        if (TMath::Abs(r - 19.5) < 0.5)
-          ok |= 0b1000;
-        if (TMath::Abs(r - 24.5) < 0.5)
-          ok |= 0b10000;
-        if (TMath::Abs(r - 34.5) < 0.5)
-          ok |= 0b100000;
-        if (TMath::Abs(r - 39.5) < 0.5)
-          ok |= 0b1000000;
-      }
-      if (ok != 0b1111111)
+      if (clusMap[nmc] != 0b1111111)
         continue;
 
       nGen++; // Generated tracks for the efficiency calculation
@@ -172,56 +193,37 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
       den->Fill(mcPt);
 
-      for (Int_t i = 0; i < nrec; i++) {
-        const TrackITS& recTrack = (*recArr)[i];
-        auto mclab = (trkLabArr->getLabels(i))[0];
-        auto id = mclab.getEventID();
-        if (id != n)
-          continue;
-        Int_t lab = mclab.getTrackID();
-        if (TMath::Abs(lab) != nmc)
-          continue;
+      const TrackITS* recTrack = trackMap[nmc];
+      if (recTrack == nullptr)
+        continue;
 
-        for (auto& ref : *mcTrackRefs) {
-          if (ref.getUserId() != 6)
-            continue;
-          if (ref.getTrackID() != nmc)
-            continue;
-          // mcYOut=ref.LocalY();
-          mcZOut = ref.Z();
-          mcPhiOut = ref.Phi();
-          mcThetaOut = ref.Theta();
-          break;
-        }
+      auto out = recTrack->getParamOut();
+      // recYOut = out.getY();
+      recZOut = out.getZ();
+      recPhiOut = out.getPhi();
+      recThetaOut = out.getTheta();
 
-        auto out = recTrack.getParamOut();
-        // recYOut = out.getY();
-        recZOut = out.getZ();
-        recPhiOut = out.getPhi();
-        recThetaOut = out.getTheta();
+      std::array<float, 3> p;
+      recTrack->getPxPyPzGlo(p);
+      recPt = recTrack->getPt();
+      recPhi = TMath::ATan2(p[1], p[0]);
+      recLam = TMath::ATan2(p[2], recPt);
+      Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
+      Float_t bz = 5.;                   // Assumed magnetic field
+      recTrack->getImpactParams(vx, vy, vz, bz, ip);
 
-        std::array<float, 3> p;
-        recTrack.getPxPyPzGlo(p);
-        recPt = recTrack.getPt();
-        recPhi = TMath::ATan2(p[1], p[0]);
-        recLam = TMath::ATan2(p[2], recPt);
-        Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
-        Float_t bz = 5.;                   // Assumed magnetic field
-        recTrack.getImpactParams(vx, vy, vz, bz, ip);
-        label = lab;
-
-        if (label > 0) {
-          nGoo++; // Good found tracks for the efficiency calculation
-          num->Fill(mcPt);
-        } else {
-          nFak++; // Fake-track rate calculation
-          fak->Fill(mcPt);
-        }
+      auto label = trackLabelMap[nmc];
+      if (label.isCorrect()) {
+        nGoo++; // Good found tracks for the efficiency calculation
+        num->Fill(mcPt);
+      } else {
+        nFak++; // Fake-track rate calculation
+        fak->Fill(mcPt);
       }
 
       nt->Fill( // mcYOut,recYOut,
         mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
-        ip[1], label);
+        ip[1], label.getTrackIDSigned());
     }
     if (nGen > 0) {
       Float_t eff = nGoo / Float_t(nGen);
