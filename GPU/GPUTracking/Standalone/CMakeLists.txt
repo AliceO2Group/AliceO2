@@ -67,6 +67,7 @@ find_package(ROOT CONFIG REQUIRED)
 find_package(Clang REQUIRED)
 find_package(LLVM REQUIRED)
 find_package(X11 REQUIRED)
+find_package(fmt REQUIRED)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
 find_package(O2GPU)
@@ -133,6 +134,7 @@ target_link_libraries(o2_support
                              X11::X11
                              glfw
                              glut
+                             fmt::fmt
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
