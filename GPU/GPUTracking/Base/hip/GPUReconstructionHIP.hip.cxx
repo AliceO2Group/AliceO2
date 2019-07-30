@@ -121,6 +121,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
+  std::vector<bool> devicesOK(count, false);
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Examining device %d", i);
@@ -151,6 +152,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     if (!deviceOK) {
       continue;
     }
+    devicesOK[i] = true;
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
@@ -167,10 +169,14 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   if (mDeviceProcessingSettings.deviceNum > -1) {
-    if (mDeviceProcessingSettings.deviceNum < (signed)count) {
-      bestDevice = mDeviceProcessingSettings.deviceNum;
+    if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
+      GPUWarning("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
+      return (1);
+    } else if (!devicesOK[mDeviceProcessingSettings.deviceNum]) {
+      GPUWarning("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
+      return (1);
     } else {
-      GPUWarning("Requested device ID %d non existend, falling back to default device id %d", mDeviceProcessingSettings.deviceNum, bestDevice);
+      bestDevice = mDeviceProcessingSettings.deviceNum;
     }
   }
   mDeviceId = bestDevice;
