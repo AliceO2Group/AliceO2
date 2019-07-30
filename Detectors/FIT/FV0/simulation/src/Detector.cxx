@@ -120,10 +120,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     Int_t cellId = -1;
     fMC->CurrentVolOffID(0, cellId);
 
-    addHit(trackID, cellId,
-           mTrackData.mPositionStart.Vect(), positionStop.Vect(),
-           mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(),
-           positionStop.T(), mTrackData.mEnergyLoss, particlePdg);
+    Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
+    Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
+    Vector3D<float> momStart(mTrackData.mMomentumStart.Px(), mTrackData.mMomentumStart.Py(), mTrackData.mMomentumStart.Pz());
+    addHit(trackID, cellId, posStart, posStop, momStart,
+    	   mTrackData.mMomentumStart.E(), positionStop.T(),
+		   mTrackData.mEnergyLoss, particlePdg);
   } else {
     return kFALSE; // do noting more
   }
@@ -132,8 +134,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 }
 
 o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                               TVector3 startPos, TVector3 endPos,
-                               TVector3 startMom, double startE,
+                               const Point3D<float>& startPos, const Point3D<float>& endPos,
+							   const Vector3D<float>& startMom, double startE,
                                double endTime, double eLoss, Int_t particlePdg)
 {
 

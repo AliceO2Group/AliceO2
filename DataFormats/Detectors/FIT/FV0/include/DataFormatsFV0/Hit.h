@@ -14,10 +14,10 @@
 #ifndef ALICEO2_FV0_HIT_H_
 #define ALICEO2_FV0_HIT_H_
 
+#include <iosfwd>
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 #include "Rtypes.h"                        // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"                      // for TVector3
-#include <iosfwd>
 #include "CommonUtils/ShmAllocator.h"
 
 namespace o2
@@ -41,8 +41,14 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   /// \param endTime Final time [ns]
   /// \param eLoss Energy deposit [GeV]
   /// \param particlePdg PDG code of the partcile associated with the track
-  inline Hit(int trackID, int cellID, const TVector3& startPos, const TVector3& endPos,
-             const TVector3& startMom, double startE, double endTime, double eLoss,
+  inline Hit(int trackID,
+             int cellID,
+             const Point3D<float>& startPos,
+             const Point3D<float>& endPos,
+             const Vector3D<float>& startMom,
+             double startE,
+             double endTime,
+             double eLoss,
              Int_t particlePdg);
 
   // Entrance position getters
@@ -70,19 +76,31 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   void Print(const Option_t* opt) const;
 
  private:
-  Vector3D<Float_t> mMomentumStart; ///< momentum at entrance
-  Point3D<Float_t> mPositionStart;  ///< position at entrance (base mPos give position on exit)
-  Float_t mEnergyStart;             ///< total energy at entrance
-  Int_t mParticlePdg;               ///< PDG code of the particle associated with this track
+  Vector3D<float> mMomentumStart; ///< momentum at entrance
+  Point3D<float> mPositionStart;  ///< position at entrance (base mPos give position on exit)
+  float mEnergyStart;             ///< total energy at entrance
+  int mParticlePdg;               ///< PDG code of the particle associated with this track
 
   ClassDefNV(Hit, 1)
 };
 
-Hit::Hit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-         const TVector3& startMom, double startE, double endTime, double eLoss,
+Hit::Hit(int trackID,
+         int detID,
+         const Point3D<float>& startPos,
+         const Point3D<float>& endPos,
+         const Vector3D<float>& startMom,
+         double startE,
+         double endTime,
+         double eLoss,
          Int_t particlePdg)
-  : BasicXYZEHit(endPos.X(), endPos.Y(), endPos.Z(), endTime, eLoss, trackID, detID),
-    mMomentumStart(startMom.Px(), startMom.Py(), startMom.Pz()),
+  : BasicXYZEHit(endPos.X(),
+                 endPos.Y(),
+                 endPos.Z(),
+                 endTime,
+                 eLoss,
+                 trackID,
+                 detID),
+    mMomentumStart(startMom.X(), startMom.Y(), startMom.Z()),
     mPositionStart(startPos.X(), startPos.Y(), startPos.Z()),
     mEnergyStart(startE),
     mParticlePdg(particlePdg)
