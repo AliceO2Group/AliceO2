@@ -23,6 +23,23 @@
   #define GPUWarning(...)
   #define GPUError(...)
   #define GPUFatal(...)
+#elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE)
+  #include <fmt/printf.h>
+  #define GPUInfo(string, ...)                 \
+    {                                          \
+      fmt::printf(string "\n", ##__VA_ARGS__); \
+    }
+  #define GPUImportant(...) GPUInfo(__VA_ARGS__)
+  #define GPUWarning(string, ...)                       \
+    {                                                   \
+      fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
+    }
+  #define GPUError(...) GPUWarning(__VA_ARGS__)
+  #define GPUFatal(string, ...)                         \
+    {                                                   \
+      fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
+      throw std::exception();                           \
+    }
 #elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_DEVICE) || (defined(GPUCA_ALIROOT_LIB) && defined(__CUDACC__) && defined(__cplusplus) && __cplusplus < 201703L)
   // For standalone / CUDA / HIP, we just use printf, which should be available
   // Temporarily, we also have to handle CUDA on AliRoot with O2 defaults due to ROOT / CUDA incompatibilities
