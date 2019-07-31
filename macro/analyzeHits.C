@@ -11,7 +11,7 @@
 #include "HMPIDBase/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
-#include "FDDSimulation/Hit.h"
+#include "DataFormatsFDD/Hit.h"
 
 #endif
 
