@@ -8,6 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+
 o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
                   SOURCES src/CollisionTimePrinter.cxx
@@ -15,6 +16,7 @@ o2_add_executable(digitizer-workflow
                           src/EMCALDigitizerSpec.cxx
                           src/FITDigitWriterSpec.cxx
                           src/FITDigitizerSpec.cxx
+			  src/FDDDigitizerSpec.cxx
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
                           src/ITSMFTDigitWriterSpec.cxx
@@ -33,6 +35,7 @@ o2_add_executable(digitizer-workflow
                                         O2::Steer
                                         O2::EMCALSimulation
                                         O2::FITSimulation
+					O2::FDDSimulation
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation

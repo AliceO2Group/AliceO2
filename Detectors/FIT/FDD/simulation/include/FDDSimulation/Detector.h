@@ -17,7 +17,7 @@
 
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h"
-#include "FDDSimulation/Hit.h"
+#include "DataFormatsFDD/Hit.h"
 #include "FDDBase/Geometry.h"
 
 class FairModule;
