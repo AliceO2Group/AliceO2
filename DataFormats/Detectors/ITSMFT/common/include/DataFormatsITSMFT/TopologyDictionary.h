@@ -93,9 +93,18 @@ class TopologyDictionary
   /// Returns the number of fired pixels of the n_th element
   int GetNpixels(int n) const;
   /// Returns true if the element corresponds to a group of rare topologies
-  bool IsGroup(int n) const;
+  inline bool IsGroup(int n) const
+  {
+    if (n >= (int)mVectorOfGroupIDs.size()) {
+      LOG(ERROR) << "Index out of bounds";
+      return false;
+    } else
+      return mVectorOfGroupIDs[n].mIsGroup;
+  }
+
   /// Returns the pattern of the topology
-  ClusterPattern GetPattern(int n) const;
+  ClusterPattern
+    GetPattern(int n) const;
   /// Returns the frequency of the n_th element;
   double GetFrequency(int n) const;
   /// Returns the number of elements in the dicionary;
@@ -113,7 +122,7 @@ class TopologyDictionary
   std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 3);
-};
+}; // namespace itsmft
 } // namespace itsmft
 } // namespace o2
 

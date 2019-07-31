@@ -163,15 +163,6 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mPattern;
   }
 
-  bool TopologyDictionary::IsGroup(int n) const
-  {
-    if (n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds";
-      return false;
-    } else
-      return mVectorOfGroupIDs[n].mIsGroup;
-  }
-
   double TopologyDictionary::GetFrequency(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
