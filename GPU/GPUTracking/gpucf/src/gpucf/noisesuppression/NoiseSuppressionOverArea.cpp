@@ -128,7 +128,7 @@ std::vector<Digit> NoiseSuppressionOverArea::runImpl(
 
             float q = p.charge;
             float oq = chargeMap[other];
-            if (oq < q)
+            if (oq <= q)
             {
                 continue;
             }
