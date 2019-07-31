@@ -19,7 +19,7 @@ ClassImp(o2::phos::Digitizer);
 
 using o2::phos::Digit;
 using o2::phos::Hit;
-using o2::phos::MCLabel ;
+using o2::phos::MCLabel;
 
 using namespace o2::phos;
 
@@ -55,13 +55,13 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       //Add primary info: create new MCLabels entry
       o2::phos::MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, true, hit.GetEnergyLoss());
       mMCTruthContainer.addElement(labelIndex, label);
-      
-      Digit digit(hit,labelIndex);
+
+      Digit digit(hit, labelIndex);
 
       hitIndex++;
       if (hitIndex < nHits) {
-        Hit hitNext = hits.at(hitIndex) ;
-        Digit digitNext(hitNext,-1); //Do not create MCTruth entry so far
+        Hit hitNext = hits.at(hitIndex);
+        Digit digitNext(hitNext, -1); //Do not create MCTruth entry so far
         while ((hitIndex < nHits) && digit.canAdd(digitNext)) {
           digit += digitNext;
 
@@ -69,10 +69,9 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
           o2::phos::MCLabel label(hitNext.GetTrackID(), mCurrEvID, mCurrSrcID, true, hitNext.GetEnergyLoss());
           mMCTruthContainer.addElementRandomAccess(labelIndex, label);
 
-
           hitIndex++;
           if (hitIndex < nHits) {
-            hitNext = hits.at(hitIndex) ;
+            hitNext = hits.at(hitIndex);
             digitNext.FillFromHit(hitNext);
           }
         }
@@ -90,21 +89,19 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       std::sort(labels.begin(), labels.end(),
                 [](o2::phos::MCLabel a, o2::phos::MCLabel b) { return a.getEdep() > b.getEdep(); });
 
-
-
       // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
       Double_t energy = digit.getAmplitude();
       // Simulate electronic noise
       energy += SimulateNoiseEnergy();
 
       if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
-         energy = NonLinearity(energy);
+        energy = NonLinearity(energy);
       }
       if (o2::phos::PHOSSimParams::Instance().mApplyDigitization) {
-         energy = DigitizeEnergy(energy);
+        energy = DigitizeEnergy(energy);
       }
       if (o2::phos::PHOSSimParams::Instance().mApplyDecalibration) {
-         energy = Decalibrate(energy);
+        energy = Decalibrate(energy);
       }
       digit.setAmplitude(energy);
       if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
@@ -127,18 +124,19 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 }
 
 //_______________________________________________________________________
-Double_t Digitizer::NonLinearity(const Double_t e) { 
-  double a = o2::phos::PHOSSimParams::Instance().mCellNonLineaityA; 
-  double b = o2::phos::PHOSSimParams::Instance().mCellNonLineaityB; 
-  double c = o2::phos::PHOSSimParams::Instance().mCellNonLineaityC; 
-  return e * c * (1. + a * exp(-e * e / 2. / b / b )); 
+Double_t Digitizer::NonLinearity(const Double_t e)
+{
+  double a = o2::phos::PHOSSimParams::Instance().mCellNonLineaityA;
+  double b = o2::phos::PHOSSimParams::Instance().mCellNonLineaityB;
+  double c = o2::phos::PHOSSimParams::Instance().mCellNonLineaityC;
+  return e * c * (1. + a * exp(-e * e / 2. / b / b));
 }
 //_______________________________________________________________________
 Double_t Digitizer::DigitizeEnergy(const Double_t e)
 {
   // distretize energy if necessary
-  double w = o2::phos::PHOSSimParams::Instance().mADCwidth ;
-  return  w * ceil(e / w);
+  double w = o2::phos::PHOSSimParams::Instance().mADCwidth;
+  return w * ceil(e / w);
 }
 //_______________________________________________________________________
 Double_t Digitizer::Decalibrate(const Double_t e)
@@ -151,15 +149,15 @@ Double_t Digitizer::TimeResolution(const Double_t time, const Double_t e)
 {
   // apply time resolution
 
-  Double_t timeResolution = o2::phos::PHOSSimParams::Instance().mTimeResolutionA + 
-                            o2::phos::PHOSSimParams::Instance().mTimeResolutionB / 
-                            std::max(float(e), o2::phos::PHOSSimParams::Instance().mTimeResThreshold);
+  Double_t timeResolution = o2::phos::PHOSSimParams::Instance().mTimeResolutionA +
+                            o2::phos::PHOSSimParams::Instance().mTimeResolutionB /
+                              std::max(float(e), o2::phos::PHOSSimParams::Instance().mTimeResThreshold);
   return gRandom->Gaus(time, timeResolution);
 }
 //_______________________________________________________________________
 Double_t Digitizer::SimulateNoiseEnergy() { return DigitizeEnergy(gRandom->Gaus(0., o2::phos::PHOSSimParams::Instance().mAPDNoise)); }
 //_______________________________________________________________________
-Double_t Digitizer::SimulateNoiseTime() { return gRandom->Uniform(o2::phos::PHOSSimParams::Instance().mMinNoiseTime, 
+Double_t Digitizer::SimulateNoiseTime() { return gRandom->Uniform(o2::phos::PHOSSimParams::Instance().mMinNoiseTime,
                                                                   o2::phos::PHOSSimParams::Instance().mMaxNoiseTime); }
 
 //_______________________________________________________________________

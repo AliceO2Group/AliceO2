@@ -55,7 +55,7 @@ bool Digit::canAdd(const Digit other) const
 Digit& Digit::operator+=(const Digit& other)
 {
 
-  // Adds the amplitude of digits 
+  // Adds the amplitude of digits
   // TODO: What about time? Should we assign time of more energetic digit? More complicated treatment?
   if (mAmplitude < other.mAmplitude) {
     mTime = other.mTime;

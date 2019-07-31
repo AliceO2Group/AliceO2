@@ -326,10 +326,11 @@ void Cluster::EvalPrimaries(const std::vector<Digit>* digits)
       continue;
     }
 
-    int lab = (*foundIt).getLabel();  //index of entry in MCLabels array
+    //int lab = (*foundIt).getLabel();  //index of entry in MCLabels array
     //Add Labels to list of primaries
+    //....
     //TODO!!!!
-   }
+  }
   // Vectors will not be modified any more.
   //TODO: sort and add labels
   mLabels.shrink_to_fit();

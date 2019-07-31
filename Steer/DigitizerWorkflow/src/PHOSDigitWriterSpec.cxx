@@ -113,5 +113,5 @@ DataProcessorSpec getPHOSDigitWriterSpec()
     }
   };
 }
-} 
-} 
+} // namespace phos
+} // namespace o2

@@ -193,8 +193,8 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #ifdef USESHM
 namespace o2
@@ -205,8 +205,8 @@ template <>
 struct UseShm<o2::phos::Detector> {
   static constexpr bool value = true;
 };
-}
-} 
+} // namespace base
+} // namespace o2
 #endif
 
 #endif // Detector.h

@@ -179,5 +179,5 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
              { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
   };
 }
-} 
-} 
+} // namespace phos
+} // namespace o2

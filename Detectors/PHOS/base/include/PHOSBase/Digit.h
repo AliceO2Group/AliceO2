@@ -94,16 +94,16 @@ class Digit : public DigitBase
  private:
   // friend class boost::serialization::access;
 
-  int mAbsId;        ///< cell index (absolute cell ID)
-  int mLabel;        ///< Index of the corresponding entry/entries in the MC label array
-  float mAmplitude;  ///< Amplitude
-  float mTime;       ///< Time
-  bool mIsHighGain;  ///< High Gain or Low Gain channel (for calibration)
+  int mAbsId;       ///< cell index (absolute cell ID)
+  int mLabel;       ///< Index of the corresponding entry/entries in the MC label array
+  float mAmplitude; ///< Amplitude
+  float mTime;      ///< Time
+  bool mIsHighGain; ///< High Gain or Low Gain channel (for calibration)
 
   ClassDefNV(Digit, 1);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
-} // namespace PHOS
+} // namespace phos
 } // namespace o2
 #endif
