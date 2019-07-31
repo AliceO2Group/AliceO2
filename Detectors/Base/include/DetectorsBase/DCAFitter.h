@@ -236,10 +236,10 @@ class DCAFitter
   ///< return Chi2 at PCA candidate (no check for its validity)
   ftype_t getChi2AtPCACandidate(int cand) const { return mChi2[cand]; }
 
-  ///< 1st track params propagated to FV0 candidate (no check for the candidate validity)
+  ///< 1st track params propagated to V0 candidate (no check for the candidate validity)
   const Track& getTrack0(int cand) const { return mCandTr0[cand]; }
 
-  ///< 2nd track params propagated to FV0 candidate (no check for the candidate validity)
+  ///< 2nd track params propagated to V0 candidate (no check for the candidate validity)
   const Track& getTrack1(int cand) const { return mCandTr1[cand]; }
 
   ///< calculate parameters tracks at PCA
