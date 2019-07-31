@@ -20,24 +20,24 @@
 #include <string>
 
 enum ETrackType {
-    Standard,
+  Standard,
 
-    KinkMother,
-    KinkDaughter,
+  KinkMother,
+  KinkDaughter,
 
-    V0NegativeDaughter,
-    V0PositiveDaughter,
-    V0Mother,
+  V0NegativeDaughter,
+  V0PositiveDaughter,
+  V0Mother,
 
-    CascadePrimaryMother,
-    CascadePrimaryDaughter,
-    CascadeSecondaryMother,
-    CascadeNegativeDaughter,
-    CascadePositiveDaughter,
+  CascadePrimaryMother,
+  CascadePrimaryDaughter,
+  CascadeSecondaryMother,
+  CascadeNegativeDaughter,
+  CascadePositiveDaughter,
 
-    MuonMatched,
-    MuonNotMatched,
-    MuonGhost
+  MuonMatched,
+  MuonNotMatched,
+  MuonGhost
 };
 
 const int nDetectorTypes = 23;
@@ -77,24 +77,24 @@ const std::string gDetectorTypes[nDetectorTypes] = {
 const int nTrackTypes = 14;
 
 const std::string gTrackTypes[nTrackTypes] = {
-        "standard",
+  "standard",
 
-        "kink_mother",
-        "kink_daughter",
+  "kink_mother",
+  "kink_daughter",
 
-        "V0_negative_daughter",
-        "V0_positive_daughter",
-        "V0_mother",
+  "V0_negative_daughter",
+  "V0_positive_daughter",
+  "V0_mother",
 
-        "cascade_primary_mother",
-        "cascade_primary_daughter",
-        "cascade_secondary_mother",
-        "cascade_negative_daughter",
-        "cascade_positive_daughter",
+  "cascade_primary_mother",
+  "cascade_primary_daughter",
+  "cascade_secondary_mother",
+  "cascade_negative_daughter",
+  "cascade_positive_daughter",
 
-        "muon_matched",
-        "muon_not_matched",
-        "muon_ghost"
+  "muon_matched",
+  "muon_not_matched",
+  "muon_ghost"
 };
 
 #endif //ALIROOT_CONVERSIONCONSTANTS_H

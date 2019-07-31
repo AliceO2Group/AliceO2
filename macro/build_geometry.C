@@ -30,8 +30,8 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <T0Simulation/Detector.h>
-#include <V0Simulation/Detector.h>
+#include <FT0Simulation/Detector.h>
+#include <FV0Simulation/Detector.h>
 #include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
@@ -197,14 +197,14 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::cpv::Detector(true));
   }
 
-  if (isActivated("T0")) {
+  if (isActivated("FT0")) {
     // FIT-T0
-    run->AddModule(new o2::t0::Detector(true));
+    run->AddModule(new o2::ft0::Detector(true));
   }
 
-  if (isActivated("V0")) {
+  if (isActivated("FV0")) {
     // FIT-V0
-    run->AddModule(new o2::v0::Detector(true));
+    run->AddModule(new o2::fv0::Detector(true));
   }
 
   if (isActivated("FDD")) {

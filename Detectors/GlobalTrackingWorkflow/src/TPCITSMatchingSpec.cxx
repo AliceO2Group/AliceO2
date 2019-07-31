@@ -250,10 +250,10 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  const std::vector<o2::t0::RecPoints>* rpFIT = nullptr;
-  std::unique_ptr<const std::vector<o2::t0::RecPoints>> rpFITU;
+  const std::vector<o2::ft0::RecPoints>* rpFIT = nullptr;
+  std::unique_ptr<const std::vector<o2::ft0::RecPoints>> rpFITU;
   if (mUseFIT) {
-    rpFITU = pc.inputs().get<const std::vector<o2::t0::RecPoints>*>("fitInfo");
+    rpFITU = pc.inputs().get<const std::vector<o2::ft0::RecPoints>*>("fitInfo");
     rpFIT = rpFITU.get();
     mMatching.setFITInfoInp(rpFIT);
   }
@@ -290,7 +290,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
   }
   if (useFIT) {
-    inputs.emplace_back("fitInfo", "T0", "RECPOINTS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);

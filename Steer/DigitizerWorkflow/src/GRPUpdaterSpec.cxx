@@ -87,7 +87,8 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::vector<o2::detecto
     o2::header::gDataOriginTOF, o2::header::gDataOriginPHS, o2::header::gDataOriginCPV,
     o2::header::gDataOriginEMC, o2::header::gDataOriginHMP, o2::header::gDataOriginMFT,
     o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
-    o2::header::gDataOriginT0, o2::header::gDataOriginV0, o2::header::gDataOriginFDD, o2::header::gDataOriginACO
+    o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
+    o2::header::gDataOriginACO
   };
 
   // prepare specs

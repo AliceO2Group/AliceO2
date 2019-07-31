@@ -25,7 +25,7 @@ constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;
 
 // redundant declarations
 constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, DetID::CPV, DetID::EMC,
-  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::T0, DetID::V0, DetID::FDD, DetID::ACO, DetID::First, DetID::Last;
+  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::First, DetID::Last;
 
 constexpr int DetID::nDetectors;
 

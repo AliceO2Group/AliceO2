@@ -25,7 +25,7 @@ struct DigitizationParameters {
   Float_t mCFD_trsh_mip;  // = 4[mV] / 10[mV/mip]
   Float_t mTime_trg_gate; // ns
   Float_t mTimeDiffAC;
-  bool mIsT0;           //amplitude T0(true) or V0 (false)
+  bool mIsFT0;          //amplitude FT0(true) or FV0 (false)
   Float_t mSignalWidth; // Gate in ns
   Float_t mCfdShift;    // time shift for CFD shape simulation
   Float_t mMip_in_V;    //MIP to mV

@@ -22,7 +22,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
                       std::string inputTracksTPC = "tpctracks.root",
                       std::string inputClustersITS = "o2clus_its.root",
                       std::string inputClustersTPC = "tpc-native-clusters.root",
-                      std::string inputFITInfo = "o2reco_t0.root", // optional FIT (T0) info
+                      std::string inputFITInfo = "o2reco_ft0.root", // optional FIT (T0) info
                       std::string inputGeom = "O2geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {

@@ -14,7 +14,7 @@ o2_add_library(GlobalTracking
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsITS
-                                     O2::DataFormatsFITT0
+                                     O2::DataFormatsFT0
                                      O2::DataFormatsTOF
                                      O2::TPCFastTransformation
                                      O2::GPUTracking
