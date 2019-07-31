@@ -30,7 +30,7 @@ void checkResults(const DCAFitter& fitter, const std::array<float, 3> xyz)
     float dx = vtx.x - xyz[0], dy = vtx.y - xyz[1], dz = vtx.z - xyz[2];
     float dst = TMath::Sqrt(dx * dx + dy * dy + dz * dz);
 
-    const auto &trc0 = fitter.getTrack0(ic), &trc1 = fitter.getTrack1(ic); // track parameters at FV0
+    const auto &trc0 = fitter.getTrack0(ic), &trc1 = fitter.getTrack1(ic); // track parameters at V0
     printf("Candidate %d: DCA:%+e Vtx: %+e %+e %+e [Diff to true: %+e %+e %+e -> %+e]\n",
            ic, fitter.getChi2AtPCACandidate(ic), vtx.x, vtx.y, vtx.z, dx, dy, dz, dst);
     printf("Track X-parameters at PCA: %+e %+e\n", trc0.getX(), trc1.getX());
