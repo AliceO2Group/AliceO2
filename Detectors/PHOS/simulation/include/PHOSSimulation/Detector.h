@@ -205,8 +205,8 @@ template <>
 struct UseShm<o2::phos::Detector> {
   static constexpr bool value = true;
 };
-} // namespace base
-} // namespace o2
+}
+} 
 #endif
 
 #endif // Detector.h

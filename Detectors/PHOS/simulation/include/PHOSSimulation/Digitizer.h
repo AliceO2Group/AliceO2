@@ -14,6 +14,8 @@
 #include "PHOSBase/Digit.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSBase/Hit.h"
+#include "PHOSSimulation/MCLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -67,25 +69,10 @@ class Digitizer : public TObject
   UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
   int mCurrSrcID = 0;                  ///< current MC source from the manager
   int mCurrEvID = 0;                   ///< current event ID from the manager
-  bool mApplyNonLinearity = true;      ///< if Non-linearity will be applied
-  bool mApplyDigitization = true;      ///< if energy digitization should be applied
-  bool mApplyDecalibration = false;    ///< if de-calibration should be applied
-  bool mApplyTimeResolution = true;    ///< if Hit time should be smeared
-  double mZSthreshold = 0.005;         ///< Zero Suppression threshold
-  double maNL = 0.04;                  ///< Parameter a for Non-Linearity
-  double mbNL = 0.2;                   ///< Parameter b for Non-Linearity
-  double mcNL = 1.;                    ///< Parameter c for Non-Linearity
-  double mADCWidth = 0.005;            ///< Widht of ADC channel used for energy digitization
-  double mTimeResolutionA = 2.;        ///< Time resolution parameter A (in ns)
-  double mTimeResolutionB = 2.;        ///< Time resolution parameter B (in ns/GeV)
-  double mTimeResThreshold = 0.5;      ///< threshold for time resolution calculation (in GeV)
-  double mAPDNoise = 0.005;            ///< Electronics (and APD) noise (in GeV)
-  double mMinNoiseTime = -200.;        ///< minimum time in noise channels (in ns)
-  double mMaxNoiseTime = 2000.;        ///< minimum time in noise channels (in ns)
 
-  //  std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
+  o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mMCTruthContainer; ///<  storage for MC truth information
 
-  ClassDefOverride(Digitizer, 1);
+  ClassDefOverride(Digitizer, 2);
 };
 } // namespace phos
 } // namespace o2
