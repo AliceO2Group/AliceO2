@@ -9,10 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(FITWorkflow
-               SOURCES src/RecoWorkflow.cxx src/T0DigitReaderSpec.cxx
-                       src/T0ReconstructorSpec.cxx src/T0RecPointWriterSpec.cxx
-                       src/T0RecPointReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::T0Reconstruction O2::Framework)
+               SOURCES src/RecoWorkflow.cxx src/FT0DigitReaderSpec.cxx
+                       src/FT0ReconstructorSpec.cxx src/FT0RecPointWriterSpec.cxx
+                       src/FT0RecPointReaderSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction O2::Framework)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fit
