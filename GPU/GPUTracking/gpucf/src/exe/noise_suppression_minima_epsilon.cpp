@@ -6,6 +6,7 @@
 #include <gpucf/common/serialization.h>
 #include <gpucf/common/TpcHitPos.h>
 #include <gpucf/noisesuppression/NoiseSuppressionOverArea.h>
+#include <gpucf/noisesuppression/utils.h>
 
 #include <args/args.hxx>
 
@@ -23,13 +24,108 @@ using namespace gpucf;
 
 struct HitnumPerPeaks
 {
-    size_t noPeaks = 0;
-    size_t onePeak = 0;
-    size_t twoPeaksOverlap = 0;
-    size_t twoPeaksNoOverlap = 0;
-    size_t tenPeaks = 0;
-    size_t moreThanTenPeaks = 0;
+    int noPeaks = 0;
+    int onePeak = 0;
+    int twoPeaksOverlap = 0;
+    int twoPeaksNoOverlap = 0;
+    int tenPeaks = 0;
+    int moreThanTenPeaks = 0;
 };
+
+std::unordered_map<TpcHitPos, std::vector<Digit>> sortPeaksByHit(
+        const SectorMap<LabelContainer> &labels,
+        const SectorMap<RowMap<std::vector<Digit>>> &peaks)
+{
+    std::unordered_map<TpcHitPos, std::vector<Digit>> hits;
+    for (short sector = 0; sector < TPC_SECTORS; sector++)
+    {
+        for (short row = 0; row < TPC_NUM_OF_ROWS; row++)
+        {
+            for (const Digit &peak : peaks[sector][row])
+            {
+                for (const MCLabel &label : labels[sector][peak])
+                {
+                    hits[{sector, row, label}].push_back(peak);
+                }
+            }
+        }
+    }
+
+    return hits;
+}
+
+std::unordered_set<TpcHitPos> findHits(
+        const SectorMap<RowMap<std::vector<Digit>>> &peaks,
+        const SectorMap<LabelContainer> &labels)
+{
+    std::unordered_set<TpcHitPos> hits;
+
+    for (short sector = 0; sector < TPC_SECTORS; sector++)
+    {
+        for (short row = 0; row < TPC_NUM_OF_ROWS; row++)
+        {
+            for (const Digit &peak : peaks[sector][row])
+            {
+                for (const MCLabel &label : labels[sector][peak])
+                {
+                    hits.insert({sector, row, label});
+                }
+            }
+        }
+    }
+
+    return hits;
+}
+
+std::vector<HitnumPerPeaks> sortHitsByPeaks(
+        const std::vector<SectorMap<RowMap<std::vector<Digit>>>> &peaks,
+        const SectorMap<RowMap<std::vector<Digit>>> &peaksGt,
+        const SectorMap<LabelContainer> &labels)
+{
+    std::unordered_set<TpcHitPos> allHits = findHits(peaksGt, labels);
+
+    std::vector<HitnumPerPeaks> hitsPerPeaks(peaks.size());
+    for (size_t i = 0; i < peaks.size(); i++)
+    {
+        std::unordered_map<TpcHitPos, std::vector<Digit>> hits = 
+            sortPeaksByHit(labels, peaks[i]);
+
+        for (const TpcHitPos &hit : allHits)
+        {
+            auto hitWithPeaks = hits.find(hit);
+
+            if (hitWithPeaks == hits.end())
+            {
+                hitsPerPeaks[i].noPeaks++;
+            }
+            else
+            {
+                const std::vector<Digit> &peaksOfHit = hitWithPeaks->second;
+
+                size_t peaknum = peaksOfHit.size();
+
+                if (peaknum == 2)
+                {
+                    bool overlap = peaksOverlap(
+                            peaksOfHit[0],
+                            peaksOfHit[1],
+                            labels[hitWithPeaks->first.sector]);
+
+                    hitsPerPeaks[i].twoPeaksOverlap   += overlap;
+                    hitsPerPeaks[i].twoPeaksNoOverlap += !overlap;
+                }
+                else
+                {
+                    hitsPerPeaks[i].onePeak += (peaknum == 1);
+                    hitsPerPeaks[i].tenPeaks += (peaknum > 2 && peaknum <= 10);
+                    hitsPerPeaks[i].moreThanTenPeaks += (peaknum > 10);
+                }
+            }
+        }
+    }
+
+    return hitsPerPeaks;
+}
 
 int main(int argc, const char *argv[])
 {
@@ -52,9 +148,9 @@ int main(int argc, const char *argv[])
 
 
     std::vector<NoiseSuppressionOverArea> algorithms;
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < 30; i++)
     {
-        algorithms.emplace_back(2, 3, 4, i);
+        algorithms.emplace_back(2, 3, 3, i);
     }
 
     SectorMap<std::vector<Digit>> digits;
@@ -78,9 +174,9 @@ int main(int argc, const char *argv[])
             algorithms.size());
     SectorMap<RowMap<std::vector<Digit>>> peaks;
 
-    log::Info() << "Creating chargemap";
     for (size_t sector = 0; sector < TPC_SECTORS; sector++)
     {
+        log::Info() << "Processing sector " << sector << "...";
         Map<float> chargeMap(
                 digits[sector], 
                 [](const Digit &d) { return d.charge; }, 
@@ -94,14 +190,35 @@ int main(int argc, const char *argv[])
         {
             auto &alg = algorithms[id];
             filteredPeaks[id][sector] = 
-                alg->run(peaks[sector], peakmap, chargemaps[sector]);
+                alg.run(peaks[sector], peakmap, chargeMap);
         }
 
     }
     
-    // TODO sort hits
+    std::vector<HitnumPerPeaks> epsilonToHits = 
+            sortHitsByPeaks(filteredPeaks, peaks, labels);
 
-    // TODO plot epsilon -> hits
+    std::vector<std::string> names = {
+        "no peaks",
+        "1 peak",
+        "2 peaks (overlap)",
+        "2 peaks (no overlap)",
+        "3 - 10 peaks",
+        "> 10 peaks"
+    };
+
+    std::vector<std::vector<int>> data(names.size());
+    for (const HitnumPerPeaks &hitnumPerPeaks : epsilonToHits)
+    {
+        data[0].push_back(hitnumPerPeaks.noPeaks);
+        data[1].push_back(hitnumPerPeaks.onePeak);
+        data[2].push_back(hitnumPerPeaks.twoPeaksOverlap);
+        data[3].push_back(hitnumPerPeaks.twoPeaksNoOverlap);
+        data[4].push_back(hitnumPerPeaks.tenPeaks);
+        data[5].push_back(hitnumPerPeaks.moreThanTenPeaks);
+    }
+
+    plot(names, data, "epsilonToHits.pdf", "epsilon", "# hits");
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
