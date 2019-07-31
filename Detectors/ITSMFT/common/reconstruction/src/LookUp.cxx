@@ -78,7 +78,7 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
   }
 }
 
-bool LookUp::IsGroup(int id)
+bool LookUp::IsGroup(int id) const
 {
   return mDictionary.IsGroup(id);
 }

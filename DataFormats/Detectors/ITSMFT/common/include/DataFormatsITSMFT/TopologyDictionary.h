@@ -81,25 +81,25 @@ class TopologyDictionary
   /// Reads the dictionary from a binary file
   int ReadBinaryFile(std::string fileName);
   /// Returns the x position of the COG for the n_th element
-  float GetXcog(int n);
+  float GetXcog(int n) const;
   /// Returns the error on the x position of the COG for the n_th element
-  float GetErrX(int n);
+  float GetErrX(int n) const;
   /// Returns the z position of the COG for the n_th element
-  float GetZcog(int n);
+  float GetZcog(int n) const;
   /// Returns the error on the z position of the COG for the n_th element
-  float GetErrZ(int n);
+  float GetErrZ(int n) const;
   /// Returns the hash of the n_th element
-  unsigned long GetHash(int n);
+  unsigned long GetHash(int n) const;
   /// Returns the number of fired pixels of the n_th element
-  int GetNpixels(int n);
+  int GetNpixels(int n) const;
   /// Returns true if the element corresponds to a group of rare topologies
-  bool IsGroup(int n);
+  bool IsGroup(int n) const;
   /// Returns the pattern of the topology
-  ClusterPattern GetPattern(int n);
+  ClusterPattern GetPattern(int n) const;
   /// Returns the frequency of the n_th element;
-  double GetFrequency(int n);
+  double GetFrequency(int n) const;
   /// Returns the number of elements in the dicionary;
-  int GetSize() { return (int)mVectorOfGroupIDs.size(); }
+  int GetSize() const { return (int)mVectorOfGroupIDs.size(); }
   ///Returns the local position of a compact cluster
   Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
 

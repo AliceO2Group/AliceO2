@@ -31,7 +31,6 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
 
   using o2::itsmft::Cluster;
   using o2::itsmft::CompClusterExt;
-  using Segmentation = o2::itsmft::SegmentationAlpide;
   using o2::itsmft::TopologyDictionary;
 
   // Geometry
@@ -84,8 +83,8 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
       CompClusterExt& cComp = (*compclusArr)[nc];
       Point3D<float> locComp = dict.getClusterCoordinates(cComp);
 
-      float xComp = locComp.X() + dict.GetXcog(cComp.getPatternID());
-      float zComp = locComp.Z() + dict.GetZcog(cComp.getPatternID());
+      float xComp = locComp.X();
+      float zComp = locComp.Z();
 
       float dx = (locC.X() - xComp) * 10000;
       float dz = (locC.Z() - zComp) * 10000;
