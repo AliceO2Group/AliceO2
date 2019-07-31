@@ -15,6 +15,7 @@
 
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include <iostream>
+#include <TMath.h>
 
 ClassImp(o2::itsmft::ClusterTopology)
 
@@ -141,5 +142,41 @@ ClassImp(o2::itsmft::ClusterTopology)
     os << topology.mPattern << std::endl;
     return os;
   }
+
+  void ClusterTopology::getCOGshift(int nRows, int nCols, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift)
+  {
+    int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
+    int nBits = nRows * nCols;
+    int nBytes = nBits / 8;
+    if (nBits % 8 != 0) {
+      nBytes++;
+    }
+    for (unsigned int i = 0; i < nBytes; i++) {
+      unsigned char tempChar = patt[i];
+      s = 128; // 0b10000000
+      while (s > 0) {
+        if ((tempChar & s) != 0) {
+          tempFiredPixels++;
+          tempxCOG += ir;
+          tempzCOG += ic;
+        }
+        ic++;
+        s /= 2;
+        if ((ir + 1) * ic == nBits) {
+          break;
+        }
+        if (ic == nCols) {
+          ic = 0;
+          ir++;
+        }
+      }
+      if ((ir + 1) * ic == nBits) {
+        break;
+      }
+    }
+    rowShift = TMath::Nint(float(tempxCOG) / tempFiredPixels);
+    colShift = TMath::Nint(float(tempzCOG) / tempFiredPixels);
+  }
+
   } // namespace itsmft
 }

@@ -15,6 +15,7 @@
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include <iostream>
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 using std::cout;
 using std::endl;
@@ -30,6 +31,11 @@ ClassImp(o2::itsmft::TopologyDictionary)
   {
 
   TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{ -1 } {}
+
+  TopologyDictionary::TopologyDictionary(std::string fileName)
+  {
+    ReadBinaryFile(fileName);
+  }
 
   std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
   {
@@ -54,6 +60,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       file_output.write(reinterpret_cast<char*>(&p.mZCOG), sizeof(float));
       file_output.write(reinterpret_cast<char*>(&p.mNpixels), sizeof(int));
       file_output.write(reinterpret_cast<char*>(&p.mFrequency), sizeof(double));
+      file_output.write(reinterpret_cast<char*>(&p.mIsGroup), sizeof(bool));
       file_output.write(reinterpret_cast<char*>(&p.mPattern.mBitmap),
                         sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
     }
@@ -71,7 +78,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
     int groupID = 0;
     if (!in.is_open()) {
       LOG(ERROR) << "The file coud not be opened";
-      throw std::runtime_error("No fired pixels in small topology");
+      throw std::runtime_error("The file coud not be opened");
     } else {
       while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {
         in.read(reinterpret_cast<char*>(&gr.mErrX), sizeof(float));
@@ -80,6 +87,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
         in.read(reinterpret_cast<char*>(&gr.mZCOG), sizeof(float));
         in.read(reinterpret_cast<char*>(&gr.mNpixels), sizeof(int));
         in.read(reinterpret_cast<char*>(&gr.mFrequency), sizeof(double));
+        in.read(reinterpret_cast<char*>(&gr.mIsGroup), sizeof(bool));
         in.read(reinterpret_cast<char*>(&gr.mPattern.mBitmap), sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
         mVectorOfGroupIDs.push_back(gr);
         if (gr.mPattern.getUsedBytes() == 1)
@@ -93,7 +101,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
     return 0;
   }
 
-  float TopologyDictionary::GetXcog(int n)
+  float TopologyDictionary::GetXcog(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -101,7 +109,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
     } else
       return mVectorOfGroupIDs[n].mXCOG;
   }
-  float TopologyDictionary::GetErrX(int n)
+  float TopologyDictionary::GetErrX(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -110,7 +118,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mErrX;
   }
 
-  float TopologyDictionary::GetZcog(int n)
+  float TopologyDictionary::GetZcog(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -119,7 +127,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mZCOG;
   }
 
-  float TopologyDictionary::GetErrZ(int n)
+  float TopologyDictionary::GetErrZ(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -128,7 +136,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mErrZ;
   }
 
-  unsigned long TopologyDictionary::GetHash(int n)
+  unsigned long TopologyDictionary::GetHash(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -137,7 +145,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mHash;
   }
 
-  int TopologyDictionary::GetNpixels(int n)
+  int TopologyDictionary::GetNpixels(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -146,7 +154,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mNpixels;
   }
 
-  ClusterPattern TopologyDictionary::GetPattern(int n)
+  ClusterPattern TopologyDictionary::GetPattern(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -155,7 +163,7 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mPattern;
   }
 
-  double TopologyDictionary::GetFrequency(int n)
+  double TopologyDictionary::GetFrequency(int n) const
   {
     if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
       LOG(ERROR) << "Index out of bounds";
@@ -166,5 +174,15 @@ ClassImp(o2::itsmft::TopologyDictionary)
       return mVectorOfGroupIDs[n].mFrequency - mVectorOfGroupIDs[n - 1].mFrequency;
     }
   }
+
+  Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
+  {
+    Point3D<float> locCl;
+    o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->GetXcog(cl.getPatternID()));
+    locCl.SetZ(locCl.Z() + this->GetZcog(cl.getPatternID()));
+    return locCl;
+  }
+
   } // namespace itsmft
 }
