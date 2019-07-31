@@ -28,11 +28,11 @@ target_link_libraries(allsim
                                 O2::MFTSimulation
                                 O2::MIDSimulation
                                 O2::PHOSSimulation
-                                O2::T0Simulation
+                                O2::FT0Simulation
                                 O2::TOFSimulation
                                 O2::TPCSimulation
                                 O2::TRDSimulation
-                                O2::V0Simulation
+                                O2::FV0Simulation
                                 O2::ZDCSimulation
                                 O2::Generators)
 
