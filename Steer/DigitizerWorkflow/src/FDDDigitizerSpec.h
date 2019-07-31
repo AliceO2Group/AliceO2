@@ -8,15 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_FDDDIGITIZER_H_
+#define STEER_DIGITIZERWORKFLOW_FDDDIGITIZER_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::fdd::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::fdd::Detector> + ;
-#pragma link C++ class o2::fdd::Digitizer + ;
-#pragma link C++ class o2::fdd::DigitizationParameters + ;
+namespace o2
+{
+namespace fdd
+{
 
-#endif
+o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel);
+
+} // end namespace fdd
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_FDDDIGITIZER_H_ */

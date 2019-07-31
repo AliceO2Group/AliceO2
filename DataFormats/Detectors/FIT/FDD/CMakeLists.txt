@@ -8,13 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(FDDSimulation
-               SOURCES src/Detector.cxx
-	       	       src/Digitizer.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FDDBase O2::DataFormatsFDD
-                                     ROOT::Physics)
+o2_add_library(DataFormatsFDD
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                                     O2::SimulationDataFormat)
 
-o2_target_root_dictionary(FDDSimulation
-                          HEADERS include/FDDSimulation/Detector.h
-    			          include/FDDSimulation/Digitizer.h
-    				  include/FDDSimulation/DigitizationParameters.h)
+o2_target_root_dictionary(DataFormatsFDD
+                          HEADERS include/DataFormatsFDD/Digit.h
+                                  include/DataFormatsFDD/MCLabel.h
+                                  include/DataFormatsFDD/Hit.h)
+
+
+
