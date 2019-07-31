@@ -38,12 +38,13 @@ class LookUp
   int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
+  bool IsGroup(int id) const;
 
  private:
   TopologyDictionary mDictionary;
   int mTopologiesOverThreshold;
 
-  ClassDefNV(LookUp, 1);
+  ClassDefNV(LookUp, 2);
 };
 } // namespace itsmft
 } // namespace o2

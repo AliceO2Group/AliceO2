@@ -77,5 +77,11 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
     return (mTopologiesOverThreshold + index);
   }
 }
+
+bool LookUp::IsGroup(int id) const
+{
+  return mDictionary.IsGroup(id);
+}
+
 } // namespace itsmft
 } // namespace o2
