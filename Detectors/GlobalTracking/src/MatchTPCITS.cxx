@@ -1317,7 +1317,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
     float clsX;
 
     const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
-    mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+    mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
       LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
@@ -1356,7 +1356,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
         }
       }
       prevrow = row;
-      mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+      mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
       if (prevsector != sector) {
         prevsector = sector;
         if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
