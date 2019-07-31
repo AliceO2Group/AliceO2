@@ -41,6 +41,7 @@ set(GPUCF_SRC
 
     "./noisesuppression/NoiseSuppression.cpp"
     "./noisesuppression/NoiseSuppressionOverArea.cpp"
+    "./noisesuppression/utils.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})

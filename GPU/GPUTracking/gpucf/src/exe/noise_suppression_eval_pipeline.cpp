@@ -8,13 +8,10 @@
 #include <gpucf/noisesuppression/NoiseSuppression.h>
 #include <gpucf/noisesuppression/NoiseSuppressionOverArea.h>
 #include <gpucf/noisesuppression/NoNoiseSuppression.h>
+#include <gpucf/noisesuppression/plot.h>
+#include <gpucf/noisesuppression/utils.h>
 
 #include <args/args.hxx>
-
-#include <TAxis.h>
-#include <TCanvas.h>
-#include <TGraph.h>
-#include <TMultiGraph.h>
 
 #include <memory>
 #include <vector>
@@ -71,18 +68,6 @@ size_t countTracks(const SectorMap<LabelContainer> &labels)
 }
 
 
-RowMap<Map<bool>> makePeakMapByRow(const RowMap<std::vector<Digit>> &peaks)
-{
-    RowMap<Map<bool>> peakMaps;
-
-    for (size_t row = 0; row < peaks.size(); row++)
-    {
-        peakMaps[row] = Map<bool>(peaks[row], true, false);
-    }
-
-    return peakMaps;
-}
-
 
 
 std::vector<int> countPeaksPerTrack(
@@ -124,46 +109,6 @@ std::vector<int> countPeaksPerTrack(
     return peaknumToTracknum;
 }
 
-void plotPeaknumToTracknum(
-        const std::vector<std::string> &names,
-        const std::vector<std::vector<int>> &peaknumToTracknum,
-        const std::string &fname)
-{
-    size_t n = 0;
-    for (auto &vals : peaknumToTracknum)
-    {
-        n = std::max(n, vals.size());
-    }
-
-    std::vector<int> x(n);
-    for (size_t i = 0; i < x.size(); i++)
-    {
-        x[i] = i;
-    }
-
-    TCanvas *c = new TCanvas("c1", "Cluster per Track", 1200, 800);
-    /* c->SetLogy(); */
-    c->SetLogx();
-    TMultiGraph *mg = new TMultiGraph();
-
-    ASSERT(names.size() == peaknumToTracknum.size());
-    for (size_t i = 0; i < names.size(); i++)
-    {
-        const std::vector<int> &y = peaknumToTracknum[i];
-        TGraph *g = new TGraph(y.size(), x.data(), y.data());
-
-        g->SetLineColor(i+2);
-        g->SetMarkerColor(i+2);
-        g->SetTitle(names[i].c_str());
-        mg->Add(g);
-    }
-
-    mg->GetXaxis()->SetTitle("# peaks");
-    mg->GetYaxis()->SetTitle("# hits");
-    mg->Draw("A*");
-    c->BuildLegend();
-    c->SaveAs(fname.c_str());
-}
 
 std::unordered_map<TpcHitPos, std::vector<Digit>> sortPeaksByHit(
         const SectorMap<LabelContainer> &labels,
@@ -187,34 +132,6 @@ std::unordered_map<TpcHitPos, std::vector<Digit>> sortPeaksByHit(
     return hits;
 }
 
-
-bool peaksOverlap(const Digit &p1, const Digit &p2, const LabelContainer &c)
-{
-    View<MCLabel> labels1 = c[p1];
-    View<MCLabel> labels2 = c[p2];
-
-    size_t sharedLabels = 0;
-    for (const MCLabel &l1 : labels1)
-    {
-        for (const MCLabel &l2 : labels2)
-        {
-            sharedLabels += (l1 == l2);
-        }
-    }
-
-    return (sharedLabels >= 2);
-
-    /* if (l1.size() != 2 || l2.size() != 2) */
-    /* { */
-    /*     return false; */
-    /* } */
-    /* else */
-    /* { */
-    /*     return (l1[0] == l2[0] && l1[1] == l2[1]) */ 
-    /*         || (l1[0] == l2[1] && l1[1] == l2[0]); */
-    /* } */
-
-}
 
 void countLostHits(
         const SectorMap<LabelContainer> &labels,
@@ -314,12 +231,14 @@ int main(int argc, const char *argv[])
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2)); */
-    /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3)); */
+    noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 10));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 15));
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3)); */
@@ -393,10 +312,7 @@ int main(int argc, const char *argv[])
         names.push_back(algo->getName());
     }
 
-    plotPeaknumToTracknum(
-            names,
-            peaknumToTracknum,
-            "peaknumToTracknum.pdf");
+    plot(names, peaknumToTracknum, "peaknumToHits.pdf", "# peaks", "# hits");
 
     countLostHits(
             labels,

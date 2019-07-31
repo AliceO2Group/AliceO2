@@ -39,6 +39,19 @@ RowMap<std::vector<Digit>> gpucf::findPeaksByRow(
     return peaks;
 }
 
+RowMap<Map<bool>> gpucf::makePeakMapByRow(const RowMap<std::vector<Digit>> &peaks)
+{
+    RowMap<Map<bool>> peakMaps;
+
+    for (size_t row = 0; row < peaks.size(); row++)
+    {
+        peakMaps[row] = Map<bool>(peaks[row], true, false);
+    }
+
+    return peakMaps;
+
+}
+
 bool gpucf::isPeak(const Digit &d, const Map<float> &chargeMap, float cutoff)
 {
     const float q = d.charge;
