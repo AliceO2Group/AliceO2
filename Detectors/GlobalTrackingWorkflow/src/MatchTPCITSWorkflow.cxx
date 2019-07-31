@@ -14,7 +14,7 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/PublisherSpec.h"
-#include "FITWorkflow/T0RecPointReaderSpec.h"
+#include "FITWorkflow/FT0RecPointReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
@@ -55,7 +55,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
   specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
 
   if (useFIT) {
-    specs.emplace_back(o2::t0::getT0RecPointReaderSpec(useMC));
+    specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
   }
 
   return specs;

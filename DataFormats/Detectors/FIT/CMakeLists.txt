@@ -8,6 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(T0)
-add_subdirectory(V0)
 add_subdirectory(FDD)
+add_subdirectory(FT0)
+add_subdirectory(FV0)
