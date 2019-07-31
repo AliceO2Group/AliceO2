@@ -52,7 +52,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
   }
   clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
-  clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
+  clus->getClusterer().setWantCompactClusters(withDictionary); // require compact clusters with patternID
 
   clus->getClusterer().print();
   clus->run(inputfile, outputfile, entryPerROF);

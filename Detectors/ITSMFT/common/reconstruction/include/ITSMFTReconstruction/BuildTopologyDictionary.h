@@ -83,7 +83,7 @@ class BuildTopologyDictionary
   int getNGroups() const { return mNumberOfGroups; }
 
  private:
-  TopologyDictionary mDictionary; ///< Dictionary of topologies
+  TopologyDictionary mDictionary;                                          ///< Dictionary of topologies
   std::map<unsigned long, TopoStat> mTopologyMap;                          //! Temporary map of type <hash,TopStat>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold
   int mTotClusters;
@@ -93,7 +93,7 @@ class BuildTopologyDictionary
 
   std::unordered_map<long unsigned, TopologyInfo> mMapInfo;
 
-  ClassDefNV(BuildTopologyDictionary, 2);
+  ClassDefNV(BuildTopologyDictionary, 3);
 };
 } // namespace itsmft
 } // namespace o2
