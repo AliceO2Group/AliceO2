@@ -8,23 +8,24 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+# Some general CMake settings
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 include(FeatureSummary)
-
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}")
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
+
+# Copy and include Config File
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/config.cmake")
   file(COPY "${CMAKE_SOURCE_DIR}/cmake/config.cmake" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 include("${CMAKE_BINARY_DIR}/config.cmake")
 
-install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
-
+# Set Build and Compiler settings
 set(ALIGPU_BUILD_TYPE "Standalone")
-add_definitions(-DGPUCA_STANDALONE -DHAVE_O2HEADERS)
-
+add_definitions(-DGPUCA_STANDALONE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -32,15 +33,17 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Werror -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-write-strings")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Werror -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
   add_definitions(-DNDEBUG)
 endif()
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -Wl,--no-undefined")
 
+# Check and set settings for optional packages
 if(CONFIG_OPENMP)
   find_package(OpenMP REQUIRED)
 else()
   set(OpenMP_FOUND OFF)
+  set(OpenMP_CXX_FOUND OFF)
 endif()
 
 if(CONFIG_VC)
@@ -55,6 +58,7 @@ if(BUILD_EVENT_DISPLAY)
   find_package(GLEW REQUIRED)
   find_package(GLUT REQUIRED)
   find_package(OpenGL REQUIRED)
+  find_package(X11 REQUIRED)
 else()
   set(OpenGL_FOUND OFF)
 endif()
@@ -63,15 +67,27 @@ if(CONFIG_O2)
   add_definitions(-DGPUCA_TPC_GEOMETRY_O2)
 endif()
 
-find_package(ROOT CONFIG REQUIRED)
-find_package(Clang REQUIRED)
-find_package(LLVM REQUIRED)
-find_package(X11 REQUIRED)
-find_package(fmt REQUIRED)
+if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+  find_package(ROOT CONFIG REQUIRED)
+  add_definitions(-DHAVE_O2HEADERS)
+  if(NOT DEFINED MS_GSL_INCLUDE_DIR AND DEFINED ENV{MS_GSL_ROOT})
+    set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
+  endif()
+  find_package(ms_gsl REQUIRED)
+else()
+  set(ROOT_FOUND OFF)
+endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
+if(CONFIG_FMT)
+  find_package(fmt REQUIRED)
+else()
+  add_definitions(-DGPUCA_NO_FMT)
+endif()
+
+# Detect GPU Backends
 find_package(O2GPU)
 
+# Global include directories
 include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
@@ -105,49 +121,68 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
 
-add_subdirectory(../../ GPU)
-
-add_executable(ca standalone.cxx qa/genEvents.cxx
+# Create main targets
+add_executable(ca standalone.cxx
                   Base/GPUReconstructionTimeframe.cxx)
+add_subdirectory(../../ GPU)
+add_library(standalone_support SHARED utils/qconfig.cxx)
 
-add_library(o2_support SHARED
-  ../../..//DataFormats/simulation/src/MCCompLabel.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
-  ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx
-  ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
-  ../../..//Detectors/Base/src/MatLayerCylSet.cxx
-  ../../..//Detectors/Base/src/MatLayerCyl.cxx
-  ../../..//Detectors/Base/src/Ray.cxx)
+target_link_libraries(GPUTracking PUBLIC TPCFastTransformation standalone_support dl)
+target_link_libraries(ca PUBLIC GPUTracking)
+target_link_libraries(standalone_support PUBLIC dl pthread)
+target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
-add_library(standalone_config SHARED utils/qconfig.cxx)
+# Add all sources and dependencies to to support based on Config File
+if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+  target_sources(standalone_support PRIVATE
+               ../../..//DataFormats/simulation/src/MCCompLabel.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx
+               ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
+               ../../..//Detectors/Base/src/MatLayerCylSet.cxx
+               ../../..//Detectors/Base/src/MatLayerCyl.cxx
+               ../../..//Detectors/Base/src/Ray.cxx)
+  target_sources(ca PRIVATE qa/genEvents.cxx)
+endif()
 
-target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
-               display/GPUDisplayBackendGlut.cxx)
+if(CONFIG_FMT)
+  target_link_libraries(standalone_support PUBLIC fmt::fmt)
+endif()
 
-target_link_libraries(o2_support
-                      PUBLIC Vc::Vc
+if(CONFIG_VC)
+  target_link_libraries(standalone_support PUBLIC Vc::Vc)
+endif()
+
+if(BUILD_EVENT_DISPLAY)
+  target_link_libraries(standalone_support PUBLIC
                              X11::X11
                              glfw
-                             glut
-                             fmt::fmt
+                             glut)
+  target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
+                             display/GPUDisplayBackendGlut.cxx)
+endif()
+
+if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+  target_link_libraries(standalone_support PUBLIC
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
-                             ROOT::Gui)
+                             ROOT::Gui
+                             ms_gsl::ms_gsl)
+endif()
+
 if(CONFIG_VC)
   target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
-target_link_libraries(GPUTracking PUBLIC TPCFastTransformation o2_support standalone_config dl)
 
-target_link_libraries(ca PUBLIC GPUTracking)
-target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
-target_compile_definitions(standalone_config PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
-
-install(TARGETS ca GPUTracking TPCFastTransformation o2_support standalone_config)
+# Installation
+install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
+install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")
