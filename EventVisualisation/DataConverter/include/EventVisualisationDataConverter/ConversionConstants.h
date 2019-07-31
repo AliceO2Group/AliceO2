@@ -20,7 +20,7 @@
 #include <string>
 
 enum ETrackType {
-   Standard,
+  Standard,
 
   KinkMother,
   KinkDaughter,
