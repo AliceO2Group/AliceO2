@@ -23,7 +23,7 @@
   #define GPUWarning(...)
   #define GPUError(...)
   #define GPUFatal(...)
-#elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE)
+#elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
   #include <fmt/printf.h>
   #define GPUInfo(string, ...)                 \
     {                                          \
