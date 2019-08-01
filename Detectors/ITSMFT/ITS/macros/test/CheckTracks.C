@@ -19,10 +19,38 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
+
 #endif
+
+struct DataFrames {
+  void update(int frame, long index)
+  {
+    if (frame < firstFrame) {
+      firstFrame = frame;
+      firstIndex = index;
+    }
+    if (frame > lastFrame) {
+      lastFrame = frame;
+      lastIndex = index;
+    }
+    if (frame == firstFrame && index < firstIndex) {
+      firstIndex = index;
+    }
+    if (frame == lastFrame && index > lastIndex) {
+      lastIndex = index;
+    }
+  }
+
+  long firstFrame = 10000;
+  int firstIndex = 1;
+  long lastFrame = -10000;
+  int lastIndex = -1;
+};
 
 void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
 {
+  bool filterMultiROFTracks = 1;
+
   using namespace o2::itsmft;
   using namespace o2::its;
 
@@ -40,21 +68,24 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   // MC tracks
   TFile* file0 = TFile::Open(hitfile.data());
   TTree* mcTree = (TTree*)gFile->Get("o2sim");
+  mcTree->SetBranchStatus("*", 0); //disable all branches
+  //mcTree->SetBranchStatus("MCEventHeader.*",1);
+  mcTree->SetBranchStatus("MCTrack*", 1);
+
   std::vector<o2::MCTrack>* mcArr = nullptr;
   mcTree->SetBranchAddress("MCTrack", &mcArr);
+
+  /*
   std::vector<o2::TrackReference>* mcTrackRefs = nullptr;
   mcTree->SetBranchAddress("TrackRefs", &mcTrackRefs);
+  */
 
   // Clusters
   TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
-  auto* branch = clusTree->GetBranch("ITSCluster");
-  if (!branch) {
-    std::cout << "No clusters !" << std::endl;
-    return;
-  }
-  branch->SetAddress(&clusArr);
+  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
@@ -68,10 +99,8 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
   recTree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
-  Int_t nrec = 0;
   Int_t lastEventIDcl = -1, cf = 0;
-  Int_t lastEventIDtr = -1, tf = 0;
-  Int_t nev = mcTree->GetEntries();
+  Int_t nev = mcTree->GetEntriesFast();
 
   Int_t nb = 100;
   Double_t xbins[nb + 1], ptcutl = 0.01, ptcuth = 10.;
@@ -82,90 +111,190 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   num->Sumw2();
   TH1D* fak = new TH1D("fak", ";#it{p}_{T} (GeV/#it{c});Fak", nb, xbins);
   fak->Sumw2();
+  TH1D* clone = new TH1D("clone", ";#it{p}_{T} (GeV/#it{c});Clone", nb, xbins);
+  clone->Sumw2();
+
   TH1D* den = new TH1D("den", ";#it{p}_{T} (GeV/#it{c});Den", nb, xbins);
   den->Sumw2();
 
-  for (Int_t n = 0; n < 50; n++) {
-    std::cout << "\nMC event " << n << '/' << nev << std::endl;
-    Int_t nGen = 0, nGoo = 0, nFak = 0;
-    mcTree->GetEvent(n);
-    Int_t nmc = mcArr->size();
-    Int_t nmcrefs = mcTrackRefs->size();
+  // search for MC events in frames
 
-    while ((n > lastEventIDtr) && (tf < recTree->GetEntries())) { // Cache a new reconstructed entry
-      recTree->GetEvent(tf);
-      nrec = recArr->size();
-      for (int i = 0; i < nrec; i++) { // Find the last MC event within this reconstructed entry
-        auto mclab = (trkLabArr->getLabels(i))[0];
-        auto id = mclab.getEventID();
-        if (id > lastEventIDtr)
-          lastEventIDtr = id;
-      }
-      if (nrec > 0)
-        std::cout << "Caching track entry #" << tf << ", with the last event ID=" << lastEventIDtr << std::endl;
-      tf++;
+  cout << "Find mc events in cluster frames.. " << endl;
+
+  int loadedEventClust = -1;
+
+  vector<DataFrames> clusterFrames(nev);
+
+  for (int frame = 0; frame < clusTree->GetEntriesFast(); frame++) { // Cluster frames
+    if (!clusTree->GetEvent(frame))
+      continue;
+    loadedEventClust = frame;
+    for (unsigned int i = 0; i < clusArr->size(); i++) { // Find the last MC event within this reconstructed entry
+      auto lab = (clusLabArr->getLabels(i))[0];
+      if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() < 0 || lab.getEventID() >= nev)
+        continue;
+      clusterFrames[lab.getEventID()].update(frame, i);
     }
-    while ((n > lastEventIDcl) && (cf < clusTree->GetEntries())) { // Cache a new reconstructed entry
-      clusTree->GetEvent(cf);
-      for (int i = 0; i < clusArr->size(); i++) { // Find the last MC event within this reconstructed entry
-        auto mclab = (clusLabArr->getLabels(i))[0];
-        auto id = mclab.getEventID();
-        if (id > lastEventIDcl)
-          lastEventIDcl = id;
+  }
+
+  cout << "Find mc events in track frames.. " << endl;
+
+  int loadedEventTracks = -1;
+
+  vector<DataFrames> trackFrames(nev);
+  for (int frame = 0; frame < recTree->GetEntriesFast(); frame++) { // Track frames
+    if (!recTree->GetEvent(frame))
+      continue;
+    int loadedEventTracks = frame;
+    for (unsigned int i = 0; i < recArr->size(); i++) { // Find the last MC event within this reconstructed entry
+      auto lab = (trkLabArr->getLabels(i))[0];
+      if (!lab.isValid()) {
+        const TrackITS& recTrack = (*recArr)[i];
+        fak->Fill(recTrack.getPt());
       }
-      if (nrec > 0)
-        std::cout << "Caching cluster entry #" << cf << ", with the last event ID=" << lastEventIDcl << std::endl;
-      cf++;
+      if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() < 0 || lab.getEventID() >= nev)
+        continue;
+      trackFrames[lab.getEventID()].update(frame, i);
     }
+  }
+
+  cout << "Process mc events.. " << endl;
+
+  Int_t statGen = 0, statGoo = 0, statFak = 0, statClone = 0;
+  int nDataEvents = 0;
+
+  for (Int_t n = 0; n < nev; n++) { // loop over MC events
+
+    std::cout << "\nMC event " << n << '/' << nev << std::endl;
+    DataFrames f = clusterFrames[n];
+    if ((f.firstFrame > f.lastFrame) ||
+        ((f.firstFrame == f.lastFrame) && (f.firstIndex > f.lastIndex)))
+      continue;
+
+    if (!mcTree->GetEvent(n))
+      continue;
+    //cout<<"mc event loaded"<<endl;
+
+    Int_t nmc = mcArr->size();
+    //Int_t nmcrefs = mcTrackRefs->size();
 
     std::vector<int> clusMap(nmc, 0);
-    for (uint i = 0; i < clusArr->size(); i++) {
-      const Cluster& c = (*clusArr)[i];
-      auto lab = (clusLabArr->getLabels(i))[0];
-      if (!lab.isCorrect())
-        continue;
-      if (lab.getEventID() != n)
-        continue;
+    std::vector<int> clusRofMap(nmc, -1);
+    std::vector<int> trackMap(nmc, -1);
+    std::vector<int> mapNFakes(nmc, 0);
+    std::vector<int> mapNClones(nmc, 0);
 
-      if (lab.getTrackID() >= nmc)
-        clusMap.resize(lab.getTrackID());
-      int& ok = clusMap[lab.getTrackID()];
-      auto r = c.getX();
-      if (TMath::Abs(r - 2.2) < 0.5)
-        ok |= 0b1;
-      if (TMath::Abs(r - 3.0) < 0.5)
-        ok |= 0b10;
-      if (TMath::Abs(r - 3.8) < 0.5)
-        ok |= 0b100;
-      if (TMath::Abs(r - 19.5) < 0.5)
-        ok |= 0b1000;
-      if (TMath::Abs(r - 24.5) < 0.5)
-        ok |= 0b10000;
-      if (TMath::Abs(r - 34.5) < 0.5)
-        ok |= 0b100000;
-      if (TMath::Abs(r - 39.5) < 0.5)
-        ok |= 0b1000000;
+    std::vector<TrackITS> trackStore;
+    trackStore.reserve(10000);
+
+    f = trackFrames[n];
+    cout << "track frames: " << f.firstFrame << ", " << f.firstIndex << " <-> " << f.lastFrame << ", " << f.lastIndex << endl;
+
+    for (int frame = f.firstFrame; frame <= f.lastFrame; frame++) {
+      if (frame != loadedEventTracks) {
+        loadedEventTracks = -1;
+        if (!recTree->GetEvent(frame))
+          continue;
+        loadedEventTracks = frame;
+      }
+      long nentr = recArr->size();
+
+      long firstIndex = (frame == f.firstFrame) ? f.firstIndex : 0;
+      long lastIndex = (frame == f.lastFrame) ? f.lastIndex : nentr - 1;
+
+      for (long i = firstIndex; i <= lastIndex; i++) {
+        auto lab = (trkLabArr->getLabels(i))[0];
+        if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() != n)
+          continue;
+        int mcid = lab.getTrackID();
+        if (mcid < 0 || mcid >= nmc) {
+          cout << "track mc label is too big!!!" << endl;
+          continue;
+        }
+        if (lab.isFake()) {
+          mapNFakes[mcid]++;
+        } else if (trackMap[mcid] >= 0) {
+          mapNClones[mcid]++;
+        } else {
+          trackMap[mcid] = trackStore.size();
+          const TrackITS& recTrack = (*recArr)[i];
+          trackStore.emplace_back(recTrack);
+        }
+      }
     }
 
-    std::vector<const TrackITS*> trackMap(clusMap.size(), nullptr);
-    std::vector<o2::MCCompLabel> trackLabelMap;
-    trackLabelMap.resize(clusMap.size());
+    f = clusterFrames[n];
+    cout << "cluster frames: " << f.firstFrame << ", " << f.firstIndex << " <-> " << f.lastFrame << ", " << f.lastIndex << endl;
+    int nClusters = 0;
+    for (int frame = f.firstFrame; frame <= f.lastFrame; frame++) {
+      if (frame != loadedEventClust) {
+        loadedEventClust = -1;
+        if (!clusTree->GetEvent(frame))
+          continue;
+        loadedEventClust = frame;
+      }
+      long nentr = clusArr->size();
 
-    for (Int_t i = 0; i < nrec; i++) {
-      const TrackITS& recTrack = (*recArr)[i];
-      const auto& mclab = (trkLabArr->getLabels(i))[0];
-      auto id = mclab.getEventID();
-      if (!mclab.isValid())
-        continue;
-      if (id != n)
-        continue;
-      int lab = mclab.getTrackID();
-      trackMap[lab] = &recTrack;
-      trackLabelMap[lab] = mclab;
-    }
+      long firstIndex = (frame == f.firstFrame) ? f.firstIndex : 0;
+      long lastIndex = (frame == f.lastFrame) ? f.lastIndex : nentr - 1;
 
-    while (nmc--) {
-      const auto& mcTrack = (*mcArr)[nmc];
+      for (int i = firstIndex; i <= lastIndex; i++) {
+        auto lab = (clusLabArr->getLabels(i))[0];
+        if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() != n)
+          continue;
+
+        int mcid = lab.getTrackID();
+        if (mcid < 0 || mcid >= nmc) {
+          cout << "cluster mc label is too big!!!" << endl;
+          continue;
+        }
+
+        if (!lab.isCorrect())
+          continue;
+
+        const Cluster& c = (*clusArr)[i];
+
+        if (clusRofMap[mcid] < 0) {
+          clusRofMap[mcid] = c.getROFrame();
+        }
+        if (filterMultiROFTracks && (clusRofMap[mcid] != (int)c.getROFrame()))
+          continue;
+
+        nClusters++;
+
+        int& ok = clusMap[mcid];
+        auto r = c.getX();
+        if (TMath::Abs(r - 2.2) < 0.5)
+          ok |= 0b1;
+        if (TMath::Abs(r - 3.0) < 0.5)
+          ok |= 0b10;
+        if (TMath::Abs(r - 3.8) < 0.5)
+          ok |= 0b100;
+        if (TMath::Abs(r - 19.5) < 0.5)
+          ok |= 0b1000;
+        if (TMath::Abs(r - 24.5) < 0.5)
+          ok |= 0b10000;
+        if (TMath::Abs(r - 34.5) < 0.5)
+          ok |= 0b100000;
+        if (TMath::Abs(r - 39.5) < 0.5)
+          ok |= 0b1000000;
+      }
+    } // cluster frames
+
+    if (nClusters > 0)
+      nDataEvents++;
+
+    Int_t nGen = 0, nGoo = 0, nFak = 0, nClone = 0;
+
+    for (int mc = 0; mc < nmc; mc++) {
+
+      const auto& mcTrack = (*mcArr)[mc];
+
+      if (mapNFakes[mc] > 0) { // Fake-track rate calculation
+        nFak += mapNFakes[mc];
+        fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
+      }
+
       Int_t mID = mcTrack.getMotherTrackId();
       if (mID >= 0)
         continue; // Select primary particles
@@ -173,7 +302,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
 
-      if (clusMap[nmc] != 0b1111111)
+      if (clusMap[mc] != 0b1111111)
         continue;
 
       nGen++; // Generated tracks for the efficiency calculation
@@ -193,47 +322,62 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
       den->Fill(mcPt);
 
-      const TrackITS* recTrack = trackMap[nmc];
-      if (recTrack == nullptr)
-        continue;
-
-      auto out = recTrack->getParamOut();
-      // recYOut = out.getY();
-      recZOut = out.getZ();
-      recPhiOut = out.getPhi();
-      recThetaOut = out.getTheta();
-
-      std::array<float, 3> p;
-      recTrack->getPxPyPzGlo(p);
-      recPt = recTrack->getPt();
-      recPhi = TMath::ATan2(p[1], p[0]);
-      recLam = TMath::ATan2(p[2], recPt);
-      Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
-      Float_t bz = 5.;                   // Assumed magnetic field
-      recTrack->getImpactParams(vx, vy, vz, bz, ip);
-
-      auto label = trackLabelMap[nmc];
-      if (label.isCorrect()) {
+      if (trackMap[mc] >= 0) {
         nGoo++; // Good found tracks for the efficiency calculation
         num->Fill(mcPt);
-      } else {
-        nFak++; // Fake-track rate calculation
-        fak->Fill(mcPt);
+
+        const TrackITS& recTrack = trackStore[trackMap[mc]];
+        auto out = recTrack.getParamOut();
+        // recYOut = out.getY();
+        recZOut = out.getZ();
+        recPhiOut = out.getPhi();
+        recThetaOut = out.getTheta();
+        std::array<float, 3> p;
+        recTrack.getPxPyPzGlo(p);
+        recPt = recTrack.getPt();
+        recPhi = TMath::ATan2(p[1], p[0]);
+        recLam = TMath::ATan2(p[2], recPt);
+        Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
+        Float_t bz = 5.;                   // Assumed magnetic field
+        recTrack.getImpactParams(vx, vy, vz, bz, ip);
+
+        nt->Fill( // mcYOut,recYOut,
+          mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
+          ip[1], mc);
       }
 
-      nt->Fill( // mcYOut,recYOut,
-        mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
-        ip[1], label.getTrackIDSigned());
+      if (mapNClones[mc] > 0) { // Clone-track rate calculation
+        nClone += mapNClones[mc];
+        clone->Fill(mcPt, mapNClones[mc]);
+      }
     }
+
+    statGen += nGen;
+    statGoo += nGoo;
+    statFak += nFak;
+    statClone += nClone;
+
     if (nGen > 0) {
       Float_t eff = nGoo / Float_t(nGen);
       Float_t rat = nFak / Float_t(nGen);
-      std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << ",  fake-track rate: " << rat << std::endl;
+      Float_t clonerat = nClone / Float_t(nGen);
+      std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
     }
-  }
+
+  } // mc events
+
+  cout << "\nOverall efficiency: " << endl;
+  if (statGen > 0) {
+    Float_t eff = statGoo / Float_t(statGen);
+    Float_t rat = statFak / Float_t(statGen);
+    Float_t clonerat = statClone / Float_t(statGen);
+    std::cout << "Good found tracks/event: " << statGoo / nDataEvents << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
+    }
 
   // "recPt>0" means "found tracks only"
   // "label>0" means "found good tracks only"
+
+    /*
   new TCanvas;
   nt->Draw("ipD", "recPt>0 && label>0");
   new TCanvas;
@@ -246,15 +390,19 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   nt->Draw("mcPhiOut-recPhiOut", "recPt>0 && label>0");
   new TCanvas;
   nt->Draw("mcThetaOut-recThetaOut", "recPt>0 && label>0");
-  TCanvas* c1 = new TCanvas;
-  c1->SetLogx();
-  c1->SetGridx();
-  c1->SetGridy();
-  num->Divide(num, den, 1, 1, "b");
-  num->Draw("histe");
-  fak->Divide(fak, den, 1, 1, "b");
-  fak->SetLineColor(2);
-  fak->Draw("histesame");
-  f->Write();
-  f->Close();
+  */
+    TCanvas* c1 = new TCanvas;
+    c1->SetLogx();
+    c1->SetGridx();
+    c1->SetGridy();
+    num->Divide(num, den, 1, 1, "b");
+    num->Draw("histe");
+    fak->Divide(fak, den, 1, 1, "b");
+    fak->SetLineColor(2);
+    fak->Draw("histesame");
+    clone->Divide(clone, den, 1, 1, "b");
+    clone->SetLineColor(3);
+    clone->Draw("histesame");
+    f->Write();
+    f->Close();
 }
