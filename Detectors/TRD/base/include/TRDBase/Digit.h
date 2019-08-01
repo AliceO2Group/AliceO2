@@ -59,8 +59,9 @@ class Digit
   // Set of static helper methods
   static int getPos(const int det, const int row, const int pad, const int tb)
   {
-    // return det * (kNpad_rows * kNpads * kTB) + row * (kNpads * kTB) + pad * kTB + tb;
-    return ((det * kNpad_rows + row) * kNpads + pad) * kTB + tb;
+    // int pos = det * (kNpad_rows * kNpads * kTB) + row * (kNpads * kTB) + pad * kTB + tb;
+    const int pos = ((det * kNpad_rows + row) * kNpads + pad) * kTB + tb;
+    return pos;
   };
   static void convertSignalsToDigits(const std::vector<ADC_t>& signals, std::vector<Digit>& digits)
   {
@@ -71,7 +72,7 @@ class Digit
           // check if pad has no signals
           const bool is_empty = std::all_of(signals.begin() + pos, signals.begin() + pos + kTB, [](const int& a) { return a == 0; });
           if (is_empty) {
-            continue; // go to the next row
+            continue; // go to the next pad
           }
           ArrayADC_t adc;
           for (int t = 0; t < kTB; ++t) {
