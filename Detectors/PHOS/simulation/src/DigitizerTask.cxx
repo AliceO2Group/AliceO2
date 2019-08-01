@@ -55,7 +55,7 @@ InitStatus DigitizerTask::Init()
 
   // Register output containers
   mgr->RegisterAny("PHSDigit", mDigitsArray, kTRUE);
-  mgr->RegisterAny("PHSDigitMCTruth", mMCTruthContainer, kTRUE);
+  //  mgr->RegisterAny("PHSDigitMCTruth", mMCTruthContainer, kTRUE);
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
