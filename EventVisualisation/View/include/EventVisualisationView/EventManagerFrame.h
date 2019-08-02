@@ -41,7 +41,7 @@ class EventManagerFrame : public TGMainFrame
  public:
   EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
   ~EventManagerFrame() override = default;
-  ClassDef(EventManagerFrame, 0); // GUI window for AliEveEventManager.
+  ClassDefOverride(EventManagerFrame, 0); // GUI window for AliEveEventManager.
 
  public: // slots
   void DoFirstEvent();
