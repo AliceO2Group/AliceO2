@@ -38,7 +38,14 @@
 
 #include <fairlogger/Logger.h>
 
-#define TPC_RUN2
+#define TPC_RUN2 // if defined, use run 2 geometry for TPC
+
+#define LOCAL_RESIDUAL_FORMAT_OLD // if defined, data in compact trees is stored as Double32_t, otherwise as short
+#ifdef LOCAL_RESIDUAL_FORMAT_OLD
+using LocResStruct = AliTPCDcalibRes::dts_t;
+#else
+using LocResStruct = o2::tpc::TrackResiduals::LocalResid;
+#endif
 
 using namespace o2::tpc;
 
@@ -112,7 +119,7 @@ void TrackResiduals::initResultsContainer(int iSec)
     for (int ip = 0; ip < mNY2XBins; ++ip) {
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int binGlb = getGlbVoxBin(ix, ip, iz);
-        bres_t& resVox = mVoxelResults[iSec][binGlb];
+        VoxRes& resVox = mVoxelResults[iSec][binGlb];
         resVox.bvox[VoxX] = ix;
         resVox.bvox[VoxF] = ip;
         resVox.bvox[VoxZ] = iz;
@@ -131,7 +138,7 @@ void TrackResiduals::reset()
 {
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     mXBinsIgnore[iSec].reset();
-    std::fill(mVoxelResults[iSec].begin(), mVoxelResults[iSec].end(), bres_t());
+    std::fill(mVoxelResults[iSec].begin(), mVoxelResults[iSec].end(), VoxRes());
     std::fill(mValidFracXBins[iSec].begin(), mValidFracXBins[iSec].end(), 0);
   }
 }
@@ -177,6 +184,18 @@ int TrackResiduals::getXBin(float x) const
   }
 }
 
+bool TrackResiduals::findVoxelBin(float x, float y, float z, std::array<unsigned char, VoxDim>& bvox) const
+{
+  if (fabs(z / x) > sMaxZ2X) {
+    //printf("z/x (%.2f) out of range, z=%.2f, x=%.2f\n", z / x, z, x);
+    return false;
+  }
+  bvox[VoxZ] = getZ2XBin(fabs(z / x));
+  bvox[VoxX] = getXBin(x);
+  bvox[VoxF] = getY2XBin(y / x, bvox[VoxX]);
+  return true;
+}
+
 void TrackResiduals::setKernelType(KernelType kernel, float bwX, float bwP, float bwZ, float scX, float scP, float scZ)
 {
   // set kernel type and widths in terms of binning in x, y/x, z/x and define aux variables
@@ -216,6 +235,417 @@ void TrackResiduals::setKernelType(KernelType kernel, float bwX, float bwP, floa
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+void TrackResiduals::buildLocalResidualTreesFromRun2Data()
+{
+  // prepare trees for storage of local residuals
+  prepareLocalResidualTrees();
+  // access delta trees created by AliTPCcalibAlignInterpolation::Process();
+  mRun2DeltaTree = std::make_unique<TChain>(mResidualDataTreeName.data());
+  mRun2DeltaTree->AddFile((mPathToResidualFiles + mResidualDataFileName).data());
+  prepareDeltaTreeBranches();
+  std::array<float, param::NPadRows> residHelixY;
+  std::array<float, param::NPadRows> residHelixZ;
+  auto* brTRDOK = mRun2DeltaTree->GetBranch("trdOK");
+  auto* brITSOK = mRun2DeltaTree->GetBranch("itsOK");
+  auto nTracks = mRun2DeltaTree->GetEntries();
+  int nTracksSelected = 0;
+  int nTracksSelectedWithOutliers = 0;
+  std::array<int, 3> counterTrkValidation{ 0 };
+  int nRejCl = 0, nRejHelix = 0, nRejQpt = 0, nRejValidation = 0;
+  LOG(info) << "Building local residual trees from " << nTracks << " tracks.";
+  for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
+    /*
+    printf("Checking track %i\n", iTrk);
+    if (iTrk > 2) {
+      break;
+    }
+    */
+    brTRDOK->GetEntry(iTrk);
+    brITSOK->GetEntry(iTrk);
+    if (!mDeltaStruct.trdOK || !mDeltaStruct.itsOK) {
+      //printf("Track %i trd or its not OK\n", iTrk);
+      continue;
+    }
+    mRun2DeltaTree->GetEntry(iTrk);
+    const Float_t* vSec = mDeltaStruct.vecSec->GetMatrixArray();
+    const Float_t* vPhi = mDeltaStruct.vecPhi->GetMatrixArray();
+    const Float_t* vR = mDeltaStruct.vecR->GetMatrixArray();
+    const Float_t* vZ = mDeltaStruct.vecZ->GetMatrixArray();
+    const Float_t* vDY = mDeltaStruct.vecDYtrd->GetMatrixArray();
+    const Float_t* vDZ = mDeltaStruct.vecDZtrd->GetMatrixArray();
+    const Float_t* vDYits = mDeltaStruct.vecDYits->GetMatrixArray();
+    const Float_t* vDZits = mDeltaStruct.vecDZits->GetMatrixArray();
+    mQpt = mDeltaStruct.param[4];
+    mTgl = mDeltaStruct.param[3];
+    mNCl = 0;
+
+    //printf("qpt(%.2f), tgl(%.2f), nPoints(%03i), current mNCl(%03i)\n", mQpt, mTgl, mDeltaStruct.npValid, mNCl);
+
+    // load all points into buffer
+    for (int iCl = 0; iCl < mDeltaStruct.npValid; ++iCl) {
+      //printf("checking point %03i, mNCl(%03i), nPadRows(%i)\n", iCl, mNCl, param::NPadRows);
+      // check if point is OK
+      if (vR[iCl] < param::InvalidR || vDY[iCl] < param::InvalidRes || vDYits[iCl] < param::InvalidRes) {
+        //printf("point %03i not OK: vR(%.2f), vDY(%.2f), vDTits(%.2f)\n", iCl, vR[iCl], vDY[iCl], vDYits[iCl]);
+        continue;
+      }
+      // then fill buffer arrays
+      mArrX[mNCl] = -1;
+      mArrR[mNCl] = vR[iCl];
+      mArrZTr[mNCl] = vZ[iCl] + vDZ[iCl] - vDZits[iCl];
+      mArrDY[mNCl] = vDY[iCl];
+      mArrDZ[mNCl] = vDZ[iCl];
+      mArrPhi[mNCl] = vPhi[iCl];
+      if (mArrPhi[mNCl] < 0) {
+        mArrPhi[mNCl] += o2::constants::math::TwoPI;
+      }
+      mArrSecId[mNCl] = static_cast<int>(nearbyint(vSec[iCl])) % (SECTORSPERSIDE * SIDES); // 0..35 for sectors from A0 to C17
+      ++mNCl;
+    }
+    if (mNCl < param::MinNCl) {
+      //printf("Not enough points: %i \n", mNCl);
+      ++nRejCl;
+      continue;
+    }
+    ++nTracksSelectedWithOutliers;
+    //printf("Checking track %i\n", iTrk);
+    bool resHelix = compareToHelix(residHelixY, residHelixZ);
+    /*
+    printf("Printing helix residuals for track %i\n", iTrk);
+    for (int i = 0; i < param::NPadRows; ++i) {
+      printf("residHelixY[%03i]=% .4f \t \t residHelixZ[%03i]=% .4f\n", i, residHelixY[i], i, residHelixZ[i]);
+    }
+    */
+    if (mFilterOutliers && !resHelix) {
+      // too strong deviation to helix -> discard track
+      ++nRejHelix;
+      continue;
+    }
+    if (fabsf(mQpt) > param::MaxQ2Pt) {
+      // discard low pt tracks now that a more precise q/pt estimate is available
+      ++nRejQpt;
+      continue;
+    }
+
+    // now everything needs to be converted to the sector frame
+    int nClTmp = mNCl;
+    mNCl = 0;
+    for (int iCl = 0; iCl < nClTmp; ++iCl) {
+      int side = mArrSecId[iCl] / SECTORSPERSIDE; // TODO check if side is always correct!
+      float cs = cos(mArrPhi[iCl] - (.5f + mArrSecId[iCl] % SECTORSPERSIDE) * o2::constants::math::SectorSpanRad);
+      float sn = std::sqrt((1.f + cs) * (1.f - cs)); // sin^2 + cos^2 = 1 => sin = sqrt(1-cos^2)
+
+      // by using propagation in the cluster frame in AliTPCcalibAlignInterpolation::Process(),
+      // the x of the track is evaluated not at the pad-row x = r * cs, but at x = r * cs - dy * sn
+      float xRow = mArrR[iCl] * cs;
+      float dx = mArrDY[iCl] * sn;
+      float yCl = mArrR[iCl] * sn;         // cluster y in sector frame
+      float yTrk = yCl + mArrDY[iCl] * cs; // track Y in sector frame at x = xTrk = xRow - dx
+      float zTrk = mArrZTr[iCl];           // track Z at x = xTrk = xRow - dx
+      float zCl = zTrk - mArrDZ[iCl];      // cluster z is zTrk - deltaZ
+      // use linear approximation to take the track to the real pad-row x
+      float tgSlp = mArrTgSlp[iCl];
+      if (fabsf(tgSlp) > param::MaxTgSlp) {
+        continue;
+      }
+      yTrk += dx * tgSlp;
+      float csXtrkInv = std::sqrt(1.f + tgSlp * tgSlp); // invers cosine of track angle
+      zTrk += dx * mTgl * csXtrkInv;
+
+      // assign recalculated residuals to arrays
+      mArrX[mNCl] = xRow;
+      mArrYTr[mNCl] = yTrk;
+      mArrZTr[mNCl] = zTrk;
+      mArrYCl[mNCl] = yCl;
+      mArrZCl[mNCl] = zCl;
+      mArrDY[mNCl] = yTrk - yCl;
+      mArrDZ[mNCl] = zTrk - zCl;
+      // prevent under-/overflows
+      if (fabsf(mArrDY[mNCl]) > param::MaxResid - param::sEps) {
+        continue;
+      }
+      if (fabsf(mArrDZ[mNCl]) > param::MaxResid - param::sEps) {
+        continue;
+      }
+      if (mArrX[mNCl] < param::MinX[0] || mArrX[mNCl] > param::MaxX) {
+        continue;
+      }
+      if (fabsf(mArrZCl[mNCl]) > param::ZLimit[side]) {
+        continue;
+      }
+      // done converting everything to sector frame
+      ++mNCl;
+    }
+    if (mFilterOutliers && !validateTrack(counterTrkValidation)) {
+      ++nRejValidation;
+      continue;
+    }
+    ++nTracksSelected;
+
+    fillLocalResidualsTrees();
+  }
+  printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
+  printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
+  LOG(info) << "Accepted " << nTracksSelected << " tracks. With outliers it would be " << nTracksSelectedWithOutliers;
+  writeLocalResidualTreesToFile();
+}
+
+void TrackResiduals::fillLocalResidualsTrees()
+{
+  for (int iCl = mNCl; iCl--;) {
+    if (mArrX[iCl] < param::InvalidR) {
+      // this cluster was marked as outlier
+      continue;
+    }
+    int secId = mArrSecId[iCl]; // 0..35 numbering (A00 to C17)
+    if (!findVoxelBin(mArrX[iCl], mArrYCl[iCl], mArrZCl[iCl], mLocalResid.bvox)) {
+      continue;
+    }
+    mLocalResid.dy = static_cast<short>(mArrDY[iCl] * 0x7fff / param::MaxResid);
+    mLocalResid.dz = static_cast<short>(mArrDZ[iCl] * 0x7fff / param::MaxResid);
+    mLocalResid.tgSlp = static_cast<short>(mArrTgSlp[iCl] * 0x7fff / param::MaxTgSlp);
+    // fill tree
+    mTmpTree[secId]->Fill();
+    // TODO: fill statistics distribution within the voxel
+  }
+}
+
+bool TrackResiduals::validateTrack(std::array<int, 3>& counterTrkValidation)
+{
+  if (mNCl < mNMALong) {
+    ++counterTrkValidation[0];
+    return false;
+  }
+  std::bitset<param::NPadRows> rejCl{};
+  float rmsLong = 0.f;
+  int nRej = checkResiduals(rejCl, rmsLong);
+  if (static_cast<float>(nRej) / mNCl > mMaxRejFrac) {
+    ++counterTrkValidation[1];
+    return false;
+  }
+  if (rmsLong > mMaxRMSLong) {
+    ++counterTrkValidation[2];
+    return false;
+  }
+  for (int iCl = mNCl; iCl--;) {
+    // mark rejected clusters
+    if (rejCl.test(iCl)) {
+      mArrR[iCl] = -1.f;
+      mArrX[iCl] = -1.f;
+    }
+  }
+  return true;
+}
+
+int TrackResiduals::checkResiduals(std::bitset<param::NPadRows>& rejCl, float& rmsLong)
+{
+  int secStart = mArrSecId[0];
+  int iClFirst = 0;
+  int iClLast = mNCl - 1;
+
+  // arrays with differences / abs(differences) of points to their neighbourhood, initialized to zero
+  std::array<float, param::NPadRows> yDiffLL{};
+  std::array<float, param::NPadRows> zDiffLL{};
+  std::array<float, param::NPadRows> absDevY{};
+  std::array<float, param::NPadRows> absDevZ{};
+
+  for (int iCl = 0; iCl < mNCl; ++iCl) {
+    if (iCl < iClLast && mArrSecId[iCl] == secStart) {
+      continue;
+    }
+    // sector changed or last cluster reached
+    // now run estimators for all points in the same sector
+    int nClSec = iCl - iClFirst;
+    if (iCl == iClLast) {
+      ++nClSec;
+    }
+    diffToLocLine(nClSec, iClFirst, mArrX, mArrDY, yDiffLL);
+    diffToLocLine(nClSec, iClFirst, mArrX, mArrDZ, zDiffLL);
+    iClFirst = iCl;
+    secStart = mArrSecId[iCl];
+  }
+  // store abs deviations
+  int nAccY = 0;
+  int nAccZ = 0;
+  for (int iCl = mNCl; iCl--;) {
+    if (fabsf(yDiffLL[iCl]) > param::sEps) {
+      absDevY[nAccY++] = fabsf(yDiffLL[iCl]);
+    }
+    if (fabsf(zDiffLL[iCl]) > param::sEps) {
+      absDevZ[nAccZ++] = fabsf(zDiffLL[iCl]);
+    }
+  }
+  if (nAccY < param::MinNumberOfAcceptedResiduals || nAccZ < param::MinNumberOfAcceptedResiduals) {
+    // mask all clusters
+    rejCl.set();
+    return mNCl;
+  }
+  // estimate rms on 90% of the smallest deviations
+  int nKeepY = static_cast<int>(.9 * nAccY);
+  int nKeepZ = static_cast<int>(.9 * nAccZ);
+  std::nth_element(absDevY.begin(), absDevY.begin() + nKeepY, absDevY.begin() + nAccY);
+  std::nth_element(absDevZ.begin(), absDevZ.begin() + nKeepZ, absDevZ.begin() + nAccZ);
+  float rmsYkeep = 0.f;
+  float rmsZkeep = 0.f;
+  for (int i = nKeepY; i--;) {
+    rmsYkeep += absDevY[i] * absDevY[i];
+  }
+  for (int i = nKeepZ; i--;) {
+    rmsZkeep += absDevZ[i] * absDevZ[i];
+  }
+  rmsYkeep = std::sqrt(rmsYkeep / nKeepY);
+  rmsZkeep = std::sqrt(rmsZkeep / nKeepZ);
+  if (rmsYkeep < param::sEps || rmsZkeep < param::sEps) {
+    LOG(warning) << "Too small RMS: " << rmsYkeep << "(y), " << rmsZkeep << "(z).";
+    rejCl.set();
+    return mNCl;
+  }
+  float rmsYkeepI = 1.f / rmsYkeep;
+  float rmsZkeepI = 1.f / rmsZkeep;
+  int nAcc = 0;
+  std::array<float, param::NPadRows> yAcc;
+  std::array<float, param::NPadRows> yDiffLong;
+  for (int iCl = 0; iCl < mNCl; ++iCl) {
+    yDiffLL[iCl] *= rmsYkeepI;
+    zDiffLL[iCl] *= rmsZkeepI;
+    if (yDiffLL[iCl] * yDiffLL[iCl] + zDiffLL[iCl] * zDiffLL[iCl] > param::mMaxStdDevMA) {
+      rejCl.set(iCl);
+    } else {
+      yAcc[nAcc++] = mArrDY[iCl];
+    }
+  }
+  if (nAcc > mNMALong) {
+    diffToMA(nAcc, yAcc, yDiffLong);
+    float average = 0.f;
+    float rms = 0.f;
+    for (int i = 0; i < nAcc; ++i) {
+      // what about points without enough neighbours?? don't they distort the average?
+      average += yDiffLong[i];
+      rms += yDiffLong[i] * yDiffLong[i];
+    }
+    average /= nAcc;
+    rmsLong = rms / nAcc - average * average;
+    rmsLong = (rmsLong > 0) ? std::sqrt(rmsLong) : 0.f;
+  }
+  return rejCl.count();
+}
+
+void TrackResiduals::prepareDeltaTreeBranches()
+{
+  mRun2DeltaTree->SetMakeClass(1);
+  mRun2DeltaTree->SetBranchStatus("*", 0);
+
+  mRun2DeltaTree->SetBranchStatus("trdOK", 1);
+  mRun2DeltaTree->SetBranchStatus("trd0.", 1);
+  mRun2DeltaTree->SetBranchStatus("trd1.", 1);
+  mRun2DeltaTree->SetBranchStatus("vecSec.", 1);
+  mRun2DeltaTree->SetBranchStatus("vecPhi.", 1);
+  mRun2DeltaTree->SetBranchStatus("vecR.", 1);
+  mRun2DeltaTree->SetBranchStatus("vecZ.", 1);
+  mRun2DeltaTree->SetBranchStatus("npValid", 1);
+  mRun2DeltaTree->SetBranchStatus("itsOK", 1);
+  mRun2DeltaTree->SetBranchStatus("its0.", 1);
+  mRun2DeltaTree->SetBranchStatus("its1.", 1);
+  mRun2DeltaTree->SetBranchStatus("track.fP[5]", 1);
+
+  mRun2DeltaTree->SetBranchAddress("trdOK", &mDeltaStruct.trdOK);
+  mRun2DeltaTree->SetBranchAddress("trd0.", &mDeltaStruct.vecDYtrd);
+  mRun2DeltaTree->SetBranchAddress("trd1.", &mDeltaStruct.vecDZtrd);
+  mRun2DeltaTree->SetBranchAddress("vecSec.", &mDeltaStruct.vecSec);
+  mRun2DeltaTree->SetBranchAddress("vecPhi.", &mDeltaStruct.vecPhi);
+  mRun2DeltaTree->SetBranchAddress("vecR.", &mDeltaStruct.vecR);
+  mRun2DeltaTree->SetBranchAddress("vecZ.", &mDeltaStruct.vecZ);
+  mRun2DeltaTree->SetBranchAddress("npValid", &mDeltaStruct.npValid);
+  mRun2DeltaTree->SetBranchAddress("itsOK", &mDeltaStruct.itsOK);
+  mRun2DeltaTree->SetBranchAddress("its0.", &mDeltaStruct.vecDYits);
+  mRun2DeltaTree->SetBranchAddress("its1.", &mDeltaStruct.vecDZits);
+  mRun2DeltaTree->SetBranchAddress("track.fP[5]", mDeltaStruct.param);
+}
+
+void TrackResiduals::prepareLocalResidualTrees()
+{
+  // prepare tree structure
+  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+    mTmpFile[iSec] = std::make_unique<TFile>(Form("%s%d.root", mLocalResFileName.c_str(), iSec), "recreate");
+    mTmpTree[iSec] = std::make_unique<TTree>(Form("%s%d", mLocalResTreeName.c_str(), iSec), "TPC local residuals");
+    mTmpTree[iSec]->Branch(mLocalResBranchName.c_str(), &mLocalResidPtr);
+  }
+}
+
+void TrackResiduals::writeLocalResidualTreesToFile()
+{
+  // write trees with local residuals to file
+  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
+    if (!mTmpFile[iSec]) {
+      continue;
+    }
+    mTmpFile[iSec]->cd();
+    mTmpTree[iSec]->Write();
+    mTmpTree[iSec].reset();
+    mTmpFile[iSec]->Close();
+    mTmpFile[iSec].reset();
+  }
+}
+
+void TrackResiduals::convertToLocalResiduals()
+{
+  // When using data generated with o2 without distortions the residuals can easily be converted
+  // without the need of outlier filtering (is this really true?).
+  // Probably a lot of the functionality from buildLocalResidualTreesFromRun2Data() have to be
+  // added here as well.
+  if (!mIsInitialized) {
+    init();
+  }
+  // open input file and access track data
+  mFileIn = std::make_unique<TFile>(mInputFileNameResiduals.data(), "open");
+  if (!mFileIn) {
+    LOG(error) << "input file could not be opened";
+    return;
+  }
+  mTreeInTracks = static_cast<TTree*>(mFileIn->Get("tracks"));
+  if (!mTreeInTracks) {
+    LOG(error) << "tree with track information not available in input file";
+    return;
+  }
+  mTreeInTracks->SetBranchAddress("tracks", &mTrackDataPtr);
+  mTreeInTracks->GetEntry(0);
+  // and access also cluster residuals
+  mTreeInClRes = static_cast<TTree*>(mFileIn->Get("residuals"));
+  if (!mTreeInClRes) {
+    LOG(error) << "tree with TPC cluster residuals not available in input file";
+    return;
+  }
+  mTreeInClRes->SetBranchAddress("residuals", &mClResPtr);
+  mTreeInClRes->GetEntry(0);
+
+  prepareLocalResidualTrees();
+
+  // loop over tracks
+  for (const auto& trk : mTrackData) {
+    int iRow = 0;
+    for (int iCl = 0; iCl < trk.clIdx.getEntries(); ++iCl) {
+      int clIdx = trk.clIdx.getFirstEntry() + iCl;
+      std::array<unsigned char, VoxDim> bvox;
+      iRow += mClRes[clIdx].dRow;
+      float xPos = param::RowX[iRow];
+      if (!findVoxelBin(xPos, mClRes[clIdx].y * param::MaxY / 0x7fff, mClRes[clIdx].z * param::MaxZ / 0x7fff, bvox)) {
+        continue;
+      }
+      mLocalResid.dy = mClRes[clIdx].dy;
+      mLocalResid.dz = mClRes[clIdx].dz;
+      mLocalResid.tgSlp = mClRes[clIdx].phi;
+      mLocalResid.bvox = bvox;
+      // sector numbering 0..35 a.k.a. A0..C17
+      int sec = mClRes[clIdx].z < 0 ? mClRes[clIdx].sec : mClRes[clIdx].sec + SECTORSPERSIDE;
+      mTmpTree[sec]->Fill();
+      // TODO calculate mean position of clusters in each voxel (can be updated each time a new measurement is found inside voxel)
+    }
+  }
+
+  // write to file for debugging
+  writeLocalResidualTreesToFile();
+}
+
 //______________________________________________________________________________
 void TrackResiduals::processResiduals()
 {
@@ -245,15 +675,16 @@ void TrackResiduals::processSectorResiduals(int iSec)
     LOG(error) << "failed to open " << filename.c_str();
     return;
   }
-  std::string treename = "ts" + std::to_string(iSec);
+  std::string treename = mLocalResTreeName + std::to_string(iSec);
   std::unique_ptr<TTree> tree((TTree*)flin->Get(treename.c_str()));
   if (!tree) {
     LOG(error) << "did not find the data tree " << treename.c_str();
     return;
   }
-  AliTPCDcalibRes::dts_t trkRes;
+  // read compact delte trees created with AliRoot or o2
+  LocResStruct trkRes;
   auto* pTrkRes = &trkRes;
-  tree->SetBranchAddress("dts", &pTrkRes);
+  tree->SetBranchAddress(mLocalResBranchName.c_str(), &pTrkRes);
   auto nPoints = tree->GetEntries();
   if (!nPoints) {
     LOG(warning) << "no entries found for sector " << iSec;
@@ -268,7 +699,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
 
   LOG(info) << "extracted " << nPoints << " of unbinned data";
 
-  std::vector<bres_t>& secData = mVoxelResults[iSec];
+  std::vector<VoxRes>& secData = mVoxelResults[iSec];
 
   unsigned int nAccepted = 0;
 
@@ -284,12 +715,21 @@ void TrackResiduals::processSectorResiduals(int iSec)
   // read input data into internal vectors
   for (int i = 0; i < nPoints; ++i) {
     tree->GetEntry(i);
-    if (fabs(trkRes.tgSlp) >= mMaxTgSlp) {
+#ifdef LOCAL_RESIDUAL_FORMAT_OLD
+    if (fabs(trkRes.tgSlp) >= param::MaxTgSlp) {
       continue;
     }
     dyData[nAccepted] = trkRes.dy;
     dzData[nAccepted] = trkRes.dz;
     tgSlpData[nAccepted] = trkRes.tgSlp;
+#else
+    if (fabs(trkRes.tgSlp * param::MaxTgSlp / 0x7fff) >= param::MaxTgSlp) {
+      continue;
+    }
+    dyData[nAccepted] = trkRes.dy * param::MaxResid / 0x7fff;
+    dzData[nAccepted] = trkRes.dz * param::MaxResid / 0x7fff;
+    tgSlpData[nAccepted] = trkRes.tgSlp * param::MaxTgSlp / 0x7fff;
+#endif
     binData[nAccepted] = getGlbVoxBin(trkRes.bvox[VoxX], trkRes.bvox[VoxF], trkRes.bvox[VoxZ]);
     nAccepted++;
   }
@@ -310,19 +750,21 @@ void TrackResiduals::processSectorResiduals(int iSec)
   tgSlpData.resize(nAccepted);
   binData.resize(nAccepted);
 
+#ifdef LOCAL_RESIDUAL_FORMAT_OLD
   // convert to short and back to float to be compatible with AliRoot version
   std::vector<short> dyDataShort(nAccepted);
   std::vector<short> dzDataShort(nAccepted);
   std::vector<short> tgSlpDataShort(nAccepted);
   for (unsigned int i = 0; i < nAccepted; ++i) {
-    dyDataShort[i] = short(dyData[i] * 0x7fff / sMaxResid);
-    dzDataShort[i] = short(dzData[i] * 0x7fff / sMaxResid);
-    tgSlpDataShort[i] = short(tgSlpData[i] * 0x7fff / mMaxTgSlp);
+    dyDataShort[i] = short(dyData[i] * 0x7fff / param::MaxResid);
+    dzDataShort[i] = short(dzData[i] * 0x7fff / param::MaxResid);
+    tgSlpDataShort[i] = short(tgSlpData[i] * 0x7fff / param::MaxTgSlp);
 
-    dyData[i] = dyDataShort[i] * sMaxResid / 0x7fff;
-    dzData[i] = dzDataShort[i] * sMaxResid / 0x7fff;
-    tgSlpData[i] = tgSlpDataShort[i] * mMaxTgSlp / 0x7fff;
+    dyData[i] = dyDataShort[i] * param::MaxResid / 0x7fff;
+    dzData[i] = dzDataShort[i] * param::MaxResid / 0x7fff;
+    tgSlpData[i] = tgSlpDataShort[i] * param::MaxTgSlp / 0x7fff;
   }
+#endif
 
   // sort in voxel increasing order
   o2::math_utils::math_base::SortData(binData, binIndices);
@@ -346,7 +788,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     int idx = binIndices[nProcessed];
     if (currVoxBin != binData[idx]) {
       if (nPointsInVox) {
-        bres_t& resVox = secData[currVoxBin];
+        VoxRes& resVox = secData[currVoxBin];
         processVoxelResiduals(dyVec, dzVec, tgVec, resVox);
       }
       currVoxBin = binData[idx];
@@ -363,7 +805,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
   }
   if (nPointsInVox) {
     // process last voxel
-    bres_t& resVox = secData[currVoxBin];
+    VoxRes& resVox = secData[currVoxBin];
     processVoxelResiduals(dyVec, dzVec, tgVec, resVox);
   }
   LOG(info) << "extracted residuals for sector " << iSec;
@@ -387,7 +829,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     int idx = binIndices[nProcessed];
     if (currVoxBin != binData[idx]) {
       if (nPointsInVox) {
-        bres_t& resVox = secData[currVoxBin];
+        VoxRes& resVox = secData[currVoxBin];
         if (!getXBinIgnored(iSec, resVox.bvox[VoxX])) {
           processVoxelDispersions(tgVec, dyVec, resVox);
         }
@@ -404,7 +846,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
   }
   if (nPointsInVox) {
     // process last voxel
-    bres_t& resVox = secData[currVoxBin];
+    VoxRes& resVox = secData[currVoxBin];
     if (!getXBinIgnored(iSec, resVox.bvox[VoxX])) {
       processVoxelDispersions(tgVec, dyVec, resVox);
     }
@@ -417,16 +859,17 @@ void TrackResiduals::processSectorResiduals(int iSec)
     for (int iz = 0; iz < mNZ2XBins; ++iz) {
       for (int ip = 0; ip < mNY2XBins; ++ip) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
-        bres_t& resVox = secData[voxBin];
+        VoxRes& resVox = secData[voxBin];
         getSmoothEstimate(iSec, resVox.stat[VoxX], resVox.stat[VoxF], resVox.stat[VoxZ], resVox.DS, 0x1 << VoxV);
       }
     }
   }
+  LOG(info) << "Done processing residuals for sector " << iSec;
   dumpResults(iSec);
 }
 
 //______________________________________________________________________________
-void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<float>& dz, std::vector<float>& tg, bres_t& resVox)
+void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<float>& dz, std::vector<float>& tg, VoxRes& resVox)
 {
   size_t nPoints = dy.size();
   //LOG(debug) << "processing voxel residuals for vox " << getGlbVoxBin(resVox.bvox) << " with " << nPoints << " points";
@@ -469,7 +912,7 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   return;
 }
 
-void TrackResiduals::processVoxelDispersions(std::vector<float>& tg, std::vector<float>& dy, bres_t& resVox)
+void TrackResiduals::processVoxelDispersions(std::vector<float>& tg, std::vector<float>& dy, VoxRes& resVox)
 {
   size_t nPoints = tg.size();
   LOG(debug) << "processing voxel dispersions for vox " << getGlbVoxBin(resVox.bvox) << " with " << nPoints << " points";
@@ -492,7 +935,7 @@ int TrackResiduals::validateVoxels(int iSec)
   int cntMasked = 0;  // number of voxels masked due to fit error and / or distribution sigmas
   int cntInvalid = 0; // number of voxels which were invalid before + masked ones
   mXBinsIgnore[iSec].reset();
-  std::vector<bres_t>& secData = mVoxelResults[iSec];
+  std::vector<VoxRes>& secData = mVoxelResults[iSec];
 
   int cntMaskedFit = 0;
   int cntMaskedSigma = 0;
@@ -503,7 +946,7 @@ int TrackResiduals::validateVoxels(int iSec)
     for (int ip = 0; ip < mNY2XBins; ++ip) {
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int binGlb = getGlbVoxBin(ix, ip, iz);
-        bres_t& resVox = secData[binGlb];
+        VoxRes& resVox = secData[binGlb];
         bool voxelOK = (resVox.flags & DistDone) && !(resVox.flags & Masked);
         if (voxelOK) {
           // check fit errors
@@ -613,7 +1056,7 @@ int TrackResiduals::validateVoxels(int iSec)
 
 void TrackResiduals::smooth(int iSec)
 {
-  std::vector<bres_t>& secData = mVoxelResults[iSec];
+  std::vector<VoxRes>& secData = mVoxelResults[iSec];
   for (int ix = 0; ix < mNXBins; ++ix) {
     if (getXBinIgnored(iSec, ix)) {
       continue;
@@ -621,7 +1064,7 @@ void TrackResiduals::smooth(int iSec)
     for (int ip = 0; ip < mNY2XBins; ++ip) {
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
-        bres_t& resVox = secData[voxBin];
+        VoxRes& resVox = secData[voxBin];
         resVox.flags &= ~SmoothDone;
         bool res = getSmoothEstimate(resVox.bsec, resVox.stat[VoxX], resVox.stat[VoxF], resVox.stat[VoxZ], resVox.DS, (0x1 << VoxX | 0x1 << VoxF | 0x1 << VoxZ));
         if (!res) {
@@ -640,7 +1083,7 @@ void TrackResiduals::smooth(int iSec)
     for (int ip = 0; ip < mNY2XBins; ++ip) {
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
-        bres_t& resVox = secData[voxBin];
+        VoxRes& resVox = secData[voxBin];
         if (!(resVox.flags & SmoothDone)) {
           continue;
         }
@@ -677,16 +1120,16 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
 
   int ix0, ip0, iz0;
   findVoxel(x, p, iSec < SECTORSPERSIDE ? z : -z, ix0, ip0, iz0); // find nearest voxel
-  std::vector<bres_t>& secData = mVoxelResults[iSec];
+  std::vector<VoxRes>& secData = mVoxelResults[iSec];
   int binCenter = getGlbVoxBin(ix0, ip0, iz0); // global bin of nearest voxel
-  bres_t& voxCenter = secData[binCenter];      // nearest voxel
+  VoxRes& voxCenter = secData[binCenter];      // nearest voxel
   LOG(debug) << "getting smooth estimate around voxel " << binCenter;
 
   // cache
   // \todo maybe a 1-D cache would be more efficient?
   std::array<std::array<double, sMaxSmtDim*(sMaxSmtDim + 1) / 2>, ResDim> cmat;
   int maxNeighb = 10 * 10 * 10;
-  std::vector<bres_t*> currVox;
+  std::vector<VoxRes*> currVox;
   currVox.reserve(maxNeighb);
   std::vector<float> currCache;
   currCache.reserve(maxNeighb * VoxHDim);
@@ -778,7 +1221,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
       for (int ip = ipMin; ip <= ipMax; ++ip) {
         for (int iz = izMin; iz <= izMax; ++iz) {
           int binNb = getGlbVoxBin(ix, ip, iz);
-          bres_t& voxNb = secData[binNb];
+          VoxRes& voxNb = secData[binNb];
           if (!(voxNb.flags & DistDone) ||
               (voxNb.flags & Masked) ||
               getXBinIgnored(iSec, ix)) {
@@ -873,7 +1316,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
       double dxi2 = dxi * dxi;
       double dfi2 = dfi * dfi;
       double dzi2 = dzi * dzi;
-      const bres_t* voxNb = currVox[iNb];
+      const VoxRes* voxNb = currVox[iNb];
       for (int iDim = 0; iDim < ResDim; ++iDim) {
         if (!doDim[iDim]) {
           continue;
@@ -1040,6 +1483,94 @@ double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec) const
 /// fitting + statistics helper functions
 ///
 ///////////////////////////////////////////////////////////////////////////////
+
+void TrackResiduals::diffToMA(int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA)
+{
+  // Calculate
+  float sumArr[np + 1];
+  float* sum = sumArr + 1;
+  sum[-1] = 0.f;
+  for (int i = 0; i < np; ++i) {
+    sum[i] = sum[i - 1] + y[i];
+  }
+  for (int i = 0; i < np; ++i) {
+    diffMA[i] = 0;
+    int iLeft = i - mNMALong;
+    int iRight = i + mNMALong;
+    if (iLeft < 0) {
+      iLeft = 0;
+    }
+    if (iRight >= np) {
+      iRight = np - 1;
+    }
+    int nPoints = iRight - iLeft;
+    if (nPoints < mNMALong) {
+      continue;
+    }
+    float movingAverage = (sum[iRight] - sum[iLeft - 1] - (sum[i] - sum[i - 1])) / nPoints;
+    diffMA[i] = y[i] - movingAverage;
+  }
+}
+
+void TrackResiduals::diffToLocLine(int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY)
+{
+  // Calculate the difference between the points and the linear extrapolations from the neighbourhood.
+  // Nothing more than multiple 1-d fits at once. Instead of building 4 sums (x, x^2, y, xy), 4 * nPoints sums are calculated at once
+  // compare to TrackResiduals::fitPoly1() method
+
+  // adding one entry to the arrays saves an additional if statement when calculating the cumulants
+  float sumX1arr[np + 1];
+  float sumX2arr[np + 1];
+  float sumY1arr[np + 1];
+  float sumXYarr[np + 1];
+  float* sumX1 = sumX1arr + 1;
+  float* sumX2 = sumX2arr + 1;
+  float* sumY1 = sumY1arr + 1;
+  float* sumXY = sumXYarr + 1;
+  sumX1[-1] = 0.f;
+  sumX2[-1] = 0.f;
+  sumY1[-1] = 0.f;
+  sumXY[-1] = 0.f;
+
+  // accumulate sums for all points
+  for (int iCl = 0; iCl < np; ++iCl) {
+    int idx = iCl + idxOffset;
+    sumX1[iCl] = sumX1[iCl - 1] + x[idx];
+    sumX2[iCl] = sumX2[iCl - 1] + x[idx] * x[idx];
+    sumY1[iCl] = sumY1[iCl - 1] + y[idx];
+    sumXY[iCl] = sumXY[iCl - 1] + x[idx] * y[idx];
+  }
+
+  for (int iCl = 0; iCl < np; ++iCl) {
+    int iClLeft = iCl - mNMALong;
+    int iClRight = iCl + mNMALong;
+    if (iClLeft < 0) {
+      iClLeft = 0;
+    }
+    if (iClRight >= np) {
+      iClRight = np - 1;
+    }
+    int nPoints = iClRight - iClLeft;
+    if (nPoints < mNMALong) {
+      continue;
+    }
+    float nPointsInv = 1.f / nPoints;
+    int iClLeftP = iClLeft - 1;
+    int iClCurrP = iCl - 1;
+    // extract sum from iClLeft to iClRight from cumulants, excluding iCl from the fit
+    float sX1 = sumX1[iClRight] - sumX1[iClLeftP] - (sumX1[iCl] - sumX1[iClCurrP]);
+    float sX2 = sumX2[iClRight] - sumX2[iClLeftP] - (sumX2[iCl] - sumX2[iClCurrP]);
+    float sY1 = sumY1[iClRight] - sumY1[iClLeftP] - (sumY1[iCl] - sumY1[iClCurrP]);
+    float sXY = sumXY[iClRight] - sumXY[iClLeftP] - (sumXY[iCl] - sumXY[iClCurrP]);
+    float det = sX2 - nPointsInv * sX1 * sX1;
+    if (fabsf(det) < 1e-12f) {
+      continue;
+    }
+    float slope = (sXY - nPointsInv * sX1 * sY1) / det;
+    float offset = nPointsInv * sY1 - nPointsInv * slope * sX1;
+    diffY[iCl + idxOffset] = y[iCl + idxOffset] - slope * x[iCl + idxOffset] - offset;
+  }
+}
 
 float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM) const
 {
@@ -1219,6 +1750,7 @@ float TrackResiduals::selectKthMin(const int k, std::vector<float>& data)
   // to have this value in location data[k] , with all smaller elements moved before it
   // (in arbitrary order) and all larger elements after (also in arbitrary order).
   // From Numerical Recipes in C++ (paragraph 8.5)
+  // Probably it is not needed anymore, since std::nth_element() can also be used
 
   int i, ir, j, l, mid, n = data.size();
   float a;    // partitioning element
@@ -1316,6 +1848,193 @@ float TrackResiduals::getMAD2Sigma(std::vector<float> data) const
 
   float k = 1.4826f; // scale factor for normally distributed data
   return k * medianOfAbsDeviations;
+}
+
+bool TrackResiduals::compareToHelix(std::array<float, param::NPadRows>& residHelixY, std::array<float, param::NPadRows>& residHelixZ)
+{
+  //printf("-----------------compare to helix -------------\n");
+  std::array<float, param::NPadRows> xLab;
+  std::array<float, param::NPadRows> yLab;
+  std::array<float, param::NPadRows> sPath;
+
+  float curvature = fabsf(mQpt * param::Bz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
+  int secCurr = mArrSecId[0];
+  float phiSect = (secCurr + .5f) * o2::constants::math::SectorSpanRad;
+  float snPhi = sin(phiSect);
+  float csPhi = cos(phiSect);
+  sPath[0] = 0.f;
+
+  for (int iP = 0; iP < mNCl; ++iP) {
+    //printf("idx%03i: phi(%.2f), r(%.2f), dy(%.2f), sect0(%02i), z(%.2f)\n", iP, mArrPhi[iP], mArrR[iP], mArrDY[iP], secCurr, mArrZTr[iP]);
+    float cs = cos(mArrPhi[iP] - phiSect);
+    float sn = sin(mArrPhi[iP] - phiSect);
+    // we are still in the cluster frame - radius and x are the same in this case
+    // now we rotate into the frame of the sector with the first cluster of the track
+    xLab[iP] = mArrR[iP] * cs - mArrDY[iP] * sn;
+    yLab[iP] = mArrDY[iP] * cs + mArrR[iP] * sn;
+    if (iP > 0) {
+      float dx = xLab[iP] - xLab[iP - 1];
+      float dy = yLab[iP] - yLab[iP - 1];
+      float ds2 = dx * dx + dy * dy;
+      float ds = sqrt(ds2); // circular path (linear approximation)
+      // if the curvature of the track or the (approximated) chord length is too large the more exact formula is used:
+      // chord length = 2r * asin(ds/(2r))
+      // using the first two terms of the tailer expansion for asin(x) ~ x + x^3 / 6
+      if (ds * curvature > 0.05) {
+        ds *= (1.f + ds2 * curvature * curvature / 24.f);
+      }
+      sPath[iP] = sPath[iP - 1] + ds;
+    }
+  }
+  float xcSec = 0.f;
+  float ycSec = 0.f;
+  float r = 0.f;
+  fitCircle(mNCl, xLab, yLab, xcSec, ycSec, r, residHelixY);
+  // determine curvature
+  float phiI = TMath::ATan2(yLab[0], xLab[0]);
+  float phiF = TMath::ATan2(yLab[mNCl - 1], xLab[mNCl - 1]);
+  if (phiI < 0) {
+    phiI += o2::constants::math::TwoPI;
+  }
+  if (phiF < 0) {
+    phiF += o2::constants::math::TwoPI;
+  }
+  float dPhi = phiF - phiI;
+  float curvSign = 1.f;
+  if (dPhi > 0) {
+    if (dPhi < o2::constants::math::PI) {
+      curvSign = -1.f;
+    }
+  } else if (dPhi < -o2::constants::math::PI) {
+    curvSign = -1.f;
+  }
+  mQpt = std::copysign(1.f / (r * param::Bz * o2::constants::physics::LightSpeedCm2S * 1e-14f), curvSign);
+
+  // calculate circle coordinates in the lab frame
+  float xc = xcSec * csPhi - ycSec * snPhi;
+  float yc = xcSec * snPhi + ycSec * csPhi;
+
+  std::array<float, 2> pol1Z;
+  fitPoly1(mNCl, sPath, mArrZTr, pol1Z);
+
+  mTgl = pol1Z[0];
+
+  // max deviations in both directions from helix fit in y and z
+  float hMinY = 1e9f;
+  float hMaxY = -1e9f;
+  float hMinZ = 1e9f;
+  float hMaxZ = -1e9f;
+  // extract residuals in Z and fill track slopes in sector frame
+  for (int iCl = 0; iCl < mNCl; ++iCl) {
+    float resZ = mArrZTr[iCl] - (pol1Z[1] + sPath[iCl] * pol1Z[0]);
+    residHelixZ[iCl] = resZ;
+    if (resZ < hMinZ) {
+      hMinZ = resZ;
+    }
+    if (resZ > hMaxZ) {
+      hMaxZ = resZ;
+    }
+    if (residHelixY[iCl] < hMinY) {
+      hMinY = residHelixY[iCl];
+    }
+    if (residHelixY[iCl] > hMaxY) {
+      hMaxY = residHelixY[iCl];
+    }
+    int sec = mArrSecId[iCl];
+    if (sec != secCurr) {
+      secCurr = sec;
+      phiSect = (.5f + sec) * o2::constants::math::SectorSpanRad;
+      snPhi = sin(phiSect);
+      csPhi = cos(phiSect);
+      xcSec = xc * csPhi + yc * snPhi; // recalculate circle center in the sector frame
+    }
+
+    float cs = cos(mArrPhi[iCl] - phiSect);
+    float xRow = mArrR[iCl] * cs; // pad row x in sector frame
+    float sinPhi = (xRow - xcSec) / r;
+    // TODO add track inclination angle at pad-row
+    mArrTgSlp[iCl] = tan(asin(sinPhi));
+    // In B+ the slope of q- should increase with x. Just look on q * B
+    if (mQpt * param::Bz > 0) {
+      mArrTgSlp[iCl] *= -1.f;
+    }
+  }
+  return fabsf(hMaxY - hMinY) < param::MaxDevHelixY && fabsf(hMaxZ - hMinZ) < param::MaxDevHelixZ;
+}
+
+void TrackResiduals::fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY)
+{
+  float xMean = 0.f;
+  float yMean = 0.f;
+
+  for (int i = nCl; i--;) {
+    xMean += x[i];
+    yMean += y[i];
+  }
+  xMean /= nCl;
+  yMean /= nCl;
+  // define sums needed for circular fit
+  float su2 = 0.f, sv2 = 0.f, suv = 0.f, su3 = 0.f, sv3 = 0.f, su2v = 0.f, suv2 = 0.f;
+  for (int i = nCl; i--;) {
+    float ui = x[i] - xMean;
+    float vi = y[i] - yMean;
+    float ui2 = ui * ui;
+    float vi2 = vi * vi;
+    suv += ui * vi;
+    su2 += ui2;
+    sv2 += vi2;
+    su3 += ui2 * ui;
+    sv3 += vi2 * vi;
+    su2v += ui2 * vi;
+    suv2 += ui * vi2;
+  }
+  float rhsU = .5f * (su3 + suv2);
+  float rhsV = .5f * (sv3 + su2v);
+  float det = su2 * sv2 - suv * suv;
+  float uc = (rhsU * sv2 - rhsV * suv) / det;
+  float vc = (su2 * rhsV - suv * rhsU) / det;
+  float r2 = uc * uc + vc * vc + (su2 + sv2) / nCl;
+  xc = uc + xMean;
+  yc = vc + yMean;
+  r = sqrt(r2);
+  // write residuals to residHelixY
+  for (int i = nCl; i--;) {
+    float dx = x[i] - xc;
+    float dxr = r2 - dx * dx;
+    float ys = dxr > 0 ? sqrt(dxr) : 0.f; // distance of point in y from the circle center (using fit results for r and xc)
+    float dy = y[i] - yc;                 // distance of point in y from the circle center (using fit result for yc)
+    float dysp = dy - ys;
+    float dysm = dy + ys;
+    residHelixY[i] = fabsf(dysp) < fabsf(dysm) ? dysp : dysm;
+  }
+  //printf("Circle fit results: pT = %.2f => r should be roughly %f\n", 1.f/mQpt, 1.f/(mQpt * 0.3f * 0.5f));
+  //printf("r = %.4f m, xc = %.4f, yc = %.4f\n", r/100.f, xc, yc);
+}
+
+bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res)
+{
+  // fit a straight line y = ax + b to a given set of points (x,y)
+  // no measurement errors assumed, no fit errors calculated
+  // res[0] = a (slope)
+  // res[1] = b (offset)
+  if (nCl < 2) {
+    // not enough points
+    return false;
+  }
+  float sumX = 0.f, sumY = 0.f, sumXY = 0.f, sumX2 = 0.f, nInv = 1.f / nCl;
+  for (int i = nCl; i--;) {
+    sumX += x[i];
+    sumY += y[i];
+    sumXY += x[i] * y[i];
+    sumX2 += x[i] * x[i];
+  }
+  float det = sumX2 - nInv * sumX * sumX;
+  if (fabsf(det) < 1e-12f) {
+    return false;
+  }
+  res[0] = (sumXY - nInv * sumX * sumY) / det;
+  res[1] = nInv * sumY - nInv * res[0] * sumX;
+  return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
