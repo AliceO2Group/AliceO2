@@ -59,7 +59,8 @@ class Digitizer
   bool convertSignalsToDigits(const int, SignalContainer_t&);                   // True if signal-to-digit conversion is successful
   bool convertSignalsToSDigits(const int, SignalContainer_t&);                  // True if signal-to-sdigit conversion is successful
   bool convertSignalsToADC(const int, SignalContainer_t&);                      // True if signal-to-ADC conversion is successful
-  bool diffusion(float, double, double, double&, double&, double&);             // True if diffusion is applied successfully
+
+  bool diffusion(float, double, double, double, double, double, double&, double&, double&); // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2
