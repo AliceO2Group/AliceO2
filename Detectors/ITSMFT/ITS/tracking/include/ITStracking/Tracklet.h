@@ -29,10 +29,10 @@ struct Tracklet final {
   GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
   void dump();
 
-  const int firstClusterIndex;
-  const int secondClusterIndex;
-  const float tanLambda;
-  const float phiCoordinate;
+  int firstClusterIndex;
+  int secondClusterIndex;
+  float tanLambda;
+  float phiCoordinate;
 };
 
 inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLambda{0.0f}, phiCoordinate{0.0f}

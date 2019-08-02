@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsNV.cu
+/// \file VertexerTraitsGPU.cu.cu
 /// \brief
-///
+/// \author matteo.concas@cern.ch
 
 #include <iostream>
 #include <sstream>
@@ -194,8 +194,9 @@ GPU_GLOBAL void debugSumKernel(const int* arrayToSum, const int size)
 using GPU::Utils::Host::getBlocksGrid;
 using GPU::Utils::Host::getBlockSize;
 
-void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
+void VertexerTraitsGPU::computeTracklets()
 {
+  const unsigned char useMCLabel = false;
   if (useMCLabel)
     std::cout << "info: running trackleter in Montecarlo check mode." << std::endl;
   const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
@@ -329,12 +330,12 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
       for (int k{0}; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
         const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
-        mTrackletInfo.push_back(std::array<float, 9>{deltaTanLambda,
-                                                     mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
-                                                     mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
-                                                     mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
-                                                     42.f, /* dummy */
-                                                     true /* dummy */});
+        // mTrackletInfo.push_back(std::array<float, 9>{deltaTanLambda,
+        //                                              mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
+        //                                              mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
+        //                                              mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
+        //                                              42.f, /* dummy */
+        //                                              true /* dummy */});
       }
     }
   }
