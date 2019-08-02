@@ -193,8 +193,8 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #ifdef USESHM
 namespace o2

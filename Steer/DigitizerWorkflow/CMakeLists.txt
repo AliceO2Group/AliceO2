@@ -23,6 +23,8 @@ o2_add_executable(digitizer-workflow
                           src/ITSMFTDigitizerSpec.cxx
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
+                          src/PHOSDigitizerSpec.cxx
+                          src/PHOSDigitWriterSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
                           src/TOFDigitWriterSpec.cxx
@@ -42,6 +44,7 @@ o2_add_executable(digitizer-workflow
                                         O2::MCHSimulation
                                         O2::MFTSimulation
                                         O2::MIDSimulation
+                                        O2::PHOSSimulation
                                         O2::TOFSimulation
                                         O2::TOFReconstruction
                                         O2::TPCSimulation
