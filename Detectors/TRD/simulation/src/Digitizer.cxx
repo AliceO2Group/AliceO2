@@ -317,36 +317,41 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
       const int lastTimeBin = TMath::Min(timeBinTruncated + timeBinTRFend, nTimeTotal);
-      for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
-        // Apply the time response
-        double timeResponse = 1;
-        double crossTalk = 0;
-        const double t = (iTimeBin - timeBinTruncated) / samplingRate + timeOffset;
-        if (mSimParam->TRFOn()) {
-          timeResponse = mSimParam->TimeResponse(t);
-        }
-        if (mSimParam->CTOn()) {
-          crossTalk = mSimParam->CrossTalk(t);
-        }
-        signalOld[0] = 0;
-        signalOld[1] = 0;
-        signalOld[2] = 0;
-        for (int iPad = 0; iPad < kNpad; iPad++) {
-          int colPos = colE + iPad - 1;
-          if (colPos < 0) {
-            continue;
-          }
-          if (colPos >= nColMax) {
-            break;
-          }
-          // Add the signals
-          // Get the old signal
-          const int key = Digit::calculateKey(det, rowE, colPos);
-          if (key < KEY_MIN || key > KEY_MAX) {
-            LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
-          }
 
-          signalOld[iPad] = adcMapCont[key][iTimeBin];
+      // loop over pads first then over timebins for better cache friendliness
+      // and less access to adcMapCont
+      for (int iPad = 0; iPad < kNpad; iPad++) {
+        int colPos = colE + iPad - 1;
+        if (colPos < 0) {
+          continue;
+        }
+        if (colPos >= nColMax) {
+          break;
+        }
+
+        const int key = Digit::calculateKey(det, rowE, colPos);
+        if (key < KEY_MIN || key > KEY_MAX) {
+          LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
+        }
+        // Add the signals
+        // Get the old signal
+        auto& currentSignal = adcMapCont[key];
+        for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
+          // Apply the time response
+          double timeResponse = 1;
+          double crossTalk = 0;
+          const double t = (iTimeBin - timeBinTruncated) / samplingRate + timeOffset;
+          if (mSimParam->TRFOn()) {
+            timeResponse = mSimParam->TimeResponse(t);
+          }
+          if (mSimParam->CTOn()) {
+            crossTalk = mSimParam->CrossTalk(t);
+          }
+          signalOld[0] = 0;
+          signalOld[1] = 0;
+          signalOld[2] = 0;
+
+          signalOld[iPad] = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
             signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
@@ -355,10 +360,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
             signalOld[iPad] += padSignal[iPad] * timeResponse;
           }
           // Update the final signal
-          adcMapCont[key][iTimeBin] = signalOld[iPad];
+          currentSignal[iTimeBin] = signalOld[iPad];
           isDigit = true;
-        } // Loop: pads
-      }   // Loop: time bins
+        } // Loop: time bins
+      }   // Loop: pads
     }     // end of loop over electrons
     mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
   } // end of loop over hits
