@@ -1,3 +1,6 @@
+/// \file plot_hit_phos.C
+/// \brief Simple macro to plot PHOS hits per event
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
 
@@ -13,25 +16,26 @@
 #include "FairSystemInfo.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "PHOSBase/Hit.h"
 #include "PHOSBase/Geometry.h"
-#include "PHOSSimulation/DigitizerTask.h"
 #endif
 
-void plot_hit_phos(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.phos.mc_10_event.root")
+void plot_hit_phos(int ievent = 0, TString inputfile = "AliceO2_TGeant3.phos.mc_10_event.root")
 {
   // macros to plot PHOS hits
 
-  FairFileSource* fFileSource = new FairFileSource(inputfile);
-  FairRootManager* mgr = FairRootManager::Instance();
-  mgr->SetSource(fFileSource);
-  mgr->InitSource();
+  TFile* file1 = TFile::Open(inputfile.Data());
+  TTree* hitTree = (TTree*)gFile->Get("o2sim");
+  std::vector<o2::phos::Hit>* mHitsArray = nullptr;
+  //  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
+  hitTree->SetBranchAddress("PHSHit", &mHitsArray);
+  //  digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
 
-  const std::vector<o2::phos::Hit>* mHitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Hit>*>("PHSHit");
   if (!mHitsArray) {
     cout << "PHOS hits not registered in the FairRootManager. Exiting ..." << endl;
     return;
   }
-  mgr->ReadEvent(ievent);
+  hitTree->GetEvent(ievent);
 
   TH2D* vMod[5][100] = { 0 };
   int primLabels[5][100];

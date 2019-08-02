@@ -8,17 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_PHOSDIGITIZER_H_
+#define STEER_DIGITIZERWORKFLOW_PHOSDIGITIZER_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::phos::Detector+;
-#pragma link C++ class o2::phos::GeometryParams+;
-#pragma link C++ class o2::base::DetImpl<o2::phos::Detector>+;
-#pragma link C++ class o2::phos::MCLabel+;
-#pragma link C++ class o2::phos::Digitizer+;
-#pragma link C++ class o2::phos::DigitizerTask+;
+namespace o2
+{
+namespace phos
+{
 
-#endif
+o2::framework::DataProcessorSpec getPHOSDigitizerSpec(int channel);
+
+} // end namespace phos
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_PHOSDIGITIZER_H_ */
