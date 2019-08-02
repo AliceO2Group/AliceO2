@@ -9,10 +9,19 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(SpacePoints
-               SOURCES src/Param.cxx src/TrackResiduals.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC)
+               SOURCES src/SpacePointsCalibParam.cxx
+                       src/TrackResiduals.cxx
+                       src/TrackInterpolation.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+                                     O2::TPCBase
+                                     O2::TPCReconstruction
+                                     O2::TPCFastTransformation
+                                     O2::DataFormatsITS
+                                     O2::DataFormatsITSMFT
+                                     O2::DataFormatsTOF)
 
 o2_target_root_dictionary(SpacePoints
-                          HEADERS include/SpacePoints/Param.h
+                          HEADERS include/SpacePoints/SpacePointsCalibParam.h
                                   include/SpacePoints/TrackResiduals.h
+                                  include/SpacePoints/TrackInterpolation.h
                           LINKDEF src/SpacePointCalibLinkDef.h)
