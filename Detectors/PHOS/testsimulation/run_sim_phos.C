@@ -1,3 +1,5 @@
+/// \file run_sim_phos.C
+/// \brief Simple macro to run single particle simulation in PHOS
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
 
@@ -19,14 +21,12 @@
 #include "TGeoGlobalMagField.h"
 
 #include "DetectorsPassive/Cave.h"
-// #include "Generators/GeneratorFromFile.h"
 #include "PHOSSimulation/Detector.h"
 #endif
 
-#define BOX_GENERATOR 1
-
 void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
+
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -44,8 +44,6 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   char filepar[100];
   sprintf(filepar, "AliceO2_%s.phos.params_%i.root", mcEngine.Data(), nEvents);
   TString parFile = filepar;
-
-  // In general, the following parts need not be touched
 
   // Debug option
   gDebug = 0;
@@ -79,7 +77,6 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-#ifdef BOX_GENERATOR
   FairBoxGenerator* boxGen = new FairBoxGenerator(22, 10); /*photons*/
 
   // boxGen->SetThetaRange(0.0, 90.0);
@@ -89,12 +86,6 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   boxGen->SetDebug(kTRUE);
 
   primGen->AddGenerator(boxGen);
-#else
-  // reading the events from a kinematics file (produced by AliRoot)
-  auto extGen = new o2::eventgen::GeneratorFromFile("Kinematics.root");
-  extGen->SetStartEvent(2);
-  primGen->AddGenerator(extGen);
-#endif
 
   run->SetGenerator(primGen);
 
@@ -125,10 +116,12 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   std::cout << "Output file is " << outFile << std::endl;
   std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
   std::cout << "Memory used " << sysinfo.GetMaxMemory() << "\n";
 }

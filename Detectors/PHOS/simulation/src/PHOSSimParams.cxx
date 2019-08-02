@@ -8,17 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/*
+ * PHOSSimParams.cxx
+ *
+ *  Created on: June 18, 2019
+ *      Author: Dmitri
+ */
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::phos::Detector+;
-#pragma link C++ class o2::phos::GeometryParams+;
-#pragma link C++ class o2::base::DetImpl<o2::phos::Detector>+;
-#pragma link C++ class o2::phos::MCLabel+;
-#pragma link C++ class o2::phos::Digitizer+;
-#pragma link C++ class o2::phos::DigitizerTask+;
-
-#endif
+#include "PHOSSimulation/PHOSSimParams.h"
+O2ParamImpl(o2::phos::PHOSSimParams);

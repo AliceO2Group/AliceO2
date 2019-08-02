@@ -1,3 +1,6 @@
+/// \file plot_dig_phos.C
+/// \brief Simple macro to plot PHOS digits per event
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
 
@@ -18,21 +21,21 @@
 #include "PHOSSimulation/DigitizerTask.h"
 #endif
 
-void plot_dig_phos(int ievent = 0, std::string inputfile = "o2dig.root")
+void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
 {
-  // macros to plot PHOS hits
 
-  FairFileSource* fFileSource = new FairFileSource(inputfile);
-  FairRootManager* mgr = FairRootManager::Instance();
-  mgr->SetSource(fFileSource);
-  mgr->InitSource();
+  TFile* file1 = TFile::Open(inputfile.Data());
+  TTree* digTree = (TTree*)gFile->Get("o2sim");
+  std::vector<o2::phos::Digit>* mDigitsArray = nullptr;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
+  digTree->SetBranchAddress("PHSDigit", &mDigitsArray);
+  digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
 
-  const std::vector<o2::phos::Digit>* mDigitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Digit>*>("PHSDigit");
   if (!mDigitsArray) {
     cout << "PHOS digits not registered in the FairRootManager. Exiting ..." << endl;
     return;
   }
-  mgr->ReadEvent(ievent);
+  digTree->GetEvent(ievent);
 
   TH2D* vMod[5][100] = { 0 };
   int primLabels[5][100];
@@ -48,7 +51,7 @@ void plot_dig_phos(int ievent = 0, std::string inputfile = "o2dig.root")
   for (it = mDigitsArray->begin(); it != mDigitsArray->end(); it++) {
     int absId = (*it).getAbsId();
     double en = (*it).getAmplitude();
-    int lab = (*it).getLabel(0);
+    int lab = (*it).getLabel();
     geom->AbsToRelNumbering(absId, relId);
     // check, if this label already exist
     int j = 0;
