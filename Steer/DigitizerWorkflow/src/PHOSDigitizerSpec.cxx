@@ -62,15 +62,16 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
   // containers for digits and labels
   auto digits = std::make_shared<std::vector<o2::phos::Digit>>();
   auto digitsAccum = std::make_shared<std::vector<o2::phos::Digit>>(); // accumulator for all digits
-  auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>();
+  auto labelAccum = std::make_shared<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel](ProcessingContext& pc) {
+  auto process = [simChains, digitizer, digits, digitsAccum, labels, labelAccum, channel](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
     }
-    // RS: at the moment using hardcoded flag for continuos readout
+    // TODO: hardcoded flag for continuos readout
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     // read collision context from input
@@ -89,7 +90,6 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
     LOG(INFO) << " CALLING PHOS DIGITIZATION ";
 
     static std::vector<o2::phos::Hit> hits;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
@@ -112,18 +112,18 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
         // call actual digitization procedure
         labels->clear();
         digits->clear();
-        digitizer->process(hits, *digits.get());
+        digitizer->process(hits, *digits.get(), *labels.get());
         // copy digits into accumulator
         std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-        labelAccum.mergeAtBack(*labels);
+        labelAccum->mergeAtBack(*labels.get());
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
 
-    LOG(INFO) << "Have " << labelAccum.getNElements() << " PHOS labels ";
+    LOG(INFO) << "Have " << labelAccum->getNElements() << " PHOS labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "PHS", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
-    pc.outputs().snapshot(Output{ "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{ "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe }, *labelAccum.get());
     LOG(INFO) << "PHOS: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "PHS", "ROMode", 0, Lifetime::Timeframe }, roMode);
 

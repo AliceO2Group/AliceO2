@@ -28,6 +28,8 @@ class MCLabel : public o2::MCCompLabel
   MCLabel() = default;
   MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, bool fake, float edep) : o2::MCCompLabel(trackID, eventID, srcID, fake), mEdep(edep) {}
   float getEdep() const { return mEdep; }
+
+  ClassDefNV(MCLabel, 1);
 };
 } // namespace phos
 } // namespace o2

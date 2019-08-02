@@ -19,6 +19,7 @@
 #include "TBranch.h"
 #include "TFile.h"
 #include "PHOSBase/Digit.h"
+#include "PHOSSimulation/MCLabel.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 
@@ -55,6 +56,7 @@ DataProcessorSpec getPHOSDigitWriterSpec()
 
     // container for incoming digits
     auto digits = std::make_shared<std::vector<o2::phos::Digit>>();
+    auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>();
 
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree]() {
@@ -68,7 +70,7 @@ DataProcessorSpec getPHOSDigitWriterSpec()
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, digits, labels](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
         // avoid being executed again when marked as finished;
@@ -85,7 +87,7 @@ DataProcessorSpec getPHOSDigitWriterSpec()
       br->Fill();
 
       // retrieve labels from the input
-      auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("phosdigitlabels");
+      auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("phosdigitlabels");
       LOG(INFO) << "PHOS GOT " << labeldata->getNElements() << " LABELS ";
       auto labeldataraw = labeldata.get();
       // connect this to a particular branch

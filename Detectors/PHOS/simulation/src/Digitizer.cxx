@@ -30,7 +30,7 @@ void Digitizer::init() { mGeometry = Geometry::GetInstance(); }
 void Digitizer::finish() {}
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits)
+void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::phos::MCLabel>& labels)
 {
   // Convert list of hits to digits:
   // Add hits with energy deposition in same cell and same time
@@ -51,10 +51,10 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 
     // If signal exist in this cell, add noise to it, otherwise just create noise digit
     if (absId == hitAbsId) {
-      int labelIndex = mMCTruthContainer.getIndexedSize();
+      int labelIndex = labels.getIndexedSize();
       //Add primary info: create new MCLabels entry
       o2::phos::MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, true, hit.GetEnergyLoss());
-      mMCTruthContainer.addElement(labelIndex, label);
+      labels.addElement(labelIndex, label);
 
       Digit digit(hit, labelIndex);
 
@@ -67,7 +67,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 
           //add MCLabel to list (add energy if same primary or add another label)
           o2::phos::MCLabel label(hitNext.GetTrackID(), mCurrEvID, mCurrSrcID, true, hitNext.GetEnergyLoss());
-          mMCTruthContainer.addElementRandomAccess(labelIndex, label);
+          labels.addElementRandomAccess(labelIndex, label);
 
           hitIndex++;
           if (hitIndex < nHits) {
@@ -85,8 +85,8 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
         hitAbsId = 99999; // out of PHOS
       }
       //Current digit finished, sort MCLabels according to eDeposited
-      auto labels = mMCTruthContainer.getLabels(labelIndex);
-      std::sort(labels.begin(), labels.end(),
+      auto lbls = labels.getLabels(labelIndex);
+      std::sort(lbls.begin(), lbls.end(),
                 [](o2::phos::MCLabel a, o2::phos::MCLabel b) { return a.getEdep() > b.getEdep(); });
 
       // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution

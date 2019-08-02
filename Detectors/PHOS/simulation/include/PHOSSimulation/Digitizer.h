@@ -33,7 +33,7 @@ class Digitizer : public TObject
   void finish();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>& hits, std::vector<Digit>& digits);
+  void process(const std::vector<Hit>& hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::phos::MCLabel>& labels);
 
   void setEventTime(double t);
   double getEventTime() const { return mEventTime; }
@@ -53,24 +53,22 @@ class Digitizer : public TObject
   void setCoeffToNanoSecond(double c) { mCoeffToNanoSecond = c; }
 
  protected:
-  Double_t NonLinearity(Double_t e);
-  Double_t DigitizeEnergy(Double_t e);
-  Double_t Decalibrate(Double_t e);
-  Double_t TimeResolution(Double_t time, Double_t e);
-  Double_t SimulateNoiseEnergy();
-  Double_t SimulateNoiseTime();
+  double NonLinearity(double e);
+  double DigitizeEnergy(double e);
+  double Decalibrate(double e);
+  double TimeResolution(double time, double e);
+  double SimulateNoiseEnergy();
+  double SimulateNoiseTime();
 
  private:
   const Geometry* mGeometry = nullptr; //!  PHOS geometry
   double mEventTime = 0;               ///< global event time
   double mCoeffToNanoSecond = 1.0;     ///< coefficient to convert event time (Fair) to ns
   bool mContinuous = false;            ///< flag for continuous simulation
-  UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
+  uint mROFrameMin = 0;                ///< lowest RO frame of current digits
+  uint mROFrameMax = 0;                ///< highest RO frame of current digits
   int mCurrSrcID = 0;                  ///< current MC source from the manager
   int mCurrEvID = 0;                   ///< current event ID from the manager
-
-  o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mMCTruthContainer; ///<  storage for MC truth information
 
   ClassDefOverride(Digitizer, 2);
 };
