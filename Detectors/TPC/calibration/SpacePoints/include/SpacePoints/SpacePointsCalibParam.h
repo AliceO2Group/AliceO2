@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Param.h
+/// \file SpacePointsCalibParam.h
 /// \brief Parameters used for TPC space point calibration
 ///
 /// \author Ole Schmidt, ole.schmidt@cern.ch
@@ -16,9 +16,9 @@
 #ifndef ALICEO2_TPC_PARAM_H_
 #define ALICEO2_TPC_PARAM_H_
 
-#include "DataFormatsTPC/Constants.h"
-
 #define TPC_RUN2
+
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2
 {
@@ -32,11 +32,12 @@ static constexpr int NPadRows = 159;                                   ///< tota
 static constexpr int NROCTypes = 3;                                    ///< how many different pitches we have between the pad rows
 static constexpr int NRowsPerROC[NROCTypes] = { 63, 64, 32 };          ///< number of rows for the different pitches
 static constexpr int NRowsAccumulated[NROCTypes] = { 63, 127, 159 };   ///< accumulate number of rows (only used as abbreviation)
+static constexpr float ZLimit[2] = { 2.49725e2f, 2.49698e2f };         ///< max z-positions for A/C side
 static constexpr float MinX[NROCTypes] = { 85.225f, 135.1f, 199.35f }; ///< x-position of first row for each ROC type
 static constexpr float RowDX[NROCTypes] = { .75f, 1.f, 1.5f };         ///< row pitches
 static constexpr float ROCDX[NROCTypes - 1] = { 3.375f, 1.25f };       ///< radial distance between the different ROCs
-static constexpr float MaxX = 246.f;                                   ///< maximum radius for the TPC
-static constexpr float RowX[NPadRows] = {
+static constexpr float MaxX = 246.f;                                   ///< max radius for the TPC
+static constexpr float RowX[NPadRows] = {                              ///< x-positions for each pad row
   85.225, 85.975, 86.725, 87.475, 88.225, 88.975, 89.725, 90.475, 91.225, 91.975, 92.725, 93.475, 94.225, 94.975, 95.725, 96.475,
   97.225, 97.975, 98.725, 99.475, 100.225, 100.975, 101.725, 102.475, 103.225, 103.975, 104.725, 105.475, 106.225, 106.975, 107.725,
   108.475, 109.225, 109.975, 110.725, 111.475, 112.225, 112.975, 113.725, 114.475, 115.225, 115.975, 116.725, 117.475, 118.225, 118.975,
@@ -49,6 +50,7 @@ static constexpr float RowX[NPadRows] = {
   212.850, 214.350, 215.850, 217.350, 218.850, 220.350, 221.850, 223.350, 224.850, 226.350, 227.850, 229.350, 230.850, 232.350, 233.850,
   235.350, 236.850, 238.350, 239.850, 241.350, 242.850, 244.350, 245.850
 };
+
 #else  // not defined TPC_RUN2
 /// TPC geometric constants for Run 3+
 static constexpr int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
@@ -73,6 +75,39 @@ static constexpr float RowX[NPadRows] = {
   245.650
 };
 #endif // defined TPC_RUN2
+
+// TPC voxel binning
+static constexpr int NY2XBins = 15; ///< number of bins in y/x
+static constexpr int NZ2XBins = 5;  ///< number of bins in z/x
+
+// define ranges for compression to shorts in TPCClusterResiduals
+static constexpr float MaxResid = 20.f; ///< max residual in y and z
+static constexpr float MaxY = 50.f;     ///< max value for y position (sector coordinates)
+static constexpr float MaxZ = 300.f;    ///< max value for z position
+static constexpr float MaxTgSlp = 2.f;  ///< max value for phi and lambda angles
+
+// miscellaneous
+static constexpr float sEps = 1e-6f; ///< small number for float comparisons
+
+// define track cuts for track interpolation
+static constexpr int MinTPCNCls = 70;             ///< min number of TPC clusters
+static constexpr int MinTPCNClsNoOuterPoint = 50; ///< min number of TPC clusters if no hit in TRD or TOF exists
+static constexpr float MaxTPCChi2 = 4.f;          ///< cut on TPC reduced chi2
+static constexpr int MinITSNCls = 4;              ///< min number of ITS clusters
+static constexpr int MinITSNClsNoOuterPoint = 6;  ///< min number of ITS clusters if no hit in TRD or TOF exists
+static constexpr float MaxITSChi2 = 4.f;          ///< cut on ITS reduced chi2
+
+// parameters for conversion of Run 2 residual trees
+static constexpr float InvalidR = 10.f;                 ///< clusters with a radius smaller than this are neglected
+static constexpr float InvalidRes = -900.f;             ///< clusters with a residual smaller than this are neglected
+static constexpr int MinNCl = 30;                       ///< min number of clusters in a track to be used for calibration
+static constexpr float MaxQ2Pt = 3.f;                   ///< max fitted q/pt for a track to be used for calibration
+static constexpr float Bz = -5.0077936f;                ///< hard-coded B-field for the moment to compare with results from AliRoot
+static constexpr float MaxDevHelixY = .3f;              ///< max deviation in Y for clusters wrt helix fit
+static constexpr float MaxDevHelixZ = .3f;              ///< max deviation in Z for clusters wrt helix fit
+static constexpr int MinNumberOfAcceptedResiduals = 30; ///< min number of accepted residuals for
+static constexpr float mMaxStdDevMA = 25.f;             ///< max cluster std. deviation (Y^2 + Z^2) wrt moving average to accept
+
 } // namespace param
 } // namespace tpc
 } // namespace o2

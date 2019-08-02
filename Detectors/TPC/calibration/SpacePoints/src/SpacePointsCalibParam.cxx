@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Param.cxx
+/// \file SpacePointsCalibParam.cxx
 /// \brief Implementation file for parameters to make code checker happy
 ///
 /// \author Ole Schmidt, ole.schmidt@cern.ch
 
-#include "SpacePoints/Param.h"
+#include "SpacePoints/SpacePointsCalibParam.h"
