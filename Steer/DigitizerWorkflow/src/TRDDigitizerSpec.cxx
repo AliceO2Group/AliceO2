@@ -95,6 +95,9 @@ class TRDDPLDigitizerTask
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
 
+    TStopwatch timer;
+    timer.Start();
+
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
@@ -118,6 +121,9 @@ class TRDDPLDigitizerTask
         labelsAccum.mergeAtBack(labels);
       }
     }
+
+    timer.Stop();
+    LOG(INFO) << "TRD: Digitization took " << timer.CpuTime() << "s";
 
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
