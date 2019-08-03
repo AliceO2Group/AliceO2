@@ -10,7 +10,8 @@ NoiseSuppressionOverArea::NoiseSuppressionOverArea(
         int cutoff, 
         int epsilon)
     : NoiseSuppression("noiseSuppression{" + std::to_string(radPad*2+1) 
-        + "x" + std::to_string(radTime*2+1) + "}")
+        + "x" + std::to_string(radTime*2+1) 
+        + ", eps=" + std::to_string(epsilon) + "}")
     , radPad(radPad)
     , radTime(radTime)
     , cutoff(cutoff)
@@ -106,15 +107,9 @@ std::vector<Digit> NoiseSuppressionOverArea::runImpl(
             continue;
         }
 
-        bool removeMe = false;
-
+        bool keepMe = true;
         for (const auto &n : neighbors)
         {
-            if (removeMe)
-            {
-                break;
-            }
-
             int dp = n.first.pad;
             int dt = n.first.time;
 
@@ -133,17 +128,25 @@ std::vector<Digit> NoiseSuppressionOverArea::runImpl(
                 continue;
             }
 
+            bool hasMinima = false;
             for (const Delta &b : n.second)
             {
                 Position between(p, b.pad, b.time);
 
                 float bq = chargeMap[between];
 
-                removeMe |= (q - bq <= epsilon);
+                hasMinima |= (q - bq > epsilon);
+            }
+
+            keepMe &= hasMinima;
+
+            if (!keepMe)
+            {
+                break;
             }
         }
 
-        if (!removeMe)
+        if (keepMe)
         {
             filtered.push_back(p);
         }
