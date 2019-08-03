@@ -233,16 +233,18 @@ int main(int argc, const char *argv[])
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2)); */
     noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025));
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025)); */
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 10));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 10));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 15));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 5));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 10));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 10));
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3)); */
-
 
     size_t baseline = 0; // Index of algorithm thats used as baseline when looking for lost hits
 
@@ -312,7 +314,10 @@ int main(int argc, const char *argv[])
         names.push_back(algo->getName());
     }
 
-    plot(names, peaknumToTracknum, "peaknumToHits.pdf", "# peaks", "# hits");
+    PlotConfig cnf;
+    /* cnf.logYAxis = true; */
+    cnf.logXAxis = true;
+    plot(names, peaknumToTracknum, "peaknumToHits.pdf", "# peaks", "# hits", cnf);
 
     countLostHits(
             labels,
