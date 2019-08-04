@@ -18,9 +18,11 @@
 
 #include "HeaderStack.h"
 
-namespace o2 {
+namespace o2
+{
 
-namespace algorithm {
+namespace algorithm
+{
 
 /**
  * parse an input list and try to interpret in O2 data format
@@ -51,22 +53,18 @@ namespace algorithm {
  *   parseO2Format(list, insertFct, MyHeaderStruct(), onMyHeaderStruct);
  *
  */
-template<
-  typename InputListT
-  , typename GetPointerFctT
-  , typename GetSizeFctT
-  , typename InsertFctT // (const auto&, ptr, size)
-  , typename... HeaderStackTypes // pairs of HeaderType and CallbackType
+template <
+  typename InputListT, typename GetPointerFctT, typename GetSizeFctT, typename InsertFctT, // (const auto&, ptr, size)
+  typename... HeaderStackTypes                                                             // pairs of HeaderType and CallbackType
   >
 int parseO2Format(const InputListT& list,
                   GetPointerFctT getPointer,
                   GetSizeFctT getSize,
                   InsertFctT insert,
-                  HeaderStackTypes&&... stackArgs
-                  )
+                  HeaderStackTypes&&... stackArgs)
 {
   const o2::header::DataHeader* dh = nullptr;
-  for (auto & part : list) {
+  for (auto& part : list) {
     if (!dh) {
       // new header - payload pair, read DataHeader
       dh = o2::header::get<o2::header::DataHeader*>(getPointer(part), getSize(part));
@@ -75,8 +73,7 @@ int parseO2Format(const InputListT& list,
       }
       o2::algorithm::dispatchHeaderStackCallback(getPointer(part),
                                                  getSize(part),
-                                                 stackArgs...
-                                                 );
+                                                 stackArgs...);
     } else {
       insert(*dh, getPointer(part), getSize(part));
       dh = nullptr;
@@ -85,7 +82,7 @@ int parseO2Format(const InputListT& list,
   if (dh) {
     return -ENOMSG;
   }
-  return list.size()/2;
+  return list.size() / 2;
 }
 
 } // namespace algorithm

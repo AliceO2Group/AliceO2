@@ -76,7 +76,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   if (!field) {
     LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
   }
-  double origD[3] = { 0., 0., 0. };
+  double origD[3] = {0., 0., 0.};
   tracker.setBz(field->getBz(origD));
 
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
@@ -141,7 +141,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
   o2::its::Vertexer vertexer(traits);
 
-  int roFrameCounter{ 0 };
+  int roFrameCounter{0};
   for (auto& rof : *rofs) {
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());

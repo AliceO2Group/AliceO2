@@ -41,7 +41,7 @@ class Digit : public DigitBase
     float localX;
     float localY;
     chamber = hit.GetDetectorID();
-    double tmp[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+    double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
     Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
     Param::Lors2Pad(localX, localY, pc, px, py);
 
@@ -55,7 +55,7 @@ class Digit : public DigitBase
 
     // chamber number is in detID
     const auto chamber = hit.GetDetectorID();
-    double tmp[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+    double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
     // converting chamber id and hit coordiates to local coordinates
     Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
     // calculate charge fraction in given pad

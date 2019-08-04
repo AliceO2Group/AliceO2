@@ -1199,9 +1199,9 @@ Bool_t Geometry::Impact(const TParticle* particle) const
 {
   Bool_t in = kFALSE;
   Int_t absID = 0;
-  Point3D<double> vimpact = { 0, 0, 0 };
+  Point3D<double> vimpact = {0, 0, 0};
 
-  ImpactOnEmcal({ particle->Vx(), particle->Vy(), particle->Vz() }, particle->Theta(), particle->Phi(), absID, vimpact);
+  ImpactOnEmcal({particle->Vx(), particle->Vy(), particle->Vz()}, particle->Theta(), particle->Phi(), absID, vimpact);
 
   if (absID >= 0)
     in = kTRUE;
@@ -1293,8 +1293,8 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   Double_t dist = mLongModuleSize / 2.;
   Double_t norm = TMath::Sqrt(a * a + b * b + c * c);
   Double_t glob4[3] = {};
-  Vector3D<double> dir = { a, b, c };
-  Point3D<double> point = { glob[0], glob[1], glob[2] };
+  Vector3D<double> dir = {a, b, c};
+  Point3D<double> point = {glob[0], glob[1], glob[2]};
   if (point.Dot(dir) < 0)
     dist *= -1;
   glob4[0] = glob[0] - dist * a / norm;
@@ -1536,7 +1536,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
     double xx = y - geoBox[sm]->GetDX();
     double yy = -x + geoBox[sm]->GetDY();
     double zz = z - geoBox[sm]->GetDZ();
-    const double localIn[3] = { xx, yy, zz };
+    const double localIn[3] = {xx, yy, zz};
     double dglobal[3];
     // geoSMMatrix[sm]->Print();
     // printf("TFF Local    (row = %d, col = %d, x = %3.2f,  y = %3.2f, z = %3.2f)\n", iroworg, icolorg, localIn[0],

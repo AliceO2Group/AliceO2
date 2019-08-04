@@ -72,9 +72,9 @@ class Road final
 };
 
 inline Road::Road()
-  : mRoadId{ 0 },
-    mNDisks{ 0 },
-    mNPoints{ 0 }
+  : mRoadId{0},
+    mNDisks{0},
+    mNPoints{0}
 {
   // Nothing to do
 }

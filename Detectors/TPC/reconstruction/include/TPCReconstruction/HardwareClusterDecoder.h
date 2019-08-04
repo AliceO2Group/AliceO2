@@ -58,7 +58,7 @@ class MCTruthContainer;
 /// integrator for the digittal currents.
 class HardwareClusterDecoder
 {
-public:
+ public:
   HardwareClusterDecoder() = default;
   ~HardwareClusterDecoder() = default;
 

@@ -556,11 +556,11 @@ void MatchTOF::doMatching(int sec)
   if (!nTracks || !nTOFCls) {
     return;
   }
-  int itof0 = 0;                           // starting index in TOF clusters for matching of the track
-  int detId[2][5];                         // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the TOF det index
-  float deltaPos[2][3];                    // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the residuals
-  o2::track::TrackLTIntegral trkLTInt[2];  // Here we store the integrated track length and time for the (max 2) matched strips
-  int nStepsInsideSameStrip[2] = { 0, 0 }; // number of propagation steps in the same strip (since we have maximum 2 strips, it has dimention = 2)
+  int itof0 = 0;                          // starting index in TOF clusters for matching of the track
+  int detId[2][5];                        // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the TOF det index
+  float deltaPos[2][3];                   // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the residuals
+  o2::track::TrackLTIntegral trkLTInt[2]; // Here we store the integrated track length and time for the (max 2) matched strips
+  int nStepsInsideSameStrip[2] = {0, 0};  // number of propagation steps in the same strip (since we have maximum 2 strips, it has dimention = 2)
   float deltaPosTemp[3];
   std::array<float, 3> pos;
   std::array<float, 3> posBeforeProp;
@@ -579,10 +579,10 @@ void MatchTOF::doMatching(int sec)
     //    Printf("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion));
     float minTrkTime = (trackWork.getTimeMUS().getTimeStamp() - mSigmaTimeCut * trackWork.getTimeMUS().getTimeStampError()) * 1.E6; // minimum time in ps
     float maxTrkTime = (trackWork.getTimeMUS().getTimeStamp() + mSigmaTimeCut * trackWork.getTimeMUS().getTimeStampError()) * 1.E6; // maximum time in ps
-    int istep = 1;                                                                                                              // number of steps
-    float step = 1.0;                                                                                                           // step size in cm
-                                                                                                                                //uncomment for local debug
-                                                                                                                                /*
+    int istep = 1;                                                                                                                  // number of steps
+    float step = 1.0;                                                                                                               // step size in cm
+                                                                                                                                    //uncomment for local debug
+                                                                                                                                    /*
 																//trefTrk.getXYZGlo(posBeforeProp);
 																//float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
 																//printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
@@ -604,7 +604,7 @@ void MatchTOF::doMatching(int sec)
       }
     }
 
-    int detIdTemp[5] = { -1, -1, -1, -1, -1 }; // TOF detector id at the current propagation point
+    int detIdTemp[5] = {-1, -1, -1, -1, -1}; // TOF detector id at the current propagation point
 
     double reachedPoint = mXRef + istep * step;
 
@@ -754,9 +754,9 @@ void MatchTOF::doMatching(int sec)
         LOG(DEBUG) << "resX = " << resX << ", resZ = " << resZ << ", res = " << res;
 #ifdef _ALLOW_TOF_DEBUG_
         fillTOFmatchTree("match0", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
-        int tofLabelTrackID[3] = { -1, -1, -1 };
-        int tofLabelEventID[3] = { -1, -1, -1 };
-        int tofLabelSourceID[3] = { -1, -1, -1 };
+        int tofLabelTrackID[3] = {-1, -1, -1};
+        int tofLabelEventID[3] = {-1, -1, -1};
+        int tofLabelSourceID[3] = {-1, -1, -1};
         if (mMCTruthON) {
           const auto& labelsTOF = mTOFClusLabels->getLabels(mTOFClusSectIndexCache[indices[0]][itof]);
           for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
@@ -836,7 +836,7 @@ void MatchTOF::selectBestMatches()
     }
     mMatchedTracksIndex[matchingPair.getTrackIndex()] = mMatchedTracks.size();                               // index of the MatchInfoTOF correspoding to this track
     mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.getTrackIndex()]; // index of the track that was matched to this cluster
-    mMatchedTracks.push_back(matchingPair);                                                               // array of MatchInfoTOF
+    mMatchedTracks.push_back(matchingPair);                                                                  // array of MatchInfoTOF
 
     // add also calibration infos ciao
     mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),

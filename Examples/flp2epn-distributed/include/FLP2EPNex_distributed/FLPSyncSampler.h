@@ -27,58 +27,59 @@
 
 #include <FairMQDevice.h>
 
-namespace o2 {
-namespace devices {
+namespace o2
+{
+namespace devices
+{
 
 /// Stores measurment for roundtrip time of a timeframe
 
-struct timeframeDuration
-{
-    std::chrono::steady_clock::time_point start;
-    std::chrono::steady_clock::time_point end;
+struct timeframeDuration {
+  std::chrono::steady_clock::time_point start;
+  std::chrono::steady_clock::time_point end;
 };
 
 /// Publishes timeframes IDs for flpSenders (used only in test mode)
 
 class FLPSyncSampler : public FairMQDevice
 {
-  public:
-    /// Default constructor
-    FLPSyncSampler();
+ public:
+  /// Default constructor
+  FLPSyncSampler();
 
-    /// Default destructor
-    ~FLPSyncSampler() override;
+  /// Default destructor
+  ~FLPSyncSampler() override;
 
-    /// Controls the send rate of the timeframe IDs
-    void ResetEventCounter();
+  /// Controls the send rate of the timeframe IDs
+  void ResetEventCounter();
 
-    /// Listens for acknowledgements from the epnReceivers when they collected full timeframe
-    void ListenForAcks();
+  /// Listens for acknowledgements from the epnReceivers when they collected full timeframe
+  void ListenForAcks();
 
-  protected:
-    /// Overloads the InitTask() method of FairMQDevice
-    void InitTask() override;
+ protected:
+  /// Overloads the InitTask() method of FairMQDevice
+  void InitTask() override;
 
-    /// Overloads the Run() method of FairMQDevice
-    bool ConditionalRun() override;
-    void PreRun() override;
-    void PostRun() override;
+  /// Overloads the Run() method of FairMQDevice
+  bool ConditionalRun() override;
+  void PreRun() override;
+  void PostRun() override;
 
-    std::array<timeframeDuration, UINT16_MAX> mTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
-    int mEventRate; ///< Publishing rate of the timeframe IDs
-    int mMaxEvents; ///< Maximum number of events to send (0 - unlimited)
-    int mStoreRTTinFile; ///< Store round trip time measurements in a file.
-    int mEventCounter; ///< Controls the send rate of the timeframe IDs
-    uint16_t mTimeFrameId;
-    std::thread mAckListener;
-    std::thread mResetEventCounter;
-    std::atomic<bool> mLeaving;
+  std::array<timeframeDuration, UINT16_MAX> mTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
+  int mEventRate;                                          ///< Publishing rate of the timeframe IDs
+  int mMaxEvents;                                          ///< Maximum number of events to send (0 - unlimited)
+  int mStoreRTTinFile;                                     ///< Store round trip time measurements in a file.
+  int mEventCounter;                                       ///< Controls the send rate of the timeframe IDs
+  uint16_t mTimeFrameId;
+  std::thread mAckListener;
+  std::thread mResetEventCounter;
+  std::atomic<bool> mLeaving;
 
-    std::string mAckChannelName;
-    std::string mOutChannelName;
+  std::string mAckChannelName;
+  std::string mOutChannelName;
 };
 
 } // namespace devices
-} // namespace AliceO2
+} // namespace o2
 
 #endif

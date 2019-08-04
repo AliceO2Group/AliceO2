@@ -127,7 +127,7 @@ int Digitizer::createDigit(std::vector<o2::zdc::Digit>& digits, o2::dataformats:
     return fstUnused;
   }
 
-  std::array<const BCCache*, NBCReadOut> slots = { &empty, &cachedBC, &empty, &empty };
+  std::array<const BCCache*, NBCReadOut> slots = {&empty, &cachedBC, &empty, &empty};
   slots[1] = &cachedBC;
   if (cachedID > 0 && cachedBC.intRecord.differenceInBC(mCache[cachedID - 1].intRecord) == 1) { // digits stores 1 BC before the trigger
     slots[0] = &mCache[cachedID - 1];

@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingHeaderDefault)
 
 BOOST_AUTO_TEST_CASE(DataSamplingHeaderInit)
 {
-  DataSamplingHeader header{ 123, 456, 789, "abc" };
+  DataSamplingHeader header{123, 456, 789, "abc"};
 
   BOOST_CHECK_EQUAL(header.sampleTimeUs, 123);
   BOOST_CHECK_EQUAL(header.totalAcceptedMessages, 456);
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingHeaderInit)
 
 BOOST_AUTO_TEST_CASE(DataSamplingHeaderCopy)
 {
-  DataSamplingHeader header{ 123, 456, 789, "abc" };
+  DataSamplingHeader header{123, 456, 789, "abc"};
   DataSamplingHeader copy(header);
 
   BOOST_CHECK_EQUAL(copy.sampleTimeUs, 123);
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingHeaderCopy)
 
 BOOST_AUTO_TEST_CASE(DataSamplingHeaderAssignement)
 {
-  DataSamplingHeader first{ 123, 456, 789, "abc" };
+  DataSamplingHeader first{123, 456, 789, "abc"};
   DataSamplingHeader second;
   second = first;
 
@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingHeaderAssignement)
 
 BOOST_AUTO_TEST_CASE(DataSamplingHeaderOnStack)
 {
-  DataSamplingHeader header{ 123, 456, 789, "abc" };
-  Stack headerStack{ header };
+  DataSamplingHeader header{123, 456, 789, "abc"};
+  Stack headerStack{header};
 
   const auto* dsHeaderFromStack = get<DataSamplingHeader*>(headerStack.data());
   BOOST_REQUIRE_NE(dsHeaderFromStack, nullptr);

@@ -14,32 +14,37 @@
 #include <cstddef>
 #include "Headers/HeartbeatFrame.h"
 
-namespace o2 { namespace dataflow {
+namespace o2
+{
+namespace dataflow
+{
 
-int64_t extractDetectorPayloadStrip(char **payload, char *buffer, size_t bufferSize) {
+int64_t extractDetectorPayloadStrip(char** payload, char* buffer, size_t bufferSize)
+{
   *payload = buffer + sizeof(o2::header::HeartbeatHeader);
   return bufferSize - sizeof(o2::header::HeartbeatHeader) - sizeof(o2::header::HeartbeatTrailer);
 }
-
 
 struct SubframeId {
   size_t timeframeId;
   size_t socketId;
 
   // operator needed for the equal_range algorithm/ multimap method
-  bool operator<(const SubframeId& rhs) const {
+  bool operator<(const SubframeId& rhs) const
+  {
     return std::tie(timeframeId, socketId) < std::tie(rhs.timeframeId, rhs.socketId);
   }
 };
 
-SubframeId makeIdFromHeartbeatHeader(const header::HeartbeatHeader &header, size_t socketId, size_t orbitsPerTimeframe) {
+SubframeId makeIdFromHeartbeatHeader(const header::HeartbeatHeader& header, size_t socketId, size_t orbitsPerTimeframe)
+{
   SubframeId id = {
     .timeframeId = header.orbit / orbitsPerTimeframe,
-    .socketId = socketId
-  };
+    .socketId = socketId};
   return id;
 }
 
-} /* namespace dataflow */ } /* namespace o2 */
+} /* namespace dataflow */
+} /* namespace o2 */
 
 #endif // DATAFLOW_SUBFRAMEUTILS_H

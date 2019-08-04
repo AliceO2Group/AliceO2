@@ -78,9 +78,9 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
 
 //______________________________________________________________________
 
-Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
+Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
 {
-  Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+  Float_t pos[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
   Float_t deltapos[3];
   Int_t detInd[5];
   Int_t detIndOtherPad[5];
@@ -113,12 +113,12 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
   //                    A | B    -->   PadId = 1 | 2
   //                    C | D    -->   PadId = 3 | 4
 
-  Int_t ndigits = 0;//Number of digits added
+  Int_t ndigits = 0; //Number of digits added
 
   UInt_t istrip = channel / Geo::NPADS;
 
   // check the fired PAD 1 (A)
-  if (isFired(xLocal, zLocal, charge)){
+  if (isFired(xLocal, zLocal, charge)) {
     ndigits++;
     addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
   }
@@ -133,8 +133,8 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
   else
     zLocal = deltapos[2] + Geo::ZPAD;
   if (isFired(xLocal, zLocal, charge)) {
-      ndigits++;
-      addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
+    ndigits++;
+    addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
   // check PAD 3
@@ -195,7 +195,6 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
     }
   }
   return ndigits;
-
 }
 
 //______________________________________________________________________
@@ -500,10 +499,10 @@ void Digitizer::test(const char* geo)
     }
   }
 
-  Int_t det1[5] = { 0, 0, 0, 1, 23 };
-  Int_t det2[5] = { 0, 0, 0, 0, 24 };
-  Int_t det3[5] = { 0, 0, 0, 1, 24 };
-  Int_t det4[5] = { 0, 0, 0, 0, 47 };
+  Int_t det1[5] = {0, 0, 0, 1, 23};
+  Int_t det2[5] = {0, 0, 0, 0, 24};
+  Int_t det3[5] = {0, 0, 0, 1, 24};
+  Int_t det4[5] = {0, 0, 0, 0, 47};
   Float_t pos[3], pos2[3], pos3[3], pos4[3];
 
   o2::tof::Geo::getPos(det1, pos);

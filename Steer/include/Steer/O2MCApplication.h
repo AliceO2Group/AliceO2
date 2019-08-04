@@ -105,7 +105,7 @@ class O2MCApplication : public O2MCApplicationBase
   o2::data::SubEventInfo* mSubEventInfo = nullptr;     //! what are we currently processing?
   std::vector<o2::base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
 
-  ClassDefOverride(O2MCApplication, 1) //Interface to MonteCarlo application
+  ClassDefOverride(O2MCApplication, 1); //Interface to MonteCarlo application
 };
 
 } // end namespace steer

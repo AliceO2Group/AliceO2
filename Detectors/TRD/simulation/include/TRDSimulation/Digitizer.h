@@ -49,7 +49,7 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  bool mSDigits{ false };             // true: convert signals to summable digits, false by defaults
+  bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // the container of hits in a given detector
   std::vector<MCLabel> mLabels;       // the container of labels
 

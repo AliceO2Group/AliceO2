@@ -15,23 +15,19 @@
 #include <iostream>
 
 using namespace o2::tpc;
-constexpr std::array<short,32> SyncPatternMonitor::SYNC_PATTERN;
+constexpr std::array<short, 32> SyncPatternMonitor::SYNC_PATTERN;
 
 SyncPatternMonitor::SyncPatternMonitor()
-  : SyncPatternMonitor(-1,-1)
-{}
+  : SyncPatternMonitor(-1, -1)
+{
+}
 
 SyncPatternMonitor::SyncPatternMonitor(int sampa, int lowHigh)
-  : mPatternFound(false)
-  , mPosition(SYNC_START)
-  , mHwWithPattern(-1)
-  , mSampa(sampa)
-  , mLowHigh(lowHigh)
-  , mCheckedWords(0)
-{}
+  : mPatternFound(false), mPosition(SYNC_START), mHwWithPattern(-1), mSampa(sampa), mLowHigh(lowHigh), mCheckedWords(0)
+{
+}
 
-SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other)
-  = default;
+SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other) = default;
 
 void SyncPatternMonitor::reset()
 {
@@ -40,7 +36,5 @@ void SyncPatternMonitor::reset()
   mHwWithPattern = -1;
   mCheckedWords = 0;
   LOG(DEBUG) << "Sync pattern monitoring for SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits) "
-    << "was resetted" << FairLogger::endl;
+             << "was resetted" << FairLogger::endl;
 }
-
-

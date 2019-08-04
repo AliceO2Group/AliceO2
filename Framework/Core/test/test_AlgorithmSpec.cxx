@@ -22,32 +22,29 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestAlgorithmSpec) {
+BOOST_AUTO_TEST_CASE(TestAlgorithmSpec)
+{
   using namespace o2::framework;
-  AlgorithmSpec::ProcessCallback foo = [](ProcessingContext&){};
-  AlgorithmSpec::InitCallback bar = [&foo](InitContext&){return foo;};
+  AlgorithmSpec::ProcessCallback foo = [](ProcessingContext&) {};
+  AlgorithmSpec::InitCallback bar = [&foo](InitContext&) { return foo; };
   AlgorithmSpec spec1{bar};
   AlgorithmSpec spec2{bar, AlgorithmSpec::emptyErrorCallback()};
-  AlgorithmSpec spec3{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
+  AlgorithmSpec spec3{AlgorithmSpec::InitCallback{[&foo](InitContext&) {
     return foo;
-   }}
-  };
-  AlgorithmSpec spec4{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
-    return [](ProcessingContext &){};
-   }}
-  };
-  AlgorithmSpec spec5{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
-    return [](ProcessingContext &){};
-    }},
-    AlgorithmSpec::emptyErrorCallback()
-  };
-  AlgorithmSpec spec6{{[&foo](InitContext &) {
-    return [](ProcessingContext &){};
-    }},
-    AlgorithmSpec::emptyErrorCallback()
-  };
+  }}};
+  AlgorithmSpec spec4{AlgorithmSpec::InitCallback{[&foo](InitContext&) {
+    return [](ProcessingContext&) {};
+  }}};
+  AlgorithmSpec spec5{AlgorithmSpec::InitCallback{[&foo](InitContext&) {
+                        return [](ProcessingContext&) {};
+                      }},
+                      AlgorithmSpec::emptyErrorCallback()};
+  AlgorithmSpec spec6{{[&foo](InitContext&) {
+                        return [](ProcessingContext&) {};
+                      }},
+                      AlgorithmSpec::emptyErrorCallback()};
 
-  AlgorithmSpec spec7{ adaptStateless([](InputRecord&, DataAllocator&) {}) };
+  AlgorithmSpec spec7{adaptStateless([](InputRecord&, DataAllocator&) {})};
   int i = 0;
-  AlgorithmSpec spec8{ adaptStateless([&i](InputRecord&, DataAllocator&) {}) };
+  AlgorithmSpec spec8{adaptStateless([&i](InputRecord&, DataAllocator&) {})};
 }

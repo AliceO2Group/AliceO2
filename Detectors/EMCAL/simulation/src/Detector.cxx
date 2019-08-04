@@ -83,7 +83,7 @@ Detector::Detector(const Detector& rhs)
     mInnerEdge(rhs.mInnerEdge)
 
 {
-  for ( int i=0; i<5; ++i) {
+  for (int i = 0; i < 5; ++i) {
     mParEMOD[i] = rhs.mParEMOD[i];
   }
 }
@@ -351,7 +351,7 @@ void Detector::CreateShiskebabGeometry()
   }
 
   // Sensitive SC  (2x2 tiles)
-  Double_t parSCM0[5] = { 0, 0, 0, 0 }, *dummy = nullptr, parTRAP[11];
+  Double_t parSCM0[5] = {0, 0, 0, 0}, *dummy = nullptr, parTRAP[11];
   if (!contains(gn, "V1")) {
     Double_t wallThickness = g->GetPhiModuleSize() / g->GetNPHIdiv() - g->GetPhiTileSize();
     for (Int_t i = 0; i < 3; i++)
@@ -473,9 +473,9 @@ void Detector::CreateMaterials()
 {
   // media number in idtmed are 1599 to 1698.
   // --- Air ---
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Mixture(0, "Air$", aAir, zAir, dAir, 4, wAir);
 
@@ -483,9 +483,9 @@ void Detector::CreateMaterials()
   Material(1, "Pb$", 207.2, 82, 11.35, 0.56, 0., nullptr, 0);
 
   // --- The polysterene scintillator (CH) ---
-  Float_t aP[2] = { 12.011, 1.00794 };
-  Float_t zP[2] = { 6.0, 1.0 };
-  Float_t wP[2] = { 1.0, 1.0 };
+  Float_t aP[2] = {12.011, 1.00794};
+  Float_t zP[2] = {6.0, 1.0};
+  Float_t wP[2] = {1.0, 1.0};
   Float_t dP = 1.032;
 
   Mixture(2, "Polystyrene$", aP, zP, dP, -2, wP);
@@ -495,9 +495,9 @@ void Detector::CreateMaterials()
   // ---         Absorption length is ignored ^
 
   // 25-aug-04 by PAI - see  PMD/AliPMDv0.cxx for STEEL definition
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
   Mixture(4, "STAINLESS STEEL$", asteel, zsteel, 7.88, 4, wsteel);
 
   // Oct 26,2010 : Multipurpose Copy Paper UNV-21200), weiht 75 g/m**2.
@@ -505,9 +505,9 @@ void Detector::CreateMaterials()
   //    Component C  A=12.01   Z=6.    W=6./21.
   //    Component H  A=1.      Z=1.    W=10./21.
   //    Component O  A=16.     Z=8.    W=5./21.
-  Float_t apaper[3] = { 12.01, 1.0, 16.0 };
-  Float_t zpaper[3] = { 6.0, 1.0, 8.0 };
-  Float_t wpaper[3] = { 6. / 21., 10. / 21., 5. / 21. };
+  Float_t apaper[3] = {12.01, 1.0, 16.0};
+  Float_t zpaper[3] = {6.0, 1.0, 8.0};
+  Float_t wpaper[3] = {6. / 21., 10. / 21., 5. / 21.};
   Mixture(5, "BondPaper$", apaper, zpaper, 0.75, 3, wpaper);
 
   // DEFINITION OF THE TRACKING MEDIA
@@ -559,7 +559,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
   std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
 
   Double_t par[3], xpos = 0., ypos = 0., zpos = 0., rpos = 0., dphi = 0., phi = 0.0, phiRad = 0.;
-  Double_t parC[3] = { 0 };
+  Double_t parC[3] = {0};
   TString smName;
   Int_t tmpType = -1;
 

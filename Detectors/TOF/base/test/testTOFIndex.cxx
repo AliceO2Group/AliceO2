@@ -20,7 +20,8 @@
 
 using namespace o2::tof;
 
-BOOST_AUTO_TEST_CASE(testTOFIndex) {
+BOOST_AUTO_TEST_CASE(testTOFIndex)
+{
   BOOST_TEST_CHECKPOINT("Starting");
   Int_t indextof[5] = {0};
 
@@ -36,10 +37,10 @@ BOOST_AUTO_TEST_CASE(testTOFIndex) {
       indextof[1] = j;
       //
       const Int_t nStrips =
-          j < 2
-              ? Geo::NSTRIPB
-              : j > 2 ? Geo::NSTRIPC
-                      : Geo::NSTRIPA; // Define the numer of strips of the plate
+        j < 2
+          ? Geo::NSTRIPB
+          : j > 2 ? Geo::NSTRIPC
+                  : Geo::NSTRIPA; // Define the numer of strips of the plate
       if (j == 2 &&
           (i == 15 || i == 14 || i == 13)) // Skip sectors without A plate
         continue;

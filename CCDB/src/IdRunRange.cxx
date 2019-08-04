@@ -15,7 +15,7 @@
 
 using namespace o2::ccdb;
 
-ClassImp(IdRunRange)
+ClassImp(IdRunRange);
 
 IdRunRange::IdRunRange() : mFirstRun(-1), mLastRun(-1)
 {
@@ -29,7 +29,7 @@ IdRunRange::IdRunRange(Int_t firstRun, Int_t lastRun) : mFirstRun(firstRun), mLa
 
 IdRunRange::~IdRunRange() = default;
 
-Bool_t IdRunRange::isOverlappingWith(const IdRunRange &other) const
+Bool_t IdRunRange::isOverlappingWith(const IdRunRange& other) const
 {
   // check if this runRange overlaps other runRange
 
@@ -47,7 +47,7 @@ Bool_t IdRunRange::isOverlappingWith(const IdRunRange &other) const
           (other.mFirstRun <= mFirstRun && mFirstRun <= other.mLastRun));
 }
 
-Bool_t IdRunRange::isSupersetOf(const IdRunRange &other) const
+Bool_t IdRunRange::isSupersetOf(const IdRunRange& other) const
 {
   // check if this runRange contains other runRange
 
@@ -64,7 +64,7 @@ Bool_t IdRunRange::isSupersetOf(const IdRunRange &other) const
          other.mLastRun <= mLastRun;
 }
 
-Bool_t IdRunRange::isEqual(const TObject *obj) const
+Bool_t IdRunRange::isEqual(const TObject* obj) const
 {
   // check if this runRange is equal to other runRange
 
@@ -75,7 +75,7 @@ Bool_t IdRunRange::isEqual(const TObject *obj) const
   if (IdRunRange::Class() != obj->IsA()) {
     return kFALSE;
   }
-  IdRunRange *other = (IdRunRange *) obj;
+  IdRunRange* other = (IdRunRange*)obj;
   return mFirstRun == other->mFirstRun && mLastRun == other->mLastRun;
 }
 

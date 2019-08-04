@@ -26,8 +26,10 @@
 
 class FairMQParts;
 
-namespace o2 {
-namespace utilities {
+namespace o2
+{
+namespace utilities
+{
 
 /// @class DataPublisherDevice
 /// Utility device for data publishing
@@ -35,7 +37,7 @@ namespace utilities {
 /// TODO: Generalize with an input policy
 class DataPublisherDevice : public base::O2Device
 {
-public:
+ public:
   typedef o2::base::O2Message O2Message;
   /// TODO: use type alias when it has been added to DataHeader.h
   typedef uint64_t SubSpecificationT;
@@ -53,7 +55,7 @@ public:
   /// Default destructor
   ~DataPublisherDevice() final;
 
-protected:
+ protected:
   /// overloading the InitTask() method of FairMQDevice
   void InitTask() final;
 
@@ -67,7 +69,7 @@ protected:
 
   /// handle one logical O2 block of the input, consists of header and payload
   bool HandleO2LogicalBlock(const byte* headerBuffer, size_t headerBufferSize,
-			    const byte* dataBuffer, size_t dataBufferSize);
+                            const byte* dataBuffer, size_t dataBufferSize);
 
   /// Read file and append to the buffer
   static bool AppendFile(const char* name, std::vector<o2::byte>& buffer);
@@ -91,6 +93,6 @@ protected:
   std::string mFileName;
 };
 
-} // namespace data_flow
-}; // namespace AliceO2
+} // namespace utilities
+}; // namespace o2
 #endif

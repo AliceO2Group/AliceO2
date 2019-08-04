@@ -23,15 +23,15 @@ namespace mft
 {
 namespace constants
 {
-constexpr Int_t DisksNumber{ 5 };
-constexpr Int_t LayersNumber{ 2 * DisksNumber };
-constexpr Int_t HalvesNumber{ 2 };
+constexpr Int_t DisksNumber{5};
+constexpr Int_t LayersNumber{2 * DisksNumber};
+constexpr Int_t HalvesNumber{2};
 
 /// layer Z position to the middle of the CMOS sensor
-constexpr Double_t LayerZPosition[] = { -45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5 };
+constexpr Double_t LayerZPosition[] = {-45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5};
 
 /// disk thickness in X0
-constexpr Double_t DiskThicknessInX0[DisksNumber] = { 0.008, 0.008, 0.008, 0.008, 0.008 };
+constexpr Double_t DiskThicknessInX0[DisksNumber] = {0.008, 0.008, 0.008, 0.008, 0.008};
 
 inline const Double_t diskThicknessInX0(Int_t id) { return (id >= 0 && id < DisksNumber) ? DiskThicknessInX0[id] : 0.; }
 inline const Double_t layerZPosition(Int_t id)

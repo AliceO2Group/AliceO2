@@ -125,8 +125,8 @@ class Sector
   static int ToShiftedSector(T x, T y, T z)
   {
     // static int ToSector(T x, T y, T z) {
-    constexpr T invangle{ 180. / (M_PI * 20.) }; // the angle describing one sector
-    constexpr T offset{ M_PI + M_PI / 180. * 10. };
+    constexpr T invangle{180. / (M_PI * 20.)}; // the angle describing one sector
+    constexpr T offset{M_PI + M_PI / 180. * 10.};
     // force positive angle for conversion
     auto s = static_cast<int>((std::atan2(-y, -x) + offset) * invangle) % 18;
     // detect if on C size
@@ -144,7 +144,7 @@ class Sector
 inline Sector Sector::getLeft(const Sector s) { return Sector((s + 1) % 18 + (s > 17) * 18); }
 
 inline Sector Sector::getRight(const Sector s) { return Sector((s + 18 - 1) % 18 + (s > 17) * 18); }
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

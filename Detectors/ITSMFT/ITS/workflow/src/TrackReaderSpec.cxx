@@ -45,11 +45,11 @@ void TrackReader::run(ProcessingContext& pc)
 
   LOG(INFO) << "ITSTrackReader pushes " << mROFRecOut.size() << " ROFRecords,"
             << mTracksOut.size() << " tracks";
-  pc.outputs().snapshot(Output{ mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe }, mROFRecOut);
-  pc.outputs().snapshot(Output{ mOrigin, "TRACKS", 0, Lifetime::Timeframe }, mTracksOut);
-  pc.outputs().snapshot(Output{ mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe }, mClusIndOut);
+  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe}, mROFRecOut);
+  pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
+  pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusIndOut);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe }, mMCTruthOut);
+    pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe}, mMCTruthOut);
   }
 
   mFinished = true;
@@ -149,10 +149,9 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
     "its-track-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<TrackReader>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      { "its-tracks-infile", VariantType::String, "o2trac_its.root", { "Name of the input track file" } } }
-  };
+      {"its-tracks-infile", VariantType::String, "o2trac_its.root", {"Name of the input track file"}}}};
 }
 
 } // namespace its

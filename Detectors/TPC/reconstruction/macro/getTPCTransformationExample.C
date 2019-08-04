@@ -75,8 +75,8 @@ void getTPCTransformationExample()
 
           // compare the original correction to the difference ( transformation with correction - transformation without correction )
 
-          double xyz[3] = { gx0, gy0, gz0 };
-          double d[3] = { 0, 0, 0 };
+          double xyz[3] = {gx0, gy0, gz0};
+          double d[3] = {0, 0, 0};
           spaceChargeCorrection(xyz, d);
 
           hist->Fill((gx1 - gx0) - d[0]);

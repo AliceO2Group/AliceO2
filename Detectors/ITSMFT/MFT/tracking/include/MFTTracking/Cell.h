@@ -67,31 +67,31 @@ class Cell final
 };
 
 inline Cell::Cell()
-  : mFirstLayerId{ -1 },
-    mSecondLayerId{ -1 },
-    mFirstClusterIndex{ -1 },
-    mSecondClusterIndex{ -1 },
-    mLevel{ 0 },
-    mUpdateLevel{ kFALSE },
-    mIsUsed{ kFALSE },
-    mCellId{ -1 },
-    mNLeftNeighbours{ 0 },
-    mNRightNeighbours{ 0 }
+  : mFirstLayerId{-1},
+    mSecondLayerId{-1},
+    mFirstClusterIndex{-1},
+    mSecondClusterIndex{-1},
+    mLevel{0},
+    mUpdateLevel{kFALSE},
+    mIsUsed{kFALSE},
+    mCellId{-1},
+    mNLeftNeighbours{0},
+    mNRightNeighbours{0}
 {
   // Default constructor, for the dictionary
 }
 
 inline Cell::Cell(const Int_t firstLayerId, const Int_t secondLayerId, const Int_t firstClusterIndex, const Int_t secondClusterIndex, const Int_t cellIndex)
-  : mFirstLayerId{ firstLayerId },
-    mSecondLayerId{ secondLayerId },
-    mFirstClusterIndex{ firstClusterIndex },
-    mSecondClusterIndex{ secondClusterIndex },
-    mLevel{ 1 },
-    mUpdateLevel{ kFALSE },
-    mIsUsed{ kFALSE },
-    mCellId{ cellIndex },
-    mNLeftNeighbours{ 0 },
-    mNRightNeighbours{ 0 }
+  : mFirstLayerId{firstLayerId},
+    mSecondLayerId{secondLayerId},
+    mFirstClusterIndex{firstClusterIndex},
+    mSecondClusterIndex{secondClusterIndex},
+    mLevel{1},
+    mUpdateLevel{kFALSE},
+    mIsUsed{kFALSE},
+    mCellId{cellIndex},
+    mNLeftNeighbours{0},
+    mNRightNeighbours{0}
 {
   // Nothing to do
 }

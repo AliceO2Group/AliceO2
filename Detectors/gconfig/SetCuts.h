@@ -42,31 +42,31 @@ void SetCuts()
   auto& params = GlobalProcessCutSimParam::Instance();
 
   LOG(INFO) << "Set default settings for processes and cuts.";
-  mgr.DefaultProcesses({ { EProc::kPAIR, params.PAIR },    /** pair production */
-                         { EProc::kCOMP, params.COMP },    /** Compton scattering */
-                         { EProc::kPHOT, params.PHOT },    /** photo electric effect */
-                         { EProc::kPFIS, params.PFIS },    /** photofission */
-                         { EProc::kDRAY, params.DRAY },    /** delta ray */
-                         { EProc::kANNI, params.ANNI },    /** annihilation */
-                         { EProc::kBREM, params.BREM },    /** bremsstrahlung */
-                         { EProc::kHADR, params.HADR },    /** hadronic process */
-                         { EProc::kMUNU, params.MUNU },    /** muon nuclear interaction */
-                         { EProc::kDCAY, params.DCAY },    /** decay */
-                         { EProc::kLOSS, params.LOSS },    /** energy loss */
-                         { EProc::kMULS, params.MULS },    /** multiple scattering */
-                         { EProc::kCKOV, params.CKOV } }); /** Cherenkov */
+  mgr.DefaultProcesses({{EProc::kPAIR, params.PAIR},   /** pair production */
+                        {EProc::kCOMP, params.COMP},   /** Compton scattering */
+                        {EProc::kPHOT, params.PHOT},   /** photo electric effect */
+                        {EProc::kPFIS, params.PFIS},   /** photofission */
+                        {EProc::kDRAY, params.DRAY},   /** delta ray */
+                        {EProc::kANNI, params.ANNI},   /** annihilation */
+                        {EProc::kBREM, params.BREM},   /** bremsstrahlung */
+                        {EProc::kHADR, params.HADR},   /** hadronic process */
+                        {EProc::kMUNU, params.MUNU},   /** muon nuclear interaction */
+                        {EProc::kDCAY, params.DCAY},   /** decay */
+                        {EProc::kLOSS, params.LOSS},   /** energy loss */
+                        {EProc::kMULS, params.MULS},   /** multiple scattering */
+                        {EProc::kCKOV, params.CKOV}}); /** Cherenkov */
 
-  mgr.DefaultCuts({ { ECut::kCUTGAM, params.CUTGAM },    /** gammas */
-                    { ECut::kCUTELE, params.CUTELE },    /** electrons */
-                    { ECut::kCUTNEU, params.CUTNEU },    /** neutral hadrons */
-                    { ECut::kCUTHAD, params.CUTHAD },    /** charged hadrons */
-                    { ECut::kCUTMUO, params.CUTMUO },    /** muons */
-                    { ECut::kBCUTE, params.BCUTE },      /** electron bremsstrahlung */
-                    { ECut::kBCUTM, params.BCUTM },      /** muon and hadron bremsstrahlung */
-                    { ECut::kDCUTE, params.DCUTE },      /** delta-rays by electrons */
-                    { ECut::kDCUTM, params.DCUTM },      /** delta-rays by muons */
-                    { ECut::kPPCUTM, params.PPCUTM },    /** direct pair production by muons */
-                    { ECut::kTOFMAX, params.TOFMAX } }); /** time of flight */
+  mgr.DefaultCuts({{ECut::kCUTGAM, params.CUTGAM},   /** gammas */
+                   {ECut::kCUTELE, params.CUTELE},   /** electrons */
+                   {ECut::kCUTNEU, params.CUTNEU},   /** neutral hadrons */
+                   {ECut::kCUTHAD, params.CUTHAD},   /** charged hadrons */
+                   {ECut::kCUTMUO, params.CUTMUO},   /** muons */
+                   {ECut::kBCUTE, params.BCUTE},     /** electron bremsstrahlung */
+                   {ECut::kBCUTM, params.BCUTM},     /** muon and hadron bremsstrahlung */
+                   {ECut::kDCUTE, params.DCUTE},     /** delta-rays by electrons */
+                   {ECut::kDCUTM, params.DCUTM},     /** delta-rays by muons */
+                   {ECut::kPPCUTM, params.PPCUTM},   /** direct pair production by muons */
+                   {ECut::kTOFMAX, params.TOFMAX}}); /** time of flight */
 
   const char* settingProc = mgr.specialProcessesEnabled() ? "enabled" : "disabled";
   const char* settingCut = mgr.specialCutsEnabled() ? "enabled" : "disabled";

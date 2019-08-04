@@ -70,7 +70,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
 
 {
 
-  auto sorted_hits{ *hits };
+  auto sorted_hits{*hits};
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
@@ -82,7 +82,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
   if (channel_data.size() == 0) {
     channel_data.reserve(parameters.mMCPs);
     for (int i = 0; i < parameters.mMCPs; ++i)
-      channel_data.emplace_back(o2::ft0::ChannelData{ i, 0, 0, 0 });
+      channel_data.emplace_back(o2::ft0::ChannelData{i, 0, 0, 0});
   }
   if (channel_times.size() == 0)
     channel_times.resize(parameters.mMCPs);
@@ -132,7 +132,7 @@ void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<doub
     if (amp > parameters.mCFD_trsh_mip) {
       double smeared_time = get_time(channel_times[mcp]) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
       if (smeared_time < 1e9)
-        mChDgDataArr.emplace_back(o2::ft0::ChannelData{ mcp, smeared_time, amp, numpart });
+        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, smeared_time, amp, numpart});
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));

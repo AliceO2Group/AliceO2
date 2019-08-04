@@ -80,7 +80,7 @@ class CompCluster
 
   void print() const;
 
-  ClassDefNV(CompCluster, 1)
+  ClassDefNV(CompCluster, 1);
 };
 
 /// Extension of the compact cluster, augmented by the chipID and ROFrame
@@ -111,7 +111,7 @@ class CompClusterExt : public CompCluster
 
   void print() const;
 
-  ClassDefNV(CompClusterExt, 1)
+  ClassDefNV(CompClusterExt, 1);
 };
 
 } // namespace itsmft

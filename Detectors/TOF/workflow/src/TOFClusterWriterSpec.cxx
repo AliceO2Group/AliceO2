@@ -115,10 +115,9 @@ DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tof-cluster-outfile", VariantType::String, "tofclusters.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {"tof-cluster-outfile", VariantType::String, "tofclusters.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace tof
 } // end namespace o2

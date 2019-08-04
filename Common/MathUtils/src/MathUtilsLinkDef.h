@@ -19,12 +19,12 @@
 
 #pragma link C++ namespace o2::math_utils::math_base;
 
-#pragma link C++ function o2::math_utils::math_base::fitGaus < float > ;
-#pragma link C++ function o2::math_utils::math_base::fitGaus < double > ;
+#pragma link C++ function o2::math_utils::math_base::fitGaus < float>;
+#pragma link C++ function o2::math_utils::math_base::fitGaus < double>;
 
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < float > ;
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < double > ;
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < short > ;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < float>;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < double>;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < short>;
 
 #pragma link C++ class o2::Transform3D + ;
 #pragma link C++ class o2::Rotation2D + ;

@@ -116,7 +116,7 @@
 #define AddShortcut(cmd, cmdshort, forward, help, ...)             \
   else if (QCONFIG_COMPARE(cmd, cmdshort))                         \
   {                                                                \
-    const char* options[] = { "", __VA_ARGS__, nullptr };          \
+    const char* options[] = {"", __VA_ARGS__, nullptr};            \
     const int nOptions = sizeof(options) / sizeof(options[0]) - 1; \
     qConfigParse(nOptions, options, nullptr);                      \
     thisoption = forward;                                          \
@@ -143,7 +143,7 @@
   if (subConfig == nullptr || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) {                                                                                                    \
     constexpr const char* preopt = preoptname;                                                                                                                                                            \
     constexpr const char preoptshort = preoptnameshort;                                                                                                                                                   \
-    char argBuffer[2] = { preoptnameshort, 0 };                                                                                                                                                           \
+    char argBuffer[2] = {preoptnameshort, 0};                                                                                                                                                             \
     printf("\n  %s: (--%s%s%s)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", argBuffer);
 #define EndConfig() }
 #define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
@@ -234,7 +234,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddVariable(name, type, default) type name = default;
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance) name instance;
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = { default };
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 #define BeginConfig(name, instance) \
   struct name {

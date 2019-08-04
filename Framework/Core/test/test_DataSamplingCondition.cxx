@@ -39,12 +39,11 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
     std::vector<bool> correctDecision{
       true, false, true, false, true, false, false, true, false, false, true, true, false, false, true, false, false,
       true, false, false, true, true, true, false, false, false, true, false, true, true, true, false, false, true,
-      false, false, false, false, false, false, true, false, false, true, false, false, true, false, false
-    };
+      false, false, false, false, false, false, true, false, false, true, false, false, true, false, false};
     for (DataProcessingHeader::StartTime id = 1; id < 50; id++) {
-      DataProcessingHeader dph{ id, 0 };
-      o2::header::Stack headerStack{ dph };
-      DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+      DataProcessingHeader dph{id, 0};
+      o2::header::Stack headerStack{dph};
+      DataRef dr{nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr};
       BOOST_CHECK_EQUAL(correctDecision[id - 1], conditionRandom->decide(dr));
     }
   }
@@ -52,21 +51,20 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
   // random access check
   {
     std::vector<std::pair<DataProcessingHeader::StartTime, bool>> correctDecision{
-      { 222, true },
-      { 222, true },
-      { 222, true },
-      { 230, false },
-      { 210, true },
-      { 230, false },
-      { 250, false },
-      { 251, false },
-      { 222, true },
-      { 230, false }
-    };
+      {222, true},
+      {222, true},
+      {222, true},
+      {230, false},
+      {210, true},
+      {230, false},
+      {250, false},
+      {251, false},
+      {222, true},
+      {230, false}};
     for (const auto& check : correctDecision) {
-      DataProcessingHeader dph{ check.first, 0 };
-      o2::header::Stack headerStack{ dph };
-      DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+      DataProcessingHeader dph{check.first, 0};
+      o2::header::Stack headerStack{dph};
+      DataRef dr{nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr};
       BOOST_CHECK_EQUAL(check.second, conditionRandom->decide(dr));
     }
   }
@@ -83,19 +81,18 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionPayloadSize)
   conditionPayloadSize->configure(config);
 
   std::vector<std::pair<size_t, bool>> testCases{
-    { 0, false },
-    { 29, false },
-    { 30, true },
-    { 200, true },
-    { 500, true },
-    { 501, false }
-  };
+    {0, false},
+    {29, false},
+    {30, true},
+    {200, true},
+    {500, true},
+    {501, false}};
 
   for (const auto& t : testCases) {
     DataHeader dh;
     dh.payloadSize = t.first;
-    o2::header::Stack headerStack{ dh };
-    DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+    o2::header::Stack headerStack{dh};
+    DataRef dr{nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr};
     BOOST_CHECK_EQUAL(conditionPayloadSize->decide(dr), t.second);
   }
 }
@@ -110,23 +107,22 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionNConsecutive)
   conditionNConsecutive->configure(config);
 
   std::vector<std::pair<size_t, bool>> testCases{
-    { 0, true },
-    { 1, true },
-    { 2, true },
-    { 3, false },
-    { 8, false },
-    { 9, false },
-    { 9999999999999, false },
-    { 10000000000000, true },
-    { 10000000000001, true },
-    { 10000000000002, true },
-    { 10000000000003, false }
-  };
+    {0, true},
+    {1, true},
+    {2, true},
+    {3, false},
+    {8, false},
+    {9, false},
+    {9999999999999, false},
+    {10000000000000, true},
+    {10000000000001, true},
+    {10000000000002, true},
+    {10000000000003, false}};
 
   for (const auto& t : testCases) {
-    DataProcessingHeader dph{ t.first, 0 };
-    o2::header::Stack headerStack{ dph };
-    DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+    DataProcessingHeader dph{t.first, 0};
+    o2::header::Stack headerStack{dph};
+    DataRef dr{nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr};
     BOOST_CHECK_EQUAL(conditionNConsecutive->decide(dr), t.second);
   }
 }

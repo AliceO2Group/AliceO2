@@ -33,16 +33,16 @@ void customize(std::vector<CompletionPolicy>& policies)
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& options)
 {
-  options.push_back({ "obj-bins", VariantType::Int, 100, { "Number of bins in a histogram" } });
-  options.push_back({ "obj-rate", VariantType::Double, 1.0, { "Number of objects per second sent by one producer" } });
-  options.push_back({ "obj-producers", VariantType::Int, 4, { "Number of objects producers" } });
+  options.push_back({"obj-bins", VariantType::Int, 100, {"Number of bins in a histogram"}});
+  options.push_back({"obj-rate", VariantType::Double, 1.0, {"Number of objects per second sent by one producer"}});
+  options.push_back({"obj-producers", VariantType::Int, 4, {"Number of objects producers"}});
 
-  options.push_back({ "mergers-layers", VariantType::Int, 2, { "Number of layers in the merger topology" } });
-  options.push_back({ "mergers-merge-decision", VariantType::String, "publication", { "At which occasion objects are merged: 'arrival' or 'publication'" } });
-  options.push_back({ "mergers-publication-decision", VariantType::String, "interval", { "When merged objects are published: interval or all-updated" } });
-  options.push_back({ "mergers-publication-interval", VariantType::Double, 10.0, { "Publication interval of merged object [s]. It takes effect with --mergers-publication-decision interval" } });
+  options.push_back({"mergers-layers", VariantType::Int, 2, {"Number of layers in the merger topology"}});
+  options.push_back({"mergers-merge-decision", VariantType::String, "publication", {"At which occasion objects are merged: 'arrival' or 'publication'"}});
+  options.push_back({"mergers-publication-decision", VariantType::String, "interval", {"When merged objects are published: interval or all-updated"}});
+  options.push_back({"mergers-publication-interval", VariantType::Double, 10.0, {"Publication interval of merged object [s]. It takes effect with --mergers-publication-decision interval"}});
   options.push_back(
-    { "mergers-ownership-mode", VariantType::String, "diffs", { "Should the topology use 'diffs' or 'full' objects" } });
+    {"mergers-ownership-mode", VariantType::String, "diffs", {"Should the topology use 'diffs' or 'full' objects"}});
 }
 
 #include <Framework/runDataProcessing.h>

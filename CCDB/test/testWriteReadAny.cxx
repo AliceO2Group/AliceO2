@@ -45,5 +45,5 @@ BOOST_AUTO_TEST_CASE(ReadWriteTest1)
   BOOST_CHECK(readbackparameter);
   BOOST_CHECK_CLOSE(readbackparameter->mD, TESTVALUE, 1E-6);
 }
-}
-}
+} // namespace ccdb
+} // namespace o2

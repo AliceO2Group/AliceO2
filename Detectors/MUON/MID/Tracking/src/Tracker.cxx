@@ -93,9 +93,9 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
     // This needs to be done before adding the element to mClusters
     mClusterIndexes[deId].emplace_back(mClusters.size(), false);
     const auto& position = mTransformer.localToGlobal(deId, currData.xCoor, currData.yCoor);
-    mClusters.push_back({ currData.deId,
-                          position.x(), position.y(), position.z(),
-                          currData.sigmaX2, currData.sigmaY2 });
+    mClusters.push_back({currData.deId,
+                         position.x(), position.y(), position.z(),
+                         currData.sigmaX2, currData.sigmaY2});
 
     LOG(DEBUG) << "deId " << deId << " pos: (" << currData.xCoor << ", " << currData.yCoor << ") err2: ("
                << currData.sigmaX2 << ", " << currData.sigmaY2 << ") => (" << mClusters.back().xCoor << "," << mClusters.back().yCoor
@@ -393,12 +393,12 @@ double Tracker::tryOneCluster(const Track& track, const Cluster3D& cluster, Trac
   /// It returns twice the maximum allowd chi2 otherwise
   double dZ = cluster.zCoor - track.getPositionZ();
   double dZ2 = dZ * dZ;
-  double cpos[2] = { cluster.xCoor, cluster.yCoor };
-  double cerr2[2] = { cluster.sigmaX2, cluster.sigmaY2 };
-  double pos[2] = { track.getPositionX(), track.getPositionY() };
-  double newPos[2] = { 0., 0. };
-  double dist[2] = { 0., 0. };
-  double dir[2] = { track.getDirectionX(), track.getDirectionY() };
+  double cpos[2] = {cluster.xCoor, cluster.yCoor};
+  double cerr2[2] = {cluster.sigmaX2, cluster.sigmaY2};
+  double pos[2] = {track.getPositionX(), track.getPositionY()};
+  double newPos[2] = {0., 0.};
+  double dist[2] = {0., 0.};
+  double dir[2] = {track.getDirectionX(), track.getDirectionY()};
   const std::array<float, 6> covParams = track.getCovarianceParameters();
   for (int icoor = 0; icoor < 2; ++icoor) {
     newPos[icoor] = pos[icoor] + dir[icoor] * dZ;
@@ -424,14 +424,14 @@ double Tracker::runKalmanFilter(Track& track, const Cluster3D& cluster) const
   /// Computes new track parameters and their covariances including new cluster using kalman filter.
   /// Returns the additional track chi2
 
-  double pos[2] = { track.getPositionX(), track.getPositionY() };
-  double dir[2] = { track.getDirectionX(), track.getDirectionY() };
-  double clusPos[2] = { cluster.xCoor, cluster.yCoor };
+  double pos[2] = {track.getPositionX(), track.getPositionY()};
+  double dir[2] = {track.getDirectionX(), track.getDirectionY()};
+  double clusPos[2] = {cluster.xCoor, cluster.yCoor};
 
   std::array<float, 6> newCovParams;
   const std::array<float, 6> covParams = track.getCovarianceParameters();
   double newPos[2], newDir[2];
-  double clusterSigma[2] = { cluster.sigmaX2, cluster.sigmaY2 };
+  double clusterSigma[2] = {cluster.sigmaX2, cluster.sigmaY2};
   double chi2 = 0.;
   for (int idx = 0; idx < 2; ++idx) {
     int slopeIdx = idx + 2;
@@ -488,11 +488,11 @@ void Tracker::finalizeTrack(Track& track)
     ++ndf;
     Cluster3D& cl(mClusters[matchedClusterIdx]);
     track.propagateToZ(cl.zCoor);
-    double clPos[2] = { cl.xCoor, cl.yCoor };
-    double clErr2[2] = { cl.sigmaX2, cl.sigmaY2 };
-    double trackPos[2] = { track.getPositionX(), track.getPositionY() };
-    double trackCov[2] = { track.getCovarianceParameter(Track::CovarianceParamIndex::VarX),
-                           track.getCovarianceParameter(Track::CovarianceParamIndex::VarY) };
+    double clPos[2] = {cl.xCoor, cl.yCoor};
+    double clErr2[2] = {cl.sigmaX2, cl.sigmaY2};
+    double trackPos[2] = {track.getPositionX(), track.getPositionY()};
+    double trackCov[2] = {track.getCovarianceParameter(Track::CovarianceParamIndex::VarX),
+                          track.getCovarianceParameter(Track::CovarianceParamIndex::VarY)};
     for (int icoor = 0; icoor < 2; ++icoor) {
       double diff = trackPos[icoor] - clPos[icoor];
       chi2 += diff * diff / (trackCov[icoor] + clErr2[icoor]);

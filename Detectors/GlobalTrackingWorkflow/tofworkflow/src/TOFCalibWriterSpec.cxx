@@ -116,10 +116,9 @@ DataProcessorSpec getTOFCalibWriterSpec()
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tof-calib-outfile", VariantType::String, "o2calib_tof.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "calibTOF", { "Name of top-level TTree" } },
-    }
-  };
+      {"tof-calib-outfile", VariantType::String, "o2calib_tof.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "calibTOF", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace tof
 } // end namespace o2

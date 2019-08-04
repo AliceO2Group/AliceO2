@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "TPCSimulation/Point.h"
 #include <iostream>
 
@@ -26,6 +25,6 @@ void Point::Print(const Option_t* opt) const
   cout << "    Time " << GetTime() << " ns, n electrons " << GetEnergyLoss() << endl;
 }
 
-ClassImp(Point)
-ClassImp(HitGroup)
-ClassImp(ElementalHit)
+ClassImp(Point);
+ClassImp(HitGroup);
+ClassImp(ElementalHit);

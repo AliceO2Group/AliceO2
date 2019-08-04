@@ -18,62 +18,62 @@
 
 #include "ITSMFTSimulation/ClusterShape.h"
 
-ClassImp(o2::itsmft::ClusterShape)
+ClassImp(o2::itsmft::ClusterShape);
 
 using namespace o2::itsmft;
 
 //______________________________________________________________________
-ClusterShape::ClusterShape() :
-mNrows(0),
-mNcols(0),
-mCenterR(0),
-mCenterC(0) {
+ClusterShape::ClusterShape() : mNrows(0),
+                               mNcols(0),
+                               mCenterR(0),
+                               mCenterC(0)
+{
   mShape.clear();
 }
 
-
 //______________________________________________________________________
-ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols) :
-mNrows(Nrows),
-mNcols(Ncols) {
+ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols) : mNrows(Nrows),
+                                                         mNcols(Ncols)
+{
   mCenterR = ComputeCenter(Nrows);
   mCenterC = ComputeCenter(Ncols);
   mShape.clear();
 }
 
-
 //______________________________________________________________________
-ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) :
-mNrows(Nrows),
-mNcols(Ncols) {
+ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) : mNrows(Nrows),
+                                                                                           mNcols(Ncols)
+{
   mCenterR = ComputeCenter(Nrows);
   mCenterC = ComputeCenter(Ncols);
   mShape = Shape;
 }
 
-
 //______________________________________________________________________
 ClusterShape::~ClusterShape() = default;
 
-
 //______________________________________________________________________
-Bool_t ClusterShape::IsValidShape() {
+Bool_t ClusterShape::IsValidShape()
+{
   // Check the size
-  if (mShape.size() > mNrows*mNcols) return false;
+  if (mShape.size() > mNrows * mNcols)
+    return false;
 
   // Check for duplicates and the validity of the position
   std::sort(mShape.begin(), mShape.end());
   for (size_t i = 0; i < mShape.size() - 1; i++) {
-    if (mShape[i] >= mNrows*mNcols || mShape[i+1] >= mNrows*mNcols) return false;
-    if (mShape[i] == mShape[i+1]) return false;
+    if (mShape[i] >= mNrows * mNcols || mShape[i + 1] >= mNrows * mNcols)
+      return false;
+    if (mShape[i] == mShape[i + 1])
+      return false;
   }
 
   return true;
 }
 
-
 //______________________________________________________________________
-Long64_t ClusterShape::GetShapeID() const {
+Long64_t ClusterShape::GetShapeID() const
+{
   // DJBX33X
   Long64_t id = 5381;
   id = ((id << 5) + id) ^ mNrows;
@@ -84,25 +84,27 @@ Long64_t ClusterShape::GetShapeID() const {
   return id;
 }
 
-
 //______________________________________________________________________
-Bool_t ClusterShape::HasElement(UInt_t value) const {
-  for (auto & el : mShape) {
-    if (el > value) break;
-    if (el == value) return true;
+Bool_t ClusterShape::HasElement(UInt_t value) const
+{
+  for (auto& el : mShape) {
+    if (el > value)
+      break;
+    if (el == value)
+      return true;
   }
   return false;
 }
 
-
 //______________________________________________________________________
-UInt_t ClusterShape::ComputeCenter(UInt_t n) {
+UInt_t ClusterShape::ComputeCenter(UInt_t n)
+{
   UInt_t c = 0;
   if (n % 2 == 0) {
     UInt_t r = gRandom->Integer(2); // 0 or 1
-    c = (UInt_t) r+n/2;
+    c = (UInt_t)r + n / 2;
   } else {
-    c = (UInt_t) (n+1)/2;
+    c = (UInt_t)(n + 1) / 2;
   }
-  return c-1; // 0-based
+  return c - 1; // 0-based
 }

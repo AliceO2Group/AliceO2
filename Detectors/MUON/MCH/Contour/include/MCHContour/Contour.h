@@ -42,7 +42,7 @@ std::vector<o2::mch::contour::Vertex<T>> getVertices(const std::vector<o2::mch::
 template <typename T>
 std::vector<o2::mch::contour::Vertex<T>> getSortedVertices(const std::vector<o2::mch::contour::Polygon<T>>& polygons)
 {
-  std::vector<Vertex<T>> vertices{ getVertices(polygons) };
+  std::vector<Vertex<T>> vertices{getVertices(polygons)};
   std::sort(vertices.begin(), vertices.end());
   return vertices;
 }
@@ -134,8 +134,8 @@ bool operator!=(const Contour<T>& lhs, const Contour<T>& rhs)
 template <typename T>
 bool operator==(const Contour<T>& lhs, const Contour<T>& rhs)
 {
-  std::vector<Vertex<T>> vl{ lhs.getSortedVertices() };
-  std::vector<Vertex<T>> vr{ rhs.getSortedVertices() };
+  std::vector<Vertex<T>> vl{lhs.getSortedVertices()};
+  std::vector<Vertex<T>> vr{rhs.getSortedVertices()};
 
   if (vl.size() != vr.size()) {
     return false;
@@ -154,7 +154,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<o2::mch::contour::P
   os << "MULTIPOLYGON(";
 
   for (auto j = 0; j < polygons.size(); ++j) {
-    const Polygon<T>& p{ polygons[j] };
+    const Polygon<T>& p{polygons[j]};
     os << '(';
     for (auto i = 0; i < p.size(); ++i) {
       os << p[i].x << " " << p[i].y;

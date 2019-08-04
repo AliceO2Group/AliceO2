@@ -257,8 +257,8 @@ void Tracker::findTracksCA(ROframe& event)
   // 2 with 8, 9
   // 3 with 8, 9
   Int_t layer1Min = 0, layer1Max = 3;
-  Int_t layer2Min[4] = { 6, 6, 8, 8 };
-  Int_t layer2Max[4] = { 9, 9, 9, 9 };
+  Int_t layer2Min[4] = {6, 6, 8, 8};
+  Int_t layer2Max[4] = {9, 9, 9, 9};
 
   MCCompLabel mcCompLabel;
   Int_t roadId, nPointDisks;

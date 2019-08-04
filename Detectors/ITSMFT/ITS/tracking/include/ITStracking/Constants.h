@@ -34,49 +34,49 @@ constexpr bool DoTimeBenchmarks = true;
 
 namespace math
 {
-constexpr float Pi{ 3.14159265359f };
-constexpr float TwoPi{ 2.0f * Pi };
-constexpr float FloatMinThreshold{ 1e-20f };
-} // namespace Math
+constexpr float Pi{3.14159265359f};
+constexpr float TwoPi{2.0f * Pi};
+constexpr float FloatMinThreshold{1e-20f};
+} // namespace math
 
 namespace its
 {
-constexpr int LayersNumber{ 7 };
-constexpr int LayersNumberVertexer{ 3 };
-constexpr int TrackletsPerRoad{ LayersNumber - 1 };
-constexpr int CellsPerRoad{ LayersNumber - 2 };
-constexpr int ClustersPerCell{ 3 };
-constexpr int UnusedIndex{ -1 };
-constexpr float Resolution{ 0.0005f };
+constexpr int LayersNumber{7};
+constexpr int LayersNumberVertexer{3};
+constexpr int TrackletsPerRoad{LayersNumber - 1};
+constexpr int CellsPerRoad{LayersNumber - 2};
+constexpr int ClustersPerCell{3};
+constexpr int UnusedIndex{-1};
+constexpr float Resolution{0.0005f};
 
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
 {
-  return GPUArray<float, LayersNumber>{ { 16.333f, 16.333f, 16.333f, 42.140f, 42.140f, 73.745f, 73.745f } };
+  return GPUArray<float, LayersNumber>{{16.333f, 16.333f, 16.333f, 42.140f, 42.140f, 73.745f, 73.745f}};
 }
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
-  return GPUArray<float, LayersNumber>{ { 2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f } };
+  return GPUArray<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
 }
 } // namespace its
 
 namespace index_table
 {
-constexpr int ZBins{ 20 };
-constexpr int PhiBins{ 20 };
-constexpr float InversePhiBinSize{ constants::index_table::PhiBins / constants::math::TwoPi };
+constexpr int ZBins{20};
+constexpr int PhiBins{20};
+constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
-  return GPUArray<float, its::LayersNumber>{ { 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f,
-                                               0.5 * ZBins / 42.140f, 0.5 * ZBins / 42.140f, 0.5 * ZBins / 73.745f,
-                                               0.5 * ZBins / 73.745f } };
+  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f,
+                                             0.5 * ZBins / 42.140f, 0.5 * ZBins / 42.140f, 0.5 * ZBins / 73.745f,
+                                             0.5 * ZBins / 73.745f}};
 }
-} // namespace IndexTable
+} // namespace index_table
 
 namespace pdgcodes
 {
-constexpr int PionCode{ 211 };
+constexpr int PionCode{211};
 }
-} // namespace Constants
+} // namespace constants
 } // namespace its
 } // namespace o2
 

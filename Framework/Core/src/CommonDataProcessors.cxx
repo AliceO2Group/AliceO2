@@ -68,7 +68,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
       });
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([ output, matcher = outputMatcher ](ProcessingContext & pc) mutable->void {
+    return std::move([output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
       LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
@@ -105,9 +105,8 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
     validBinaryInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    { { "outfile", VariantType::String, "dpl-out.bin", { "Name of the output file" } },
-      { "keep", VariantType::String, "", { "Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile" } } }
-  };
+    {{"outfile", VariantType::String, "dpl-out.bin", {"Name of the output file"}},
+     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}};
 
   return spec;
 }

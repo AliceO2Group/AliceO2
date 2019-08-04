@@ -105,9 +105,9 @@ static const Int_t nCandidatesSweep = 3;
 static const Int_t maxMissingLayersSweep = 1;
 static const Int_t chi2PenaltySweep = 1;
 
-static const Int_t nCandidates[nCandidatesSweep] = { 1, 2, 3 };
-static const Int_t maxMissingLayers[maxMissingLayersSweep] = { 4 };
-static const Int_t chi2Penalty[chi2PenaltySweep] = { 16 };
+static const Int_t nCandidates[nCandidatesSweep] = {1, 2, 3};
+static const Int_t maxMissingLayers[maxMissingLayersSweep] = {4};
+static const Int_t chi2Penalty[chi2PenaltySweep] = {16};
 
 // functions
 Bool_t InitAnalysis(const char* filename = "TRDhlt.root", Bool_t isMC = kTRUE);
@@ -462,8 +462,8 @@ void ParameterSweepResults()
   TLegend* legend = new TLegend(0.2, 0.15, 0.8, 0.45);
   legend->SetNColumns(3);
 
-  TH1F* hEfficiency[nCandidatesSweep * maxMissingLayersSweep * chi2PenaltySweep] = { 0x0 };
-  TH1F* hFakeRate[nCandidatesSweep * maxMissingLayersSweep * chi2PenaltySweep] = { 0x0 };
+  TH1F* hEfficiency[nCandidatesSweep * maxMissingLayersSweep * chi2PenaltySweep] = {0x0};
+  TH1F* hFakeRate[nCandidatesSweep * maxMissingLayersSweep * chi2PenaltySweep] = {0x0};
 
   std::vector<Int_t> missingFiles;
 

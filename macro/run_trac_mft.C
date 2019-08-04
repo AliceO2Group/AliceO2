@@ -70,7 +70,8 @@ void run_trac_mft(float rate, std::string outputfile, std::string inputfile, std
 
   timer.Stop();
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
 
   // Extract the maximal used memory an add is as Dart measurement
   // This line is filtered by CTest and the value send to CDash
@@ -87,11 +88,14 @@ void run_trac_mft(float rate, std::string outputfile, std::string inputfile, std
   cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
   cout << cpuUsage;
   cout << "</DartMeasurement>" << endl;
-  cout << endl << endl;
+  cout << endl
+       << endl;
   std::cout << "Macro finished succesfully" << std::endl;
 
-  std::cout << endl << std::endl;
+  std::cout << endl
+            << std::endl;
   std::cout << "Output file is " << outputfile.data() << std::endl;
   std::cout << "Parameter file is " << paramfile.data() << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl
+            << endl;
 }

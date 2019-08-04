@@ -101,7 +101,7 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de)
       if (de.columns[icolumn].isNBPStripFired(istrip)) {
         if (!pc) {
           LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
-          mPreClusters.push_back({ static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip) });
+          mPreClusters.push_back({static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
           pc = &mPreClusters.back();
         }
         pc->lastColumn = icolumn;
@@ -133,7 +133,7 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
         if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
           if (!pc) {
             LOG(DEBUG) << "New precluster BP: DE  " << de.deId;
-            mPreClusters.push_back({ static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip) });
+            mPreClusters.push_back({static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
             pc = &mPreClusters.back();
           }
           pc->lastLine = iline;

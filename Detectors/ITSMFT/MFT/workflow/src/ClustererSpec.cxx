@@ -109,11 +109,11 @@ void ClustererDPL::run(ProcessingContext& pc)
             << clusterROframes.size() << " RO frames and "
             << clusterMC2ROframes.size() << " MC events";
 
-  pc.outputs().snapshot(Output{ "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe }, compClusters);
-  pc.outputs().snapshot(Output{ "MFT", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
-  pc.outputs().snapshot(Output{ "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, clusterLabels);
-  pc.outputs().snapshot(Output{ "MFT", "MFTClusterROF", 0, Lifetime::Timeframe }, clusterROframes);
-  pc.outputs().snapshot(Output{ "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe }, clusterMC2ROframes);
+  pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
+  pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
+  pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, clusterLabels);
+  pc.outputs().snapshot(Output{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
+  pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
 
   mState = 2;
   //pc.services().get<ControlService>().readyToQuit(true);
@@ -124,21 +124,20 @@ DataProcessorSpec getClustererSpec()
   return DataProcessorSpec{
     "mft-clusterer",
     Inputs{
-      InputSpec{ "digits", "MFT", "DIGITS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "MFT", "MFTDigitROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe } },
+      InputSpec{"digits", "MFT", "DIGITS", 0, Lifetime::Timeframe},
+      InputSpec{"labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe},
+      InputSpec{"ROframes", "MFT", "MFTDigitROF", 0, Lifetime::Timeframe},
+      InputSpec{"MC2ROframes", "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}},
     Outputs{
-      OutputSpec{ "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTClusterROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<ClustererDPL>() },
+      OutputSpec{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "CLUSTERS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<ClustererDPL>()},
     Options{
-      { "mft-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } },
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }
-  };
+      {"mft-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
 }
 
 } // namespace mft

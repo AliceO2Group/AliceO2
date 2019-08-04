@@ -20,19 +20,20 @@ namespace framework
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.
-class InitContext {
-public:
-  InitContext(ConfigParamRegistry &options, ServiceRegistry &services)
-  : mOptions{options},
-    mServices{services}
+class InitContext
+{
+ public:
+  InitContext(ConfigParamRegistry& options, ServiceRegistry& services)
+    : mOptions{options},
+      mServices{services}
   {
   }
 
-  ConfigParamRegistry const &options() {return mOptions;}
-  ServiceRegistry &services() {return mServices;}
+  ConfigParamRegistry const& options() { return mOptions; }
+  ServiceRegistry& services() { return mServices; }
 
-  ConfigParamRegistry &mOptions;
-  ServiceRegistry &mServices;
+  ConfigParamRegistry& mOptions;
+  ServiceRegistry& mServices;
 };
 
 } // namespace framework

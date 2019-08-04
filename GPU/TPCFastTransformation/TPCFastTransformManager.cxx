@@ -317,8 +317,8 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
         {
           int sector = 0, secrow = 0;
           AliHLTTPCGeometry::Slice2Sector(slice, row, sector, secrow);
-          int is[] = { sector };
-          double xx[] = { static_cast<double>(secrow), pad, time };
+          int is[] = {sector};
+          double xx[] = {static_cast<double>(secrow), pad, time};
           mOrigTransform->Transform(xx, is, 0, 1);
           ox = xx[0];
           oy = xx[1];

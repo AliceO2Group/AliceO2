@@ -36,9 +36,9 @@ TGeoVolume* createAirVacuumCave(const char* name)
   auto& mgr = o2::base::MaterialManager::Instance();
 
   const int nAir = 4;
-  Float_t aAir[nAir] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[nAir] = { 6., 7., 8., 18. };
-  Float_t wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[nAir] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[nAir] = {6., 7., 8., 18.};
+  Float_t wAir[nAir] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAirVacuum = 1.20479E-10;
   const int kID = 90; // to avoid conflicts with definitions of other MCH materials
 
@@ -191,8 +191,8 @@ void drawGeometry()
 o2::base::GeometryManager::MatBudgetExt getMatBudgetExt(const o2::Transform3D& t, Vector3D<double>& n, float x, float y, float thickness)
 {
   Point3D<double> point;
-  t.LocalToMaster(Point3D<double>{ x, y, 0 }, point);
-  return o2::base::GeometryManager::meanMaterialBudgetExt(Point3D<double>{ point + n * thickness / 2.0 }, Point3D<double>{ point - n * thickness / 2.0 });
+  t.LocalToMaster(Point3D<double>{x, y, 0}, point);
+  return o2::base::GeometryManager::meanMaterialBudgetExt(Point3D<double>{point + n * thickness / 2.0}, Point3D<double>{point - n * thickness / 2.0});
 }
 
 std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudgetExt m)
@@ -205,11 +205,11 @@ std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudgetE
 Vector3D<double> getNormalVector(const o2::Transform3D& t)
 {
   Point3D<double> px, py, po;
-  t.LocalToMaster(Point3D<double>{ 0, 1, 0 }, py);
-  t.LocalToMaster(Point3D<double>{ 1, 0, 0 }, px);
-  t.LocalToMaster(Point3D<double>{ 0, 0, 0 }, po);
-  Vector3D<double> a{ px - po };
-  Vector3D<double> b{ py - po };
+  t.LocalToMaster(Point3D<double>{0, 1, 0}, py);
+  t.LocalToMaster(Point3D<double>{1, 0, 0}, px);
+  t.LocalToMaster(Point3D<double>{0, 0, 0}, po);
+  Vector3D<double> a{px - po};
+  Vector3D<double> b{py - po};
   return a.Cross(b).Unit();
 }
 

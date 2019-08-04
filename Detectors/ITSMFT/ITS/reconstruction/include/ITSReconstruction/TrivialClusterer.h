@@ -13,31 +13,34 @@
 #ifndef ALICEO2_ITS_TRIVIALCLUSTERER_H
 #define ALICEO2_ITS_TRIVIALCLUSTERER_H
 
-#include "Rtypes.h"  // for TrivialClusterer::Class, Double_t, ClassDef, etc
+#include "Rtypes.h" // for TrivialClusterer::Class, Double_t, ClassDef, etc
 #include "ITSMFTBase/GeometryTGeo.h"
 
-namespace o2 {
-  namespace itsmft {
-    class Digit;
-    class Cluster;
-  }
-}
+namespace o2
+{
+namespace itsmft
+{
+class Digit;
+class Cluster;
+} // namespace itsmft
+} // namespace o2
 
 namespace o2
 {
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 namespace its
 {
-  class TrivialClusterer
+class TrivialClusterer
 {
   using Digit = o2::itsmft::Digit;
   using Cluster = o2::itsmft::Cluster;
   using Label = o2::MCCompLabel;
+
  public:
   TrivialClusterer();
   ~TrivialClusterer();
@@ -50,17 +53,17 @@ namespace its
   /// @return digits container
   void process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters);
   // provide the common itsmft::GeometryTGeo to access matrices
-  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm;}
-  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
+  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth)
+  {
     mClsLabels = truth;
   }
 
  protected:
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; // Cluster MC labels
-
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr;                      ///< ITS OR MFT upgrade geometry
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; // Cluster MC labels
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALCLUSTERER_H */

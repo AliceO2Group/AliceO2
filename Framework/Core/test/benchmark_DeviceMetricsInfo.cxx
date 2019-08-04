@@ -43,7 +43,7 @@ static void BM_RegexBaseline(benchmark::State& state)
   char const* value;
   char const* timestamp;
   for (auto _ : state) {
-    std::cregex_token_iterator it(metric.data(), metric.data() + metric.length(), metricsRE, { 1, 2, 3, 4 });
+    std::cregex_token_iterator it(metric.data(), metric.data() + metric.length(), metricsRE, {1, 2, 3, 4});
     key = it->first;
     ++it;
     type = it->first;
@@ -81,7 +81,7 @@ static void BM_ProcessIntMetric(benchmark::State& state)
   DeviceMetricsInfo info;
 
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
-  std::vector<std::string> metrics{ 1000, metric };
+  std::vector<std::string> metrics{1000, metric};
   // Add the first metric to the store
   for (auto _ : state) {
     for (auto& s : metrics) {

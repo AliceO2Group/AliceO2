@@ -19,28 +19,30 @@
 #include "EventVisualisationBase/EventManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 
-namespace o2  {
-namespace event_visualisation {
-  
+namespace o2
+{
+namespace event_visualisation
+{
+
 /// DataInterpreterRND prepares random events
 ///
 /// This class overrides DataInterpreter and implements method
 /// returning visualisation objects representing random event
 /// with tracks colored by PID only.
-  
+
 class DataInterpreterRND : public DataInterpreter
 {
-public:
+ public:
   // Default constructor
   DataInterpreterRND();
   // Default destructor
   ~DataInterpreterRND() final;
-  
+
   // Returns a list of random tracks colored by PID
   TEveElement* interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
-  
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2
 
 #endif

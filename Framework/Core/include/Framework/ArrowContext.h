@@ -33,7 +33,7 @@ class ArrowContext
 {
  public:
   ArrowContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
+    : mProxy{proxy}
   {
   }
 
@@ -54,10 +54,10 @@ class ArrowContext
                  std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize,
                  const std::string& channel)
   {
-    mMessages.push_back(std::move(MessageRef{ std::move(header),
-                                              std::move(buffer),
-                                              std::move(finalize),
-                                              channel }));
+    mMessages.push_back(std::move(MessageRef{std::move(header),
+                                             std::move(buffer),
+                                             std::move(finalize),
+                                             channel}));
   }
 
   Messages::iterator begin()
@@ -81,8 +81,8 @@ class ArrowContext
     // there because what's really sent is the copy of the string
     // payload will be cleared by the mMessages.clear()
     for (auto& m : mMessages) {
-//      assert(m.header.get() == nullptr);
-//      assert(m.payload.get() != nullptr);
+      //      assert(m.header.get() == nullptr);
+      //      assert(m.payload.get() != nullptr);
     }
     mMessages.clear();
   }

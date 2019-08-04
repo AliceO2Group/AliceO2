@@ -13,14 +13,14 @@
 #include <iostream>
 #include "Math/SMatrix.h"
 
-using std::array;
 using o2::track::TrackPar;
 using o2::track::TrackParCov;
+using std::array;
 using namespace o2::constants::math;
 
 //______________________________________________________________
 TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, int charge, bool sectorAlpha)
-  : mX{ 0.f }, mAlpha{ 0.f }, mP{ 0.f }
+  : mX{0.f}, mAlpha{0.f}, mP{0.f}
 {
   // construct track param from kinematics
 
@@ -61,8 +61,8 @@ TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, in
     utils::sincosf(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
-  array<float, 3> ver{ xyz[0], xyz[1], xyz[2] };
-  array<float, 3> mom{ pxpypz[0], pxpypz[1], pxpypz[2] };
+  array<float, 3> ver{xyz[0], xyz[1], xyz[2]};
+  array<float, 3> mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
   utils::RotateZ(ver, -alp);
@@ -202,7 +202,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   step *= sqrtf(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  array<float, 9> vecLab{ 0.f };
+  array<float, 9> vecLab{0.f};
   if (!getPosDirGlo(vecLab)) {
     return false;
   }
@@ -221,13 +221,13 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  array<float, 7> vect{ costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                        -sinphi * vecLab[0] + cosphi * vecLab[1],
-                        sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                        costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                        -sinphi * vecLab[3] + cosphi * vecLab[4],
-                        sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                        vecLab[6] };
+  array<float, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                       -sinphi * vecLab[0] + cosphi * vecLab[1],
+                       sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                       costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                       -sinphi * vecLab[3] + cosphi * vecLab[4],
+                       sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                       vecLab[6]};
 
   // Do the helix step
   float sgn = getSign();
@@ -460,7 +460,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   }
   setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  float dP[kNParams] = { 0.f };
+  float dP[kNParams] = {0.f};
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
   if (fabs(x2r) < 0.05f) {
@@ -635,8 +635,8 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     utils::sincosf(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
-  array<float, 3> ver{ xyz[0], xyz[1], xyz[2] };
-  array<float, 3> mom{ pxpypz[0], pxpypz[1], pxpypz[2] };
+  array<float, 3> ver{xyz[0], xyz[1], xyz[2]};
+  array<float, 3> mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
   utils::RotateZ(ver, -alp);
@@ -784,7 +784,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   step *= sqrtf(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  array<float, 9> vecLab{ 0.f };
+  array<float, 9> vecLab{0.f};
   if (!getPosDirGlo(vecLab)) {
     return false;
   }
@@ -851,13 +851,13 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  array<float, 7> vect{ costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                        -sinphi * vecLab[0] + cosphi * vecLab[1],
-                        sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                        costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                        -sinphi * vecLab[3] + cosphi * vecLab[4],
-                        sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                        vecLab[6] };
+  array<float, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                       -sinphi * vecLab[0] + cosphi * vecLab[1],
+                       sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                       costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                       -sinphi * vecLab[3] + cosphi * vecLab[4],
+                       sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                       vecLab[6]};
 
   // Do the helix step
   float sgn = getSign();
@@ -1193,8 +1193,8 @@ bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
     return false;
   }
 
-  float dP[kNParams] = { float(k00 * dy + k01 * dz), float(k10 * dy + k11 * dz), dsnp, float(k30 * dy + k31 * dz),
-                         float(k40 * dy + k41 * dz) };
+  float dP[kNParams] = {float(k00 * dy + k01 * dz), float(k10 * dy + k11 * dz), dsnp, float(k30 * dy + k31 * dz),
+                        float(k40 * dy + k41 * dz)};
   updateParams(dP);
 
   double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;

@@ -22,7 +22,7 @@ ClassImp(o2::MCCompLabel);
 void MCCompLabel::print() const
 {
   // print itself
-  std::cout << (MCCompLabel)*this << std::endl;
+  std::cout << (MCCompLabel) * this << std::endl;
 }
 
 //_____________________________________________

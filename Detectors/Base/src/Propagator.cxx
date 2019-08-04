@@ -45,7 +45,7 @@ Propagator::Propagator()
     slowField->AllowFastField(true);
   }
   mField = slowField->getFastField();
-  const float xyz[3] = { 0. };
+  const float xyz[3] = {0.};
   mField->GetBz(xyz, mBz);
 }
 

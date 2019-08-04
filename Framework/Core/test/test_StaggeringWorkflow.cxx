@@ -27,18 +27,18 @@
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
 {
   // we customize all devices to dispatch data immediately
-  policies.push_back({ "prompt-for-all", [](auto const&) { return true; }, o2::framework::DispatchPolicy::DispatchOp::WhenReady });
+  policies.push_back({"prompt-for-all", [](auto const&) { return true; }, o2::framework::DispatchPolicy::DispatchOp::WhenReady});
 }
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // we customize the processors to consume data as it comes
-  policies.push_back({ "processor-consume",
-                       [](o2::framework::DeviceSpec const& spec) {
-                         // search for spec names starting with "processor"
-                         return spec.name.find("processor") == 0;
-                       },
-                       [](auto const&) { return o2::framework::CompletionPolicy::CompletionOp::Consume; } });
+  policies.push_back({"processor-consume",
+                      [](o2::framework::DeviceSpec const& spec) {
+                        // search for spec names starting with "processor"
+                        return spec.name.find("processor") == 0;
+                      },
+                      [](auto const&) { return o2::framework::CompletionPolicy::CompletionOp::Consume; }});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -61,7 +61,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   std::generate(subspecs.begin(), subspecs.end(), [counter = std::make_shared<int>(0)]() { return (*counter)++; });
   std::vector<OutputSpec> producerOutputs;
   for (auto const& subspec : subspecs) {
-    producerOutputs.emplace_back(OutputSpec{ "PROD", "CHANNEL", subspec, Lifetime::Timeframe });
+    producerOutputs.emplace_back(OutputSpec{"PROD", "CHANNEL", subspec, Lifetime::Timeframe});
   }
 
   auto producerFct = [subspecs](ProcessingContext& pc) {
@@ -71,7 +71,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     }
     for (auto const& subspec : subspecs) {
       //pc.outputs().make<MyDataType>(Output{ "PROD", "CHANNEL", subspec, Lifetime::Timeframe }) = subspec;
-      pc.outputs().snapshot(Output{ "PROD", "CHANNEL", subspec, Lifetime::Timeframe }, subspec);
+      pc.outputs().snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
       std::cout << "publishing channel " << subspec << std::endl;
       sleep(1);
     }
@@ -87,7 +87,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       }
       auto& data = pc.inputs().get<MyDataType>(input.spec->binding.c_str());
       std::cout << "processing channel " << data << std::endl;
-      pc.outputs().make<MyDataType>(Output{ "PROC", "CHANNEL", data, Lifetime::Timeframe }) = data;
+      pc.outputs().make<MyDataType>(Output{"PROC", "CHANNEL", data, Lifetime::Timeframe}) = data;
       nActiveInputs++;
     }
     // since we publish with delays, there should be only one active input at a time
@@ -107,11 +107,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   };
 
   std::vector<DataProcessorSpec> workflow = parallelPipeline(
-    std::vector<DataProcessorSpec>{ DataProcessorSpec{
+    std::vector<DataProcessorSpec>{DataProcessorSpec{
       "processor",
-      { InputSpec{ "input", "PROD", "CHANNEL", 0, Lifetime::Timeframe } },
-      { OutputSpec{ "PROC", "CHANNEL", 0, Lifetime::Timeframe } },
-      AlgorithmSpec{ processorFct } } },
+      {InputSpec{"input", "PROD", "CHANNEL", 0, Lifetime::Timeframe}},
+      {OutputSpec{"PROC", "CHANNEL", 0, Lifetime::Timeframe}},
+      AlgorithmSpec{processorFct}}},
     nPipelines,
     [&subspecs]() { return subspecs.size(); },
     [&subspecs](size_t index) { return subspecs[index]; });
@@ -120,12 +120,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     "producer",
     Inputs{},
     producerOutputs,
-    AlgorithmSpec{ producerFct } });
+    AlgorithmSpec{producerFct}});
 
   workflow.emplace_back(DataProcessorSpec{
     "sink",
-    mergeInputs(InputSpec{ "input", "PROC", "CHANNEL", 0, Lifetime::Timeframe }, nChannels, amendSinkInput),
+    mergeInputs(InputSpec{"input", "PROC", "CHANNEL", 0, Lifetime::Timeframe}, nChannels, amendSinkInput),
     {},
-    AlgorithmSpec{ sinkFct } });
+    AlgorithmSpec{sinkFct}});
   return workflow;
 }

@@ -43,9 +43,9 @@ class CachingTF1 : public TF1
   std::vector<double>* mAlphaCache = &fAlpha;
   std::vector<double>* mBetaCache = &fBeta;
   std::vector<double>* mGammaCache = &fGamma;
-  ClassDefOverride(CachingTF1,1);
+  ClassDefOverride(CachingTF1, 1);
 };
-}
-}
+} // namespace base
+} // namespace o2
 
 #endif

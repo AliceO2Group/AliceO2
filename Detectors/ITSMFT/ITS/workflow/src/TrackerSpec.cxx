@@ -53,7 +53,7 @@ void TrackerDPL::init(InitContext& ic)
 
     mTracker = std::make_unique<Tracker>(&mTrackerTraits);
     mVertexer = std::make_unique<Vertexer>(&mVertexerTraits);
-    double origD[3] = { 0., 0., 0. };
+    double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
     LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
@@ -137,13 +137,13 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
-  pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, allTracks);
-  pc.outputs().snapshot(Output{ "ITS", "TRACKCLSID", 0, Lifetime::Timeframe }, allClusIdx);
-  pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
-  pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
+  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, allTracks);
+  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, allClusIdx);
+  pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
   if (mIsMC) {
-    pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
-    pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
+    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
 
   mState = 2;
@@ -173,10 +173,9 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<TrackerDPL>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
     Options{
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }
-  };
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
 }
 
 } // namespace its

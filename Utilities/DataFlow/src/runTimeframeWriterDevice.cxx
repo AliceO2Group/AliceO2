@@ -15,6 +15,7 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     (o2::data_flow::TimeframeWriterDevice::OptionKeyInputChannelName,
      bpo::value<std::string>()->default_value("input"),
@@ -35,6 +36,7 @@ void addCustomOptions(bpo::options_description& options)
     (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxFileSize,
      bpo::value<size_t>()->default_value(-1),
      "Maximum size per file");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

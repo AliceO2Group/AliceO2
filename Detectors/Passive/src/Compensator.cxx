@@ -125,36 +125,39 @@ void Compensator::SetSpecialPhysicsCuts()
 
   // need to call method from matmgr
   // 30 == COMP_IRON_C1
-  matmgr.SpecialProcesses("COMP", 30, { { EProc::kPAIR, 0 },
-                                        { EProc::kCOMP, 0 },
-                                        { EProc::kPHOT, 0 },
-                                        { EProc::kPFIS, 0 },
-                                        { EProc::kDRAY, 0 },
-                                        { EProc::kANNI, 0 },
-                                        { EProc::kBREM, 0 },
-                                        { EProc::kHADR, 0 },
-                                        { EProc::kMUNU, 0 },
-                                        { EProc::kDCAY, 0 },
-                                        { EProc::kLOSS, 0 },
-                                        { EProc::kMULS, 0 },
-								       { EProc::kRAYL, 0 },
-								       { EProc::kLABS, 0 }
-  });
+  // clang-format off
+  matmgr.SpecialProcesses("COMP", 30, {{EProc::kPAIR, 0},
+                                       {EProc::kCOMP, 0},
+                                       {EProc::kPHOT, 0},
+                                       {EProc::kPFIS, 0},
+                                       {EProc::kDRAY, 0},
+                                       {EProc::kANNI, 0},
+                                       {EProc::kBREM, 0},
+                                       {EProc::kHADR, 0},
+                                       {EProc::kMUNU, 0},
+                                       {EProc::kDCAY, 0},
+                                       {EProc::kLOSS, 0},
+                                       {EProc::kMULS, 0},
+                                       {EProc::kRAYL, 0},
+                                       {EProc::kLABS, 0}});
+  // clang-format on
 
   // cut settings for the magnet yoke (fast) medium
   const double cut1 = 1;
   const double cutTofmax = 1e10;
-  matmgr.SpecialCuts("COMP", 30, { { ECut::kCUTGAM, cut1 },
-                               { ECut::kCUTELE, cut1 },
-                               { ECut::kCUTNEU, cut1 },
-                               { ECut::kCUTHAD, cut1 },
-                               { ECut::kCUTMUO, cut1 },
-                               { ECut::kBCUTE, cut1 },
-                               { ECut::kBCUTM, cut1 },
-                               { ECut::kDCUTE, cut1 },
-                               { ECut::kDCUTM, cut1 },
-                               { ECut::kPPCUTM, cut1 },
-                               { ECut::kTOFMAX, cutTofmax } });
+  // clang-format off
+  matmgr.SpecialCuts("COMP", 30, {{ECut::kCUTGAM, cut1},
+                                 {ECut::kCUTELE, cut1},
+                                 {ECut::kCUTNEU, cut1},
+                                 {ECut::kCUTHAD, cut1},
+                                 {ECut::kCUTMUO, cut1},
+                                 {ECut::kBCUTE, cut1},
+                                 {ECut::kBCUTM, cut1},
+                                 {ECut::kDCUTE, cut1},
+                                 {ECut::kDCUTM, cut1},
+                                 {ECut::kPPCUTM, cut1},
+                                 {ECut::kTOFMAX, cutTofmax}});
+  // clang-format on
 }
 
 TGeoVolume* Compensator::createMagnetYoke()
@@ -234,8 +237,8 @@ TGeoVolume* Compensator::createMagnetYoke()
   const Int_t npoints = 8;
   Double_t CenterX;
   Double_t CenterY;
-  Double_t PointsX[npoints] = { 0. };
-  Double_t PointsY[npoints] = { 0. };
+  Double_t PointsX[npoints] = {0.};
+  Double_t PointsY[npoints] = {0.};
   Int_t ip = 0;
   // Start point:
   x = 0.0;

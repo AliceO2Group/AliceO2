@@ -70,7 +70,7 @@ static void BM_TRACKER(benchmark::State& state)
 
   int nTracksPerEvent = state.range(0);
   tracker.init((state.range(1) == 1));
-  double num{ 0 };
+  double num{0};
 
   std::vector<o2::mid::Cluster2D> inputData;
 
@@ -89,7 +89,7 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
 {
   for (int itrack = 1; itrack <= 8; ++itrack) {
     for (int imethod = 0; imethod < 2; ++imethod) {
-      bench->Args({ itrack, imethod });
+      bench->Args({itrack, imethod});
     }
   }
 }

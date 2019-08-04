@@ -67,7 +67,7 @@ void RecPointReader::run(ProcessingContext& pc)
   }
 
   LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints";
-  pc.outputs().snapshot(Output{ mOrigin, "RECPOINTS", 0, Lifetime::Timeframe }, *mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
 
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(false);
@@ -85,10 +85,9 @@ DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)
     "ft0-recpoints-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<RecPointReader>() },
+    AlgorithmSpec{adaptFromTask<RecPointReader>()},
     Options{
-      { "ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", { "Name of the input file" } } }
-  };
+      {"ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", {"Name of the input file"}}}};
 }
 
 } // namespace ft0

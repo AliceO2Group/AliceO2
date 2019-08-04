@@ -25,9 +25,9 @@ class observer_ptr
 
   constexpr observer_ptr() noexcept = default;
   constexpr observer_ptr(std::nullptr_t) noexcept {}
-  explicit observer_ptr(element_type* ptr) noexcept : mptr{ ptr } {}
+  explicit observer_ptr(element_type* ptr) noexcept : mptr{ptr} {}
   template <typename W2, typename std::enable_if<std::is_convertible<W2*, element_type*>::value, int>::type = 1>
-  observer_ptr(observer_ptr<W2> other) noexcept : mptr{ other.get() }
+  observer_ptr(observer_ptr<W2> other) noexcept : mptr{other.get()}
   {
   }
   observer_ptr(const observer_ptr& other) = default;
@@ -68,7 +68,7 @@ class observer_ptr
   constexpr explicit operator bool() const noexcept { return get() != nullptr; }
 
  private:
-  element_type* mptr{ nullptr };
+  element_type* mptr{nullptr};
 };
 
 template <typename W>

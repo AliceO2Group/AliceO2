@@ -103,7 +103,7 @@ class TrackFinderTask
     int trackSize = getSize(tracks);
 
     // create the output message
-    auto msgOut = pc.outputs().make<char>(Output{ "MCH", "TRACKS", 0, Lifetime::Timeframe }, SHeaderSize + trackSize);
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "TRACKS", 0, Lifetime::Timeframe}, SHeaderSize + trackSize);
     auto bufferPtrOut = msgOut.data();
 
     // write the event header
@@ -224,14 +224,13 @@ o2::framework::DataProcessorSpec getTrackFinderOriginalSpec()
 {
   return DataProcessorSpec{
     "TrackFinderOriginal",
-    Inputs{ InputSpec{ "clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "MCH", "TRACKS", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<TrackFinderTask>() },
-    Options{ { "l3Current", VariantType::Float, -30000.0f, { "L3 current" } },
-             { "dipoleCurrent", VariantType::Float, -6000.0f, { "Dipole current" } },
-             { "moreCandidates", VariantType::Bool, false, { "Find more track candidates" } },
-             { "debug", VariantType::Int, 0, { "debug level" } } }
-  };
+    Inputs{InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "TRACKS", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
+    Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
+            {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
+            {"moreCandidates", VariantType::Bool, false, {"Find more track candidates"}},
+            {"debug", VariantType::Int, 0, {"debug level"}}}};
 }
 
 } // namespace mch

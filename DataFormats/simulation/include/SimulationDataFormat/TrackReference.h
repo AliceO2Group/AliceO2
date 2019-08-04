@@ -68,7 +68,7 @@ struct SimTrackStatus {
 
  private:
   unsigned char mStatus = 0;
-  ClassDefNV(SimTrackStatus, 1)
+  ClassDefNV(SimTrackStatus, 1);
 };
 
 /// Track Reference object is created every time particle is
@@ -172,7 +172,7 @@ class TrackReference
 
   friend std::ostream& operator<<(std::ostream&, const TrackReference&);
 
-  ClassDefNV(TrackReference, 1) // Base class for all Alice track references
+  ClassDefNV(TrackReference, 1); // Base class for all Alice track references
 };
 
 // this is the preferred constructor as it might reuse variables
@@ -227,6 +227,6 @@ inline std::ostream& operator<<(std::ostream& os, const SimTrackStatus& status)
   os << status.mStatus;
   return os;
 }
-}
+} // namespace o2
 
 #endif

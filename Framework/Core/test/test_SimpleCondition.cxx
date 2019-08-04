@@ -27,9 +27,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     DataProcessorSpec{
       "condition_consumer", //
       {
-        InputSpec{ "condition", "TES", "STRING", 0, Lifetime::Condition }, //
-      },                                                      //
-      Outputs{},                                              //
+        InputSpec{"condition", "TES", "STRING", 0, Lifetime::Condition}, //
+      },                                                                 //
+      Outputs{},                                                         //
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           auto s = ctx.inputs().get<std::string>("condition");

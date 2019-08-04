@@ -15,15 +15,15 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::itsmft::ROFRecord + ;
-#pragma link C++ class std::vector < o2::itsmft::ROFRecord > +;
+#pragma link C++ class std::vector < o2::itsmft::ROFRecord> + ;
 #pragma link C++ class o2::itsmft::MC2ROFRecord + ;
-#pragma link C++ class std::vector < o2::itsmft::MC2ROFRecord > +;
+#pragma link C++ class std::vector < o2::itsmft::MC2ROFRecord> + ;
 #pragma link C++ class o2::itsmft::Cluster + ;
 #pragma link C++ class o2::itsmft::CompCluster + ;
 #pragma link C++ class o2::itsmft::CompClusterExt + ;
-#pragma link C++ class std::vector < o2::itsmft::Cluster > +;
-#pragma link C++ class std::vector < o2::itsmft::CompCluster > +;
-#pragma link C++ class std::vector < o2::itsmft::CompClusterExt > +;
+#pragma link C++ class std::vector < o2::itsmft::Cluster> + ;
+#pragma link C++ class std::vector < o2::itsmft::CompCluster> + ;
+#pragma link C++ class std::vector < o2::itsmft::CompClusterExt> + ;
 #pragma link C++ class o2::itsmft::ClusterPattern + ;
 #pragma link C++ class o2::itsmft::ClusterTopology + ;
 #pragma link C++ class o2::itsmft::TopologyDictionary + ;

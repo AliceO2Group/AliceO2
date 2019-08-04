@@ -39,7 +39,7 @@ class Compensator : public FairModule
   TGeoVolume* createMagnetYoke();
   void SetSpecialPhysicsCuts() override;
 
-  ClassDefOverride(o2::passive::Compensator, 1)
+  ClassDefOverride(o2::passive::Compensator, 1);
 };
 } // namespace passive
 } // namespace o2

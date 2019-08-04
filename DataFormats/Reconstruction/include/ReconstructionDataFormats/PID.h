@@ -75,24 +75,24 @@ class PID
   }
 
   static constexpr const char* sNames[NIDs + 1] = ///< defined particle names
-    { "Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha", nullptr };
+    {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha", nullptr};
 
   static constexpr const float sMasses[NIDs] = ///< defined particle masses
-    { o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
-      o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
-      o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
-      o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3,
-      o2::constants::physics::MassAlpha };
+    {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
+     o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
+     o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
+     o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3,
+     o2::constants::physics::MassAlpha};
 
   static constexpr const float sMasses2Z[NIDs] = ///< defined particle masses / Z
-    { o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
-      o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
-      o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
-      o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3 / 2.,
-      o2::constants::physics::MassAlpha / 2. };
+    {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
+     o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
+     o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
+     o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3 / 2.,
+     o2::constants::physics::MassAlpha / 2.};
 
   static constexpr const int sCharges[NIDs] = ///< defined particle charges
-    { 1, 1, 1, 1, 1, 1, 1, 2, 2 };
+    {1, 1, 1, 1, 1, 1, 1, 2, 2};
 
   ClassDefNV(PID, 1);
 };

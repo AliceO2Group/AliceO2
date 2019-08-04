@@ -58,7 +58,7 @@ class VertexerTraits
  public:
   VertexerTraits();
   virtual ~VertexerTraits() = default;
-  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
+  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_HOST_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
   GPU_HOST_DEVICE static const int2 getPhiBins(float phi, float deltaPhi);
 
@@ -126,8 +126,8 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
 
 inline GPU_HOST_DEVICE const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
 {
-  return int2{ index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi)) };
+  return int2{index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
+              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi))};
 }
 
 inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
@@ -144,10 +144,10 @@ inline GPU_HOST_DEVICE const int4 VertexerTraits::getBinsRect(const Cluster& cur
     return getEmptyBinsRect();
   }
 
-  return int4{ gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax)) };
+  return int4{gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
+              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+              gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
+              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
 extern "C" VertexerTraits* createVertexerTraits();
 

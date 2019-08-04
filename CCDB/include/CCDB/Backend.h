@@ -49,6 +49,6 @@ class Backend
   void Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,
                  const std::string& dataSource, const std::string& object = std::string());
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

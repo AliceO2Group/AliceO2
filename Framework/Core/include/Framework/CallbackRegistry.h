@@ -64,7 +64,7 @@ class CallbackRegistry
   template <class T, typename CB>
   struct has_matching_callback {
     template <class U, typename V>
-    static int check(decltype(U(std::declval<V>())) *);
+    static int check(decltype(U(std::declval<V>()))*);
 
     template <typename U, typename V>
     static char check(...);

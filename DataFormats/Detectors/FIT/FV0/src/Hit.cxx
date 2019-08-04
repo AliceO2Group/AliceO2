@@ -15,9 +15,9 @@
 
 #include <iostream>
 
-ClassImp(o2::fv0::Hit)
+ClassImp(o2::fv0::Hit);
 
-  namespace o2
+namespace o2
 {
   namespace fv0
   {

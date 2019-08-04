@@ -23,7 +23,7 @@ namespace trd
 class MCLabel : public o2::MCCompLabel
 {
  private:
-  bool mIsDigit{ false };
+  bool mIsDigit{false};
 
  public:
   MCLabel() = default;

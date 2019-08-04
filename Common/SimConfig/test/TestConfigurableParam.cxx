@@ -21,7 +21,7 @@ class BazParam : public o2::conf::ConfigurableParamHelper<BazParam>
 
  private:
   double mGasDensity = 2.0;
-  std::array<int, 3> mPos = { 1, 2, 3 };
+  std::array<int, 3> mPos = {1, 2, 3};
 
   O2ParamDef(BazParam, "Baz");
 };

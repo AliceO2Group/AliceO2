@@ -62,10 +62,10 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
     printf("N ITS-TPC tracks = %lu\n", mTracks.size());
 
     // add digits loaded in the output snapshot
-    pc.outputs().snapshot(Output{ "GLO", "TPCITS", 0, Lifetime::Timeframe }, mTracks);
+    pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{ "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe }, mITSLabels);
-      pc.outputs().snapshot(Output{ "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe }, mTPCLabels);
+      pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mITSLabels);
+      pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mTPCLabels);
     }
   } else {
     LOG(ERROR) << "Cannot read the ITS-TPC tracks !";
@@ -89,10 +89,9 @@ DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
     "itstpc-track-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{ adaptFromTask<TrackTPCITSReader>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackTPCITSReader>(useMC)},
     Options{
-      { "itstpc-track-infile", VariantType::String, "o2match_itstpc.root", { "Name of the input file" } } }
-  };
+      {"itstpc-track-infile", VariantType::String, "o2match_itstpc.root", {"Name of the input file"}}}};
 }
 
 } // namespace globaltracking

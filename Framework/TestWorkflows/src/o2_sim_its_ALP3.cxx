@@ -36,28 +36,29 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-namespace o2 {
-namespace workflows {
+namespace o2
+{
+namespace workflows
+{
 
-DataProcessorSpec sim_its_ALP3() {
+DataProcessorSpec sim_its_ALP3()
+{
   return {
     "sim_its_ALP3",
     Inputs{},
     Outputs{
-      OutputSpec{"ITS", "HITS"}
-    },
+      OutputSpec{"ITS", "HITS"}},
     AlgorithmSpec{
-      [](InitContext &setup) {
+      [](InitContext& setup) {
         Int_t nEvents = 10;
         TString mcEngine = "TGeant3";
 
         TString dir = getenv("VMCWORKDIR");
         TString geom_dir = dir + "/Detectors/Geometry/";
-        gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
+        gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
         TString tut_configdir = dir + "/Detectors/gconfig";
-        gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+        gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
         // Output file name
         char fileout[100];
@@ -69,7 +70,7 @@ DataProcessorSpec sim_its_ALP3() {
         sprintf(filepar, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
         TString parFile = filepar;
 
-        FairRunSim *run = new FairRunSim();
+        FairRunSim* run = new FairRunSim();
         run->SetName(mcEngine);
         run->SetOutputFile(outFile); // Output file
         FairRuntimeDb* rtdb = run->GetRuntimeDb();
@@ -86,7 +87,7 @@ DataProcessorSpec sim_its_ALP3() {
          field.SetField(0., 0., 5.); //in kG
          field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
         */
-        o2::field::MagneticField field("field","field +5kG");
+        o2::field::MagneticField field("field", "field +5kG");
         run->SetField(&field);
 
         o2::its::Detector* its = new o2::its::Detector(kTRUE);
@@ -97,7 +98,7 @@ DataProcessorSpec sim_its_ALP3() {
         FairBoxGenerator* boxGen = new FairBoxGenerator(211, 100); //pions
 
         //boxGen->SetThetaRange(0.0, 90.0);
-        boxGen->SetEtaRange(-0.9,0.9);
+        boxGen->SetEtaRange(-0.9, 0.9);
         boxGen->SetPtRange(1, 1.01);
         boxGen->SetPhiRange(0., 360.);
         boxGen->SetDebug(kFALSE);
@@ -118,15 +119,13 @@ DataProcessorSpec sim_its_ALP3() {
         rtdb->print();
 
         // This is the actual inner loop for the device
-        return [run](ProcessingContext &ctx) {
-                 run->Run(10);
-                 // FIXME: After we run we should readback events
-                 // and push them as messages, for the next stage of
-                 // processing.
-              };
-        }
-      }
-    };
-  };
+        return [run](ProcessingContext& ctx) {
+          run->Run(10);
+          // FIXME: After we run we should readback events
+          // and push them as messages, for the next stage of
+          // processing.
+        };
+      }}};
+};
 } // namespace workflows
 } // namespace o2

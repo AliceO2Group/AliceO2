@@ -80,13 +80,13 @@ class GPUDisplayBackend
   static constexpr int KEY_ENTER = 13;
 
   // Keyboard / Mouse actions
-  bool mMouseDn = false;            // Mouse button down
-  bool mMouseDnR = false;           // Right mouse button down
-  float mMouseDnX, mMouseDnY;       // X/Y position where mouse button was pressed
-  float mouseMvX, mouseMvY;         // Current mouse pointer position
-  int mMouseWheel = 0;              // Incremental value of mouse wheel, ca +/- 100 per wheel tick
-  bool mKeys[256] = { false };      // Array of mKeys currently pressed
-  bool mKeysShift[256] = { false }; // Array whether shift was held during key-press
+  bool mMouseDn = false;          // Mouse button down
+  bool mMouseDnR = false;         // Right mouse button down
+  float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
+  float mouseMvX, mouseMvY;       // Current mouse pointer position
+  int mMouseWheel = 0;            // Incremental value of mouse wheel, ca +/- 100 per wheel tick
+  bool mKeys[256] = {false};      // Array of mKeys currently pressed
+  bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
   int mDisplayHeight = INIT_HEIGHT;
   int mDisplayWidth = INIT_WIDTH;
 

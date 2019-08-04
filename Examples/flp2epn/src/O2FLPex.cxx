@@ -16,21 +16,19 @@
  */
 
 #include <vector>
-#include <cstdlib>     /* srand, rand */
-#include <ctime>       /* time */
+#include <cstdlib> /* srand, rand */
+#include <ctime>   /* time */
 
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>
 #include "flp2epn/O2FLPex.h"
 #include "O2FLPExContent.h"
 
-O2FLPex::O2FLPex() :
-  fNumContent(10000)
+O2FLPex::O2FLPex() : fNumContent(10000)
 {
 }
 
-O2FLPex::~O2FLPex()
-= default;
+O2FLPex::~O2FLPex() = default;
 
 void O2FLPex::InitTask()
 {
