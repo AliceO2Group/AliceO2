@@ -134,7 +134,7 @@ class GeometryManager : public TObject
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
-}
-}
+} // namespace base
+} // namespace o2
 
 #endif

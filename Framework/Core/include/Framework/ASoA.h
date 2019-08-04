@@ -56,11 +56,11 @@ class ColumnIterator
 {
  public:
   ColumnIterator(std::shared_ptr<arrow::Column> const& column)
-    : mColumn{ column },
-      mCurrentChunk{ 0 },
-      mLastChunk{ mColumn->data()->num_chunks() - 1 },
-      mLast{ nullptr },
-      mCurrent{ nullptr }
+    : mColumn{column},
+      mCurrentChunk{0},
+      mLastChunk{mColumn->data()->num_chunks() - 1},
+      mLast{nullptr},
+      mCurrent{nullptr}
   {
     moveToChunk(mCurrentChunk);
   }
@@ -151,7 +151,7 @@ template <typename... C>
 struct RowView : public C... {
  public:
   RowView(std::shared_ptr<arrow::Table> const& table)
-    : C{ ColumnIterator<typename C::type>(table->column(table->schema()->GetFieldIndex(C::label()))) }...
+    : C{ColumnIterator<typename C::type>(table->column(table->schema()->GetFieldIndex(C::label())))}...
   {
   }
 

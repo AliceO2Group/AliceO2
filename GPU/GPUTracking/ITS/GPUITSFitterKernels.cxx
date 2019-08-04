@@ -31,7 +31,7 @@ using namespace o2::its;
 
 GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
 {
-  for (int iLayer{ start }; iLayer != end; iLayer += step) {
+  for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
       continue;
     }
@@ -67,18 +67,18 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
   float bz = -5.f; // FIXME
 
 #ifdef CA_DEBUG
-  int roadCounters[4]{ 0, 0, 0, 0 };
-  int fitCounters[4]{ 0, 0, 0, 0 };
-  int backpropagatedCounters[4]{ 0, 0, 0, 0 };
-  int refitCounters[4]{ 0, 0, 0, 0 };
+  int roadCounters[4]{0, 0, 0, 0};
+  int fitCounters[4]{0, 0, 0, 0};
+  int backpropagatedCounters[4]{0, 0, 0, 0};
+  int refitCounters[4]{0, 0, 0, 0};
 #endif
   for (int iRoad = get_global_id(0); iRoad < Fitter.NumberOfRoads(); iRoad += get_global_size(0)) {
     Road& road = Fitter.roads()[iRoad];
-    int clusters[7] = { o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex };
+    int clusters[7] = {o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex};
     int lastCellLevel = o2::its::constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{ 0 }; iCell < o2::its::constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < o2::its::constants::its::CellsPerRoad; ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == o2::its::constants::its::UnusedIndex) {
         continue;
@@ -98,7 +98,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
-    for (int iC{ 0 }; iC < 7; iC++) {
+    for (int iC{0}; iC < 7; iC++) {
       if (clusters[iC] != o2::its::constants::its::UnusedIndex) {
         clusters[iC] = Fitter.clusters()[iC][clusters[iC]].clusterId;
       }

@@ -109,7 +109,6 @@ class TPCDistortionIRS : public FlatObject
   /// Gives pointer to spline data
   GPUd() const float* getSplineData(int slice, int row) const;
 
-
   /// _______________ The main method: cluster distortion  _______________________
   ///
   GPUd() int getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;

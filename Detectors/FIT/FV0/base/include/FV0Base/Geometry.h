@@ -60,9 +60,9 @@ class Geometry
   static constexpr int sBaseNumberOfSectors = 8; // number of sectors
   // TODO: Adjust the sZposition once the simulation geometry is implemented, T0 starts at 328
   // at sZposition==320, there is a gap (to be filled with fibers and support) of 8 cm between the plastic of FV0+ and aluminum covers of FT0+
-  static constexpr float sZposition = 320 - sDzScint / 2;                                                // z-position of the geometrical center of the detectors sensitive part
-  static constexpr int sNumberOfRings = 5;                                                               // number of rings
-  static constexpr float sRingRadiiScint[sNumberOfRings + 1] = { 4.07, 7.3, 12.9, 21.25, 38.7, 71.975 }; // average ring radii
+  static constexpr float sZposition = 320 - sDzScint / 2;                                              // z-position of the geometrical center of the detectors sensitive part
+  static constexpr int sNumberOfRings = 5;                                                             // number of rings
+  static constexpr float sRingRadiiScint[sNumberOfRings + 1] = {4.07, 7.3, 12.9, 21.25, 38.7, 71.975}; // average ring radii
 
  private:
   void initializeVectors();

@@ -22,12 +22,12 @@
 
 class O2EPNex : public FairMQDevice
 {
-  public:
-    O2EPNex();
+ public:
+  O2EPNex();
 
-    ~O2EPNex() override;
+  ~O2EPNex() override;
 
-    bool Process(std::unique_ptr<FairMQMessage>&, int);
+  bool Process(std::unique_ptr<FairMQMessage>&, int);
 };
 
 #endif

@@ -177,7 +177,7 @@ void addPlotWidget(ImGuiWindow* window, const char* label, FrameLayout& result, 
   if (!ItemAdd(result.total_bb, 0))
     return;
   auto bg_color = GetColorU32(ImGuiCol_FrameBg);
-  bg_color = ImColor{ 20, 20, 20, 255 };
+  bg_color = ImColor{20, 20, 20, 255};
   RenderFrame(result.frame_bb.Min, result.frame_bb.Max, bg_color, true, style.FrameRounding);
 };
 

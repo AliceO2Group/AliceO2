@@ -19,7 +19,7 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <iomanip>
-#include <cstring> // memcmp
+#include <cstring>              // memcmp
 #include "Headers/DataHeader.h" // hexdump
 #include "Headers/NameHeader.h"
 #include "Headers/Stack.h"
@@ -48,13 +48,13 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   o2::algorithm::dispatchHeaderStackCallback(stack.data(), stack.size());
 
   // lambda functor given as argument for dispatchHeaderStackCallback
-  auto checkDataHeader = [&dh] (const auto & header) {
+  auto checkDataHeader = [&dh](const auto& header) {
     o2::header::hexDump("Extracted DataHeader", &header, sizeof(header));
     BOOST_CHECK(header == dh);
   };
 
   // lambda functor given as argument for dispatchHeaderStackCallback
-  auto checkNameHeader = [&nh] (const auto & header) {
+  auto checkNameHeader = [&nh](const auto& header) {
     o2::header::hexDump("Extracted NameHeader", &header, sizeof(header));
     // have to compare on byte level, no operator==
     BOOST_CHECK(memcmp(&header, &nh, sizeof(header)) == 0);
@@ -65,14 +65,12 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
                                              o2::header::DataHeader(),
                                              checkDataHeader,
                                              Name8Header(),
-                                             checkNameHeader
-                                             );
+                                             checkNameHeader);
 
   // check extraction of only one header via callback
   o2::algorithm::dispatchHeaderStackCallback(stack.data(), stack.size(),
                                              Name8Header(),
-                                             checkNameHeader
-                                             );
+                                             checkNameHeader);
 
   // check that the call without any other arguments is compiling
   o2::algorithm::parseHeaderStack(stack.data(), stack.size());
@@ -82,8 +80,7 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   Name8Header targetNameHeader;
   o2::algorithm::parseHeaderStack(stack.data(), stack.size(),
                                   targetDataHeader,
-                                  targetNameHeader
-                                  );
+                                  targetNameHeader);
 
   BOOST_CHECK(targetDataHeader == dh);
   BOOST_CHECK(memcmp(&targetNameHeader, &nh, sizeof(targetNameHeader)) == 0);

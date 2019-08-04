@@ -46,13 +46,13 @@ struct ParameterGEM : public o2::conf::ConfigurableParamHelper<ParameterGEM> {
 
   /// \todo Remove hard-coded number of GEMs in a stack
   /// \todo O2ParamDef takes no std::vectors/arrays, therefore the c-style
-  int Geometry[4] = { 0, 2, 2, 0 };                              ///< GEM geometry (0 standard, 1 medium, 2 large)
-  float Distance[5] = { 4.f, 0.2f, 0.2f, 0.2f, 0.2f };           ///< Distances between cathode/anode and stages (in cm)
-  float Potential[4] = { 270.f, 250.f, 270.f, 340.f };           ///< Potential (in Volts)
-  float ElectricField[5] = { 0.4f, 4.f, 2.f, 0.1f, 4.f };        ///< Electric field configuration (in kV/cm)
-  float AbsoluteGain[4] = { 14.f, 8.f, 53.f, 240.f };            ///< Absolute gain
-  float CollectionEfficiency[4] = { 1.f, 0.2f, 0.25f, 1.f };     ///< Collection efficiency
-  float ExtractionEfficiency[4] = { 0.65f, 0.55f, 0.12f, 0.6f }; ///< Extraction efficiency
+  int Geometry[4] = {0, 2, 2, 0};                                ///< GEM geometry (0 standard, 1 medium, 2 large)
+  float Distance[5] = {4.f, 0.2f, 0.2f, 0.2f, 0.2f};             ///< Distances between cathode/anode and stages (in cm)
+  float Potential[4] = {270.f, 250.f, 270.f, 340.f};             ///< Potential (in Volts)
+  float ElectricField[5] = {0.4f, 4.f, 2.f, 0.1f, 4.f};          ///< Electric field configuration (in kV/cm)
+  float AbsoluteGain[4] = {14.f, 8.f, 53.f, 240.f};              ///< Absolute gain
+  float CollectionEfficiency[4] = {1.f, 0.2f, 0.25f, 1.f};       ///< Collection efficiency
+  float ExtractionEfficiency[4] = {0.65f, 0.55f, 0.12f, 0.6f};   ///< Extraction efficiency
   float TotalGainStack = 1644.f;                                 ///< Total gain of the stack for the EffectiveMode
   float KappaStack = 1.2295f;                                    ///< Variable steering the energy resolution of the full stack for the EffectiveMode
   float EfficiencyStack = 0.473805f;                             ///< Variable steering the single electron efficiency of the full stack for the EffectiveMode

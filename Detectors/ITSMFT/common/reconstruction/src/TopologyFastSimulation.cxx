@@ -16,9 +16,9 @@
 #include "ITSMFTReconstruction/TopologyFastSimulation.h"
 #include <algorithm>
 
-ClassImp(o2::itsmft::TopologyFastSimulation)
+ClassImp(o2::itsmft::TopologyFastSimulation);
 
-  namespace o2
+namespace o2
 {
   namespace itsmft
   {

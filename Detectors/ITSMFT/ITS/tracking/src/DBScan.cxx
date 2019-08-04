@@ -23,10 +23,10 @@ namespace its
 
 Centroid::Centroid(int* indices, float* position)
 {
-  for (int i{ 0 }; i < 2; ++i) {
+  for (int i{0}; i < 2; ++i) {
     mIndices[i] = indices[i];
   }
-  for (int i{ 0 }; i < 3; ++i) {
+  for (int i{0}; i < 3; ++i) {
     mPosition[i] = position[i];
   }
 }

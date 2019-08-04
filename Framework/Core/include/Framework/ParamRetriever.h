@@ -21,13 +21,14 @@ namespace framework
 
 /// Base class for extracting Configuration options from a given backend (e.g.
 /// command line options).
-class ParamRetriever {
-public:
-  virtual int getInt(const char *name) const = 0;
-  virtual float getFloat(const char *name) const = 0;
-  virtual double getDouble(const char *name) const = 0;
-  virtual bool getBool(const char *name) const = 0;
-  virtual std::string getString(const char *name) const = 0;
+class ParamRetriever
+{
+ public:
+  virtual int getInt(const char* name) const = 0;
+  virtual float getFloat(const char* name) const = 0;
+  virtual double getDouble(const char* name) const = 0;
+  virtual bool getBool(const char* name) const = 0;
+  virtual std::string getString(const char* name) const = 0;
   virtual boost::property_tree::ptree getPTree(const char* name) const = 0;
   virtual ~ParamRetriever() = default;
 };

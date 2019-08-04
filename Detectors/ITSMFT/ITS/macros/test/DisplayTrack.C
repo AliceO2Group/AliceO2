@@ -65,7 +65,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   gEve->AddGlobalElement(evenode);
 
   TGLViewer* view = gEve->GetDefaultGLViewer();
-  Double_t center[3]{ 0 };
+  Double_t center[3]{0};
   view->CurrentCamera().Reset();
   view->CurrentCamera().Configure(3., 1200., center, 0., 89 * 3.14 / 180);
 
@@ -84,7 +84,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   f = TFile::Open(hitfile.data());
   TTree* tree = (TTree*)gDirectory->Get("o2sim");
 
-  string s{ "event" };
+  string s{"event"};
   s += std::to_string(event);
   s += "_hits";
   s += std::to_string(track);

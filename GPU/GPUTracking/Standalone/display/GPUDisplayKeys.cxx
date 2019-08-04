@@ -95,7 +95,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     }
     mCamLookOrigin = mCameraMode & 1;
     mCamYUp = mCameraMode & 2;
-    const char* modeText[] = { "Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)" };
+    const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
     SetInfo("Camera mode %d: %s", mCameraMode, modeText[mCameraMode]);
   } else if (key == mBackend->KEY_ALT) {
     mBackend->mKeys[mBackend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
@@ -204,7 +204,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     if (mCfg.propagateTracks == 4) {
       mCfg.propagateTracks = 0;
     }
-    const char* infoText[] = { "Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track" };
+    const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
     SetInfo("Display of propagated tracks: %s", infoText[mCfg.propagateTracks]);
   } else if (key == 'G') {
     mPropagateLoopers ^= 1;

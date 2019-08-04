@@ -116,7 +116,7 @@ int PreClusterBlock::startPreCluster(const DigitStruct& digit)
   (*mNPreClusters) += 1;
 
   // insert in list
-  PreClusterStruct preCluster = { *mLastNDigits, lastDigit };
+  PreClusterStruct preCluster = {*mLastNDigits, lastDigit};
   mPreClusters.push_back(preCluster);
 
   return 0;

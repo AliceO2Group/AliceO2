@@ -235,7 +235,7 @@ inline float SAMPAProcessing::getPedestal(const int sector, const int globalPadI
 {
   return mPedestalMap->getValue(sector, globalPadInSector);
 }
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif // ALICEO2_TPC_SAMPAProcessing_H_

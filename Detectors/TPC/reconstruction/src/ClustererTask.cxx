@@ -13,8 +13,8 @@
 
 #include "TPCReconstruction/ClustererTask.h"
 
-#include "FairLogger.h"          // for LOG
-#include "FairRootManager.h"     // for FairRootManager
+#include "FairLogger.h"      // for LOG
+#include "FairRootManager.h" // for FairRootManager
 
 ClassImp(o2::tpc::ClustererTask);
 
@@ -39,8 +39,8 @@ InitStatus ClustererTask::Init()
 {
   LOG(DEBUG) << "Enter Initializer of ClustererTask" << FairLogger::endl;
 
-  FairRootManager *mgr = FairRootManager::Instance();
-  if( !mgr ) {
+  FairRootManager* mgr = FairRootManager::Instance();
+  if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
@@ -93,7 +93,7 @@ InitStatus ClustererTask::Init()
 }
 
 //_____________________________________________________________________
-void ClustererTask::Exec(Option_t *option)
+void ClustererTask::Exec(Option_t* option)
 {
   LOG(DEBUG) << "Running clusterization on event " << mEventCount << " with " << mDigitsArray->size() << " digits." << FairLogger::endl;
 

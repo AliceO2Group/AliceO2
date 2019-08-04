@@ -28,10 +28,11 @@ namespace framework
 /// implementations might have different sophisticated / centrally controlled
 /// backends (e.g. have different filename for different process IDs allowing parallel
 /// execution).
-class RootFileService {
-public:
-  virtual std::shared_ptr<TFile> open(const char *fmt, ...) = 0;
-  virtual std::string format(const char *fmt, ...) = 0;
+class RootFileService
+{
+ public:
+  virtual std::shared_ptr<TFile> open(const char* fmt, ...) = 0;
+  virtual std::string format(const char* fmt, ...) = 0;
 };
 
 } // namespace framework

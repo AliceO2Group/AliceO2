@@ -24,7 +24,7 @@ namespace framework
 struct OutputRoute {
   size_t timeslice;
   size_t maxTimeslices;
-  OutputSpec  matcher;
+  OutputSpec matcher;
   std::string channel;
 };
 

@@ -47,6 +47,7 @@ class FrameStructure : public FairModule
   bool hasHoles() const { return mWithHoles; }
   // set if to be constructed with/without holes
   void setHoles(bool flag) { mWithHoles = true; }
+
  private:
   /**  copy constructor (used in MT mode only)   */
   FrameStructure(const FrameStructure& rhs);
@@ -63,14 +64,14 @@ class FrameStructure : public FairModule
     true; //!< if holes are enabled (just a central place for other to query; no influence on frame structure)
 
   // medium IDs for the Frame
-  int mAirMedID = -1; //!
+  int mAirMedID = -1;   //!
   int mSteelMedID = -1; //!
-  int mAluMedID = -1; //!
-  int mG10MedID = -1; //!
+  int mAluMedID = -1;   //!
+  int mG10MedID = -1;   //!
 
   ClassDefOverride(FrameStructure, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif

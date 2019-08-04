@@ -34,4 +34,4 @@ void SimSetup::setup(const char* engine)
     LOG(FATAL) << "Unsupported engine " << engine << FairLogger::endl;
   }
 }
-}
+} // namespace o2

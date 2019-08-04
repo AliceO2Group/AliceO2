@@ -13,11 +13,11 @@
 
 //  Identity of an object stored into a database:  		   //
 //  path, run validity range, version, subVersion 		   //
-#include <TObject.h>     // for TObject
-#include "CCDB/IdPath.h"      // for IdPath
-#include "CCDB/IdRunRange.h"  // for IdRunRange
-#include "Rtypes.h"      // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
-#include "TString.h"     // for TString
+#include <TObject.h>         // for TObject
+#include "CCDB/IdPath.h"     // for IdPath
+#include "CCDB/IdRunRange.h" // for IdRunRange
+#include "Rtypes.h"          // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
+#include "TString.h"         // for TString
 
 namespace o2
 {
@@ -179,8 +179,8 @@ class ConditionId : public TObject
   Int_t mSubVersion;      // subversion
   TString mLastStorage;   // previous storage place (new, grid, local, dump)
 
-  ClassDefOverride(ConditionId, 1)
+  ClassDefOverride(ConditionId, 1);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

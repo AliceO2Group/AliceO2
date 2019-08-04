@@ -31,7 +31,7 @@ class RootChain
   static std::unique_ptr<TChain> load(const std::string trName, const std::string inpFile);
   static void addFile(TChain* ch, const std::string inp);
 };
-}
-}
+} // namespace utils
+} // namespace o2
 
 #endif // ALICEO2_ROOTCHAIN_H

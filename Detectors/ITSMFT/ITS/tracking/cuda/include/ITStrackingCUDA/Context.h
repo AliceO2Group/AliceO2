@@ -62,8 +62,8 @@ class Context final
   int mDevicesNum;
   std::vector<DeviceProperties> mDeviceProperties;
 };
-}
-}
-}
+} // namespace GPU
+} // namespace its
+} // namespace o2
 
 #endif /* TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_ */

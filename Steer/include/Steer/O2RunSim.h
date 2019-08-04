@@ -142,9 +142,9 @@ class O2RunSim : public FairRunSim
  private:
   bool mDeviceMode = false;
 
-  ClassDefOverride(O2RunSim, 0)
+  ClassDefOverride(O2RunSim, 0);
 };
-}
-}
+} // namespace steer
+} // namespace o2
 
 #endif //O2_O2RUNANA_H

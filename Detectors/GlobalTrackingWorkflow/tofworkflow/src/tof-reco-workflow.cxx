@@ -39,11 +39,11 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{ "input-type", o2::framework::VariantType::String, "digits", { "digits, raw, clusters, TBI" } });
-  workflowOptions.push_back(ConfigParamSpec{ "output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", { "clusters, matching-info, calib-info, TBI" } });
-  workflowOptions.push_back(ConfigParamSpec{ "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information, TBI" } });
-  workflowOptions.push_back(ConfigParamSpec{ "tof-sectors", o2::framework::VariantType::String, "0-17", { "TOF sector range, e.g. 5-7,8,9 ,TBI" } });
-  workflowOptions.push_back(ConfigParamSpec{ "tof-lanes", o2::framework::VariantType::Int, 1, { "number of parallel lanes up to the matcher, TBI" } });
+  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"clusters, matching-info, calib-info, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver

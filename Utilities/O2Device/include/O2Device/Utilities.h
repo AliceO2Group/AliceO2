@@ -46,8 +46,8 @@ using O2Message = FairMQParts;
 template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
 bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
-  using std::move;
   using std::forward;
+  using std::move;
 
   auto headerMessage = getMessage(move(inputStack), targetResource);
   auto dataMessage = getMessage(forward<ContainerT>(inputData), targetResource);
@@ -88,22 +88,22 @@ auto forEach(I begin, I end, F&& function)
   using span = gsl::span<const o2::byte>;
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
-    o2::byte* headerBuffer{ nullptr };
-    span::index_type headerBufferSize{ 0 };
+    o2::byte* headerBuffer{nullptr};
+    span::index_type headerBufferSize{0};
     if (*it != nullptr) {
       headerBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
       headerBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
     }
     ++it;
-    o2::byte* dataBuffer{ nullptr };
-    span::index_type dataBufferSize{ 0 };
+    o2::byte* dataBuffer{nullptr};
+    span::index_type dataBufferSize{0};
     if (*it != nullptr) {
       dataBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
       dataBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
     }
 
     // call the user provided function
-    function(span{ headerBuffer, headerBufferSize }, span{ dataBuffer, dataBufferSize });
+    function(span{headerBuffer, headerBufferSize}, span{dataBuffer, dataBufferSize});
   }
   return std::move(function);
 }

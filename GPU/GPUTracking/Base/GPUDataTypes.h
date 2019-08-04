@@ -65,7 +65,7 @@ struct GPUTRDTrackletLabels;
 class GPUDataTypes
 {
  public:
-  enum ENUM_CLASS GeometryType ENUM_UINT{ RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2 };
+  enum ENUM_CLASS GeometryType ENUM_UINT{RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
   enum DeviceType ENUM_UINT { INVALID_DEVICE = 0,
                               CPU = 1,
                               CUDA = 2,
@@ -89,7 +89,7 @@ class GPUDataTypes
                               TRDTracks = 32 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = { "TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation" };
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif
@@ -110,15 +110,15 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
   static constexpr unsigned int NSLICES = 36;
 
-  const GPUTPCClusterData* clusterData[NSLICES] = { nullptr };
-  unsigned int nClusterData[NSLICES] = { 0 };
-  const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
-  unsigned int nRawClusters[NSLICES] = { 0 };
+  const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
+  unsigned int nClusterData[NSLICES] = {0};
+  const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
+  unsigned int nRawClusters[NSLICES] = {0};
   const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
-  const GPUTPCTrack* sliceOutTracks[NSLICES] = { nullptr };
-  unsigned int nSliceOutTracks[NSLICES] = { 0 };
-  const GPUTPCHitId* sliceOutClusters[NSLICES] = { nullptr };
-  unsigned int nSliceOutClusters[NSLICES] = { 0 };
+  const GPUTPCTrack* sliceOutTracks[NSLICES] = {nullptr};
+  unsigned int nSliceOutTracks[NSLICES] = {0};
+  const GPUTPCHitId* sliceOutClusters[NSLICES] = {nullptr};
+  unsigned int nSliceOutClusters[NSLICES] = {0};
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
   unsigned int nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;

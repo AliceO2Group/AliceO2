@@ -131,7 +131,7 @@ class TRDSimParam
   void Init();
   void SampleTRF();
 
-  ClassDefNV(TRDSimParam, 1) // The TRD simulation parameters
+  ClassDefNV(TRDSimParam, 1); // The TRD simulation parameters
 };
 
 inline double TRDSimParam::TimeResponse(double time) const

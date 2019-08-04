@@ -167,7 +167,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       Float_t mcPhi = TMath::ATan2(mcPy, mcPx), recPhi = -1.;
       Float_t mcPt = mcTrack.GetPt(), recPt = -1.;
       Float_t mcLam = TMath::ATan2(mcPz, mcPt), recLam = -1.;
-      Float_t ip[2]{ 0., 0. };
+      Float_t ip[2]{0., 0.};
       Float_t label = -123456789.;
 
       den->Fill(mcPt);

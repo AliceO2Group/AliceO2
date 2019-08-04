@@ -63,7 +63,7 @@ class Support
   Double_t mPCBThickness;
 
  private:
-  ClassDef(Support, 1)
+  ClassDef(Support, 1);
 };
 } // namespace mft
 } // namespace o2

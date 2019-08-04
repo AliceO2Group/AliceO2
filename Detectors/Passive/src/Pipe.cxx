@@ -2486,72 +2486,72 @@ void Pipe::createMaterials()
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // Steel (Inox)
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
   // AlBe - alloy
-  Float_t aAlBe[2] = { 26.98, 9.01 }; // al=2.702 be=1.8477
-  Float_t zAlBe[2] = { 13.00, 4.00 };
-  Float_t wAlBe[2] = { 0.4, 0.6 };
+  Float_t aAlBe[2] = {26.98, 9.01}; // al=2.702 be=1.8477
+  Float_t zAlBe[2] = {13.00, 4.00};
+  Float_t wAlBe[2] = {0.4, 0.6};
   //
   // Polyamid
-  Float_t aPA[4] = { 16., 14., 12., 1. };
-  Float_t zPA[4] = { 8., 7., 6., 1. };
-  Float_t wPA[4] = { 1., 1., 6., 11. };
+  Float_t aPA[4] = {16., 14., 12., 1.};
+  Float_t zPA[4] = {8., 7., 6., 1.};
+  Float_t wPA[4] = {1., 1., 6., 11.};
   //
   // Polyimide film
-  Float_t aPI[4] = { 16., 14., 12., 1. };
-  Float_t zPI[4] = { 8., 7., 6., 1. };
-  Float_t wPI[4] = { 5., 2., 22., 10. };
+  Float_t aPI[4] = {16., 14., 12., 1.};
+  Float_t zPI[4] = {8., 7., 6., 1.};
+  Float_t wPI[4] = {5., 2., 22., 10.};
   // Rohacell
-  Float_t aRohacell[4] = { 16., 14., 12., 1. };
-  Float_t zRohacell[4] = { 8., 7., 6., 1. };
-  Float_t wRohacell[4] = { 2., 1., 9., 13. };
+  Float_t aRohacell[4] = {16., 14., 12., 1.};
+  Float_t zRohacell[4] = {8., 7., 6., 1.};
+  Float_t wRohacell[4] = {2., 1., 9., 13.};
   //
   // Air
   //
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-11;
   //
   // Insulation powder
   //                    Si         O       Ti     Al
-  Float_t ains[4] = { 28.0855, 15.9994, 47.867, 26.982 };
-  Float_t zins[4] = { 14., 8., 22., 13. };
-  Float_t wins[4] = { 0.3019, 0.4887, 0.1914, 0.018 };
+  Float_t ains[4] = {28.0855, 15.9994, 47.867, 26.982};
+  Float_t zins[4] = {14., 8., 22., 13.};
+  Float_t wins[4] = {0.3019, 0.4887, 0.1914, 0.018};
   //
   //
   // Anticorodal
   //
   // Al Si7 Mg 0.6
   //
-  Float_t aaco[3] = { 26.982, 28.0855, 24.035 };
-  Float_t zaco[3] = { 13., 14., 12. };
-  Float_t waco[3] = { 0.924, 0.07, 0.006 };
+  Float_t aaco[3] = {26.982, 28.0855, 24.035};
+  Float_t zaco[3] = {13., 14., 12.};
+  Float_t waco[3] = {0.924, 0.07, 0.006};
   // Kapton
   //
-  Float_t aKapton[4] = { 1.00794, 12.0107, 14.010, 15.9994 };
-  Float_t zKapton[4] = { 1., 6., 7., 8. };
-  Float_t wKapton[4] = { 0.026362, 0.69113, 0.07327, 0.209235 };
+  Float_t aKapton[4] = {1.00794, 12.0107, 14.010, 15.9994};
+  Float_t zKapton[4] = {1., 6., 7., 8.};
+  Float_t wKapton[4] = {0.026362, 0.69113, 0.07327, 0.209235};
   Float_t dKapton = 1.42;
   // NEG coating
   //                  Ti     V      Zr
-  Float_t aNEG[4] = { 47.87, 50.94, 91.24 };
-  Float_t zNEG[4] = { 22.00, 23.00, 40.00 };
-  Float_t wNEG[4] = { 1. / 3., 1. / 3., 1. / 3. };
+  Float_t aNEG[4] = {47.87, 50.94, 91.24};
+  Float_t zNEG[4] = {22.00, 23.00, 40.00};
+  Float_t wNEG[4] = {1. / 3., 1. / 3., 1. / 3.};
   Float_t dNEG = 5.6; // ?
 
   //---------------------------------
   // Aluminium AA 5083 for MFT: Al Manganese(Mn) Magnesium(Mg) Chrome(Cr)
-  Float_t aALU5083[4] = { 26.982, 54.938, 24.305, 51.996 }; // Mg pas meme a que la ligne Anticorodal!
-  Float_t zALU5083[4] = { 13., 25., 12., 24. };
-  Float_t wALU5083[4] = { 0.947, 0.007, 0.044, 0.0015 };
+  Float_t aALU5083[4] = {26.982, 54.938, 24.305, 51.996}; // Mg pas meme a que la ligne Anticorodal!
+  Float_t zALU5083[4] = {13., 25., 12., 24.};
+  Float_t wALU5083[4] = {0.947, 0.007, 0.044, 0.0015};
   // Aluminium AA 2219 for MFT: Al Cu Mn Ti V Zr
-  Float_t aALU2219[6] = { 26.982, 63.546, 54.938, 47.867, 50.941, 91.224 };
-  Float_t zALU2219[6] = { 13., 29., 25., 22., 23., 40. };
-  Float_t wALU2219[6] = { 0.93, 0.063, 0.003, 0.0006, 0.001, 0.0018 };
+  Float_t aALU2219[6] = {26.982, 63.546, 54.938, 47.867, 50.941, 91.224};
+  Float_t zALU2219[6] = {13., 29., 25., 22., 23., 40.};
+  Float_t wALU2219[6] = {0.93, 0.063, 0.003, 0.0006, 0.001, 0.0018};
   //---------------------------------
 
   // ****************
@@ -2911,4 +2911,4 @@ TGeoVolume* Pipe::MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float
 
 // ----------------------------------------------------------------------------
 FairModule* Pipe::CloneModule() const { return new Pipe(*this); }
-ClassImp(o2::passive::Pipe)
+ClassImp(o2::passive::Pipe);

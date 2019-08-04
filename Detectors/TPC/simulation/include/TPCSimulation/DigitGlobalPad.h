@@ -89,8 +89,8 @@ class DigitGlobalPad
   /// \return true, if trackID, eventID and sourceID are the same
   bool compareMClabels(const MCCompLabel& label1, const MCCompLabel& label2) const;
 
-  float mChargePad = 0.;                             ///< Total accumulated charge on that GlobalPad for a given time bin
-  int mID = -1;                                      ///< ID of this digit to refer into labels (-1 means not initialized)
+  float mChargePad = 0.; ///< Total accumulated charge on that GlobalPad for a given time bin
+  int mID = -1;          ///< ID of this digit to refer into labels (-1 means not initialized)
 };
 
 inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,

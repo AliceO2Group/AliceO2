@@ -26,14 +26,14 @@ namespace mft
 {
 class GeometryBuilder;
 }
-}
+} // namespace o2
 namespace o2
 {
 namespace mft
 {
 class Segmentation;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -136,9 +136,9 @@ class Geometry : public TNamed
   Segmentation* mSegmentation; ///< \brief Segmentation of the detector
   Int_t mSensorVolumeID;       ///< \brief ID of the volume describing the CMOS Sensor
 
-  ClassDefOverride(Geometry, 1)
+  ClassDefOverride(Geometry, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

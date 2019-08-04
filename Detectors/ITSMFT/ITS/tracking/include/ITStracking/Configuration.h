@@ -53,23 +53,23 @@ struct TrackingParameters {
   int MinTrackLength = 7;
   /// Trackleting cuts
   float TrackletMaxDeltaPhi = 0.3f;
-  float TrackletMaxDeltaZ[constants::its::TrackletsPerRoad] = { 0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f };
+  float TrackletMaxDeltaZ[constants::its::TrackletsPerRoad] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
   /// Cell finding cuts
   float CellMaxDeltaTanLambda = 0.025f;
-  float CellMaxDCA[constants::its::CellsPerRoad] = { 0.05f, 0.04f, 0.05f, 0.2f, 0.4f };
+  float CellMaxDCA[constants::its::CellsPerRoad] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
   float CellMaxDeltaPhi = 0.14f;
-  float CellMaxDeltaZ[constants::its::CellsPerRoad] = { 0.2f, 0.4f, 0.5f, 0.6f, 3.0f };
+  float CellMaxDeltaZ[constants::its::CellsPerRoad] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
   /// Neighbour finding cuts
-  float NeighbourMaxDeltaCurvature[constants::its::CellsPerRoad - 1] = { 0.008f, 0.0025f, 0.003f, 0.0035f };
-  float NeighbourMaxDeltaN[constants::its::CellsPerRoad - 1] = { 0.002f, 0.0090f, 0.002f, 0.005f };
+  float NeighbourMaxDeltaCurvature[constants::its::CellsPerRoad - 1] = {0.008f, 0.0025f, 0.003f, 0.0035f};
+  float NeighbourMaxDeltaN[constants::its::CellsPerRoad - 1] = {0.002f, 0.0090f, 0.002f, 0.005f};
 };
 
 struct MemoryParameters {
   /// Memory coefficients
   MemoryParameters& operator=(const MemoryParameters& t);
   int MemoryOffset = 256;
-  float CellsMemoryCoefficients[constants::its::CellsPerRoad] = { 2.3208e-08f, 2.104e-08f, 1.6432e-08f, 1.2412e-08f, 1.3543e-08f };
-  float TrackletsMemoryCoefficients[constants::its::TrackletsPerRoad] = { 0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f };
+  float CellsMemoryCoefficients[constants::its::CellsPerRoad] = {2.3208e-08f, 2.104e-08f, 1.6432e-08f, 1.2412e-08f, 1.3543e-08f};
+  float TrackletsMemoryCoefficients[constants::its::TrackletsPerRoad] = {0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f};
 };
 
 struct IndexTableParameters {
@@ -133,7 +133,7 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
 }
 
 struct VertexingParameters {
-  float zCut = 0.002f; //0.002f
+  float zCut = 0.002f;   //0.002f
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;

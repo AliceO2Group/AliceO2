@@ -183,31 +183,32 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, st
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   ClusterGroupParser parser;
   size_t numberOfClusters = 0;
-  parser.parse(buffer, size,
-               [](const typename ClusterGroupParser::HeaderType& h) {
-                 // check the header, but in this case there is no validity check
-                 return true;
-               },
-               [](const typename ClusterGroupParser::HeaderType& h) {
-                 // get the size of the frame including payload
-                 // and header and trailer size, e.g. payload size
-                 // from a header member
-                 return h.nClusters * sizeof(ClusterNative) + ClusterGroupParser::totalOffset;
-               },
-               [&](typename ClusterGroupParser::FrameInfo& frame) {
-                 int sector = frame.header->sector;
-                 int padrow = frame.header->globalPadRow;
-                 int nClusters = frame.header->nClusters;
-                 clusterIndex.clusters[sector][padrow] = reinterpret_cast<const ClusterNative*>(frame.payload);
-                 clusterIndex.nClusters[sector][padrow] = nClusters;
-                 numberOfClusters += nClusters;
-                 if (mcIterator != mcinput.end()) {
-                   clustersMCTruth[sector][padrow] = &(*mcIterator);
-                   ++mcIterator;
-                 }
+  parser.parse(
+    buffer, size,
+    [](const typename ClusterGroupParser::HeaderType& h) {
+      // check the header, but in this case there is no validity check
+      return true;
+    },
+    [](const typename ClusterGroupParser::HeaderType& h) {
+      // get the size of the frame including payload
+      // and header and trailer size, e.g. payload size
+      // from a header member
+      return h.nClusters * sizeof(ClusterNative) + ClusterGroupParser::totalOffset;
+    },
+    [&](typename ClusterGroupParser::FrameInfo& frame) {
+      int sector = frame.header->sector;
+      int padrow = frame.header->globalPadRow;
+      int nClusters = frame.header->nClusters;
+      clusterIndex.clusters[sector][padrow] = reinterpret_cast<const ClusterNative*>(frame.payload);
+      clusterIndex.nClusters[sector][padrow] = nClusters;
+      numberOfClusters += nClusters;
+      if (mcIterator != mcinput.end()) {
+        clustersMCTruth[sector][padrow] = &(*mcIterator);
+        ++mcIterator;
+      }
 
-                 return true;
-               });
+      return true;
+    });
   return numberOfClusters;
 }
 
@@ -257,7 +258,7 @@ int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNat
   if (!mTree) {
     return -1;
   }
-  mStoreClusters.resize(nClusters, BranchData{ sector, padrow });
+  mStoreClusters.resize(nClusters, BranchData{sector, padrow});
   if (clusters != nullptr && nClusters > 0) {
     std::copy(clusters, clusters + nClusters, mStoreClusters.begin());
   }

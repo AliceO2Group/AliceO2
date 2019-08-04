@@ -29,7 +29,7 @@ DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
   TableBuilder builder;
-  auto rowWriter = builder.persist<uint64_t, uint64_t>({ "x", "y" });
+  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 0, 1);
   rowWriter(0, 0, 2);
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 1);
   using Test = o2::soa::Table<test::X, test::Y>;
-  Test tests2{ table };
+  Test tests2{table};
   size_t value = 0;
   auto b = tests2.begin();
   auto e = tests2.end();

@@ -76,7 +76,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   template <typename Det>
   friend class o2::base::DetImpl;
-  ClassDefOverride(Detector, 1)
+  ClassDefOverride(Detector, 1);
 };
 
 // Input and output function for standard C++ input/output.

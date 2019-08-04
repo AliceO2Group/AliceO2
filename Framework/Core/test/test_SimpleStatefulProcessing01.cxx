@@ -21,13 +21,14 @@ using DataHeader = o2::header::DataHeader;
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-WorkflowSpec defineDataProcessing(ConfigContext const&) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return WorkflowSpec{
     //
     DataProcessorSpec{
-      "producer",                                                  //
-      Inputs{},                                                    //
-      { OutputSpec{ "TES", "STATEFUL", 0, Lifetime::Timeframe } }, //
+      "producer",                                              //
+      Inputs{},                                                //
+      {OutputSpec{"TES", "STATEFUL", 0, Lifetime::Timeframe}}, //
       // The producer is stateful, we use a static for the state in this
       // particular case, but a Singleton or a captured new object would
       // work as well.
@@ -52,7 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
             callbacks.set(CallbackService::Id::Stop, stopcb);
             callbacks.set(CallbackService::Id::Reset, resetcb);
             return adaptStateless([](DataAllocator& outputs) {
-              auto& out = outputs.newChunk({ "TES", "STATEFUL", 0 }, sizeof(int));
+              auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
               auto outI = reinterpret_cast<int*>(out.data());
               outI[0] = foo++;
             });
@@ -60,9 +61,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
       }      //
     },       //
     DataProcessorSpec{
-      "consumer",                                                         //
-      { InputSpec{ "test", "TES", "STATEFUL", 0, Lifetime::Timeframe } }, //
-      Outputs{},                                                          //
+      "consumer",                                                     //
+      {InputSpec{"test", "TES", "STATEFUL", 0, Lifetime::Timeframe}}, //
+      Outputs{},                                                      //
       AlgorithmSpec{
         adaptStateful(
           []() {

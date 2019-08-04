@@ -19,12 +19,11 @@
 // -----                  M. Al-Turany   June 2014                     -----
 // -------------------------------------------------------------------------
 
-
 #ifndef PNDP8GENERATOR_H
 #define PNDP8GENERATOR_H 1
 
-#include "FairGenerator.h"   // for FairGenerator
-#include "Rtypes.h"          // for Double_t, Bool_t, Int_t, etc
+#include "FairGenerator.h" // for FairGenerator
+#include "Rtypes.h"        // for Double_t, Bool_t, Int_t, etc
 #include <memory>
 
 class FairPrimaryGenerator;
@@ -32,7 +31,7 @@ namespace Pythia8
 {
 class Pythia;
 class RndmEngine;
-}
+} // namespace Pythia8
 namespace o2
 {
 namespace eventgen
@@ -41,7 +40,6 @@ namespace eventgen
 class Pythia8Generator : public FairGenerator
 {
  public:
-
   /** default constructor **/
   Pythia8Generator();
 
@@ -56,10 +54,18 @@ class Pythia8Generator : public FairGenerator
   Bool_t Init() override; //!
 
   void SetMom(Double_t mom) { mMom = mom; };
-  void SetId(Double_t id) { mId  = id; };
+  void SetId(Double_t id) { mId = id; };
   void SetHNLId(Int_t id) { mHNL = id; };
-  void UseRandom1() { mUseRandom1 = kTRUE; mUseRandom3 = kFALSE; };
-  void UseRandom3() { mUseRandom1 = kFALSE; mUseRandom3 = kTRUE; };
+  void UseRandom1()
+  {
+    mUseRandom1 = kTRUE;
+    mUseRandom3 = kFALSE;
+  };
+  void UseRandom3()
+  {
+    mUseRandom1 = kFALSE;
+    mUseRandom3 = kTRUE;
+  };
   void GetPythiaInstance(int);
 
  private:
@@ -67,14 +73,13 @@ class Pythia8Generator : public FairGenerator
   std::unique_ptr<Pythia8::RndmEngine> mRandomEngine; //!
 
  protected:
+  Double_t mMom;      // proton momentum
+  Int_t mHNL;         // HNL ID
+  Int_t mId;          // target type
+  Bool_t mUseRandom1; // flag to use TRandom1
+  Bool_t mUseRandom3; // flag to use TRandom3 (default)
 
-  Double_t mMom;       // proton momentum
-  Int_t    mHNL;       // HNL ID
-  Int_t    mId;       // target type
-  Bool_t mUseRandom1;  // flag to use TRandom1
-  Bool_t mUseRandom3;  // flag to use TRandom3 (default)
-
-  ClassDefOverride(Pythia8Generator,1);
+  ClassDefOverride(Pythia8Generator, 1);
 };
 
 } // namespace eventgen

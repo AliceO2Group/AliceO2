@@ -37,7 +37,7 @@ namespace mch
 /// Constants
 
 // chamber z position (from AliMUONConstants)
-const float kChamberZPos[2] = { -526.16, -545.24 };
+const float kChamberZPos[2] = {-526.16, -545.24};
 
 // quadrant z position w.r.t the chamber center
 const float kQuadrantZPos = 7.5 / 2;
@@ -166,17 +166,17 @@ void createInnerLayers()
 
   const int nz = 2;
   const int nv = 6;
-  double vx[nv] = { 0., 0., xy2, maxXY, maxXY, dxy1 };
-  double vy[nv] = { dxy1, maxXY, maxXY, xy2, 0., 0. };
+  double vx[nv] = {0., 0., xy2, maxXY, maxXY, dxy1};
+  double vy[nv] = {dxy1, maxXY, maxXY, xy2, 0., 0.};
 
   // layer parameters
   const auto kGasMed = assertMedium(Medium::Gas);
   const auto kPadMed = assertMedium(Medium::Copper);
 
   const int kNLayers = 3;
-  const std::string kLayerName[kNLayers] = { "SA1G", "SA2G", "SA1C" };
-  const std::array<const TGeoMedium*, kNLayers> kLayerMedium = { kGasMed, kGasMed, kPadMed };
-  const double kLayerZpos[kNLayers] = { kHzGas, kHzGas, kHzPadPlane };
+  const std::string kLayerName[kNLayers] = {"SA1G", "SA2G", "SA1C"};
+  const std::array<const TGeoMedium*, kNLayers> kLayerMedium = {kGasMed, kGasMed, kPadMed};
+  const double kLayerZpos[kNLayers] = {kHzGas, kHzGas, kHzPadPlane};
 
   for (int i = 0; i < kNLayers; i++) {
     TGeoXtru* xtruS = new TGeoXtru(nz);
@@ -1536,11 +1536,11 @@ void createStation1Geometry(TGeoVolume& topVolume)
   auto rot1 = new TGeoRotation("reflXZ", 90., 180., 90., 90., 180., 0.);
   auto rot2 = new TGeoRotation("reflXY", 90., 180., 90., 270., 0., 0.);
   auto rot3 = new TGeoRotation("reflYZ", 90., 0., 90., -90., 180., 0.);
-  std::array<TGeoRotation*, kNQuadrants> rot = { rot0, rot1, rot2, rot3 };
+  std::array<TGeoRotation*, kNQuadrants> rot = {rot0, rot1, rot2, rot3};
 
   // initialize the quadrant positions
-  float x[kNQuadrants] = { -1, 1, 1, -1 };
-  float y[kNQuadrants] = { -1, -1, 1, 1 };
+  float x[kNQuadrants] = {-1, 1, 1, -1};
+  float y[kNQuadrants] = {-1, -1, 1, 1};
 
   for (int i = 0; i < kNQuadrants; i++) {
     x[i] *= kPadXOffsetBP;

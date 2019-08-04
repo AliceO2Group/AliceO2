@@ -207,7 +207,8 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
     LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
   }
   bool flipCol = false, flipRow = true;
-  if (vDepth < mDptMin || vDepth > mDptMax) return false;
+  if (vDepth < mDptMin || vDepth > mDptMax)
+    return false;
   if (vCol < 0) {
     vCol = -vCol;
     flipCol = true;

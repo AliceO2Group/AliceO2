@@ -57,14 +57,14 @@ class Cell final
 inline GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
                              const int firstTrackletIndex, const int secondTrackletIndex,
                              const float3& normalVectorCoordinates, const float curvature)
-  : mFirstClusterIndex{ firstClusterIndex },
-    mSecondClusterIndex{ secondClusterIndex },
-    mThirdClusterIndex{ thirdClusterIndex },
+  : mFirstClusterIndex{firstClusterIndex},
+    mSecondClusterIndex{secondClusterIndex},
+    mThirdClusterIndex{thirdClusterIndex},
     mFirstTrackletIndex(firstTrackletIndex),
     mSecondTrackletIndex(secondTrackletIndex),
     mNormalVectorCoordinates(normalVectorCoordinates),
-    mCurvature{ curvature },
-    mLevel{ 1 }
+    mCurvature{curvature},
+    mLevel{1}
 {
   // Nothing to do
 }

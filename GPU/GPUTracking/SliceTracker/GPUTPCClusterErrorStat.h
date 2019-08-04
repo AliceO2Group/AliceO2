@@ -34,7 +34,7 @@ struct GPUTPCClusterErrorStat {
   void Fill(float x, float y, float z, float alpha, float trkX, float* fP, float* fC, int ihit, int iWay)
   {
     if (iWay == 1) {
-      fTupBuf[ihit] = { fP[0], fP[1], fP[2], fP[3], fP[4], fC[0], fC[2], fC[5], fC[9], fC[14] };
+      fTupBuf[ihit] = {fP[0], fP[1], fP[2], fP[3], fP[4], fC[0], fC[2], fC[5], fC[9], fC[14]};
     } else if (iWay == 2) {
       fTup.Fill(x, y, z, alpha, trkX, (fP[0] * fTupBuf[ihit][5] + fTupBuf[ihit][0] * fC[0]) / (fTupBuf[ihit][5] + fC[0]), (fP[1] * fTupBuf[ihit][6] + fTupBuf[ihit][1] * fC[2]) / (fTupBuf[ihit][6] + fC[2]), (fP[2] * fTupBuf[ihit][7] + fTupBuf[ihit][2] * fC[5]) / (fTupBuf[ihit][7] + fC[5]),
                 (fP[3] * fTupBuf[ihit][8] + fTupBuf[ihit][3] * fC[9]) / (fTupBuf[ihit][8] + fC[9]), (fP[4] * fTupBuf[ihit][9] + fTupBuf[ihit][4] * fC[14]) / (fTupBuf[ihit][9] + fC[14]), fC[0] * fTupBuf[ihit][5] / (fC[0] + fTupBuf[ihit][5]),

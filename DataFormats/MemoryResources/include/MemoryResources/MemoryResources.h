@@ -74,10 +74,10 @@ class MessageResource : public FairMQMemoryResource
   MessageResource& operator=(const MessageResource&) = default;
   MessageResource& operator=(MessageResource&&) = default;
   MessageResource(FairMQMessagePtr message)
-    : mUpstream{ message->GetTransport()->GetMemoryResource() },
-      mMessageSize{ message->GetSize() },
-      mMessageData{ mUpstream ? mUpstream->setMessage(std::move(message))
-                              : throw std::runtime_error("MessageResource::MessageResource upstream is nullptr") }
+    : mUpstream{message->GetTransport()->GetMemoryResource()},
+      mMessageSize{message->GetSize()},
+      mMessageData{mUpstream ? mUpstream->setMessage(std::move(message))
+                             : throw std::runtime_error("MessageResource::MessageResource upstream is nullptr")}
   {
   }
   FairMQMessagePtr getMessage(void* p) override { return mUpstream->getMessage(p); }
@@ -86,10 +86,10 @@ class MessageResource : public FairMQMemoryResource
   size_t getNumberOfMessages() const noexcept override { return mMessageData ? 1 : 0; }
 
  protected:
-  FairMQMemoryResource* mUpstream{ nullptr };
-  size_t mMessageSize{ 0 };
-  void* mMessageData{ nullptr };
-  bool initialImport{ true };
+  FairMQMemoryResource* mUpstream{nullptr};
+  size_t mMessageSize{0};
+  void* mMessageData{nullptr};
+  bool initialImport{true};
 
   void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
@@ -160,7 +160,7 @@ class OwningMessageSpectatorAllocator
   OwningMessageSpectatorAllocator() noexcept = default;
   OwningMessageSpectatorAllocator(const OwningMessageSpectatorAllocator&) noexcept = default;
   OwningMessageSpectatorAllocator(OwningMessageSpectatorAllocator&&) noexcept = default;
-  OwningMessageSpectatorAllocator(MessageResource&& resource) noexcept : mResource{ resource } {}
+  OwningMessageSpectatorAllocator(MessageResource&& resource) noexcept : mResource{resource} {}
 
   template <class U>
   OwningMessageSpectatorAllocator(const OwningMessageSpectatorAllocator<U>& other) noexcept : mResource(other.mResource)
@@ -219,7 +219,7 @@ auto adoptVector(size_t nelem, FairMQMessagePtr message)
 {
   static_assert(std::is_trivially_destructible<ElemT>::value);
   return std::vector<ElemT, OwningMessageSpectatorAllocator<ElemT>>(
-    nelem, OwningMessageSpectatorAllocator<ElemT>(MessageResource{ std::move(message) }));
+    nelem, OwningMessageSpectatorAllocator<ElemT>(MessageResource{std::move(message)}));
 };
 
 //__________________________________________________________________________________________________

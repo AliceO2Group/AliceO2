@@ -18,8 +18,10 @@
 
 #include "EventVisualisationBase/EventManager.h"
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 struct Options {
   bool randomTracks;    // -r
@@ -48,7 +50,7 @@ class Initializer
   /// Sets up camera position
   static void setupCamera();
 };
-}
-}
+} // namespace event_visualisation
+} // namespace o2
 
 #endif

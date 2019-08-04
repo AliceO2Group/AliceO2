@@ -19,9 +19,10 @@
 
 using namespace std;
 
-namespace o2  {
-namespace event_visualisation {
-
+namespace o2
+{
+namespace event_visualisation
+{
 
 MinimalisticTrack::MinimalisticTrack() = default;
 
@@ -87,7 +88,7 @@ void MinimalisticTrack::addPolyPoint(double x, double y, double z)
   mPolyZ.push_back(z);
 }
 
-void MinimalisticTrack::addPolyPoint(double *xyz)
+void MinimalisticTrack::addPolyPoint(double* xyz)
 {
   mPolyX.push_back(xyz[0]);
   mPolyY.push_back(xyz[1]);
@@ -101,22 +102,22 @@ void MinimalisticTrack::setTrackType(ETrackType type)
 
 void MinimalisticTrack::fillWithRandomData()
 {
-  mCharge = ((double)rand()/RAND_MAX>0.5) ? 1 : -1;
-  
+  mCharge = ((double)rand() / RAND_MAX > 0.5) ? 1 : -1;
+
   mStartCoordinates[0] = 0.0;
   mStartCoordinates[1] = 0.0;
   mStartCoordinates[2] = 0.0;
-  
-  mMomentum[0] = 2*((double)rand()/RAND_MAX)-1;
-  mMomentum[1] = 2*((double)rand()/RAND_MAX)-1;
-  mMomentum[2] = 2*((double)rand()/RAND_MAX)-1;
-  
-  mMass = 1000*(double)rand()/RAND_MAX + 0.5;
-  mEnergy = mMass + 1000*(double)rand()/RAND_MAX;
-  
-  int PID[10] = {-2212, -321, -211, -13, -11, 11, 13 , 211, 321, 2212 };
-  mPID = PID[(int)(rand()%10)];
+
+  mMomentum[0] = 2 * ((double)rand() / RAND_MAX) - 1;
+  mMomentum[1] = 2 * ((double)rand() / RAND_MAX) - 1;
+  mMomentum[2] = 2 * ((double)rand() / RAND_MAX) - 1;
+
+  mMass = 1000 * (double)rand() / RAND_MAX + 0.5;
+  mEnergy = mMass + 1000 * (double)rand() / RAND_MAX;
+
+  int PID[10] = {-2212, -321, -211, -13, -11, 11, 13, 211, 321, 2212};
+  mPID = PID[(int)(rand() % 10)];
 }
-    
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2

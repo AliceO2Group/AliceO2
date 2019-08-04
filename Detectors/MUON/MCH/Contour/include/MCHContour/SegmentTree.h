@@ -116,7 +116,7 @@ class Node
 template <typename T>
 Node<T>* buildNode(const std::vector<T>& values, int b, int e)
 {
-  Interval<T> i{ values[b], values[e] };
+  Interval<T> i{values[b], values[e]};
   int mid((b + e) / 2);
   Node<T>* node = new Node<T>(i, values[mid]);
   if (e - b == 1) {
@@ -268,7 +268,7 @@ template <typename T>
 std::vector<const Node<T>*> Node<T>::getNodeList() const
 {
   if (isLeaf()) {
-    return { this };
+    return {this};
   }
   auto l = left()->getNodeList();
   auto r = right()->getNodeList();

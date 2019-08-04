@@ -37,39 +37,35 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
                                            const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels,
                                            std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels)
 {
-  if (mIntegrator == nullptr) mIntegrator.reset(new DigitalCurrentClusterIntegrator);
-  if (!inMCLabels) outMCLabels = nullptr;
+  if (mIntegrator == nullptr)
+    mIntegrator.reset(new DigitalCurrentClusterIntegrator);
+  if (!inMCLabels)
+    outMCLabels = nullptr;
   std::vector<ClusterNativeBuffer*> outputBufferMap;
   int nRowClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
-  int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] =  {0};
+  int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
   Mapper& mapper = Mapper::instance();
   int numberOfOutputContainers = 0;
-  for (int loop = 0;loop < 2;loop++)
-  {
+  for (int loop = 0; loop < 2; loop++) {
     int nTotalClusters = 0;
-    for (int i = 0;i < inputClusters.size();i++)
-    {
-      if (outMCLabels && inputClusters[i].second > 1)
-      {
+    for (int i = 0; i < inputClusters.size(); i++) {
+      if (outMCLabels && inputClusters[i].second > 1) {
         LOG(ERROR) << "Decoding of ClusterHardware to ClusterNative with MC labels is yet only support for single 8kb pages of ClusterHardwareContainer\n";
-        return(1);
+        return (1);
       }
-      for (int j = 0;j < inputClusters[i].second;j++)
-      {
-        const char* tmpPtr = reinterpret_cast<const char*> (inputClusters[i].first);
+      for (int j = 0; j < inputClusters[i].second; j++) {
+        const char* tmpPtr = reinterpret_cast<const char*>(inputClusters[i].first);
         tmpPtr += j * 8192; //TODO: FIXME: Compute correct offset based on the size of the actual packet in the RDH
-        const ClusterHardwareContainer& cont = *(reinterpret_cast<const ClusterHardwareContainer*> (tmpPtr));
+        const ClusterHardwareContainer& cont = *(reinterpret_cast<const ClusterHardwareContainer*>(tmpPtr));
         const CRU cru(cont.CRU);
         const Sector sector = cru.sector();
         const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
         const int rowOffset = region.getGlobalRowOffset();
 
-        for (int k = 0;k < cont.numberOfClusters;k++)
-        {
+        for (int k = 0; k < cont.numberOfClusters; k++) {
           const int padRowGlobal = rowOffset + cont.clusters[k].getRow();
           int& nCls = nRowClusters[sector][padRowGlobal];
-          if (loop == 1)
-          {
+          if (loop == 1) {
             //Fill cluster in the respective output buffer
             const ClusterHardware& cIn = cont.clusters[k];
             ClusterNative& cOut = outputBufferMap[containerRowCluster[sector][padRowGlobal]]->clusters[nCls];
@@ -81,26 +77,23 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             cOut.qMax = cIn.getQMax();
             cOut.qTot = cIn.getQTot();
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
-            if (outMCLabels)
-            {
+            if (outMCLabels) {
               auto& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
                 mcOut.addElement(nCls, element);
               }
             }
-          }
-          else
-          {
+          } else {
             //Count how many output buffers we need (and how large they are below)
-            if (nCls == 0) numberOfOutputContainers++;
+            if (nCls == 0)
+              numberOfOutputContainers++;
           }
           nCls++;
           nTotalClusters++;
         }
       }
     }
-    if (loop == 1)
-    {
+    if (loop == 1) {
       //We are done with filling the buffers, sort all output buffers
       for (int i = 0; i < outputBufferMap.size(); i++) {
         if (outMCLabels) {
@@ -110,20 +103,18 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
           std::sort(cl, cl + outputBufferMap[i]->nClusters);
         }
       }
-    }
-    else
-    {
+    } else {
       //Now we know the size of all output buffers, allocate them
-      if (outMCLabels) outMCLabels->resize(numberOfOutputContainers);
+      if (outMCLabels)
+        outMCLabels->resize(numberOfOutputContainers);
       size_t rawOutputBufferSize = numberOfOutputContainers * sizeof(ClusterNativeBuffer) + nTotalClusters * sizeof(ClusterNative);
       char* rawOutputBuffer = outputAllocator(rawOutputBufferSize);
       char* rawOutputBufferIterator = rawOutputBuffer;
       numberOfOutputContainers = 0;
-      for (int i = 0;i < Constants::MAXSECTOR;i++)
-      {
-        for (int j = 0;j < Constants::MAXGLOBALPADROW;j++)
-        {
-          if (nRowClusters[i][j] == 0) continue;
+      for (int i = 0; i < Constants::MAXSECTOR; i++) {
+        for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+          if (nRowClusters[i][j] == 0)
+            continue;
           outputBufferMap.push_back(reinterpret_cast<ClusterNativeBuffer*>(rawOutputBufferIterator));
           ClusterNativeBuffer& container = *outputBufferMap.back();
           container.sector = i;
@@ -138,7 +129,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
       memset(nRowClusters, 0, sizeof(nRowClusters));
     }
   }
-  return(0);
+  return (0);
 }
 
 void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters,

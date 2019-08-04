@@ -51,7 +51,7 @@ class ClusterizerDeviceDPL
 
     bool isClusterizerInit = false;
     if (mIsMC) {
-      isClusterizerInit = mClusterizer.init([&](size_t baseIndex, size_t relatedIndex) { mCorrelation.push_back({ baseIndex, relatedIndex }); });
+      isClusterizerInit = mClusterizer.init([&](size_t baseIndex, size_t relatedIndex) { mCorrelation.push_back({baseIndex, relatedIndex}); });
       mCorrelation.clear();
     } else {
       isClusterizerInit = mClusterizer.init();
@@ -75,14 +75,14 @@ class ClusterizerDeviceDPL
     gsl::span<const PreCluster> preClusters(mPreClusterizer.getPreClusters().data(), mPreClusterizer.getPreClusters().size());
     mClusterizer.process(preClusters);
 
-    pc.outputs().snapshot(of::Output{ "MID", "CLUSTERS", 0, of::Lifetime::Timeframe }, mClusterizer.getClusters());
+    pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0, of::Lifetime::Timeframe}, mClusterizer.getClusters());
     LOG(INFO) << "Sent " << mClusterizer.getClusters().size() << " clusters";
 
     if (mIsMC) {
-      pc.outputs().snapshot(of::Output{ "MID", "PRECLUSTERS", 0, of::Lifetime::Timeframe }, mPreClusterizer.getPreClusters());
+      pc.outputs().snapshot(of::Output{"MID", "PRECLUSTERS", 0, of::Lifetime::Timeframe}, mPreClusterizer.getPreClusters());
       LOG(INFO) << "Sent " << mPreClusterizer.getPreClusters().size() << " pre-clusters";
       // Clear the index correlations that will be used in the next cluster processing
-      pc.outputs().snapshot(of::Output{ "MID", "CLUSTERSCORR", 0, of::Lifetime::Timeframe }, mCorrelation);
+      pc.outputs().snapshot(of::Output{"MID", "CLUSTERSCORR", 0, of::Lifetime::Timeframe}, mCorrelation);
       LOG(INFO) << "Sent " << mCorrelation.size() << " correlations";
     }
     mCorrelation.clear();
@@ -99,19 +99,18 @@ class ClusterizerDeviceDPL
 framework::DataProcessorSpec getClusterizerSpec(bool isMC)
 {
   std::string inputBinding = "mid_data";
-  std::vector<of::InputSpec> inputSpecs{ of::InputSpec{ inputBinding, "MID", "DATA" } };
-  std::vector<of::OutputSpec> outputSpecs{ of::OutputSpec{ "MID", "CLUSTERS" } };
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{inputBinding, "MID", "DATA"}};
+  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}};
   if (isMC) {
-    outputSpecs.emplace_back(of::OutputSpec{ "MID", "PRECLUSTERS" });
-    outputSpecs.emplace_back(of::OutputSpec{ "MID", "CLUSTERSCORR" });
+    outputSpecs.emplace_back(of::OutputSpec{"MID", "PRECLUSTERS"});
+    outputSpecs.emplace_back(of::OutputSpec{"MID", "CLUSTERSCORR"});
   }
 
   return of::DataProcessorSpec{
     "MIDClusterizer",
-    { inputSpecs },
-    { outputSpecs },
-    of::AlgorithmSpec{ of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>(inputBinding.c_str(), isMC) }
-  };
+    {inputSpecs},
+    {outputSpecs},
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>(inputBinding.c_str(), isMC)}};
 }
 } // namespace mid
 } // namespace o2

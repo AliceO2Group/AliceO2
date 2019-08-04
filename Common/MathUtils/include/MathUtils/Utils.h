@@ -123,8 +123,8 @@ constexpr int bit2Mask(T first, Args... args)
   return (0x1 << first) | bit2Mask(args...);
 }
 //--------------------------------------<<<
-}
+} // namespace utils
 //}
-}
+} // namespace o2
 
 #endif

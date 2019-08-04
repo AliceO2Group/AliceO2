@@ -16,18 +16,22 @@
 #include <memory>
 #include <functional>
 
-namespace o2 { namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 struct FakeTimeframeSpec {
-  const char *origin;
-  const char *dataDescription;
-  std::function<void(char *, size_t)> bufferFiller;
+  const char* origin;
+  const char* dataDescription;
+  std::function<void(char*, size_t)> bufferFiller;
   size_t bufferSize;
 };
 
 /** Generate a timeframe from the provided specification
   */
-std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec> &specs, std::size_t &totalSize);
+std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec>& specs, std::size_t& totalSize);
 
-}}
+} // namespace data_flow
+} // namespace o2
 #endif /* DATAFLOW_FAKETIMEFRAMEBUILDER_H_ */

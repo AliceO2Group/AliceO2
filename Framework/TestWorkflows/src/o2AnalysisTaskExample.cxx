@@ -17,10 +17,9 @@ using namespace o2;
 using namespace o2::framework;
 
 // This is a stateful task, where we send the state downstream.
-struct ATask
-{
+struct ATask {
   explicit ATask(int state)
-    : mSomeState{ state } {}
+    : mSomeState{state} {}
 
   void init(InitContext& ic)
   {
@@ -54,6 +53,5 @@ struct ATask
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("mySimpleTrackAnalysis", 0)
-  };
+    adaptAnalysisTask<ATask>("mySimpleTrackAnalysis", 0)};
 }

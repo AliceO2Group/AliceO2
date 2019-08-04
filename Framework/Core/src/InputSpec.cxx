@@ -19,37 +19,37 @@ namespace framework
 {
 
 InputSpec::InputSpec(std::string binding_, ConcreteDataMatcher const& concrete, enum Lifetime lifetime_)
-  : binding{ binding_ },
-    matcher{ concrete },
-    lifetime{ lifetime_ }
+  : binding{binding_},
+    matcher{concrete},
+    lifetime{lifetime_}
 {
 }
 
 InputSpec::InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_, enum Lifetime lifetime_)
-  : binding{ binding_ },
-    matcher{ ConcreteDataMatcher{ origin_, description_, subSpec_ } },
-    lifetime{ lifetime_ }
+  : binding{binding_},
+    matcher{ConcreteDataMatcher{origin_, description_, subSpec_}},
+    lifetime{lifetime_}
 {
 }
 
 InputSpec::InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, enum Lifetime lifetime_)
-  : binding{ binding_ },
-    matcher{ ConcreteDataMatcher{ origin_, description_, 0 } },
-    lifetime{ lifetime_ }
+  : binding{binding_},
+    matcher{ConcreteDataMatcher{origin_, description_, 0}},
+    lifetime{lifetime_}
 {
 }
 
 InputSpec::InputSpec(std::string binding_, ConcreteDataTypeMatcher const& dataType, enum Lifetime lifetime_)
-  : binding{ binding_ },
-    matcher{ DataSpecUtils::dataDescriptorMatcherFrom(dataType) },
-    lifetime{ lifetime_ }
+  : binding{binding_},
+    matcher{DataSpecUtils::dataDescriptorMatcherFrom(dataType)},
+    lifetime{lifetime_}
 {
 }
 
 InputSpec::InputSpec(std::string binding_, data_matcher::DataDescriptorMatcher&& matcher_)
-  : binding{ binding_ },
-    matcher{ matcher_ },
-    lifetime{ Lifetime::Timeframe }
+  : binding{binding_},
+    matcher{matcher_},
+    lifetime{Lifetime::Timeframe}
 {
 }
 

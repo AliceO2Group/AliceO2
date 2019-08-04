@@ -33,9 +33,9 @@ class Absorber : public FairModule
   Absorber(const Absorber& orig);
   Absorber& operator=(const Absorber&);
 
-  ClassDefOverride(o2::passive::Absorber, 1)
+  ClassDefOverride(o2::passive::Absorber, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif

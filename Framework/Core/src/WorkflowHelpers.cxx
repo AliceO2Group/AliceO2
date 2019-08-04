@@ -50,7 +50,7 @@ std::vector<TopoIndexInfo>
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
   for (int wi = 0; wi < nodeCount; ++wi) {
-    index[wi] = { wi, 0 };
+    index[wi] = {wi, 0};
   }
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
   for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
@@ -69,7 +69,7 @@ std::vector<TopoIndexInfo>
   std::list<TopoIndexInfo> L;
   for (int ii = 0; ii < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
-      L.push_back({ ii, 0 });
+      L.push_back({ii, 0});
     }
   }
 
@@ -92,7 +92,7 @@ std::vector<TopoIndexInfo>
     // to the current node.
     for (auto& ei : remainingEdgesIndex) {
       if (*(edgeIn + ei * stride) == node.index) {
-        nextVertex.insert({ *(edgeOut + ei * stride), node.layer + 1 });
+        nextVertex.insert({*(edgeOut + ei * stride), node.layer + 1});
       } else {
         nextEdges.push_back(ei);
       }
@@ -105,7 +105,7 @@ std::vector<TopoIndexInfo>
     for (auto& ei : remainingEdgesIndex) {
       for (auto& m : nextVertex) {
         if (m.index == *(edgeOut + ei * stride)) {
-          hasPredecessors.insert({ m.index, m.layer });
+          hasPredecessors.insert({m.index, m.layer});
         }
       }
     }
@@ -138,13 +138,13 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       continue;
     }
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec });
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
   }
 }
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
 {
-  auto fakeCallback = AlgorithmSpec{ [](InitContext& ic) {
+  auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
@@ -153,7 +153,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
     };
-  } };
+  }};
 
   DataProcessorSpec ccdbBackend{
     "internal-dpl-ccdb-backend",
@@ -161,18 +161,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     {},
     fakeCallback,
   };
-  DataProcessorSpec transientStore{ "internal-dpl-transient-store",
-                                    {},
-                                    {},
-                                    fakeCallback };
-  DataProcessorSpec qaStore{ "internal-dpl-qa-store",
-                             {},
-                             {},
-                             fakeCallback };
-  DataProcessorSpec timer{ "internal-dpl-clock",
-                           {},
-                           {},
-                           fakeCallback };
+  DataProcessorSpec transientStore{"internal-dpl-transient-store",
+                                   {},
+                                   {},
+                                   fakeCallback};
+  DataProcessorSpec qaStore{"internal-dpl-qa-store",
+                            {},
+                            {},
+                            fakeCallback};
+  DataProcessorSpec timer{"internal-dpl-clock",
+                          {},
+                          {},
+                          fakeCallback};
 
   // In case InputSpec of origin AOD are
   // requested but not available as part of the workflow,
@@ -184,31 +184,29 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   int separateEnumerations = 0;
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
-    { InputSpec{ "enumeration",
-                 "DPL",
-                 "ENUM",
-                 static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration } },
+    {InputSpec{"enumeration",
+               "DPL",
+               "ENUM",
+               static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration}},
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
-    { ConfigParamSpec{ "aod-file", VariantType::String, "aod.root", { "Input AOD file" } },
-      ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } },
-      ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } },
-      ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
-  };
+    {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
+     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
+     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
 
   DataProcessorSpec run2Converter{
     "internal-dpl-esd-reader",
-    { InputSpec{ "enumeration",
-                 "DPL",
-                 "ENUM",
-                 static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration } },
+    {InputSpec{"enumeration",
+               "DPL",
+               "ENUM",
+               static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration}},
     {},
     readers::AODReaderHelpers::run2ESDConverterCallback(),
-    { ConfigParamSpec{ "esd-file", VariantType::String, "AliESDs.root", { "Input ESD file" } },
-      ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } },
-      ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } },
-      ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
-  };
+    {ConfigParamSpec{"esd-file", VariantType::String, "AliESDs.root", {"Input ESD file"}},
+     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
+     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
@@ -221,10 +219,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     auto& processor = workflow[wi];
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
-      processor.inputs.push_back(InputSpec{ "enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration });
-      processor.options.push_back(ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } });
-      processor.options.push_back(ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } });
-      processor.options.push_back(ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } });
+      processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration});
+      processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}});
     }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
@@ -239,17 +237,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
             }
           }
           if (hasOption == false) {
-            processor.options.push_back(ConfigParamSpec{ "period-" + input.binding, VariantType::Int, 1000, { "period of the timer" } });
+            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
           }
-          timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer });
+          timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer});
         } break;
         case Lifetime::Enumeration: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-          timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
+          timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
         } break;
         case Lifetime::Condition: {
           if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{ "condition-backend", VariantType::String, "http://localhost:8080", { "Url for CCDB" } }),
+            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}}),
               hasConditionOption = true;
           }
           requestedCCDBs.emplace_back(input);
@@ -259,15 +257,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         case Lifetime::Timeframe:
           break;
       }
-      if (DataSpecUtils::partialMatch(input, header::DataOrigin{ "AOD" })) {
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
-      } else if (DataSpecUtils::partialMatch(input, header::DataOrigin{ "RN2" })) {
+      } else if (DataSpecUtils::partialMatch(input, header::DataOrigin{"RN2"})) {
         requestedRUN2s.emplace_back(input);
       }
     }
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
-      if (DataSpecUtils::partialMatch(output, header::DataOrigin{ "AOD" })) {
+      if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
       }
       if (output.lifetime == Lifetime::Condition) {
@@ -294,12 +292,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   if (aodReader.outputs.empty() == false) {
     extraSpecs.push_back(aodReader);
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
+    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
   if (run2Converter.outputs.empty() == false) {
     extraSpecs.push_back(run2Converter);
     auto concrete = DataSpecUtils::asConcreteDataMatcher(run2Converter.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
+    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
   if (timer.outputs.empty() == false) {
@@ -328,27 +326,27 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 }
 
-void
-WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
-                                std::vector<DeviceConnectionEdge> &logicalEdges,
-                                std::vector<OutputSpec> &outputs,
-                                std::vector<LogicalForwardInfo> &forwardedInputsInfo) {
+void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
+                                     std::vector<DeviceConnectionEdge>& logicalEdges,
+                                     std::vector<OutputSpec>& outputs,
+                                     std::vector<LogicalForwardInfo>& forwardedInputsInfo)
+{
   assert(!workflow.empty());
   // This is the state. Oif is the iterator I use for the searches.
   std::list<LogicalOutputInfo> availableOutputsInfo;
-  auto const &constOutputs = outputs; // const version of the outputs
+  auto const& constOutputs = outputs; // const version of the outputs
   decltype(availableOutputsInfo.begin()) oif;
   // Forwards is a local cache to avoid adding forwards before time.
   std::vector<LogicalOutputInfo> forwards;
 
   // Notice that availableOutputsInfo MUST be updated first, since it relies on
   // the size of outputs to be the one before the update.
-  auto enumerateAvailableOutputs = [&workflow,&outputs,&availableOutputsInfo]() {
+  auto enumerateAvailableOutputs = [&workflow, &outputs, &availableOutputsInfo]() {
     for (size_t wi = 0; wi < workflow.size(); ++wi) {
-      auto &producer = workflow[wi];
+      auto& producer = workflow[wi];
 
       for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
-        auto &out = producer.outputs[oi];
+        auto& out = producer.outputs[oi];
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
         outputs.push_back(out);
@@ -384,11 +382,11 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
 
   // We have consumed the input, therefore we remove it from the list.
   // We will insert the forwarded inputs only at the end of the iteration.
-  auto findNextOutputFor = [&availableOutputsInfo,&constOutputs,&oif,&workflow](
-        size_t ci, size_t &ii) {
-    auto &input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
-      auto &output = constOutputs[outputInfo.outputGlobalIndex];
+  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
+                             size_t ci, size_t& ii) {
+    auto& input = workflow[ci].inputs[ii];
+    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+      auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
     oif = availableOutputsInfo.erase(oif);
@@ -397,12 +395,12 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   };
 
   auto numberOfInputsFor = [&workflow](size_t ci) {
-    auto &consumer = workflow[ci];
+    auto& consumer = workflow[ci];
     return consumer.inputs.size();
   };
 
   auto maxInputTimeslicesFor = [&workflow](size_t pi) {
-    auto &processor = workflow[pi];
+    auto& processor = workflow[pi];
     return processor.maxInputTimeslices;
   };
 
@@ -456,18 +454,18 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   // and we need to add a ForwardRoute for the current consumer
   // because it is the one who will actually do the forwarding.
   auto appendForwardsToPossibleOutputs = [&availableOutputsInfo, &forwards]() {
-    for(auto &forward : forwards) {
+    for (auto& forward : forwards) {
       availableOutputsInfo.push_back(forward);
     }
   };
 
-  // Given we create a forward every time we match and input and an 
+  // Given we create a forward every time we match and input and an
   // output, having no forwards means we did not find any matching.
   auto noMatchingOutputFound = [&forwards]() {
     return forwards.empty();
   };
 
-  // Forwards is basically a cache to record 
+  // Forwards is basically a cache to record
   auto newEdgeBetweenDevices = [&forwards]() {
     forwards.clear();
   };
@@ -513,85 +511,75 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
 }
 
 std::vector<EdgeAction>
-WorkflowHelpers::computeOutEdgeActions(
-                               const std::vector<DeviceConnectionEdge> &edges,
-                               const std::vector<size_t> &index
-                               ) {
-  DeviceConnectionEdge last{ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX};
+  WorkflowHelpers::computeOutEdgeActions(
+    const std::vector<DeviceConnectionEdge>& edges,
+    const std::vector<size_t>& index)
+{
+  DeviceConnectionEdge last{ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
 
   assert(edges.size() == index.size());
   std::vector<EdgeAction> actions(edges.size(), EdgeAction{false, false});
   for (size_t i : index) {
-    auto &edge = edges[i];
-    auto &action = actions[i];
-    action.requiresNewDevice = last.producer != edge.producer
-                             || last.producerTimeIndex != edge.producerTimeIndex;
-    action.requiresNewChannel = last.consumer != edge.consumer
-                             || last.producer != edge.producer
-                             || last.timeIndex != edge.timeIndex
-                             || last.producerTimeIndex != edge.producerTimeIndex;
+    auto& edge = edges[i];
+    auto& action = actions[i];
+    action.requiresNewDevice = last.producer != edge.producer || last.producerTimeIndex != edge.producerTimeIndex;
+    action.requiresNewChannel = last.consumer != edge.consumer || last.producer != edge.producer || last.timeIndex != edge.timeIndex || last.producerTimeIndex != edge.producerTimeIndex;
     last = edge;
   }
   return actions;
 }
 
 std::vector<EdgeAction>
-WorkflowHelpers::computeInEdgeActions(
-                               const std::vector<DeviceConnectionEdge> &edges,
-                               const std::vector<size_t> &index
-                               ) {
-  DeviceConnectionEdge last{ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX,ULONG_MAX};
+  WorkflowHelpers::computeInEdgeActions(
+    const std::vector<DeviceConnectionEdge>& edges,
+    const std::vector<size_t>& index)
+{
+  DeviceConnectionEdge last{ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
 
   assert(edges.size() == index.size());
   std::vector<EdgeAction> actions(edges.size(), EdgeAction{false, false});
   for (size_t i : index) {
-    auto &edge = edges[i];
-    auto &action = actions[i];
+    auto& edge = edges[i];
+    auto& action = actions[i];
     // Calculate which actions need to be taken for this edge.
-    action.requiresNewDevice = last.consumer != edge.consumer
-                             || last.timeIndex != edge.timeIndex;
+    action.requiresNewDevice = last.consumer != edge.consumer || last.timeIndex != edge.timeIndex;
     action.requiresNewChannel =
-                              last.consumer != edge.consumer
-                              || last.timeIndex != edge.timeIndex
-                              || last.producer != edge.producer
-                              || last.producerTimeIndex != edge.producerTimeIndex;
+      last.consumer != edge.consumer || last.timeIndex != edge.timeIndex || last.producer != edge.producer || last.producerTimeIndex != edge.producerTimeIndex;
 
     last = edge;
   }
   return actions;
 }
 
-void
-WorkflowHelpers::sortEdges(std::vector<size_t> &inEdgeIndex,
-                           std::vector<size_t> &outEdgeIndex,
-                           const std::vector<DeviceConnectionEdge> &edges) {
+void WorkflowHelpers::sortEdges(std::vector<size_t>& inEdgeIndex,
+                                std::vector<size_t>& outEdgeIndex,
+                                const std::vector<DeviceConnectionEdge>& edges)
+{
   inEdgeIndex.resize(edges.size());
   outEdgeIndex.resize(edges.size());
   std::iota(inEdgeIndex.begin(), inEdgeIndex.end(), 0);
   std::iota(outEdgeIndex.begin(), outEdgeIndex.end(), 0);
 
   // Two indexes, one to bind the outputs, the other
-  // one to connect the inputs. The 
+  // one to connect the inputs. The
   auto outSorter = [&edges](size_t i, size_t j) {
-    auto &a = edges[i];
-    auto &b = edges[j];
-    return std::tie(a.producer, a.producerTimeIndex, a.timeIndex, a.consumer)
-          < std::tie(b.producer, b.producerTimeIndex, b.timeIndex, b.consumer);
+    auto& a = edges[i];
+    auto& b = edges[j];
+    return std::tie(a.producer, a.producerTimeIndex, a.timeIndex, a.consumer) < std::tie(b.producer, b.producerTimeIndex, b.timeIndex, b.consumer);
   };
   auto inSorter = [&edges](size_t i, size_t j) {
-    auto &a = edges[i];
-    auto &b = edges[j];
-    return std::tie(a.consumer, a.timeIndex, a.producer, a.producerTimeIndex)
-          < std::tie(b.consumer, b.timeIndex, b.producer, b.producerTimeIndex);
+    auto& a = edges[i];
+    auto& b = edges[j];
+    return std::tie(a.consumer, a.timeIndex, a.producer, a.producerTimeIndex) < std::tie(b.consumer, b.timeIndex, b.producer, b.producerTimeIndex);
   };
 
   std::sort(inEdgeIndex.begin(), inEdgeIndex.end(), inSorter);
   std::sort(outEdgeIndex.begin(), outEdgeIndex.end(), outSorter);
 }
 
-void
-WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
-  if (workflow.empty()){
+void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow)
+{
+  if (workflow.empty()) {
     throw std::runtime_error("Empty workflow!");
   }
   std::set<std::string> validNames;
@@ -606,15 +594,14 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
 
   std::ostringstream ss;
 
-  for (auto &spec : workflow)
-  {
+  for (auto& spec : workflow) {
     if (spec.name.empty())
       throw std::runtime_error("Invalid DataProcessorSpec name");
     if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
     }
     validNames.insert(spec.name);
-    for (auto &option : spec.options) {
+    for (auto& option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {
         ss << "Mismatch between declared option type and default value type"
@@ -624,7 +611,7 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
       }
     }
     for (size_t ii = 0; ii < spec.inputs.size(); ++ii) {
-      InputSpec const &input = spec.inputs[ii];
+      InputSpec const& input = spec.inputs[ii];
       if (DataSpecUtils::validate(input) == false) {
         ss << "In spec " << spec.name << " input specification "
            << ii << " requires binding, description and origin"
@@ -649,7 +636,7 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
   /// Prepare an index to do the iterations quickly.
   for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
-    auto &spec = workflow[wi];
+    auto& spec = workflow[wi];
     for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
       inputs.push_back(DataMatcherId{wi, ii});
     }
@@ -667,8 +654,8 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
       if (output.workflowId == input.workflowId) {
         continue;
       }
-      auto &outputSpec = workflow[output.workflowId].outputs[output.id];
-      auto &inputSpec = workflow[input.workflowId].inputs[input.id];
+      auto& outputSpec = workflow[output.workflowId].outputs[output.id];
+      auto& inputSpec = workflow[input.workflowId].inputs[input.id];
       if (DataSpecUtils::match(inputSpec, outputSpec)) {
         matched = true;
         break;
@@ -687,5 +674,5 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-} // namespace framwork
+} // namespace framework
 } // namespace o2

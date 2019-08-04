@@ -68,9 +68,9 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   LOG(INFO) << "FT0 DigitReader pushes " << mDigits->size() << " digits";
-  pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, *mDigits);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, *mDigits);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, *mMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mMCTruth);
   }
 
   mFinished = true;
@@ -89,10 +89,9 @@ DataProcessorSpec getFT0DigitReaderSpec(bool useMC)
     "ft0-digit-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<DigitReader>() },
+    AlgorithmSpec{adaptFromTask<DigitReader>()},
     Options{
-      { "ft0-digits-infile", VariantType::String, "ft0digits.root", { "Name of the input file" } } }
-  };
+      {"ft0-digits-infile", VariantType::String, "ft0digits.root", {"Name of the input file"}}}};
 }
 
 } // namespace ft0

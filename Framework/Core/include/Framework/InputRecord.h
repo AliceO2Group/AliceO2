@@ -105,8 +105,7 @@ class InputRecord
 
     constexpr Deleter() = default;
     constexpr Deleter(bool isOwning)
-      : base::default_delete()
-      , mProperty(isOwning ? OwnershipProperty::Owning : OwnershipProperty::NotOwning)
+      : base::default_delete(), mProperty(isOwning ? OwnershipProperty::Owning : OwnershipProperty::NotOwning)
     {
     }
 
@@ -131,7 +130,8 @@ class InputRecord
 
     void operator()(T* ptr) const
     {
-      if (mProperty == OwnershipProperty::NotOwning) return;
+      if (mProperty == OwnershipProperty::NotOwning)
+        return;
       base::operator()(ptr);
     }
 
@@ -139,10 +139,11 @@ class InputRecord
     OwnershipProperty mProperty = OwnershipProperty::Unknown;
   };
 
-  int getPos(const char *name) const;
-  int getPos(const std::string &name) const;
+  int getPos(const char* name) const;
+  int getPos(const std::string& name) const;
 
-  DataRef getByPos(int pos) const {
+  DataRef getByPos(int pos) const
+  {
     if (pos * 2 + 1 > mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
@@ -150,11 +151,11 @@ class InputRecord
       throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
     }
     if (mSpan.get(pos * 2) != nullptr && mSpan.get(pos * 2 + 1) != nullptr) {
-      return DataRef{ &mInputsSchema[pos].matcher,
-                      mSpan.get(pos * 2),
-                      mSpan.get(pos * 2 + 1) };
+      return DataRef{&mInputsSchema[pos].matcher,
+                     mSpan.get(pos * 2),
+                     mSpan.get(pos * 2 + 1)};
     } else {
-      return DataRef{ &mInputsSchema[pos].matcher, nullptr, nullptr };
+      return DataRef{&mInputsSchema[pos].matcher, nullptr, nullptr};
     }
   }
 
@@ -209,9 +210,10 @@ class InputRecord
   /// FIXME: check that the string is null terminated.
   /// @return pointer to payload content
   template <typename T>
-  typename std::enable_if<std::is_same<T, char const *>::value, T>::type
-  get(char const *binding) const {
-    return reinterpret_cast<char const *>(get<DataRef>(binding).payload);
+  typename std::enable_if<std::is_same<T, char const*>::value, T>::type
+    get(char const* binding) const
+  {
+    return reinterpret_cast<char const*>(get<DataRef>(binding).payload);
   }
 
   /// substitution for span of messageable objects
@@ -242,7 +244,8 @@ class InputRecord
   /// @return std::string object
   template <typename T>
   typename std::enable_if<std::is_same<T, std::string>::value, T>::type
-  get(char const *binding) const {
+    get(char const* binding) const
+  {
     auto&& ref = get<DataRef>(binding);
     auto header = header::get<const header::DataHeader*>(ref.header);
     assert(header);
@@ -254,13 +257,13 @@ class InputRecord
   /// create the RDataSource from the arrow buffer.
   template <typename T>
   typename std::enable_if<std::is_same<T, TableConsumer>::value, std::unique_ptr<TableConsumer>>::type
-  get(char const *binding) const
+    get(char const* binding) const
   {
 
     auto&& ref = get<DataRef>(binding);
     auto header = header::get<const header::DataHeader*>(ref.header);
     assert(header);
-    auto data = reinterpret_cast<uint8_t const *>(ref.payload);
+    auto data = reinterpret_cast<uint8_t const*>(ref.payload);
     return std::move(std::make_unique<TableConsumer>(data, header->payloadSize));
   }
 
@@ -314,7 +317,8 @@ class InputRecord
   /// @return DataRef object
   template <typename T = DataRef>
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
-  get(const char *binding) const {
+    get(const char* binding) const
+  {
     try {
       auto pos = getPos(binding);
       if (pos < 0) {
@@ -334,7 +338,8 @@ class InputRecord
   /// @return DataRef object
   template <class T = DataRef>
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
-  get(std::string const &binding) const {
+    get(std::string const& binding) const
+  {
     try {
       auto pos = getPos(binding);
       if (pos < 0) {
@@ -460,24 +465,27 @@ class InputRecord
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(std::string const &s) {
+  bool isValid(std::string const& s)
+  {
     return isValid(s.c_str());
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(char const *s);
+  bool isValid(char const* s);
   bool isValid(int pos);
 
-  size_t size() const {
+  size_t size() const
+  {
     return mSpan.size() / 2;
   }
 
-  template<typename T>
+  template <typename T>
   using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
 
-  template<typename ParentT, typename T>
-  class Iterator : public IteratorBase<T> {
-  public:
+  template <typename ParentT, typename T>
+  class Iterator : public IteratorBase<T>
+  {
+   public:
     using ParentType = ParentT;
     using SelfType = Iterator;
     using value_type = typename IteratorBase<T>::value_type;
@@ -487,11 +495,8 @@ class InputRecord
 
     Iterator() = delete;
 
-  Iterator(ParentType const * parent, size_t position = 0, size_t size = 0)
-      : mParent(parent)
-      , mPosition(position)
-      , mSize(size > position? size : position)
-      , mElement{nullptr, nullptr, nullptr}
+    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
+      : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
         mElement = mParent->getByPos(mPosition);
@@ -501,49 +506,58 @@ class InputRecord
     ~Iterator() = default;
 
     // prefix increment
-    SelfType& operator++() {
+    SelfType& operator++()
+    {
       if (mPosition < mSize && ++mPosition < mSize) {
         mElement = mParent->getByPos(mPosition);
       }
       return *this;
     }
     // postfix increment
-    SelfType operator++(int /*unused*/) {
-      SelfType copy(*this); operator++(); return copy;
+    SelfType operator++(int /*unused*/)
+    {
+      SelfType copy(*this);
+      operator++();
+      return copy;
     }
     // return reference
-    reference operator*() {
+    reference operator*()
+    {
       return mElement;
     }
     // comparison
-    bool operator==(const SelfType& rh) {
+    bool operator==(const SelfType& rh)
+    {
       return mPosition == rh.mPosition;
     }
     // comparison
-    bool operator!=(const SelfType& rh) {
+    bool operator!=(const SelfType& rh)
+    {
       return mPosition != rh.mPosition;
     }
 
-  private:
+   private:
     size_t mPosition;
     size_t mSize;
-    ParentType const * mParent;
+    ParentType const* mParent;
     ElementType mElement;
   };
 
   using iterator = Iterator<InputRecord, DataRef>;
   using const_iterator = Iterator<InputRecord, const DataRef>;
 
-  const_iterator begin() const {
+  const_iterator begin() const
+  {
     return const_iterator(this, 0, size());
   }
 
-  const_iterator end() const {
+  const_iterator end() const
+  {
     return const_iterator(this, size());
   }
 
-private:
-  std::vector<InputRoute> const &mInputsSchema;
+ private:
+  std::vector<InputRoute> const& mInputsSchema;
   InputSpan mSpan;
 };
 

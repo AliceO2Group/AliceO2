@@ -33,12 +33,14 @@
 #include <boost/signals2.hpp>
 #include <boost/program_options.hpp>
 //using boost::signals2::signal;
-typedef boost::signals2::signal<unsigned char* (unsigned int)> cballoc_signal_t;
+typedef boost::signals2::signal<unsigned char*(unsigned int)> cballoc_signal_t;
 
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 class SystemInterface;
 
 /// @class Component
@@ -72,8 +74,9 @@ class SystemInterface;
 ///                 2  blocks concatenated in one message (default)
 ///                 3  O2 data format (default)
 ///
-class Component {
-public:
+class Component
+{
+ public:
   /// default constructor
   Component();
   /// destructor
@@ -111,8 +114,7 @@ public:
     "msgsize",
     "output-mode",
     "instance-id",
-    nullptr
-  };
+    nullptr};
 
   /// Init the component
   int init(int argc, char** argv);
@@ -123,13 +125,12 @@ public:
   /// payload. After processing, handles to output blocks are provided in this
   /// list.
   int process(std::vector<o2::alice_hlt::MessageFormat::BufferDesc_t>& dataArray,
-              cballoc_signal_t* cbAllocate=nullptr);
+              cballoc_signal_t* cbAllocate = nullptr);
 
-  int getEventCount() const {return mEventCount;}
+  int getEventCount() const { return mEventCount; }
 
-protected:
-
-private:
+ protected:
+ private:
   // copy constructor prohibited
   Component(const Component&);
   // assignment operator prohibited

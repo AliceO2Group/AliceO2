@@ -74,9 +74,9 @@ class RecPoints
   uint16_t getBC() const { return mIntRecord.bc; }
 
  private:
-  std::array<Float_t, 3> mCollisionTime = { 2 * o2::InteractionRecord::DummyTime,
-                                            2 * o2::InteractionRecord::DummyTime,
-                                            2 * o2::InteractionRecord::DummyTime };
+  std::array<Float_t, 3> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime};
   Float_t mVertex = 0;
   Double_t mEventTime = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
   std::vector<o2::ft0::ChannelData> mTimeAmp;

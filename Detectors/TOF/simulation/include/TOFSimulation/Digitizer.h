@@ -151,6 +151,6 @@ class Digitizer
 
   ClassDefNV(Digitizer, 1);
 };
-}
-}
+} // namespace tof
+} // namespace o2
 #endif

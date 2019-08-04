@@ -32,8 +32,10 @@
 
 using namespace std;
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 EventManager* EventManager::instance = nullptr;
 

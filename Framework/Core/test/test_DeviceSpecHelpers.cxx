@@ -106,27 +106,27 @@ void check(const std::vector<std::string>& arguments,
 BOOST_AUTO_TEST_CASE(test_prepareArguments)
 {
   std::vector<ConfigParamSpec> workflowOptions{
-    { "foo", VariantType::String, "bar", { "the famous foo option" } },
-    { "depth", VariantType::Int, 1, { "number of processors" } },
+    {"foo", VariantType::String, "bar", {"the famous foo option"}},
+    {"depth", VariantType::Int, 1, {"number of processors"}},
   };
 
   auto algorithm = [](ProcessingContext& ctx) {};
 
   WorkflowSpec workflow{
-    { "processor0",
-      {},
-      { OutputSpec{ { "output" }, "TST", "DUMMYDATA", 0, Lifetime::Timeframe } },
-      AlgorithmSpec(algorithm),
-      Options{
-        { "mode", VariantType::String, "default", { "The Mode" } },
-      } },
-    { "processor1",
-      { InputSpec{ "input", "TST", "DUMMYDATA", 0, Lifetime::Timeframe } },
-      {},
-      AlgorithmSpec(algorithm),
-      Options{
-        { "mode", VariantType::String, "default", { "The Mode" } },
-      } },
+    {"processor0",
+     {},
+     {OutputSpec{{"output"}, "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+     AlgorithmSpec(algorithm),
+     Options{
+       {"mode", VariantType::String, "default", {"The Mode"}},
+     }},
+    {"processor1",
+     {InputSpec{"input", "TST", "DUMMYDATA", 0, Lifetime::Timeframe}},
+     {},
+     AlgorithmSpec(algorithm),
+     Options{
+       {"mode", VariantType::String, "default", {"The Mode"}},
+     }},
   };
 
   std::vector<DeviceSpec> deviceSpecs;
@@ -145,37 +145,37 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
 
   // checking with empty command line arguments, all processors must have the options with
   // default arguments
-  matrix["processor0"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "default" } };
+  matrix["processor0"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "default"}};
   matrix["processor1"] = matrix["processor0"];
   check({}, workflowOptions, deviceSpecs, matrix);
 
   // checking with unknown arguments, silently ignored, same test matrix
-  check({ "--unknown", "option" }, workflowOptions, deviceSpecs, matrix);
+  check({"--unknown", "option"}, workflowOptions, deviceSpecs, matrix);
 
   // configuring mode, both devices must have the option set
-  matrix["processor0"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "silly" } };
+  matrix["processor0"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "silly"}};
   matrix["processor1"] = matrix["processor0"];
-  check({ "--mode", "silly" }, workflowOptions, deviceSpecs, matrix);
+  check({"--mode", "silly"}, workflowOptions, deviceSpecs, matrix);
 
   // configuring option group, only processor0 must have the option set, processor1 default
-  matrix["processor0"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "silly" } };
-  matrix["processor1"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "default" } };
-  check({ "--processor0", "--mode silly" }, workflowOptions, deviceSpecs, matrix);
+  matrix["processor0"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "silly"}};
+  matrix["processor1"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "default"}};
+  check({"--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
 
   // processor0 must have the mode set to silly via option group, processor1 advanced from the argument
-  matrix["processor0"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "silly" } };
-  matrix["processor1"] = { { "--depth", "1" }, { "--foo", "bar" }, { "--mode", "advanced" } };
-  check({ "--mode", "advanced", "--processor0", "--mode silly" }, workflowOptions, deviceSpecs, matrix);
+  matrix["processor0"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "silly"}};
+  matrix["processor1"] = {{"--depth", "1"}, {"--foo", "bar"}, {"--mode", "advanced"}};
+  check({"--mode", "advanced", "--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
 
   // both devices have the workflow option propagated, others defaulted
-  matrix["processor0"] = { { "--depth", "2" }, { "--foo", "bar" }, { "--mode", "default" } };
+  matrix["processor0"] = {{"--depth", "2"}, {"--foo", "bar"}, {"--mode", "default"}};
   matrix["processor1"] = matrix["processor0"];
-  check({ "--depth", "2" }, workflowOptions, deviceSpecs, matrix);
+  check({"--depth", "2"}, workflowOptions, deviceSpecs, matrix);
 
   // both devices have the workflow option propagated, processor0 mode silly via option group
-  matrix["processor0"] = { { "--depth", "2" }, { "--foo", "bar" }, { "--mode", "silly" } };
-  matrix["processor1"] = { { "--depth", "2" }, { "--foo", "bar" }, { "--mode", "default" } };
-  check({ "--depth", "2", "--processor0", "--mode silly" }, workflowOptions, deviceSpecs, matrix);
+  matrix["processor0"] = {{"--depth", "2"}, {"--foo", "bar"}, {"--mode", "silly"}};
+  matrix["processor1"] = {{"--depth", "2"}, {"--foo", "bar"}, {"--mode", "default"}};
+  check({"--depth", "2", "--processor0", "--mode silly"}, workflowOptions, deviceSpecs, matrix);
 }
-}
-}
+} // namespace framework
+} // namespace o2

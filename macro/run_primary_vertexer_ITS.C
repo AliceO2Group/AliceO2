@@ -114,7 +114,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   TNtuple trackdeltaTanLambdas("dtl", "dtl", "deltatanlambda:c0z:c0r:c1z:c1r:c2z:c2r:evtId:valid");
   TNtuple centroids("centroids", "centroids", "id:x:y:z:dca");
   TNtuple linesData("ld", "linesdata", "x:xy:xz:y:yz:z");
-  const o2::its::Line zAxis{ std::array<float, 3>{ 0.f, 0.f, -1.f }, std::array<float, 3>{ 0.f, 0.f, 1.f } };
+  const o2::its::Line zAxis{std::array<float, 3>{0.f, 0.f, -1.f}, std::array<float, 3>{0.f, 0.f, 1.f}};
 #endif
 
   // Benchmarks
@@ -149,14 +149,14 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   o2::its::Vertexer vertexer(traits);
   vertexer.setParameters(parameters);
 
-  for (size_t iROfCount{ static_cast<size_t>(startAt) }; iROfCount < static_cast<size_t>(stopAt); ++iROfCount) {
+  for (size_t iROfCount{static_cast<size_t>(startAt)}; iROfCount < static_cast<size_t>(stopAt); ++iROfCount) {
     auto& rof = (*rofs)[iROfCount];
     std::cout << "ROframe: " << iROfCount << std::endl;
     itsClusters.GetEntry(rof.getROFEntry().getEvent());
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
     int nclUsed = o2::its::ioutils::loadROFrameData(rof, frame, clusters, labels);
 
-    std::array<float, 3> total{ 0.f, 0.f, 0.f };
+    std::array<float, 3> total{0.f, 0.f, 0.f};
     o2::its::ROframe* eventptr = &frame;
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
@@ -177,12 +177,12 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     std::vector<std::array<float, 9>> dtlambdas = vertexer.getDeltaTanLambdas();
     for (auto& line : lines)
       tracklets.Fill(line.originPoint[0], line.originPoint[1], line.originPoint[2], line.cosinesDirector[0], line.cosinesDirector[1], line.cosinesDirector[2],
-                     o2::its::Line::getDistanceFromPoint(line, std::array<float, 3>{ 0.f, 0.f, 0.f }), o2::its::Line::getDCA(line, zAxis));
-    for (int i{ 0 }; i < static_cast<int>(c01.size()); ++i) {
+                     o2::its::Line::getDistanceFromPoint(line, std::array<float, 3>{0.f, 0.f, 0.f}), o2::its::Line::getDCA(line, zAxis));
+    for (int i{0}; i < static_cast<int>(c01.size()); ++i) {
       comb01.Fill(c01[i].tanLambda, c01[i].phiCoordinate);
       clusPhi01.Fill(clusters[0][c01[i].firstClusterIndex].phiCoordinate, clusters[1][c01[i].secondClusterIndex].phiCoordinate);
     }
-    for (int i{ 0 }; i < static_cast<int>(c12.size()); ++i) {
+    for (int i{0}; i < static_cast<int>(c12.size()); ++i) {
       comb12.Fill(c12[i].tanLambda, c12[i].phiCoordinate);
       clusPhi12.Fill(clusters[1][c12[i].firstClusterIndex].phiCoordinate, clusters[2][c12[i].secondClusterIndex].phiCoordinate);
     }

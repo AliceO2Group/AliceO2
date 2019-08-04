@@ -32,6 +32,7 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     ("n",bpo::value<int>()->default_value(-1), "How many loops");
   options.add_options()
@@ -43,6 +44,7 @@ void addCustomOptions(bpo::options_description& options)
      default_value("I am the info payload"), "the info string in the payload");
   options.add_options()
     ("name",bpo::value<std::string>()->default_value(""), "optional name in the header");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

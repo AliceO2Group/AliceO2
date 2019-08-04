@@ -36,6 +36,6 @@ const GPUStream& Stream::get() const
   return mStream;
 }
 
-}
-}
-}
+} // namespace GPU
+} // namespace its
+} // namespace o2

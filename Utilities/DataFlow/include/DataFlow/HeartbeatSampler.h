@@ -23,8 +23,10 @@
 #include "O2Device/O2Device.h"
 #include <string>
 
-namespace o2 {
-namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 /// @class HeartbeatSampler
 /// @brief A sampler for heartbeat triggers
@@ -38,7 +40,7 @@ namespace data_flow {
 /// configurable period, even randomly distributed
 class HeartbeatSampler : public base::O2Device
 {
-public:
+ public:
   typedef o2::base::O2Message O2Message;
 
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
@@ -47,14 +49,14 @@ public:
   HeartbeatSampler() = default;
   ~HeartbeatSampler() final = default;
 
-protected:
+ protected:
   /// overloading the InitTask() method of FairMQDevice
   void InitTask() final;
 
   /// overloading ConditionalRun method of FairMQDevice
   bool ConditionalRun() final;
 
-private:
+ private:
   /// publishing period (configurable)
   uint32_t mPeriod = 1000000000;
   /// name of the (configurable)
@@ -64,5 +66,5 @@ private:
 };
 
 } // namespace data_flow
-}; // namespace AliceO2
+}; // namespace o2
 #endif

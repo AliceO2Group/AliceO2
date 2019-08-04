@@ -11,23 +11,23 @@
 #include "TPCBase/DigitPos.h"
 #include "TPCBase/Mapper.h"
 
-namespace o2 {
-namespace tpc {
-
-
-PadPos    DigitPos::getGlobalPadPos() const
+namespace o2
 {
-  const Mapper &mapper = Mapper::instance();
-  const PadRegionInfo &p=mapper.getPadRegionInfo(mCRU.region());
+namespace tpc
+{
 
-  return PadPos(mPadPos.getRow()+p.getGlobalRowOffset(), mPadPos.getPad());
+PadPos DigitPos::getGlobalPadPos() const
+{
+  const Mapper& mapper = Mapper::instance();
+  const PadRegionInfo& p = mapper.getPadRegionInfo(mCRU.region());
+
+  return PadPos(mPadPos.getRow() + p.getGlobalRowOffset(), mPadPos.getPad());
 }
-
 
 PadSecPos DigitPos::getPadSecPos() const
 {
   return PadSecPos(mCRU.sector(), getGlobalPadPos());
 }
 
-}
-}
+} // namespace tpc
+} // namespace o2

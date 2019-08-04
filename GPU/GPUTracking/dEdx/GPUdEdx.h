@@ -56,8 +56,8 @@ class GPUdEdx
   float mChargeMax[MAX_NCL]; // No need for default, just some memory
   float mSubThreshMinTot = 0.f;
   float mSubThreshMinMax = 0.f;
-  unsigned char mNClsROC[4] = { 0 };
-  unsigned char mNClsROCSubThresh[4] = { 0 };
+  unsigned char mNClsROC[4] = {0};
+  unsigned char mNClsROCSubThresh[4] = {0};
   unsigned char mCount = 0;
   unsigned char mLastROC = 255;
   char mNSubThresh = 0;

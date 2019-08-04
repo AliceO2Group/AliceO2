@@ -27,31 +27,29 @@ using Stack = o2::header::Stack;
 static void BM_InputRecordGenericGetters(benchmark::State& state)
 {
   // Create the routes we want for the InputRecord
-  InputSpec spec1{ "x", "TPC", "CLUSTERS", 0, Lifetime::Timeframe };
-  InputSpec spec2{ "y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe };
-  InputSpec spec3{ "z", "TST", "EMPTY", 0, Lifetime::Timeframe };
+  InputSpec spec1{"x", "TPC", "CLUSTERS", 0, Lifetime::Timeframe};
+  InputSpec spec2{"y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe};
+  InputSpec spec3{"z", "TST", "EMPTY", 0, Lifetime::Timeframe};
 
   auto createRoute = [](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,
-      source
-    };
+      source};
   };
 
   std::vector<InputRoute> schema = {
     createRoute("x_source", spec1),
     createRoute("y_source", spec2),
-    createRoute("z_source", spec3)
-  };
+    createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, { [](size_t) { return nullptr; }, 0 });
+  InputRecord emptyRecord(schema, {[](size_t) { return nullptr; }, 0});
 
   std::vector<void*> inputs;
 
   auto createMessage = [&inputs](DataHeader& dh, int value) {
-    DataProcessingHeader dph{ 0, 1 };
-    Stack stack{ dh, dph };
+    DataProcessingHeader dph{0, 1};
+    Stack stack{dh, dph};
     void* header = malloc(stack.size());
     void* payload = malloc(sizeof(int));
     memcpy(header, stack.data(), stack.size());
@@ -78,8 +76,8 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{ [&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size() };
-  InputRecord record{ schema, std::move(span) };
+  InputSpan span{[&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size()};
+  InputRecord record{schema, std::move(span)};
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name

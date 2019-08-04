@@ -183,35 +183,34 @@ class TRDGeometryBase
 
   static constexpr float TIME0BASE = 300.65; ///< Base value for calculation of Time-position of pad 0
   // Time-position of pad 0
-  static constexpr float TIME0[6] = { TIME0BASE + 0 * (CH + VSPACE),
-                                      TIME0BASE + 1 * (CH + VSPACE),
-                                      TIME0BASE + 2 * (CH + VSPACE),
-                                      TIME0BASE + 3 * (CH + VSPACE),
-                                      TIME0BASE + 4 * (CH + VSPACE),
-                                      TIME0BASE + 5 * (CH + VSPACE) };
+  static constexpr float TIME0[6] = {TIME0BASE + 0 * (CH + VSPACE),
+                                     TIME0BASE + 1 * (CH + VSPACE),
+                                     TIME0BASE + 2 * (CH + VSPACE),
+                                     TIME0BASE + 3 * (CH + VSPACE),
+                                     TIME0BASE + 4 * (CH + VSPACE),
+                                     TIME0BASE + 5 * (CH + VSPACE)};
 
   static constexpr float XTRDBEG = 288.43; ///< X-coordinate in tracking system of begin of TRD mother volume
   static constexpr float XTRDEND = 366.33; ///< X-coordinate in tracking system of end of TRD mother volume
 
   // The outer width of the chambers
-  static constexpr float CWIDTH[kNlayer] = { 90.4, 94.8, 99.3, 103.7, 108.1, 112.6 };
+  static constexpr float CWIDTH[kNlayer] = {90.4, 94.8, 99.3, 103.7, 108.1, 112.6};
 
   // The outer lengths of the chambers
   // Includes the spacings between the chambers!
   static constexpr float CLENGTH[kNlayer][kNstack] = {
-    { 124.0, 124.0, 110.0, 124.0, 124.0 },
-    { 124.0, 124.0, 110.0, 124.0, 124.0 },
-    { 131.0, 131.0, 110.0, 131.0, 131.0 },
-    { 138.0, 138.0, 110.0, 138.0, 138.0 },
-    { 145.0, 145.0, 110.0, 145.0, 145.0 },
-    { 147.0, 147.0, 110.0, 147.0, 147.0 }
-  };
+    {124.0, 124.0, 110.0, 124.0, 124.0},
+    {124.0, 124.0, 110.0, 124.0, 124.0},
+    {131.0, 131.0, 110.0, 131.0, 131.0},
+    {138.0, 138.0, 110.0, 138.0, 138.0},
+    {145.0, 145.0, 110.0, 145.0, 145.0},
+    {147.0, 147.0, 110.0, 147.0, 147.0}};
 
   TRDPadPlane mPadPlanes[kNlayer * kNstack];
 
   int mSMStatus = 0x3ffff;
 
-  ClassDefNV(TRDGeometryBase, 1)
+  ClassDefNV(TRDGeometryBase, 1);
 };
 } // end namespace trd
 } // end namespace o2

@@ -11,37 +11,36 @@
 /// \file V11Geometry.cxx
 /// \brief Implementation of the V11Geometry class
 
-
 #include "ITSSimulation/V11Geometry.h"
 
-#include "FairLogger.h"    // for LOG
+#include "FairLogger.h" // for LOG
 
-#include <TArc.h>          // for TArc
-#include <TArrow.h>        // for TArrow
-#include <TCanvas.h>       // for TCanvas
-#include <TGeoArb8.h>      // for TGeoArb8
-#include <TGeoElement.h>   // for TGeoElement
-#include <TGeoMaterial.h>  // for TGeoMixture, TGeoMaterial, etc
-#include <TGeoPcon.h>      // for TGeoPcon
-#include <TGeoCone.h>      // for TGeoConSeg
-#include <TLine.h>         // for TLine
-#include <TPolyLine.h>     // for TPolyLine
-#include <TPolyMarker.h>   // for TPolyMarker
-#include <TText.h>         // for TText
-#include "TMath.h"         // for DegToRad, Cos, Sqrt, ATan2, Sin, Tan, Pi, etc
-#include "TMathBase.h"     // for Max, Min, Abs
-#include <TGeoTube.h>      // for TGeoTubeSeg
+#include <TArc.h>         // for TArc
+#include <TArrow.h>       // for TArrow
+#include <TCanvas.h>      // for TCanvas
+#include <TGeoArb8.h>     // for TGeoArb8
+#include <TGeoElement.h>  // for TGeoElement
+#include <TGeoMaterial.h> // for TGeoMixture, TGeoMaterial, etc
+#include <TGeoPcon.h>     // for TGeoPcon
+#include <TGeoCone.h>     // for TGeoConSeg
+#include <TLine.h>        // for TLine
+#include <TPolyLine.h>    // for TPolyLine
+#include <TPolyMarker.h>  // for TPolyMarker
+#include <TText.h>        // for TText
+#include "TMath.h"        // for DegToRad, Cos, Sqrt, ATan2, Sin, Tan, Pi, etc
+#include "TMathBase.h"    // for Max, Min, Abs
+#include <TGeoTube.h>     // for TGeoTubeSeg
 
-#include <cstdio>         // for printf, snprintf
+#include <cstdio> // for printf, snprintf
 #include <Riostream.h>
 
-using std::endl;
-using std::cout;
 using std::cin;
+using std::cout;
+using std::endl;
 
 using namespace o2::its;
 
-ClassImp(o2::its::V11Geometry)
+ClassImp(o2::its::V11Geometry);
 
 const Double_t V11Geometry::sMicron = 1.0E-4;
 const Double_t V11Geometry::sMm = 0.10;
@@ -60,7 +59,7 @@ const Double_t V11Geometry::sMEV = 1.0e-3;    // GeV default
 const Double_t V11Geometry::sGEV = 1.0;       // GeV default
 
 void V11Geometry::intersectLines(Double_t m, Double_t x0, Double_t y0, Double_t n, Double_t x1,
-                                 Double_t y1, Double_t &xi, Double_t &yi) const
+                                 Double_t y1, Double_t& xi, Double_t& yi) const
 {
   if (TMath::Abs(m - n) < 0.000001) {
     LOG(ERROR) << "Lines are parallel: m = " << m << " n = " << n << FairLogger::endl;
@@ -74,8 +73,8 @@ void V11Geometry::intersectLines(Double_t m, Double_t x0, Double_t y0, Double_t 
 }
 
 Bool_t V11Geometry::intersectCircle(Double_t m, Double_t x0, Double_t y0, Double_t rr, Double_t xc,
-                                    Double_t yc, Double_t &xi1, Double_t &yi1, Double_t &xi2,
-                                    Double_t &yi2)
+                                    Double_t yc, Double_t& xi1, Double_t& yi1, Double_t& xi2,
+                                    Double_t& yi2)
 {
   Double_t p = m * x0 - y0;
   Double_t q = m * m + 1;
@@ -97,19 +96,21 @@ Bool_t V11Geometry::intersectCircle(Double_t m, Double_t x0, Double_t y0, Double
 }
 
 Double_t V11Geometry::yFrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x)
-const
+  const
 {
   if (x0 == x1 && y0 == y1) {
-    printf("Error: V11Geometry::Yfrom2Ponts The two points are "
-             "the same (%e,%e) and (%e,%e)",
-           x0, y0, x1, y1);
+    printf(
+      "Error: V11Geometry::Yfrom2Ponts The two points are "
+      "the same (%e,%e) and (%e,%e)",
+      x0, y0, x1, y1);
     return 0.0;
   } // end if
   if (x0 == x1) {
-    printf("Warning: V11Geometry::yFrom2Points x0=%e == x1=%e. "
-             "line vertical "
-             "returning mean y",
-           x0, x1);
+    printf(
+      "Warning: V11Geometry::yFrom2Points x0=%e == x1=%e. "
+      "line vertical "
+      "returning mean y",
+      x0, x1);
     return 0.5 * (y0 + y1);
   } // end if x0==x1
   Double_t m = (y0 - y1) / (x0 - x1);
@@ -117,25 +118,27 @@ const
 }
 
 Double_t V11Geometry::xFrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t y)
-const
+  const
 {
   if (x0 == x1 && y0 == y1) {
-    printf("Error: V11Geometry::Yfrom2Ponts The two points are "
-             "the same (%e,%e) and (%e,%e)",
-           x0, y0, x1, y1);
+    printf(
+      "Error: V11Geometry::Yfrom2Ponts The two points are "
+      "the same (%e,%e) and (%e,%e)",
+      x0, y0, x1, y1);
     return 0.0;
   } // end if
   if (y0 == y1) {
-    printf("Warrning: V11Geometry::yFrom2Points y0=%e == y1=%e. "
-             "line horizontal returning mean x",
-           y0, y1);
+    printf(
+      "Warrning: V11Geometry::yFrom2Points y0=%e == y1=%e. "
+      "line horizontal returning mean x",
+      y0, y1);
     return 0.5 * (x0 + x1);
   } // end if y0==y1
   Double_t m = (x0 - x1) / (y0 - y1);
   return m * (y - y0) + x0;
 }
 
-Double_t V11Geometry::rMaxFrom2Points(const TGeoPcon *p, Int_t i1, Int_t i2, Double_t z) const
+Double_t V11Geometry::rMaxFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
 {
   Double_t d0, d1, d2, r;
 
@@ -146,37 +149,37 @@ Double_t V11Geometry::rMaxFrom2Points(const TGeoPcon *p, Int_t i1, Int_t i2, Dou
   return r;
 }
 
-Double_t V11Geometry::rMinFrom2Points(const TGeoPcon *p, Int_t i1, Int_t i2, Double_t z) const
+Double_t V11Geometry::rMinFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
 {
   return p->GetRmin(i2) +
          (p->GetRmin(i1) - p->GetRmin(i2)) * (z - p->GetZ(i2)) / (p->GetZ(i1) - p->GetZ(i2));
 }
 
-Double_t V11Geometry::rFrom2Points(const Double_t *p, const Double_t *az, Int_t i1, Int_t i2,
+Double_t V11Geometry::rFrom2Points(const Double_t* p, const Double_t* az, Int_t i1, Int_t i2,
                                    Double_t z) const
 {
   return p[i2] + (p[i1] - p[i2]) * (z - az[i2]) / (az[i1] - az[i2]);
 }
 
-Double_t V11Geometry::zFrom2MinPoints(const TGeoPcon *p, Int_t i1, Int_t i2, Double_t r) const
+Double_t V11Geometry::zFrom2MinPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
 {
   return p->GetZ(i2) +
          (p->GetZ(i1) - p->GetZ(i2)) * (r - p->GetRmin(i2)) / (p->GetRmin(i1) - p->GetRmin(i2));
 }
 
-Double_t V11Geometry::zFrom2MaxPoints(const TGeoPcon *p, Int_t i1, Int_t i2, Double_t r) const
+Double_t V11Geometry::zFrom2MaxPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
 {
   return p->GetZ(i2) +
          (p->GetZ(i1) - p->GetZ(i2)) * (r - p->GetRmax(i2)) / (p->GetRmax(i1) - p->GetRmax(i2));
 }
 
-Double_t V11Geometry::zFrom2Points(const Double_t *z, const Double_t *ar, Int_t i1, Int_t i2,
+Double_t V11Geometry::zFrom2Points(const Double_t* z, const Double_t* ar, Int_t i1, Int_t i2,
                                    Double_t r) const
 {
   return z[i2] + (z[i1] - z[i2]) * (r - ar[i2]) / (ar[i1] - ar[i2]);
 }
 
-Double_t V11Geometry::rMaxFromZpCone(const TGeoPcon *p, int ip, Double_t tc, Double_t z,
+Double_t V11Geometry::rMaxFromZpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t z,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -185,7 +188,7 @@ Double_t V11Geometry::rMaxFromZpCone(const TGeoPcon *p, int ip, Double_t tc, Dou
   return -tantc * (z - p->GetZ(ip)) + p->GetRmax(ip) + th / costc;
 }
 
-Double_t V11Geometry::rFromZpCone(const Double_t *ar, const Double_t *az, int ip, Double_t tc,
+Double_t V11Geometry::rFromZpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
                                   Double_t z, Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -194,7 +197,7 @@ Double_t V11Geometry::rFromZpCone(const Double_t *ar, const Double_t *az, int ip
   return -tantc * (z - az[ip]) + ar[ip] + th / costc;
 }
 
-Double_t V11Geometry::rMinFromZpCone(const TGeoPcon *p, Int_t ip, Double_t tc, Double_t z,
+Double_t V11Geometry::rMinFromZpCone(const TGeoPcon* p, Int_t ip, Double_t tc, Double_t z,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -203,7 +206,7 @@ Double_t V11Geometry::rMinFromZpCone(const TGeoPcon *p, Int_t ip, Double_t tc, D
   return -tantc * (z - p->GetZ(ip)) + p->GetRmin(ip) + th / costc;
 }
 
-Double_t V11Geometry::zFromRMaxpCone(const TGeoPcon *p, int ip, Double_t tc, Double_t r,
+Double_t V11Geometry::zFromRMaxpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -212,7 +215,7 @@ Double_t V11Geometry::zFromRMaxpCone(const TGeoPcon *p, int ip, Double_t tc, Dou
   return p->GetZ(ip) + (p->GetRmax(ip) + th / costc - r) / tantc;
 }
 
-Double_t V11Geometry::zFromRMaxpCone(const Double_t *ar, const Double_t *az, int ip, Double_t tc,
+Double_t V11Geometry::zFromRMaxpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
                                      Double_t r, Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -221,7 +224,7 @@ Double_t V11Geometry::zFromRMaxpCone(const Double_t *ar, const Double_t *az, int
   return az[ip] + (ar[ip] + th / costc - r) / tantc;
 }
 
-Double_t V11Geometry::zFromRMinpCone(const TGeoPcon *p, int ip, Double_t tc, Double_t r,
+Double_t V11Geometry::zFromRMinpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -231,15 +234,15 @@ Double_t V11Geometry::zFromRMinpCone(const TGeoPcon *p, int ip, Double_t tc, Dou
 }
 
 void V11Geometry::radiusOfCurvature(Double_t rc, Double_t theta0, Double_t z0, Double_t r0,
-                                    Double_t theta1, Double_t &z1, Double_t &r1) const
+                                    Double_t theta1, Double_t& z1, Double_t& r1) const
 {
   z1 = rc * (TMath::Sin(theta1 * TMath::DegToRad()) - TMath::Sin(theta0 * TMath::DegToRad())) + z0;
   r1 = rc * (TMath::Cos(theta1 * TMath::DegToRad()) - TMath::Cos(theta0 * TMath::DegToRad())) + r0;
   return;
 }
 
-void V11Geometry::insidePoint(const TGeoPcon *p, Int_t i1, Int_t i2, Int_t i3, Double_t c,
-                              TGeoPcon *q, Int_t j1, Bool_t max) const
+void V11Geometry::insidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, Double_t c,
+                              TGeoPcon* q, Int_t j1, Bool_t max) const
 {
   Double_t x0, y0, x1, y1, x2, y2, x, y;
 
@@ -279,7 +282,7 @@ void V11Geometry::insidePoint(const TGeoPcon *p, Int_t i1, Int_t i2, Int_t i3, D
 }
 
 void V11Geometry::insidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x2,
-                              Double_t y2, Double_t c, Double_t &x, Double_t &y) const
+                              Double_t y2, Double_t c, Double_t& x, Double_t& y) const
 {
   Double_t dx01, dx12, dy01, dy12, r01, r12, m;
 
@@ -307,7 +310,7 @@ void V11Geometry::insidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1
       x = x1 - 0.5 * c * r01 / dy01; // cout <<"L434 x="<<x<<endl;
       y = y1 + 0.5 * c * r01 / dx01; // cout <<"L435 y="<<y<<endl;
       // printf("m*m<DBL_E x=% #12.7g y=% #12.7g\n",x,y);
-    }                                // end if
+    } // end if
     return;
   }
   x = x1 + c * (dx12 * r01 - dx01 * r12) / m; // cout <<"L442 x="<<x<<endl;
@@ -317,7 +320,7 @@ void V11Geometry::insidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1
   return;
 }
 
-void V11Geometry::printArb8(const TGeoArb8 *a) const
+void V11Geometry::printArb8(const TGeoArb8* a) const
 {
   if (!getDebug()) {
     return;
@@ -327,59 +330,59 @@ void V11Geometry::printArb8(const TGeoArb8 *a) const
   return;
 }
 
-void V11Geometry::printPcon(const TGeoPcon *a) const
+void V11Geometry::printPcon(const TGeoPcon* a) const
 {
   if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": N=" << a->GetNz() << " Phi1=" << a->GetPhi1()
-  << ", Dphi=" << a->GetDphi() << endl;
+       << ", Dphi=" << a->GetDphi() << endl;
   cout << "i\t   Z   \t  Rmin \t  Rmax" << endl;
   for (Int_t iii = 0; iii < a->GetNz(); iii++) {
     cout << iii << "\t" << a->GetZ(iii) << "\t" << a->GetRmin(iii) << "\t" << a->GetRmax(iii)
-    << endl;
+         << endl;
   } // end for iii
   return;
 }
 
-void V11Geometry::printTube(const TGeoTube *a) const
+void V11Geometry::printTube(const TGeoTube* a) const
 {
   if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Rmin=" << a->GetRmin() << " Rmax=" << a->GetRmax()
-  << " Dz=" << a->GetDz() << endl;
+       << " Dz=" << a->GetDz() << endl;
   return;
 }
 
-void V11Geometry::printTubeSeg(const TGeoTubeSeg *a) const
+void V11Geometry::printTubeSeg(const TGeoTubeSeg* a) const
 {
   if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Phi1=" << a->GetPhi1() << " Phi2=" << a->GetPhi2()
-  << " Rmin=" << a->GetRmin() << " Rmax=" << a->GetRmax() << " Dz=" << a->GetDz() << endl;
+       << " Rmin=" << a->GetRmin() << " Rmax=" << a->GetRmax() << " Dz=" << a->GetDz() << endl;
   return;
 }
 
-void V11Geometry::printConeSeg(const TGeoConeSeg *a) const
+void V11Geometry::printConeSeg(const TGeoConeSeg* a) const
 {
   if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Phi1=" << a->GetPhi1() << " Phi2=" << a->GetPhi2()
-  << " Rmin1=" << a->GetRmin1() << " Rmax1=" << a->GetRmax1() << " Rmin2=" << a->GetRmin2()
-  << " Rmax2=" << a->GetRmax2() << " Dz=" << a->GetDz() << endl;
+       << " Rmin1=" << a->GetRmin1() << " Rmax1=" << a->GetRmax1() << " Rmin2=" << a->GetRmin2()
+       << " Rmax2=" << a->GetRmax2() << " Dz=" << a->GetDz() << endl;
   return;
 }
 
-void V11Geometry::printBBox(const TGeoBBox *a) const
+void V11Geometry::printBBox(const TGeoBBox* a) const
 {
   if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Dx=" << a->GetDX() << " Dy=" << a->GetDY() << " Dz=" << a->GetDZ()
-  << endl;
+       << endl;
   return;
 }
 
@@ -389,30 +392,30 @@ void V11Geometry::createDefaultMaterials()
   Double_t w;
 
   // Define some elements
-  auto *itsH = new TGeoElement("ITS_H", "Hydrogen", 1, 1.00794);
-  auto *itsHe = new TGeoElement("ITS_He", "Helium", 2, 4.002602);
-  auto *itsC = new TGeoElement("ITS_C", "Carbon", 6, 12.0107);
-  auto *itsN = new TGeoElement("ITS_N", "Nitrogen", 7, 14.0067);
-  auto *itsO = new TGeoElement("ITS_O", "Oxygen", 8, 15.994);
-  auto *itsF = new TGeoElement("ITS_F", "Florine", 9, 18.9984032);
-  auto *itsNe = new TGeoElement("ITS_Ne", "Neon", 10, 20.1797);
-  auto *itsMg = new TGeoElement("ITS_Mg", "Magnesium", 12, 24.3050);
-  auto *itsAl = new TGeoElement("ITS_Al", "Aluminum", 13, 26981538);
-  auto *itsSi = new TGeoElement("ITS_Si", "Silicon", 14, 28.0855);
-  auto *itsP = new TGeoElement("ITS_P", "Phosphorous", 15, 30.973761);
-  auto *itsS = new TGeoElement("ITS_S", "Sulfur", 16, 32.065);
-  auto *itsAr = new TGeoElement("ITS_Ar", "Argon", 18, 39.948);
-  auto *itsTi = new TGeoElement("ITS_Ti", "Titanium", 22, 47.867);
-  auto *itsCr = new TGeoElement("ITS_Cr", "Chromium", 24, 51.9961);
-  auto *itsMn = new TGeoElement("ITS_Mn", "Manganese", 25, 54.938049);
-  auto *itsFe = new TGeoElement("ITS_Fe", "Iron", 26, 55.845);
-  auto *itsCo = new TGeoElement("ITS_Co", "Cobalt", 27, 58.933200);
-  auto *itsNi = new TGeoElement("ITS_Ni", "Nickrl", 28, 56.6930);
-  auto *itsCu = new TGeoElement("ITS_Cu", "Copper", 29, 63.546);
-  auto *itsZn = new TGeoElement("ITS_Zn", "Zinc", 30, 65.39);
-  auto *itsKr = new TGeoElement("ITS_Kr", "Krypton", 36, 83.80);
-  auto *itsMo = new TGeoElement("ITS_Mo", "Molylibdium", 42, 95.94);
-  auto *itsXe = new TGeoElement("ITS_Xe", "Zeon", 54, 131.293);
+  auto* itsH = new TGeoElement("ITS_H", "Hydrogen", 1, 1.00794);
+  auto* itsHe = new TGeoElement("ITS_He", "Helium", 2, 4.002602);
+  auto* itsC = new TGeoElement("ITS_C", "Carbon", 6, 12.0107);
+  auto* itsN = new TGeoElement("ITS_N", "Nitrogen", 7, 14.0067);
+  auto* itsO = new TGeoElement("ITS_O", "Oxygen", 8, 15.994);
+  auto* itsF = new TGeoElement("ITS_F", "Florine", 9, 18.9984032);
+  auto* itsNe = new TGeoElement("ITS_Ne", "Neon", 10, 20.1797);
+  auto* itsMg = new TGeoElement("ITS_Mg", "Magnesium", 12, 24.3050);
+  auto* itsAl = new TGeoElement("ITS_Al", "Aluminum", 13, 26981538);
+  auto* itsSi = new TGeoElement("ITS_Si", "Silicon", 14, 28.0855);
+  auto* itsP = new TGeoElement("ITS_P", "Phosphorous", 15, 30.973761);
+  auto* itsS = new TGeoElement("ITS_S", "Sulfur", 16, 32.065);
+  auto* itsAr = new TGeoElement("ITS_Ar", "Argon", 18, 39.948);
+  auto* itsTi = new TGeoElement("ITS_Ti", "Titanium", 22, 47.867);
+  auto* itsCr = new TGeoElement("ITS_Cr", "Chromium", 24, 51.9961);
+  auto* itsMn = new TGeoElement("ITS_Mn", "Manganese", 25, 54.938049);
+  auto* itsFe = new TGeoElement("ITS_Fe", "Iron", 26, 55.845);
+  auto* itsCo = new TGeoElement("ITS_Co", "Cobalt", 27, 58.933200);
+  auto* itsNi = new TGeoElement("ITS_Ni", "Nickrl", 28, 56.6930);
+  auto* itsCu = new TGeoElement("ITS_Cu", "Copper", 29, 63.546);
+  auto* itsZn = new TGeoElement("ITS_Zn", "Zinc", 30, 65.39);
+  auto* itsKr = new TGeoElement("ITS_Kr", "Krypton", 36, 83.80);
+  auto* itsMo = new TGeoElement("ITS_Mo", "Molylibdium", 42, 95.94);
+  auto* itsXe = new TGeoElement("ITS_Xe", "Zeon", 54, 131.293);
 
   // Start with the Materials since for any one material there
   // can be defined more than one Medium.
@@ -423,7 +426,7 @@ void V11Geometry::createDefaultMaterials()
   // He 0.000524% (0.00007%), Kr 0.000114% (0.0003%), H2 0.00005% (3.5E-6%),
   // Xe 0.0000087% (0.00004 %), H2O 0.0% (dry) + trace amounts at the ppm
   // levels.
-  auto *itsAir = new TGeoMixture("ITS_Air", 9);
+  auto* itsAir = new TGeoMixture("ITS_Air", 9);
   w = 75.47E-2;
   itsAir->AddElement(itsN, w);                         // Nitorgen, atomic
   w = 23.29E-2 +                                       // O2
@@ -450,12 +453,12 @@ void V11Geometry::createDefaultMaterials()
   itsAir->SetState(TGeoMaterial::kMatStateGas);
 
   // Silicone
-  auto *itsSiDet = new TGeoMaterial("ITS_Si", itsSi, 2.33 * sGCm3);
+  auto* itsSiDet = new TGeoMaterial("ITS_Si", itsSi, 2.33 * sGCm3);
   itsSiDet->SetTemperature(15.0 * sCelsius);
   itsSiDet->SetState(TGeoMaterial::kMatStateSolid);
 
   // Epoxy C18 H19 O3
-  auto *itsEpoxy = new TGeoMixture("ITS_Epoxy", 3);
+  auto* itsEpoxy = new TGeoMixture("ITS_Epoxy", 3);
   itsEpoxy->AddElement(itsC, 18);
   itsEpoxy->AddElement(itsH, 19);
   itsEpoxy->AddElement(itsO, 3);
@@ -471,7 +474,7 @@ void V11Geometry::createDefaultMaterials()
      </A>
   */
   // End_Html
-  auto *itsCarbonFiber = new TGeoMixture("ITS_CarbonFiber-M55J", 4);
+  auto* itsCarbonFiber = new TGeoMixture("ITS_CarbonFiber-M55J", 4);
   // Assume that the epoxy fill in the space between the fibers and so
   // no change in the total volume. To compute w, assume 1cm^3 total
   // volume.
@@ -498,7 +501,7 @@ void V11Geometry::createDefaultMaterials()
      </A>
    */
   // End_Html
-  auto *itsFoam = new TGeoMixture("ITS_Foam", 4);
+  auto* itsFoam = new TGeoMixture("ITS_Foam", 4);
   itsFoam->AddElement(itsC, 9);
   itsFoam->AddElement(itsH, 13);
   itsFoam->AddElement(itsN, 1);
@@ -518,7 +521,7 @@ void V11Geometry::createDefaultMaterials()
       </A>
    */
   // End_Html
-  auto *itsKapton = new TGeoMixture("ITS_Kapton", 4);
+  auto* itsKapton = new TGeoMixture("ITS_Kapton", 4);
   itsKapton->AddElement(itsH, 0.026362);
   itsKapton->AddElement(itsC, 0.691133);
   itsKapton->AddElement(itsN, 0.073270);
@@ -538,7 +541,7 @@ void V11Geometry::createDefaultMaterials()
       </A>
    */
   // End_Html
-  auto *itsUpilex = new TGeoMixture("ITS_Upilex", 4);
+  auto* itsUpilex = new TGeoMixture("ITS_Upilex", 4);
   itsUpilex->AddElement(itsC, 16);
   itsUpilex->AddElement(itsH, 6);
   itsUpilex->AddElement(itsN, 2);
@@ -560,7 +563,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsAl6061 = new TGeoMixture("ITS_Al6061", 9);
+  auto* itsAl6061 = new TGeoMixture("ITS_Al6061", 9);
   itsAl6061->AddElement(itsCr, 0.000375);
   itsAl6061->AddElement(itsCu, 0.00275);
   itsAl6061->AddElement(itsFe, 0.0035);
@@ -587,7 +590,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsAl7075 = new TGeoMixture("ITS_Al7075", 9);
+  auto* itsAl7075 = new TGeoMixture("ITS_Al7075", 9);
   itsAl7075->AddElement(itsCr, 0.0023);
   itsAl7075->AddElement(itsCu, 0.016);
   itsAl7075->AddElement(itsFe, 0.0025);
@@ -611,7 +614,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsRuby = new TGeoMixture("ITS_RubySphere", 2);
+  auto* itsRuby = new TGeoMixture("ITS_RubySphere", 2);
   itsRuby->AddElement(itsAl, 2);
   itsRuby->AddElement(itsO, 3);
   itsRuby->SetTitle("Ruby reference sphere");
@@ -630,7 +633,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsInox304L = new TGeoMixture("ITS_Inox304L", 9);
+  auto* itsInox304L = new TGeoMixture("ITS_Inox304L", 9);
   itsInox304L->AddElement(itsC, 0.00015);
   itsInox304L->AddElement(itsMn, 0.010);
   itsInox304L->AddElement(itsSi, 0.005);
@@ -656,7 +659,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsInox316L = new TGeoMixture("ITS_Inox316L", 9);
+  auto* itsInox316L = new TGeoMixture("ITS_Inox316L", 9);
   itsInox316L->AddElement(itsC, 0.00015);
   itsInox316L->AddElement(itsMn, 0.010);
   itsInox316L->AddElement(itsSi, 0.005);
@@ -685,7 +688,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsPhynox = new TGeoMixture("ITS_Phynox", 7);
+  auto* itsPhynox = new TGeoMixture("ITS_Phynox", 7);
   itsPhynox->AddElement(itsC, 0.0015);
   itsPhynox->AddElement(itsMn, 0.020);
   itsPhynox->AddElement(itsNi, 0.18);
@@ -701,7 +704,7 @@ void V11Geometry::createDefaultMaterials()
   // G10FR4
 
   // Demineralized Water H2O SDD & SSD Cooling liquid
-  auto *itsWater = new TGeoMixture("ITS_Water", 2);
+  auto* itsWater = new TGeoMixture("ITS_Water", 2);
   itsWater->AddElement(itsH, 2);
   itsWater->AddElement(itsO, 1);
   itsWater->SetTitle("ITS Cooling Water");
@@ -718,7 +721,7 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto *itsFreon = new TGeoMixture("ITS_SPD_Freon", 2);
+  auto* itsFreon = new TGeoMixture("ITS_SPD_Freon", 2);
   itsFreon->AddElement(itsC, 4);
   itsFreon->AddElement(itsF, 10);
   itsFreon->SetTitle("ITS SPD 2 phase Cooling freon");
@@ -886,14 +889,14 @@ void V11Geometry::createDefaultMaterials()
   */
 }
 
-void V11Geometry::drawCrossSection(const TGeoPcon *p, Int_t fillc, Int_t fills, Int_t linec,
+void V11Geometry::drawCrossSection(const TGeoPcon* p, Int_t fillc, Int_t fills, Int_t linec,
                                    Int_t lines, Int_t linew, Int_t markc, Int_t marks,
                                    Float_t marksize) const
 {
   Int_t n = 0, m = 0, i = 0;
   Double_t *z = nullptr, *r = nullptr;
-  TPolyMarker *pts = nullptr;
-  TPolyLine *line = nullptr;
+  TPolyMarker* pts = nullptr;
+  TPolyLine* line = nullptr;
 
   n = p->GetNz();
   if (n <= 0) {
@@ -939,8 +942,8 @@ void V11Geometry::drawCrossSection(const TGeoPcon *p, Int_t fillc, Int_t fills, 
 }
 
 Bool_t V11Geometry::angleOfIntersectionWithLine(Double_t x0, Double_t y0, Double_t x1, Double_t y1,
-                                                Double_t xc, Double_t yc, Double_t rc, Double_t &t0,
-                                                Double_t &t1) const
+                                                Double_t xc, Double_t yc, Double_t rc, Double_t& t0,
+                                                Double_t& t1) const
 {
   Double_t dx, dy, cx, cy, s2, t[4];
   Double_t a0, b0, c0, a1, b1, c1, sinthp, sinthm, costhp, costhm;
@@ -1068,8 +1071,8 @@ Double_t V11Geometry::angleForRoundedCorners1(Double_t dx, Double_t dy, Double_t
 }
 
 void V11Geometry::anglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0, Double_t x1,
-                                          Double_t y1, Double_t r1, Double_t &t0, Double_t &t1)
-const
+                                          Double_t y1, Double_t r1, Double_t& t0, Double_t& t1)
+  const
 {
   Double_t t;
 
@@ -1175,19 +1178,19 @@ void V11Geometry::makeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1
   } else {
     ymax *= 1.1;
   }
-  j = (Int_t) (500.0 * (ymax - ymin) / (xmax - xmin));
-  auto *can =
+  j = (Int_t)(500.0 * (ymax - ymin) / (xmax - xmin));
+  auto* can =
     new TCanvas("V11Geometry_AnglesForRoundedCorners", "Figure for V11Geometry", 500, j);
   h = ymax - ymin;
   if (h < 0) {
     h = -h;
   }
   can->Range(xmin, ymin, xmax, ymax);
-  auto *c0 = new TArc(x0, y0, r0);
-  auto *c1 = new TArc(x1, y1, r1);
-  TLine *line[4];
-  TArrow *ar0[4];
-  TArrow *ar1[4];
+  auto* c0 = new TArc(x0, y0, r0);
+  auto* c1 = new TArc(x1, y1, r1);
+  TLine* line[4];
+  TArrow* ar0[4];
+  TArrow* ar1[4];
 
   for (j = 0; j < 4; j++) {
     ar0[j] = new TArrow(x0, y0, xa0[j], ya0[j]);
@@ -1208,7 +1211,7 @@ void V11Geometry::makeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1
     line[j]->Draw();
   }
 
-  auto *t = new TText();
+  auto* t = new TText();
   t->SetTextSize(0.02);
   Char_t txt[100];
   snprintf(txt, 99, "(x0=%5.2f,y0=%5.2f)", x0, y0);

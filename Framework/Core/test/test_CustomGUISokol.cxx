@@ -29,40 +29,39 @@ using DataHeader = o2::header::DataHeader;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    { "source",
-      Inputs{},
-      {
-        OutputSpec{ { "test" }, "TST", "A" },
-      },
-      AlgorithmSpec{
-        adaptStateless([](DataAllocator& outputs) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-          auto out = outputs.make<int>(OutputRef{ "test", 0 });
-        }) } },
-    { "dest",
-      Inputs{
-        { "test", "TST", "A" } },
-      Outputs{},
-      AlgorithmSpec{ adaptStateful(
-        [](CallbackService& callbacks) {
-          void* window = initGUI("A test window");
-          auto count = std::make_shared<int>(0);
-          sokol::init3DContext(window);
+    {"source",
+     Inputs{},
+     {
+       OutputSpec{{"test"}, "TST", "A"},
+     },
+     AlgorithmSpec{
+       adaptStateless([](DataAllocator& outputs) {
+         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+         auto out = outputs.make<int>(OutputRef{"test", 0});
+       })}},
+    {"dest",
+     Inputs{
+       {"test", "TST", "A"}},
+     Outputs{},
+     AlgorithmSpec{adaptStateful(
+       [](CallbackService& callbacks) {
+         void* window = initGUI("A test window");
+         auto count = std::make_shared<int>(0);
+         sokol::init3DContext(window);
 
-          auto guiCallback = [count]() {
-            ImGui::Begin("Some sub-window");
-            ImGui::Text("Counter value: %i", *count);
-            ImGui::End();
-            sokol::render3D();
-          };
-          callbacks.set(CallbackService::Id::ClockTick,
-                        [count, window, guiCallback]() {
+         auto guiCallback = [count]() {
+           ImGui::Begin("Some sub-window");
+           ImGui::Text("Counter value: %i", *count);
+           ImGui::End();
+           sokol::render3D();
+         };
+         callbacks.set(CallbackService::Id::ClockTick,
+                       [count, window, guiCallback]() {
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
-          return adaptStateless([count](ControlService& control) {
-            if (*count > 1000) {
-              control.readyToQuit(true);
-            }
-          });
-        }) } }
-  };
+         return adaptStateless([count](ControlService& control) {
+           if (*count > 1000) {
+             control.readyToQuit(true);
+           }
+         });
+       })}}};
 }

@@ -25,4 +25,4 @@ BOOST_AUTO_TEST_CASE(TimeStamp)
   BOOST_CHECK_CLOSE(aTimeStamp.getTimeStamp(), 10, 1E-4);
 }
 
-} // end namespace AliceO2
+} // namespace o2
