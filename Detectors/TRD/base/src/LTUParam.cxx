@@ -21,16 +21,15 @@ std::array<float, 30> LTUParam::mgZrow = {
   315, 184, 53, -57, -188,
   329, 191, 53, -57, -195,
   343, 198, 53, -57, -202,
-  347, 200, 53, -57, -204
-};
-std::array<float, 6> LTUParam::mgX = { 300.65, 313.25, 325.85, 338.45, 351.05, 363.65 };
-std::array<float, 6> LTUParam::mgTiltingAngle = { -2., 2., -2., 2., -2., 2. };
+  347, 200, 53, -57, -204};
+std::array<float, 6> LTUParam::mgX = {300.65, 313.25, 325.85, 338.45, 351.05, 363.65};
+std::array<float, 6> LTUParam::mgTiltingAngle = {-2., 2., -2., 2., -2., 2.};
 int LTUParam::mgDyMax = 63;
 int LTUParam::mgDyMin = -64;
 float LTUParam::mgBinDy = 140e-4;
-std::array<float, 6> LTUParam::mgWidthPad = { 0.635, 0.665, 0.695, 0.725, 0.755, 0.785 };
-std::array<float, 6> LTUParam::mgLengthInnerPadC1 = { 7.5, 7.5, 8.0, 8.5, 9.0, 9.0 };
-std::array<float, 6> LTUParam::mgLengthOuterPadC1 = { 7.5, 7.5, 7.5, 7.5, 7.5, 8.5 };
+std::array<float, 6> LTUParam::mgWidthPad = {0.635, 0.665, 0.695, 0.725, 0.755, 0.785};
+std::array<float, 6> LTUParam::mgLengthInnerPadC1 = {7.5, 7.5, 8.0, 8.5, 9.0, 9.0};
+std::array<float, 6> LTUParam::mgLengthOuterPadC1 = {7.5, 7.5, 7.5, 7.5, 7.5, 8.5};
 std::array<float, 6> LTUParam::mgInvX;
 std::array<float, 6> LTUParam::mgTiltingAngleTan;
 std::array<float, 6> LTUParam::mgInvWidthPad;

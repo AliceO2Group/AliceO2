@@ -25,18 +25,19 @@ namespace framework
 /// this creates the boost program options description from the ConfigParamSpec
 /// taking the VariantType into account
 void ConfigParamsHelper::populateBoostProgramOptions(
-    bpo::options_description &options,
-    const std::vector<ConfigParamSpec> &specs,
-    bpo::options_description vetos
-  ) {
+  bpo::options_description& options,
+  const std::vector<ConfigParamSpec>& specs,
+  bpo::options_description vetos)
+{
   auto proxy = options.add_options();
-  for (auto & spec : specs) {
+  for (auto& spec : specs) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(spec.name, false)) continue;
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+    if (vetos.find_nothrow(spec.name, false))
+      continue;
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
 
-    switch(spec.type) {
+    switch (spec.type) {
       // FIXME: Should we handle int and size_t diffently?
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
@@ -98,5 +99,5 @@ bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& sp
   return haveOption;
 }
 
-}
-}
+} // namespace framework
+} // namespace o2

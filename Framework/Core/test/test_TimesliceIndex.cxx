@@ -24,22 +24,22 @@ BOOST_AUTO_TEST_CASE(TestBasics)
   BOOST_REQUIRE_EQUAL(index.size(), 0);
   index.resize(10);
   BOOST_REQUIRE_EQUAL(index.size(), 10);
-  BOOST_CHECK(index.isValid({ 0 }) == false);
-  BOOST_CHECK(index.isDirty({ 0 }) == false);
-  index.associate(TimesliceId{ 10 }, TimesliceSlot{ 0 });
-  BOOST_CHECK(index.isValid(TimesliceSlot{ 0 }));
-  BOOST_CHECK(index.isDirty({ 0 }) == true);
-  index.associate(TimesliceId{ 20 }, TimesliceSlot{ 0 });
-  BOOST_CHECK(index.isValid(TimesliceSlot{ 0 }));
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{ 0 }).value, 20);
-  BOOST_CHECK(index.isDirty(TimesliceSlot{ 0 }));
-  index.associate(TimesliceId{ 1 }, TimesliceSlot{ 1 });
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{ 0 }).value, 20);
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{ 1 }).value, 1);
-  BOOST_CHECK(index.isValid(TimesliceSlot{ 2 }) == false);
-  slot = TimesliceSlot{ 0 };
+  BOOST_CHECK(index.isValid({0}) == false);
+  BOOST_CHECK(index.isDirty({0}) == false);
+  index.associate(TimesliceId{10}, TimesliceSlot{0});
+  BOOST_CHECK(index.isValid(TimesliceSlot{0}));
+  BOOST_CHECK(index.isDirty({0}) == true);
+  index.associate(TimesliceId{20}, TimesliceSlot{0});
+  BOOST_CHECK(index.isValid(TimesliceSlot{0}));
+  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{0}).value, 20);
+  BOOST_CHECK(index.isDirty(TimesliceSlot{0}));
+  index.associate(TimesliceId{1}, TimesliceSlot{1});
+  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{0}).value, 20);
+  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{1}).value, 1);
+  BOOST_CHECK(index.isValid(TimesliceSlot{2}) == false);
+  slot = TimesliceSlot{0};
   BOOST_CHECK(index.isDirty(slot));
-  slot = TimesliceSlot{ 2 };
+  slot = TimesliceSlot{2};
   BOOST_CHECK(index.isValid(slot) == false);
   BOOST_CHECK(index.isDirty(slot) == false);
   index.markAsInvalid(slot);
@@ -55,42 +55,42 @@ BOOST_AUTO_TEST_CASE(TestLRUReplacement)
   data_matcher::VariableContext context;
 
   {
-    context.put({ 0, uint64_t{ 10 } });
+    context.put({0, uint64_t{10}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, 0);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
-    context.put({ 0, uint64_t{ 20 } });
+    context.put({0, uint64_t{20}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, 1);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
-    context.put({ 0, uint64_t{ 30 } });
+    context.put({0, uint64_t{30}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, 2);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
-    context.put({ 0, uint64_t{ 40 } });
+    context.put({0, uint64_t{40}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, 0);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
   }
   {
-    context.put({ 0, uint64_t{ 50 } });
+    context.put({0, uint64_t{50}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, 1);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
   }
   {
-    context.put({ 0, uint64_t{ 10 } });
+    context.put({0, uint64_t{10}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);

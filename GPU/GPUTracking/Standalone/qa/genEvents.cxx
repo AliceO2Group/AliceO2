@@ -96,7 +96,7 @@ double genEvents::GetGaus(double sigma)
 
 void genEvents::InitEventGenerator()
 {
-  const char* rows[3] = { "0-63", "128-159", "64-127" };
+  const char* rows[3] = {"0-63", "128-159", "64-127"};
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 2; j++) {
       char name[1024], title[1024];

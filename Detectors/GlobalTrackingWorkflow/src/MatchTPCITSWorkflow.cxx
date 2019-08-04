@@ -43,12 +43,12 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
   specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                  "tpc-native-cluster-reader",
                                                  "tpcrec",
-                                                 { "clusterbranch", "TPCClusterNative", "Branch with TPC native clusters" },
-                                                 { "clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch" },
-                                                 OutputSpec{ "TPC", "CLUSTERNATIVE" },
-                                                 OutputSpec{ "TPC", "CLNATIVEMCLBL" },
+                                                 {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
+                                                 {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
+                                                 OutputSpec{"TPC", "CLUSTERNATIVE"},
+                                                 OutputSpec{"TPC", "CLNATIVEMCLBL"},
                                                  tpcClusSectors,
-                                                 tpcClusLanes },
+                                                 tpcClusLanes},
                                                useMC));
 
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, useFIT, tpcClusLanes));

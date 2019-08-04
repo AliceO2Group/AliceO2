@@ -43,11 +43,12 @@ bool isBroadcastChannel(std::string const& channel)
   return true;
 }
 
-void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, FairMQMessagePtr &&payloadMessage, int index) {
-  for (auto &channelInfo : device.fChannels) {
+void broadcastMessage(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, int index)
+{
+  for (auto& channelInfo : device.fChannels) {
     auto channel = channelInfo.first;
     assert(channelInfo.second.size() == 1);
-    // FIXME: I need to make sure the input channel is not used... For the moment 
+    // FIXME: I need to make sure the input channel is not used... For the moment
     //        I rely on the convention dpl channels start with "from_".
     if (isBroadcastChannel(channel) == false) {
       continue;
@@ -82,15 +83,16 @@ void broadcastDPLMessage(FairMQDevice& device, FairMQMessagePtr&& headerMessage,
 }
 
 // FIXME: should I filter out only the output specs which match?
-InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step) {
+InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+{
   auto timesliceId = std::make_shared<size_t>(startTime);
-  return [timesliceId, step](FairMQDevice &device, FairMQParts &parts, int index) {
-    for (size_t i = 0; i < parts.Size()/2; ++i) {
+  return [timesliceId, step](FairMQDevice& device, FairMQParts& parts, int index) {
+    for (size_t i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
       o2::header::Stack headerStack{*dh, dph};
-      broadcastMessage(device, std::move(headerStack), std::move(parts.At(i*2+1)), index);
+      broadcastMessage(device, std::move(headerStack), std::move(parts.At(i * 2 + 1)), index);
       auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
     }
@@ -106,10 +108,11 @@ InjectorFunction dplModelAdaptor(OutputSpec const& spec)
   };
 }
 
-InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime, uint64_t step) {
+InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+{
   auto timesliceId = std::make_shared<size_t>(startTime);
 
-  return [timesliceId, spec, step](FairMQDevice &device, FairMQParts &parts, int index) {
+  return [timesliceId, spec, step](FairMQDevice& device, FairMQParts& parts, int index) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
     for (size_t i = 0; i < parts.Size(); ++i) {
@@ -132,37 +135,37 @@ InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime
   };
 }
 
-DataProcessorSpec specifyExternalFairMQDeviceProxy(char const *name,
-                                  std::vector<OutputSpec> const &outputs,
-                                  char const *channelConfig,
-                                  std::function<void(FairMQDevice &device,
-                                                     FairMQParts& inputs,
-                                                     int index)> converter) {
+DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
+                                                   std::vector<OutputSpec> const& outputs,
+                                                   char const* channelConfig,
+                                                   std::function<void(FairMQDevice& device,
+                                                                      FairMQParts& inputs,
+                                                                      int index)>
+                                                     converter)
+{
   DataProcessorSpec spec;
   spec.name = strdup(name);
   spec.inputs = {};
   spec.outputs = outputs;
-  // The Init method will register a new "Out of band" channel and 
+  // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name](InitContext &ctx) {
-      auto device = ctx.services().get<RawDeviceService>().device();
-      assert(device);
+  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name](InitContext& ctx) {
+    auto device = ctx.services().get<RawDeviceService>().device();
+    assert(device);
 
-      // Converter should pump messages
-      auto handler = [device,converter](FairMQParts &inputs, int idx) {
-        converter(*device, inputs, idx);
-        return true;
-      };
+    // Converter should pump messages
+    auto handler = [device, converter](FairMQParts& inputs, int idx) {
+      converter(*device, inputs, idx);
+      return true;
+    };
 
-      device->OnData(channel, handler);
-      return [](ProcessingContext &) {};
-    }
-  };
-  const char *d = strdup((std::string("name=") + name + "," + channelConfig).c_str());
+    device->OnData(channel, handler);
+    return [](ProcessingContext&) {};
+  }};
+  const char* d = strdup((std::string("name=") + name + "," + channelConfig).c_str());
   spec.options = {
-    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}
-  };
+    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}};
   return spec;
 }
 

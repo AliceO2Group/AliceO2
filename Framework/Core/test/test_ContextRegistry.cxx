@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(TestContextRegistry)
   RawBufferContext c2(proxy);
   RootObjectContext c3(proxy);
   MessageContext c4(proxy);
-  ContextRegistry registry({ &c0, &c1, &c2, &c3, &c4 });
+  ContextRegistry registry({&c0, &c1, &c2, &c3, &c4});
 
   BOOST_REQUIRE_EQUAL(&c0, registry.get<ArrowContext>());
   BOOST_REQUIRE_EQUAL(&c1, registry.get<StringContext>());

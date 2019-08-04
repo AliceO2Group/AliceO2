@@ -37,7 +37,7 @@ constexpr std::array<T, N> fillArray(Initializer);
 template <typename T, std::size_t... Is, typename Initializer>
 constexpr std::array<T, sizeof...(Is)> ArrayUtils::fillArray(Initializer initializer, std::index_sequence<Is...>)
 {
-  return std::array<T, sizeof...(Is)>{ { initializer(Is)... } };
+  return std::array<T, sizeof...(Is)>{{initializer(Is)...}};
 }
 
 template <typename T, std::size_t N, typename Initializer>

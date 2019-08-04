@@ -178,8 +178,8 @@ class GPUQA
   static const constexpr bool PLOT_ROOT = 0;
   static const constexpr bool FIX_SCALES = 0;
   static const constexpr bool PERF_FIGURE = 0;
-  static const constexpr float FIXED_SCALES_MIN[5] = { -0.05, -0.05, -0.2, -0.2, -0.5 };
-  static const constexpr float FIXED_SCALES_MAX[5] = { 0.4, 0.7, 5, 3, 6.5 };
+  static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
+  static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
   static const constexpr float LOG_PT_MIN = -1.;
 
   const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
@@ -277,35 +277,35 @@ class GPUQA
   static constexpr const int COLORCOUNT = 12;
   Color_t* mColorNums;
 
-  static const constexpr char* EFF_TYPES[4] = { "Rec", "Clone", "Fake", "All" };
-  static const constexpr char* FINDABLE_NAMES[2] = { "", "Findable" };
-  static const constexpr char* PRIM_NAMES[2] = { "Prim", "Sec" };
-  static const constexpr char* PARAMETER_NAMES[5] = { "Y", "Z", "#Phi", "#lambda", "Relative #it{p}_{T}" };
-  static const constexpr char* PARAMETER_NAMES_NATIVE[5] = { "Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/#it{p}_{T} (curvature)" };
-  static const constexpr char* VSPARAMETER_NAMES[6] = { "Y", "Z", "Phi", "Eta", "Pt", "Pt_log" };
-  static const constexpr char* EFF_NAMES[3] = { "Efficiency", "Clone Rate", "Fake Rate" };
-  static const constexpr char* EFFICIENCY_TITLES[4] = { "Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)" };
-  static const constexpr double SCALE[5] = { 10., 10., 1000., 1000., 100. };
-  static const constexpr double SCALE_NATIVE[5] = { 10., 10., 1000., 1000., 1. };
-  static const constexpr char* XAXIS_TITLES[5] = { "#it{y}_{mc} (cm)", "#it{z}_{mc} (cm)", "#Phi_{mc} (rad)", "#eta_{mc}", "#it{p}_{Tmc} (GeV/#it{c})" };
-  static const constexpr char* AXIS_TITLES[5] = { "#it{y}-#it{y}_{mc} (mm) (Resolution)", "#it{z}-#it{z}_{mc} (mm) (Resolution)", "#phi-#phi_{mc} (mrad) (Resolution)", "#lambda-#lambda_{mc} (mrad) (Resolution)", "(#it{p}_{T} - #it{p}_{Tmc}) / #it{p}_{Tmc} (%) (Resolution)" };
-  static const constexpr char* AXIS_TITLES_NATIVE[5] = { "#it{y}-#it{y}_{mc} (mm) (Resolution)", "#it{z}-#it{z}_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/#it{p}_{T} - q/#it{p}_{Tmc}) (Resolution)" };
-  static const constexpr char* AXIS_TITLES_PULL[5] = { "#it{y}-#it{y}_{mc}/#sigma_{y} (Pull)", "#it{z}-#it{z}_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)",
-                                                       "q*(q/#it{p}_{T} - q/#it{p}_{Tmc})/#sigma_{q/#it{p}_{T}} (Pull)" };
-  static const constexpr char* CLUSTER_NAMES[N_CLS_HIST] = { "Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Fake adjacent clusters", "Clusters of reconstructed tracks", "Used in Physics", "Protected", "All clusters" };
-  static const constexpr char* CLUSTER_TITLES[N_CLS_TYPE] = { "Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)" };
-  static const constexpr char* CLUSTER_NAMES_SHORT[N_CLS_HIST] = { "Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "Physics", "Protected", "All" };
-  static const constexpr char* CLUSTER_TYPES[N_CLS_TYPE] = { "", "Ratio", "Integral" };
-  static const constexpr int COLORS_HEX[COLORCOUNT] = { 0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000 };
+  static const constexpr char* EFF_TYPES[4] = {"Rec", "Clone", "Fake", "All"};
+  static const constexpr char* FINDABLE_NAMES[2] = {"", "Findable"};
+  static const constexpr char* PRIM_NAMES[2] = {"Prim", "Sec"};
+  static const constexpr char* PARAMETER_NAMES[5] = {"Y", "Z", "#Phi", "#lambda", "Relative #it{p}_{T}"};
+  static const constexpr char* PARAMETER_NAMES_NATIVE[5] = {"Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/#it{p}_{T} (curvature)"};
+  static const constexpr char* VSPARAMETER_NAMES[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
+  static const constexpr char* EFF_NAMES[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
+  static const constexpr char* EFFICIENCY_TITLES[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
+  static const constexpr double SCALE[5] = {10., 10., 1000., 1000., 100.};
+  static const constexpr double SCALE_NATIVE[5] = {10., 10., 1000., 1000., 1.};
+  static const constexpr char* XAXIS_TITLES[5] = {"#it{y}_{mc} (cm)", "#it{z}_{mc} (cm)", "#Phi_{mc} (rad)", "#eta_{mc}", "#it{p}_{Tmc} (GeV/#it{c})"};
+  static const constexpr char* AXIS_TITLES[5] = {"#it{y}-#it{y}_{mc} (mm) (Resolution)", "#it{z}-#it{z}_{mc} (mm) (Resolution)", "#phi-#phi_{mc} (mrad) (Resolution)", "#lambda-#lambda_{mc} (mrad) (Resolution)", "(#it{p}_{T} - #it{p}_{Tmc}) / #it{p}_{Tmc} (%) (Resolution)"};
+  static const constexpr char* AXIS_TITLES_NATIVE[5] = {"#it{y}-#it{y}_{mc} (mm) (Resolution)", "#it{z}-#it{z}_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/#it{p}_{T} - q/#it{p}_{Tmc}) (Resolution)"};
+  static const constexpr char* AXIS_TITLES_PULL[5] = {"#it{y}-#it{y}_{mc}/#sigma_{y} (Pull)", "#it{z}-#it{z}_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)",
+                                                      "q*(q/#it{p}_{T} - q/#it{p}_{Tmc})/#sigma_{q/#it{p}_{T}} (Pull)"};
+  static const constexpr char* CLUSTER_NAMES[N_CLS_HIST] = {"Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Fake adjacent clusters", "Clusters of reconstructed tracks", "Used in Physics", "Protected", "All clusters"};
+  static const constexpr char* CLUSTER_TITLES[N_CLS_TYPE] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
+  static const constexpr char* CLUSTER_NAMES_SHORT[N_CLS_HIST] = {"Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "Physics", "Protected", "All"};
+  static const constexpr char* CLUSTER_TYPES[N_CLS_TYPE] = {"", "Ratio", "Integral"};
+  static const constexpr int COLORS_HEX[COLORCOUNT] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
   static const constexpr int CONFIG_DASHED_MARKERS = 0;
 
-  static const constexpr float AXES_MIN[5] = { -Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN };
-  static const constexpr float AXES_MAX[5] = { Y_MAX, Z_MAX, 2.f * M_PI, ETA_MAX, PT_MAX };
-  static const constexpr int AXIS_BINS[5] = { 51, 51, 144, 31, 50 };
-  static const constexpr int RES_AXIS_BINS[] = { 1017, 113 }; // Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
-  static const constexpr float RES_AXES[5] = { 1., 1., 0.03, 0.03, 1.0 };
-  static const constexpr float RES_AXES_NATIVE[5] = { 1., 1., 0.1, 0.1, 5.0 };
+  static const constexpr float AXES_MIN[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
+  static const constexpr float AXES_MAX[5] = {Y_MAX, Z_MAX, 2.f * M_PI, ETA_MAX, PT_MAX};
+  static const constexpr int AXIS_BINS[5] = {51, 51, 144, 31, 50};
+  static const constexpr int RES_AXIS_BINS[] = {1017, 113}; // Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
+  static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
+  static const constexpr float RES_AXES_NATIVE[5] = {1., 1., 0.1, 0.1, 5.0};
   static const constexpr float PULL_AXIS = 10.f;
 
   int mMCTrackMin = -1, mMCTrackMax = -1;

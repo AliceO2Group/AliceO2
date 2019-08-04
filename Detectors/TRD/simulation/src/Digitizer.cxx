@@ -232,7 +232,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         }
       }
       // scoped diffused coordinates for each electron
-      double locRd{ locR }, locCd{ locC }, locTd{ locT };
+      double locRd{locR}, locCd{locC}, locTd{locT};
 
       // Apply diffusion smearing
       if (mSimParam->DiffusionOn()) {

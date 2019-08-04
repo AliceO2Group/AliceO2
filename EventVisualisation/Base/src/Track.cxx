@@ -24,10 +24,10 @@
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
 
-
-
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 Track::Track() : TEveTrack()
 {
@@ -47,8 +47,8 @@ void Track::setMomentum(double p[3])
 
 void Track::setBeta(double beta)
 {
-  fBeta=beta;
+  fBeta = beta;
 }
 
-}
-}
+} // namespace event_visualisation
+} // namespace o2

@@ -74,10 +74,10 @@ void Detector::ConstructGeometry()
 
   Int_t idrotm[999];
   Double_t x, y, z;
-  Float_t pstartC[3] = { 20., 20, 5 };
-  Float_t pstartA[3] = { 20, 20, 5 };
-  Float_t pinstart[3] = { 2.95, 2.95, 4.34 };
-  Float_t pmcp[3] = { 2.949, 2.949, 1. }; // MCP
+  Float_t pstartC[3] = {20., 20, 5};
+  Float_t pstartA[3] = {20, 20, 5};
+  Float_t pinstart[3] = {2.95, 2.95, 4.34};
+  Float_t pmcp[3] = {2.949, 2.949, 1.}; // MCP
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
@@ -96,24 +96,24 @@ void Detector::ConstructGeometry()
   Double_t btta = 2 * TMath::ATan(dP / crad);
 
   // get noncompensated translation data
-  Double_t grdin[6] = { -3, -2, -1, 1, 2, 3 };
+  Double_t grdin[6] = {-3, -2, -1, 1, 2, 3};
   Double_t gridpoints[6];
   for (Int_t i = 0; i < 6; i++) {
     gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
   }
 
-  Double_t xi[Geometry::NCellsC] = { gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0],
-                                     gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
-                                     gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0],
-                                     gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
-                                     gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[1],
-                                     gridpoints[2], gridpoints[3], gridpoints[4] };
-  Double_t yi[Geometry::NCellsC] = { gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4],
-                                     gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4],
-                                     gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[2],
-                                     gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[1], gridpoints[1],
-                                     gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[0],
-                                     gridpoints[0], gridpoints[0], gridpoints[0] };
+  Double_t xi[Geometry::NCellsC] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0],
+                                    gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
+                                    gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0],
+                                    gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
+                                    gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[1],
+                                    gridpoints[2], gridpoints[3], gridpoints[4]};
+  Double_t yi[Geometry::NCellsC] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4],
+                                    gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4],
+                                    gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[2],
+                                    gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[1], gridpoints[1],
+                                    gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[0],
+                                    gridpoints[0], gridpoints[0], gridpoints[0]};
   Double_t zi[Geometry::NCellsC];
   for (Int_t i = 0; i < Geometry::NCellsC; i++) {
     zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));
@@ -147,11 +147,11 @@ void Detector::ConstructGeometry()
   }
   // A Side
 
-  Float_t xa[Geometry::NCellsA] = { -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
-                                    6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8 };
+  Float_t xa[Geometry::NCellsA] = {-11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
+                                   6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8};
 
-  Float_t ya[Geometry::NCellsA] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0.1, -0.1,
-                                    0.1, 0.1, -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9 };
+  Float_t ya[Geometry::NCellsA] = {11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0.1, -0.1,
+                                   0.1, 0.1, -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9};
 
   TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("0STL"); // A side mother
   TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("0STR"); // C side mother
@@ -222,19 +222,19 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Double_t crad = 82.;         // Define concave c-side radius here
   Double_t dP = 3.31735114408; // Work in Progress side length
 
-  Float_t pinstart[3] = { 2.95, 2.95, 2.5 };
-  Float_t ptop[3] = { 1.324, 1.324, 1. };      // Cherenkov radiator
-  Float_t ptopref[3] = { 1.3241, 1.3241, 1. }; // Cherenkov radiator wrapped with reflector
-  Double_t prfv[3] = { 0.0002, 1.323, 1. };    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
-  Double_t prfh[3] = { 1.323, 0.0002, 1. };    // Horizontal refracting layer bettwen radiators and ...
-  Float_t pmcp[3] = { 2.949, 2.949, 1. };      // MCP
-  Float_t pmcpinner[3] = { 2.749, 2.979, 0.1 };
-  Float_t pmcpside[3] = { 0.1, 2.949, 1 };
-  Float_t pmcpbase[3] = { 2.949, 2.949, 0.1 };
-  Float_t pmcptopglass[3] = { 2.949, 2.949, 0.1 }; // MCP top glass optical
+  Float_t pinstart[3] = {2.95, 2.95, 2.5};
+  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
+  Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
+  Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
+  Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
+  Float_t pmcp[3] = {2.949, 2.949, 1.};      // MCP
+  Float_t pmcpinner[3] = {2.749, 2.979, 0.1};
+  Float_t pmcpside[3] = {0.1, 2.949, 1};
+  Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
+  Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
 
-  Float_t preg[3] = { 1.324, 1.324, 0.05 }; // Photcathode
-  Double_t pal[3] = { 2.648, 2.648, 0.25 }; // 5mm Al on top of each radiator
+  Float_t preg[3] = {1.324, 1.324, 0.05}; // Photcathode
+  Double_t pal[3] = {2.648, 2.648, 0.25}; // 5mm Al on top of each radiator
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
   TGeoVolume* top = gGeoManager->GetVolume("0TOP");
@@ -427,22 +427,22 @@ void Detector::CreateMaterials()
   // Int_t nbuf;
   // AIR
 
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-11;
   // Radiator  glass SiO2
-  Float_t aglass[2] = { 28.0855, 15.9994 };
-  Float_t zglass[2] = { 14., 8. };
-  Float_t wglass[2] = { 1., 2. };
+  Float_t aglass[2] = {28.0855, 15.9994};
+  Float_t zglass[2] = {14., 8.};
+  Float_t wglass[2] = {1., 2.};
   Float_t dglass = 2.65;
   // MCP glass SiO2
   Float_t dglass_mcp = 1.3;
   // Ceramic   97.2% Al2O3 , 2.8% SiO2
-  Float_t aCeramic[2] = { 26.981539, 15.9994 };
-  Float_t zCeramic[2] = { 13., 8. };
-  Float_t wCeramic[2] = { 2., 3. };
+  Float_t aCeramic[2] = {26.981539, 15.9994};
+  Float_t zCeramic[2] = {13., 8.};
+  Float_t wCeramic[2] = {2., 3.};
   Float_t denscer = 3.6;
   //*** Definition Of avaible FIT materials ***
   Material(11, "Aliminium$", 26.98, 13.0, 2.7, 8.9, 999);

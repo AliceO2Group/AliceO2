@@ -205,8 +205,8 @@ const Double_t V3Layer::sOBCPConnPlugInnerD = 0.8 * sMm;
 const Double_t V3Layer::sOBCPConnPlugTotLen = 1.7 * sMm;
 const Double_t V3Layer::sOBCPConnPlugThick = 0.5 * sMm;
 
-const Double_t V3Layer::sOBSpaceFrameZLen[2] = { 900.0 * sMm, 1526.0 * sMm };
-const Int_t V3Layer::sOBSpaceFrameNUnits[2] = { 23, 39 };
+const Double_t V3Layer::sOBSpaceFrameZLen[2] = {900.0 * sMm, 1526.0 * sMm};
+const Int_t V3Layer::sOBSpaceFrameNUnits[2] = {23, 39};
 const Double_t V3Layer::sOBSpaceFrameUnitLen = 39.1 * sMm;
 const Double_t V3Layer::sOBSpaceFrameWidth = 42.44 * sMm;
 const Double_t V3Layer::sOBSpaceFrameHeight = 36.45 * sMm;
@@ -227,11 +227,11 @@ const Double_t V3Layer::sOBSFrameULegHeight2 = 5.0 * sMm;
 const Double_t V3Layer::sOBSFrameULegThick = 0.3 * sMm;
 const Double_t V3Layer::sOBSFrameULegXPos = 12.9 * sMm;
 
-ClassImp(V3Layer)
+ClassImp(V3Layer);
 
 #define SQ(A) (A) * (A)
 
-  V3Layer::V3Layer()
+V3Layer::V3Layer()
   : V11Geometry(),
     mLayerNumber(0),
     mPhi0(0),
@@ -632,27 +632,27 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // where: X_capacitor = Z_module , Y_capacitor = X_module)
   // Capacitors (different groups)
   const Double_t xGroup1A = 4265.9 * sMicron;
-  const Double_t zGroup1A[2] = { -7142.9 * sMicron, 7594.1 * sMicron };
+  const Double_t zGroup1A[2] = {-7142.9 * sMicron, 7594.1 * sMicron};
   const Double_t xGroup1B = 690.9 * sMicron;
   const Double_t zGroup1B = -7142.9 * sMicron;
   const Double_t xGroup2 = 6300.0 * sMicron;
   const Double_t zGroup2 = 15075.0 * sMicron;
   const Double_t xGroup3 = 5575.0 * sMicron;
   const Double_t zGroup3 = 131900.0 * sMicron;
-  const Double_t xGroup4[2] = { 5600.0 * sMicron, 5575.0 * sMicron };
-  const Double_t zGroup4[sIBChipsPerRow] = { 275.0 * sMicron, 250.0 * sMicron, 275.0 * sMicron,
-                                             250.0 * sMicron, 250.0 * sMicron, 300.0 * sMicron,
-                                             250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron };
+  const Double_t xGroup4[2] = {5600.0 * sMicron, 5575.0 * sMicron};
+  const Double_t zGroup4[sIBChipsPerRow] = {275.0 * sMicron, 250.0 * sMicron, 275.0 * sMicron,
+                                            250.0 * sMicron, 250.0 * sMicron, 300.0 * sMicron,
+                                            250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron};
   const Int_t nGroup5A = 5, nGroup5B = 4;
-  const Double_t xGroup5A[2] = { 1400.0 * sMicron, 1350.0 * sMicron };
-  const Double_t zGroup5A[nGroup5A] = { -112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron, 37745.5 * sMicron,
-                                        128194.1 * sMicron };
+  const Double_t xGroup5A[2] = {1400.0 * sMicron, 1350.0 * sMicron};
+  const Double_t zGroup5A[nGroup5A] = {-112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron, 37745.5 * sMicron,
+                                       128194.1 * sMicron};
   const Double_t xGroup5B = 1100.0 * sMicron;
-  const Double_t zGroup5B[nGroup5B] = { -51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron };
+  const Double_t zGroup5B[nGroup5B] = {-51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron};
   // Resistors
   const Int_t nResist = 2;
   const Double_t xResist = -7975.0 * sMicron;
-  const Double_t zResist[nResist] = { 114403.0 * sMicron, 119222.0 * sMicron };
+  const Double_t zResist[nResist] = {114403.0 * sMicron, 119222.0 * sMicron};
 
   Double_t xpos, ypos, zpos;
   Int_t nCapacitors;
@@ -3539,6 +3539,6 @@ void V3Layer::addTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx, Double
 {
   // Add a dx,dy,dz translation to the initial TGeoCombiTrans
   const Double_t* vect = ct->GetTranslation();
-  Double_t newVect[3] = { vect[0] + dx, vect[1] + dy, vect[2] + dz };
+  Double_t newVect[3] = {vect[0] + dx, vect[1] + dy, vect[2] + dz};
   ct->SetTranslation(newVect);
 }

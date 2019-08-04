@@ -23,7 +23,8 @@ namespace framework
 
 WorkflowSpec parallel(DataProcessorSpec original,
                       size_t maxIndex,
-                      std::function<void(DataProcessorSpec&, size_t)> amendCallback) {
+                      std::function<void(DataProcessorSpec&, size_t)> amendCallback)
+{
   WorkflowSpec results;
   results.reserve(maxIndex);
   for (size_t i = 0; i < maxIndex; ++i) {
@@ -110,7 +111,8 @@ WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
 
 Inputs mergeInputs(InputSpec original,
                    size_t maxIndex,
-                   std::function<void(InputSpec &, size_t)> amendCallback) {
+                   std::function<void(InputSpec&, size_t)> amendCallback)
+{
   Inputs results;
   results.reserve(maxIndex);
   for (size_t i = 0; i < maxIndex; ++i) {
@@ -136,7 +138,8 @@ Inputs mergeInputs(Inputs inputs,
 }
 
 DataProcessorSpec timePipeline(DataProcessorSpec original,
-                          size_t count) {
+                               size_t count)
+{
   if (original.maxInputTimeslices != 1) {
     std::runtime_error("You can time slice only once");
   }

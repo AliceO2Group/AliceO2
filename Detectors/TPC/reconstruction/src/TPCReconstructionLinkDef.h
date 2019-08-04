@@ -25,10 +25,10 @@
 #pragma link C++ class o2::tpc::GPUCATracking;
 #pragma link C++ class o2::tpc::HardwareClusterDecoder;
 
-#pragma link C++ class o2::tpc::Clusterer+;
-#pragma link C++ class o2::tpc::ClustererTask+;
-#pragma link C++ class o2::tpc::HwClusterer+;
+#pragma link C++ class o2::tpc::Clusterer + ;
+#pragma link C++ class o2::tpc::ClustererTask + ;
+#pragma link C++ class o2::tpc::HwClusterer + ;
 
-#pragma link C++ class o2::tpc::TPCFastTransformHelperO2+;
+#pragma link C++ class o2::tpc::TPCFastTransformHelperO2 + ;
 
 #endif

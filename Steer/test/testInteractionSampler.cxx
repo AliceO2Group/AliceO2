@@ -84,4 +84,4 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   sampler1.print();
   sampler1.getBunchFilling().print();
 }
-}
+} // namespace o2

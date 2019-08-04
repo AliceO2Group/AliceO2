@@ -79,7 +79,7 @@ class ClusterSamplerTask
 
     // create the output message
     auto size = nClusters * SSizeOfClusterStruct;
-    auto msgOut = pc.outputs().make<char>(Output{ "MCH", "CLUSTERS", 0, Lifetime::Timeframe }, SHeaderSize + size);
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "CLUSTERS", 0, Lifetime::Timeframe}, SHeaderSize + size);
     if (msgOut.size() != SHeaderSize + size) {
       throw length_error("incorrect message payload");
     }
@@ -110,10 +110,9 @@ o2::framework::DataProcessorSpec getClusterSamplerSpec()
   return DataProcessorSpec{
     "ClusterSampler",
     Inputs{},
-    Outputs{ OutputSpec{ "MCH", "CLUSTERS", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<ClusterSamplerTask>() },
-    Options{ { "infile", VariantType::String, "", { "input filename" } } }
-  };
+    Outputs{OutputSpec{"MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<ClusterSamplerTask>()},
+    Options{{"infile", VariantType::String, "", {"input filename"}}}};
 }
 
 } // end namespace mch

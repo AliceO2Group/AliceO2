@@ -364,7 +364,7 @@ TEveElement* Data::getEveTracks()
     std::array<float, 3> p;
     rec.getPxPyPzGlo(p);
     TEveRecTrackD t;
-    t.fP = { p[0], p[1], p[2] };
+    t.fP = {p[0], p[1], p[2]};
     t.fSign = (rec.getSign() < 0) ? -1 : 1;
     TEveTrack* track = new TEveTrack(&t, prop);
     track->SetLineColor(kMagenta);

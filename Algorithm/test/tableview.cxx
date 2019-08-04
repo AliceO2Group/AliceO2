@@ -19,8 +19,8 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <iomanip>
-#include <cstring> // memcmp
-#include "Headers/DataHeader.h" // hexdump, DataHeader
+#include <cstring>                  // memcmp
+#include "Headers/DataHeader.h"     // hexdump, DataHeader
 #include "Headers/HeartbeatFrame.h" // HeartbeatHeader, HeartbeatTrailer
 #include "../include/Algorithm/TableView.h"
 #include "../include/Algorithm/Parser.h"
@@ -30,8 +30,9 @@ using DataHeader = o2::header::DataHeader;
 using HeartbeatHeader = o2::header::HeartbeatHeader;
 using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
-template<typename... Targs>
-void hexDump(Targs... Fargs) {
+template <typename... Targs>
+void hexDump(Targs... Fargs)
+{
   // a simple redirect to enable/disable the hexdump printout
   o2::header::hexDump(Fargs...);
 }
@@ -47,12 +48,10 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
   // one row entry
   TestFrame tf1(FrameT({0x1100000000000000}, "heartbeatdata", {0x510000000000000e}),
                 FrameT({0x1100000000000001}, "test", {0x5100000000000005}),
-                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a})
-                );
+                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a}));
   TestFrame tf2(FrameT({0x1100000000000000}, "frame2a", {0x5100000000000008}),
                 FrameT({0x1100000000000002}, "frame2b", {0x5100000000000008}),
-                FrameT({0x1100000000000003}, "frame2c", {0x5100000000000008})
-                );
+                FrameT({0x1100000000000003}, "frame2c", {0x5100000000000008}));
   hexDump("Test frame 1", tf1.buffer.get(), tf1.size());
   hexDump("Test frame 2", tf2.buffer.get(), tf2.size());
 
@@ -90,13 +89,11 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
   const char* dataset1[] = {
     "heartbeatdata",
     "test",
-    "dummydata"
-  };
+    "dummydata"};
   const char* dataset2[] = {
     "frame2a",
     "frame2b",
-    "frame2c"
-  };
+    "frame2c"};
 
   // four orbits are populated, 0 and 3 with 2 rows, 1 and 2 with one row
   BOOST_REQUIRE(heartbeatview.getNColumns() == 4);
@@ -111,8 +108,8 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
     unsigned rowidx = 0;
     std::cout << "---------------------------------------" << std::endl;
     for (auto row : columnIt) {
-      auto dataset = (rowidx == 1 || colidx == 2)? dataset2 : dataset1;
-      auto & datasetidx = (rowidx == 1 || colidx == 2)? dataset2idx : dataset1idx;
+      auto dataset = (rowidx == 1 || colidx == 2) ? dataset2 : dataset1;
+      auto& datasetidx = (rowidx == 1 || colidx == 2) ? dataset2idx : dataset1idx;
       hexDump("Entry", row.buffer, row.size);
       BOOST_CHECK(memcmp(row.buffer, dataset[datasetidx++], row.size) == 0);
       ++rowidx;
@@ -129,8 +126,7 @@ BOOST_AUTO_TEST_CASE(test_tableview_formaterror)
   // specifying wrong length in the second entry, no frames should be added
   TestFrame tf1(FrameT({0x1100000000000000}, "heartbeatdata", {0x510000000000000e}),
                 FrameT({0x1100000000000001}, "test", {0x5100000000000004}),
-                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a})
-                );
+                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a}));
 
   // the payload length is set in the trailer, so we need a reverse parser
   using ParserT = o2::algorithm::ReverseParser<typename FrameT::HeaderType,

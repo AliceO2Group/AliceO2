@@ -34,8 +34,8 @@ struct Line final {
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
-  float originPoint[3], cosinesDirector[3];           // std::array<float, 3> originPoint, cosinesDirector;
-  float weightMatrix[6] = { 1., 0., 0., 1., 0., 1. }; // std::array<float, 6> weightMatrix;
+  float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
+  float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
   char isEmpty = false;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
@@ -46,22 +46,22 @@ struct Line final {
   //    5 --> 2,2
 };
 
-inline GPU_HOST_DEVICE Line::Line() : weightMatrix{ 1., 0., 0., 1., 0., 1. }
+inline GPU_HOST_DEVICE Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
 {
   isEmpty = true;
 }
 
 inline GPU_HOST_DEVICE Line::Line(const float firstPoint[3], const float secondPoint[3])
 {
-  for (int i{ 0 }; i < 3; ++i) {
+  for (int i{0}; i < 3; ++i) {
     originPoint[i] = firstPoint[i];
     cosinesDirector[i] = secondPoint[i] - firstPoint[i];
   }
 
-  float inverseNorm{ 1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                    cosinesDirector[2] * cosinesDirector[2]) };
+  float inverseNorm{1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                   cosinesDirector[2] * cosinesDirector[2])};
 
-  for (int index{ 0 }; index < 3; ++index)
+  for (int index{0}; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
 }
 
@@ -75,10 +75,10 @@ inline GPU_HOST_DEVICE Line::Line(const Tracklet& tracklet, const Cluster* inner
   cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
   cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
 
-  float inverseNorm{ 1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                    cosinesDirector[2] * cosinesDirector[2]) };
+  float inverseNorm{1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                   cosinesDirector[2] * cosinesDirector[2])};
 
-  for (int index{ 0 }; index < 3; ++index)
+  for (int index{0}; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
 }
 

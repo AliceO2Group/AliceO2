@@ -91,8 +91,8 @@ class PadPos
   }
 
  private:
-  unsigned char mRow{ 0 }; ///< row number
-  unsigned char mPad{ 0 }; ///< pad number in row
+  unsigned char mRow{0}; ///< row number
+  unsigned char mPad{0}; ///< pad number in row
 };
 } // namespace tpc
 } // namespace o2

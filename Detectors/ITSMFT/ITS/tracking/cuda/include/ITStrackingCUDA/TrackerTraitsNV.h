@@ -38,7 +38,7 @@ class TrackerTraitsNV : public TrackerTraits
 };
 
 extern "C" TrackerTraits* createTrackerTraitsNV();
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */

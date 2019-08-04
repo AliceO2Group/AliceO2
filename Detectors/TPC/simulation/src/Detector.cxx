@@ -114,30 +114,30 @@ void Detector::SetSpecialPhysicsCuts()
     //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
     // \todo discussion needed!!
     // cut settings for DriftGas2
-    SpecialCuts(kDriftGas2, { { ECut::kCUTGAM, cut1 },
-                              { ECut::kCUTELE, cut1 },
-                              { ECut::kCUTNEU, cut1 },
-                              { ECut::kCUTHAD, cut1 },
-                              { ECut::kCUTMUO, cut1 },
-                              { ECut::kBCUTE, cut1 },
-                              { ECut::kBCUTM, cut1 },
-                              { ECut::kDCUTE, cut1 },
-                              { ECut::kDCUTM, cut1 },
-                              { ECut::kPPCUTM, cut1 },
-                              { ECut::kTOFMAX, cutTofmax } });
+    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cut1},
+                             {ECut::kCUTELE, cut1},
+                             {ECut::kCUTNEU, cut1},
+                             {ECut::kCUTHAD, cut1},
+                             {ECut::kCUTMUO, cut1},
+                             {ECut::kBCUTE, cut1},
+                             {ECut::kBCUTM, cut1},
+                             {ECut::kDCUTE, cut1},
+                             {ECut::kDCUTM, cut1},
+                             {ECut::kPPCUTM, cut1},
+                             {ECut::kTOFMAX, cutTofmax}});
     // process settings for DriftGas2
-    SpecialProcesses(kDriftGas2, { { EProc::kPAIR, 1 },
-                                   { EProc::kCOMP, 1 },
-                                   { EProc::kPHOT, 1 },
-                                   { EProc::kPFIS, 0 },
-                                   { EProc::kDRAY, 1 },
-                                   { EProc::kANNI, 1 },
-                                   { EProc::kBREM, 1 },
-                                   { EProc::kHADR, 1 },
-                                   { EProc::kMUNU, 1 },
-                                   { EProc::kDCAY, 1 },
-                                   { EProc::kLOSS, 1 },
-                                   { EProc::kMULS, 1 } });
+    SpecialProcesses(kDriftGas2, {{EProc::kPAIR, 1},
+                                  {EProc::kCOMP, 1},
+                                  {EProc::kPHOT, 1},
+                                  {EProc::kPFIS, 0},
+                                  {EProc::kDRAY, 1},
+                                  {EProc::kANNI, 1},
+                                  {EProc::kBREM, 1},
+                                  {EProc::kHADR, 1},
+                                  {EProc::kMUNU, 1},
+                                  {EProc::kDCAY, 1},
+                                  {EProc::kLOSS, 1},
+                                  {EProc::kMULS, 1}});
   }
 }
 
@@ -395,12 +395,12 @@ void Detector::CreateMaterials()
   //--------------------------------------------------------------
   //  predefined gases, composition taken from param file
   //--------------------------------------------------------------
-  TString names[6] = { "Ne", "Ar", "CO2", "N", "CF4", "CH4" };
+  TString names[6] = {"Ne", "Ar", "CO2", "N", "CF4", "CH4"};
   TString gname;
 
   /// @todo: Gas mixture is hard coded here, this should be moved to some kind of parameter
   //       container in the future
-  Float_t comp[6] = { 90. / 105., 0., 10. / 105., 5. / 105., 0., 0. };
+  Float_t comp[6] = {90. / 105., 0., 10. / 105., 5. / 105., 0., 0.};
   // indices:
   // 0-Ne, 1-Ar, 2-CO2, 3-N, 4-CF4, 5-CH4
   //
@@ -449,7 +449,7 @@ void Detector::CreateMaterials()
   //
   // densities (NTP)
   //
-  Float_t dens[6] = { 0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3 };
+  Float_t dens[6] = {0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3};
   //
   density = 0.;
   for (Int_t i = 0; i < 6; i++) {
@@ -2242,7 +2242,7 @@ void Detector::ConstructTPCGeometry()
   // rod left head with holders - inner
   //
   // first element - support for inner holder  TPC_IHS
-  Double_t shift1[3] = { 0.0, -0.175, 0.0 };
+  Double_t shift1[3] = {0.0, -0.175, 0.0};
 
   new TGeoBBox("tpcihs1", 4.7, 0.66, 2.35);
   new TGeoBBox("tpcihs2", 4.7, 0.485, 1.0, shift1);
@@ -3054,7 +3054,7 @@ void Detector::defineSensitiveVolumes()
   // const Int_t nSensitive=2;
   // const char* volumeNames[nSensitive]={"TPC_Drift","TPC_Strip"};
   const Int_t nSensitive = 1;
-  const char* volumeNames[nSensitive] = { "TPC_Drift" };
+  const char* volumeNames[nSensitive] = {"TPC_Drift"};
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t ivol = 0; ivol < nSensitive; ++ivol) {
@@ -3116,4 +3116,4 @@ std::string Detector::getHitBranchNames(int probe) const
   return std::string();
 }
 
-ClassImp(o2::tpc::Detector)
+ClassImp(o2::tpc::Detector);

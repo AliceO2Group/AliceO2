@@ -197,10 +197,10 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::
 
 bool isWithinUncertainties(float xPos, float yPos, const Cluster2D& cl)
 {
-  std::string str[2] = { "x", "y" };
-  float inputPos[2] = { xPos, yPos };
-  float recoPos[2] = { cl.xCoor, cl.yCoor };
-  float sigma2[2] = { cl.sigmaX2, cl.sigmaY2 };
+  std::string str[2] = {"x", "y"};
+  float inputPos[2] = {xPos, yPos};
+  float recoPos[2] = {cl.xCoor, cl.yCoor};
+  float sigma2[2] = {cl.sigmaX2, cl.sigmaY2};
   bool isOk = true;
   for (int icoor = 0; icoor < 2; ++icoor) {
     float sigma = std::sqrt(sigma2[icoor]);

@@ -840,7 +840,7 @@ bool MatchTPCITS::registerMatchRecordTPC(TrackLocITS& tITS, TrackLocTPC& tTPC, f
         nextMatchRec.chi2 = chi2;
         suppressMatchRecordITS(nextMatchRec.matchID, tTPC.matchID); // flag as disabled the overriden ITS match
         registerMatchRecordITS(tITS, tTPC.matchID, chi2);           // register matchCand entry in the ITS records
-        nextMatchRec.matchID = tITS.matchID; // reuse the record of suppressed ITS match to store better one
+        nextMatchRec.matchID = tITS.matchID;                        // reuse the record of suppressed ITS match to store better one
         return true;
       }
     }
@@ -1081,10 +1081,10 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
     return 2. * o2::track::HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0.,
-         diff[o2::track::kNParams - 1] = { tr1.getParam(o2::track::kY) - tr2.getParam(o2::track::kY),
-                                           tr1.getParam(o2::track::kSnp) - tr2.getParam(o2::track::kSnp),
-                                           tr1.getParam(o2::track::kTgl) - tr2.getParam(o2::track::kTgl),
-                                           tr1.getParam(o2::track::kQ2Pt) - tr2.getParam(o2::track::kQ2Pt) };
+         diff[o2::track::kNParams - 1] = {tr1.getParam(o2::track::kY) - tr2.getParam(o2::track::kY),
+                                          tr1.getParam(o2::track::kSnp) - tr2.getParam(o2::track::kSnp),
+                                          tr1.getParam(o2::track::kTgl) - tr2.getParam(o2::track::kTgl),
+                                          tr1.getParam(o2::track::kQ2Pt) - tr2.getParam(o2::track::kQ2Pt)};
   for (int i = o2::track::kNParams - 1; i--;) {
     chi2diag += diff[i] * diff[i] * covMat(i, i);
     for (int j = i; j--;) {

@@ -46,12 +46,12 @@ template <typename T, typename... Args>
 AlgorithmSpec adaptFromTask(Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
-  return AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
+  return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
     task->init(ic);
     return [task](ProcessingContext& pc) {
       task->run(pc);
     };
-  } };
+  }};
 }
 } // namespace framework
 } // namespace o2

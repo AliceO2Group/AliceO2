@@ -107,29 +107,29 @@ const float kSt3RoundedSlatYPos = 37.8;
 const float kSt45RoundedSlatYPos = 38.2;
 
 // PCB types {name, number of DualSampa array = (nUP bending, nDOWN bending, nUP non-bending, nDOWN non-bending)}
-const map<string, array<int, 4>> kPcbTypes = { { "B1N1", { 10, 10, 7, 7 } }, { "B2N2-", { 5, 5, 4, 3 } }, { "B2N2+", { 5, 5, 3, 4 } }, { "B3-N3", { 3, 2, 2, 2 } }, { "B3+N3", { 2, 3, 2, 2 } }, { "R1", { 3, 4, 2, 3 } }, { "R2", { 13, 4, 9, 3 } }, { "R3", { 13, 1, 10, 0 } }, { "S2-", { 4, 5, 3, 3 } }, { "S2+", { 5, 4, 3, 3 } } };
+const map<string, array<int, 4>> kPcbTypes = {{"B1N1", {10, 10, 7, 7}}, {"B2N2-", {5, 5, 4, 3}}, {"B2N2+", {5, 5, 3, 4}}, {"B3-N3", {3, 2, 2, 2}}, {"B3+N3", {2, 3, 2, 2}}, {"R1", {3, 4, 2, 3}}, {"R2", {13, 4, 9, 3}}, {"R3", {13, 1, 10, 0}}, {"S2-", {4, 5, 3, 3}}, {"S2+", {5, 4, 3, 3}}};
 
 // Slat types
-const map<string, vector<string>> kSlatTypes = { { "122000SR1", { "R1", "B1N1", "B2N2+", "S2-" } },
-                                                 { "112200SR2", { "R2", "B1N1", "B2N2+", "S2-" } },
-                                                 { "122200S", { "B1N1", "B2N2-", "B2N2-", "S2+" } },
-                                                 { "222000N", { "B2N2-", "B2N2-", "B2N2-" } },
-                                                 { "220000N", { "B2N2-", "B2N2-" } },
-                                                 { "122000NR1", { "R1", "B1N1", "B2N2+", "B2N2+" } },
-                                                 { "112200NR2", { "R2", "B1N1", "B2N2+", "B2N2+" } },
-                                                 { "122200N", { "B1N1", "B2N2-", "B2N2-", "B2N2-" } },
-                                                 { "122330N", { "B1N1", "B2N2+", "B2N2-", "B3-N3", "B3-N3" } },
-                                                 { "112233NR3", { "R3", "B1N1", "B2N2-", "B2N2+", "B3+N3", "B3+N3" } },
-                                                 { "112230N", { "B1N1", "B1N1", "B2N2-", "B2N2-", "B3-N3" } },
-                                                 { "222330N", { "B2N2+", "B2N2+", "B2N2-", "B3-N3", "B3-N3" } },
-                                                 { "223300N", { "B2N2+", "B2N2-", "B3-N3", "B3-N3" } },
-                                                 { "333000N", { "B3-N3", "B3-N3", "B3-N3" } },
-                                                 { "330000N", { "B3-N3", "B3-N3" } },
-                                                 { "112233N", { "B1N1", "B1N1", "B2N2+", "B2N2-", "B3-N3", "B3-N3" } },
-                                                 { "222333N",
-                                                   { "B2N2+", "B2N2+", "B2N2+", "B3-N3", "B3-N3", "B3-N3" } },
-                                                 { "223330N", { "B2N2+", "B2N2+", "B3-N3", "B3-N3", "B3-N3" } },
-                                                 { "333300N", { "B3+N3", "B3-N3", "B3-N3", "B3-N3" } } };
+const map<string, vector<string>> kSlatTypes = {{"122000SR1", {"R1", "B1N1", "B2N2+", "S2-"}},
+                                                {"112200SR2", {"R2", "B1N1", "B2N2+", "S2-"}},
+                                                {"122200S", {"B1N1", "B2N2-", "B2N2-", "S2+"}},
+                                                {"222000N", {"B2N2-", "B2N2-", "B2N2-"}},
+                                                {"220000N", {"B2N2-", "B2N2-"}},
+                                                {"122000NR1", {"R1", "B1N1", "B2N2+", "B2N2+"}},
+                                                {"112200NR2", {"R2", "B1N1", "B2N2+", "B2N2+"}},
+                                                {"122200N", {"B1N1", "B2N2-", "B2N2-", "B2N2-"}},
+                                                {"122330N", {"B1N1", "B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
+                                                {"112233NR3", {"R3", "B1N1", "B2N2-", "B2N2+", "B3+N3", "B3+N3"}},
+                                                {"112230N", {"B1N1", "B1N1", "B2N2-", "B2N2-", "B3-N3"}},
+                                                {"222330N", {"B2N2+", "B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
+                                                {"223300N", {"B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
+                                                {"333000N", {"B3-N3", "B3-N3", "B3-N3"}},
+                                                {"330000N", {"B3-N3", "B3-N3"}},
+                                                {"112233N", {"B1N1", "B1N1", "B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
+                                                {"222333N",
+                                                 {"B2N2+", "B2N2+", "B2N2+", "B3-N3", "B3-N3", "B3-N3"}},
+                                                {"223330N", {"B2N2+", "B2N2+", "B3-N3", "B3-N3", "B3-N3"}},
+                                                {"333300N", {"B3+N3", "B3-N3", "B3-N3", "B3-N3"}}};
 
 extern const string jsonSlatDescription;
 
@@ -182,7 +182,7 @@ void createCommonVolumes()
   gGeoManager->MakeBox("Right spacer", kSpacerMed, kVertSpacerHalfLength, kSlatPanelHalfHeight, kSpacerHalfThickness);
 
   // the top spacers and borders : 4 lengths possible according to the PCB shape
-  for (const auto length : { kShortPCBLength, kPCBLength, kR1PCBLength, kRoundedPCBLength }) {
+  for (const auto length : {kShortPCBLength, kPCBLength, kR1PCBLength, kRoundedPCBLength}) {
     // top spacer
     gGeoManager->MakeBox(Form("Top spacer %.2f long", length), kSpacerMed, length / 2, kHoriSpacerHalfHeight, kSpacerHalfThickness);
 

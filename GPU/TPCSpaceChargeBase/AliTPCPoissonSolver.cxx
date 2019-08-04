@@ -21,10 +21,10 @@
 #include "AliTPCPoissonSolver.h"
 
 /// \cond CLASSIMP
-ClassImp(AliTPCPoissonSolver)
-  /// \endcond
+ClassImp(AliTPCPoissonSolver);
+/// \endcond
 
-  const Double_t AliTPCPoissonSolver::fgkTPCZ0 = 249.7;                        ///< nominal gating grid position
+const Double_t AliTPCPoissonSolver::fgkTPCZ0 = 249.7;                          ///< nominal gating grid position
 const Double_t AliTPCPoissonSolver::fgkIFCRadius = 83.5;                       ///< radius which renders the "18 rod manifold" best -> compare calc. of Jim Thomas
 const Double_t AliTPCPoissonSolver::fgkOFCRadius = 254.5;                      ///< Mean Radius of the Outer Field Cage (252.55 min, 256.45 max) (cm)
 const Double_t AliTPCPoissonSolver::fgkZOffSet = 0.2;                          ///< Offset from CE: calculate all distortions closer to CE as if at this point
@@ -41,9 +41,9 @@ Double_t AliTPCPoissonSolver::fgConvergenceError = 1e-3;
 ///
 AliTPCPoissonSolver::AliTPCPoissonSolver()
   : TNamed("poisson solver", "solver"),
-    fErrorConvergenceNorm2{ new TVectorD(fMgParameters.nMGCycle) },
-    fErrorConvergenceNormInf{ new TVectorD(fMgParameters.nMGCycle) },
-    fError{ new TVectorD(fMgParameters.nMGCycle) }
+    fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
+    fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
+    fError{new TVectorD(fMgParameters.nMGCycle)}
 
 {
   // default strategy
@@ -54,9 +54,9 @@ AliTPCPoissonSolver::AliTPCPoissonSolver()
 /// \param title title of the object
 AliTPCPoissonSolver::AliTPCPoissonSolver(const char* name, const char* title)
   : TNamed(name, title),
-    fErrorConvergenceNorm2{ new TVectorD(fMgParameters.nMGCycle) },
-    fErrorConvergenceNormInf{ new TVectorD(fMgParameters.nMGCycle) },
-    fError{ new TVectorD(fMgParameters.nMGCycle) }
+    fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
+    fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
+    fError{new TVectorD(fMgParameters.nMGCycle)}
 {
   /// constructor
 }

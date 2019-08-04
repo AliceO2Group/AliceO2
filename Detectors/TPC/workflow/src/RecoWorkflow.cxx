@@ -54,17 +54,17 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 const std::unordered_map<std::string, InputType> InputMap{
-  { "digitizer", InputType::Digitizer },
-  { "digits", InputType::Digits },
-  { "raw", InputType::Raw },
-  { "clusters", InputType::Clusters },
+  {"digitizer", InputType::Digitizer},
+  {"digits", InputType::Digits},
+  {"raw", InputType::Raw},
+  {"clusters", InputType::Clusters},
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
-  { "digits", OutputType::Digits },
-  { "raw", OutputType::Raw },
-  { "clusters", OutputType::Clusters },
-  { "tracks", OutputType::Tracks },
+  {"digits", OutputType::Digits},
+  {"raw", OutputType::Raw},
+  {"clusters", OutputType::Clusters},
+  {"tracks", OutputType::Tracks},
 };
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
@@ -100,10 +100,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-digit-reader",
                                                    "o2sim",
-                                                   { "digitbranch", "TPCDigit", "Digit branch" },
-                                                   { "mcbranch", "TPCDigitMCTruth", "MC label branch" },
-                                                   OutputSpec{ "TPC", "DIGITS" },
-                                                   OutputSpec{ "TPC", "DIGITSMCTR" },
+                                                   {"digitbranch", "TPCDigit", "Digit branch"},
+                                                   {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
+                                                   OutputSpec{"TPC", "DIGITS"},
+                                                   OutputSpec{"TPC", "DIGITSMCTR"},
                                                    tpcSectors,
                                                    laneConfiguration,
                                                  },
@@ -112,10 +112,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-raw-cluster-reader",
                                                    "tpcraw",
-                                                   { "databranch", "TPCClusterHw", "Branch with TPC raw clusters" },
-                                                   { "mcbranch", "TPCClusterHwMCTruth", "MC label branch" },
-                                                   OutputSpec{ "TPC", "CLUSTERHW" },
-                                                   OutputSpec{ "TPC", "CLUSTERHWMCLBL" },
+                                                   {"databranch", "TPCClusterHw", "Branch with TPC raw clusters"},
+                                                   {"mcbranch", "TPCClusterHwMCTruth", "MC label branch"},
+                                                   OutputSpec{"TPC", "CLUSTERHW"},
+                                                   OutputSpec{"TPC", "CLUSTERHWMCLBL"},
                                                    tpcSectors,
                                                    laneConfiguration,
                                                  },
@@ -124,10 +124,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-native-cluster-reader",
                                                    "tpcrec",
-                                                   { "clusterbranch", "TPCClusterNative", "Branch with TPC native clusters" },
-                                                   { "clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch" },
-                                                   OutputSpec{ "TPC", "CLUSTERNATIVE" },
-                                                   OutputSpec{ "TPC", "CLNATIVEMCLBL" },
+                                                   {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
+                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
+                                                   OutputSpec{"TPC", "CLUSTERNATIVE"},
+                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
                                                    tpcSectors,
                                                    laneConfiguration,
                                                  },
@@ -170,9 +170,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // the parallelPipeline helper distributes the subspec ids from the lane configuration
   // among the pipelines. All inputs and outputs of processors of one pipeline will be
   // cloned by the number of subspecs served by this pipeline and amended with the subspecs
-  parallelProcessors = parallelPipeline(parallelProcessors, nLanes,
-                                        [&laneConfiguration]() { return laneConfiguration.size(); },
-                                        [&laneConfiguration](size_t index) { return laneConfiguration[index]; });
+  parallelProcessors = parallelPipeline(
+    parallelProcessors, nLanes,
+    [&laneConfiguration]() { return laneConfiguration.size(); },
+    [&laneConfiguration](size_t index) { return laneConfiguration[index]; });
   specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,12 +255,12 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     // or one branch definition
     if (propagateMC) {
       return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                              MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
+                                              MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                               std::move(amendBranchDef(databranch)),
                                               std::move(amendBranchDef(mcbranch)))());
     }
     return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                            MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
+                                            MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                             std::move(amendBranchDef(databranch)))());
   };
 
@@ -274,12 +275,12 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.push_back(makeWriterSpec("tpc-digits-writer",
                                    inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
                                    "o2sim",
-                                   BranchDefinition<DigitOutputType>{ InputSpec{ "data", "TPC", "DIGITS", 0 },
-                                                                      "TPCDigit",
-                                                                      "digit-branch-name" },
-                                   BranchDefinition<MCLabelContainer>{ InputSpec{ "mc", "TPC", "DIGITSMCTR", 0 },
-                                                                       "TPCDigitMCTruth",
-                                                                       "digitmc-branch-name" }));
+                                   BranchDefinition<DigitOutputType>{InputSpec{"data", "TPC", "DIGITS", 0},
+                                                                     "TPCDigit",
+                                                                     "digit-branch-name"},
+                                   BranchDefinition<MCLabelContainer>{InputSpec{"mc", "TPC", "DIGITSMCTR", 0},
+                                                                      "TPCDigitMCTruth",
+                                                                      "digitmc-branch-name"}));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -292,12 +293,12 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.push_back(makeWriterSpec("tpc-raw-cluster-writer",
                                    inputType == InputType::Raw ? "tpc-filtered-raw-clusters.root" : "tpc-raw-clusters.root",
                                    "tpcraw",
-                                   BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERHW", 0 },
-                                                                  "TPCClusterHw",
-                                                                  "databranch" },
-                                   BranchDefinition<MCLabelContainer>{ InputSpec{ "mc", "TPC", "CLUSTERHWMCLBL", 0 },
-                                                                       "TPCClusterHwMCTruth",
-                                                                       "mcbranch" }));
+                                   BranchDefinition<const char*>{InputSpec{"data", "TPC", "CLUSTERHW", 0},
+                                                                 "TPCClusterHw",
+                                                                 "databranch"},
+                                   BranchDefinition<MCLabelContainer>{InputSpec{"mc", "TPC", "CLUSTERHWMCLBL", 0},
+                                                                      "TPCClusterHwMCTruth",
+                                                                      "mcbranch"}));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -310,12 +311,12 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
                                    inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
-                                   BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERNATIVE", 0 },
-                                                                  "TPCClusterNative",
-                                                                  "databranch" },
-                                   BranchDefinition<MCLabelCollection>{ InputSpec{ "mc", "TPC", "CLNATIVEMCLBL", 0 },
-                                                                        "TPCClusterNativeMCTruth",
-                                                                        "mcbranch" }));
+                                   BranchDefinition<const char*>{InputSpec{"data", "TPC", "CLUSTERNATIVE", 0},
+                                                                 "TPCClusterNative",
+                                                                 "databranch"},
+                                   BranchDefinition<MCLabelCollection>{InputSpec{"mc", "TPC", "CLNATIVEMCLBL", 0},
+                                                                       "TPCClusterNativeMCTruth",
+                                                                       "mcbranch"}));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -343,23 +344,23 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     //branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-    auto tracksdef = BranchDefinition<TrackOutputType>{ InputSpec{ "input", "TPC", "TRACKS" },    //
-                                                        "TPCTracks", "track-branch-name" };       //
-    auto mcdef = BranchDefinition<MCLabelContainer>{ InputSpec{ "mcinput", "TPC", "TRACKMCLBL" }, //
-                                                     "TPCTracksMCTruth", "trackmc-branch-name" }; //
+    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"input", "TPC", "TRACKS"},     //
+                                                       "TPCTracks", "track-branch-name"};       //
+    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKMCLBL"},  //
+                                                    "TPCTracksMCTruth", "trackmc-branch-name"}; //
 
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,              //
-                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,         //
-                                             MakeRootTreeWriterSpec::TerminationCondition{ checkReady }, //
-                                             std::move(tracksdef), std::move(mcdef))());                 //
-    } else {                                                                                             //
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,              //
-                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,         //
-                                             MakeRootTreeWriterSpec::TerminationCondition{ checkReady }, //
-                                             std::move(tracksdef))());                                   //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
+                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,       //
+                                             MakeRootTreeWriterSpec::TerminationCondition{checkReady}, //
+                                             std::move(tracksdef), std::move(mcdef))());               //
+    } else {                                                                                           //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
+                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,       //
+                                             MakeRootTreeWriterSpec::TerminationCondition{checkReady}, //
+                                             std::move(tracksdef))());                                 //
     }
   }
 

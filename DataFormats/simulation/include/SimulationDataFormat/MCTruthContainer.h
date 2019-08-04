@@ -31,7 +31,7 @@ struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
   MCTruthHeaderElement(uint i) : index(i) {}
-  uint index = -1;  // the index into the actual MC track storage (-1 if invalid)
+  uint index = -1; // the index into the actual MC track storage (-1 if invalid)
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
@@ -67,7 +67,7 @@ class MCTruthContainer
   // move constructor
   MCTruthContainer(MCTruthContainer&& other) = default;
   // assignment operator
-  MCTruthContainer& operator=(const MCTruthContainer &other) = default;
+  MCTruthContainer& operator=(const MCTruthContainer& other) = default;
   // move assignment operator
   MCTruthContainer& operator=(MCTruthContainer&& other) = default;
 
@@ -222,7 +222,7 @@ class MCTruthContainer
   ClassDefNV(MCTruthContainer, 1);
 }; // end class
 
-}
-}
+} // namespace dataformats
+} // namespace o2
 
 #endif

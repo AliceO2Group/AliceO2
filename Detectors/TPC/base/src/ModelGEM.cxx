@@ -24,19 +24,19 @@ ModelGEM::ModelGEM() :
                        mAttachment(0.0),
                        mStackEnergyCalculated(0),
 
-                       mFitElecEffPitch{ { 140.0f, 200.0f, 280.0f } },
-                       mFitElecEffWidth{ { 2.0f * mFitElecEffPitch[0] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[1] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[2] - mFitElecEffHoleDiameter } },
+                       mFitElecEffPitch{{140.0f, 200.0f, 280.0f}},
+                       mFitElecEffWidth{{2.0f * mFitElecEffPitch[0] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[1] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[2] - mFitElecEffHoleDiameter}},
 
-                       mFitElecEffTuneEta1{ { 6.78972f, 11.5214f, 18.788f } },
-                       mFitElecEffTuneEta2{ { 6.88737f, 8.98337f, 9.90459f } },
-                       mFitElecEffTuneDiffusion{ { 1.30061f, 1.30285f, 1.30125f } },
+                       mFitElecEffTuneEta1{{6.78972f, 11.5214f, 18.788f}},
+                       mFitElecEffTuneEta2{{6.88737f, 8.98337f, 9.90459f}},
+                       mFitElecEffTuneDiffusion{{1.30061f, 1.30285f, 1.30125f}},
 
-                       mFitAbsGainConstant{ { -1.91668f, -1.95479f, -1.98842f } },
-                       mFitAbsGainSlope{ { 0.0183423f, 0.0185194f, 0.0186415f } },
+                       mFitAbsGainConstant{{-1.91668f, -1.95479f, -1.98842f}},
+                       mFitAbsGainSlope{{0.0183423f, 0.0185194f, 0.0186415f}},
 
-                       mFitSingleGainF0{ { 0.450676f, 0.457851f, 0.465322f } },
-                       mFitSingleGainU0{ { 210.0f, 210.0f, 210.0f } },
-                       mFitSingleGainQ{ { 0.10f, 0.10f, 0.10f } }
+                       mFitSingleGainF0{{0.450676f, 0.457851f, 0.465322f}},
+                       mFitSingleGainU0{{210.0f, 210.0f, 210.0f}},
+                       mFitSingleGainQ{{0.10f, 0.10f, 0.10f}}
 
 {
 

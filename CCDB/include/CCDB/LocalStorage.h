@@ -13,10 +13,10 @@
 
 //  class  LocalStorage						   //
 //  access class to a DataBase in a local storage                  //
-#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
-#include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, LocalStorage::Class, etc
-#include "CCDB/Storage.h"  // for Storage
-#include "TString.h"  // for TString
+#include "CCDB/Manager.h" // for StorageFactory, StorageParameters
+#include "Rtypes.h"       // for Bool_t, Int_t, ClassDef, LocalStorage::Class, etc
+#include "CCDB/Storage.h" // for Storage
+#include "TString.h"      // for TString
 
 class TList;
 
@@ -91,7 +91,7 @@ class LocalStorage : public Storage
 
   TString mBaseDirectory; // path of the DB folder
 
-  ClassDefOverride(LocalStorage, 0) // access class to a DataBase in a local storage
+  ClassDefOverride(LocalStorage, 0); // access class to a DataBase in a local storage
 };
 
 //  class  LocalStorageFactory
@@ -105,7 +105,7 @@ class LocalStorageFactory : public StorageFactory
  protected:
   Storage* createStorage(const StorageParameters* param) override;
 
-  ClassDefOverride(LocalStorageFactory, 0)
+  ClassDefOverride(LocalStorageFactory, 0);
 };
 
 //  class  LocalStorageParameters
@@ -133,8 +133,8 @@ class LocalStorageParameters : public StorageParameters
 
  private:
   TString mDBPath; // path of the DB folder
-  ClassDefOverride(LocalStorageParameters, 0)
+  ClassDefOverride(LocalStorageParameters, 0);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

@@ -82,7 +82,7 @@ void TMessageSerializer::fillSchema(FairMQMessage& msg, const StreamerList& stre
 
 void TMessageSerializer::updateStreamers(const FairTMessage& message, StreamerList& streamers)
 {
-  std::lock_guard<std::mutex> lock{ TMessageSerializer::sStreamersLock };
+  std::lock_guard<std::mutex> lock{TMessageSerializer::sStreamersLock};
 
   TIter nextStreamer(message.GetStreamerInfos()); // unfortunately ROOT uses TList* here
   // this looks like we could use std::map here.

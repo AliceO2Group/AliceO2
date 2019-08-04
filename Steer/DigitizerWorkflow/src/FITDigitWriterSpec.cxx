@@ -139,8 +139,8 @@ DataProcessorSpec getFT0DigitWriterSpec()
   auto detOrig = FT0DPLDigitWriter::DETOR;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
@@ -148,10 +148,9 @@ DataProcessorSpec getFT0DigitWriterSpec()
     {}, // no output
     AlgorithmSpec(adaptFromTask<FT0DPLDigitWriter>()),
     Options{
-      { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {(detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 
 } // end namespace fit

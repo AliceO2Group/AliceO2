@@ -217,4 +217,4 @@ void Pythia8Generator::GetPythiaInstance(int arg)
 } // namespace eventgen
 } // namespace o2
 
-ClassImp(o2::eventgen::Pythia8Generator)
+ClassImp(o2::eventgen::Pythia8Generator);

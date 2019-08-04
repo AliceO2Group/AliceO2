@@ -62,8 +62,8 @@ S& GPUReconstructionOCL2Backend::getKernelObject(int num)
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  size_t program_sizes[1] = { _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_size };
-  char* program_binaries[1] = { _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl };
+  size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_size};
+  char* program_binaries[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl};
   cl_int return_status[1];
   cl_int ocl_error;
   mInternals->program = clCreateProgramWithBinary(mInternals->context, 1, &mInternals->device, program_sizes, (const unsigned char**)program_binaries, return_status, &ocl_error);

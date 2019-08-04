@@ -59,18 +59,18 @@ void Dipole::createMaterials()
 
   Int_t isxfld2 = 2; // TODO: set this properly ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
 
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
 
-  Float_t acoil[3] = { 26.98, 1.01, 16. };
-  Float_t zcoil[3] = { 13., 1., 8. };
-  Float_t wcoil[3] = { .66, .226, .114 };
+  Float_t acoil[3] = {26.98, 1.01, 16.};
+  Float_t zcoil[3] = {13., 1., 8.};
+  Float_t wcoil[3] = {.66, .226, .114};
 
   // AIR
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-10;
 
@@ -128,7 +128,6 @@ void Dipole::createMaterials()
   matmgr.Medium("DIPO", 14, "Coil_C1", 14, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("DIPO", 34, "Coil_C2", 34, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("DIPO", 54, "Coil_C3", 54, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
 }
 
 void Dipole::ConstructGeometry()
@@ -238,7 +237,7 @@ void Dipole::createSpectrometerDipole()
   Double_t yD0 = 182.;
   Double_t zD0 = 36.;
 
-  Double_t xy[16] = { 0 };
+  Double_t xy[16] = {0};
   xy[0] = -xD0;
   xy[1] = -yD0;
   xy[2] = -xD0;

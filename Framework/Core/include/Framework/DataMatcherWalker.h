@@ -56,20 +56,20 @@ struct DataMatcherWalker {
                    LEAFWALKER leafWalker)
   {
     std::vector<EdgeAction> matchers;
-    matchers.push_back(EdgeActions::EnterNode{ &top });
+    matchers.push_back(EdgeActions::EnterNode{&top});
 
     while (matchers.empty() == false) {
       EdgeAction action = matchers.back();
       matchers.pop_back();
       ChildAction childrenVisitor = std::visit(overloaded{
                                                  [&matchers, &edgeWalker](EdgeActions::EnterNode action) {
-                                                   matchers.push_back(EdgeActions::ExitNode{ action.node });
+                                                   matchers.push_back(EdgeActions::ExitNode{action.node});
                                                    return edgeWalker(action);
                                                  },
                                                  [&edgeWalker](EdgeActions::ExitNode action) {
                                                    edgeWalker(action);
                                                    return ChildAction::VisitNone;
-                                                 } },
+                                                 }},
                                                action);
 
       if (childrenVisitor & ChildAction::VisitRight) {
@@ -77,13 +77,13 @@ struct DataMatcherWalker {
 
         std::visit(overloaded{
                      [&matchers](std::unique_ptr<DataDescriptorMatcher> const& matcher) {
-                       matchers.push_back(EdgeActions::EnterNode{ matcher.get() });
+                       matchers.push_back(EdgeActions::EnterNode{matcher.get()});
                      },
                      [edgeWalker, leafWalker](auto const& leaf) {
                        edgeWalker(EdgeActions::EnterRight{});
                        leafWalker(leaf);
                        edgeWalker(EdgeActions::ExitRight{});
-                     } },
+                     }},
                    node->getRight());
       }
 
@@ -92,13 +92,13 @@ struct DataMatcherWalker {
 
         std::visit(overloaded{
                      [&matchers](std::unique_ptr<DataDescriptorMatcher> const& matcher) {
-                       matchers.push_back(EdgeActions::EnterNode{ matcher.get() });
+                       matchers.push_back(EdgeActions::EnterNode{matcher.get()});
                      },
                      [edgeWalker, leafWalker](auto const& leaf) {
                        edgeWalker(EdgeActions::EnterLeft{});
                        leafWalker(leaf);
                        edgeWalker(EdgeActions::ExitLeft{});
-                     } },
+                     }},
                    node->getLeft());
       }
     }

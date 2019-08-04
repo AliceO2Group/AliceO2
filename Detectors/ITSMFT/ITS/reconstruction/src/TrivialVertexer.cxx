@@ -69,14 +69,14 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
   if (mClsLabels == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
               << "No cluster labels available ! Running with a default MC vertex..." << FairLogger::endl;
-    vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
+    vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
 
   if (mTree == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
               << "No MC information available ! Running with a default MC vertex..." << FairLogger::endl;
-    vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
+    vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
 
@@ -100,7 +100,7 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
     Double_t vx = mHeader->GetX();
     Double_t vy = mHeader->GetY();
     Double_t vz = mHeader->GetZ();
-    vertices.emplace_back(std::array<Double_t, 3>{ vx, vy, vz });
+    vertices.emplace_back(std::array<Double_t, 3>{vx, vy, vz});
     LOG(INFO) << "TrivialVertexer::process() : "
               << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')' << FairLogger::endl;
   }

@@ -57,21 +57,21 @@ struct HeatMapHelper {
 
     drawList->AddRectFilled(
       ImVec2(0., 0.) + winPos,
-      ImVec2{ size.x, size.y } + winPos,
+      ImVec2{size.x, size.y} + winPos,
       BACKGROUND_COLOR);
     drawList->AddRect(
       ImVec2(0., 0.) + winPos,
-      ImVec2{ size.x - 1, size.y } + winPos,
+      ImVec2{size.x - 1, size.y} + winPos,
       BORDER_COLOR);
     float padding = 1;
     for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
       auto record = getRecord(ri);
-      ImVec2 xOffset{ (ri * boxSizeX) + padding, 0 };
-      ImVec2 xSize{ boxSizeX - 2 * padding, 0 };
+      ImVec2 xOffset{(ri * boxSizeX) + padding, 0};
+      ImVec2 xSize{boxSizeX - 2 * padding, 0};
       auto boxSizeY = std::min(size.y / getNumItems(record), MAX_BOX_Y_SIZE);
       for (size_t mi = 0, me = getNumItems(record); mi < me; mi++) {
-        ImVec2 yOffSet{ 0, (mi * boxSizeY) + padding };
-        ImVec2 ySize{ 0, boxSizeY - 2 * padding };
+        ImVec2 yOffSet{0, (mi * boxSizeY) + padding};
+        ImVec2 ySize{0, boxSizeY - 2 * padding};
 
         drawList->AddRectFilled(
           xOffset + yOffSet + winPos,
@@ -86,7 +86,7 @@ struct HeatMapHelper {
 
 void displayDataRelayer(DeviceMetricsInfo const& metrics,
                         DeviceInfo const& info,
-                        ImVec2 const &size)
+                        ImVec2 const& size)
 {
   auto& viewIndex = info.dataRelayerViewIndex;
   auto& variablesIndex = info.variablesViewIndex;

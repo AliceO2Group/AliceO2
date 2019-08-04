@@ -178,7 +178,7 @@ class TPCDPLDigitizerTask
       auto roMode = isContinuous ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
       LOG(INFO) << "TPC: Sending ROMode= " << (mDigitizer.isContinuousReadout() ? "Continuous" : "Triggered")
                 << " to GRPUpdater from channel " << mChannel;
-      pc.outputs().snapshot(Output{ "TPC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+      pc.outputs().snapshot(Output{"TPC", "ROMode", 0, Lifetime::Timeframe}, roMode);
     }
 
     // extract which sector to treat
@@ -195,28 +195,28 @@ class TPCDPLDigitizerTask
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
     auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::tpc::Digit> const& digits) {
-      o2::tpc::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
-                                    header },
+      pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
                             const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
-      o2::tpc::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
-                                    Lifetime::Timeframe, header },
+      pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
+                                   Lifetime::Timeframe, header},
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
     auto snapshotEvents = [this, sector, &pc, activeSectors](const std::vector<DigiGroupRef>& events) {
-      o2::tpc::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << mChannel << " | size " << events.size();
-      pc.outputs().snapshot(Output{ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
-                                    header },
+      pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
                             const_cast<std::vector<DigiGroupRef>&>(events));
     };
 
@@ -344,16 +344,15 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
 
   return DataProcessorSpec{
     id.str().c_str(),
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{ adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP) },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions" } },
-             { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)" } },
-             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } },
-             { "TPCtriggered", VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } }
-  };
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP)},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
+            {"gridSize", VariantType::String, "33,180,33", {"Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)"}},
+            {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
+            {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
 }
 
 } // end namespace tpc

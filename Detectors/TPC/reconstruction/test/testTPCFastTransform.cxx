@@ -139,8 +139,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
           float gx1, gy1, gz1;
           geo.convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
 
-          double xyz[3] = { gx0, gy0, gz0 };
-          double d[3] = { 0, 0, 0 };
+          double xyz[3] = {gx0, gy0, gz0};
+          double d[3] = {0, 0, 0};
           correctionFunction(xyz, d);
           statDiff += fabs((gx1 - gx0) - d[0]) + fabs((gy1 - gy0) - d[1]) + fabs((gz1 - gz0) - d[2]);
           statN += 3;

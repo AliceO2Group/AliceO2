@@ -26,40 +26,42 @@ using SubframeId = o2::dataflow::SubframeId;
 using HeartbeatHeader = o2::header::HeartbeatHeader;
 using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
-SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId> &merger,
-                  std::shared_ptr<FairMQTransportFactory> &transport,
-                  int64_t orbit) {
+SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId>& merger,
+                        std::shared_ptr<FairMQTransportFactory>& transport,
+                        int64_t orbit)
+{
   // Create a message
   //
   // We set orbit to be always the same and the actual contents to be 127
   static size_t dummyMessageSize = 1000;
   auto msg = transport->CreateMessage(dummyMessageSize);
-  char *b = reinterpret_cast<char*>(msg->GetData()) + sizeof(HeartbeatHeader);
+  char* b = reinterpret_cast<char*>(msg->GetData()) + sizeof(HeartbeatHeader);
   for (size_t i = 0; i < (dummyMessageSize - sizeof(HeartbeatHeader)); ++i) {
     b[i] = orbit;
   }
   b[0] = 127;
-  HeartbeatHeader *header = reinterpret_cast<HeartbeatHeader*>(msg->GetData());
+  HeartbeatHeader* header = reinterpret_cast<HeartbeatHeader*>(msg->GetData());
   header->orbit = orbit;
   return merger.aggregate(msg);
 }
 
-BOOST_AUTO_TEST_CASE(PayloadMergerTest) {
+BOOST_AUTO_TEST_CASE(PayloadMergerTest)
+{
   auto zmq = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
   // Needs three subtimeframes to merge them
-  auto checkIfComplete = [](SubframeId id, o2::dataflow::PayloadMerger<SubframeId>::MessageMap &m) -> bool {
+  auto checkIfComplete = [](SubframeId id, o2::dataflow::PayloadMerger<SubframeId>::MessageMap& m) -> bool {
     return m.count(id) >= 3;
   };
 
   // Id is given by the orbit, 2 orbits per timeframe
-  auto makeId = [](std::unique_ptr<FairMQMessage> &msg) {
+  auto makeId = [](std::unique_ptr<FairMQMessage>& msg) {
     auto header = reinterpret_cast<o2::header::HeartbeatHeader const*>(msg->GetData());
     return o2::dataflow::makeIdFromHeartbeatHeader(*header, 0, 2);
   };
 
   o2::dataflow::PayloadMerger<SubframeId> merger(makeId, checkIfComplete, o2::dataflow::extractDetectorPayloadStrip);
-  char *finalBuf = new char[3000];
+  char* finalBuf = new char[3000];
   size_t finalSize = 0;
   auto id = fakeAddition(merger, zmq, 1);
   finalSize = merger.finalise(&finalBuf, id);
@@ -73,8 +75,8 @@ BOOST_AUTO_TEST_CASE(PayloadMergerTest) {
   id = fakeAddition(merger, zmq, 1);
   finalSize = merger.finalise(&finalBuf, id);
   BOOST_CHECK(finalSize); // Now we merge!
-  size_t partSize = (1000-sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer));
-  BOOST_CHECK(finalSize == 3*partSize); // This should be the calculated size
+  size_t partSize = (1000 - sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer));
+  BOOST_CHECK(finalSize == 3 * partSize); // This should be the calculated size
   for (size_t i = 0; i < finalSize; ++i) {
     BOOST_CHECK(finalBuf[i] == ((i % partSize) == 0 ? 127 : 1));
   }

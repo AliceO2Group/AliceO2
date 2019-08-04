@@ -13,13 +13,13 @@
 //  The SAX XML file handler used by the OCDB Manager                     //
 //  get the OCDB Folder <-> Run Range correspondance                      //
 
-#include <TObject.h>  // for TObject
-#include "Rtypes.h"   // for Int_t, XmlHandler::Class, ClassDef, etc
-#include "TString.h"  // for TString
+#include <TObject.h> // for TObject
+#include "Rtypes.h"  // for Int_t, XmlHandler::Class, ClassDef, etc
+#include "TString.h" // for TString
 
 class TList;
 
-#include <cstddef>      // for NULL
+#include <cstddef> // for NULL
 
 namespace o2
 {
@@ -89,8 +89,8 @@ class XmlHandler : public TObject
   Int_t mEndIdRunRange;   // end run corresponding to the request
   TString mOCDBFolder;    // OCDB folder corresponding to the request
 
-  ClassDefOverride(XmlHandler, 0) // The XML file handler for the OCDB
+  ClassDefOverride(XmlHandler, 0); // The XML file handler for the OCDB
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

@@ -17,21 +17,23 @@
 
 #include <TEveTrack.h>
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 /// Track class of Event Visualisation
 ///
 /// This class overrides TEveTrack to allow setting of custom vertex, momentum and beta
-  
+
 class Track : public TEveTrack
 {
-public:
+ public:
   // Default constructor
   Track();
   // Default destructor
   ~Track() final;
-  
+
   // Vertex setter
   void setVertex(double v[3]);
   // Momentum vector setter
@@ -40,8 +42,7 @@ public:
   void setBeta(double beta);
 };
 
-}
-}
+} // namespace event_visualisation
+} // namespace o2
 
 #endif
-

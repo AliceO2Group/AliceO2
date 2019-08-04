@@ -77,19 +77,19 @@ class Vector final
 };
 
 template <typename T>
-Vector<T>::Vector() : Vector{ nullptr, 0 }
+Vector<T>::Vector() : Vector{nullptr, 0}
 {
   // Nothing to do
 }
 
 template <typename T>
-Vector<T>::Vector(const int capacity, const int initialSize) : Vector{ nullptr, capacity, initialSize }
+Vector<T>::Vector(const int capacity, const int initialSize) : Vector{nullptr, capacity, initialSize}
 {
   // Nothing to do
 }
 
 template <typename T>
-Vector<T>::Vector(const T* const source, const int size, const int initialSize) : mCapacity{ size }, mIsWeak{ false }
+Vector<T>::Vector(const T* const source, const int size, const int initialSize) : mCapacity{size}, mIsWeak{false}
 {
   if (size > 0) {
     try {
@@ -118,10 +118,10 @@ Vector<T>::Vector(const T* const source, const int size, const int initialSize) 
 
 template <typename T>
 Vector<T>::Vector(const Vector& other, const bool isWeak)
-  : mArrayPointer{ other.mArrayPointer },
-    mDeviceSize{ other.mDeviceSize },
-    mCapacity{ other.mCapacity },
-    mIsWeak{ isWeak }
+  : mArrayPointer{other.mArrayPointer},
+    mDeviceSize{other.mDeviceSize},
+    mCapacity{other.mCapacity},
+    mIsWeak{isWeak}
 {
   // Nothing to do
 }
@@ -144,10 +144,10 @@ GPU_HOST_DEVICE Vector<T>::~Vector()
 
 template <typename T>
 GPU_HOST_DEVICE Vector<T>::Vector(Vector<T>&& other)
-  : mArrayPointer{ other.mArrayPointer },
-    mDeviceSize{ other.mDeviceSize },
-    mCapacity{ other.mCapacity },
-    mIsWeak{ other.mIsWeak }
+  : mArrayPointer{other.mArrayPointer},
+    mDeviceSize{other.mDeviceSize},
+    mCapacity{other.mCapacity},
+    mIsWeak{other.mIsWeak}
 {
   other.mArrayPointer = nullptr;
   other.mDeviceSize = nullptr;
@@ -268,7 +268,7 @@ GPU_HOST_DEVICE inline int Vector<T>::capacity() const
 template <typename T>
 GPU_HOST_DEVICE inline Vector<T> Vector<T>::getWeakCopy() const
 {
-  return Vector{ *this, true };
+  return Vector{*this, true};
 }
 
 template <typename T>

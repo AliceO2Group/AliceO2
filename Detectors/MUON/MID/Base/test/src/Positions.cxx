@@ -79,9 +79,9 @@ int testOnePosition(const o2::mid::GeometryTransformer& geoTrans, rapidjson::Val
   auto deId = tp["deId"].GetInt();
   auto localPoint = tp["local"].GetArray();
   auto inGlobalPoint = tp["global"].GetArray();
-  std::array<double, 3> inGlob = { inGlobalPoint[0].GetDouble(), inGlobalPoint[1].GetDouble(), inGlobalPoint[2].GetDouble() };
+  std::array<double, 3> inGlob = {inGlobalPoint[0].GetDouble(), inGlobalPoint[1].GetDouble(), inGlobalPoint[2].GetDouble()};
   auto outGlobalPoint = geoTrans.localToGlobal(deId, localPoint[0].GetDouble(), localPoint[1].GetDouble());
-  std::array<double, 3> outGlob = { outGlobalPoint.x(), outGlobalPoint.y(), outGlobalPoint.z() };
+  std::array<double, 3> outGlob = {outGlobalPoint.x(), outGlobalPoint.y(), outGlobalPoint.z()};
   if (!areEqual(inGlob, outGlob)) {
     std::cout << "got different positions for deId " << deId << " : got (" << inGlob[0] << ", " << inGlob[1] << ", " << inGlob[2] << ")  expected (" << outGlob[0] << ", " << outGlob[1] << ", " << outGlob[2] << ")\n";
     return 1;
@@ -95,7 +95,7 @@ std::string getTestPosFilename()
   auto& ts = boost::unit_test::framework::master_test_suite();
   auto nargs = ts.argc;
   if (nargs >= 2) {
-    std::string opt{ "--testpos" };
+    std::string opt{"--testpos"};
     for (auto iarg = 0; iarg < nargs - 1; iarg++) {
       if (opt == ts.argv[iarg]) {
         path = ts.argv[iarg + 1];
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestPositions)
 
   BOOST_TEST(test_positions.Size() > 0);
 
-  int notok{ 0 };
+  int notok{0};
 
   o2::mid::GeometryTransformer geoTrans = o2::mid::createDefaultTransformer();
 

@@ -80,7 +80,7 @@ struct MC2ROFRecord {
   void print() const;
   ClassDefNV(MC2ROFRecord, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

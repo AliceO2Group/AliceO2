@@ -152,16 +152,16 @@ void Detector::createMaterials()
 
   // Air mixture
   const Int_t nAir = 4;
-  Float_t aAir[nAir] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[nAir] = { 6, 7, 8, 18 };
-  Float_t wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[nAir] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[nAir] = {6, 7, 8, 18};
+  Float_t wAir[nAir] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 0.00120479;
 
   // Scintillator mixture; TODO: Looks very rough, improve these numbers?
   const Int_t nScint = 2;
-  Float_t aScint[nScint] = { 1, 12.01 };
-  Float_t zScint[nScint] = { 1, 6 };
-  Float_t wScint[nScint] = { 0.016, 0.984 };
+  Float_t aScint[nScint] = {1, 12.01};
+  Float_t zScint[nScint] = {1, 6};
+  Float_t wScint[nScint] = {0.016, 0.984};
   Float_t dScint = 1.023;
 
   Int_t matId = 0;                  // tmp material id number

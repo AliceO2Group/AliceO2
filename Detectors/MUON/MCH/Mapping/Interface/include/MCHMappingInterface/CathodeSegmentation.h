@@ -62,10 +62,10 @@ class CathodeSegmentation
  public:
   /// This ctor throws if detElemId is invalid
   CathodeSegmentation(int detElemId, bool isBendingPlane)
-    : mImpl{ mchCathodeSegmentationConstruct(detElemId, isBendingPlane) },
+    : mImpl{mchCathodeSegmentationConstruct(detElemId, isBendingPlane)},
       mDualSampaIds{},
-      mDetElemId{ detElemId },
-      mIsBendingPlane{ isBendingPlane }
+      mDetElemId{detElemId},
+      mIsBendingPlane{isBendingPlane}
   {
     if (!mImpl) {
       throw std::runtime_error("Can not create segmentation for DE " + std::to_string(detElemId) +
@@ -79,7 +79,7 @@ class CathodeSegmentation
     };
     mchCathodeSegmentationForEachDualSampa(mImpl, callback, &addDualSampaId);
     mDualSampaIds = dpid;
-    int n{ 0 };
+    int n{0};
     for (auto i = 0; i < nofDualSampas(); ++i) {
       forEachPadInDualSampa(dualSampaId(i), [&n](int /*catPadIndex*/) { ++n; });
     }

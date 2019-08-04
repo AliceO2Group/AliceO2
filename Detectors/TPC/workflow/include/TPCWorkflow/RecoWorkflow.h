@@ -45,13 +45,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    );
+);
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    )
+)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
@@ -62,7 +62,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
 framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    )
+)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);

@@ -45,7 +45,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   O2ParamDef(DPLDigitizerParam, getParamName().data());
 
  private:
-  static constexpr std::string_view ParamName[2] = { "ITSDigitizerParam", "MFTDigitizerParam" };
+  static constexpr std::string_view ParamName[2] = {"ITSDigitizerParam", "MFTDigitizerParam"};
 };
 
 template <int N>

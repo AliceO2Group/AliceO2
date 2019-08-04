@@ -49,5 +49,5 @@ BOOST_AUTO_TEST_CASE(HitProcessingTest)
   // setup run (without giving number of collision)
   mgr.setupRun(100);
 }
-}
-}
+} // namespace steer
+} // namespace o2

@@ -8,17 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifdef __CLING__
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::conf::SimConfig+;
-#pragma link C++ class o2::conf::SimConfigData+;
+#pragma link C++ class o2::conf::SimConfig + ;
+#pragma link C++ class o2::conf::SimConfigData + ;
 
 #pragma link C++ class o2::conf::SimCutParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimCutParams > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimCutParams> + ;
 
 #pragma link C++ enum o2::conf::EG4Physics;
 #pragma link C++ struct o2::conf::G4Params + ;

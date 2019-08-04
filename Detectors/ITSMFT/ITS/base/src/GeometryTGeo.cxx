@@ -613,7 +613,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   int nNodes = volLd->GetNodes()->GetEntries();
 
   double xmin = 1e9, xmax = -1e9, zmin = 1e9, zmax = -1e9;
-  double lab[3], loc[3] = { 0, 0, 0 };
+  double lab[3], loc[3] = {0, 0, 0};
   double dx = -1, dz = -1;
 
   for (int j = 0; j < nNodes; j++) {
@@ -701,7 +701,7 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
 {
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
-  double locA[3] = { -100., 0., 0. }, locB[3] = { 100., 0., 0. }, gloA[3], gloB[3];
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
 
   matL2G->LocalToMaster(locA, gloA);

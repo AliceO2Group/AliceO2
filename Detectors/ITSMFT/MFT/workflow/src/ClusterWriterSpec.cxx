@@ -78,16 +78,15 @@ DataProcessorSpec getClusterWriterSpec()
   return DataProcessorSpec{
     "mft-cluster-writer",
     Inputs{
-      InputSpec{ "compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe } },
+      InputSpec{"compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
+      InputSpec{"clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe},
+      InputSpec{"labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
+      InputSpec{"ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
+      InputSpec{"MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<ClusterWriter>() },
+    AlgorithmSpec{adaptFromTask<ClusterWriter>()},
     Options{
-      { "mft-cluster-outfile", VariantType::String, "mftclusters.root", { "Name of the output file" } } }
-  };
+      {"mft-cluster-outfile", VariantType::String, "mftclusters.root", {"Name of the output file"}}}};
 }
 
 } // namespace mft

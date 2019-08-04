@@ -27,7 +27,7 @@ struct DeviceSpec;
 struct InputRecord;
 
 /// Policy to describe what to do for a matching DeviceSpec
-/// whenever a new message arrives. The InputRecord being passed to 
+/// whenever a new message arrives. The InputRecord being passed to
 /// Callback is the partial input record received that far.
 struct CompletionPolicy {
   /// Action to take with the InputRecord:
@@ -50,11 +50,11 @@ struct CompletionPolicy {
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
-  using Callback = std::function<CompletionOp(gsl::span<PartRef const> const &)>;
+  using Callback = std::function<CompletionOp(gsl::span<PartRef const> const&)>;
 
   /// Name of the policy itself.
   std::string name;
-  /// Callback to be used to understand if the policy should apply 
+  /// Callback to be used to understand if the policy should apply
   /// to the given device.
   Matcher matcher;
   /// Actual policy which decides what to do with a partial InputRecord.

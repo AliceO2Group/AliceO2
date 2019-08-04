@@ -852,7 +852,7 @@ void GPUTPCGMMerger::MergeCE()
   }
   for (int i = 0; i < mNOutputTracks; i++) {
     if (mTrackLinks[i] >= 0) {
-      GPUTPCGMMergedTrack* trk[2] = { &mOutputTracks[i], &mOutputTracks[mTrackLinks[i]] };
+      GPUTPCGMMergedTrack* trk[2] = {&mOutputTracks[i], &mOutputTracks[mTrackLinks[i]]};
 
       if (!trk[1]->OK() || trk[1]->CCE()) {
         continue;
@@ -880,7 +880,7 @@ void GPUTPCGMMerger::MergeCE()
         std::swap(trk[0], trk[1]);
       }
 
-      bool reverse[2] = { false, false };
+      bool reverse[2] = {false, false};
       if (looper) {
         reverse[0] = (mClusters[trk[0]->FirstClusterRef()].z > mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z) ^ (trk[0]->CSide() > 0);
         reverse[1] = (mClusters[trk[1]->FirstClusterRef()].z < mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].z) ^ (trk[1]->CSide() > 0);

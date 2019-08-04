@@ -17,8 +17,8 @@
 #pragma link C++ class o2::itsmft::Clusterer + ;
 #pragma link C++ class o2::itsmft::PixelReader + ;
 #pragma link C++ class o2::itsmft::DigitPixelReader + ;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS > +;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT > +;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS> + ;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT> + ;
 #pragma link C++ class o2::itsmft::PixelData + ;
 #pragma link C++ class o2::itsmft::ChipPixelData + ;
 #pragma link C++ class o2::itsmft::BuildTopologyDictionary + ;
@@ -36,8 +36,6 @@
 #pragma link C++ class o2::itsmft::GBTLinkDecodingStat + ;
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
 
-#pragma link C++ class std::map<unsigned long, std::pair<o2::itsmft::ClusterTopology, unsigned long>> + ;
-
-
+#pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 
 #endif

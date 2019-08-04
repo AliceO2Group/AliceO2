@@ -35,7 +35,7 @@ struct InputSpec {
   InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, enum Lifetime lifetime_ = Lifetime::Timeframe);
   /// Create an InputSpec which does not check for the subSpec.
   InputSpec(std::string binding_, ConcreteDataTypeMatcher const& dataType, enum Lifetime lifetime_ = Lifetime::Timeframe);
-  InputSpec(std::string binding, data_matcher::DataDescriptorMatcher &&matcher);
+  InputSpec(std::string binding, data_matcher::DataDescriptorMatcher&& matcher);
 
   std::string binding;
   std::variant<ConcreteDataMatcher, data_matcher::DataDescriptorMatcher> matcher;

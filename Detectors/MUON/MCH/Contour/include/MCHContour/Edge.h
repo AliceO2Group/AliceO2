@@ -75,14 +75,14 @@ template <typename T>
 class VerticalEdge : public ManhattanEdge<T>
 {
  public:
-  VerticalEdge(T x = {}, T y1 = {}, T y2 = {}) : ManhattanEdge<T>({ x, y1 }, { x, y2 }) {}
+  VerticalEdge(T x = {}, T y1 = {}, T y2 = {}) : ManhattanEdge<T>({x, y1}, {x, y2}) {}
 };
 
 template <typename T>
 class HorizontalEdge : public ManhattanEdge<T>
 {
  public:
-  HorizontalEdge(T y = {}, T x1 = {}, T x2 = {}) : ManhattanEdge<T>({ x1, y }, { x2, y }) {}
+  HorizontalEdge(T y = {}, T x1 = {}, T x2 = {}) : ManhattanEdge<T>({x1, y}, {x2, y}) {}
 };
 
 template <typename T>

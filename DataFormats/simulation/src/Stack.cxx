@@ -476,7 +476,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
 void Stack::FinishPrimary()
 {
-  if ( mIsG4Like ) {
+  if (mIsG4Like) {
     notifyFinishPrimary();
   }
 }
@@ -616,7 +616,8 @@ bool Stack::selectTracks()
 
 TClonesArray* Stack::GetListOfParticles()
 {
-  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n" << FairLogger::endl;
+  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n"
+             << FairLogger::endl;
   return nullptr;
 }
 
@@ -654,4 +655,4 @@ void Stack::fillParentIDs(std::vector<int>& parentids) const
 }
 
 FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
-ClassImp(o2::data::Stack)
+ClassImp(o2::data::Stack);

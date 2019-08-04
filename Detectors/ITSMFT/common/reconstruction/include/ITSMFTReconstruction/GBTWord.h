@@ -44,7 +44,7 @@ class GBTWord
   /// GBT word of 80 bits, bits 72:79 are reserver for GBT Header flag, the rest depends on specifications
  public:
   GBTWord() = default;
-  GBTWord(uint64_t w0, uint64_t w1) : mData64{ w0, w1 } {}
+  GBTWord(uint64_t w0, uint64_t w1) : mData64{w0, w1} {}
 
   /// check if the GBT Header corresponds to GBT payload header
   static bool isDataHeader(const uint8_t* raw) { return raw[9] == GBTFlagDataHeader; }
@@ -84,7 +84,7 @@ class GBTWord
  protected:
   union {
     uint8_t mData8[16]; // 80 bits GBT word + optional padding to 128 bits
-    uint64_t mData64[2] = { 0 };
+    uint64_t mData64[2] = {0};
   };
   ClassDefNV(GBTWord, 1);
 };

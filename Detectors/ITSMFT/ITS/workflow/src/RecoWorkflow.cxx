@@ -44,7 +44,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker)
   return specs;
 }
 
-} // namespace RecoWorkflow
+} // namespace reco_workflow
 
 } // namespace its
 } // namespace o2

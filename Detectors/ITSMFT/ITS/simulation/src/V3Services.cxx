@@ -44,11 +44,11 @@ using namespace o2::its;
 // Parameters
 const Double_t V3Services::sIBWheelACZdist = 308.0 * sMm;
 
-ClassImp(V3Services)
+ClassImp(V3Services);
 
 #define SQ(A) (A) * (A)
 
-  V3Services::V3Services()
+V3Services::V3Services()
   : V11Geometry()
 {
 }
@@ -110,12 +110,12 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   // made out of the same TGeoPcon volume. Moreover they are two halves,
   // so here they are made as a single cylinder.
   // The End Wheel Basis
-  static const Double_t sEndWheelCDmax[3] = { 57.0 * sMm, 73.0 * sMm, 89.0 * sMm };
-  static const Double_t sEndWheelCDmin[3] = { 44.5 * sMm, 58.0 * sMm, 74.0 * sMm };
-  static const Double_t sEndWheelCHeigh[3] = { 25.0 * sMm, 22.5 * sMm, 20.0 * sMm };
+  static const Double_t sEndWheelCDmax[3] = {57.0 * sMm, 73.0 * sMm, 89.0 * sMm};
+  static const Double_t sEndWheelCDmin[3] = {44.5 * sMm, 58.0 * sMm, 74.0 * sMm};
+  static const Double_t sEndWheelCHeigh[3] = {25.0 * sMm, 22.5 * sMm, 20.0 * sMm};
   static const Double_t sEndWheelCThick = 0.6 * sMm;
 
-  static const Int_t sEndWCWallNHoles[3] = { 6, 8, 10 };
+  static const Int_t sEndWCWallNHoles[3] = {6, 8, 10};
   static const Double_t sEndWCWallHoleD = 4.5 * sMm;
   static const Double_t sEndWCWallHoleZpos = 4.0 * sMm;
 
@@ -123,23 +123,23 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   static const Int_t sEndWCBaseNSmalHoles = 6;
   static const Double_t sEndWCBaseBigHoleD = 3.6 * sMm;
   static const Double_t sEndWCBaseSmalHoleD = 2.5 * sMm;
-  static const Double_t sEndWCBaseHolesDpos[3] = { 50.0 * sMm, 64.0 * sMm, 80.0 * sMm };
+  static const Double_t sEndWCBaseHolesDpos[3] = {50.0 * sMm, 64.0 * sMm, 80.0 * sMm};
   static const Double_t sEndWCBaseHolesPhi = 15.0; // Deg
 
   // The End Wheel Reinforcement
-  static const Double_t sEndWCRenfDmin[3] = { 44.0 * sMm, 58.0 * sMm, 74.0 * sMm };
-  static const Double_t sEndWCRenfDint[3] = { 55.0 * sMm, 71.0 * sMm, 87.0 * sMm };
-  static const Double_t sEndWCRenfHeigh[3] = { 4.0 * sMm, 3.0 * sMm, 3.0 * sMm };
+  static const Double_t sEndWCRenfDmin[3] = {44.0 * sMm, 58.0 * sMm, 74.0 * sMm};
+  static const Double_t sEndWCRenfDint[3] = {55.0 * sMm, 71.0 * sMm, 87.0 * sMm};
+  static const Double_t sEndWCRenfHeigh[3] = {4.0 * sMm, 3.0 * sMm, 3.0 * sMm};
   static const Double_t sEndWCRenfThick = 0.6 * sMm;
 
   static const Double_t sEndWCRenfZpos = 14.2 * sMm;
 
-  static const Int_t sEndWCRenfNSmalHoles[3] = { 5, 7, 9 };
+  static const Int_t sEndWCRenfNSmalHoles[3] = {5, 7, 9};
 
   // The End Wheel Steps
-  static const Double_t sEndWCStepXdispl[3] = { 4.0 * sMm, 6.5 * sMm, 8.5 * sMm };
-  static const Double_t sEndWCStepYdispl[3] = { 24.4 * sMm, 32.1 * sMm, 39.6 * sMm };
-  static const Double_t sEndWCStepR[3] = { 27.8 * sMm, 35.8 * sMm, 43.8 * sMm };
+  static const Double_t sEndWCStepXdispl[3] = {4.0 * sMm, 6.5 * sMm, 8.5 * sMm};
+  static const Double_t sEndWCStepYdispl[3] = {24.4 * sMm, 32.1 * sMm, 39.6 * sMm};
+  static const Double_t sEndWCStepR[3] = {27.8 * sMm, 35.8 * sMm, 43.8 * sMm};
 
   static const Double_t sEndWCStepZlen = 14.0 * sMm;
 
@@ -147,8 +147,8 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   static const Double_t sEndWCStepHoleZpos = 4.0 * sMm;
   static const Double_t sEndWCStepHoleZdist = 4.0 * sMm;
 
-  static const Double_t sEndWCStepHolePhi[3] = { 30.0, 22.5, 18.0 }; // Deg
-  static const Double_t sEndWCStepHolePhi0[2] = { 9.5, 10.5 };       // Deg
+  static const Double_t sEndWCStepHolePhi[3] = {30.0, 22.5, 18.0}; // Deg
+  static const Double_t sEndWCStepHolePhi0[2] = {9.5, 10.5};       // Deg
   static const Double_t sEndWCStepYlow = 7.0 * sMm;
 
   // Local variables

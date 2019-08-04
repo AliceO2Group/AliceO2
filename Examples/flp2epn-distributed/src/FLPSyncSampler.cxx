@@ -28,22 +28,11 @@ using namespace std::chrono;
 using namespace o2::devices;
 
 FLPSyncSampler::FLPSyncSampler()
-  : mTimeframeRTT()
-  , mEventRate(1)
-  , mMaxEvents(0)
-  , mStoreRTTinFile(0)
-  , mEventCounter(0)
-  , mTimeFrameId(0)
-  , mAckListener()
-  , mResetEventCounter()
-  , mLeaving(false)
-  , mAckChannelName()
-  , mOutChannelName()
+  : mTimeframeRTT(), mEventRate(1), mMaxEvents(0), mStoreRTTinFile(0), mEventCounter(0), mTimeFrameId(0), mAckListener(), mResetEventCounter(), mLeaving(false), mAckChannelName(), mOutChannelName()
 {
 }
 
-FLPSyncSampler::~FLPSyncSampler()
-= default;
+FLPSyncSampler::~FLPSyncSampler() = default;
 
 void FLPSyncSampler::InitTask()
 {
@@ -92,9 +81,9 @@ bool FLPSyncSampler::ConditionalRun()
 
 void FLPSyncSampler::PostRun()
 {
-    mLeaving = true;
-    mResetEventCounter.join();
-    mAckListener.join();
+  mLeaving = true;
+  mResetEventCounter.join();
+  mAckListener.join();
 }
 
 void FLPSyncSampler::ListenForAcks()
@@ -126,7 +115,7 @@ void FLPSyncSampler::ListenForAcks()
 
       if (mStoreRTTinFile > 0) {
         ofsFrames << id << "\n";
-        ofsTimes  << elapsed.count() << "\n";
+        ofsTimes << elapsed.count() << "\n";
       }
 
       LOG(INFO) << "Timeframe #" << id << " acknowledged after " << elapsed.count() << " μs.";

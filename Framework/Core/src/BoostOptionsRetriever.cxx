@@ -32,15 +32,15 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
                                              bool ignoreUnknown,
                                              int& argc, char**& argv)
   : mStore{},
-    mDescription{ "ALICE O2 Framework - Available options" },
-    mIgnoreUnknown{ ignoreUnknown }
+    mDescription{"ALICE O2 Framework - Available options"},
+    mIgnoreUnknown{ignoreUnknown}
 {
   auto options = mDescription.add_options();
-  for (auto & spec : specs) {
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+  for (auto& spec : specs) {
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
     // FIXME: propagate default value?
-    switch(spec.type) {
+    switch (spec.type) {
       case VariantType::Int:
       case VariantType::Int64:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
@@ -52,7 +52,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
         options = options(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
         break;
       case VariantType::String:
-        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char*>()), help);
         break;
       case VariantType::Bool:
         options = options(name, bpo::value<bool>()->zero_tokens()->default_value(spec.defaultValue.get<bool>()), help);
@@ -70,23 +70,28 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
   PropertyTreeHelpers::populate(specs, mStore, vmap);
 }
 
-int BoostOptionsRetriever::getInt(const char *key) const {
+int BoostOptionsRetriever::getInt(const char* key) const
+{
   return mStore.get<int>(key);
 }
 
-float BoostOptionsRetriever::getFloat(const char *key) const {
+float BoostOptionsRetriever::getFloat(const char* key) const
+{
   return mStore.get<float>(key);
 }
 
-double BoostOptionsRetriever::getDouble(const char *key) const {
+double BoostOptionsRetriever::getDouble(const char* key) const
+{
   return mStore.get<double>(key);
 }
 
-bool BoostOptionsRetriever::getBool(const char *key) const {
+bool BoostOptionsRetriever::getBool(const char* key) const
+{
   return mStore.get<bool>(key);
 }
 
-std::string BoostOptionsRetriever::getString(const char *key) const {
+std::string BoostOptionsRetriever::getString(const char* key) const
+{
   return mStore.get<std::string>(key);
 }
 

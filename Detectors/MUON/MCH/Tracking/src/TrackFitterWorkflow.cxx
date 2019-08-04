@@ -21,6 +21,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     o2::mch::getTrackSamplerSpec(),
     o2::mch::getTrackFitterSpec(),
-    o2::mch::getTrackSinkSpec("REFITTRACKS")
-  };
+    o2::mch::getTrackSinkSpec("REFITTRACKS")};
 }

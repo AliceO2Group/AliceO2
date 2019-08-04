@@ -75,6 +75,7 @@ bpo::options_description EventSampler::GetOptionsDescription()
 {
   // assemble the options for the device class and component
   bpo::options_description od("EventSampler options");
+  // clang-format off
   od.add_options()
     (OptionKeys[OptionKeyEventPeriod],
      bpo::value<int>()->default_value(1000),
@@ -91,6 +92,7 @@ bpo::options_description EventSampler::GetOptionsDescription()
     ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
      bpo::value<bool>()->zero_tokens()->default_value(false),
      "skip component processing");
+  // clang-format on
   return od;
 }
 

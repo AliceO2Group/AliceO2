@@ -122,10 +122,10 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     LOG(INFO) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ "EMC", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
-    pc.outputs().snapshot(Output{ "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, *digitsAccum.get());
+    pc.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
     LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "EMC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+    pc.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -171,15 +171,14 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
-    "EMCALDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "EMC", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ "EMC", "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ initIt },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
+    "EMCALDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    Outputs{OutputSpec{"EMC", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{"EMC", "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{initIt},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }

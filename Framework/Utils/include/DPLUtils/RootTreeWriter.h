@@ -148,7 +148,7 @@ class RootTreeWriter
     /// simple constructor for single input and one branch
     /// @param key          input key
     /// @param _branchName  name of the target branch
-    BranchDef(key_type key, std::string _branchName) : keys({ key }), branchName(_branchName) {}
+    BranchDef(key_type key, std::string _branchName) : keys({key}), branchName(_branchName) {}
 
     /// constructor for single input and multiple output branches
     /// @param key          input key
@@ -156,7 +156,7 @@ class RootTreeWriter
     /// @param _nofBranches the number of target branches
     /// @param _getIndex    index callback
     /// @param _getName     branch name callback
-    BranchDef(key_type key, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys({ key }), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
+    BranchDef(key_type key, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys({key}), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
 
     /// constructor for multiple inputs and multiple output branches
     /// @param key          vector of input keys
@@ -454,7 +454,7 @@ class RootTreeWriter
   std::enable_if_t<std::is_base_of<BranchDef<typename T::type, typename T::key_type, typename T::key_extractor>, T>::value, std::unique_ptr<TreeStructureInterface>>
     createTreeStructure(T def, Args&&... args)
   {
-    mBranchSpecs.push_back({ {}, { def.branchName } });
+    mBranchSpecs.push_back({{}, {def.branchName}});
     auto& spec = mBranchSpecs.back();
 
     // extract the internal keys for the list of provided input definitions

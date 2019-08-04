@@ -43,7 +43,7 @@ class CalDet
   CalDet() = default;
   ~CalDet() = default;
 
-  CalDet(PadSubset padSusbset) : mName{ "PadCalibrationObject" }, mData{}, mPadSubset{ padSusbset } { initData(); }
+  CalDet(PadSubset padSusbset) : mName{"PadCalibrationObject"}, mData{}, mPadSubset{padSusbset} { initData(); }
 
   CalDet(const std::string_view name, const PadSubset padSusbset = PadSubset::ROC) : mName(name), mData(), mPadSubset(padSusbset) { initData(); }
 
@@ -316,7 +316,7 @@ void CalDet<T>::initData()
 }
 
 using CalPad = CalDet<float>;
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

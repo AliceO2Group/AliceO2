@@ -63,7 +63,7 @@ DataProcessorSpec getSourceSpec()
     constexpr auto persistency = Lifetime::Transient;
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
-                                                   Output{ "TST", "ARRAYOFDATA", 0, persistency },
+                                                   Output{"TST", "ARRAYOFDATA", 0, persistency},
                                                    "dataarray", // name of cluster branch
                                                    RootTreeReader::PublishingMode::Single);
 
@@ -82,10 +82,10 @@ DataProcessorSpec getSourceSpec()
     return processingFct;
   };
 
-  return DataProcessorSpec{ "source", // name of the processor
-                            {},
-                            { OutputSpec{ "TST", "ARRAYOFDATA" } },
-                            AlgorithmSpec(initFct) };
+  return DataProcessorSpec{"source", // name of the processor
+                           {},
+                           {OutputSpec{"TST", "ARRAYOFDATA"}},
+                           AlgorithmSpec(initFct)};
 }
 
 DataProcessorSpec getSinkSpec()
@@ -121,16 +121,15 @@ DataProcessorSpec getSinkSpec()
     }
   };
 
-  return DataProcessorSpec{ "sink", // name of the processor
-                            { InputSpec{ "input", "TST", "ARRAYOFDATA" } },
-                            Outputs{},
-                            AlgorithmSpec(processingFct) };
+  return DataProcessorSpec{"sink", // name of the processor
+                           {InputSpec{"input", "TST", "ARRAYOFDATA"}},
+                           Outputs{},
+                           AlgorithmSpec(processingFct)};
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     getSourceSpec(),
-    getSinkSpec()
-  };
+    getSinkSpec()};
 }

@@ -27,29 +27,34 @@ namespace framework
 {
 
 FairOptionsRetriever::FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts)
-  : mOpts{ opts },
+  : mOpts{opts},
     mStore{}
 {
   PropertyTreeHelpers::populate(schema, mStore, mOpts->GetVarMap());
 }
 
-int FairOptionsRetriever::getInt(const char *key) const {
+int FairOptionsRetriever::getInt(const char* key) const
+{
   return mStore.get<int>(key);
 }
 
-float FairOptionsRetriever::getFloat(const char *key) const {
+float FairOptionsRetriever::getFloat(const char* key) const
+{
   return mStore.get<float>(key);
 }
 
-double FairOptionsRetriever::getDouble(const char *key) const {
+double FairOptionsRetriever::getDouble(const char* key) const
+{
   return mStore.get<double>(key);
 }
 
-bool FairOptionsRetriever::getBool(const char *key) const {
+bool FairOptionsRetriever::getBool(const char* key) const
+{
   return mStore.get<bool>(key);
 }
 
-std::string FairOptionsRetriever::getString(const char *key) const {
+std::string FairOptionsRetriever::getString(const char* key) const
+{
   return mStore.get<std::string>(key);
 }
 

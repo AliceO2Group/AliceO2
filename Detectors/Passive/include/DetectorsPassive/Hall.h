@@ -44,9 +44,9 @@ class Hall : public FairModule
   bool mNewShield24 = false; // Option for new shielding in PX24 and RB24
   bool mRackShield = false;  // Additional rack shielding
 
-  ClassDefOverride(o2::passive::Hall, 1)
+  ClassDefOverride(o2::passive::Hall, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif

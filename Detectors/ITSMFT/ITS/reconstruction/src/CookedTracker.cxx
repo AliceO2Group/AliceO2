@@ -81,7 +81,7 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
   //--------------------------------------------------------------------
-  const Double_t klRadius[7] = { 2.34, 3.15, 3.93, 19.61, 24.55, 34.39, 39.34 }; // tdr6
+  const Double_t klRadius[7] = {2.34, 3.15, 3.93, 19.61, 24.55, 34.39, 39.34}; // tdr6
 
   for (Int_t i = 0; i < kNLayers; i++)
     sLayers[i].setR(klRadius[i]);
@@ -111,7 +111,7 @@ Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
   }
   Label lab;
   Int_t maxL = 0; // find most encountered label
-  for (auto[label, count] : labelOccurence) {
+  for (auto [label, count] : labelOccurence) {
     if (count <= maxL)
       continue;
     maxL = count;
@@ -468,27 +468,27 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
 
   mFirstCluster = &clusters.front();
 
-    auto nClFrame = loadClusters(clusters, rof);
+  auto nClFrame = loadClusters(clusters, rof);
 
-    auto end = std::chrono::system_clock::now();
-    std::chrono::duration<double> diff = end - start;
-    LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s"
-              << FairLogger::endl;
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> diff = end - start;
+  LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s"
+            << FairLogger::endl;
 
-    start = end;
+  start = end;
 
-    int first = tracks.size();
-    processLoadedClusters(tracks, clusIdx);
-    int number = tracks.size() - first;
-    rof.getROFEntry().setIndex(first);
-    rof.setNROFEntries(number);
+  int first = tracks.size();
+  processLoadedClusters(tracks, clusIdx);
+  int number = tracks.size() - first;
+  rof.getROFEntry().setIndex(first);
+  rof.setNROFEntries(number);
 
-    unloadClusters();
-    end = std::chrono::system_clock::now();
-    diff = end - start;
-    LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
+  unloadClusters();
+  end = std::chrono::system_clock::now();
+  diff = end - start;
+  LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
-    start = end;
+  start = end;
 }
 
 void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx)
@@ -732,7 +732,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
     auto imin = std::upper_bound(std::begin(mSectors[s]), std::end(mSectors[s]), zMin, cmp);
     auto imax = std::upper_bound(imin, std::end(mSectors[s]), zMax, cmp);
     for (; imin != imax; imin++) {
-      auto[i, zz] = *imin;
+      auto [i, zz] = *imin;
       auto cdphi = std::abs(mPhi[i] - phi);
       if (cdphi > dphi) {
         if (cdphi > kPI) {

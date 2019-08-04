@@ -15,4 +15,4 @@
 #pragma link C++ class o2::test::TriviallyCopyable + ;
 #pragma link C++ class o2::test::Base + ;
 #pragma link C++ class o2::test::Polymorphic + ;
-#pragma link C++ class std::vector < o2::test::Polymorphic > +;
+#pragma link C++ class std::vector < o2::test::Polymorphic> + ;

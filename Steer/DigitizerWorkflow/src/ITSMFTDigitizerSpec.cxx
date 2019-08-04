@@ -152,12 +152,12 @@ class ITSMFTDPLDigitizerTask
     accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, mDigitsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSROF", 0, Lifetime::Timeframe }, mROFRecordsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe }, mMC2ROFRecordsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, mLabelsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigitsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mROFRecordsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabelsAccum);
     LOG(INFO) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s" << FairLogger::endl;
@@ -272,7 +272,7 @@ class ITSMFTDPLDigitizerTask
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
-  TChain mQEDChain = { "o2sim" };
+  TChain mQEDChain = {"o2sim"};
 
   double mQEDEntryTimeBinNS = 1000;                                               // time-coverage of single QED tree entry in ns (TODO: make it settable)
   double mLastQEDTimeNS = 0;                                                      // time assingned to last QED entry
@@ -359,22 +359,22 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
-  return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
-                            Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                               static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-                            Outputs{
-                              OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-                            AlgorithmSpec{ adaptFromTask<ITSDPLDigitizerTask>() },
-                            Options{
-                              { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-                              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
-                            } };
+  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
+                           Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
+                                            static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+                           Outputs{
+                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>()},
+                           Options{
+                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
+                             //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
+                           }};
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel)
@@ -387,20 +387,20 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
-  return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
-                            Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                               static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-                            Outputs{
-                              OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-                            AlgorithmSpec{ adaptFromTask<MFTDPLDigitizerTask>() },
-                            Options{
-                              { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-                              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } } } };
+  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
+                           Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
+                                            static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+                           Outputs{
+                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>()},
+                           Options{
+                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}}}};
 }
 
 } // end namespace itsmft

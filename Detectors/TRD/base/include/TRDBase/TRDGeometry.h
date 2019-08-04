@@ -57,7 +57,7 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   // helper function to create volumes and registering them automatically
   void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
 
-  ClassDefOverride(TRDGeometry, 1) //  TRD geometry class
+  ClassDefOverride(TRDGeometry, 1); //  TRD geometry class
 };
 } // end namespace trd
 } // end namespace o2

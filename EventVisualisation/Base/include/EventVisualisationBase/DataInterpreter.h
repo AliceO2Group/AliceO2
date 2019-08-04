@@ -20,9 +20,11 @@
 
 #include <TEveElement.h>
 
-namespace o2  {
-namespace event_visualisation {
- 
+namespace o2
+{
+namespace event_visualisation
+{
+
 /// DataInterpreter is a template class for detector-specific visualisation classes.
 ///
 /// Each detector should override this template class, providing method(s)
@@ -54,8 +56,8 @@ class DataInterpreter
   static DataInterpreter* getInstance(EVisualisationGroup type) { return instance[type]; }
   static void setInstance(DataInterpreter* instance, EVisualisationGroup type) { DataInterpreter::instance[type] = instance; }
 };
-  
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2
 
 #endif

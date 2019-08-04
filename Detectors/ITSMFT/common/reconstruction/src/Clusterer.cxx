@@ -172,7 +172,7 @@ void Clusterer::updateChip(UInt_t ip)
       return;
     }
   } else {
-    int neighbours[]{ mCurr[row - 1], mPrev[row], mPrev[row + 1], mPrev[row - 1] };
+    int neighbours[]{mCurr[row - 1], mPrev[row], mPrev[row + 1], mPrev[row - 1]};
     for (auto pci : neighbours) {
       if (pci < 0) {
         continue;

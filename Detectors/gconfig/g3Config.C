@@ -39,7 +39,7 @@ void Config()
 
   geant3->SetRAYL(1);
   geant3->SetSTRA(0);
-  
+
   // NOTE: Please avoid changing this setting, unless justified as this might lead to very many steps
   // performed by G3; AUTO(1) is the G3 default
   geant3->SetAUTO(1); // Select automatic STMIN etc... calc. (AUTO 1) or manual (AUTO 0)

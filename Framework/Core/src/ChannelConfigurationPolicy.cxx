@@ -21,7 +21,7 @@ std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaul
   defaultPolicy.match = ChannelConfigurationPolicyHelpers::matchAny;
   defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput;
   defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput;
-  return { defaultPolicy };
+  return {defaultPolicy};
 }
 
 } // namespace framework

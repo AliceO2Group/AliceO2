@@ -25,14 +25,16 @@ namespace framework
 /// boost.fusion stuff, slowing down compilation times enourmously.
 class FairMQDeviceProxy
 {
-public:
-  FairMQDeviceProxy(FairMQDevice *device)
-  : mDevice{device}
-  {}
+ public:
+  FairMQDeviceProxy(FairMQDevice* device)
+    : mDevice{device}
+  {
+  }
 
   /// To be used in DataAllocator.cxx to avoid reimplenting any device
   /// API.
-  FairMQDevice *getDevice() {
+  FairMQDevice* getDevice()
+  {
     return mDevice;
   }
 
@@ -41,7 +43,8 @@ public:
   FairMQTransportFactory* getTransport(const std::string& channel, int index);
   std::unique_ptr<FairMQMessage> createMessage() const;
   std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
-private:
+
+ private:
   FairMQDevice* mDevice;
 };
 

@@ -37,7 +37,7 @@ class HalfCone
   TGeoVolumeAssembly* mHalfCone;
 
  private:
-  ClassDef(HalfCone, 1)
+  ClassDef(HalfCone, 1);
 };
 } // namespace mft
 } // namespace o2

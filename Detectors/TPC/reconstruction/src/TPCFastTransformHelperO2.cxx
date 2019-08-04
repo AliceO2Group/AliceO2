@@ -314,8 +314,8 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   mGeo.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
   float gx1 = gx, gy1 = gy, gz1 = gz;
   {
-    double xyz[3] = { gx, gy, gz };
-    double dxyz[3] = { 0., 0., 0. };
+    double xyz[3] = {gx, gy, gz};
+    double dxyz[3] = {0., 0., 0.};
     mSpaceChargeCorrection(xyz, dxyz);
     gx1 += dxyz[0];
     gy1 += dxyz[1];

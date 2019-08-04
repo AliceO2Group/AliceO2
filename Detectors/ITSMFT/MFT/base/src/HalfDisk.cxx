@@ -119,8 +119,7 @@ void HalfDisk::createLadders()
     ladderSeg->getTransformation()->LocalToMaster(center, master);
     Int_t ladderId = Geometry::instance()->getLadderID(ladderSeg->GetUniqueID());
 
-    mHalfDiskVolume->AddNode(ladVol, ladderId, new TGeoCombiTrans(master[0], master[1], master[2],
-                                                                  ladderSeg->getTransformation()->GetRotation()));
+    mHalfDiskVolume->AddNode(ladVol, ladderId, new TGeoCombiTrans(master[0], master[1], master[2], ladderSeg->getTransformation()->GetRotation()));
 
     delete ladder;
   }
