@@ -52,7 +52,7 @@ void CalibTreeDump::addDefaultMapping(TTree* tree)
   const auto& mapper = Mapper::instance();
 
   // ===| default mapping objects |=============================================
-  uint16_t rocNumber=0;
+  uint16_t rocNumber = 0;
   // positions
   std::vector<float> gx;
   std::vector<float> gy;
@@ -65,10 +65,10 @@ void CalibTreeDump::addDefaultMapping(TTree* tree)
 
   // ===| add branches with default mappings |==================================
   tree->Branch("roc", &rocNumber);
-  tree->Branch("gx",  &gx);
-  tree->Branch("gy",  &gy);
-  tree->Branch("lx",  &lx);
-  tree->Branch("ly",  &ly);
+  tree->Branch("gx", &gx);
+  tree->Branch("gy", &gy);
+  tree->Branch("lx", &lx);
+  tree->Branch("ly", &ly);
 
   // ===| loop over readout chambers |==========================================
   for (ROC roc; !roc.looped(); ++roc) {
@@ -82,13 +82,13 @@ void CalibTreeDump::addDefaultMapping(TTree* tree)
 
     // ===| loop over pad rows |================================================
     const int numberOfRows = mapper.getNumberOfRowsROC(roc);
-    for (int irow=0; irow<numberOfRows; ++irow) {
+    for (int irow = 0; irow < numberOfRows; ++irow) {
 
       // ===| loop over pads in row |===========================================
       const int numberOfPadsInRow = mapper.getNumberOfPadsInRowROC(roc, irow);
-      for (int ipad=0; ipad<numberOfPadsInRow; ++ipad) {
-        const PadROCPos  padROCPos(rocNumber, irow, ipad);
-        const PadPos     padPos = mapper.getGlobalPadPos(padROCPos);        // pad and row in sector
+      for (int ipad = 0; ipad < numberOfPadsInRow; ++ipad) {
+        const PadROCPos padROCPos(rocNumber, irow, ipad);
+        const PadPos padPos = mapper.getGlobalPadPos(padROCPos); // pad and row in sector
         const PadCentre& localPadXY = mapper.getPadCentre(padPos);
         const LocalPosition2D globalPadXY = mapper.getPadCentre(padROCPos);
 
@@ -99,7 +99,7 @@ void CalibTreeDump::addDefaultMapping(TTree* tree)
 
         row.emplace_back(irow);
         pad.emplace_back(ipad);
-        cpad.emplace_back(ipad-numberOfPadsInRow/2);
+        cpad.emplace_back(ipad - numberOfPadsInRow / 2);
       }
     }
 
@@ -112,52 +112,53 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
 {
 
   // declare forwarding visitors for mean and median
-  auto visitorMean = make_forwarding_visitor<double>([](const auto& t){ return TMath::Mean(t.begin(), t.end());});
-  auto visitorMedian = make_forwarding_visitor<double>([](const auto& t){ return TMath::Median(t.size(), t.data());});
+  auto visitorMean = make_forwarding_visitor<double>([](const auto& t) { return TMath::Mean(t.begin(), t.end()); });
+  auto visitorMedian = make_forwarding_visitor<double>([](const auto& t) { return TMath::Median(t.size(), t.data()); });
 
-  auto visitorMeanVector = make_forwarding_visitor<std::vector<float>>([](const auto& t){
-      std::vector<float> values;
-      // ===| loop over ROCs and fill |===
-      for (const auto& calArray : t.getData()) {
-        auto& data = calArray.getData();
-        values.emplace_back(float(TMath::Mean(data.begin(), data.end())));
-      }
-      return values;
-      });
+  auto visitorMeanVector = make_forwarding_visitor<std::vector<float>>([](const auto& t) {
+    std::vector<float> values;
+    // ===| loop over ROCs and fill |===
+    for (const auto& calArray : t.getData()) {
+      auto& data = calArray.getData();
+      values.emplace_back(float(TMath::Mean(data.begin(), data.end())));
+    }
+    return values;
+  });
 
-  auto visitorMedianVector = make_forwarding_visitor<std::vector<float>>([](const auto& t){
-      std::vector<float> values;
-      // ===| loop over ROCs and fill |===
-      for (const auto& calArray : t.getData()) {
-        auto& data = calArray.getData();
-        values.emplace_back(float(TMath::Median(data.size(), data.data())));
-      }
-      return values;
-      });
+  auto visitorMedianVector = make_forwarding_visitor<std::vector<float>>([](const auto& t) {
+    std::vector<float> values;
+    // ===| loop over ROCs and fill |===
+    for (const auto& calArray : t.getData()) {
+      auto& data = calArray.getData();
+      values.emplace_back(float(TMath::Median(data.size(), data.data())));
+    }
+    return values;
+  });
 
-  auto visitorValVector = make_forwarding_visitor<std::vector<std::vector<float>>>([](const auto& t){
-      std::vector<std::vector<float>> values;
-      // ===| loop over ROCs and fill |===
-      for (const auto& calArray : t.getData()) {
-        values.emplace_back();
-        auto& vector = values.back();
-        auto& data = calArray.getData();
-        for ( const auto& val : data ) vector.emplace_back(float(val));
-      }
-      return values;
-      });
+  auto visitorValVector = make_forwarding_visitor<std::vector<std::vector<float>>>([](const auto& t) {
+    std::vector<std::vector<float>> values;
+    // ===| loop over ROCs and fill |===
+    for (const auto& calArray : t.getData()) {
+      values.emplace_back();
+      auto& vector = values.back();
+      auto& data = calArray.getData();
+      for (const auto& val : data)
+        vector.emplace_back(float(val));
+    }
+    return values;
+  });
 
-  auto visitorName = make_forwarding_visitor<std::string>([](const auto& t){ return t.getName();});
+  auto visitorName = make_forwarding_visitor<std::string>([](const auto& t) { return t.getName(); });
   //auto visitorData = make_forwarding_visitor<std::vector>([](const auto& t){ return t.getName();});
 
-  int iter=0;
+  int iter = 0;
   for (auto& calDet : mCalDetObjects) {
     // ===| branch names |===
     //std::string name = calDet.getName();
     std::string name = boost::apply_visitor(visitorName, calDet);
 
-    if (name == "PadCalibrationObject" || name.size()==0) {
-      name  = str(format("calDet_%1$02d") % iter);
+    if (name == "PadCalibrationObject" || name.size() == 0) {
+      name = str(format("calDet_%1$02d") % iter);
     }
 
     std::string meanName = str(format("%1%_mean") % name);
@@ -169,9 +170,9 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
     float median;
 
     // ===| branch definitions |===
-    TBranch *brData   = tree->Branch(name.data(),       &value);
-    TBranch *brMean   = tree->Branch(meanName.data(),   &mean);
-    TBranch *brMedian = tree->Branch(medianName.data(), &median);
+    TBranch* brData = tree->Branch(name.data(), &value);
+    TBranch* brMean = tree->Branch(meanName.data(), &mean);
+    TBranch* brMedian = tree->Branch(medianName.data(), &median);
 
     auto meanVector = boost::apply_visitor(visitorMeanVector, calDet);
     //auto medianVector = boost::apply_visitor(visitorMedianVector, calDet);
@@ -179,22 +180,19 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
 
     // ===| loop over ROCs and fill |===
     //for (const auto& calArray : calDet.getData()) {
-      //auto& data = calArray.getData();
+    //auto& data = calArray.getData();
 
-      //value.clear();
+    //value.clear();
 
-      //// ---| statistics |---
-      //mean   = boost::apply_visitor(visitorMean,   data);
-      //median = boost::apply_visitor(visitorMedian, data);
+    //// ---| statistics |---
+    //mean   = boost::apply_visitor(visitorMean,   data);
+    //median = boost::apply_visitor(visitorMedian, data);
 
-      //for (const auto& val : data) value.emplace_back(val);
+    //for (const auto& val : data) value.emplace_back(val);
 
-      //brData->Fill();
-      //brMean->Fill();
-      //brMedian->Fill();
+    //brData->Fill();
+    //brMean->Fill();
+    //brMedian->Fill();
     //}
-
-
   }
-
 }

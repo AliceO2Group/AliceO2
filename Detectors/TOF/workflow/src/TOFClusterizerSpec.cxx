@@ -75,10 +75,10 @@ class TOFDPLClustererTask
               << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send clusters
-    pc.outputs().snapshot(Output{ "TOF", "CLUSTERS", 0, Lifetime::Timeframe }, mClustersArray);
+    pc.outputs().snapshot(Output{"TOF", "CLUSTERS", 0, Lifetime::Timeframe}, mClustersArray);
     // send labels
     if (mUseMC)
-      pc.outputs().snapshot(Output{ "TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, mClsLabels);
+      pc.outputs().snapshot(Output{"TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
 
     // declare done
     finished = true;
@@ -103,11 +103,10 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC)
   return DataProcessorSpec{
     "TOFClusterer",
     inputs,
-    Outputs{ OutputSpec{ "TOF", "CLUSTERS", 0, Lifetime::Timeframe },
-             OutputSpec{ "TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<TOFDPLClustererTask>(useMC) },
-    Options{ /* for the moment no options */ }
-  };
+    Outputs{OutputSpec{"TOF", "CLUSTERS", 0, Lifetime::Timeframe},
+            OutputSpec{"TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC)},
+    Options{/* for the moment no options */}};
 }
 
 } // end namespace tof

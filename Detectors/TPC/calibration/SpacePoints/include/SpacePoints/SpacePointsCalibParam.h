@@ -28,16 +28,16 @@ namespace param
 {
 #ifdef TPC_RUN2
 /// TPC geometric constants for Run 1+2
-static constexpr int NPadRows = 159;                                   ///< total number of TPC pad rows
-static constexpr int NROCTypes = 3;                                    ///< how many different pitches we have between the pad rows
-static constexpr int NRowsPerROC[NROCTypes] = { 63, 64, 32 };          ///< number of rows for the different pitches
-static constexpr int NRowsAccumulated[NROCTypes] = { 63, 127, 159 };   ///< accumulate number of rows (only used as abbreviation)
-static constexpr float ZLimit[2] = { 2.49725e2f, 2.49698e2f };         ///< max z-positions for A/C side
-static constexpr float MinX[NROCTypes] = { 85.225f, 135.1f, 199.35f }; ///< x-position of first row for each ROC type
-static constexpr float RowDX[NROCTypes] = { .75f, 1.f, 1.5f };         ///< row pitches
-static constexpr float ROCDX[NROCTypes - 1] = { 3.375f, 1.25f };       ///< radial distance between the different ROCs
-static constexpr float MaxX = 246.f;                                   ///< max radius for the TPC
-static constexpr float RowX[NPadRows] = {                              ///< x-positions for each pad row
+static constexpr int NPadRows = 159;                                 ///< total number of TPC pad rows
+static constexpr int NROCTypes = 3;                                  ///< how many different pitches we have between the pad rows
+static constexpr int NRowsPerROC[NROCTypes] = {63, 64, 32};          ///< number of rows for the different pitches
+static constexpr int NRowsAccumulated[NROCTypes] = {63, 127, 159};   ///< accumulate number of rows (only used as abbreviation)
+static constexpr float ZLimit[2] = {2.49725e2f, 2.49698e2f};         ///< max z-positions for A/C side
+static constexpr float MinX[NROCTypes] = {85.225f, 135.1f, 199.35f}; ///< x-position of first row for each ROC type
+static constexpr float RowDX[NROCTypes] = {.75f, 1.f, 1.5f};         ///< row pitches
+static constexpr float ROCDX[NROCTypes - 1] = {3.375f, 1.25f};       ///< radial distance between the different ROCs
+static constexpr float MaxX = 246.f;                                 ///< max radius for the TPC
+static constexpr float RowX[NPadRows] = {                            ///< x-positions for each pad row
   85.225, 85.975, 86.725, 87.475, 88.225, 88.975, 89.725, 90.475, 91.225, 91.975, 92.725, 93.475, 94.225, 94.975, 95.725, 96.475,
   97.225, 97.975, 98.725, 99.475, 100.225, 100.975, 101.725, 102.475, 103.225, 103.975, 104.725, 105.475, 106.225, 106.975, 107.725,
   108.475, 109.225, 109.975, 110.725, 111.475, 112.225, 112.975, 113.725, 114.475, 115.225, 115.975, 116.725, 117.475, 118.225, 118.975,
@@ -48,18 +48,17 @@ static constexpr float RowX[NPadRows] = {                              ///< x-po
   178.100, 179.100, 180.100, 181.100, 182.100, 183.100, 184.100, 185.100, 186.100, 187.100, 188.100, 189.100, 190.100, 191.100, 192.100,
   193.100, 194.100, 195.100, 196.100, 197.100, 198.100, 199.350, 200.850, 202.350, 203.850, 205.350, 206.850, 208.350, 209.850, 211.350,
   212.850, 214.350, 215.850, 217.350, 218.850, 220.350, 221.850, 223.350, 224.850, 226.350, 227.850, 229.350, 230.850, 232.350, 233.850,
-  235.350, 236.850, 238.350, 239.850, 241.350, 242.850, 244.350, 245.850
-};
+  235.350, 236.850, 238.350, 239.850, 241.350, 242.850, 244.350, 245.850};
 
 #else  // not defined TPC_RUN2
 /// TPC geometric constants for Run 3+
 static constexpr int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
 static constexpr int NROCTypes = 4;
-static constexpr int NRowsPerROC[NROCTypes] = { 63, 34, 30, 25 };
-static constexpr int NRowsAccumulated[NROCTypes] = { 63, 97, 127, 152 };
-static constexpr float MinX[NROCTypes] = { 85.225f, 135.2f, 171.4f, 209.65f };
-static constexpr float RowDX[NROCTypes] = { .75f, 1.f, 1.2f, 1.5f };
-static constexpr float ROCDX[NROCTypes - 1] = { 3.475f, 3.2f, 3.45f };
+static constexpr int NRowsPerROC[NROCTypes] = {63, 34, 30, 25};
+static constexpr int NRowsAccumulated[NROCTypes] = {63, 97, 127, 152};
+static constexpr float MinX[NROCTypes] = {85.225f, 135.2f, 171.4f, 209.65f};
+static constexpr float RowDX[NROCTypes] = {.75f, 1.f, 1.2f, 1.5f};
+static constexpr float ROCDX[NROCTypes - 1] = {3.475f, 3.2f, 3.45f};
 static constexpr float MaxX = 247.15f;
 static constexpr float RowX[NPadRows] = {
   85.225, 85.975, 86.725, 87.475, 88.225, 88.975, 89.725, 90.475, 91.225, 91.975, 92.725, 93.475, 94.225, 94.975, 95.725, 96.475,
@@ -72,8 +71,7 @@ static constexpr float RowX[NPadRows] = {
   182.200, 183.400, 184.600, 185.800, 187.000, 188.200, 189.400, 190.600, 191.800, 193.000, 194.200, 195.400, 196.600, 197.800, 199.000,
   200.200, 201.400, 202.600, 203.800, 205.000, 206.200, 209.650, 211.150, 212.650, 214.150, 215.650, 217.150, 218.650, 220.150, 221.650,
   223.150, 224.650, 226.150, 227.650, 229.150, 230.650, 232.150, 233.650, 235.150, 236.650, 238.150, 239.650, 241.150, 242.650, 244.150,
-  245.650
-};
+  245.650};
 #endif // defined TPC_RUN2
 
 // TPC voxel binning

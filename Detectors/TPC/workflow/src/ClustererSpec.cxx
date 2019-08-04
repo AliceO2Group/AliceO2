@@ -78,10 +78,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (sector < 0) {
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
-        o2::tpc::TPCSectorHeader header{ sector };
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+        o2::tpc::TPCSectorHeader header{sector};
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
         if (!labelKey.empty()) {
-          pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
         }
         return (sectorHeader->sector == -1);
       }
@@ -123,10 +123,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       }
       // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
       // block by using move semantics
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, clusterArray.size());
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, clusterArray.size());
       std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
       if (!labelKey.empty()) {
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, mctruthArray);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mctruthArray);
       }
       return false;
     };
@@ -167,7 +167,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
 
   auto createInputSpecs = [](bool makeMcInput, bool makeTriggersInput = false) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ "digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe },
+      InputSpec{"digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
@@ -184,10 +184,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      OutputSpec{{"clusters"}, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
-      OutputLabel label{ "clusterlbl" };
+      OutputLabel label{"clusterlbl"};
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
@@ -195,10 +195,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ processorName,
-                            { createInputSpecs(sendMC, haveDigTriggers) },
-                            { createOutputSpecs(sendMC) },
-                            AlgorithmSpec(initFunction) };
+  return DataProcessorSpec{processorName,
+                           {createInputSpecs(sendMC, haveDigTriggers)},
+                           {createOutputSpecs(sendMC)},
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc

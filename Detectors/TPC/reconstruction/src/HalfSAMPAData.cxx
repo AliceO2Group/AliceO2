@@ -12,42 +12,40 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/HalfSAMPAData.h"
-#include "FairLogger.h" 
+#include "FairLogger.h"
 
 using namespace o2::tpc;
 
 HalfSAMPAData::HalfSAMPAData()
-  : HalfSAMPAData(-1,true)
-{}
+  : HalfSAMPAData(-1, true)
+{
+}
 
 HalfSAMPAData::HalfSAMPAData(int id, bool low)
-  : mID(id)
-  , mLow(low)
+  : mID(id), mLow(low)
 //  , mData(16,0)
 {
 }
 
-HalfSAMPAData::HalfSAMPAData(int id, bool low, std::array<short,16>& data)
-  : mID(id)
-  , mLow(low)
+HalfSAMPAData::HalfSAMPAData(int id, bool low, std::array<short, 16>& data)
+  : mID(id), mLow(low)
 {
-//  if (data.size() != 16)
-//    LOG(ERROR) << "Vector does not contain 16 elements." << FairLogger::endl;
+  //  if (data.size() != 16)
+  //    LOG(ERROR) << "Vector does not contain 16 elements." << FairLogger::endl;
 
   mData = data;
 }
 
-HalfSAMPAData::~HalfSAMPAData()
-= default;
+HalfSAMPAData::~HalfSAMPAData() = default;
 
 std::ostream& HalfSAMPAData::Print(std::ostream& output) const
 {
-//  for (int i = mLow ? 0 : 16 ; i < (mLow ? 16 : 32); ++i)
-//  {
-//    output << "Channel " << i << ": " << mData[i] << std::endl;
-//  }
+  //  for (int i = mLow ? 0 : 16 ; i < (mLow ? 16 : 32); ++i)
+  //  {
+  //    output << "Channel " << i << ": " << mData[i] << std::endl;
+  //  }
 
-  output 
+  output
     << mData[0] << "\t"
     << mData[1] << "\t"
     << mData[2] << "\t"

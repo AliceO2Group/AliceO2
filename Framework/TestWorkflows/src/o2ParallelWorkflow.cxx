@@ -20,11 +20,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string spaceParallelHelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
-    ConfigParamSpec{ "2-layer-jobs", VariantType::Int, 1, { spaceParallelHelp } });
+    ConfigParamSpec{"2-layer-jobs", VariantType::Int, 1, {spaceParallelHelp}});
 
   std::string timeHelp("Time pipelining happening in the second layer");
   workflowOptions.push_back(
-    ConfigParamSpec{ "3-layer-pipelining", VariantType::Int, 1, { timeHelp } });
+    ConfigParamSpec{"3-layer-pipelining", VariantType::Int, 1, {timeHelp}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -41,25 +41,25 @@ using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProcessor()
 {
-  return DataProcessorSpec{ "some-processor", {
-                                                InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
-                                              },
-                            {
-                              OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
-                            },
-                            // The producer is stateful, we use a static for the state in this
-                            // particular case, but a Singleton or a captured new object would
-                            // work as well.
-                            AlgorithmSpec{ [](InitContext& setup) {
-                              srand(setup.services().get<ParallelContext>().index1D());
-                              return [](ProcessingContext& ctx) {
-                                // Create a single output.
-                                size_t index = ctx.services().get<ParallelContext>().index1D();
-                                auto aData = ctx.outputs().make<int>(
-                                  Output{ "TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
-                                std::this_thread::sleep_for(std::chrono::seconds(rand() % 5));
-                              };
-                            } } };
+  return DataProcessorSpec{"some-processor", {
+                                               InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
+                                             },
+                           {
+                             OutputSpec{"TST", "P", 0, Lifetime::Timeframe},
+                           },
+                           // The producer is stateful, we use a static for the state in this
+                           // particular case, but a Singleton or a captured new object would
+                           // work as well.
+                           AlgorithmSpec{[](InitContext& setup) {
+                             srand(setup.services().get<ParallelContext>().index1D());
+                             return [](ProcessingContext& ctx) {
+                               // Create a single output.
+                               size_t index = ctx.services().get<ParallelContext>().index1D();
+                               auto aData = ctx.outputs().make<int>(
+                                 Output{"TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
+                               std::this_thread::sleep_for(std::chrono::seconds(rand() % 5));
+                             };
+                           }}};
 }
 
 // This is a simple consumer / producer workflow where both are
@@ -84,37 +84,36 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     outputSpecs.emplace_back("TST", "A", ssi);
   }
 
-  workflow.push_back(DataProcessorSpec{ "reader", {}, outputSpecs, AlgorithmSpec{ [jobs](InitContext& initCtx) {
-                                          return [jobs](ProcessingContext& ctx) {
-                                            for (size_t ji = 0; ji < jobs; ++ji) {
-                                              ctx.outputs().make<int>(Output{ "TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(ji) },
-                                                                      1);
-                                            }
-                                          };
-                                        } } });
+  workflow.push_back(DataProcessorSpec{"reader", {}, outputSpecs, AlgorithmSpec{[jobs](InitContext& initCtx) {
+                                         return [jobs](ProcessingContext& ctx) {
+                                           for (size_t ji = 0; ji < jobs; ++ji) {
+                                             ctx.outputs().make<int>(Output{"TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(ji)},
+                                                                     1);
+                                           }
+                                         };
+                                       }}});
   workflow.push_back(timePipeline(DataProcessorSpec{
                                     "merger",
-                                    mergeInputs(InputSpec{ "x", "TST", "P" },
+                                    mergeInputs(InputSpec{"x", "TST", "P"},
                                                 jobs,
                                                 [](InputSpec& input, size_t index) {
                                                   DataSpecUtils::updateMatchingSubspec(input, index);
                                                 }),
-                                    { OutputSpec{ { "out" }, "TST", "M" } },
-                                    AlgorithmSpec{ [](InitContext& setup) {
+                                    {OutputSpec{{"out"}, "TST", "M"}},
+                                    AlgorithmSpec{[](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
                                         ctx.outputs().make<int>(OutputRef("out", 0), 1);
                                       };
-                                    } } },
+                                    }}},
                                   stages));
 
   workflow.push_back(DataProcessorSpec{
-                                    "writer",
-                                    {InputSpec{ "x", "TST", "M" }},
-                                    {},
-                                    AlgorithmSpec{ [](InitContext& setup) {
-                                      return [](ProcessingContext& ctx) {
-                                      };
-                                    } } }
-                                  );
+    "writer",
+    {InputSpec{"x", "TST", "M"}},
+    {},
+    AlgorithmSpec{[](InitContext& setup) {
+      return [](ProcessingContext& ctx) {
+      };
+    }}});
   return workflow;
 }

@@ -92,8 +92,8 @@ int main(int argc, char** argv)
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
 
-  std::array<const char*, 7> keys = { "Gui.DefaultFont", "Gui.MenuFont", "Gui.MenuHiFont",
-                                      "Gui.DocFixedFont", "Gui.DocPropFont", "Gui.IconFont", "Gui.StatusFont" };
+  std::array<const char*, 7> keys = {"Gui.DefaultFont", "Gui.MenuFont", "Gui.MenuHiFont",
+                                     "Gui.DocFixedFont", "Gui.DocPropFont", "Gui.IconFont", "Gui.StatusFont"};
   for (const auto& key : keys) {
     if (settings.Defined(key))
       gEnv->SetValue(key, settings.GetValue(key, ""));

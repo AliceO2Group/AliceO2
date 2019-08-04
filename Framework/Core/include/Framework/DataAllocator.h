@@ -218,13 +218,11 @@ class DataAllocator
     // RawBufferContext, see DataProcessor::doSend
     auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
 
-    auto lambdaSerialize = [voidPtr = payload]()
-    {
+    auto lambdaSerialize = [voidPtr = payload]() {
       return o2::utils::BoostSerialize<type>(*(reinterpret_cast<type*>(voidPtr)));
     };
 
-    auto lambdaDestructor = [voidPtr = payload]()
-    {
+    auto lambdaDestructor = [voidPtr = payload]() {
       auto tmpPtr = reinterpret_cast<type*>(voidPtr);
       delete tmpPtr;
     };

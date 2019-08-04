@@ -146,7 +146,7 @@ class O2HitMerger : public FairMQDevice
   V insertAdd(std::map<T, V>& m, T const& key, V value)
   {
     const auto iter = m.find(key);
-    V accum{ 0 };
+    V accum{0};
     if (iter != m.end()) {
       iter->second += value;
       accum = iter->second;
@@ -442,8 +442,8 @@ class O2HitMerger : public FairMQDevice
   TFile* mTmpOutFile; //! temporary IO
   TTree* mOutTree;    //!
 
-  int mEntries = 0; //! counts the number of entries in the branches
-  int mEventChecksum = 0; //! checksum for events
+  int mEntries = 0;         //! counts the number of entries in the branches
+  int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
   TStopwatch mTimer;
 

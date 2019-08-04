@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view[0] == 1);
   BOOST_CHECK(view[1] == 2);
   // try to sort the view
-  std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b){return a>b;});
+  std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b) { return a > b; });
   BOOST_CHECK(view[0] == 2);
   BOOST_CHECK(view[1] == 1);
   // verify sorting took effect inside container
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view[0] == 10);
 
   // add multiple labels
-  std::vector<TruthElement> newlabels = { 101, 102, 103 };
+  std::vector<TruthElement> newlabels = {101, 102, 103};
   container.addElements(2, newlabels);
   view = container.getLabels(2);
   BOOST_CHECK(view.size() == 4);
@@ -264,4 +264,4 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
   BOOST_CHECK(container.getNElements() == 4);
 }
 
-} // end namespace
+} // namespace o2

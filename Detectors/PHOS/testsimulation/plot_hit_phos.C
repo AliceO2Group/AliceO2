@@ -37,7 +37,7 @@ void plot_hit_phos(int ievent = 0, TString inputfile = "AliceO2_TGeant3.phos.mc_
   }
   hitTree->GetEvent(ievent);
 
-  TH2D* vMod[5][100] = { 0 };
+  TH2D* vMod[5][100] = {0};
   int primLabels[5][100];
   for (int mod = 1; mod < 5; mod++)
     for (int j = 0; j < 100; j++)

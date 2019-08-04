@@ -57,7 +57,7 @@ void CookedTrackerDPL::init(InitContext& ic)
                                               o2::TransformType::T2G));
     mTracker.setGeometry(geom);
 
-    double origD[3] = { 0., 0., 0. };
+    double origD[3] = {0., 0., 0.};
     mTracker.setBz(field->getBz(origD));
 
     bool continuous = mGRP->isDetContinuousReadOut("ITS");
@@ -112,13 +112,13 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
-  pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
-  pc.outputs().snapshot(Output{ "ITS", "TRACKCLSID", 0, Lifetime::Timeframe }, clusIdx);
-  pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
+  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, tracks);
+  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, clusIdx);
+  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, trackLabels);
-    pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
+    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
+    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
 
   mState = 2;
@@ -148,12 +148,11 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<CookedTrackerDPL>(useMC) },
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } },
-      { "nthreads", VariantType::Int, 1, { "Number of threads" } },
-    }
-  };
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
+      {"nthreads", VariantType::Int, 1, {"Number of threads"}},
+    }};
 }
 
 } // namespace its

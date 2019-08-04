@@ -21,28 +21,30 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-
 #ifndef ALICEO2_PASSIVE_CONTFACT_H
 #define ALICEO2_PASSIVE_CONTFACT_H
 
-#include "FairContFact.h"               // for FairContFact, etc
-#include "Rtypes.h"                     // for AliPassiveContFact::Class, etc
+#include "FairContFact.h" // for FairContFact, etc
+#include "Rtypes.h"       // for AliPassiveContFact::Class, etc
 
 class FairParSet;
 
-namespace o2 {
-namespace passive {
+namespace o2
+{
+namespace passive
+{
 
 class PassiveContFact : public FairContFact
 {
-  private:
-    void setAllContainers();
-  public:
-    PassiveContFact();
-    ~PassiveContFact() override {;}
-    FairParSet* createContainer(FairContainer*) override;
-    ClassDefOverride(o2::passive::PassiveContFact,0) // Factory for all Passive parameter containers
+ private:
+  void setAllContainers();
+
+ public:
+  PassiveContFact();
+  ~PassiveContFact() override { ; }
+  FairParSet* createContainer(FairContainer*) override;
+  ClassDefOverride(o2::passive::PassiveContFact, 0); // Factory for all Passive parameter containers
 };
-}
-}
-#endif  /* !PNDPASSIVECONTFACT_H */
+} // namespace passive
+} // namespace o2
+#endif /* !PNDPASSIVECONTFACT_H */

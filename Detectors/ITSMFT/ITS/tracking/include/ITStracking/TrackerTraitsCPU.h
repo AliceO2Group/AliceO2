@@ -50,7 +50,7 @@ class TrackerTraitsCPU : public TrackerTraits
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<Cell>> mCells;
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */

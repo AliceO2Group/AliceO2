@@ -45,8 +45,8 @@ BOOST_AUTO_TEST_CASE(PairDCAFitter)
   double bz = 5.0;
 
   // create V0
-  std::array<float, 15> cv = { 1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5 };
-  std::array<float, 5> pr = { 0., 0., -0.2, 0.6, 1. };
+  std::array<float, 15> cv = {1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5};
+  std::array<float, 5> pr = {0., 0., -0.2, 0.6, 1.};
   DCAFitter::Track t0(0., 0., pr, cv);
   t0.propagateTo(10, bz);
 

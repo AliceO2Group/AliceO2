@@ -34,7 +34,7 @@ namespace framework
 {
 
 TableConsumer::TableConsumer(const uint8_t* data, int64_t size)
-  : mBuffer{ std::make_shared<Buffer>(data, size) }
+  : mBuffer{std::make_shared<Buffer>(data, size)}
 {
 }
 

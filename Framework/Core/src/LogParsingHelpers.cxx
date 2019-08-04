@@ -20,8 +20,7 @@ char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel
   "INFO",
   "WARNING",
   "ERROR",
-  "UNKNOWN"
-};
+  "UNKNOWN"};
 using LogLevel = o2::framework::LogParsingHelpers::LogLevel;
 
 LogLevel LogParsingHelpers::parseTokenLevel(std::string_view const s)

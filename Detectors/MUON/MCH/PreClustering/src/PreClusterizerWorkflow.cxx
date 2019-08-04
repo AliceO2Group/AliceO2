@@ -21,6 +21,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     o2::mch::getDigitSamplerSpec(),
     o2::mch::getPreClusterFinderSpec(),
-    o2::mch::getPreClusterSinkSpec()
-  };
+    o2::mch::getPreClusterSinkSpec()};
 }

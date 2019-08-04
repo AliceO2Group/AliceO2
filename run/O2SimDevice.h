@@ -43,7 +43,7 @@ class O2SimDevice : public FairMQDevice
 {
  public:
   O2SimDevice() = default;
-  O2SimDevice(o2::steer::O2MCApplication* vmcapp, TVirtualMC* vmc) : mVMCApp{ vmcapp }, mVMC{ vmc } {}
+  O2SimDevice(o2::steer::O2MCApplication* vmcapp, TVirtualMC* vmc) : mVMCApp{vmcapp}, mVMC{vmc} {}
 
   /// Default destructor
   ~O2SimDevice() final
@@ -213,6 +213,7 @@ class O2SimDevice : public FairMQDevice
   }
 
   void PostRun() final { LOG(INFO) << "Shutting down " << FairLogger::endl; }
+
  private:
   TStopwatch mTimer;                             //!
   o2::steer::O2MCApplication* mVMCApp = nullptr; //!

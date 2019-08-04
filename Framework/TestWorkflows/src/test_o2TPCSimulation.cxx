@@ -22,7 +22,8 @@ using namespace o2::framework;
 using namespace o2::workflows;
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
+WorkflowSpec defineDataProcessing(ConfigContext const& specs)
+{
   return WorkflowSpec{
     sim_tpc(),
   };

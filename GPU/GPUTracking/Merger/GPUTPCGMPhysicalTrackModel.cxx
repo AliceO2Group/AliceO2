@@ -125,9 +125,9 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, flo
   //     (-s2 0 c2 )   ( 0 s1  c1 )
   //
 
-  float R0[3] = { c2, s1 * s2, c1 * s2 };
-  float R1[3] = { 0, c1, -s1 };
-  float R2[3] = { -s2, s1 * c2, c1 * c2 };
+  float R0[3] = {c2, s1 * s2, c1 * s2};
+  float R1[3] = {0, c1, -s1};
+  float R2[3] = {-s2, s1 * c2, c1 * c2};
 
   // parameters and the extrapolation point in the rotated coordinate system
   {

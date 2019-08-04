@@ -20,7 +20,8 @@ namespace framework
 {
 
 // All we do is to printout
-void TextControlService::readyToQuit(bool all) {
+void TextControlService::readyToQuit(bool all)
+{
   if (mOnce == true) {
     return;
   }
@@ -40,9 +41,9 @@ bool parseControl(std::string_view s, std::smatch& match)
     return false;
   }
   s.remove_prefix(idx);
-  std::string rs{ s };
+  std::string rs{s};
   return std::regex_search(rs, match, controlRE);
 }
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2

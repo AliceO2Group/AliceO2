@@ -28,7 +28,7 @@ namespace o2
 namespace experimental::mergers
 {
 
-MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{ header::gDataOriginInvalid, header::gDataDescriptionInvalid }
+MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{header::gDataOriginInvalid, header::gDataDescriptionInvalid}
 {
 }
 
@@ -108,8 +108,8 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
 
     MergerConfig layerConfig = mConfig;
     if (layer > 1 && mConfig.ownershipMode.value == OwnershipMode::Integral) {
-      layerConfig.ownershipMode = { OwnershipMode::Full }; // in Integral mode only the first layer should integrate
-      layerConfig.timespan = { Timespan::LastDifference }; // and objects that are merged should not be used again
+      layerConfig.ownershipMode = {OwnershipMode::Full}; // in Integral mode only the first layer should integrate
+      layerConfig.timespan = {Timespan::LastDifference}; // and objects that are merged should not be used again
     }
     mergerBuilder.setConfig(layerConfig);
 
@@ -146,7 +146,7 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
 
 std::vector<size_t> MergerInfrastructureBuilder::computeNumberOfMergersPerLayer(const size_t inputs) const
 {
-  std::vector<size_t> mergersPerLayer{ inputs };
+  std::vector<size_t> mergersPerLayer{inputs};
   if (mConfig.topologySize.value == TopologySize::NumberOfLayers) {
     //              _          _
     //             |    L - i   |  where:

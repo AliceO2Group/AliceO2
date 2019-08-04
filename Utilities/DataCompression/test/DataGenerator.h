@@ -256,5 +256,5 @@ class geometric_distribution : public _BASE
 };
 
 }; // namespace test
-}; // namespace AliceO2
+}; // namespace o2
 #endif

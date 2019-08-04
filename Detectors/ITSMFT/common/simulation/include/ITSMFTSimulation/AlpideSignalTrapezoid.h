@@ -77,7 +77,7 @@ inline float AlpideSignalTrapezoid::getCollectedCharge(float totalNEle, float tM
   }
   return 0;
 }
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

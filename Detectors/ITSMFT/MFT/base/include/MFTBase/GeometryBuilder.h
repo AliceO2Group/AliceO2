@@ -31,7 +31,7 @@ class GeometryBuilder
   void buildGeometry();
 
  private:
-  ClassDef(GeometryBuilder, 1)
+  ClassDef(GeometryBuilder, 1);
 };
 } // namespace mft
 } // namespace o2

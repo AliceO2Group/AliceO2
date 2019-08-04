@@ -40,9 +40,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 const AliHLTComponentDataType GPUTPCDefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer("CATRACKL", kAliHLTDataOriginTPC);
 
 /** ROOT macro for the implementation of ROOT specific class methods */
-ClassImp(GPUTPCTrackerComponent)
+ClassImp(GPUTPCTrackerComponent);
 
-  GPUTPCTrackerComponent::GPUTPCTrackerComponent()
+GPUTPCTrackerComponent::GPUTPCTrackerComponent()
   : fSolenoidBz(0), fMinNTrackClusters(-1), fMinTrackPt(GPUCA_MIN_TRACK_PT_DEFAULT), fClusterZCut(500.), mNeighboursSearchArea(0), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fBenchmark("CATracker"), fAllowGPU(0), fGPUHelperThreads(-1), fCPUTrackers(0), fGlobalTracking(0), fGPUDeviceNum(-1), fGPUType("CPU"), fGPUStuckProtection(0), fAsync(0), fSearchWindowDZDR(0.), fRec(0), fChain(0), fAsyncProcessor()
 {
   // see header file for class documentation
@@ -545,8 +545,8 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
 
   // Prepare everything for all slices
-  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][fgkNPatches] = { nullptr };
-  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][fgkNPatches] = { nullptr };
+  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][fgkNPatches] = {nullptr};
+  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][fgkNPatches] = {nullptr};
 
   for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
     const AliHLTComponentBlockData& pBlock = blocks[ndx];
@@ -559,8 +559,8 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
 
-  GPUTPCClusterData* clusterData[NSLICES] = { nullptr };
-  int nClusters[NSLICES] = { 0 };
+  GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
+  int nClusters[NSLICES] = {0};
 
   int nClustersTotal = 0;
   for (int slice = 0; slice < NSLICES; slice++) {

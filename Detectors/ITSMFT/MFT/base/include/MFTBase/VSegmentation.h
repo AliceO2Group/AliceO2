@@ -66,7 +66,7 @@ class VSegmentation : public TNamed
 
   ClassDefOverride(VSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

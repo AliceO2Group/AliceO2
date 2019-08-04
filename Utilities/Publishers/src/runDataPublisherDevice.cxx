@@ -16,6 +16,7 @@ using DataPublisherDevice = o2::utilities::DataPublisherDevice;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     (DataPublisherDevice::OptionKeyDataDescription,
      bpo::value<std::string>()->default_value("unspecified"),
@@ -35,6 +36,7 @@ void addCustomOptions(bpo::options_description& options)
     (DataPublisherDevice::OptionKeyOutputChannelName,
      bpo::value<std::string>()->default_value("output"),
      "Name of the output channel");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

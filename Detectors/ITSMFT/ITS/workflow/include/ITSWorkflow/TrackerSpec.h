@@ -31,7 +31,7 @@ namespace its
 class TrackerDPL : public framework::Task
 {
  public:
-  TrackerDPL(bool isMC) : mIsMC{ isMC } {}
+  TrackerDPL(bool isMC) : mIsMC{isMC} {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;

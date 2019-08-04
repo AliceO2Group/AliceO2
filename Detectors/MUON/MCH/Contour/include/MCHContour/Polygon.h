@@ -53,7 +53,7 @@ class Polygon
     std::copy(first, last, std::back_inserter(mVertices));
   }
 
-  Polygon(std::initializer_list<o2::mch::contour::Vertex<T>> args) : mVertices{ args } {}
+  Polygon(std::initializer_list<o2::mch::contour::Vertex<T>> args) : mVertices{args} {}
 
   o2::mch::contour::Vertex<T> firstVertex() const { return mVertices.front(); }
 
@@ -84,7 +84,7 @@ class Polygon
     /// Compute the signed area of this polygon
     /// Algorithm from F. Feito, J.C. Torres and A. Urena,
     /// Comput. & Graphics, Vol. 19, pp. 595-600, 1995
-    double area{ 0.0 };
+    double area{0.0};
     for (auto i = 0; i < mVertices.size() - 1; ++i) {
       auto& current = mVertices[i];
       auto& next = mVertices[i + 1];
@@ -183,7 +183,7 @@ bool Polygon<T>::contains(T xp, T yp) const
   }
 
   auto j = mVertices.size() - 1;
-  bool oddNodes{ false };
+  bool oddNodes{false};
   for (auto i = 0; i < mVertices.size(); i++) {
     if ((mVertices[i].y < yp && mVertices[j].y >= yp) || (mVertices[j].y < yp && mVertices[i].y >= yp)) {
       if (mVertices[i].x +
@@ -228,10 +228,10 @@ template <typename T>
 BBox<T> getBBox(const std::vector<Vertex<T>>& vertices)
 {
 
-  T xmin{ std::numeric_limits<T>::max() };
-  T xmax{ std::numeric_limits<T>::lowest() };
-  T ymin{ std::numeric_limits<T>::max() };
-  T ymax{ std::numeric_limits<T>::lowest() };
+  T xmin{std::numeric_limits<T>::max()};
+  T xmax{std::numeric_limits<T>::lowest()};
+  T ymin{std::numeric_limits<T>::max()};
+  T ymax{std::numeric_limits<T>::lowest()};
 
   for (const auto& v : vertices) {
     xmin = std::min(xmin, v.x);
@@ -239,7 +239,7 @@ BBox<T> getBBox(const std::vector<Vertex<T>>& vertices)
     ymin = std::min(ymin, v.y);
     ymax = std::max(ymax, v.y);
   }
-  return { xmin, ymin, xmax, ymax };
+  return {xmin, ymin, xmax, ymax};
 }
 
 template <typename T>
@@ -258,10 +258,10 @@ BBox<T> getBBox(const std::vector<Polygon<T>>& polygons)
   /// Return the bounding box (aka MBR, minimum bounding rectangle)
   /// of this vector of polygons
 
-  T xmin{ std::numeric_limits<T>::max() };
-  T xmax{ std::numeric_limits<T>::lowest() };
-  T ymin{ std::numeric_limits<T>::max() };
-  T ymax{ std::numeric_limits<T>::lowest() };
+  T xmin{std::numeric_limits<T>::max()};
+  T xmax{std::numeric_limits<T>::lowest()};
+  T ymin{std::numeric_limits<T>::max()};
+  T ymax{std::numeric_limits<T>::lowest()};
 
   for (const auto& p : polygons) {
     auto b = getBBox(p);
@@ -270,13 +270,13 @@ BBox<T> getBBox(const std::vector<Polygon<T>>& polygons)
     ymin = std::min(ymin, b.ymin());
     ymax = std::max(ymax, b.ymax());
   }
-  return { xmin, ymin, xmax, ymax };
+  return {xmin, ymin, xmax, ymax};
 }
 
 template <typename T>
 auto squaredDistancePointToPolygon(const Vertex<T>& point, const Polygon<T>& polygon) -> decltype(point.x * point.x)
 {
-  T d{ std::numeric_limits<T>::max() };
+  T d{std::numeric_limits<T>::max()};
   for (auto i = 0; i < polygon.size() - 1; ++i) {
     auto s0 = polygon[i];
     auto s1 = polygon[i + 1];

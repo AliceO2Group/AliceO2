@@ -38,14 +38,14 @@ BOOST_AUTO_TEST_CASE(IntervalCtorThrowsIfBeginEqualsEnd)
 
 BOOST_AUTO_TEST_CASE(IntIntervalIsFullyContainedInInterval)
 {
-  Interval<int> i{ 1, 5 };
+  Interval<int> i{1, 5};
   BOOST_CHECK_EQUAL(Interval<int>(0, 4).isFullyContainedIn(i), false);
   BOOST_CHECK_EQUAL(Interval<int>(1, 2).isFullyContainedIn(i), true);
 }
 
 BOOST_AUTO_TEST_CASE(DoubleIntervalIsFullyContainedInInterval)
 {
-  Interval<double> f{ 0.01, 0.05 };
+  Interval<double> f{0.01, 0.05};
   BOOST_CHECK_EQUAL(Interval<double>(0, 0.04).isFullyContainedIn(f), false);
   BOOST_CHECK_EQUAL(Interval<double>(0.01, 0.02).isFullyContainedIn(f), true);
 }

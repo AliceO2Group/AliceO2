@@ -3,7 +3,7 @@
 
 static void error_callback(int error, const char* description)
 {
-    fprintf(stderr, "Error %d: %s\n", error, description);
+  fprintf(stderr, "Error %d: %s\n", error, description);
 }
 
 int main(int, char**)
@@ -32,12 +32,14 @@ int main(int, char**)
     ImGui::Text("Hello, world!");
     ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
     ImGui::ColorEdit3("clear color", (float*)&clear_color);
-    if (ImGui::Button("Test Window")) show_test_window ^= 1;
-    if (ImGui::Button("Another Window")) show_another_window ^= 1;
+    if (ImGui::Button("Test Window"))
+      show_test_window ^= 1;
+    if (ImGui::Button("Another Window"))
+      show_another_window ^= 1;
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
     // 2. Show another simple window, this time using an explicit Begin/End pair
-    ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Another Window", &show_another_window);
     ImGui::Text("Hello");
     ImGui::End();

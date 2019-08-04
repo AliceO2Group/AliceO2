@@ -151,10 +151,9 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC)
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tof-matched-outfile", VariantType::String, "o2match_tof.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "matchTOF", { "Name of top-level TTree" } },
-    }
-  };
+      {"tof-matched-outfile", VariantType::String, "o2match_tof.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "matchTOF", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace tof
 } // end namespace o2

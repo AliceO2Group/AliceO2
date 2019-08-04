@@ -15,15 +15,15 @@
 #ifndef ALICEO2_ITSMFT_ALPIDECHIP_H_
 #define ALICEO2_ITSMFT_ALPIDECHIP_H_
 
-#include <TGeoManager.h>   // for gGeoManager
-#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
+#include <TGeoManager.h> // for gGeoManager
+#include "Rtypes.h"      // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 class TGeoVolume;
 class TGeoManager;
-  
+
 namespace o2
 {
-  
+
 namespace itsmft
 {
 
@@ -33,7 +33,6 @@ namespace itsmft
 class AlpideChip
 {
  public:
-
   AlpideChip() = default;
   ~AlpideChip() = default;
 
@@ -45,17 +44,17 @@ class AlpideChip
   /// \param dummy if true creates a dummy air volume (for material budget studies)
   /// \param mgr The GeoManager (used only to get the proper material)
   static TGeoVolume* createChip(Double_t yc, Double_t ys,
-                                char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
-                                Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
+                                char const* chipName = "AlpideChip", char const* sensName = "AlpideSensor",
+                                Bool_t dummy = kFALSE, const TGeoManager* mgr = gGeoManager);
 
   static void createMaterials(Int_t id, Int_t fieldType, Float_t maxField);
 
-  static constexpr Double_t sMetalLayerThick = 15.0*1.0E-4;  ///< Metal layer thickness (um)
+  static constexpr Double_t sMetalLayerThick = 15.0 * 1.0E-4; ///< Metal layer thickness (um)
 
-  ClassDefNV(AlpideChip, 0) // AlpideChip geometry
+  ClassDefNV(AlpideChip, 0); // AlpideChip geometry
 };
 
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

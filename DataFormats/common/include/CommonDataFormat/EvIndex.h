@@ -55,7 +55,7 @@ class EvIndex
 
   ClassDefNV(EvIndex, 1);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 
 #endif

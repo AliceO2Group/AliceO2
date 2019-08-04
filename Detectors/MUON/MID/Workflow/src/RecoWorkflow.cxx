@@ -51,22 +51,22 @@ of::WorkflowSpec getRecoWorkflow(bool useMC)
   specs.emplace_back(getClusterizerSpec(useMC));
   if (useMC) {
     specs.emplace_back(getClusterLabelerSpec());
-    specs.emplace_back(o2::workflows::defineBroadcaster("ClustersBcast", of::InputSpec{ "mid_clusters_data", "MID", "CLUSTERS" }, of::Outputs{ of::OutputSpec{ "MID", "CLUSTERS_DATA" }, of::OutputSpec{ "MID", "CLUSTERS_MC" } }));
+    specs.emplace_back(o2::workflows::defineBroadcaster("ClustersBcast", of::InputSpec{"mid_clusters_data", "MID", "CLUSTERS"}, of::Outputs{of::OutputSpec{"MID", "CLUSTERS_DATA"}, of::OutputSpec{"MID", "CLUSTERS_MC"}}));
   }
   specs.emplace_back(getTrackerSpec(useMC));
   if (useMC) {
-    specs.emplace_back(o2::workflows::defineBroadcaster("TracksBcast", of::InputSpec{ "mid_tracks_data", "MID", "TRACKS" }, of::Outputs{ of::OutputSpec{ "MID", "TRACKS_DATA" }, of::OutputSpec{ "MID", "TRACKS_MC" } }));
-    specs.emplace_back(o2::workflows::defineBroadcaster("TrackClustersBcast", of::InputSpec{ "mid_trackClusters_data", "MID", "TRACKCLUSTERS" }, of::Outputs{ of::OutputSpec{ "MID", "TRCLUS_DATA" }, of::OutputSpec{ "MID", "TRCLUS_MC" } }));
+    specs.emplace_back(o2::workflows::defineBroadcaster("TracksBcast", of::InputSpec{"mid_tracks_data", "MID", "TRACKS"}, of::Outputs{of::OutputSpec{"MID", "TRACKS_DATA"}, of::OutputSpec{"MID", "TRACKS_MC"}}));
+    specs.emplace_back(o2::workflows::defineBroadcaster("TrackClustersBcast", of::InputSpec{"mid_trackClusters_data", "MID", "TRACKCLUSTERS"}, of::Outputs{of::OutputSpec{"MID", "TRCLUS_DATA"}, of::OutputSpec{"MID", "TRCLUS_MC"}}));
     specs.emplace_back(getTrackLabelerSpec());
     specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTrackLabelsWriter",
                                                   "mid-track-labels.root",
                                                   "midtracklabels",
                                                   of::MakeRootTreeWriterSpec::TerminationPolicy::Workflow,
-                                                  of::MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
-                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{ of::InputSpec{ "mid_tracks", "MID", "TRACKS_DATA" }, "MIDTrack" },
-                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{ of::InputSpec{ "mid_trackClusters", "MID", "TRCLUS_DATA" }, "MIDTrackClusters" },
-                                                  of::MakeRootTreeWriterSpec::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{ of::InputSpec{ "mid_track_labels", "MID", "TRACKSLABELS" }, "MIDTrackLabels" },
-                                                  of::MakeRootTreeWriterSpec::BranchDefinition<dataformats::MCTruthContainer<MCClusterLabel>>{ of::InputSpec{ "mid_trclus_labels", "MID", "TRCLUSLABELS" }, "MIDTrackClusterLabels" })());
+                                                  of::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_tracks", "MID", "TRACKS_DATA"}, "MIDTrack"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_trackClusters", "MID", "TRCLUS_DATA"}, "MIDTrackClusters"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{of::InputSpec{"mid_track_labels", "MID", "TRACKSLABELS"}, "MIDTrackLabels"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<dataformats::MCTruthContainer<MCClusterLabel>>{of::InputSpec{"mid_trclus_labels", "MID", "TRCLUSLABELS"}, "MIDTrackClusterLabels"})());
   }
 
   return specs;

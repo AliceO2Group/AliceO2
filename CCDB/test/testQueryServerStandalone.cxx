@@ -26,7 +26,7 @@ void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hi
 void queryConditionServer(string transport, string address)
 {
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto channel = FairMQChannel{ "data-get", "req", factory };
+  auto channel = FairMQChannel{"data-get", "req", factory};
   channel.Connect(address);
   channel.ValidateChannel();
 

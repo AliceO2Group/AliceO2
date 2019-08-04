@@ -24,7 +24,7 @@ namespace framework
 class ConfigContext
 {
  public:
-  ConfigContext(ConfigParamRegistry& options) : mOptions{ options } {}
+  ConfigContext(ConfigParamRegistry& options) : mOptions{options} {}
 
   ConfigParamRegistry& options() const { return mOptions; }
 

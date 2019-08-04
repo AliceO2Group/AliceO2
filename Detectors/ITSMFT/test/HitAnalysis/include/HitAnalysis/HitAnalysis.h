@@ -20,58 +20,67 @@
 #define __ALICEO2__HitAnalysis__
 
 #include <map>
-#include "FairTask.h"  // for FairTask, InitStatus
-#include "Rtypes.h"    // for Bool_t, HitAnalysis::Class, ClassDef, etc
+#include "FairTask.h" // for FairTask, InitStatus
+#include "Rtypes.h"   // for Bool_t, HitAnalysis::Class, ClassDef, etc
 #include "ITSMFTSimulation/Hit.h"
 #include <vector>
 
-class TH1;  // lines 16-16
-namespace o2 { namespace its { class GeometryTGeo; }}  // lines 23-23
-
+class TH1; // lines 16-16
+namespace o2
+{
+namespace its
+{
+class GeometryTGeo;
+}
+} // namespace o2
 
 class TH1;
 
-namespace o2 {
-namespace itsmft {
+namespace o2
+{
+namespace itsmft
+{
 class Chip;
 }
-}
+} // namespace o2
 
-namespace o2 {
-namespace its {
+namespace o2
+{
+namespace its
+{
 
 class HitAnalysis : public FairTask
 {
-  public:
-    HitAnalysis();
+ public:
+  HitAnalysis();
 
-    ~HitAnalysis() override;
+  ~HitAnalysis() override;
 
-    InitStatus Init() override;
+  InitStatus Init() override;
 
-    void Exec(Option_t *option) override;
+  void Exec(Option_t* option) override;
 
-    void FinishTask() override;
+  void FinishTask() override;
 
-  protected:
-    void ProcessHits();
+ protected:
+  void ProcessHits();
 
-  private:
-    Bool_t mIsInitialized;       ///< Check whether task is initialized
-    const std::vector<o2::itsmft::Hit>* mHits;     ///< Array with ITS hits, filled by the FairRootManager
-    const GeometryTGeo *mGeometry;           ///<  geometry
-    TH1 *mLineSegment;        ///< Histogram for line segment
-    TH1 *mLocalX0;            ///< Histogram for Starting X position in local coordinates
-    TH1 *mLocalX1;            ///< Histogram for Hit X position in local coordinates
-    TH1 *mLocalY0;            ///< Histogram for Starting Y position in local coordinates
-    TH1 *mLocalY1;            ///< Histogram for Hit Y position in local coordinates
-    TH1 *mLocalZ0;            ///< Histogram for Starting Z position in local coordinates
-    TH1 *mLocalZ1;            ///< Histogram for Hit Z position in local coordinates
-    TH1 *mHitCounter;         ///< simple hit counter histogram
+ private:
+  Bool_t mIsInitialized;                     ///< Check whether task is initialized
+  const std::vector<o2::itsmft::Hit>* mHits; ///< Array with ITS hits, filled by the FairRootManager
+  const GeometryTGeo* mGeometry;             ///<  geometry
+  TH1* mLineSegment;                         ///< Histogram for line segment
+  TH1* mLocalX0;                             ///< Histogram for Starting X position in local coordinates
+  TH1* mLocalX1;                             ///< Histogram for Hit X position in local coordinates
+  TH1* mLocalY0;                             ///< Histogram for Starting Y position in local coordinates
+  TH1* mLocalY1;                             ///< Histogram for Hit Y position in local coordinates
+  TH1* mLocalZ0;                             ///< Histogram for Starting Z position in local coordinates
+  TH1* mLocalZ1;                             ///< Histogram for Hit Z position in local coordinates
+  TH1* mHitCounter;                          ///< simple hit counter histogram
 
   ClassDefOverride(HitAnalysis, 1);
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* defined(__ALICEO2__HitAnalysis__) */

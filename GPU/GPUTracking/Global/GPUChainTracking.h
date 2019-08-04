@@ -209,8 +209,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 #define volatile
 #endif
   volatile int mSliceOutputReady = 0;
-  volatile char mSliceLeftGlobalReady[NSLICES] = { 0 };
-  volatile char mSliceRightGlobalReady[NSLICES] = { 0 };
+  volatile char mSliceLeftGlobalReady[NSLICES] = {0};
+  volatile char mSliceRightGlobalReady[NSLICES] = {0};
 #ifdef __ROOT__
 #undef volatile
 #endif

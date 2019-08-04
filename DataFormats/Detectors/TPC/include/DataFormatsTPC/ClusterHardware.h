@@ -155,7 +155,7 @@ struct ClusterHardwareContainer { // Temporary struct to hold a set of hardware 
   uint16_t CRU;                //< CRU of the cluster
   ClusterHardware clusters[0]; //< Clusters
 };
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

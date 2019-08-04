@@ -69,8 +69,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
  public:
   ~GPUReconstructionCPU() override;
-  static constexpr krnlRunRange krnlRunRangeNone{ 0, -1 };
-  static constexpr krnlEvent krnlEventNone = krnlEvent{ nullptr, nullptr, 0 };
+  static constexpr krnlRunRange krnlRunRangeNone{0, -1};
+  static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
 #ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
   template <class S, int I = 0>

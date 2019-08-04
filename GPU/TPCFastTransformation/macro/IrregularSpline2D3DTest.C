@@ -64,7 +64,6 @@ float Fx(float u, float v)
 float Fy(float u, float v) { return v; }
 float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
-
 int IrregularSpline2D3DTest()
 {
   using namespace o2::gpu;
@@ -218,4 +217,3 @@ int IrregularSpline2D3DTest()
 
   return 0;
 }
-

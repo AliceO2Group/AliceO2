@@ -35,7 +35,7 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val);
 struct MetricInfo {
   enum MetricType type;
   size_t storeIdx; // Index in the actual store
-  size_t pos; // Last position in the circular buffer
+  size_t pos;      // Last position in the circular buffer
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not

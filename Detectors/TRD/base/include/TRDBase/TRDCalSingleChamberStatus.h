@@ -59,16 +59,16 @@ class TRDCalSingleChamberStatus
   void setStatus(Int_t col, Int_t row, Char_t vd) { mData[getChannel(col, row)] = vd; };
 
  protected:
-  Int_t mPla{ 0 }; //  Plane number
-  Int_t mCha{ 0 }; //  Chamber number
+  Int_t mPla{0}; //  Plane number
+  Int_t mCha{0}; //  Chamber number
 
-  Int_t mNrows{ 0 }; //  Number of rows
-  Int_t mNcols{ 0 }; //  Number of columns
+  Int_t mNrows{0}; //  Number of rows
+  Int_t mNcols{0}; //  Number of columns
 
-  Int_t mNchannels{ 0 };   //  Number of channels
+  Int_t mNchannels{0};     //  Number of channels
   std::vector<char> mData; //[fNchannels] Data
 
-  ClassDefNV(TRDCalSingleChamberStatus, 1) //  TRD ROC calibration class
+  ClassDefNV(TRDCalSingleChamberStatus, 1); //  TRD ROC calibration class
 };
 
 } // namespace trd

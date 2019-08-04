@@ -21,39 +21,45 @@ using DataDescription = o2::header::DataDescription;
 using DataOrigin = o2::header::DataOrigin;
 using IndexElement = o2::dataformats::IndexElement;
 
-namespace {
-  o2::header::DataDescription lookupDataDescription(const char *key) {
-    if (strcmp(key, "RAWDATA") == 0)
-      return o2::header::gDataDescriptionRawData;
-    else if (strcmp(key, "CLUSTERS") == 0)
-      return o2::header::gDataDescriptionClusters;
-    else if (strcmp(key, "TRACKS") == 0)
-      return o2::header::gDataDescriptionTracks;
-    else if (strcmp(key, "CONFIG") == 0)
-      return o2::header::gDataDescriptionConfig;
-    else if (strcmp(key, "INFO") == 0)
-      return o2::header::gDataDescriptionInfo;
-    return o2::header::gDataDescriptionInvalid;
-  }
-
-  o2::header::DataOrigin lookupDataOrigin(const char *key) {
-    if (strcmp(key, "TPC") == 0)
-      return o2::header::gDataOriginTPC;
-    if (strcmp(key, "TRD") == 0)
-      return o2::header::gDataOriginTRD;
-    if (strcmp(key, "TOF") == 0)
-      return o2::header::gDataOriginTOF;
-    if (strcmp(key, "ITS") == 0)
-      return o2::header::gDataOriginITS;
-    return o2::header::gDataOriginInvalid;
-  }
-
-
+namespace
+{
+o2::header::DataDescription lookupDataDescription(const char* key)
+{
+  if (strcmp(key, "RAWDATA") == 0)
+    return o2::header::gDataDescriptionRawData;
+  else if (strcmp(key, "CLUSTERS") == 0)
+    return o2::header::gDataDescriptionClusters;
+  else if (strcmp(key, "TRACKS") == 0)
+    return o2::header::gDataDescriptionTracks;
+  else if (strcmp(key, "CONFIG") == 0)
+    return o2::header::gDataDescriptionConfig;
+  else if (strcmp(key, "INFO") == 0)
+    return o2::header::gDataDescriptionInfo;
+  return o2::header::gDataDescriptionInvalid;
 }
 
-namespace o2 { namespace data_flow {
+o2::header::DataOrigin lookupDataOrigin(const char* key)
+{
+  if (strcmp(key, "TPC") == 0)
+    return o2::header::gDataOriginTPC;
+  if (strcmp(key, "TRD") == 0)
+    return o2::header::gDataOriginTRD;
+  if (strcmp(key, "TOF") == 0)
+    return o2::header::gDataOriginTOF;
+  if (strcmp(key, "ITS") == 0)
+    return o2::header::gDataOriginITS;
+  return o2::header::gDataOriginInvalid;
+}
 
-std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec> &specs, std::size_t &totalSize) {
+} // namespace
+
+namespace o2
+{
+namespace data_flow
+{
+
+std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec>& specs, std::size_t& totalSize)
+{
   // Calculate the total size of your timeframe. This is
   // given by:
   // - N*The size of the data header (this should actually depend on the
@@ -63,21 +69,21 @@ std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec> &s
   // - The size of the index header
   // - N*sizeof(dataheader)
   // Assuming all the data header
-  size_t sizeOfHeaders = specs.size()*sizeof(DataHeader);
+  size_t sizeOfHeaders = specs.size() * sizeof(DataHeader);
   size_t sizeOfBuffers = 0;
-  for (auto && spec : specs) {
+  for (auto&& spec : specs) {
     sizeOfBuffers += spec.bufferSize;
   }
   size_t sizeOfIndexHeader = sizeof(DataHeader);
-  size_t sizeOfIndex = sizeof(IndexElement)*specs.size();
+  size_t sizeOfIndex = sizeof(IndexElement) * specs.size();
   totalSize = sizeOfHeaders + sizeOfBuffers + sizeOfIndexHeader + sizeOfIndex;
 
   // Add the actual - data
   auto buffer = std::make_unique<char[]>(totalSize);
-  char *bi = buffer.get();
+  char* bi = buffer.get();
   std::vector<IndexElement> headers;
   int count = 0;
-  for (auto &&spec : specs) {
+  for (auto&& spec : specs) {
     IndexElement el;
     el.first.dataDescription = lookupDataDescription(spec.dataDescription);
     el.first.dataOrigin = lookupDataOrigin(spec.origin);
@@ -100,8 +106,9 @@ std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec> &s
   index.headerSize = sizeOfIndexHeader;
   index.payloadSize = sizeOfIndex;
   memcpy(bi, &index, sizeof(index));
-  memcpy(bi+sizeof(index), headers.data(), headers.size() * sizeof(IndexElement));
+  memcpy(bi + sizeof(index), headers.data(), headers.size() * sizeof(IndexElement));
   return std::move(buffer);
 }
 
-}} // o2::Headers
+} // namespace data_flow
+} // namespace o2

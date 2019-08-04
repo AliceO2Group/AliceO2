@@ -42,37 +42,38 @@ namespace framework
 /// FIXME:  we  should  probably  return   also  a  function  to  handle  EXIT
 /// transition...
 struct AlgorithmSpec {
-  using ProcessCallback = std::function<void(ProcessingContext &)>;
+  using ProcessCallback = std::function<void(ProcessingContext&)>;
   using InitCallback = std::function<ProcessCallback(InitContext&)>;
-  using ErrorCallback = std::function<void(ErrorContext &)>;
-  static ErrorCallback &emptyErrorCallback() {
+  using ErrorCallback = std::function<void(ErrorContext&)>;
+  static ErrorCallback& emptyErrorCallback()
+  {
     static ErrorCallback callback = nullptr;
     return callback;
   }
 
   AlgorithmSpec()
-  : onInit{nullptr},
-    onProcess{nullptr},
-    onError{nullptr}
+    : onInit{nullptr},
+      onProcess{nullptr},
+      onError{nullptr}
   {
   }
 
-  AlgorithmSpec(AlgorithmSpec &&) = default;
-  AlgorithmSpec(const AlgorithmSpec &) = default;
-  AlgorithmSpec(AlgorithmSpec &) = default;
-  AlgorithmSpec &operator=(const AlgorithmSpec &) = default;
+  AlgorithmSpec(AlgorithmSpec&&) = default;
+  AlgorithmSpec(const AlgorithmSpec&) = default;
+  AlgorithmSpec(AlgorithmSpec&) = default;
+  AlgorithmSpec& operator=(const AlgorithmSpec&) = default;
 
-  AlgorithmSpec(ProcessCallback process, ErrorCallback &error = emptyErrorCallback())
-  : onInit{nullptr},
-    onProcess{process},
-    onError{error}
+  AlgorithmSpec(ProcessCallback process, ErrorCallback& error = emptyErrorCallback())
+    : onInit{nullptr},
+      onProcess{process},
+      onError{error}
   {
   }
 
-  AlgorithmSpec(InitCallback init, ErrorCallback &error = emptyErrorCallback())
-  : onInit{init},
-    onProcess{nullptr},
-    onError{error}
+  AlgorithmSpec(InitCallback init, ErrorCallback& error = emptyErrorCallback())
+    : onInit{init},
+      onProcess{nullptr},
+      onError{error}
   {
   }
 

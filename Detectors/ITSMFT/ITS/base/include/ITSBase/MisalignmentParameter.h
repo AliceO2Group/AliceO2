@@ -48,6 +48,7 @@ class MisalignmentParameter : public FairParGenericSet
   TArrayD getRotY() { return mRotY; }
   TArrayD getRotZ() { return mRotZ; }
   Int_t getNumberOfDetectors() { return mNumberOfDetectors; }
+
  private:
   TArrayD mShiftX;          ///< Array to hold the misalignment in x-direction
   TArrayD mShiftY;          ///< Array to hold the misalignment in y-direction
@@ -61,9 +62,9 @@ class MisalignmentParameter : public FairParGenericSet
 
   MisalignmentParameter& operator=(const MisalignmentParameter&);
 
-  ClassDefOverride(MisalignmentParameter, 1)
+  ClassDefOverride(MisalignmentParameter, 1);
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

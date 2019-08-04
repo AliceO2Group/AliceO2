@@ -55,19 +55,18 @@ constexpr float getTOFCorrection(int det)
     11251.8 / o2::constants::physics::LightSpeedCm2NS,
     760. / o2::constants::physics::LightSpeedCm2NS,
     11261.3 / o2::constants::physics::LightSpeedCm2NS,
-    11253.3 / o2::constants::physics::LightSpeedCm2NS
-  };
+    11253.3 / o2::constants::physics::LightSpeedCm2NS};
   return TOFCorr[det - DetIDOffs];
 }
 
 //< map detector/tower to continuous channel ID
 constexpr int toChannel(int det, int tower)
 {
-  constexpr int DetChMap[5][6] = { { 0, 1, 2, 3, 4, 5 },         // ZNA
-                                   { 6, 7, 8, 9, 10, 11 },       // ZPA
-                                   { 12, 13, -1, -1, -1, -1 },   // ZEM
-                                   { 14, 15, 16, 17, 18, 19 },   // ZNC
-                                   { 20, 21, 22, 23, 24, 25 } }; // ZPC
+  constexpr int DetChMap[5][6] = {{0, 1, 2, 3, 4, 5},        // ZNA
+                                  {6, 7, 8, 9, 10, 11},      // ZPA
+                                  {12, 13, -1, -1, -1, -1},  // ZEM
+                                  {14, 15, 16, 17, 18, 19},  // ZNC
+                                  {20, 21, 22, 23, 24, 25}}; // ZPC
   return DetChMap[det - 1][tower];
 }
 

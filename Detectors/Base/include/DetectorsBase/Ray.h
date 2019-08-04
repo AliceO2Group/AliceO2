@@ -45,7 +45,7 @@ class Ray
   static constexpr float InvalidT = -1e9;
   static constexpr float Tiny = 1e-9;
 
-  GPUd() Ray() : mP{ 0.f }, mD{ 0.f }, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f)
+  GPUd() Ray() : mP{0.f}, mD{0.f}, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f)
   {
   }
   GPUdDefault() ~Ray() CON_DEFAULT;
@@ -88,18 +88,18 @@ class Ray
   GPUd() bool validateZRange(float& cpar1, float& cpar2, const MatLayerCyl& lr) const;
 
  private:
-  vecF3 mP;                             ///< entrance point
-  vecF3 mD;                             ///< X,Y,Zdistance
-  float mDistXY2;                       ///< dist^2 between points in XY plane
-  float mDistXY2i;                      ///< inverse dist^2 between points in XY plane
-  float mDistXYZ;                       ///< distance between 2 points
-  float mXDxPlusYDy;                    ///< aux x0*DX+y0*DY
-  float mXDxPlusYDyRed;                 ///< aux (x0*DX+y0*DY)/mDistXY2
-  float mXDxPlusYDy2;                   ///< aux (x0*DX+y0*DY)^2
-  float mR02;                           ///< radius^2 of mP
-  float mR12;                           ///< radius^2 of mP1
-  float mCrossParams1[2];               ///< parameters of crossing the layer (first parameter)
-  float mCrossParams2[2];               ///< parameters of crossing the layer (second parameter)
+  vecF3 mP;               ///< entrance point
+  vecF3 mD;               ///< X,Y,Zdistance
+  float mDistXY2;         ///< dist^2 between points in XY plane
+  float mDistXY2i;        ///< inverse dist^2 between points in XY plane
+  float mDistXYZ;         ///< distance between 2 points
+  float mXDxPlusYDy;      ///< aux x0*DX+y0*DY
+  float mXDxPlusYDyRed;   ///< aux (x0*DX+y0*DY)/mDistXY2
+  float mXDxPlusYDy2;     ///< aux (x0*DX+y0*DY)^2
+  float mR02;             ///< radius^2 of mP
+  float mR12;             ///< radius^2 of mP1
+  float mCrossParams1[2]; ///< parameters of crossing the layer (first parameter)
+  float mCrossParams2[2]; ///< parameters of crossing the layer (second parameter)
 
   ClassDefNV(Ray, 1);
 };
@@ -108,7 +108,7 @@ class Ray
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
 inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
-  : mP{ point0.X(), point0.Y(), point0.Z() }, mD{ point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z() }
+  : mP{point0.X(), point0.Y(), point0.Z()}, mD{point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z()}
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
   mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
@@ -123,7 +123,7 @@ inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
 
 //______________________________________________________
 GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
-  : mP{ x0, y0, z0 }, mD{ x1 - x0, y1 - y0, z1 - z0 }
+  : mP{x0, y0, z0}, mD{x1 - x0, y1 - y0, z1 - z0}
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
   mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;

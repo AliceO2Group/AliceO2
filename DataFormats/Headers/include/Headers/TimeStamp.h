@@ -94,11 +94,12 @@ class LHCClock
   using duration = std::chrono::duration<rep, period>;
   using time_point = std::chrono::time_point<LHCClock>;
   // this follows the naming convention of std chrono
-  static const bool is_steady =              true;
+  static const bool is_steady = true;
 
   /// the now() function is the main characteristics of the clock
   /// calculate now from the system clock and the reference start time
-  time_point now() noexcept {
+  time_point now() noexcept
+  {
     // tp1 - tp2 results in a duration, we use to create a time_point with characteristics
     // of the clock.
     return time_point(std::chrono::duration_cast<duration>(std::chrono::system_clock::now()) - mReference);
@@ -128,7 +129,7 @@ class TimeStamp
   static TimeUnitID const sClockLHC;
   static TimeUnitID const sMicroSeconds;
 
-  operator uint64_t() const {return mTimeStamp64;}
+  operator uint64_t() const { return mTimeStamp64; }
 
   /// get the duration in the units of the specified clock or duration type
   /// the template parameter can either be a clock or duration type following std::chrono concept
@@ -170,12 +171,12 @@ class TimeStamp
       // the unions are probably not a good idea as the members have too different
       // meaning depending on the unit, but take it as a fist working assumption
       union {
-	uint16_t mBCNumber;
-	uint16_t mSubTicks;
+        uint16_t mBCNumber;
+        uint16_t mSubTicks;
       };
       union {
-	uint32_t mPeriod;
-	uint32_t mTicks;
+        uint32_t mPeriod;
+        uint32_t mTicks;
       };
     };
   };

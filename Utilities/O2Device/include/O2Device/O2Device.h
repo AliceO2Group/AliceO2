@@ -67,6 +67,6 @@ class O2Device : public FairMQDevice
 
  private:
 };
-}
-}
+} // namespace base
+} // namespace o2
 #endif /* O2DEVICE_H_ */

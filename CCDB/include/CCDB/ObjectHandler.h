@@ -28,6 +28,6 @@ class ObjectHandler
   /// Returns the binary payload of a ROOT file as an std::string
   static void GetObject(const std::string& path, std::string& object);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

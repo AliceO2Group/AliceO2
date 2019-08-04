@@ -37,7 +37,7 @@ class ChipSegmentation : public VSegmentation
  private:
   ClassDefOverride(ChipSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

@@ -41,14 +41,14 @@ std::vector<Track> TrackGenerator::generate(int nTracks)
   for (int itrack = 0; itrack < nTracks; ++itrack) {
     for (int ipos = 0; ipos < 3; ++ipos) {
       pos[ipos] =
-        std::uniform_real_distribution<float>{ mPositionLimits[2 * ipos], mPositionLimits[2 * ipos + 1] }(mGenerator);
+        std::uniform_real_distribution<float>{mPositionLimits[2 * ipos], mPositionLimits[2 * ipos + 1]}(mGenerator);
     }
     track.setPosition(pos[0], pos[1], pos[2]);
 
     std::array<float, 4> limits = getLimitsForAcceptance(pos);
 
     for (int idir = 0; idir < 2; ++idir) {
-      dir[idir] = std::uniform_real_distribution<float>{ limits[2 * idir], limits[2 * idir + 1] }(mGenerator);
+      dir[idir] = std::uniform_real_distribution<float>{limits[2 * idir], limits[2 * idir + 1]}(mGenerator);
     }
     track.setDirection(dir[0], dir[1], 1.);
     tracks.push_back(track);
@@ -68,7 +68,7 @@ std::array<float, 4> TrackGenerator::getLimitsForAcceptance(std::array<float, 3>
   }
 
   // These are the maximum x and y position of MT11 with the standard alignment
-  std::array<float, 2> maxValues{ { 257., 306.7 } };
+  std::array<float, 2> maxValues{{257., 306.7}};
   for (int icoor = 0; icoor < 2; ++icoor) {
     int imin = 2 * icoor;
     int imax = 2 * icoor + 1;

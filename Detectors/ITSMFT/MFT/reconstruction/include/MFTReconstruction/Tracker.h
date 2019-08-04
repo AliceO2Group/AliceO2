@@ -101,7 +101,7 @@ class Tracker::Layer
   const o2::mft::GeometryTGeo* mGeom = nullptr;
   std::vector<const Cluster*> mClusters;
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

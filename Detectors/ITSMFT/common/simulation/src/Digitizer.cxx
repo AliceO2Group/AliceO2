@@ -23,8 +23,8 @@
 #include <numeric>
 #include "FairLogger.h" // for LOG
 
-using o2::itsmft::Hit;
 using o2::itsmft::Digit;
+using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 
 using namespace o2::itsmft;
@@ -93,7 +93,7 @@ void Digitizer::setEventTime(double t)
     }
   } else {                             // in the triggered mode we start from 0 ROFrame in every event, is this correct?
     mParams.setTimeOffset(mEventTime); // + mParams.getROFrameLength() * (gRandom->Rndm() - 0.5));
-    mROFrameMin = 0; // so we reset the frame counters
+    mROFrameMin = 0;                   // so we reset the frame counters
     mROFrameMax = 0;
   }
 

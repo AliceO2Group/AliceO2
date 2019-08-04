@@ -27,10 +27,10 @@ BOOST_AUTO_TEST_SUITE(contour)
 
 BOOST_AUTO_TEST_CASE(ContourAreEqualAsLongAsTheyContainTheSameSetOfVertices)
 {
-  Contour<double> aCollectionWithOnePolygon{ { { 0, 2 }, { 0, 0 }, { 2, 0 }, { 2, 4 }, { 1, 4 }, { 1, 2 }, { 0, 2 } } };
+  Contour<double> aCollectionWithOnePolygon{{{0, 2}, {0, 0}, {2, 0}, {2, 4}, {1, 4}, {1, 2}, {0, 2}}};
 
   Contour<double> anotherCollectionWithTwoPolygonsButSameVertices{
-    { { 2, 4 }, { 2, 0 } }, { { 1, 4 }, { 1, 2 }, { 0, 2 }, { 0, 0 } }
+    {{2, 4}, {2, 0}}, {{1, 4}, {1, 2}, {0, 2}, {0, 0}}
 
   };
 

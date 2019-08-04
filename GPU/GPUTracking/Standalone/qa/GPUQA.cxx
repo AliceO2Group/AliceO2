@@ -1018,9 +1018,9 @@ void GPUQA::RunQA(bool matchOnly)
       float deltaPtNative = (param.GetQPt() - charge / mc2.pt) * charge;
       float deltaPt = (fabsf(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
 
-      float paramval[5] = { mclocal[1], mc1.z, mc2.phi, mc2.eta, mc2.pt };
-      float resval[5] = { deltaY, deltaZ, mConfig.nativeFitResolutions ? deltaPhiNative : deltaPhi, mConfig.nativeFitResolutions ? deltaLambdaNative : deltaLambda, mConfig.nativeFitResolutions ? deltaPtNative : deltaPt };
-      float pullval[5] = { deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt()) };
+      float paramval[5] = {mclocal[1], mc1.z, mc2.phi, mc2.eta, mc2.pt};
+      float resval[5] = {deltaY, deltaZ, mConfig.nativeFitResolutions ? deltaPhiNative : deltaPhi, mConfig.nativeFitResolutions ? deltaLambdaNative : deltaLambda, mConfig.nativeFitResolutions ? deltaPtNative : deltaPt};
+      float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt())};
 
       for (int j = 0; j < 5; j++) {
         for (int k = 0; k < 5; k++) {
@@ -2058,7 +2058,7 @@ int GPUQA::DrawQAHistograms()
       }
     }
 
-    float tmpMax[2] = { 0, 0 }, tmpMin[2] = { 0, 0 };
+    float tmpMax[2] = {0, 0}, tmpMin[2] = {0, 0};
     for (int l = 0; l <= CLUST_HIST_INT_SUM; l++) {
       for (int k = 0; k < ConfigNumInputs; k++) {
         TH1* e = mClusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];

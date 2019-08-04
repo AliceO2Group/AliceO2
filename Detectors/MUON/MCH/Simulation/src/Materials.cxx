@@ -104,10 +104,10 @@ void createMaterials()
 
   /// Tracking gas : Ar 80% + CO2 20%
   const int nGas = 3;
-  float aGas[nGas] = { kAArgon, kACarbon, kAOxygen };
-  float zGas[nGas] = { kZArgon, kZCarbon, kZOxygen };
-  float wGas[nGas] = { 0.8, 1. / 15, 2. / 15 }; // Relative weight of each atom in the gas
-  float dGas = 0.001821;                        // according to AliMUONCommonGeometryBuilder
+  float aGas[nGas] = {kAArgon, kACarbon, kAOxygen};
+  float zGas[nGas] = {kZArgon, kZCarbon, kZOxygen};
+  float wGas[nGas] = {0.8, 1. / 15, 2. / 15}; // Relative weight of each atom in the gas
+  float dGas = 0.001821;                      // according to AliMUONCommonGeometryBuilder
 
   mgr.Mixture(kModuleName, ++imat, "Ar 80% + CO2 20%", aGas, zGas, dGas, nGas, wGas);
   mgr.Medium(kModuleName, Medium::Gas, "Tracking gas", imat, kIsSens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
@@ -120,9 +120,9 @@ void createMaterials()
 
   /// Nomex : C14 H10 N2 O2 (changed w.r.t AliMUONCommonGeometryBuilder)
   const int nNomex = 4;
-  float aNomex[nNomex] = { kACarbon, kAHydrogen, kANitrogen, kAOxygen };
-  float zNomex[nNomex] = { kZCarbon, kZHydrogen, kZNitrogen, kZOxygen };
-  float wNomex[nNomex] = { 14., 10., 2., 2. };
+  float aNomex[nNomex] = {kACarbon, kAHydrogen, kANitrogen, kAOxygen};
+  float zNomex[nNomex] = {kZCarbon, kZHydrogen, kZNitrogen, kZOxygen};
+  float wNomex[nNomex] = {14., 10., 2., 2.};
   // honey comb
   float dHoneyNomex = 0.024; // according to AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Nomex (honey comb)", aNomex, zNomex, dHoneyNomex, -nNomex, wNomex);
@@ -136,9 +136,9 @@ void createMaterials()
 
   /// Noryl 731 (ALICE-INT-2002-17) : C8 H8 O
   const int nNoryl = 3;
-  float aNoryl[nNoryl] = { kACarbon, kAHydrogen, kAOxygen };
-  float zNoryl[nNoryl] = { kZCarbon, kZHydrogen, kZOxygen };
-  float wNoryl[nNoryl] = { 8., 8., 1. };
+  float aNoryl[nNoryl] = {kACarbon, kAHydrogen, kAOxygen};
+  float zNoryl[nNoryl] = {kZCarbon, kZHydrogen, kZOxygen};
+  float wNoryl[nNoryl] = {8., 8., 1.};
   float dNoryl = 1.06;
   mgr.Mixture(kModuleName, ++imat, "Noryl", aNoryl, zNoryl, dNoryl, -nNoryl, wNoryl);
   mgr.Medium(kModuleName, Medium::Noryl, "Noryl", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
@@ -151,18 +151,18 @@ void createMaterials()
 
   /// FR4 : O292 Si68 C462 H736 (from AliRoot)
   const int nFR4 = 4;
-  float aFR4[nFR4] = { kAOxygen, kASilicon, kACarbon, kAHydrogen };
-  float zFR4[nFR4] = { kZOxygen, kZSilicon, kZCarbon, kZHydrogen };
-  float wFR4[nFR4] = { 292, 68, 462, 736 }; // Relative weight of each atom
-  float dFR4 = 1.8;                         // changed w.r.t AliRoot after investigation
+  float aFR4[nFR4] = {kAOxygen, kASilicon, kACarbon, kAHydrogen};
+  float zFR4[nFR4] = {kZOxygen, kZSilicon, kZCarbon, kZHydrogen};
+  float wFR4[nFR4] = {292, 68, 462, 736}; // Relative weight of each atom
+  float dFR4 = 1.8;                       // changed w.r.t AliRoot after investigation
   mgr.Mixture(kModuleName, ++imat, "FR4", aFR4, zFR4, dFR4, -nFR4, wFR4);
   mgr.Medium(kModuleName, Medium::FR4, "FR4", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Rohacell : C9 H13 N1 O2
   const int nRoha = 4;
-  float aRoha[nRoha] = { kACarbon, kAHydrogen, kANitrogen, kAOxygen };
-  float zRoha[nRoha] = { kZCarbon, kZHydrogen, kZNitrogen, kZOxygen };
-  float wRoha[nRoha] = { 9., 13., 1., 2. };
+  float aRoha[nRoha] = {kACarbon, kAHydrogen, kANitrogen, kAOxygen};
+  float zRoha[nRoha] = {kZCarbon, kZHydrogen, kZNitrogen, kZOxygen};
+  float wRoha[nRoha] = {9., 13., 1., 2.};
 
   float dRoha = 0.03; // from AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Rohacell", aRoha, zRoha, dRoha, -nRoha, wRoha);
@@ -176,18 +176,18 @@ void createMaterials()
 
   /// Glue (Araldite 2011, ALICE-INT-2002-17) : C10 H25 N3
   const int nGlue = 3;
-  float aGlue[nGlue] = { kACarbon, kAHydrogen, kANitrogen };
-  float zGlue[nGlue] = { kZCarbon, kZHydrogen, kZNitrogen };
-  float wGlue[nGlue] = { 10., 25., 3. };
+  float aGlue[nGlue] = {kACarbon, kAHydrogen, kANitrogen};
+  float zGlue[nGlue] = {kZCarbon, kZHydrogen, kZNitrogen};
+  float wGlue[nGlue] = {10., 25., 3.};
   float dGlue = 1.066;
   mgr.Mixture(kModuleName, ++imat, "Glue", aGlue, zGlue, dGlue, -nGlue, wGlue);
   mgr.Medium(kModuleName, Medium::Glue, "Glue", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Plastic (definition taken from AliMUONSt1GeometryBuilder)
   const int nPlastic = 2;
-  float aPlastic[nPlastic] = { kACarbon, kAHydrogen };
-  float zPlastic[nPlastic] = { kZCarbon, kZHydrogen };
-  float wPlastic[nPlastic] = { 1, 1 };
+  float aPlastic[nPlastic] = {kACarbon, kAHydrogen};
+  float zPlastic[nPlastic] = {kZCarbon, kZHydrogen};
+  float wPlastic[nPlastic] = {1, 1};
   float dPlastic = 1.107;
   mgr.Mixture(kModuleName, ++imat, "Plastic", aPlastic, zPlastic, dPlastic, -nPlastic, wPlastic);
   mgr.Medium(kModuleName, Medium::Plastic, "Plastic", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
@@ -195,9 +195,9 @@ void createMaterials()
 
   /// Epoxy : C18 H19 O3 (to be confirmed)
   const int nEpoxy = 3;
-  float aEpoxy[nEpoxy] = { kACarbon, kAHydrogen, kAOxygen };
-  float zEpoxy[nEpoxy] = { kZCarbon, kZHydrogen, kZOxygen };
-  float wEpoxy[nEpoxy] = { 18, 19, 3 };
+  float aEpoxy[nEpoxy] = {kACarbon, kAHydrogen, kAOxygen};
+  float zEpoxy[nEpoxy] = {kZCarbon, kZHydrogen, kZOxygen};
+  float wEpoxy[nEpoxy] = {18, 19, 3};
   float dEpoxy = 1.23; // from MFT, to be confirmed
   mgr.Mixture(kModuleName, ++imat, "Epoxy", aEpoxy, zEpoxy, dEpoxy, -nEpoxy, wEpoxy);
   mgr.Medium(kModuleName, Medium::Epoxy, "Epoxy", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
@@ -205,9 +205,9 @@ void createMaterials()
 
   /// Stainless steel : Fe(73%) Cr(18%) Ni(9%)
   const int nInox = 3;
-  float aInox[nInox] = { kAIron, kAChromium, kANickel };
-  float zInox[nInox] = { kZIron, kZChromium, kZNickel };
-  float wInox[nInox] = { 73., 18., 9. };
+  float aInox[nInox] = {kAIron, kAChromium, kANickel};
+  float zInox[nInox] = {kZIron, kZChromium, kZNickel};
+  float wInox[nInox] = {73., 18., 9.};
   float dInox = 7.93; // from AliMUONSt1GeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Inox", aInox, zInox, dInox, -nInox, wInox);
   mgr.Medium(kModuleName, Medium::Inox, "Inox", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);

@@ -31,7 +31,7 @@ static inline float fastInvSqrt(float _x)
   union {
     float f;
     int i;
-  } x = { _x };
+  } x = {_x};
   const float xhalf = 0.5f * x.f;
   x.i = 0x5f3759df - (x.i >> 1);
   x.f = x.f * (1.5f - xhalf * x.f * x.f);

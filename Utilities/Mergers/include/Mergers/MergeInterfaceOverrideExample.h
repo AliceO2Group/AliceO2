@@ -31,7 +31,7 @@ class MergeInterfaceOverrideExample : public TObject, public MergeInterface
 
   std::vector<TObject*> unpack() override
   {
-    return { this };
+    return {this};
   }
 
   Long64_t merge(TCollection* list) override

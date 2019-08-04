@@ -20,7 +20,8 @@
 using namespace o2::framework;
 
 // Simple test to do root deserialization.
-BOOST_AUTO_TEST_CASE(TestRootSerialization) {
+BOOST_AUTO_TEST_CASE(TestRootSerialization)
+{
   DataRef ref;
   TMessage* tm = new TMessage(kMESS_OBJECT);
   auto sOrig = std::make_unique<TObjString>("test");

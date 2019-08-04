@@ -129,11 +129,11 @@ class FITDPLDigitizerTask
     }
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
 
     LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
@@ -179,7 +179,7 @@ class FT0DPLDigitizerTask : public FITDPLDigitizerTask
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
-  FT0DPLDigitizerTask() : FITDPLDigitizerTask{ o2::ft0::FT0DigitizationParameters() }
+  FT0DPLDigitizerTask() : FITDPLDigitizerTask{o2::ft0::FT0DigitizationParameters()}
   {
     mID = DETID;
     mOrigin = DETOR;
@@ -201,14 +201,14 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
 
   return DataProcessorSpec{
     (detStr + "Digitizer").c_str(),
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<FT0DPLDigitizerTask>() },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    Outputs{OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
 
     // I can't use VariantType::Bool as it seems to have a problem
   };

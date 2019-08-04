@@ -195,7 +195,7 @@ void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts
   };
 
   auto& instance = o2::utils::ShmManager::Instance();
-  shmcontext info{ instance.getShmID(), hits_ptr, busy_ptr };
+  shmcontext info{instance.getShmID(), hits_ptr, busy_ptr};
   LOG(DEBUG) << "-- SHM SEND --";
   LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
   assert(instance.isPointerOk(info.object_ptr));

@@ -37,7 +37,13 @@ class Vertex
   using ushort = unsigned short;
 
  public:
-  enum CovElems : int { kCovXX, kCovXY, kCovYY, kCovXZ, kCovYZ, kCovZZ, kNCov };
+  enum CovElems : int { kCovXX,
+                        kCovXY,
+                        kCovYY,
+                        kCovXZ,
+                        kCovYZ,
+                        kCovZZ,
+                        kNCov };
   static ushort constexpr FlagsMask = 0xffff;
 
   Vertex() = default;
@@ -140,6 +146,6 @@ void Vertex<Stamp>::print() const
   std::cout << *this << std::endl;
 }
 #endif
-}
-} // end namespace AliceO2
+} // namespace dataformats
+} // namespace o2
 #endif

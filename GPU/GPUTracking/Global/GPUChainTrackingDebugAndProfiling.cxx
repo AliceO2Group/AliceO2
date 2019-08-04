@@ -27,7 +27,7 @@ int GPUChainTracking::PrepareProfile()
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* tmpMem = (char*)mRec->AllocateUnmanagedMemory(PROFILE_MAX_SIZE, GPUMemoryResource::MEMORY_GPU);
   processorsShadow()->tpcTrackers[0].mStageAtSync = tmpMem;
-  runKernel<GPUMemClean16>({ BlockCount(), ThreadCount(), -1 }, nullptr, krnlRunRangeNone, krnlEventNone, tmpMem, PROFILE_MAX_SIZE);
+  runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), -1}, nullptr, krnlRunRangeNone, krnlEventNone, tmpMem, PROFILE_MAX_SIZE);
 #endif
   return 0;
 }
@@ -35,7 +35,7 @@ int GPUChainTracking::PrepareProfile()
 int GPUChainTracking::DoProfile()
 {
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
-  std::unique_ptr<char[]> stageAtSync{ new char[PROFILE_MAX_SIZE] };
+  std::unique_ptr<char[]> stageAtSync{new char[PROFILE_MAX_SIZE]};
   mRec->GPUMemCpy(stageAtSync.get(), processorsShadow()->tpcTrackers[0].mStageAtSync, PROFILE_MAX_SIZE, -1, false);
 
   FILE* fp = fopen("profile.txt", "w+");

@@ -19,6 +19,6 @@ namespace steer
 {
 o2::framework::DataProcessorSpec getCollisionTimePrinter(int subchannel);
 }
-}
+} // namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_ */

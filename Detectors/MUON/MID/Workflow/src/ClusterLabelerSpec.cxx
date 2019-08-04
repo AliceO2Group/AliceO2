@@ -63,7 +63,7 @@ class ClusterLabelerDeviceDPL
 
     mClusterLabeler.process(preClusters, mPreClusterLabeler.getContainer(), clusters, correlation);
 
-    pc.outputs().snapshot(of::Output{ "MID", "CLUSTERSLABELS", 0, of::Lifetime::Timeframe }, mClusterLabeler.getContainer());
+    pc.outputs().snapshot(of::Output{"MID", "CLUSTERSLABELS", 0, of::Lifetime::Timeframe}, mClusterLabeler.getContainer());
     LOG(INFO) << "Sent " << mClusterLabeler.getContainer().getIndexedSize() << " indexed clusters";
   }
 
@@ -83,19 +83,18 @@ framework::DataProcessorSpec getClusterLabelerSpec()
   std::string inputCorrelationBinding = "mid_clusters_correlation";
   std::string inputLabelsBinding = "mid_data_labels";
   std::vector<of::InputSpec> inputSpecs{
-    of::InputSpec{ inputPreClustersBinding, "MID", "PRECLUSTERS" },
-    of::InputSpec{ inputClustersBinding, "MID", "CLUSTERS_MC" },
-    of::InputSpec{ inputCorrelationBinding, "MID", "CLUSTERSCORR" },
-    of::InputSpec{ inputLabelsBinding, "MID", "DATALABELS" },
+    of::InputSpec{inputPreClustersBinding, "MID", "PRECLUSTERS"},
+    of::InputSpec{inputClustersBinding, "MID", "CLUSTERS_MC"},
+    of::InputSpec{inputCorrelationBinding, "MID", "CLUSTERSCORR"},
+    of::InputSpec{inputLabelsBinding, "MID", "DATALABELS"},
   };
-  std::vector<of::OutputSpec> outputSpecs{ of::OutputSpec{ "MID", "CLUSTERSLABELS" } };
+  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERSLABELS"}};
 
   return of::DataProcessorSpec{
     "MIDClusterLabeler",
-    { inputSpecs },
-    { outputSpecs },
-    of::AlgorithmSpec{ of::adaptFromTask<o2::mid::ClusterLabelerDeviceDPL>(inputPreClustersBinding.c_str(), inputClustersBinding.c_str(), inputCorrelationBinding.c_str(), inputLabelsBinding.c_str()) }
-  };
+    {inputSpecs},
+    {outputSpecs},
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterLabelerDeviceDPL>(inputPreClustersBinding.c_str(), inputClustersBinding.c_str(), inputCorrelationBinding.c_str(), inputLabelsBinding.c_str())}};
 }
 } // namespace mid
 } // namespace o2

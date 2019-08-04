@@ -115,7 +115,7 @@ class SimConfig
 
   ClassDefNV(SimConfig, 1);
 };
-}
-}
+} // namespace conf
+} // namespace o2
 
 #endif

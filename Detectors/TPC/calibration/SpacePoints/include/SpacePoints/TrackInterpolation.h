@@ -99,10 +99,10 @@ class TrackInterpolation
     std::array<float, NIndices> sz2{};
     std::array<float, NIndices> phi{};
     std::array<float, NIndices> tgl{};
-    float clY{ 0.f };
-    float clZ{ 0.f };
-    float clAngle{ 0.f };
-    unsigned short clAvailable{ 0 };
+    float clY{0.f};
+    float clZ{0.f};
+    float clAngle{0.f};
+    unsigned short clAvailable{0};
   };
 
   /// Initialize everything
@@ -193,54 +193,54 @@ class TrackInterpolation
 
  private:
   // names of input files / branches
-  std::string mITSTPCTrackBranchName{ "TPCITS" };                ///< name of branch containing ITS-TPC matched tracks
-  std::string mTPCTrackBranchName{ "Tracks" };                   ///< name of branch containing TPC tracks (needed for TPC cluster access)
-  std::string mTPCClusterFileName{ "tpc-native-clusters.root" }; ///< name of file containing TPC native clusters
-  std::string mITSTrackBranchName{ "ITSTrack" };                 ///< name of branch containing input ITS tracks
-  std::string mITSClusterBranchName{ "ITSCluster" };             ///< name of branch containing input ITS clusters
-  std::string mTOFMatchingBranchName{ "TOFMatchInfo" };          ///< name of branch containing matching info for ITS-TPC-TOF tracks
-  std::string mTOFClusterBranchName{ "TOFCluster" };             ///< name of branch containing TOF clusters
+  std::string mITSTPCTrackBranchName{"TPCITS"};                ///< name of branch containing ITS-TPC matched tracks
+  std::string mTPCTrackBranchName{"Tracks"};                   ///< name of branch containing TPC tracks (needed for TPC cluster access)
+  std::string mTPCClusterFileName{"tpc-native-clusters.root"}; ///< name of file containing TPC native clusters
+  std::string mITSTrackBranchName{"ITSTrack"};                 ///< name of branch containing input ITS tracks
+  std::string mITSClusterBranchName{"ITSCluster"};             ///< name of branch containing input ITS clusters
+  std::string mTOFMatchingBranchName{"TOFMatchInfo"};          ///< name of branch containing matching info for ITS-TPC-TOF tracks
+  std::string mTOFClusterBranchName{"TOFCluster"};             ///< name of branch containing TOF clusters
 
   // parameters
-  float mTPCTimeBinMUS{ .2f }; ///< TPC time bin duration in us
-  float mSigYZ2TOF{ .75f };    ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
+  float mTPCTimeBinMUS{.2f}; ///< TPC time bin duration in us
+  float mSigYZ2TOF{.75f};    ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
 
   // settings
-  float mMaxSnp{ .85f };          ///< max snp when propagating ITS tracks
-  float mMaxStep{ 2.f };          ///< maximum step for propagation
-  int mMatCorr{ 1 };              ///< if material correction should be done
-  bool mDoITSOnlyTracks{ false }; ///< if ITS only tracks should be processed or not
+  float mMaxSnp{.85f};          ///< max snp when propagating ITS tracks
+  float mMaxStep{2.f};          ///< maximum step for propagation
+  int mMatCorr{1};              ///< if material correction should be done
+  bool mDoITSOnlyTracks{false}; ///< if ITS only tracks should be processed or not
 
   // input
-  TTree* mTreeITSTPCTracks{ nullptr };                                                                             ///< input tree for ITS-TPC matched tracks
-  TTree* mTreeTPCTracks{ nullptr };                                                                                ///< input tree for TPC tracks
-  TTree* mTreeITSTracks{ nullptr };                                                                                ///< input tree for ITS tracks
-  TTree* mTreeITSClusters{ nullptr };                                                                              ///< input tree for ITS clusters
-  TTree* mTreeTOFMatches{ nullptr };                                                                               ///< input tree for ITS-TPC-TOF matches
-  TTree* mTreeTOFClusters{ nullptr };                                                                              ///< input tree for TOF clusters
-  std::vector<o2::dataformats::TrackTPCITS>* mITSTPCTrackVecInput{ nullptr };                                      ///< input vector with ITS-TPC matched tracks
-  std::vector<TrackTPC>* mTPCTrackVecInput{ nullptr };                                                             ///< input vector with TPC tracks
-  std::vector<o2::its::TrackITS>* mITSTrackVecInput{ nullptr };                                                    ///< input vector with ITS tracks
-  std::vector<o2::itsmft::Cluster>* mITSClusterVecInput{ nullptr };                                                ///< input vector with ITS clusters
-  ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;                                                        ///< TPC cluster reader
-  std::unique_ptr<ClusterNativeAccess> mTPCClusterIdxStructOwn;                                                    ///< struct holding the TPC cluster indices (for tree-based I/O)
-  std::unique_ptr<ClusterNative[]> mTPCClusterBufferOwn;                                                           ///< buffer for clusters in mTPCClusterIdxStructOwn
-  MCLabelContainer mTPCClusterMCBufferOwn;                                                                         ///< buffer for mc labels
-  std::vector<std::pair<o2::dataformats::EvIndex<>, o2::dataformats::MatchInfoTOF>>* mTOFMatchVecInput{ nullptr }; ///< input vector for ITS-TPC-TOF matching information
-  std::vector<o2::tof::Cluster>* mTOFClusterVecInput{ nullptr };                                                   ///< input vector with TOF clusters
+  TTree* mTreeITSTPCTracks{nullptr};                                                                             ///< input tree for ITS-TPC matched tracks
+  TTree* mTreeTPCTracks{nullptr};                                                                                ///< input tree for TPC tracks
+  TTree* mTreeITSTracks{nullptr};                                                                                ///< input tree for ITS tracks
+  TTree* mTreeITSClusters{nullptr};                                                                              ///< input tree for ITS clusters
+  TTree* mTreeTOFMatches{nullptr};                                                                               ///< input tree for ITS-TPC-TOF matches
+  TTree* mTreeTOFClusters{nullptr};                                                                              ///< input tree for TOF clusters
+  std::vector<o2::dataformats::TrackTPCITS>* mITSTPCTrackVecInput{nullptr};                                      ///< input vector with ITS-TPC matched tracks
+  std::vector<TrackTPC>* mTPCTrackVecInput{nullptr};                                                             ///< input vector with TPC tracks
+  std::vector<o2::its::TrackITS>* mITSTrackVecInput{nullptr};                                                    ///< input vector with ITS tracks
+  std::vector<o2::itsmft::Cluster>* mITSClusterVecInput{nullptr};                                                ///< input vector with ITS clusters
+  ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;                                                      ///< TPC cluster reader
+  std::unique_ptr<ClusterNativeAccess> mTPCClusterIdxStructOwn;                                                  ///< struct holding the TPC cluster indices (for tree-based I/O)
+  std::unique_ptr<ClusterNative[]> mTPCClusterBufferOwn;                                                         ///< buffer for clusters in mTPCClusterIdxStructOwn
+  MCLabelContainer mTPCClusterMCBufferOwn;                                                                       ///< buffer for mc labels
+  std::vector<std::pair<o2::dataformats::EvIndex<>, o2::dataformats::MatchInfoTOF>>* mTOFMatchVecInput{nullptr}; ///< input vector for ITS-TPC-TOF matching information
+  std::vector<o2::tof::Cluster>* mTOFClusterVecInput{nullptr};                                                   ///< input vector with TOF clusters
 
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   // output
-  TTree* mTreeOutTrackData{ nullptr };                    ///< output tree with track quality information
-  std::vector<TrackData> mTrackData{};                    ///< this vector is used to store the track quality information on a per track basis
-  std::vector<TrackData>* mTrackDataPtr{ &mTrackData };   ///< pointer to vector with track data
-  TTree* mTreeOutClusterRes{ nullptr };                   ///< output tree with TPC cluster residuals
-  std::vector<TPCClusterResiduals> mClRes{};              ///< residuals for each available TPC cluster of all tracks
-  std::vector<TPCClusterResiduals>* mClResPtr{ &mClRes }; ///< pointer to vector with residuals
+  TTree* mTreeOutTrackData{nullptr};                    ///< output tree with track quality information
+  std::vector<TrackData> mTrackData{};                  ///< this vector is used to store the track quality information on a per track basis
+  std::vector<TrackData>* mTrackDataPtr{&mTrackData};   ///< pointer to vector with track data
+  TTree* mTreeOutClusterRes{nullptr};                   ///< output tree with TPC cluster residuals
+  std::vector<TPCClusterResiduals> mClRes{};            ///< residuals for each available TPC cluster of all tracks
+  std::vector<TPCClusterResiduals>* mClResPtr{&mClRes}; ///< pointer to vector with residuals
 
   // cache
-  std::array<CacheStruct, Constants::MAXGLOBALPADROW> mCache{ {} }; ///< caching positions, covariances and angles for track extrapolations and interpolation
+  std::array<CacheStruct, Constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
 
   // helpers
   std::unique_ptr<TPCFastTransform> mFastTransform{}; ///< TPC cluster transformation

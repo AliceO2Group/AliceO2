@@ -38,12 +38,12 @@ size_t getCurrentTime()
   auto duration = now.time_since_epoch();
   return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
-}
+} // namespace
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
   return [](TimesliceIndex&) -> TimesliceSlot {
-    return { TimesliceSlot::INVALID };
+    return {TimesliceSlot::INVALID};
   };
 }
 
@@ -53,17 +53,17 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   return [start, end, step, last](TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
-        return TimesliceSlot{ TimesliceSlot::INVALID };
+        return TimesliceSlot{TimesliceSlot::INVALID};
       }
-      auto slot = TimesliceSlot{ si };
+      auto slot = TimesliceSlot{si};
       if (index.isValid(slot) == false) {
-        TimesliceId timestamp{ *last };
+        TimesliceId timestamp{*last};
         *last += step;
         index.associate(timestamp, slot);
         return slot;
       }
     }
-    return TimesliceSlot{ TimesliceSlot::INVALID };
+    return TimesliceSlot{TimesliceSlot::INVALID};
   };
 }
 
@@ -77,31 +77,31 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta < period.count()) {
-      return TimesliceSlot{ TimesliceSlot::INVALID };
+      return TimesliceSlot{TimesliceSlot::INVALID};
     }
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
     //        for now to avoid duplicate entries.
     for (size_t i = 0; i < index.size(); ++i) {
-      TimesliceSlot slot{ i };
+      TimesliceSlot slot{i};
       if (index.isValid(slot) == false) {
         continue;
       }
       if (index.getTimesliceForSlot(slot).value == current) {
-        return TimesliceSlot{ TimesliceSlot::INVALID };
+        return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
     // If we are here the timer has expired and a new slice needs
     // to be created.
     *last = current;
     data_matcher::VariableContext newContext;
-    newContext.put({ 0, static_cast<uint64_t>(current) });
+    newContext.put({0, static_cast<uint64_t>(current)});
     newContext.commit();
     auto [action, slot] = index.replaceLRUWith(newContext);
     switch (action) {
       case TimesliceIndex::ActionTaken::ReplaceObsolete:
       case TimesliceIndex::ActionTaken::ReplaceUnused:
-        index.associate(TimesliceId{ current }, slot);
+        index.associate(TimesliceId{current}, slot);
         break;
       case TimesliceIndex::ActionTaken::DropInvalid:
       case TimesliceIndex::ActionTaken::DropObsolete:
@@ -170,8 +170,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
 /// \todo provide a way to customize the namespace from the ProcessingContext
 ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher, std::string const& prefix, std::string const& sourceChannel)
 {
-  return [ matcher, sourceChannel, serverUrl = prefix ](ServiceRegistry & services, PartRef & ref, uint64_t timestamp)->void
-  {
+  return [matcher, sourceChannel, serverUrl = prefix](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -220,8 +219,8 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatch
     dh.payloadSize = payloadBuffer.size();
     dh.payloadSerializationMethod = gSerializationMethodNone;
 
-    DataProcessingHeader dph{ timestamp, 1 };
-    auto header = o2::pmr::getMessage(o2::header::Stack{ channelAlloc, dh, dph });
+    DataProcessingHeader dph{timestamp, 1};
+    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
 
     ref.header = std::move(header);
     ref.payload = std::move(payload);
@@ -269,11 +268,11 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.payloadSize = 8;
     dh.payloadSerializationMethod = gSerializationMethodNone;
 
-    DataProcessingHeader dph{ timestamp, 1 };
+    DataProcessingHeader dph{timestamp, 1};
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
-    auto header = o2::pmr::getMessage(o2::header::Stack{ channelAlloc, dh, dph });
+    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
 
     auto payload = rawDeviceService.device()->NewMessage(*counter);

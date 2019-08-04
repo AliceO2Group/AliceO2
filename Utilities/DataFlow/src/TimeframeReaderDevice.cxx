@@ -18,12 +18,13 @@
 
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 { namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 TimeframeReaderDevice::TimeframeReaderDevice()
-  : O2Device{}
-  , mOutChannelName{}
-  , mFile{}
+  : O2Device{}, mOutChannelName{}, mFile{}
 {
 }
 
@@ -36,25 +37,26 @@ void TimeframeReaderDevice::InitTask()
 
 bool TimeframeReaderDevice::ConditionalRun()
 {
-  auto addPartFn = [this](FairMQParts &parts, char *buffer, size_t size) {
-        parts.AddPart(this->NewMessage(buffer,
-                                       size,
-                                       [](void* data, void* hint) { delete[] (char*)data; },
-                                       nullptr));
+  auto addPartFn = [this](FairMQParts& parts, char* buffer, size_t size) {
+    parts.AddPart(this->NewMessage(
+      buffer,
+      size,
+      [](void* data, void* hint) { delete[](char*) data; },
+      nullptr));
   };
-  auto sendFn = [this](FairMQParts &parts) {this->Send(parts, this->mOutChannelName);};
+  auto sendFn = [this](FairMQParts& parts) { this->Send(parts, this->mOutChannelName); };
 
   // FIXME: For the moment we support a single file. This should really be a glob. We
   //        should also have a strategy for watching directories.
   std::vector<std::string> files;
   files.push_back(mInFileName);
-  for (auto &&fn : files) {
+  for (auto&& fn : files) {
     mFile.open(fn, std::ofstream::in | std::ofstream::binary);
     try {
       streamTimeframe(mFile,
                       addPartFn,
                       sendFn);
-    } catch(std::runtime_error &e) {
+    } catch (std::runtime_error& e) {
       LOG(ERROR) << e.what() << "\n";
     }
     mSeen.push_back(fn);
@@ -63,4 +65,5 @@ bool TimeframeReaderDevice::ConditionalRun()
   return false;
 }
 
-}} // namespace o2::data_flow
+} // namespace data_flow
+} // namespace o2

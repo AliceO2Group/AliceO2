@@ -15,8 +15,6 @@
 
 #include "ITSMFTBase/GeometryTGeo.h"
 
-
 ClassImp(o2::itsmft::GeometryTGeo);
 
 using namespace o2::itsmft;
-

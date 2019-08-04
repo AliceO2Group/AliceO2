@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 Hit::Hit(int trackId, short deId, Point3D<float> entrancePoint, Point3D<float> exitPoint,
-         float eloss, float length, float tof) : o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), tof, eloss, trackId, deId), mLength{ length }, mExitPoint(exitPoint)
+         float eloss, float length, float tof) : o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), tof, eloss, trackId, deId), mLength{length}, mExitPoint(exitPoint)
 {
 }
 

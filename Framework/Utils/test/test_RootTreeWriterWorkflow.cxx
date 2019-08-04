@@ -128,19 +128,19 @@ DataProcessorSpec getSourceSpec()
         return;
       }
       o2::test::Polymorphic a(*counter);
-      pc.outputs().snapshot(OutputRef{ "output" }, a);
-      int& metadata = pc.outputs().make<int>(Output{ "TST", "METADATA", 0, Lifetime::Timeframe });
+      pc.outputs().snapshot(OutputRef{"output"}, a);
+      int& metadata = pc.outputs().make<int>(Output{"TST", "METADATA", 0, Lifetime::Timeframe});
       metadata = *counter;
       *counter = *counter + 1;
     };
 
     return processingFct;
   };
-  return DataProcessorSpec{ "source", // name of the processor
-                            {},
-                            { OutputSpec{ { "output" }, "TST", "SOMEOBJECT", 0, Lifetime::Timeframe },
-                              OutputSpec{ { "meta" }, "TST", "METADATA", 0, Lifetime::Timeframe } },
-                            AlgorithmSpec(initFct) };
+  return DataProcessorSpec{"source", // name of the processor
+                           {},
+                           {OutputSpec{{"output"}, "TST", "SOMEOBJECT", 0, Lifetime::Timeframe},
+                            OutputSpec{{"meta"}, "TST", "METADATA", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec(initFct)};
 }
 
 template <typename T>
@@ -165,24 +165,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   using Polymorphic = o2::test::Polymorphic;
   return WorkflowSpec{
     getSourceSpec(),
-    MakeRootTreeWriterSpec                                                                      //
-    (                                                                                           //
-      "sink1",                                                                                  // process name
-      fileName.c_str(),                                                                         // default file name
-      "testtree",                                                                               // default tree name
-      1,                                                                                        // default number of events
-      BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
-      BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
-      )(),                                                                                      // call the generator
-    MakeRootTreeWriterSpec                                                                      //
-    (                                                                                           //
-      "sink2",                                                                                  // process name
-      altFileName.c_str(),                                                                      // default file name
-      "testtree",                                                                               // default tree name
-      MakeRootTreeWriterSpec::TerminationPolicy::Workflow,                                      // terminate the workflow
-      MakeRootTreeWriterSpec::TerminationCondition{ checkReady },                               // custom termination condition
-      BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
-      BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
-      )()                                                                                       // call the generator
+    MakeRootTreeWriterSpec                                                                  //
+    (                                                                                       //
+      "sink1",                                                                              // process name
+      fileName.c_str(),                                                                     // default file name
+      "testtree",                                                                           // default tree name
+      1,                                                                                    // default number of events
+      BranchDefinition<Polymorphic>{InputSpec{"input", "TST", "SOMEOBJECT"}, "polyobject"}, // branch config
+      BranchDefinition<int>{InputSpec{"meta", "TST", "METADATA"}, "counter"}                // branch config
+      )(),                                                                                  // call the generator
+    MakeRootTreeWriterSpec                                                                  //
+    (                                                                                       //
+      "sink2",                                                                              // process name
+      altFileName.c_str(),                                                                  // default file name
+      "testtree",                                                                           // default tree name
+      MakeRootTreeWriterSpec::TerminationPolicy::Workflow,                                  // terminate the workflow
+      MakeRootTreeWriterSpec::TerminationCondition{checkReady},                             // custom termination condition
+      BranchDefinition<Polymorphic>{InputSpec{"input", "TST", "SOMEOBJECT"}, "polyobject"}, // branch config
+      BranchDefinition<int>{InputSpec{"meta", "TST", "METADATA"}, "counter"}                // branch config
+      )()                                                                                   // call the generator
   };
 }

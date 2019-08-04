@@ -96,7 +96,7 @@ inline float ElectronTransport::getDriftTime(float zPos, float signChange) const
   float time = (mDetParam->TPClength - signChange * std::abs(zPos)) / mGasParam->DriftV;
   return time;
 }
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif // ALICEO2_TPC_ElectronTransport_H_

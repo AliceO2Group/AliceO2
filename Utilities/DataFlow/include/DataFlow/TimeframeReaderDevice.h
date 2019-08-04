@@ -14,32 +14,34 @@
 #include "O2Device/O2Device.h"
 #include <fstream>
 
-namespace o2 {
-namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 /// A device which writes to file the timeframes.
 class TimeframeReaderDevice : public base::O2Device
 {
-public:
-    static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
-    static constexpr const char* OptionKeyInputFileName = "input-file";
+ public:
+  static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
+  static constexpr const char* OptionKeyInputFileName = "input-file";
 
-    /// Default constructor
-    TimeframeReaderDevice();
+  /// Default constructor
+  TimeframeReaderDevice();
 
-    /// Default destructor
-    ~TimeframeReaderDevice() override = default;
+  /// Default destructor
+  ~TimeframeReaderDevice() override = default;
 
-    void InitTask() final;
+  void InitTask() final;
 
-  protected:
-    /// Overloads the ConditionalRun() method of FairMQDevice
-    bool ConditionalRun() final;
+ protected:
+  /// Overloads the ConditionalRun() method of FairMQDevice
+  bool ConditionalRun() final;
 
-    std::string      mOutChannelName;
-    std::string      mInFileName;
-    std::fstream     mFile;
-    std::vector<std::string> mSeen;
+  std::string mOutChannelName;
+  std::string mInFileName;
+  std::fstream mFile;
+  std::vector<std::string> mSeen;
 };
 
 } // namespace data_flow

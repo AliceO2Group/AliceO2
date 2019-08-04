@@ -57,10 +57,10 @@ class TrackerDeviceDPL
 
     mTracker->process(clusters);
 
-    pc.outputs().snapshot(of::Output{ "MID", "TRACKS", 0, of::Lifetime::Timeframe }, mTracker->getTracks());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
     LOG(INFO) << "Sent " << mTracker->getTracks().size() << " tracks.";
 
-    pc.outputs().snapshot(of::Output{ "MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe }, mTracker->getClusters());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
     LOG(INFO) << "Sent " << mTracker->getClusters().size() << " track clusters.";
   }
 
@@ -75,19 +75,18 @@ framework::DataProcessorSpec getTrackerSpec(bool useMC)
 
   std::vector<of::InputSpec> inputSpecs;
   if (useMC) {
-    inputSpecs.emplace_back(of::InputSpec{ inputBinding, "MID", "CLUSTERS_DATA" });
+    inputSpecs.emplace_back(of::InputSpec{inputBinding, "MID", "CLUSTERS_DATA"});
   } else {
-    inputSpecs.emplace_back(of::InputSpec{ inputBinding, "MID", "CLUSTERS" });
+    inputSpecs.emplace_back(of::InputSpec{inputBinding, "MID", "CLUSTERS"});
   }
 
-  std::vector<of::OutputSpec> outputSpecs{ of::OutputSpec{ "MID", "TRACKS" }, of::OutputSpec{ "MID", "TRACKCLUSTERS" } };
+  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "TRACKS"}, of::OutputSpec{"MID", "TRACKCLUSTERS"}};
 
   return of::DataProcessorSpec{
     "Tracker",
-    { inputSpecs },
-    { outputSpecs },
-    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(inputBinding.c_str())
-  };
+    {inputSpecs},
+    {outputSpecs},
+    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(inputBinding.c_str())};
 }
 } // namespace mid
 } // namespace o2

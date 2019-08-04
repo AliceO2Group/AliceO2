@@ -22,30 +22,38 @@
 #include <type_traits>
 #include <stdexcept>
 
-namespace o2 {
+namespace o2
+{
 
-namespace algorithm {
+namespace algorithm
+{
 
-namespace pageparser {
+namespace pageparser
+{
 // a function to extract the number of elements from the group type
 // this is the version for all but integral types
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_void<T>::value, size_t>::type
-extractNElements(T* v) { return 0;}
+  extractNElements(T* v)
+{
+  return 0;
+}
 
 // the specialization for integral types
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_integral<T>::value, T>::type
-extractNElements(T* v) {return *v;}
+  extractNElements(T* v)
+{
+  return *v;
+}
 
-template<typename GroupT>
-using DefaultGetNElementsFctT = size_t(*)(const GroupT *);
+template <typename GroupT>
+using DefaultGetNElementsFctT = size_t (*)(const GroupT*);
 
 // the default function to extract the number of elements in a group
 // where the group header is a single integral type holding number of
 // elements
-auto defaultGetNElementsFct = [] (const auto* groupdata)
-{
+auto defaultGetNElementsFct = [](const auto* groupdata) {
   using ReturnType = size_t;
   using T = typename std::remove_pointer<decltype(groupdata)>::type;
   // this default function is only for integral types
@@ -57,30 +65,54 @@ auto defaultGetNElementsFct = [] (const auto* groupdata)
   return static_cast<ReturnType>(extractNElements(groupdata));
 };
 
-template<typename T>
-T* alloc() {return new T;}
-
-template<>
-void* alloc<void>() {return nullptr;}
-
-template<typename T>
-void free(T* ptr) {if (ptr) delete ptr;}
-
-template<>
-void free<void>(void*) {}
-
-template<typename T>
-size_t sizeofGroupHeader() {return sizeof(T);}
-
-template<>
-size_t sizeofGroupHeader<void>() {return 0;}
-
-template<typename T>
-void set(T* h, size_t v) { *h = v;}
-
-template<>
-void set<void>(void*, size_t) {}
+template <typename T>
+T* alloc()
+{
+  return new T;
 }
+
+template <>
+void* alloc<void>()
+{
+  return nullptr;
+}
+
+template <typename T>
+void free(T* ptr)
+{
+  if (ptr) {
+    delete ptr;
+  }
+}
+
+template <>
+void free<void>(void*)
+{
+}
+
+template <typename T>
+size_t sizeofGroupHeader()
+{
+  return sizeof(T);
+}
+
+template <>
+size_t sizeofGroupHeader<void>()
+{
+  return 0;
+}
+
+template <typename T>
+void set(T* h, size_t v)
+{
+  *h = v;
+}
+
+template <>
+void set<void>(void*, size_t)
+{
+}
+} // namespace pageparser
 
 /**
  * @class PageParser
@@ -122,14 +154,14 @@ void set<void>(void*, size_t) {}
  *     // do something with element
  *   }
  */
-template<typename PageHeaderT,
-         size_t PageSize,
-         typename ElementT,
-         typename GroupT = void,
-         typename GetNElementsFctT = pageparser::DefaultGetNElementsFctT<GroupT>
-         >
-class PageParser {
-public:
+template <typename PageHeaderT,
+          size_t PageSize,
+          typename ElementT,
+          typename GroupT = void,
+          typename GetNElementsFctT = pageparser::DefaultGetNElementsFctT<GroupT>>
+class PageParser
+{
+ public:
   using PageHeaderType = PageHeaderT;
   using BufferType = unsigned char;
   using value_type = ElementT;
@@ -145,18 +177,11 @@ public:
   using TargetInPageBuffer = std::true_type;
   using SourceInPageBuffer = std::false_type;
 
-
   PageParser() = delete;
-  template<typename T>
+  template <typename T>
   PageParser(T* buffer, size_t size,
-             GetNElements getNElementsFct = pageparser::defaultGetNElementsFct
-             )
-    : mBuffer(nullptr)
-    , mBufferIsConst(std::is_const<T>::value)
-    , mSize(size)
-    , mGetNElementsFct(getNElementsFct)
-    , mNPages(size>0?((size-1)/page_size)+1:0)
-    , mGroupHeader(pageparser::alloc<GroupType>())
+             GetNElements getNElementsFct = pageparser::defaultGetNElementsFct)
+    : mBuffer(nullptr), mBufferIsConst(std::is_const<T>::value), mSize(size), mGetNElementsFct(getNElementsFct), mNPages(size > 0 ? ((size - 1) / page_size) + 1 : 0), mGroupHeader(pageparser::alloc<GroupType>())
   {
     static_assert(sizeof(T) == sizeof(BufferType),
                   "buffer required to be byte-type");
@@ -165,16 +190,18 @@ public:
     // that iterator write works only for non-const buffers
     mBuffer = const_cast<BufferType*>(buffer);
   }
-  ~PageParser() {
+  ~PageParser()
+  {
     pageparser::free(mGroupHeader);
   }
 
-  template<typename T>
+  template <typename T>
   using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
 
-  template<typename T>
-  class Iterator : public IteratorBase<T> {
-  public:
+  template <typename T>
+  class Iterator : public IteratorBase<T>
+  {
+   public:
     using ParentType = PageParser;
     using SelfType = Iterator;
     using value_type = typename IteratorBase<T>::value_type;
@@ -182,10 +209,9 @@ public:
     using pointer = typename IteratorBase<T>::pointer;
     using ElementType = typename std::remove_const<value_type>::type;
 
-
     Iterator() = delete;
 
-    Iterator(ParentType const * parent, size_t position = 0)
+    Iterator(ParentType const* parent, size_t position = 0)
       : mParent(parent)
     {
       mPosition = position;
@@ -203,7 +229,8 @@ public:
     }
 
     // prefix increment
-    SelfType& operator++() {
+    SelfType& operator++()
+    {
       sync();
       mPosition = mNextPosition;
       size_t argument = mPosition;
@@ -216,30 +243,38 @@ public:
       return *this;
     }
     // postfix increment
-    SelfType operator++(int /*unused*/) {
-      SelfType copy(*this); operator++(); return copy;
+    SelfType operator++(int /*unused*/)
+    {
+      SelfType copy(*this);
+      operator++();
+      return copy;
     }
     // return reference
-    reference operator*() {
+    reference operator*()
+    {
       return mElement;
     }
     // comparison
-    bool operator==(const SelfType& rh) {
+    bool operator==(const SelfType& rh)
+    {
       return mPosition == rh.mPosition;
     }
     // comparison
-    bool operator!=(const SelfType& rh) {
+    bool operator!=(const SelfType& rh)
+    {
       return mPosition != rh.mPosition;
     }
 
-    const GroupType* getGroupHeader() const {
+    const GroupType* getGroupHeader() const
+    {
       return mParent->getGroupHeader();
     }
 
-  private:
+   private:
     // sync method for non-const iterator
-    template< typename U = void >
-    typename std::enable_if< !std::is_const<value_type>::value, U >::type sync() {
+    template <typename U = void>
+    typename std::enable_if<!std::is_const<value_type>::value, U>::type sync()
+    {
       if (std::memcmp(&mElement, &mBackup, sizeof(value_type)) != 0) {
         // mElement is changed, sync to buffer
         mParent->setElement(mPosition, mElement);
@@ -247,28 +282,34 @@ public:
     }
 
     // overload for const_iterator, empty function body
-    template< typename U = void >
-    typename std::enable_if< std::is_const<value_type>::value, U >::type sync() {}
+    template <typename U = void>
+    typename std::enable_if<std::is_const<value_type>::value, U>::type sync()
+    {
+    }
 
     // backup for non-const iterator
-    template< typename U = void >
-    typename std::enable_if< !std::is_const<value_type>::value, U >::type backup() {
+    template <typename U = void>
+    typename std::enable_if<!std::is_const<value_type>::value, U>::type backup()
+    {
       mBackup = mElement;
     }
 
     // overload for const_iterator, empty function body
-    template< typename U = void >
-    typename std::enable_if< std::is_const<value_type>::value, U >::type backup() {}
+    template <typename U = void>
+    typename std::enable_if<std::is_const<value_type>::value, U>::type backup()
+    {
+    }
 
     int mPosition;
     int mNextPosition;
-    ParentType const * mParent;
+    ParentType const* mParent;
     ElementType mElement;
     ElementType mBackup;
   };
 
   /// set an object at position
-  size_t setElement(size_t position, const value_type& element) const {
+  size_t setElement(size_t position, const value_type& element) const
+  {
     // write functionality not yet implemented for grouped elements
     assert(std::is_void<GroupType>::value);
     // check if we are at the end
@@ -288,17 +329,21 @@ public:
     return position + copy<TargetInPageBuffer>(source, target, page_size - (position % page_size));
   }
 
-  template<typename T>
-  size_t readGroupHeader(size_t position, T * groupHeader) const {
+  template <typename T>
+  size_t readGroupHeader(size_t position, T* groupHeader) const
+  {
     assert((position % page_size) == sizeof(PageHeaderType));
-    if (std::is_void<T>::value) return 0;
+    if (std::is_void<T>::value) {
+      return 0;
+    }
 
     memcpy(groupHeader, mBuffer + position, pageparser::sizeofGroupHeader<T>());
     return mGetNElementsFct(groupHeader);
   }
 
   /// retrieve an object at position
-  bool getElement(size_t& position, value_type& element) const {
+  bool getElement(size_t& position, value_type& element) const
+  {
     // check if we are at the end
     if (position >= mSize) {
       assert(position == mSize);
@@ -339,12 +384,14 @@ public:
         } while (required > nPages * page_size);
         required -= sizeof(PageHeaderType) + pageparser::sizeofGroupHeader<GroupType>();
         if (position + required > mSize) {
-          throw std::runtime_error("format error: the number of group elements "
-                                   "does not fit into the remaining buffer");
+          throw std::runtime_error(
+            "format error: the number of group elements "
+            "does not fit into the remaining buffer");
         }
       }
       // now we will read one element
-      const_cast<PageParser*>(this)->mNGroupElements -= 1;;
+      const_cast<PageParser*>(this)->mNGroupElements -= 1;
+      ;
     }
 
     // check if there is space for one element
@@ -365,13 +412,13 @@ public:
   // copy data, depending on compile time switch, either source or target
   // pointer are treated as pointer in the raw page, i.e. can be additionally
   // incremented by the page header
-  template<typename SwitchT>
+  template <typename SwitchT>
   size_t copy(const BufferType* source, BufferType* target, size_t pageCapacity) const
   {
     size_t position = 0;
     auto copySize = sizeof(value_type);
     // choose which of the pointers needs additional PageHeader offsets
-    auto pageOffsetTarget = SwitchT::value? &target : const_cast<BufferType**>(&source);
+    auto pageOffsetTarget = SwitchT::value ? &target : const_cast<BufferType**>(&source);
     if (pageCapacity == page_size) {
       // skip the page header at beginning of page
       position += sizeof(PageHeaderType);
@@ -401,22 +448,26 @@ public:
     return position;
   }
 
-  const GroupType getGroupHeader() const {
+  const GroupType getGroupHeader() const
+  {
     return mGroupHeader;
   }
 
   using iterator = Iterator<value_type>;
   using const_iterator = Iterator<const value_type>;
 
-  const_iterator begin() const {
+  const_iterator begin() const
+  {
     return const_iterator(this, 0);
   }
 
-  const_iterator end() const {
+  const_iterator end() const
+  {
     return const_iterator(this, mSize);
   }
 
-  iterator begin() {
+  iterator begin()
+  {
     if (mBufferIsConst) {
       // did not find a way to do this at compile time in the constructor,
       // probably one needs to make the buffer type a template parameter
@@ -426,11 +477,12 @@ public:
     return iterator(this, 0);
   }
 
-  iterator end() {
+  iterator end()
+  {
     return iterator(this, mSize);
   }
 
-private:
+ private:
   BufferType* mBuffer = nullptr;
   bool mBufferIsConst = false;
   size_t mSize = 0;
@@ -440,7 +492,7 @@ private:
   size_t mNGroupElements = 0;
 };
 
-}
-}
+} // namespace algorithm
+} // namespace o2
 
 #endif

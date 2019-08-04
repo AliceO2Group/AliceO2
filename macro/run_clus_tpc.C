@@ -71,7 +71,8 @@ void run_clus_tpc(std::string outputfile, std::string inputfile, std::string par
   // we are done, cleanup
   delete clustTPC;
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
 
   // Extract the maximal used memory an add is as Dart measurement
   // This line is filtered by CTest and the value send to CDash
@@ -90,10 +91,12 @@ void run_clus_tpc(std::string outputfile, std::string inputfile, std::string par
   std::cout << cpuUsage;
   std::cout << "</DartMeasurement>" << std::endl;
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Output file is " << outputfile.data() << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   return;
 }

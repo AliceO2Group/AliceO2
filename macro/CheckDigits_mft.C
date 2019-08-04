@@ -25,9 +25,9 @@ using namespace o2::base;
 
 void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3")
 {
-  using o2::itsmft::SegmentationAlpide;
   using o2::itsmft::Digit;
   using o2::itsmft::Hit;
+  using o2::itsmft::SegmentationAlpide;
   using namespace o2::mft;
 
   TH1F* hTrackID = new TH1F("hTrackID", "hTrackID", 1.1 * nMuons + 1, -0.5, (nMuons + 0.1 * nMuons) + 0.5);

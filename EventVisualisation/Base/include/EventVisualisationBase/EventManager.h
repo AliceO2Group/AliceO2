@@ -25,8 +25,10 @@
 
 #include <string>
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 /// EventManager is a singleton class managing event loading.
 ///
@@ -94,9 +96,7 @@ class EventManager : public TEveEventManager, public TQObject
   void operator=(EventManager const&) = delete;
 };
 
-}
-}
+} // namespace event_visualisation
+} // namespace o2
 
 #endif
-
-

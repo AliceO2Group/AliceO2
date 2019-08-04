@@ -25,8 +25,10 @@
 
 #include <FairMQDevice.h>
 
-namespace o2 {
-namespace devices {
+namespace o2
+{
+namespace devices
+{
 
 /// Sends sub-timframes to epnReceivers
 ///
@@ -36,41 +38,41 @@ namespace devices {
 
 class FLPSender : public FairMQDevice
 {
-  public:
-    /// Default constructor
-    FLPSender();
+ public:
+  /// Default constructor
+  FLPSender();
 
-    /// Default destructor
-    ~FLPSender() override;
+  /// Default destructor
+  ~FLPSender() override;
 
-  protected:
-    /// Overloads the InitTask() method of FairMQDevice
-    void InitTask() override;
+ protected:
+  /// Overloads the InitTask() method of FairMQDevice
+  void InitTask() override;
 
-    /// Overloads the Run() method of FairMQDevice
-    void Run() override;
+  /// Overloads the Run() method of FairMQDevice
+  void Run() override;
 
-  private:
-    /// Sends the "oldest" element from the sub-timeframe container
-    void sendFrontData();
+ private:
+  /// Sends the "oldest" element from the sub-timeframe container
+  void sendFrontData();
 
-    std::queue<FairMQParts> mSTFBuffer; ///< Buffer for sub-timeframes
-    std::queue<std::chrono::steady_clock::time_point> mArrivalTime; ///< Stores arrival times of sub-timeframes
+  std::queue<FairMQParts> mSTFBuffer;                             ///< Buffer for sub-timeframes
+  std::queue<std::chrono::steady_clock::time_point> mArrivalTime; ///< Stores arrival times of sub-timeframes
 
-    int mNumEPNs; ///< Number of epnReceivers
-    unsigned int mIndex; ///< Index of the flpSender among other flpSenders
-    unsigned int mSendOffset; ///< Offset for staggering output
-    unsigned int mSendDelay; ///< Delay for staggering output
+  int mNumEPNs;             ///< Number of epnReceivers
+  unsigned int mIndex;      ///< Index of the flpSender among other flpSenders
+  unsigned int mSendOffset; ///< Offset for staggering output
+  unsigned int mSendDelay;  ///< Delay for staggering output
 
-    int mEventSize; ///< Size of the sub-timeframe body (only for test mode)
-    int mTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
-    uint16_t mTimeFrameId;
+  int mEventSize; ///< Size of the sub-timeframe body (only for test mode)
+  int mTestMode;  ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+  uint16_t mTimeFrameId;
 
-    std::string mInChannelName;
-    std::string mOutChannelName;
+  std::string mInChannelName;
+  std::string mOutChannelName;
 };
 
 } // namespace devices
-} // namespace AliceO2
+} // namespace o2
 
 #endif

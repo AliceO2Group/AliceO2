@@ -128,11 +128,11 @@ class MIDDPLDigitizerTask
     }
 
     LOG(INFO) << "MID: Sending " << digitsAccum.size() << " digits";
-    pc.outputs().snapshot(Output{ "MID", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
-    pc.outputs().snapshot(Output{ "MID", "DIGITSMC", 0, Lifetime::Timeframe }, labelsAccum);
+    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"MID", "DIGITSMC", 0, Lifetime::Timeframe}, labelsAccum);
 
     LOG(INFO) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "MID", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -155,17 +155,16 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "MIDDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "MID", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "MID", "DIGITSMC", 0, Lifetime::Timeframe },
-             OutputSpec{ "MID", "ROMode", 0, Lifetime::Timeframe } },
+    Outputs{OutputSpec{"MID", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"MID", "DIGITSMC", 0, Lifetime::Timeframe},
+            OutputSpec{"MID", "ROMode", 0, Lifetime::Timeframe}},
 
-    AlgorithmSpec{ adaptFromTask<MIDDPLDigitizerTask>() },
+    AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
 
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // namespace mid

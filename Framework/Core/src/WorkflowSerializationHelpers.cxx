@@ -194,8 +194,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   WorkflowImporter(std::vector<DataProcessorSpec>& o,
                    std::vector<DataProcessorInfo>& m)
     : states{},
-      output{ o },
-      metadata{ m }
+      output{o},
+      metadata{m}
   {
     push(State::IN_START);
   }
@@ -236,41 +236,41 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       if (inputHasSubSpec) {
         output.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime));
       } else {
-        output.back().inputs.push_back(InputSpec(binding, { origin, description }, lifetime));
+        output.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime));
       }
       inputHasSubSpec = false;
     } else if (in(State::IN_OUTPUT)) {
       if (outputHasSubSpec) {
-        output.back().outputs.push_back(OutputSpec({ binding }, origin, description, subspec, lifetime));
+        output.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
       } else {
-        output.back().outputs.push_back(OutputSpec({ binding }, { origin, description }, lifetime));
+        output.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime));
       }
       outputHasSubSpec = false;
     } else if (in(State::IN_OPTION)) {
-      std::unique_ptr<ConfigParamSpec> opt{ nullptr };
+      std::unique_ptr<ConfigParamSpec> opt{nullptr};
 
       using HelpString = ConfigParamSpec::HelpString;
       switch (optionType) {
         case VariantType::String:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault.c_str(), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault.c_str(), HelpString{optionHelp});
           break;
         case VariantType::Int:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{optionHelp});
           break;
         case VariantType::Int64:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stol(optionDefault, nullptr), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stol(optionDefault, nullptr), HelpString{optionHelp});
           break;
         case VariantType::Float:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stof(optionDefault, nullptr), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stof(optionDefault, nullptr), HelpString{optionHelp});
           break;
         case VariantType::Double:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stod(optionDefault, nullptr), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stod(optionDefault, nullptr), HelpString{optionHelp});
           break;
         case VariantType::Bool:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, (bool)std::stoi(optionDefault, nullptr), HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, (bool)std::stoi(optionDefault, nullptr), HelpString{optionHelp});
           break;
         default:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{ optionHelp });
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp});
       }
       // Depending on the previous state, push options to the right place.
       if (previousIs(State::IN_OPTIONS)) {
@@ -545,7 +545,7 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   }
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
-  WorkflowImporter importer{ workflow, metadata };
+  WorkflowImporter importer{workflow, metadata};
   bool ok = reader.Parse(isw, importer);
   if (ok == false) {
     throw std::runtime_error("Error while parsing serialised workflow");

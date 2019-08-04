@@ -37,7 +37,7 @@ void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
   }
   digTree->GetEvent(ievent);
 
-  TH2D* vMod[5][100] = { 0 };
+  TH2D* vMod[5][100] = {0};
   int primLabels[5][100];
   for (int mod = 1; mod < 5; mod++)
     for (int j = 0; j < 100; j++)

@@ -22,9 +22,9 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::its::TrivialClustererTask)
+ClassImp(o2::its::TrivialClustererTask);
 
-  using namespace o2::its;
+using namespace o2::its;
 using namespace o2::base;
 using namespace o2::utils;
 

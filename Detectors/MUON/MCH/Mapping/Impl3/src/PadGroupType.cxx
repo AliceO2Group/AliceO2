@@ -47,11 +47,11 @@ std::vector<int> validIndices(const std::vector<int>& ids)
 }
 
 PadGroupType::PadGroupType(int nofPadsX, int nofPadsY, std::vector<int> ids)
-  : mFastId{ std::move(ids) },
-    mFastIndices{ validIndices(mFastId) },
-    mNofPads{ static_cast<int>(std::count_if(begin(mFastId), end(mFastId), [](int i) { return i >= 0; })) },
-    mNofPadsX{ nofPadsX },
-    mNofPadsY{ nofPadsY }
+  : mFastId{std::move(ids)},
+    mFastIndices{validIndices(mFastId)},
+    mNofPads{static_cast<int>(std::count_if(begin(mFastId), end(mFastId), [](int i) { return i >= 0; }))},
+    mNofPadsX{nofPadsX},
+    mNofPadsY{nofPadsY}
 {
 }
 

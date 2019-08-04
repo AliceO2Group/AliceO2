@@ -127,5 +127,5 @@ std::ostream& operator<<(std::ostream& os, const BaseCluster<T>& c)
      << " bits:" << std::bitset<8>(c.getBits());
   return os;
 }
-} // end namespace AliceO2
+} // namespace o2
 #endif

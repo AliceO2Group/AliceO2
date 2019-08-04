@@ -166,7 +166,7 @@ inline void AlignParam::setParams(const TGeoMatrix& m)
 inline void AlignParam::setMatrixTranslation(double x, double y, double z, TGeoHMatrix& dest) const
 {
   /// apply translation to matrix
-  double tra[3] = { x, y, z };
+  double tra[3] = {x, y, z};
   dest.SetTranslation(tra);
 }
 
@@ -180,7 +180,7 @@ inline bool AlignParam::setLocalTranslation(double x, double y, double z)
   /// returns false and the object parameters are not set.
 
   TGeoHMatrix m;
-  Double_t tr[3] = { x, y, z };
+  Double_t tr[3] = {x, y, z};
   m.SetTranslation(tr);
 
   return setLocalParams(m);
@@ -225,7 +225,7 @@ inline bool AlignParam::setLocalRotation(const TGeoMatrix& m)
   rotm.SetRotation(m.GetRotationMatrix());
   return setLocalParams(rotm);
 }
-}
-}
+} // namespace detectors
+} // namespace o2
 
 #endif

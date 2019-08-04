@@ -223,7 +223,7 @@ class MatchTOF
   const std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
-  std::vector<o2::MCCompLabel> mTracksLblWork;                                  ///<TPCITS track labels
+  std::vector<o2::MCCompLabel> mTracksLblWork;                                        ///<TPCITS track labels
 
   const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
   const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
@@ -247,10 +247,10 @@ class MatchTOF
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;                 // this is the output of the matching
-  std::vector<o2::MCCompLabel> mOutTOFLabels;                                ///< TOF label of matched tracks
-  std::vector<o2::MCCompLabel> mOutTPCLabels;                                ///< TPC label of matched tracks
-  std::vector<o2::MCCompLabel> mOutITSLabels;                                ///< ITS label of matched tracks
+  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks; // this is the output of the matching
+  std::vector<o2::MCCompLabel> mOutTOFLabels;                ///< TOF label of matched tracks
+  std::vector<o2::MCCompLabel> mOutTPCLabels;                ///< TPC label of matched tracks
+  std::vector<o2::MCCompLabel> mOutITSLabels;                ///< ITS label of matched tracks
 
   int mNumOfTracks;                     // number of tracks to be matched
   std::vector<int> mMatchedTracksIndex; // vector of indexes of the tracks to be matched

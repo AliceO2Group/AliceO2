@@ -50,7 +50,7 @@ class ConditionsMQServer : public ParameterMQServer
   /// Deserializes a message and stores the value to an std::string using Protocol Buffers
   void Deserialize(const std::string& messageString, std::string& key);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 
 #endif /* ALICEO2_CDB_CONDITIONSMQSERVER_H_ */

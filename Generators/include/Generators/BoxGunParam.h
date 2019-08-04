@@ -27,12 +27,12 @@ namespace eventgen
  ** of particle type, energy, direction, etc.
  **/
 struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
-  int pdg = 211;                     // which particle (default pion); could make this an enum
-  int number = 10;                   // how many particles
-  double eta[2] = { -1, 1 };         // eta range
-  double prange[2] = { 0.1, 5 };     // energy range min, max in GeV
-  double phirange[2] = { 0., 360. }; // phi range
-  bool debug = false;                // whether to print out produced particles
+  int pdg = 211;                   // which particle (default pion); could make this an enum
+  int number = 10;                 // how many particles
+  double eta[2] = {-1, 1};         // eta range
+  double prange[2] = {0.1, 5};     // energy range min, max in GeV
+  double phirange[2] = {0., 360.}; // phi range
+  bool debug = false;              // whether to print out produced particles
   O2ParamDef(BoxGunParam, "BoxGun");
 };
 

@@ -91,22 +91,21 @@ void init3DContext(void* context)
   glfwGetFramebufferSize(w, &cur_width, &cur_height);
   g3dCtx.window = w;
 
-  sg_desc description{ 0 };
+  sg_desc description{0};
   sg_setup(&description);
 
   const float vertices[] = {
     // positions            // colors
     0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f
-  };
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f};
 
-  sg_buffer_desc vbuf_desc{ 0 };
+  sg_buffer_desc vbuf_desc{0};
   vbuf_desc.size = sizeof(vertices);
   vbuf_desc.content = vertices;
   g3dCtx.buffers.push_back(sg_make_buffer(&vbuf_desc));
 
-  sg_shader_desc points_shader{ 0 };
+  sg_shader_desc points_shader{0};
   points_shader.vs.source = vertexShader;
   points_shader.vs.uniform_blocks[0].size = sizeof(vs_params_t);
   points_shader.vs.uniform_blocks[0].uniforms[0].name = "MVP";
@@ -114,7 +113,7 @@ void init3DContext(void* context)
   points_shader.fs.source = fragmentShader;
   g3dCtx.shaders.push_back(sg_make_shader(&points_shader));
 
-  sg_pipeline_desc points_pipeline{ 0 };
+  sg_pipeline_desc points_pipeline{0};
   points_pipeline.shader = g3dCtx.shaders.back();
   points_pipeline.layout.attrs[0].name = "position";
   points_pipeline.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
@@ -123,7 +122,7 @@ void init3DContext(void* context)
 
   g3dCtx.pipelines.push_back(sg_make_pipeline(&points_pipeline));
 
-  sg_draw_state state{ 0 };
+  sg_draw_state state{0};
   state.pipeline = g3dCtx.pipelines.back();
   state.vertex_buffers[0] = g3dCtx.buffers.back();
 
@@ -132,10 +131,10 @@ void init3DContext(void* context)
   hmm_mat4 proj = HMM_Perspective(60.0f, cur_width / cur_height, 0.01f, 10.0f);
   hmm_mat4 view = HMM_LookAt(HMM_Vec3(0.0f, 1.5f, 6.0f), HMM_Vec3(0.0f, 0.0f, 0.0f), HMM_Vec3(0.0f, -1.0f, 0.0f));
   hmm_mat4 view_proj = HMM_MultiplyMat4(proj, view);
-  g3dCtx.params.push_back(vs_params_t{ view_proj });
+  g3dCtx.params.push_back(vs_params_t{view_proj});
 
   // Cleaning happens somewhere else
-  sg_pass_action default_pass_action{ 0 };
+  sg_pass_action default_pass_action{0};
   default_pass_action.colors[0].action = SG_ACTION_DONTCARE;
   default_pass_action.colors[1].action = SG_ACTION_DONTCARE;
   default_pass_action.colors[1].action = SG_ACTION_DONTCARE;
@@ -143,7 +142,7 @@ void init3DContext(void* context)
   default_pass_action.stencil.action = SG_ACTION_DONTCARE;
   g3dCtx.passes.push_back(default_pass_action);
 
-  g3dCtx.commands.push_back({ g3dCtx.drawStates.size() - 1, g3dCtx.params.size() - 1, 0, 3, 1 });
+  g3dCtx.commands.push_back({g3dCtx.drawStates.size() - 1, g3dCtx.params.size() - 1, 0, 3, 1});
 }
 
 void render3D()
@@ -177,6 +176,6 @@ void render3D()
   sg_commit();
 }
 
-} // gl
-} // framework
-} // o2
+} // namespace sokol
+} // namespace framework
+} // namespace o2

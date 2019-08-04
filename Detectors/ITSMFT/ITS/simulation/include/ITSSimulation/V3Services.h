@@ -64,7 +64,7 @@ class V3Services : public V11Geometry
 
   static const Double_t sIBWheelACZdist; ///< IB Z distance between wheels
 
-  ClassDefOverride(V3Services, 0) // ITS v3 support geometry
+  ClassDefOverride(V3Services, 0); // ITS v3 support geometry
 };
 } // namespace its
 } // namespace o2

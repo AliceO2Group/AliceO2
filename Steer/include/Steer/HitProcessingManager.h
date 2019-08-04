@@ -86,7 +86,7 @@ class HitProcessingManager
   int mNumberOfCollisions; // how many collisions we want to generate and process
 
   std::vector<TChain*> mSimChains;
-  // ClassDefOverride(HitProcessingManager, 0)
+  // ClassDefOverride(HitProcessingManager, 0);
 };
 
 inline void HitProcessingManager::sampleCollisionTimes()
@@ -175,7 +175,7 @@ inline void HitProcessingManager::addInputSignalFile(std::string_view simfilenam
   }
   mSignalFileNames[signal].emplace_back(simfilename);
 }
-}
-}
+} // namespace steer
+} // namespace o2
 
 #endif

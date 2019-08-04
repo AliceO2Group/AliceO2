@@ -14,11 +14,11 @@
 #include "AliHLT3DTrackParam.h"
 #include "TMath.h"
 
-ClassImp(AliHLT3DTrackParam)
+ClassImp(AliHLT3DTrackParam);
 
-  //* Transport utilities
+//* Transport utilities
 
-  double AliHLT3DTrackParam::GetDStoPoint(double Bz, const double xyz[3], const double* T0) const
+double AliHLT3DTrackParam::GetDStoPoint(double Bz, const double xyz[3], const double* T0) const
 {
   //* Get DS = Path/Momentum to a certain space point for Bz field
 
@@ -80,7 +80,7 @@ void AliHLT3DTrackParam::TransportToDS(double Bz, double DS, double* T0)
   double py = T0[4];
   double pz = T0[5];
 
-  double d[6] = { mParam[0] - T0[0], mParam[1] - T0[1], mParam[2] - T0[2], mParam[3] - T0[3], mParam[4] - T0[4], mParam[5] - T0[5] };
+  double d[6] = {mParam[0] - T0[0], mParam[1] - T0[1], mParam[2] - T0[2], mParam[3] - T0[3], mParam[4] - T0[4], mParam[5] - T0[5]};
 
   T0[0] = T0[0] + sB * px + cB * py;
   T0[1] = T0[1] - cB * px + sB * py;
@@ -189,7 +189,7 @@ void AliHLT3DTrackParam::Filter(const double m[3], const double V[6], const doub
 
   double z0 = m[0] - mParam[0], z1 = m[1] - mParam[1], z2 = m[2] - mParam[2];
 
-  double mS[6] = { c00 + V[0] + G[0], c10 + V[1] + G[1], c11 + V[2] + G[2], c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5] };
+  double mS[6] = {c00 + V[0] + G[0], c10 + V[1] + G[1], c11 + V[2] + G[2], c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5]};
   double mSi[6];
   mSi[0] = mS[4] * mS[4] - mS[2] * mS[5];
   mSi[1] = mS[1] * mS[5] - mS[3] * mS[4];

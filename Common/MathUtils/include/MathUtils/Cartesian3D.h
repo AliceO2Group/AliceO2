@@ -220,9 +220,9 @@ class Transform3D : public ROOT::Math::Transform3D
 
   void print() const;
 
-  ClassDefNV(Transform3D, 1)
+  ClassDefNV(Transform3D, 1);
 };
-}
+} // namespace o2
 
 std::ostream& operator<<(std::ostream& os, const o2::Rotation2D& t);
 

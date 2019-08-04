@@ -28,11 +28,10 @@ using Stack = o2::header::Stack;
 static void BM_RelayMessageCreation(benchmark::State& state)
 {
   Monitoring metrics;
-  InputSpec spec{ "clusters", "TPC", "CLUSTERS" };
+  InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{ spec, "Fake", 0 }
-  };
+    InputRoute{spec, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -48,8 +47,8 @@ static void BM_RelayMessageCreation(benchmark::State& state)
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
 
-  DataProcessingHeader dph{ 0, 1 };
-  Stack stack{ dh, dph };
+  DataProcessingHeader dph{0, 1};
+  Stack stack{dh, dph};
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
   for (auto _ : state) {
@@ -70,11 +69,10 @@ BENCHMARK(BM_RelayMessageCreation);
 static void BM_RelaySingleSlot(benchmark::State& state)
 {
   Monitoring metrics;
-  InputSpec spec{ "clusters", "TPC", "CLUSTERS" };
+  InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{ spec, "Fake", 0 }
-  };
+    InputRoute{spec, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -90,8 +88,8 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
 
-  DataProcessingHeader dph{ 0, 1 };
-  Stack stack{ dh, dph };
+  DataProcessingHeader dph{0, 1};
+  Stack stack{dh, dph};
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
   for (auto _ : state) {
@@ -119,11 +117,10 @@ BENCHMARK(BM_RelaySingleSlot);
 static void BM_RelayMultipleSlots(benchmark::State& state)
 {
   Monitoring metrics;
-  InputSpec spec{ "clusters", "TPC", "CLUSTERS" };
+  InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{ spec, "Fake", 0 }
-  };
+    InputRoute{spec, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -146,8 +143,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     // FIXME: Understand why pausing the timer makes it slower..
     //state.PauseTiming();
 
-    DataProcessingHeader dph{ timeslice++, 1 };
-    Stack stack{ dh, dph };
+    DataProcessingHeader dph{timeslice++, 1};
+    Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
 
@@ -170,13 +167,12 @@ BENCHMARK(BM_RelayMultipleSlots);
 static void BM_RelayMultipleRoutes(benchmark::State& state)
 {
   Monitoring metrics;
-  InputSpec spec1{ "clusters", "TPC", "CLUSTERS" };
-  InputSpec spec2{ "tracks", "TPC", "TRACKS" };
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+  InputSpec spec2{"tracks", "TPC", "TRACKS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{ spec1, "Fake1", 0 },
-    InputRoute{ spec2, "Fake2", 0 }
-  };
+    InputRoute{spec1, "Fake1", 0},
+    InputRoute{spec2, "Fake2", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -204,16 +200,16 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     // FIXME: Understand why pausing the timer makes it slower..
     //state.PauseTiming();
 
-    DataProcessingHeader dph1{ timeslice, 1 };
-    Stack stack1{ dh1, dph1 };
+    DataProcessingHeader dph1{timeslice, 1};
+    Stack stack1{dh1, dph1};
 
     FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
     FairMQMessagePtr payload1 = transport->CreateMessage(1000);
 
     memcpy(header1->GetData(), stack1.data(), stack1.size());
 
-    DataProcessingHeader dph2{ timeslice, 1 };
-    Stack stack2{ dh2, dph2 };
+    DataProcessingHeader dph2{timeslice, 1};
+    Stack stack2{dh2, dph2};
 
     FairMQMessagePtr header2 = transport->CreateMessage(stack2.size());
     FairMQMessagePtr payload2 = transport->CreateMessage(1000);

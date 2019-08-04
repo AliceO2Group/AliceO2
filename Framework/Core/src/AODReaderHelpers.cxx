@@ -99,23 +99,23 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
   for (auto& route : routes) {
     auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
     auto description = concrete.description;
-    if (description == header::DataDescription{ "TRACKPAR" }) {
+    if (description == header::DataDescription{"TRACKPAR"}) {
       readMask |= AODTypeMask::Tracks;
-    } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
+    } else if (description == header::DataDescription{"TRACKPARCOV"}) {
       readMask |= AODTypeMask::TracksCov;
-    } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
+    } else if (description == header::DataDescription{"TRACKEXTRA"}) {
       readMask |= AODTypeMask::TracksExtra;
-    } else if (description == header::DataDescription{ "CALO" }) {
+    } else if (description == header::DataDescription{"CALO"}) {
       readMask |= AODTypeMask::Calo;
-    } else if (description == header::DataDescription{ "MUON" }) {
+    } else if (description == header::DataDescription{"MUON"}) {
       readMask |= AODTypeMask::Muon;
-    } else if (description == header::DataDescription{ "VZERO" }) {
+    } else if (description == header::DataDescription{"VZERO"}) {
       readMask |= AODTypeMask::VZero;
-    } else if (description == header::DataDescription{ "COLLISION" }) {
+    } else if (description == header::DataDescription{"COLLISION"}) {
       readMask |= AODTypeMask::Collisions;
-    } else if (description == header::DataDescription{ "TIMEFRAME" }) {
+    } else if (description == header::DataDescription{"TIMEFRAME"}) {
       readMask |= AODTypeMask::Timeframe;
-    } else if (description == header::DataDescription{ "DZEROFLAGGED" }) {
+    } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
       readMask |= AODTypeMask::DZeroFlagged;
     } else {
       throw std::runtime_error(std::string("Unknown AOD type: ") + description.str);
@@ -126,9 +126,9 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
 {
-  auto callback = AlgorithmSpec{ adaptStateful([](ConfigParamRegistry const& options,
-                                                  ControlService& control,
-                                                  DeviceSpec const& spec) {
+  auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
+                                                 ControlService& control,
+                                                 DeviceSpec const& spec) {
     std::vector<std::string> filenames;
     auto filename = options.get<std::string>("esd-file");
 
@@ -156,7 +156,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       filenames.push_back(filename);
     }
 
-    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "RN2" });
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"RN2"});
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            counter,
@@ -205,21 +205,21 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           batch->schema()->metadata()->ToUnorderedMap(&meta);
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
           if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPAR" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPAR"}, batch->schema());
           } else if (meta["description"] == "TRACKPARCOV" && (readMask & AODTypeMask::TracksCov)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPARCOV" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPARCOV"}, batch->schema());
           } else if (meta["description"] == "TRACKEXTRA" && (readMask & AODTypeMask::TracksExtra)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKEXTRA" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKEXTRA"}, batch->schema());
           } else if (meta["description"] == "CALO" && (readMask & AODTypeMask::Calo)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "CALO" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "CALO"}, batch->schema());
           } else if (meta["description"] == "MUON" && (readMask & AODTypeMask::Muon)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "MUON" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "MUON"}, batch->schema());
           } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "VZERO" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "VZERO"}, batch->schema());
           } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "COLLISION" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "COLLISION"}, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TIMEFRAME" }, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TIMEFRAME"}, batch->schema());
           } else {
             continue;
           }
@@ -234,15 +234,15 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       }
       pclose(pipe);
     });
-  }) };
+  })};
 
   return callback;
 }
 
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
-  auto callback = AlgorithmSpec{ adaptStateful([](ConfigParamRegistry const& options,
-                                                  DeviceSpec const& spec) {
+  auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
+                                                 DeviceSpec const& spec) {
     std::vector<std::string> filenames;
     auto filename = options.get<std::string>("aod-file");
 
@@ -262,7 +262,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       filenames.push_back(filename);
     }
 
-    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{ "AOD" });
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            counter,
@@ -284,7 +284,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
       if (readMask & AODTypeMask::Tracks) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        auto& trackParBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKPAR" });
+        auto& trackParBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPAR"});
         TTreeReaderValue<int> c0(*reader, "fID4Tracks");
         TTreeReaderValue<float> c1(*reader, "fX");
         TTreeReaderValue<float> c2(*reader, "fAlpha");
@@ -312,7 +312,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c10(*covReader, "fC1PtSnp");
         TTreeReaderValue<float> c11(*covReader, "fC1PtTgl");
         TTreeReaderValue<float> c12(*covReader, "fC1Pt21Pt2");
-        auto& trackParCovBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKPARCOV" });
+        auto& trackParCovBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPARCOV"});
         RootTableBuilderHelpers::convertTTree(trackParCovBuilder, *covReader,
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
       }
@@ -332,7 +332,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c10(*extraReader, "fTRDsignal");
         TTreeReaderValue<float> c11(*extraReader, "fTOFsignal");
         TTreeReaderValue<float> c12(*extraReader, "fLength");
-        auto& extraBuilder = outputs.make<TableBuilder>(Output{ "AOD", "TRACKEXTRA" });
+        auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
         RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
       }
@@ -344,7 +344,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c2(*extraReader, "fAmplitude");
         TTreeReaderValue<float> c3(*extraReader, "fTime");
         TTreeReaderValue<int8_t> c4(*extraReader, "fType");
-        auto& extraBuilder = outputs.make<TableBuilder>(Output{ "AOD", "CALO" });
+        auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "CALO"});
         RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
                                               c0, c1, c2, c3, c4);
       }
@@ -362,7 +362,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c8(*muReader, "fChi2");
         TTreeReaderValue<float> c9(*muReader, "fChi2MatchTrigger");
         TTreeReaderValue<int> c10(*muReader, "fID4vz");
-        auto& muBuilder = outputs.make<TableBuilder>(Output{ "AOD", "MUON" });
+        auto& muBuilder = outputs.make<TableBuilder>(Output{"AOD", "MUON"});
         RootTableBuilderHelpers::convertTTree(muBuilder, *muReader,
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
       }
@@ -372,7 +372,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderArray<float> c0(*vzReader, "fAdcVZ"); // FIXME: we do not support arrays for now
         TTreeReaderArray<float> c1(*vzReader, "fTimeVZ");
         TTreeReaderArray<float> c2(*vzReader, "fWidthVZ");
-        auto& vzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "VZERO" });
+        auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
         RootTableBuilderHelpers::convertTTree(vzBuilder, *vzReader,
                                               c0, c1, c2);
       }
@@ -403,14 +403,14 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<int> c19(*dzReader, "cand_evtID_ML");
         TTreeReaderValue<int> c20(*dzReader, "cand_fileID_ML");
 
-        auto& dzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "DZEROFLAGGED" });
+        auto& dzBuilder = outputs.make<TableBuilder>(Output{"AOD", "DZEROFLAGGED"});
         RootTableBuilderHelpers::convertTTree(dzBuilder, *dzReader,
                                               c0, c1, c2, c3, c4, c5, c6, c7,
                                               c8, c9, c10, c11, c12, c13, c14,
                                               c15, c16, c17, c18, c19, c20);
       }
     });
-  }) };
+  })};
 
   return callback;
 }

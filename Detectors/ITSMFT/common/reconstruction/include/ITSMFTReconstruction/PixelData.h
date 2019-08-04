@@ -170,11 +170,11 @@ class ChipPixelData
   uint32_t mStartID = 0;                         // entry of the 1st pixel data in the whole detector data, for MCtruth access
   uint32_t mTrigger = 0;                         // trigger pattern
   o2::InteractionRecord mInteractionRecord = {}; // interaction record
-  std::vector<PixelData> mPixels; // vector of pixeld
+  std::vector<PixelData> mPixels;                // vector of pixeld
 
   ClassDefNV(ChipPixelData, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif //ALICEO2_ITSMFT_PIXELDATA_H

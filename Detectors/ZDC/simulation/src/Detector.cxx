@@ -246,7 +246,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
-  Float_t x[3] = { 0., 0., 0. };
+  Float_t x[3] = {0., 0., 0.};
   fMC->TrackPosition(x[0], x[1], x[2]);
 
   // determine detectorID and sectorID
@@ -289,7 +289,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     resetHitIndices();
   }
 
-  Float_t p[3] = { 0., 0., 0. };
+  Float_t p[3] = {0., 0., 0.};
   Float_t trackenergy = 0.;
   fMC->TrackMomentum(p[0], p[1], p[2], trackenergy);
   Float_t eDep = fMC->Edep();
@@ -394,21 +394,21 @@ void Detector::createMaterials()
 
   // ******** MATERIAL DEFINITION ********
   // --- W alloy -> ZN passive material
-  Float_t aW[3] = { 183.85, 55.85, 58.71 };
-  Float_t zW[3] = { 74., 26., 28. };
-  Float_t wW[3] = { 0.93, 0.03, 0.04 };
+  Float_t aW[3] = {183.85, 55.85, 58.71};
+  Float_t zW[3] = {74., 26., 28.};
+  Float_t wW[3] = {0.93, 0.03, 0.04};
   Float_t dW = 17.6;
 
   // --- Brass (CuZn)  -> ZP passive material
-  Float_t aCuZn[2] = { 63.546, 65.39 };
-  Float_t zCuZn[2] = { 29., 30. };
-  Float_t wCuZn[2] = { 0.63, 0.37 };
+  Float_t aCuZn[2] = {63.546, 65.39};
+  Float_t zCuZn[2] = {29., 30.};
+  Float_t wCuZn[2] = {0.63, 0.37};
   Float_t dCuZn = 8.48;
 
   // --- SiO2 -> fibres
-  Float_t aq[2] = { 28.0855, 15.9994 };
-  Float_t zq[2] = { 14., 8. };
-  Float_t wq[2] = { 1., 2. };
+  Float_t aq[2] = {28.0855, 15.9994};
+  Float_t zq[2] = {14., 8.};
+  Float_t wq[2] = {1., 2.};
   Float_t dq = 2.64;
 
   // --- Lead -> ZEM passive material
@@ -448,15 +448,15 @@ void Detector::createMaterials()
   Float_t absCarb = 49.9;
 
   // --- Residual gas -> inside beam pipe
-  Float_t aResGas[3] = { 1.008, 12.0107, 15.9994 };
-  Float_t zResGas[3] = { 1., 6., 8. };
-  Float_t wResGas[3] = { 0.28, 0.28, 0.44 };
+  Float_t aResGas[3] = {1.008, 12.0107, 15.9994};
+  Float_t zResGas[3] = {1., 6., 8.};
+  Float_t wResGas[3] = {0.28, 0.28, 0.44};
   Float_t dResGas = 3.2E-14;
 
   // --- Air
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   // ******** TRACKING MEDIA PARAMETERS ********
@@ -509,10 +509,10 @@ void Detector::createMaterials()
 void Detector::createAsideBeamLine()
 {
 
-  Double_t tubpar[3] = { 0., 0., 0 };
-  Float_t boxpar[3] = { 0., 0., 0 };
-  Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
-  Double_t conpar[15] = { 0. }; // all elements will be 0
+  Double_t tubpar[3] = {0., 0., 0};
+  Float_t boxpar[3] = {0., 0., 0};
+  Double_t tubspar[5] = {0., 0., 0., 0., 0.};
+  Double_t conpar[15] = {0.}; // all elements will be 0
 
   Float_t zA = 1910.2;
 
@@ -774,9 +774,9 @@ void Detector::createAsideBeamLine()
 
   //-- rotation matrices for the tilted cone after the TDI to recenter vacuum chamber
   Int_t irotpipe3, irotpipe4, irotpipe5;
-  double rang3[6] = { 90. - 1.8934, 0., 90., 90., 1.8934, 180. };
-  double rang4[6] = { 90. - 3.8, 0., 90., 90., 3.8, 180. };
-  double rang5[6] = { 90. + 9.8, 0., 90., 90., 9.8, 0. };
+  double rang3[6] = {90. - 1.8934, 0., 90., 90., 1.8934, 180.};
+  double rang4[6] = {90. - 3.8, 0., 90., 90., 3.8, 180.};
+  double rang5[6] = {90. + 9.8, 0., 90., 90., 9.8, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe3, rang3[0], rang3[1], rang3[2], rang3[3], rang3[4], rang3[5]);
   TVirtualMC::GetMC()->Matrix(irotpipe4, rang4[0], rang4[1], rang4[2], rang4[3], rang4[4], rang4[5]);
   TVirtualMC::GetMC()->Matrix(irotpipe5, rang5[0], rang5[1], rang5[2], rang5[3], rang5[4], rang5[5]);
@@ -1069,8 +1069,8 @@ void Detector::createAsideBeamLine()
 
   //-- rotation matrices for the legs
   Int_t irotpipe1, irotpipe2;
-  double rang1[6] = { 90. - 1.0027, 0., 90., 90., 1.0027, 180. };
-  double rang2[6] = { 90. + 1.0027, 0., 90., 90., 1.0027, 0. };
+  double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
+  double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
   TVirtualMC::GetMC()->Matrix(irotpipe2, rang2[0], rang2[1], rang2[2], rang2[3], rang2[4], rang2[5]);
 
@@ -1161,9 +1161,9 @@ void Detector::createAsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createCsideBeamLine()
 {
-  Double_t tubpar[3] = { 0., 0., 0 };
-  Float_t boxpar[3] = { 0., 0., 0 };
-  Double_t tubspar[5] = { 0., 0., 0., 0., 0. };
+  Double_t tubpar[3] = {0., 0., 0};
+  Float_t boxpar[3] = {0., 0., 0};
+  Double_t tubspar[5] = {0., 0., 0., 0., 0.};
   Double_t conpar[15] = {
     0.,
   };
@@ -1532,8 +1532,8 @@ void Detector::createCsideBeamLine()
 
   //-- rotation matrices for the legs
   Int_t irotpipe1, irotpipe2;
-  double rang1[6] = { 90. - 1.0027, 0., 90., 90., 1.0027, 180. };
-  double rang2[6] = { 90. + 1.0027, 0., 90., 90., 1.0027, 0. };
+  double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
+  double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
   TVirtualMC::GetMC()->Matrix(irotpipe2, rang2[0], rang2[1], rang2[2], rang2[3], rang2[4], rang2[5]);
 
@@ -1573,8 +1573,8 @@ void Detector::createCsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createMagnets()
 {
-  Float_t tubpar[3] = { 0., 0., 0. };
-  Float_t boxpar[3] = { 0., 0., 0. };
+  Float_t tubpar[3] = {0., 0., 0.};
+  Float_t boxpar[3] = {0., 0., 0.};
   // Parameters from magnet DEFINITION
   double zCompensatorField = 1972.5;
   double zITField = 2296.5;
@@ -1840,12 +1840,12 @@ void Detector::createDetectors()
 {
   // Create the ZDCs
 
-  double znSupportBase[3] = { 6.3, 4.57, 71.2 }; //Basement of ZN table (thick one)
-  double znSupportBasePos[3] = { 0., -14., 21.2 };
-  double znSupportScintillH[3] = { 4.32 - 0.8, 0.8, 50. }; //Scintillator container: top&bottom
-  double znSupportScintillV[3] = { 0.8, 1.955, 50. };      //Scintillator container: sides
-  double znSupportWallsud[3] = { 3.52, 1., 50. };          //Top and bottom walls
-  double znSupportWallside[3] = { 0.4, 5.52, 50. };        //Side walls
+  double znSupportBase[3] = {6.3, 4.57, 71.2}; //Basement of ZN table (thick one)
+  double znSupportBasePos[3] = {0., -14., 21.2};
+  double znSupportScintillH[3] = {4.32 - 0.8, 0.8, 50.}; //Scintillator container: top&bottom
+  double znSupportScintillV[3] = {0.8, 1.955, 50.};      //Scintillator container: sides
+  double znSupportWallsud[3] = {3.52, 1., 50.};          //Top and bottom walls
+  double znSupportWallside[3] = {0.4, 5.52, 50.};        //Side walls
 
   Float_t dimPb[6], dimVoid[6];
 
@@ -1856,7 +1856,7 @@ void Detector::createDetectors()
 
   // an envelop volume for the purpose of registering particles entering the detector
   double eps = 0.1; // 1 mm
-  double neu_envelopdim[3] = { Geometry::ZNDIMENSION[0] + eps, Geometry::ZNDIMENSION[1] + eps, Geometry::ZNDIMENSION[2] + eps };
+  double neu_envelopdim[3] = {Geometry::ZNDIMENSION[0] + eps, Geometry::ZNDIMENSION[1] + eps, Geometry::ZNDIMENSION[2] + eps};
   TVirtualMC::GetMC()->Gsvolu("ZNENV", "BOX ", getMediumID(kVoidNoField), neu_envelopdim, 3);
 
   TVirtualMC::GetMC()->Gsvolu("ZNEU", "BOX ", getMediumID(kWalloy), const_cast<double*>(Geometry::ZNDIMENSION), 3); // Passive material
@@ -1897,7 +1897,7 @@ void Detector::createDetectors()
   // --- Position the neutron calorimeter in ZDC
   // -- Rotation of C side ZN
   Int_t irotznc;
-  double rangznc[6] = { 90., 180., 90., 90., 180., 0. };
+  double rangznc[6] = {90., 180., 90., 90., 180., 0.};
   TVirtualMC::GetMC()->Matrix(irotznc, rangznc[0], rangznc[1], rangznc[2], rangznc[3], rangznc[4], rangznc[5]);
   //
   TVirtualMC::GetMC()->Gspos("ZNEU", 1, "ZNENV", 0., 0., 0., 0, "ONLY");
@@ -1967,17 +1967,17 @@ void Detector::createDetectors()
 
   // -------------------------------------------------------------------------------
   //--> Proton calorimeter (ZP)
-  double zpSupportBase1[3] = { 12.5, 1.4, 75. }; //Bottom basement of ZP table (thinner one)
-  double zpSupportBase1Pos[3] = { 0., -17., 0. };
-  double zpSupportBase2[3] = { 12.5, 2.5, 75. }; //Upper basement of ZP table (thicker one)
-  double zpSupportBase2Pos[3] = { 0., -9., 0. };
-  double zpSupportBase3[3] = { 1.5, 2.05, 75. };       //support table heels (piedini)
-  double zpSupportWallBottom[3] = { 11.2, 0.25, 75. }; //Bottom wall
-  double zpSupportWallup[3] = { 11.2, 1., 75. };       //Top wall
+  double zpSupportBase1[3] = {12.5, 1.4, 75.}; //Bottom basement of ZP table (thinner one)
+  double zpSupportBase1Pos[3] = {0., -17., 0.};
+  double zpSupportBase2[3] = {12.5, 2.5, 75.}; //Upper basement of ZP table (thicker one)
+  double zpSupportBase2Pos[3] = {0., -9., 0.};
+  double zpSupportBase3[3] = {1.5, 2.05, 75.};       //support table heels (piedini)
+  double zpSupportWallBottom[3] = {11.2, 0.25, 75.}; //Bottom wall
+  double zpSupportWallup[3] = {11.2, 1., 75.};       //Top wall
   //double zpSupportWallside[3] = {0.5, 7.25, 75.}; //Side walls (original)
-  double zpSupportWallside[3] = { 0.5, 6., 75. }; //Side walls (modified)
+  double zpSupportWallside[3] = {0.5, 6., 75.}; //Side walls (modified)
 
-  double pro_envelopdim[3] = { Geometry::ZPDIMENSION[0] + eps, Geometry::ZPDIMENSION[1] + eps, Geometry::ZPDIMENSION[2] + eps };
+  double pro_envelopdim[3] = {Geometry::ZPDIMENSION[0] + eps, Geometry::ZPDIMENSION[1] + eps, Geometry::ZPDIMENSION[2] + eps};
   TVirtualMC::GetMC()->Gsvolu("ZPENV", "BOX", getMediumID(kVoidNoField), pro_envelopdim, 3);
 
   TVirtualMC::GetMC()->Gsvolu("ZPRO", "BOX ", getMediumID(kCuZn), const_cast<double*>(Geometry::ZPDIMENSION), 3); // Passive material
@@ -2072,23 +2072,23 @@ void Detector::createDetectors()
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
   Int_t irotzem1, irotzem2;
-  double rangzem1[6] = { 0., 0., 90., 90., -90., 0. };
-  double rangzem2[6] = { 180., 0., 90., 45. + 90., 90., 45. };
+  double rangzem1[6] = {0., 0., 90., 90., -90., 0.};
+  double rangzem2[6] = {180., 0., 90., 45. + 90., 90., 45.};
   TVirtualMC::GetMC()->Matrix(irotzem1, rangzem1[0], rangzem1[1], rangzem1[2], rangzem1[3], rangzem1[4], rangzem1[5]);
   TVirtualMC::GetMC()->Matrix(irotzem2, rangzem2[0], rangzem2[1], rangzem2[2], rangzem2[3], rangzem2[4], rangzem2[5]);
 
-  double zemPbSlice[6] = { 0.15 * TMath::Sqrt(2), 3.5, 3.5, 45., 0., 0. };
-  double zemVoidLayer[6] = { (20.62 / 20.) / 2., 3.5, 3.5, 45., 0., 0. };
-  double zemSupportTable[3] = { 55. / 2., 1.5 / 2., 110. / 2. };
-  double zemSupportBox[6] = { 10.5 / 2., 100. / 2., 95. / 2., 0.25 / 2., 2. / 2., 2. / 2. };
-  double zemSupport1[3] = { 15. / 2, 3. / 2., 95. / 2. };             //support table
-  double zemSupport2[3] = { 2. / 2, 5. / 2., 95. / 2. };              //support table heels (piedini)
-  double zemSupport3[3] = { 3.5, 2. / 2., 20. / 2. };                 //screens around ZEM
-  double zemSupport4[6] = { 20. / 2., 3.5, 1.5 / 2., 45., 0., 0. };   //detector box walls (side)
-  double zemWallH[3] = { 10.5 / 2., /*bthickness[1]*/ 1., 95. / 2. }; //box walls
-  double zemWallVfwd[3] = { 10.5 / 2., (100. - 2.) / 2., 0.2 };
-  double zemWallVbkw[3] = { 10.5 / 2., (100. - 2.) / 2., 2. / 2. };
-  double zemWallVside[3] = { 0.25 / 2., (100. - 2.) / 2., (95. - 2.) / 2. };
+  double zemPbSlice[6] = {0.15 * TMath::Sqrt(2), 3.5, 3.5, 45., 0., 0.};
+  double zemVoidLayer[6] = {(20.62 / 20.) / 2., 3.5, 3.5, 45., 0., 0.};
+  double zemSupportTable[3] = {55. / 2., 1.5 / 2., 110. / 2.};
+  double zemSupportBox[6] = {10.5 / 2., 100. / 2., 95. / 2., 0.25 / 2., 2. / 2., 2. / 2.};
+  double zemSupport1[3] = {15. / 2, 3. / 2., 95. / 2.};             //support table
+  double zemSupport2[3] = {2. / 2, 5. / 2., 95. / 2.};              //support table heels (piedini)
+  double zemSupport3[3] = {3.5, 2. / 2., 20. / 2.};                 //screens around ZEM
+  double zemSupport4[6] = {20. / 2., 3.5, 1.5 / 2., 45., 0., 0.};   //detector box walls (side)
+  double zemWallH[3] = {10.5 / 2., /*bthickness[1]*/ 1., 95. / 2.}; //box walls
+  double zemWallVfwd[3] = {10.5 / 2., (100. - 2.) / 2., 0.2};
+  double zemWallVbkw[3] = {10.5 / 2., (100. - 2.) / 2., 2. / 2.};
+  double zemWallVside[3] = {0.25 / 2., (100. - 2.) / 2., (95. - 2.) / 2.};
 
   TVirtualMC::GetMC()->Gsvolu("ZEM ", "PARA", getMediumID(kVoidNoField), const_cast<double*>(Geometry::ZEMDIMENSION), 6);
   TVirtualMC::GetMC()->Gsvolu("ZEMF", "TUBE", getMediumID(kSiO2pmc), const_cast<double*>(Geometry::ZEMFIBRE), 3); // Active material
@@ -2196,7 +2196,7 @@ void Detector::createDetectors()
 //_____________________________________________________________________________
 Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
 {
-  double x[3] = { 0., 0., 0. }, xDet[3] = { 0., 0., 0. }, p[3] = { 0., 0., 0. }, energy = 0.;
+  double x[3] = {0., 0., 0.}, xDet[3] = {0., 0., 0.}, p[3] = {0., 0., 0.}, energy = 0.;
   fMC->TrackPosition(x[0], x[1], x[2]);
   fMC->TrackMomentum(p[0], p[1], p[2], energy);
 
@@ -2217,7 +2217,7 @@ Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   } else
     return kFALSE;
   //track angle wrt fibre axis (||LHC axis)
-  double umom[3] = { 0., 0., 0. }, udet[3] = { 0., 0., 0. };
+  double umom[3] = {0., 0., 0.}, udet[3] = {0., 0., 0.};
   umom[0] = p[0] / ptot;
   umom[1] = p[1] / ptot;
   umom[2] = p[2] / ptot;

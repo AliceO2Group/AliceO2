@@ -22,49 +22,47 @@ struct XYZ {
   float z;
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return WorkflowSpec{
     DataProcessorSpec{
       "source",
       Inputs{},
-      {
-        OutputSpec{"TST", "HISTO"},
-        OutputSpec{"TST", "POINT"},
-        OutputSpec{"TST", "POINTS"},
-        OutputSpec{"TST", "VECTOR"},
-        OutputSpec{"TST", "LINEARIZED"},
-        OutputSpec{"TST", "OBJECT"}
-      },
+      {OutputSpec{"TST", "HISTO"},
+       OutputSpec{"TST", "POINT"},
+       OutputSpec{"TST", "POINTS"},
+       OutputSpec{"TST", "VECTOR"},
+       OutputSpec{"TST", "LINEARIZED"},
+       OutputSpec{"TST", "OBJECT"}},
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
+        [](ProcessingContext& ctx) {
           // A new message with 1 XYZ instance in it
-          XYZ& x = ctx.outputs().make<XYZ>(Output{ "TST", "POINT", 0 });
+          XYZ& x = ctx.outputs().make<XYZ>(Output{"TST", "POINT", 0});
           // A new message with a gsl::span<XYZ> with 1000 items
-          gsl::span<XYZ> y = ctx.outputs().make<XYZ>(Output{ "TST", "POINTS", 0 }, 1000);
-          y[0] = XYZ{1,2,3};
-          y[999] = XYZ{1,2,3};
+          gsl::span<XYZ> y = ctx.outputs().make<XYZ>(Output{"TST", "POINTS", 0}, 1000);
+          y[0] = XYZ{1, 2, 3};
+          y[999] = XYZ{1, 2, 3};
           // A new message with a TH1F inside
-          auto h = ctx.outputs().make<TH1F>(Output{ "TST", "HISTO" }, "h", "test", 100, -10., 10.);
+          auto h = ctx.outputs().make<TH1F>(Output{"TST", "HISTO"}, "h", "test", 100, -10., 10.);
           // A snapshot for an std::vector
           std::vector<XYZ> v{1000};
-          v[0] = XYZ{1,2,3};
-          v[999] = XYZ{1,2,3};
-          ctx.outputs().snapshot(Output{ "TST", "VECTOR" }, v);
-          v[999] = XYZ{2,3,4};
+          v[0] = XYZ{1, 2, 3};
+          v[999] = XYZ{1, 2, 3};
+          ctx.outputs().snapshot(Output{"TST", "VECTOR"}, v);
+          v[999] = XYZ{2, 3, 4};
 
           // A snapshot for an std::vector of pointers to objects
           // simply make a vector of pointers, snapshot will include the latest
           // change, but not the one which is done after taking the snapshot
           std::vector<XYZ*> p;
-          for (auto & i : v) p.push_back(&i);
-          ctx.outputs().snapshot(Output{ "TST", "LINEARIZED" }, p);
-          v[999] = XYZ{3,4,5};
+          for (auto& i : v)
+            p.push_back(&i);
+          ctx.outputs().snapshot(Output{"TST", "LINEARIZED"}, p);
+          v[999] = XYZ{3, 4, 5};
 
           TNamed named("named", "a named test object");
-          ctx.outputs().snapshot(Output{ "TST", "OBJECT" }, named);
-        }
-      }
-    },
+          ctx.outputs().snapshot(Output{"TST", "OBJECT"}, named);
+        }}},
     DataProcessorSpec{
       "dest",
       Inputs{
@@ -77,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
       },
       {},
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
+        [](ProcessingContext& ctx) {
           // A new message with a TH1F inside
           auto h = ctx.inputs().get<TH1F*>("histo");
           // A new message with 1 XYZ instance in it
@@ -111,8 +109,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           auto o = ctx.inputs().get<TNamed*>("object");
           assert(strcmp(o->GetName(), "named") == 0 &&
                  strcmp(o->GetTitle(), "a named test object") == 0);
-        }
-      }
-    }
-  };
+        }}}};
 }

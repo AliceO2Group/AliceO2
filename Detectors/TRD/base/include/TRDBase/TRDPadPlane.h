@@ -168,8 +168,8 @@ class TRDPadPlane
   double mAnodeWireOffset; //  Distance of first anode wire from pad edge
 
  private:
-  ClassDefNV(TRDPadPlane, 1) //  TRD ROC pad plane
+  ClassDefNV(TRDPadPlane, 1); //  TRD ROC pad plane
 };
-}
-}
+} // namespace trd
+} // namespace o2
 #endif

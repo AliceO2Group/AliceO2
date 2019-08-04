@@ -264,7 +264,6 @@ static void handle_sigint(int)
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
-
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
@@ -292,7 +291,6 @@ void spawnDevice(std::string const& forwardedStdin,
   if (id == 0) {
     // We allow being debugged and do not terminate on SIGTRAP
     signal(SIGTRAP, SIG_IGN);
-
 
     // This is the child.
     // For stdout / stderr, we close the read part of the pipe, the
@@ -331,9 +329,9 @@ void spawnDevice(std::string const& forwardedStdin,
   info.historySize = 1000;
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.dataRelayerViewIndex = Metric2DViewIndex{ "data_relayer", 0, 0, {} };
-  info.variablesViewIndex = Metric2DViewIndex{ "matcher_variables", 0, 0, {} };
-  info.queriesViewIndex = Metric2DViewIndex{ "data_queries", 0, 0, {} };
+  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
+  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
+  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
 
   socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
   socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
@@ -440,9 +438,9 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     info.historyLevel.resize(info.historySize);
 
     auto updateMetricsViews =
-      Metric2DViewIndex::getUpdater({ &info.dataRelayerViewIndex,
-                                      &info.variablesViewIndex,
-                                      &info.queriesViewIndex });
+      Metric2DViewIndex::getUpdater({&info.dataRelayerViewIndex,
+                                     &info.variablesViewIndex,
+                                     &info.queriesViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -450,7 +448,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     };
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
-      std::string token{ s.substr(0, pos) };
+      std::string token{s.substr(0, pos)};
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
 
       // Check if the token is a metric from SimpleMetricsService
@@ -579,8 +577,7 @@ auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique
       level,
       InfoLogger::undefinedMessageOption.errorCode,
       metadata.file.c_str(),
-      atoi(metadata.line.c_str())
-    };
+      atoi(metadata.line.c_str())};
 
     if (logger) {
       logger->log(opt, *ctx, "DPL: %s", content.c_str());
@@ -594,7 +591,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
   LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
   try {
-    fair::mq::DeviceRunner runner{ argc, argv };
+    fair::mq::DeviceRunner runner{argc, argv};
 
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
@@ -817,7 +814,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               device.id,
               workflowInfo.executable,
               workflowInfo.args,
-              workflowInfo.options });
+              workflowInfo.options});
         }
         break;
       case DriverState::MATERIALISE_WORKFLOW:
@@ -1071,12 +1068,12 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
 
   if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
-    control.callbacks = { [](WorkflowSpec const& workflow,
-                             DeviceSpecs const& specs,
-                             DeviceExecutions const&,
-                             DataProcessorInfos&) {
+    control.callbacks = {[](WorkflowSpec const& workflow,
+                            DeviceSpecs const& specs,
+                            DeviceExecutions const&,
+                            DataProcessorInfos&) {
       GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
-    } };
+    }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
@@ -1088,12 +1085,12 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = { [](WorkflowSpec const& workflow,
-                             DeviceSpecs const& specs,
-                             DeviceExecutions const& executions,
-                             DataProcessorInfos&) {
+    control.callbacks = {[](WorkflowSpec const& workflow,
+                            DeviceSpecs const& specs,
+                            DeviceExecutions const& executions,
+                            DataProcessorInfos&) {
       dumpDeviceSpec2DDS(std::cout, specs, executions);
-    } };
+    }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
@@ -1102,12 +1099,12 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if (varmap["o2-control"].as<bool>()) {
-    control.callbacks = { [](WorkflowSpec const& workflow,
-                             DeviceSpecs const& specs,
-                             DeviceExecutions const& executions,
-                             DataProcessorInfos&) {
+    control.callbacks = {[](WorkflowSpec const& workflow,
+                            DeviceSpecs const& specs,
+                            DeviceExecutions const& executions,
+                            DataProcessorInfos&) {
       dumpDeviceSpec2O2Control(std::cout, specs, executions);
-    } };
+    }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
@@ -1126,14 +1123,14 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
-    control.callbacks = { [](WorkflowSpec const& workflow,
-                             DeviceSpecs const devices,
-                             DeviceExecutions const&,
-                             DataProcessorInfos& dataProcessorInfos) {
+    control.callbacks = {[](WorkflowSpec const& workflow,
+                            DeviceSpecs const devices,
+                            DeviceExecutions const&,
+                            DataProcessorInfos& dataProcessorInfos) {
       WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
       // FIXME: this is to avoid trailing garbage..
       exit(0);
-    } };
+    }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
@@ -1174,8 +1171,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   WorkflowInfo currentWorkflow{
     argv[0],
     currentArgs,
-    currentWorkflowOptions
-  };
+    currentWorkflowOptions};
 
   enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");

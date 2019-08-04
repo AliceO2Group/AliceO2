@@ -28,10 +28,10 @@ std::vector<TestPoint> generateUniformTestPoints(int n, double xmin, double ymin
   std::vector<TestPoint> testPoints;
 
   testPoints.resize(n);
-  std::uniform_real_distribution<double> distX{ xmin, xmax };
-  std::uniform_real_distribution<double> distY{ ymin, ymax };
+  std::uniform_real_distribution<double> distX{xmin, xmax};
+  std::uniform_real_distribution<double> distY{ymin, ymax};
   std::generate(testPoints.begin(), testPoints.end(), [&distX, &distY, &mt] {
-    return TestPoint{ distX(mt), distY(mt) };
+    return TestPoint{distX(mt), distY(mt)};
   });
 
   return testPoints;
@@ -40,9 +40,9 @@ std::vector<TestPoint> generateUniformTestPoints(int n, double xmin, double ymin
 static void segmentationList(benchmark::internal::Benchmark* b)
 {
   o2::mch::mapping::forOneDetectionElementOfEachSegmentationType([&b](int detElemId) {
-    for (auto bending : { true, false }) {
+    for (auto bending : {true, false}) {
       {
-        b->Args({ detElemId, bending });
+        b->Args({detElemId, bending});
       }
     }
   });
@@ -59,7 +59,7 @@ BENCHMARK_DEFINE_F(BenchO2, ctor)
   bool isBendingPlane = state.range(1);
 
   for (auto _ : state) {
-    o2::mch::mapping::CathodeSegmentation seg{ detElemId, isBendingPlane };
+    o2::mch::mapping::CathodeSegmentation seg{detElemId, isBendingPlane};
   }
 }
 
@@ -76,8 +76,8 @@ static void benchCathodeSegmentationConstructionAll(benchmark::State& state)
   std::vector<int> deids = getDetElemIds();
   for (auto _ : state) {
     for (auto detElemId : deids) {
-      for (auto bending : { true, false }) {
-        o2::mch::mapping::CathodeSegmentation seg{ detElemId, bending };
+      for (auto bending : {true, false}) {
+        o2::mch::mapping::CathodeSegmentation seg{detElemId, bending};
       }
     }
   }
@@ -91,13 +91,13 @@ BENCHMARK_DEFINE_F(BenchO2, findPadByPosition)
 {
   int detElemId = state.range(0);
   bool isBendingPlane = state.range(1);
-  o2::mch::mapping::CathodeSegmentation seg{ detElemId, isBendingPlane };
+  o2::mch::mapping::CathodeSegmentation seg{detElemId, isBendingPlane};
   auto bbox = o2::mch::mapping::getBBox(seg);
 
   const int n = 100000;
   auto testpoints = generateUniformTestPoints(n, bbox.xmin(), bbox.ymin(), bbox.xmax(), bbox.ymax());
 
-  int ntp{ 0 };
+  int ntp{0};
   for (auto _ : state) {
     ntp = 0;
     for (auto& tp : testpoints) {

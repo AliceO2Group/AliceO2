@@ -49,11 +49,11 @@ class PartitionInfo
   unsigned short getNumberOfPads() const { return mNumberOfPads; }
 
  private:
-  unsigned char mNumberOfFECs{ 0 };
-  unsigned char mSectorFECOffset{ 0 };
-  unsigned char mNumberOfPadRows{ 0 };
-  unsigned char mGlobalRowOffset{ 0 };
-  unsigned short mNumberOfPads{ 0 };
+  unsigned char mNumberOfFECs{0};
+  unsigned char mSectorFECOffset{0};
+  unsigned char mNumberOfPadRows{0};
+  unsigned char mGlobalRowOffset{0};
+  unsigned short mNumberOfPads{0};
 };
 
 } // namespace tpc

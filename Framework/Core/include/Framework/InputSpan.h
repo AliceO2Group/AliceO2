@@ -27,8 +27,8 @@ class InputSpan
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
   InputSpan(std::function<const char*(size_t)> getter, size_t size)
-    : mGetter{ getter },
-      mSize{ size }
+    : mGetter{getter},
+      mSize{size}
   {
   }
 

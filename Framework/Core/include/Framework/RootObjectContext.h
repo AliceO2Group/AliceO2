@@ -24,26 +24,27 @@ namespace o2
 namespace framework
 {
 
-/// Holds ROOT objects which are being processed by a given 
+/// Holds ROOT objects which are being processed by a given
 /// computation.
-class RootObjectContext {
-public:
- RootObjectContext(FairMQDeviceProxy proxy)
-   : mProxy{ proxy }
- {
- }
+class RootObjectContext
+{
+ public:
+  RootObjectContext(FairMQDeviceProxy proxy)
+    : mProxy{proxy}
+  {
+  }
 
- struct MessageRef {
-   std::unique_ptr<FairMQMessage> header;
-   std::unique_ptr<TObject> payload;
-   std::string channel;
+  struct MessageRef {
+    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<TObject> payload;
+    std::string channel;
   };
 
   using Messages = std::vector<MessageRef>;
 
   void addObject(std::unique_ptr<FairMQMessage> header,
                  std::unique_ptr<TObject> obj,
-                 const std::string &channel)
+                 const std::string& channel)
   {
     mMessages.push_back(std::move(MessageRef{std::move(header),
                                              std::move(obj),
@@ -70,7 +71,7 @@ public:
     // On send we move the header, but the payload remains
     // there because what's really sent is the TMessage
     // payload will be cleared by the mMessages.clear()
-    for (auto &m : mMessages) {
+    for (auto& m : mMessages) {
       assert(m.header.get() == nullptr);
       assert(m.payload.get() != nullptr);
     }

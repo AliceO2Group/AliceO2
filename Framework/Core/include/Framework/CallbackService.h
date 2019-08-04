@@ -35,7 +35,7 @@ class CallbackService
   template <typename T, T... v>
   class EnumRegistry
   {
-    constexpr static T values[] = { v... };
+    constexpr static T values[] = {v...};
     constexpr static std::size_t size = sizeof...(v);
   };
 

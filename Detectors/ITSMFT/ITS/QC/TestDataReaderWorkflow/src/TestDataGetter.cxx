@@ -61,12 +61,12 @@ DataProcessorSpec getTestDataGetterSpec()
   return DataProcessorSpec{
     "its-rawpixel-getter",
     Inputs{
-      InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
-      InputSpec{ "in", "ITS", "TEST", 0, Lifetime::Timeframe },
+      InputSpec{"digits", "ITS", "DIGITS", 0, Lifetime::Timeframe},
+      InputSpec{"in", "ITS", "TEST", 0, Lifetime::Timeframe},
       //		InputSpec{ "Run", "TST", "TEST2", 0, Lifetime::Timeframe },
     },
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<TestDataGetter>() },
+    AlgorithmSpec{adaptFromTask<TestDataGetter>()},
   };
 }
 } // namespace its

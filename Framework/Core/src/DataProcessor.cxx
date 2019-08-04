@@ -37,8 +37,9 @@ void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char
   device.Send(parts, channel, index);
 }
 
-void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
-  for (auto &message : context) {
+void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
+{
+  for (auto& message : context) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
     FairMQParts parts = std::move(message->finalize());
     assert(message->empty());
@@ -48,8 +49,9 @@ void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
   }
 }
 
-void DataProcessor::doSend(FairMQDevice &device, RootObjectContext &context) {
-  for (auto &messageRef : context) {
+void DataProcessor::doSend(FairMQDevice& device, RootObjectContext& context)
+{
+  for (auto& messageRef : context) {
     assert(messageRef.payload.get());
     FairMQParts parts;
     FairMQMessagePtr payload(device.NewMessage());
@@ -58,7 +60,7 @@ void DataProcessor::doSend(FairMQDevice &device, RootObjectContext &context) {
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
-    DataHeader *dh = const_cast<DataHeader *>(cdh);
+    DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));

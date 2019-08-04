@@ -11,12 +11,12 @@
 #ifndef ALICEO2_CDB_FILEDUMP_H_
 #define ALICEO2_CDB_FILEDUMP_H_
 
-#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
-#include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, kFALSE, etc
-#include "CCDB/Storage.h"  // for Storage
-#include "TString.h"  // for TString
+#include "CCDB/Manager.h" // for StorageFactory, StorageParameters
+#include "Rtypes.h"       // for Bool_t, Int_t, ClassDef, kFALSE, etc
+#include "CCDB/Storage.h" // for Storage
+#include "TString.h"      // for TString
 
-class TFile;  // lines 8-8
+class TFile; // lines 8-8
 class TList;
 
 class TObject;
@@ -93,7 +93,7 @@ class FileStorage : public Storage
   TFile* mFile;     // FileStorage file
   Bool_t mReadOnly; // ReadOnly flag
 
-  ClassDefOverride(FileStorage, 0)
+  ClassDefOverride(FileStorage, 0);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -113,7 +113,7 @@ class FileStorageFactory : public StorageFactory
  protected:
   Storage* createStorage(const StorageParameters* param) override;
 
-  ClassDefOverride(FileStorageFactory, 0)
+  ClassDefOverride(FileStorageFactory, 0);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -152,8 +152,8 @@ class FileStorageParameters : public StorageParameters
   TString mDBPath;  // FileStorage file path name
   Bool_t mReadOnly; // ReadOnly flag
 
-  ClassDefOverride(FileStorageParameters, 0)
+  ClassDefOverride(FileStorageParameters, 0);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

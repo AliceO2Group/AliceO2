@@ -15,20 +15,21 @@
 #ifndef ALICEO2_DATA_EVENTINFO_H_
 #define ALICEO2_DATA_EVENTINFO_H_
 
-namespace o2 {
+namespace o2
+{
 
-// A class encapsulating meta information about events being process 
+// A class encapsulating meta information about events being process
 // and the data being sent by run classes such as FairRunAna.
 // Can be send to processing tasks for usage so that they do no longer
 // need to access the FairRootManager directly.
 struct ProcessingEventInfo {
-  double eventTime; //! time of the current event
-  int    eventNumber; //! the current entry
-  int    sourceNumber; //! the current source number
-  bool   numberSources; //! number of sources
+  double eventTime;   //! time of the current event
+  int eventNumber;    //! the current entry
+  int sourceNumber;   //! the current source number
+  bool numberSources; //! number of sources
   // can be extended further
 };
 
-}
+} // namespace o2
 
 #endif

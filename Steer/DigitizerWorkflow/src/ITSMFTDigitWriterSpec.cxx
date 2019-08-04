@@ -189,10 +189,10 @@ DataProcessorSpec getITSDigitWriterSpec()
   auto detOrig = ITSDPLDigitWriter::DETOR;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
@@ -200,10 +200,9 @@ DataProcessorSpec getITSDigitWriterSpec()
     {}, // no output
     AlgorithmSpec(adaptFromTask<ITSDPLDigitWriter>()),
     Options{
-      { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {(detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 
 DataProcessorSpec getMFTDigitWriterSpec()
@@ -214,10 +213,10 @@ DataProcessorSpec getMFTDigitWriterSpec()
   auto detOrig = MFTDPLDigitWriter::DETOR;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{ (detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe });
-  inputs.emplace_back(InputSpec{ (detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
@@ -225,10 +224,9 @@ DataProcessorSpec getMFTDigitWriterSpec()
     {}, // no output
     AlgorithmSpec(adaptFromTask<MFTDPLDigitWriter>()),
     Options{
-      { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {(detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 
 } // end namespace itsmft

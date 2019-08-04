@@ -148,7 +148,7 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
   return kFALSE;
 }
 
-} // end namespace
+} // namespace eventgen
 } // end namespace o2
 
-ClassImp(o2::eventgen::GeneratorFromFile)
+ClassImp(o2::eventgen::GeneratorFromFile);

@@ -18,15 +18,15 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string spaceParallelHelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
-    ConfigParamSpec{ "2-layer-jobs", VariantType::Int, 1, { spaceParallelHelp } });
+    ConfigParamSpec{"2-layer-jobs", VariantType::Int, 1, {spaceParallelHelp}});
 
   std::string timeHelp("Time pipelining happening in the second layer");
   workflowOptions.push_back(
-    ConfigParamSpec{ "3-layer-pipelining", VariantType::Int, 1, { timeHelp } });
+    ConfigParamSpec{"3-layer-pipelining", VariantType::Int, 1, {timeHelp}});
 
   std::string inputHelp("Type of input to be used: readout / stfb");
   workflowOptions.push_back(
-    ConfigParamSpec{ "input-type", VariantType::String, "readout", { inputHelp } });
+    ConfigParamSpec{"input-type", VariantType::String, "readout", {inputHelp}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -44,25 +44,25 @@ using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProcessor()
 {
-  return DataProcessorSpec{ "some-processor", {
-                                                InputSpec{ "x", "ITS", "RAWDATA", 0, Lifetime::Timeframe },
-                                              },
-                            {
-                              OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
-                            },
-                            // The processor is stateful. We want to call srand only
-                            // once, and then return the callback to be invoked for every message.
-                            AlgorithmSpec{ [](InitContext& setup) {
-                              srand(setup.services().get<ParallelContext>().index1D());
-                              return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
-                                auto values = inputs.get("x");
-                                // Create a single output.
-                                size_t index = parallelInfo.index1D();
-                                LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
-                                auto aData =
-                                  outputs.make<int>(Output{ "TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
-                              });
-                            } } };
+  return DataProcessorSpec{"some-processor", {
+                                               InputSpec{"x", "ITS", "RAWDATA", 0, Lifetime::Timeframe},
+                                             },
+                           {
+                             OutputSpec{"TST", "P", 0, Lifetime::Timeframe},
+                           },
+                           // The processor is stateful. We want to call srand only
+                           // once, and then return the callback to be invoked for every message.
+                           AlgorithmSpec{[](InitContext& setup) {
+                             srand(setup.services().get<ParallelContext>().index1D());
+                             return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
+                               auto values = inputs.get("x");
+                               // Create a single output.
+                               size_t index = parallelInfo.index1D();
+                               LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
+                               auto aData =
+                                 outputs.make<int>(Output{"TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
+                             });
+                           }}};
 }
 
 /// This creates a workflow with 4 layers:
@@ -93,9 +93,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   /// '--channel-config "name=readout-proxy,type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1"'
   DataProcessorSpec readoutProxy = specifyExternalFairMQDeviceProxy(
     "readout-proxy",
-    Outputs{ { "ITS", "RAWDATA" } },
+    Outputs{{"ITS", "RAWDATA"}},
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    inputType == "readout" ? readoutAdapter({ "ITS", "RAWDATA" }) : dplModelAdaptor({ "ITS", "RAWDATA" }));
+    inputType == "readout" ? readoutAdapter({"ITS", "RAWDATA"}) : dplModelAdaptor({"ITS", "RAWDATA"}));
 
   // This is an example of how we can parallelize by subSpec.
   // templatedProcessor will be instanciated N times and the lambda function
@@ -115,17 +115,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   DataProcessorSpec timeParallelProcessor = timePipeline(
     DataProcessorSpec{
       "merger",
-      mergeInputs(InputSpec{ "x", "TST", "P" },
+      mergeInputs(InputSpec{"x", "TST", "P"},
                   jobs,
                   [](InputSpec& input, size_t index) {
                     DataSpecUtils::updateMatchingSubspec(input, index);
                   }),
-      { OutputSpec{ { "label" }, "TST", "merger_output" } },
-      AlgorithmSpec{ [](InitContext& setup) {
+      {OutputSpec{{"label"}, "TST", "merger_output"}},
+      AlgorithmSpec{[](InitContext& setup) {
         return [](ProcessingContext& ctx) {
           ctx.outputs().make<int>(OutputRef("label", 0), 1);
         };
-      } } },
+      }}},
     stages);
 
   // proxyOut is the component which will forward things to be
@@ -133,13 +133,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // FIXME: actually connect to DataDistribution to push data somewhere else.
   DataProcessorSpec proxyOut{
     "proxyout",
-    Inputs{ InputSpec{ "x", "TST", "merger_output" } },
+    Inputs{InputSpec{"x", "TST", "merger_output"}},
     Outputs{},
-    AlgorithmSpec{ [](InitContext& setup) {
+    AlgorithmSpec{[](InitContext& setup) {
       return [](ProcessingContext& ctx) {
       };
-    } }
-  };
+    }}};
 
   WorkflowSpec workflow;
   workflow.emplace_back(readoutProxy);

@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(test_simple_integral)
 {
   // the simple case using integral type
   std::vector<int> tokens = RangeTokenizer::tokenize<int>("0-5,10,13-15");
-  std::vector<int> expected{ 0, 1, 2, 3, 4, 5, 10, 13, 14, 15 };
+  std::vector<int> expected{0, 1, 2, 3, 4, 5, 10, 13, 14, 15};
   BOOST_CHECK(tokens == expected);
 }
 
@@ -48,9 +48,9 @@ BOOST_AUTO_TEST_CASE(test_mapped_custom)
                      Tomato };
 
   const std::map<std::string, Food> FoodMap{
-    { "apple", Food::Apple },
-    { "strawberry", Food::Strawberry },
-    { "tomato", Food::Tomato },
+    {"apple", Food::Apple},
+    {"strawberry", Food::Strawberry},
+    {"tomato", Food::Tomato},
   };
   auto tester = [FoodMap](const char* arg) {
     // use a custom mapper function, this evetually throws an exception if the token is not in the map

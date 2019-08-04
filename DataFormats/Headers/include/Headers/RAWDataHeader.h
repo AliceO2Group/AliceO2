@@ -17,8 +17,10 @@
 
 #include <cstdint>
 
-namespace o2 {
-namespace header {
+namespace o2
+{
+namespace header
+{
 
 /// The definition of the RAW Data Header is specified in
 /// https://docs.google.com/document/d/1IxCCa1ZRpI3J9j3KCmw2htcOLIRVVdEcO-DDPcLNFM0
@@ -179,8 +181,7 @@ struct RAWDataHeaderV3 {
 ///                 incremented starting from 0
 /// - stop:         bit 0 of the stop field is set if this is the last page
 /// - detector field and par are detector specific fields
-struct RAWDataHeaderV2
-{
+struct RAWDataHeaderV2 {
   union {
     // default value
     uint64_t word0 = 0x0004ffffff000002;
@@ -190,44 +191,44 @@ struct RAWDataHeaderV2
     //                   | | invalid link id
     //                   | header size 4 x 64 bit
     struct {
-      uint64_t version:8;        /// bit 0 to 8: header version
-      uint64_t blockLength:16;   /// bit 9 to 23: block length
-      uint64_t feeId:16;         /// bit 24 to 39: FEE identifier
-      uint64_t linkId:8;         /// bit 40 to 47: link identifier
-      uint64_t headerSize:8;     /// bit 48 to 55: header size
-      uint64_t zero0:8;          /// bit 56 to 63: zeroed
+      uint64_t version : 8;      /// bit 0 to 8: header version
+      uint64_t blockLength : 16; /// bit 9 to 23: block length
+      uint64_t feeId : 16;       /// bit 24 to 39: FEE identifier
+      uint64_t linkId : 8;       /// bit 40 to 47: link identifier
+      uint64_t headerSize : 8;   /// bit 48 to 55: header size
+      uint64_t zero0 : 8;        /// bit 56 to 63: zeroed
     };
   };
   union {
     uint64_t word1 = 0x0;
     struct {
-      uint32_t triggerOrbit;     /// bit 0 to 31: trigger orbit
-      uint32_t heartbeatOrbit;   /// bit 32 to 63: trigger orbit
+      uint32_t triggerOrbit;   /// bit 0 to 31: trigger orbit
+      uint32_t heartbeatOrbit; /// bit 32 to 63: trigger orbit
     };
   };
   union {
     uint64_t word2 = 0x0;
     struct {
-      uint64_t triggerBC:12;     /// bit 0 to 11: trigger BC ID
-      uint64_t triggerType:32;   /// bit 12 to 43: trigger type
-      uint64_t heartbeatBC:12;   /// bit 44 to 55: heartbeat BC ID
-      uint64_t zero2:8;          /// bit 56 to 63: zeroed
+      uint64_t triggerBC : 12;   /// bit 0 to 11: trigger BC ID
+      uint64_t triggerType : 32; /// bit 12 to 43: trigger type
+      uint64_t heartbeatBC : 12; /// bit 44 to 55: heartbeat BC ID
+      uint64_t zero2 : 8;        /// bit 56 to 63: zeroed
     };
   };
   union {
     uint64_t word3 = 0x0;
     struct {
-      uint64_t pageCnt:16;       /// bit 0 to 15: pages counter
-      uint64_t stop:8;           /// bit 13 to 23: stop code
-      uint64_t detectorField:16; /// bit 24 to 39: detector field
-      uint64_t par:16;           /// bit 40 to 55: par
-      uint64_t zero3:8;          /// bit 56 to 63: zeroed
+      uint64_t pageCnt : 16;       /// bit 0 to 15: pages counter
+      uint64_t stop : 8;           /// bit 13 to 23: stop code
+      uint64_t detectorField : 16; /// bit 24 to 39: detector field
+      uint64_t par : 16;           /// bit 40 to 55: par
+      uint64_t zero3 : 8;          /// bit 56 to 63: zeroed
     };
   };
 };
 
 using RAWDataHeader = RAWDataHeaderV3;
-}
-}
+} // namespace header
+} // namespace o2
 
 #endif // ALICEO2_HEADER_RAWDATAHEADER_H

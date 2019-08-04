@@ -26,20 +26,16 @@
 #include <options/FairMQProgOptions.h>
 #include <boost/filesystem.hpp>
 
-
 using DataHeader = o2::header::DataHeader;
 using IndexElement = o2::dataformats::IndexElement;
 
-namespace o2 { namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 TimeframeWriterDevice::TimeframeWriterDevice()
-  : O2Device{}
-  , mInChannelName{}
-  , mFile{}
-  , mMaxTimeframes{}
-  , mMaxFileSize{}
-  , mMaxFiles{}
-  , mFileCount{0}
+  : O2Device{}, mInChannelName{}, mFile{}, mMaxTimeframes{}, mMaxFileSize{}, mMaxFiles{}, mFileCount{0}
 {
 }
 
@@ -64,8 +60,8 @@ void TimeframeWriterDevice::Run()
     if (needsNewFile) {
       std::string filename = mOutFileName;
       if (mMaxFiles > 1) {
-        std::string base_path(mOutFileName,  0, mOutFileName.find_last_of("."));
-        std::string extension(mOutFileName,  mOutFileName.find_last_of("."));
+        std::string base_path(mOutFileName, 0, mOutFileName.find_last_of("."));
+        std::string extension(mOutFileName, mOutFileName.find_last_of("."));
         filename = base_path + std::to_string(mFileCount) + extension;
       }
       LOG(INFO) << "Opening " << filename << " for output\n";
@@ -78,8 +74,7 @@ void TimeframeWriterDevice::Run()
       continue;
 
     streamTimeframe(mFile, timeframeParts);
-    if ((mFile.tellp() > mMaxFileSize) || (streamedTimeframes++ > mMaxTimeframes))
-    {
+    if ((mFile.tellp() > mMaxFileSize) || (streamedTimeframes++ > mMaxTimeframes)) {
       mFile.flush();
       mFile.close();
       mFileCount++;
@@ -96,4 +91,5 @@ void TimeframeWriterDevice::PostRun()
   }
 }
 
-}} // namespace o2::data_flow
+} // namespace data_flow
+} // namespace o2

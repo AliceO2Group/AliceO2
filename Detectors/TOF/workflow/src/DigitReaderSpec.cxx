@@ -57,14 +57,14 @@ void DigitReader::run(ProcessingContext& pc)
     treeDig->GetEntry(0);
 
     // add digits loaded in the output snapshot
-    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, mDigits);
+    pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     if (mUseMC)
-      pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, mLabels);
+      pc.outputs().snapshot(Output{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "TOF", "ROMode", 0, Lifetime::Timeframe }, roMode);
+    pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
   } else {
     LOG(ERROR) << "Cannot read the TOF digits !";
     return;
@@ -87,10 +87,9 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     "tof-digit-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{ adaptFromTask<DigitReader>(useMC) },
+    AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      { "tof-digit-infile", VariantType::String, "tofdigits.root", { "Name of the input file" } } }
-  };
+      {"tof-digit-infile", VariantType::String, "tofdigits.root", {"Name of the input file"}}}};
 }
 
 } // namespace tof

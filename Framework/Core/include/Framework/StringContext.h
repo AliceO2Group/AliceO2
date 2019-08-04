@@ -30,7 +30,7 @@ class StringContext
 {
  public:
   StringContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
+    : mProxy{proxy}
   {
   }
 
@@ -46,9 +46,9 @@ class StringContext
                  std::unique_ptr<std::string> s,
                  const std::string& channel)
   {
-    mMessages.push_back(std::move(MessageRef{ std::move(header),
-                                              std::move(s),
-                                              channel }));
+    mMessages.push_back(std::move(MessageRef{std::move(header),
+                                             std::move(s),
+                                             channel}));
   }
 
   Messages::iterator begin()

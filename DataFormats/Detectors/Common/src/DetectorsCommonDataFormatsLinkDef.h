@@ -16,8 +16,8 @@
 
 #pragma link C++ class o2::detectors::DetID + ;
 #pragma link C++ class o2::detectors::AlignParam + ;
-#pragma link C++ class o2::detectors::MatrixCache < o2::Transform3D > +;
-#pragma link C++ class o2::detectors::MatrixCache < o2::Rotation2D > +;
+#pragma link C++ class o2::detectors::MatrixCache < o2::Transform3D> + ;
+#pragma link C++ class o2::detectors::MatrixCache < o2::Rotation2D> + ;
 #pragma link C++ class o2::detectors::DetMatrixCache + ;
 #pragma link C++ class o2::detectors::DetMatrixCacheIndirect + ;
 

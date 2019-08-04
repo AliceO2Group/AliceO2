@@ -36,7 +36,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
  private:
   Int_t mNphot; // Number of photons created by current hit
 
-  ClassDefNV(Hit, 1)
+  ClassDefNV(Hit, 1);
 };
 
 Hit::Hit(int trackID, unsigned short detID, const TVector3& Pos, double Time, double eLoss, int nPhot)

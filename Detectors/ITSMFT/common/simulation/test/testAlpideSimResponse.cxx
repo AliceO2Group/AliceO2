@@ -23,24 +23,24 @@ BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
   // test for the templated Descriptor struct
   AlpideSimResponse resp;
   resp.initData();
-  float vCol=1.e-4, vRow=1.e-4, vDepth=10.e-4;
+  float vCol = 1.e-4, vRow = 1.e-4, vDepth = 10.e-4;
   LOG(INFO) << "Checking response from vRow:" << vCol << " vCol:" << vCol
             << " Depth:" << vDepth << FairLogger::endl;
   bool flipCol, flipRow;
-  auto respMat = resp.getResponse(vRow,vCol,resp.getDepthMax()-vDepth,flipRow,flipCol);
-  BOOST_CHECK( respMat!=nullptr );
-  respMat->print(flipRow,flipCol);
+  auto respMat = resp.getResponse(vRow, vCol, resp.getDepthMax() - vDepth, flipRow, flipCol);
+  BOOST_CHECK(respMat != nullptr);
+  respMat->print(flipRow, flipCol);
   // repsonse at central pixel for electron close to the surface should be >>0
-  int pixCen = respMat->getNPix()/2;
+  int pixCen = respMat->getNPix() / 2;
   LOG(INFO) << "Response at central pixel " << pixCen << ":" << pixCen
-            << " is " << respMat->getValue(pixCen,pixCen,flipRow,flipCol) << FairLogger::endl;
-  BOOST_CHECK(respMat->getValue(pixCen,pixCen,flipRow,flipCol) > 1e-6);
+            << " is " << respMat->getValue(pixCen, pixCen, flipRow, flipCol) << FairLogger::endl;
+  BOOST_CHECK(respMat->getValue(pixCen, pixCen, flipRow, flipCol) > 1e-6);
   //
   // check normalization
   float norm = 0.f;
-  for (int ir=respMat->getNPix();ir--;) {
-    for (int ic=respMat->getNPix();ic--;) {
-      norm += respMat->getValue(ir,ic,flipRow,flipCol);
+  for (int ir = respMat->getNPix(); ir--;) {
+    for (int ic = respMat->getNPix(); ic--;) {
+      norm += respMat->getValue(ir, ic, flipRow, flipCol);
     }
   }
   LOG(INFO) << "Total response to 1 electron: " << norm << FairLogger::endl;

@@ -20,7 +20,7 @@ namespace conf
 {
 class SimConfig;
 }
-}
+} // namespace o2
 
 namespace o2
 {

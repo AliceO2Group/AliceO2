@@ -305,7 +305,7 @@ class GPUDisplay
   vecpod<GLvertex> mVertexBuffer[NSLICES];
   vecpod<GLint> mVertexBufferStart[NSLICES];
   vecpod<GLsizei> mVertexBufferCount[NSLICES];
-  vecpod<GLuint> mMainBufferStack{ 0 };
+  vecpod<GLuint> mMainBufferStack{0};
 
   int mNDrawCalls = 0;
   bool mUseGLIndirectDraw = true;

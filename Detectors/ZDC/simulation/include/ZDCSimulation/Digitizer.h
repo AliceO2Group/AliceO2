@@ -28,7 +28,7 @@ class Digitizer
 {
  public:
   struct ChannelBCDataF { // float (accumulable) version of the ChannelBCData
-    std::array<float, NTimeBinsPerBC> data = { 0.f };
+    std::array<float, NTimeBinsPerBC> data = {0.f};
   };
   struct ChannelDataF { //  float (accumulable) version of the ChannelData
     std::array<ChannelBCDataF, NBCReadOut> data = {};

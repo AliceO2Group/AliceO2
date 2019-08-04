@@ -18,8 +18,9 @@ namespace o2
 namespace framework
 {
 
-class ResourceManager {
-public:
+class ResourceManager
+{
+ public:
   virtual std::vector<ComputingResource> getAvailableResources() = 0;
 };
 

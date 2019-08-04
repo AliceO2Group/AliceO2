@@ -41,34 +41,22 @@
 #include <iostream>
 #include <memory>
 #include <utility> //std::move
-#include <thread> // this_thread::sleep_for
+#include <thread>  // this_thread::sleep_for
 
 using std::string;
-using std::vector;
 using std::unique_ptr;
+using std::vector;
 using namespace o2::alice_hlt;
 
 using std::chrono::system_clock;
 using TimeScale = std::chrono::milliseconds;
 
 WrapperDevice::WrapperDevice(int verbosity)
-  : mComponent(nullptr)
-  , mMessages()
-  , mPollingPeriod(10)
-  , mSkipProcessing(0)
-  , mLastCalcTime(-1)
-  , mLastSampleTime(-1)
-  , mMinTimeBetweenSample(-1)
-  , mMaxTimeBetweenSample(-1)
-  , mTotalReadCycles(-1)
-  , mMaxReadCycles(-1)
-  , mNSamples(-1)
-  , mVerbosity(verbosity)
+  : mComponent(nullptr), mMessages(), mPollingPeriod(10), mSkipProcessing(0), mLastCalcTime(-1), mLastSampleTime(-1), mMinTimeBetweenSample(-1), mMaxTimeBetweenSample(-1), mTotalReadCycles(-1), mMaxReadCycles(-1), mNSamples(-1), mVerbosity(verbosity)
 {
 }
 
-WrapperDevice::~WrapperDevice()
-= default;
+WrapperDevice::~WrapperDevice() = default;
 
 constexpr const char* WrapperDevice::OptionKeys[];
 
@@ -76,13 +64,11 @@ bpo::options_description WrapperDevice::GetOptionsDescription()
 {
   // assemble the options for the device class and component
   bpo::options_description od("WrapperDevice options");
-  od.add_options()
-    (OptionKeys[OptionKeyPollPeriod],
-     bpo::value<int>()->default_value(10),
-     "polling period")
-    ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "skip component processing");
+  od.add_options()(OptionKeys[OptionKeyPollPeriod],
+                   bpo::value<int>()->default_value(10),
+                   "polling period")((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
+                                     bpo::value<bool>()->zero_tokens()->default_value(false),
+                                     "skip component processing");
   od.add(Component::GetOptionsDescription());
   return od;
 }
@@ -91,10 +77,11 @@ void WrapperDevice::InitTask()
 {
   /// inherited from FairMQDevice
 
-  int iResult=0;
+  int iResult = 0;
 
   std::unique_ptr<Component> component(new o2::alice_hlt::Component);
-  if (!component.get()) return /*-ENOMEM*/;
+  if (!component.get())
+    return /*-ENOMEM*/;
 
   // loop over program options, check if the option was used and
   // add it together with the parameter to the argument vector.
@@ -103,12 +90,12 @@ void WrapperDevice::InitTask()
   // provide such a functionality
   vector<std::string> argstrings;
   bpo::options_description componentOptionDescriptions = Component::GetOptionsDescription();
-  const auto * config = GetConfig();
+  const auto* config = GetConfig();
   if (config) {
     const auto varmap = config->GetVarMap();
     for (const auto varit : varmap) {
       // check if this key belongs to the options of the device
-      const auto * description = componentOptionDescriptions.find_nothrow(varit.first, false);
+      const auto* description = componentOptionDescriptions.find_nothrow(varit.first, false);
       if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
         argstrings.emplace_back("--");
         argstrings.back() += varit.first;
@@ -120,7 +107,7 @@ void WrapperDevice::InitTask()
           // currently only the simple case is supported
           assert(semantic->min_tokens() <= 1);
           assert(semantic->max_tokens() && semantic->min_tokens());
-          if (semantic->min_tokens() > 0 ) {
+          if (semantic->min_tokens() > 0) {
             // add the token
             argstrings.emplace_back(varit.second.as<std::string>());
           }
@@ -133,9 +120,9 @@ void WrapperDevice::InitTask()
 
   // TODO: probably one can get rid of this option, the instance/device
   // id is now specified with the --id option of FairMQProgOptions
-  string idkey="--instance-id";
-  string id="";
-  id=GetId();
+  string idkey = "--instance-id";
+  string id = "";
+  id = GetId();
   vector<char*> argv;
   argv.emplace_back(&idkey[0]);
   argv.emplace_back(&id[0]);
@@ -143,26 +130,26 @@ void WrapperDevice::InitTask()
     argv.emplace_back(&argstringiter[0]);
   }
 
-  if ((iResult=component->init(argv.size(), &argv[0]))<0) {
+  if ((iResult = component->init(argv.size(), &argv[0])) < 0) {
     LOG(ERROR) << "component init failed with error code " << iResult;
     throw std::runtime_error("component init failed");
     return /*iResult*/;
   }
 
-  mComponent=component.release();
-  mLastCalcTime=-1;
-  mLastSampleTime=-1;
-  mMinTimeBetweenSample=-1;
-  mMaxTimeBetweenSample=-1;
-  mTotalReadCycles=0;
-  mMaxReadCycles=-1;
-  mNSamples=0;
+  mComponent = component.release();
+  mLastCalcTime = -1;
+  mLastSampleTime = -1;
+  mMinTimeBetweenSample = -1;
+  mMaxTimeBetweenSample = -1;
+  mTotalReadCycles = 0;
+  mMaxReadCycles = -1;
+  mNSamples = 0;
 }
 
 void WrapperDevice::Run()
 {
   /// inherited from FairMQDevice
-  int iResult=0;
+  int iResult = 0;
 
   static system_clock::time_point refTime = system_clock::now();
 
@@ -170,13 +157,13 @@ void WrapperDevice::Run()
   // fChannels
   // fTransportFactory
   int numInputs = fChannels["data-in"].size();
-  unique_ptr<FairMQPoller> poller(numInputs > 0?fChannels["data-in"].at(0).Transport()->CreatePoller(fChannels["data-in"]):nullptr);
+  unique_ptr<FairMQPoller> poller(numInputs > 0 ? fChannels["data-in"].at(0).Transport()->CreatePoller(fChannels["data-in"]) : nullptr);
 
-  int errorCount=0;
-  const int maxError=10;
+  int errorCount = 0;
+  const int maxError = 10;
 
   vector<FairMQParts> socketInputs(numInputs);
-  int nReadCycles=0;
+  int nReadCycles = 0;
   while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 
     // read input messages
@@ -185,9 +172,9 @@ void WrapperDevice::Run()
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
     }
-    int inputsReceived=0;
-    bool receivedAtLeastOneMessage=false;
-    for(int i = 0; i < numInputs; i++) {
+    int inputsReceived = 0;
+    bool receivedAtLeastOneMessage = false;
+    for (int i = 0; i < numInputs; i++) {
       if (socketInputs[i].Size() > 0) {
         inputsReceived++;
         continue;
@@ -205,31 +192,32 @@ void WrapperDevice::Run()
         }
       }
     }
-    if (receivedAtLeastOneMessage) nReadCycles++;
-    if (inputsReceived<numInputs) {
+    if (receivedAtLeastOneMessage)
+      nReadCycles++;
+    if (inputsReceived < numInputs) {
       continue;
     }
     mNSamples++;
-    mTotalReadCycles+=nReadCycles;
-    if (mMaxReadCycles<0 || mMaxReadCycles<nReadCycles)
-      mMaxReadCycles=nReadCycles;
+    mTotalReadCycles += nReadCycles;
+    if (mMaxReadCycles < 0 || mMaxReadCycles < nReadCycles)
+      mMaxReadCycles = nReadCycles;
     // if (nReadCycles>1) {
     //   LOG(INFO) << "------ recieved complete Msg from " << numInputs << " input(s) after " << nReadCycles << " read cycles" ;
     // }
-    nReadCycles=0;
+    nReadCycles = 0;
 
     auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
 
-    if (mLastSampleTime>=0) {
-      int sampleTimeDiff=duration.count()-mLastSampleTime;
-      if (mMinTimeBetweenSample < 0 || sampleTimeDiff<mMinTimeBetweenSample)
-        mMinTimeBetweenSample=sampleTimeDiff;
-      if (mMaxTimeBetweenSample < 0 || sampleTimeDiff>mMaxTimeBetweenSample)
-        mMaxTimeBetweenSample=sampleTimeDiff;
+    if (mLastSampleTime >= 0) {
+      int sampleTimeDiff = duration.count() - mLastSampleTime;
+      if (mMinTimeBetweenSample < 0 || sampleTimeDiff < mMinTimeBetweenSample)
+        mMinTimeBetweenSample = sampleTimeDiff;
+      if (mMaxTimeBetweenSample < 0 || sampleTimeDiff > mMaxTimeBetweenSample)
+        mMaxTimeBetweenSample = sampleTimeDiff;
     }
-    mLastSampleTime=duration.count();
-    if (duration.count()-mLastCalcTime>1000) {
-      LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
+    mLastSampleTime = duration.count();
+    if (duration.count() - mLastCalcTime > 1000) {
+      LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total "
                 << mComponent->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
         LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
@@ -237,12 +225,12 @@ void WrapperDevice::Run()
         LOG(INFO) << "------ avrg number of read cycles " << mTotalReadCycles / mNSamples
                   << "  max number of read cycles " << mMaxReadCycles;
       }
-      mNSamples=0;
-      mTotalReadCycles=0;
-      mMinTimeBetweenSample=-1;
-      mMaxTimeBetweenSample=-1;
-      mMaxReadCycles=-1;
-      mLastCalcTime=duration.count();
+      mNSamples = 0;
+      mTotalReadCycles = 0;
+      mMinTimeBetweenSample = -1;
+      mMaxTimeBetweenSample = -1;
+      mMaxReadCycles = -1;
+      mLastCalcTime = duration.count();
     }
 
     if (!mSkipProcessing) {
@@ -250,7 +238,7 @@ void WrapperDevice::Run()
       vector<o2::alice_hlt::MessageFormat::BufferDesc_t> dataArray;
       for (auto& socketInput : socketInputs) {
         for (auto& msg : socketInput.fParts) {
-          void* buffer=msg->GetData();
+          void* buffer = msg->GetData();
           dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), msg->GetSize());
         }
       }
@@ -258,11 +246,11 @@ void WrapperDevice::Run()
       // create a signal with the callback to the buffer allocation, the component
       // can create messages via the callback and writes data directly to buffer
       cballoc_signal_t cbsignal;
-      cbsignal.connect([this](unsigned int size){return this->createMessageBuffer(size);} );
+      cbsignal.connect([this](unsigned int size) { return this->createMessageBuffer(size); });
       mMessages.clear();
 
       // call the component
-      if ((iResult=mComponent->process(dataArray, &cbsignal))<0) {
+      if ((iResult = mComponent->process(dataArray, &cbsignal)) < 0) {
         LOG(ERROR) << "component processing failed with error code " << iResult;
       }
 
@@ -272,19 +260,19 @@ void WrapperDevice::Run()
           LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
         }
         for (auto opayload : dataArray) {
-          FairMQMessage* omsg=nullptr;
+          FairMQMessage* omsg = nullptr;
           // loop over pre-allocated messages
           for (auto premsg = begin(mMessages); premsg != end(mMessages); premsg++) {
             if ((*premsg)->GetData() == opayload.mP &&
                 (*premsg)->GetSize() == opayload.mSize) {
-              omsg=(*premsg).get();
+              omsg = (*premsg).get();
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "using pre-allocated message of size " << opayload.mSize;
               }
               break;
             }
           }
-          if (omsg==nullptr) {
+          if (omsg == nullptr) {
             FairMQMessagePtr msg = NewMessage(opayload.mSize);
             if (msg.get()) {
               if (msg->GetSize() < opayload.mSize) {
@@ -308,12 +296,12 @@ void WrapperDevice::Run()
         }
       }
 
-      if (mMessages.size()>0) {
+      if (mMessages.size() > 0) {
         if (fChannels.find("data-out") != fChannels.end() && fChannels["data-out"].size() > 0) {
           // TODO: request FairMQParts helper function to set vector
           // of messages
           FairMQParts outputParts;
-          for (auto & msg : mMessages) {
+          for (auto& msg : mMessages) {
             outputParts.AddPart(std::move(msg));
           }
           Send(outputParts, "data-out", 0);

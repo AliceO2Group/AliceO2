@@ -103,7 +103,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
-  std::vector<o2::itsmft::ROFRecord> clusterROframes;                  // To be filled in future
+  std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
@@ -116,13 +116,13 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
             << clusterROframes.size() << " RO frames";
 
-  pc.outputs().snapshot(Output{ "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe }, compClusters);
-  pc.outputs().snapshot(Output{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
-  pc.outputs().snapshot(Output{ "ITS", "ITSClusterROF", 0, Lifetime::Timeframe }, clusterROframes);
+  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
+  pc.outputs().snapshot(Output{"ITS", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
+  pc.outputs().snapshot(Output{"ITS", "ITSClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, *clusterLabels.get());
+    pc.outputs().snapshot(Output{"ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
     std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
-    pc.outputs().snapshot(Output{ "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe }, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{"ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
   mState = 2;
@@ -151,11 +151,10 @@ DataProcessorSpec getClustererSpec(bool useMC)
     "its-clusterer",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<ClustererDPL>(useMC) },
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
-      { "its-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } },
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }
-  };
+      {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
 }
 
 } // namespace its

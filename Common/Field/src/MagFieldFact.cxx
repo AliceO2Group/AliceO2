@@ -16,15 +16,15 @@
 #include "Field/MagneticField.h"
 
 #include <iostream>
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::endl;
 
 using namespace o2::field;
 
-ClassImp(MagFieldFact)
+ClassImp(MagFieldFact);
 
-  static MagFieldFact gMagFieldFact;
+static MagFieldFact gMagFieldFact;
 
 MagFieldFact::MagFieldFact() : FairFieldFactory(), mFieldPar(nullptr) { fCreator = this; }
 MagFieldFact::~MagFieldFact() = default;

@@ -43,9 +43,9 @@ void TrackReader::run(ProcessingContext& pc)
   accumulate();
 
   LOG(INFO) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks";
-  pc.outputs().snapshot(Output{ "TPC", "TRACKS", 0, Lifetime::Timeframe }, mTracksOut);
+  pc.outputs().snapshot(Output{"TPC", "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe }, mMCTruthOut);
+    pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe}, mMCTruthOut);
   }
 
   mFinished = true;
@@ -110,10 +110,9 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
     "tpc-track-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<TrackReader>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      { "tpc-tracks-infile", VariantType::String, "tpctracks.root", { "Name of the input track file" } } }
-  };
+      {"tpc-tracks-infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}}}};
 }
 
 } // namespace tpc

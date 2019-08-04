@@ -35,8 +35,10 @@ namespace bpo = boost::program_options;
 
 class FairMQMessage;
 
-namespace o2 {
-namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 class Component;
 
 /// @class WrapperDevice
@@ -46,8 +48,9 @@ class Component;
 /// The device class implements the interface functions of FairMQ, and it
 /// receives and send messages. The data of the messages are processed
 /// using the Component class.
-class WrapperDevice : public FairMQDevice {
-public:
+class WrapperDevice : public FairMQDevice
+{
+ public:
   /// default constructor
   WrapperDevice(int verbosity = 0);
   /// destructor
@@ -65,8 +68,7 @@ public:
   constexpr static const char* OptionKeys[] = {
     "poll-period",
     "dry-run",
-    nullptr
-  };
+    nullptr};
 
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
@@ -76,9 +78,8 @@ public:
   /// inherited from FairMQDevice
   void Run() override;
 
-protected:
-
-private:
+ protected:
+ private:
   // copy constructor prohibited
   WrapperDevice(const WrapperDevice&);
   // assignment operator prohibited
@@ -87,7 +88,7 @@ private:
   /// create a new message with data buffer of specified size
   unsigned char* createMessageBuffer(unsigned size);
 
-  Component* mComponent;     // component instance
+  Component* mComponent;                   // component instance
   std::vector<FairMQMessagePtr> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms

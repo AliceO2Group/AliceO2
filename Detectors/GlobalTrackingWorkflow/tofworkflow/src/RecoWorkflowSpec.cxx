@@ -117,13 +117,13 @@ class TOFDPLRecoWorkflowTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{ "TOF", "MATCHINFOS", 0, Lifetime::Timeframe }, mMatcher.getMatchedTrackVector());
+    pc.outputs().snapshot(Output{"TOF", "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{ "TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe }, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{ "TOF", "MATCHTPCINFOSMC", 0, Lifetime::Timeframe }, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{ "TOF", "MATCHITSINFOSMC", 0, Lifetime::Timeframe }, mMatcher.getMatchedITSLabelsVector());
+      pc.outputs().snapshot(Output{"TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{"TOF", "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
+      pc.outputs().snapshot(Output{"TOF", "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
-    pc.outputs().snapshot(Output{ "TOF", "CALIBINFOS", 0, Lifetime::Timeframe }, mMatcher.getCalibVector());
+    pc.outputs().snapshot(Output{"TOF", "CALIBINFOS", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
     // declare done
     finished = true;
@@ -158,9 +158,8 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC)
     "TOFRecoWorkflow",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<TOFDPLRecoWorkflowTask>(useMC) },
-    Options{ /* for the moment no options */ }
-  };
+    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC)},
+    Options{/* for the moment no options */}};
 }
 
 } // end namespace tof

@@ -58,7 +58,6 @@ bool pollGUI(void* context, std::function<void(void)> guiCallback)
   glfwPollEvents();
   ImGui_ImplGlfwGL3_NewFrame();
 
-
   // Rendering
   int display_w, display_h;
   glfwGetFramebufferSize(window, &display_w, &display_h);

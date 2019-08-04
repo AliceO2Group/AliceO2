@@ -278,11 +278,11 @@ void Detector::ConstructGeometry()
     if (!mActiveModule[iModule + 1]) {
       continue;
     }
-    Float_t angle[3][2] = { 0 };
+    Float_t angle[3][2] = {0};
     geom->GetModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
-    Float_t pos[3] = { 0 };
+    Float_t pos[3] = {0};
     geom->GetModuleCenter(iModule, pos);
 
     if (iModule == 3) { // special 1/2 module
@@ -300,9 +300,9 @@ void Detector::CreateMaterials()
   // Definitions of materials to build PHOS and associated tracking media.
 
   // --- The PbWO4 crystals ---
-  Float_t aX[3] = { 207.19, 183.85, 16.0 };
-  Float_t zX[3] = { 82.0, 74.0, 8.0 };
-  Float_t wX[3] = { 1.0, 1.0, 4.0 };
+  Float_t aX[3] = {207.19, 183.85, 16.0};
+  Float_t zX[3] = {82.0, 74.0, 8.0};
+  Float_t wX[3] = {1.0, 1.0, 4.0};
   Float_t dX = 8.28;
 
   Mixture(ID_PWO, "PbWO4", aX, zX, dX, -3, wX);
@@ -312,50 +312,50 @@ void Detector::CreateMaterials()
   // ---          Absorption length is ignored ^
 
   // --- Tyvek (CnH2n) ---
-  Float_t aT[2] = { 12.011, 1.00794 };
-  Float_t zT[2] = { 6.0, 1.0 };
-  Float_t wT[2] = { 1.0, 2.0 };
+  Float_t aT[2] = {12.011, 1.00794};
+  Float_t zT[2] = {6.0, 1.0};
+  Float_t wT[2] = {1.0, 2.0};
   Float_t dT = 0.331;
 
   Mixture(ID_TYVEK, "Tyvek", aT, zT, dT, -2, wT);
 
   // --- Polystyrene foam ---
-  Float_t aF[2] = { 12.011, 1.00794 };
-  Float_t zF[2] = { 6.0, 1.0 };
-  Float_t wF[2] = { 1.0, 1.0 };
+  Float_t aF[2] = {12.011, 1.00794};
+  Float_t zF[2] = {6.0, 1.0};
+  Float_t wF[2] = {1.0, 1.0};
   Float_t dF = 0.12;
 
   Mixture(ID_POLYFOAM, "Foam", aF, zF, dF, -2, wF);
 
   // --- Titanium ---
-  Float_t aTIT[3] = { 47.88, 26.98, 54.94 };
-  Float_t zTIT[3] = { 22.0, 13.0, 25.0 };
-  Float_t wTIT[3] = { 69.0, 6.0, 1.0 };
+  Float_t aTIT[3] = {47.88, 26.98, 54.94};
+  Float_t zTIT[3] = {22.0, 13.0, 25.0};
+  Float_t wTIT[3] = {69.0, 6.0, 1.0};
   Float_t dTIT = 4.5;
 
   // --- Silicon ---
   Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, nullptr, 0);
 
   // --- Foam thermo insulation ---
-  Float_t aTI[2] = { 12.011, 1.00794 };
-  Float_t zTI[2] = { 6.0, 1.0 };
-  Float_t wTI[2] = { 1.0, 1.0 };
+  Float_t aTI[2] = {12.011, 1.00794};
+  Float_t zTI[2] = {6.0, 1.0};
+  Float_t wTI[2] = {1.0, 1.0};
   Float_t dTI = 0.04;
 
   Mixture(ID_THERMOINS, "Thermo Insul.", aTI, zTI, dTI, -2, wTI);
 
   // --- Textolith ---
-  Float_t aTX[4] = { 16.0, 28.09, 12.011, 1.00794 };
-  Float_t zTX[4] = { 8.0, 14.0, 6.0, 1.0 };
-  Float_t wTX[4] = { 292.0, 68.0, 462.0, 736.0 };
+  Float_t aTX[4] = {16.0, 28.09, 12.011, 1.00794};
+  Float_t zTX[4] = {8.0, 14.0, 6.0, 1.0};
+  Float_t wTX[4] = {292.0, 68.0, 462.0, 736.0};
   Float_t dTX = 1.75;
 
   Mixture(ID_TEXTOLIT, "Textolit", aTX, zTX, dTX, -4, wTX);
 
   // --- G10 : Printed Circuit Materiall ---
-  Float_t aG10[4] = { 12., 1., 16., 28. };
-  Float_t zG10[4] = { 6., 1., 8., 14. };
-  Float_t wG10[4] = { .259, .288, .248, .205 };
+  Float_t aG10[4] = {12., 1., 16., 28.};
+  Float_t zG10[4] = {6., 1., 8., 14.};
+  Float_t wG10[4] = {.259, .288, .248, .205};
   Float_t dG10 = 1.7;
 
   Mixture(ID_PRINTCIRC, "G10", aG10, zG10, dG10, -4, wG10);
@@ -364,9 +364,9 @@ void Detector::CreateMaterials()
   Material(ID_FE, "Steel", 55.845, 26, 7.87, 1.76, 0., nullptr, 0);
 
   // --- Fiberglass ---
-  Float_t aFG[4] = { 16.0, 28.09, 12.011, 1.00794 };
-  Float_t zFG[4] = { 8.0, 14.0, 6.0, 1.0 };
-  Float_t wFG[4] = { 292.0, 68.0, 462.0, 736.0 };
+  Float_t aFG[4] = {16.0, 28.09, 12.011, 1.00794};
+  Float_t zFG[4] = {8.0, 14.0, 6.0, 1.0};
+  Float_t wFG[4] = {292.0, 68.0, 462.0, 736.0};
   Float_t dFG = 1.9;
 
   Mixture(ID_FIBERGLASS, "Fiberglas", aFG, zFG, dFG, -4, wFG);
@@ -374,17 +374,17 @@ void Detector::CreateMaterials()
   // --- Cables in Air box  ---
   // SERVICES
 
-  Float_t aCA[4] = { 1., 12., 55.8, 63.5 };
-  Float_t zCA[4] = { 1., 6., 26., 29. };
-  Float_t wCA[4] = { .014, .086, .42, .48 };
+  Float_t aCA[4] = {1., 12., 55.8, 63.5};
+  Float_t zCA[4] = {1., 6., 26., 29.};
+  Float_t wCA[4] = {.014, .086, .42, .48};
   Float_t dCA = 0.8; // this density is raw estimation, if you know better - correct
 
   Mixture(ID_CABLES, "Cables", aCA, zCA, dCA, -4, wCA);
 
   // --- Air ---
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   Mixture(ID_AIR, "Air", aAir, zAir, dAir, 4, wAir);
@@ -450,7 +450,7 @@ void Detector::ConstructEMCGeometry()
 
   phos::GeometryParams* geom = phos::GeometryParams::GetInstance();
 
-  Float_t par[4] = { 0 };
+  Float_t par[4] = {0};
   Int_t ipar;
 
   // ======= Define the strip ===============
@@ -809,7 +809,7 @@ void Detector::ConstructSupportGeometry()
   // Create the PHOS support geometry for GEANT
   phos::GeometryParams* geom = phos::GeometryParams::GetInstance();
 
-  Float_t par[5] = { 0 }, x0 = 0., y0 = 0., z0 = 0.;
+  Float_t par[5] = {0}, x0 = 0., y0 = 0., z0 = 0.;
   Int_t i, j, copy;
 
   // --- Dummy box containing two rails on which PHOS support moves

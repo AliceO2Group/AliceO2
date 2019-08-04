@@ -130,12 +130,12 @@ class TRDFeeParam
   static bool mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  int mRAWversion{ 3 };                  // Raw data production version
+  int mRAWversion{3};                    // Raw data production version
   static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
  private:
   TRDFeeParam();
 
-  ClassDefNV(TRDFeeParam, 1) // The TRD front end electronics parameter
+  ClassDefNV(TRDFeeParam, 1); // The TRD front end electronics parameter
 };
 
 } //namespace trd

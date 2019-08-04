@@ -240,7 +240,7 @@ class DataDescriptorMatcher
   //DataDescriptorMatcher &operator=(DataDescriptorMatcher&& other) noexcept = default;
 
   /// Unary operator on a node
-  DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{ false }));
+  DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{false}));
 
   inline ~DataDescriptorMatcher() = default;
 

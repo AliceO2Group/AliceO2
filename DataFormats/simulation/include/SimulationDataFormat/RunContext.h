@@ -39,7 +39,7 @@ struct EventPart {
 class RunContext
 {
  public:
-  RunContext() : mNofEntries{ 0 }, mMaxPartNumber{ 0 }, mEventRecords(), mEventParts() {}
+  RunContext() : mNofEntries{0}, mMaxPartNumber{0}, mEventRecords(), mEventParts() {}
 
   int getNCollisions() const { return mNofEntries; }
   void setNCollisions(int n) { mNofEntries = n; }
@@ -77,7 +77,7 @@ class RunContext
 
   ClassDefNV(RunContext, 2);
 };
-}
-}
+} // namespace steer
+} // namespace o2
 
 #endif

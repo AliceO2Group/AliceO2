@@ -34,7 +34,7 @@ namespace utils
 ///            <<"branchName1="<<objRed
 ///            <<"branchName2="
 ///            <<elementaryTypeVar<<"\n"
-/// 
+///
 /// See testTreeStream.cxx for functional example
 ///
 class TreeStream
@@ -154,7 +154,7 @@ class TreeStream
     CheckIn(&obj);
     return *this;
   }
-  
+
   template <class T>
   Int_t CheckIn(T* obj);
 
@@ -210,7 +210,7 @@ Int_t TreeStream::CheckIn(T* obj)
   return 0;
 }
 
-} // namespace base
+} // namespace utils
 } // namespace o2
 
 #endif

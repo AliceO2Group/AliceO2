@@ -101,10 +101,10 @@ class ROC
   bool looped() const { return mLoop; }
 
  private:
-  unsigned char mROC{ 0 }; ///< ROC representation 0-MaxROC-1
-  bool mLoop{ false };     ///< if increment operator resulted in looping
+  unsigned char mROC{0}; ///< ROC representation 0-MaxROC-1
+  bool mLoop{false};     ///< if increment operator resulted in looping
 };
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

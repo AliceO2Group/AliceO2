@@ -166,7 +166,7 @@ void RawReaderCRU::findSyncPositions()
     }
 
     GBTFrame gFrame;
-    uint32_t packetID{ 0 };
+    uint32_t packetID{0};
 
     // loop over the packets for each link and process them
     for (auto packet : mPacketDescriptorMaps[link]) {
@@ -278,8 +278,8 @@ int RawReaderCRU::processData()
     const int fecInPartition = (mLink % 12) + (mLink > 11) * fecLinkOffsetCRU;
     const int regionIter = cru % 2;
 
-    const int sampaMapping[10] = { 0, 0, 1, 1, 2, 3, 3, 4, 4, 2 };
-    const int channelOffset[10] = { 0, 16, 0, 16, 0, 0, 16, 0, 16, 16 };
+    const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+    const int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
 
     for (int istreamm = 0; istreamm < 5; ++istreamm) {
       const int partitionStream = istreamm + regionIter * 5;

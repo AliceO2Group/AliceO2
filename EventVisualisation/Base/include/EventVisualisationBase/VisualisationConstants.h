@@ -19,8 +19,10 @@
 
 #include <string>
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 enum EVisualisationGroup {
   ACO,
@@ -53,8 +55,7 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "TOF",
   "TPC",
   "TRD",
-  "RND"
-};
+  "RND"};
 
 enum EVisualisationDataType {
   Raw,       ///< Raw data
@@ -68,17 +69,15 @@ enum EVisualisationDataType {
 };
 
 const std::string gDataTypeNames[NdataTypes] = {
-    "Raw",
-    "Hits",
-    "Digits",
-    "Clusters",
-    "ESD",
-    "AOD",
-    "NoData"
-};
+  "Raw",
+  "Hits",
+  "Digits",
+  "Clusters",
+  "ESD",
+  "AOD",
+  "NoData"};
 
-  
-}
-}
+} // namespace event_visualisation
+} // namespace o2
 
 #endif

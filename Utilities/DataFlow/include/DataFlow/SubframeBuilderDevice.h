@@ -28,8 +28,10 @@
 
 class FairMQParts;
 
-namespace o2 {
-namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 /// @class SubframeBuilderDevice
 /// A demonstrator device for building of sub timeframes
@@ -53,7 +55,7 @@ namespace data_flow {
 /// hard-coded microseconds
 class SubframeBuilderDevice : public base::O2Device
 {
-public:
+ public:
   using O2Message = o2::base::O2Message;
   using SubframeId = o2::dataflow::SubframeId;
   using Merger = dataflow::PayloadMerger<SubframeId>;
@@ -82,7 +84,7 @@ public:
   /// Default destructor
   ~SubframeBuilderDevice() final;
 
-protected:
+ protected:
   /// overloading the InitTask() method of FairMQDevice
   void InitTask() final;
 
@@ -97,9 +99,9 @@ protected:
   /// Build the frame and send it
   /// For the moment a simple mockup composing a DataHeader and adding it
   /// to the multipart message together with the SubframeMetadata as payload
-  bool BuildAndSendFrame(FairMQParts &parts);
+  bool BuildAndSendFrame(FairMQParts& parts);
 
-private:
+ private:
   uint32_t mOrbitsPerTimeframe;
   // FIXME: lookup the actual value
   uint32_t mOrbitDuration;
@@ -112,16 +114,17 @@ private:
   uint64_t mHeartbeatStart = DefaultHeartbeatStart;
 
   template <typename T>
-  size_t fakeHBHPayloadHBT(char **buffer, std::function<void(T&,int)> filler, int numOfElements) {
+  size_t fakeHBHPayloadHBT(char** buffer, std::function<void(T&, int)> filler, int numOfElements)
+  {
     // LOG(INFO) << "SENDING TPC PAYLOAD\n";
-    auto payloadSize = sizeof(header::HeartbeatHeader)+sizeof(T)*numOfElements+sizeof(header::HeartbeatTrailer);
+    auto payloadSize = sizeof(header::HeartbeatHeader) + sizeof(T) * numOfElements + sizeof(header::HeartbeatTrailer);
     *buffer = new char[payloadSize];
-    auto *hbh = reinterpret_cast<header::HeartbeatHeader*>(*buffer);
+    auto* hbh = reinterpret_cast<header::HeartbeatHeader*>(*buffer);
     assert(payloadSize > 0);
     assert(payloadSize - sizeof(header::HeartbeatTrailer) > 0);
-    auto *hbt = reinterpret_cast<header::HeartbeatTrailer*>(payloadSize - sizeof(header::HeartbeatTrailer));
+    auto* hbt = reinterpret_cast<header::HeartbeatTrailer*>(payloadSize - sizeof(header::HeartbeatTrailer));
 
-    T *payload = reinterpret_cast<T*>(*buffer + sizeof(header::HeartbeatHeader));
+    T* payload = reinterpret_cast<T*>(*buffer + sizeof(header::HeartbeatHeader));
     for (int i = 0; i < numOfElements; ++i) {
       new (payload + i) T;
       // put some random toy time stamp to each cluster
@@ -132,5 +135,5 @@ private:
 };
 
 } // namespace data_flow
-}; // namespace AliceO2
+}; // namespace o2
 #endif

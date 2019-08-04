@@ -15,6 +15,7 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     (o2::data_flow::TimeframeReaderDevice::OptionKeyOutputChannelName,
      bpo::value<std::string>()->default_value("output"),
@@ -23,6 +24,7 @@ void addCustomOptions(bpo::options_description& options)
     (o2::data_flow::TimeframeReaderDevice::OptionKeyInputFileName,
      bpo::value<std::string>()->default_value("data.o2tf"),
      "Name of the input file");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

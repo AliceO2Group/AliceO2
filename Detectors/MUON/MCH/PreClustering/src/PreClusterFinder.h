@@ -99,7 +99,7 @@ class PreClusterFinder
   DetectionElement mDEs[SNDEs]{};            ///< internal mapping
   std::unordered_map<int, int> mDEIndices{}; ///< maps DE indices from DE IDs
 
-  int mNPreClusters[SNDEs][2]{}; ///< number of preclusters in each cathods of each DE
+  int mNPreClusters[SNDEs][2]{};                                     ///< number of preclusters in each cathods of each DE
   std::vector<std::unique_ptr<PreCluster>> mPreClusters[SNDEs][2]{}; ///< preclusters in each cathods of each DE
 };
 

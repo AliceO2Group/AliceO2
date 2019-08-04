@@ -88,23 +88,21 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::vector<o2::detecto
     o2::header::gDataOriginEMC, o2::header::gDataOriginHMP, o2::header::gDataOriginMFT,
     o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
     o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
-    o2::header::gDataOriginACO
-  };
+    o2::header::gDataOriginACO};
 
   // prepare specs
   std::vector<InputSpec> inputs;
   for (const auto det : detList) {
-    inputs.emplace_back(InputSpec{ det.getName(), sOrigins[det], "ROMode",
-                                   static_cast<SubSpecificationType>(0 /*det.second*/), Lifetime::Timeframe });
+    inputs.emplace_back(InputSpec{det.getName(), sOrigins[det], "ROMode",
+                                  static_cast<SubSpecificationType>(0 /*det.second*/), Lifetime::Timeframe});
   }
 
   return DataProcessorSpec{
     "GRPUpdater",
     inputs, // input status from each detector
     {},     // no output
-    AlgorithmSpec{ adaptFromTask<GRPDPLUpdatedTask>() },
-    Options{ /* for the moment no options */ }
-  };
+    AlgorithmSpec{adaptFromTask<GRPDPLUpdatedTask>()},
+    Options{/* for the moment no options */}};
 }
 
 } // end namespace parameters

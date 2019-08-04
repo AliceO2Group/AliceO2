@@ -14,13 +14,13 @@
 #include "Framework/Logger.h"
 #include "Framework/ParallelContext.h"
 
-
 #include <chrono>
 #include <vector>
 
 using namespace o2::framework;
 
-void customize(std::vector<ConfigParamSpec> &options) {
+void customize(std::vector<ConfigParamSpec>& options)
+{
   options.push_back(o2::framework::ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}});
 };
 
@@ -28,28 +28,30 @@ void customize(std::vector<ConfigParamSpec> &options) {
 
 using DataHeader = o2::header::DataHeader;
 
-DataProcessorSpec templateProducer() {
-  return DataProcessorSpec{ "some-producer", Inputs{}, {
-                                                         OutputSpec{ "TST", "A", 0, Lifetime::Timeframe },
-                                                       },
-                            // The producer is stateful, we use a static for the state in this
-                            // particular case, but a Singleton or a captured new object would
-                            // work as well.
-                            AlgorithmSpec{ [](InitContext& setup) {
-                              return [](ProcessingContext& ctx) {
-                                // Create a single output.
-                                size_t index = ctx.services().get<ParallelContext>().index1D();
-                                std::this_thread::sleep_for(std::chrono::seconds(1));
-                                auto aData = ctx.outputs().make<int>(
-                                  Output{ "TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, 1);
-                                ctx.services().get<ControlService>().readyToQuit(true);
-                              };
-                            } } };
+DataProcessorSpec templateProducer()
+{
+  return DataProcessorSpec{"some-producer", Inputs{}, {
+                                                        OutputSpec{"TST", "A", 0, Lifetime::Timeframe},
+                                                      },
+                           // The producer is stateful, we use a static for the state in this
+                           // particular case, but a Singleton or a captured new object would
+                           // work as well.
+                           AlgorithmSpec{[](InitContext& setup) {
+                             return [](ProcessingContext& ctx) {
+                               // Create a single output.
+                               size_t index = ctx.services().get<ParallelContext>().index1D();
+                               std::this_thread::sleep_for(std::chrono::seconds(1));
+                               auto aData = ctx.outputs().make<int>(
+                                 Output{"TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
+                               ctx.services().get<ControlService>().readyToQuit(true);
+                             };
+                           }}};
 }
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-WorkflowSpec defineDataProcessing(ConfigContext const&context) {
+WorkflowSpec defineDataProcessing(ConfigContext const& context)
+{
   // This is an example of how we can parallelize by subSpec.
   // templatedProducer will be instanciated 32 times and the lambda function
   // passed to the parallel statement will be applied to each one of the
@@ -61,18 +63,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const&context) {
   });
   workflow.push_back(DataProcessorSpec{
     "merger",
-    mergeInputs(InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
+    mergeInputs(InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
                 jobs,
                 [](InputSpec& input, size_t index) {
                   DataSpecUtils::updateMatchingSubspec(input, index);
                 }),
     {},
-    AlgorithmSpec{ [](InitContext& setup) {
+    AlgorithmSpec{[](InitContext& setup) {
       return [](ProcessingContext& ctx) {
         // Create a single output.
         LOG(DEBUG) << "Invoked" << std::endl;
       };
-    } } });
+    }}});
 
   return workflow;
 }

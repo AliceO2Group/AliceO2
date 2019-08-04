@@ -27,16 +27,14 @@ BOOST_AUTO_TEST_CASE(CocreteData)
     "TEST",
     "FOOO",
     1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   InputSpec inputSpec{
     "binding",
     "TEST",
     "FOOO",
     1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   BOOST_REQUIRE(DataSpecUtils::validate(inputSpec));
 
@@ -52,23 +50,22 @@ BOOST_AUTO_TEST_CASE(CocreteData)
     BOOST_CHECK_EQUAL(std::string(dataType.origin.as<std::string>()), "TEST");
     BOOST_CHECK_EQUAL(std::string(dataType.description.as<std::string>()), "FOOO");
 
-    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{ "TEST", "FOOO", 1 }));
-    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{ "TEST", "FOOO", 0 }) == false);
+    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{"TEST", "FOOO", 1}));
+    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{"TEST", "FOOO", 0}) == false);
     DataSpecUtils::updateMatchingSubspec(spec, 0);
-    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{ "TEST", "FOOO", 0 }) == true);
-    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{ "TEST", "FOOO", 1 }));
-    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{ "TEST", "FOOO", 0 }) == false);
+    BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{"TEST", "FOOO", 0}) == true);
+    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{"TEST", "FOOO", 1}));
+    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{"TEST", "FOOO", 0}) == false);
     DataSpecUtils::updateMatchingSubspec(inputSpec, 0);
-    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{ "TEST", "FOOO", 0 }) == true);
+    BOOST_CHECK(DataSpecUtils::match(inputSpec, ConcreteDataMatcher{"TEST", "FOOO", 0}) == true);
   }
 }
 
 BOOST_AUTO_TEST_CASE(WithWildCards)
 {
   OutputSpec spec{
-    { "TEST", "FOOO" },
-    Lifetime::Timeframe
-  };
+    {"TEST", "FOOO"},
+    Lifetime::Timeframe};
 
   BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(spec), std::bad_variant_access);
   auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
@@ -76,8 +73,8 @@ BOOST_AUTO_TEST_CASE(WithWildCards)
   BOOST_CHECK_EQUAL(std::string(dataType.origin.as<std::string>()), "TEST");
   BOOST_CHECK_EQUAL(std::string(dataType.description.as<std::string>()), "FOOO");
 
-  BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{ "TEST", "FOOO", 1 }));
-  BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{ "TEST", "FOOO", 0 }));
+  BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{"TEST", "FOOO", 1}));
+  BOOST_CHECK(DataSpecUtils::match(spec, ConcreteDataMatcher{"TEST", "FOOO", 0}));
   BOOST_CHECK_EQUAL(DataSpecUtils::describe(spec), "TEST/FOOO");
 
   BOOST_CHECK(DataSpecUtils::getOptionalSubSpec(spec) == std::nullopt);
@@ -89,13 +86,11 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
     "TEST",
     "FOOO",
     1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   OutputSpec partialMatching{
-    { "TEST", "FOOO" },
-    Lifetime::Timeframe
-  };
+    {"TEST", "FOOO"},
+    Lifetime::Timeframe};
 
   auto matchingInput1 = DataSpecUtils::matchingInput(fullySpecified);
   ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(matchingInput1);
@@ -112,23 +107,19 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
   ConcreteDataMatcher concreteExample1{
     "TEST",
     "FOOO",
-    0
-  };
+    0};
   ConcreteDataMatcher concreteExample2{
     "TEST",
     "FOOO",
-    1
-  };
+    1};
   ConcreteDataMatcher concreteExample3{
     "BAR",
     "FOOO",
-    0
-  };
+    0};
   ConcreteDataMatcher concreteExample4{
     "TEST",
     "BAR",
-    0
-  };
+    0};
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample1) == true);
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample2) == true);
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample3) == false);
@@ -140,32 +131,25 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
 BOOST_AUTO_TEST_CASE(MatchingOutputs)
 {
   OutputSpec output1{
-    "TST", "A1", 0, Lifetime::Timeframe
-  };
+    "TST", "A1", 0, Lifetime::Timeframe};
 
   OutputSpec output2{
-    "TST", "B1", 0, Lifetime::Timeframe
-  };
+    "TST", "B1", 0, Lifetime::Timeframe};
 
   OutputSpec output3{
-    { "TST", "A1" }, Lifetime::Timeframe
-  };
+    {"TST", "A1"}, Lifetime::Timeframe};
 
   InputSpec input1{
-    "binding", "TST", "A1", 0, Lifetime::Timeframe
-  };
+    "binding", "TST", "A1", 0, Lifetime::Timeframe};
 
   InputSpec input2{
-    "binding", "TST", "A1", 1, Lifetime::Timeframe
-  };
+    "binding", "TST", "A1", 1, Lifetime::Timeframe};
 
   InputSpec input3{
-    "binding", "TST", "B1", 0, Lifetime::Timeframe
-  };
+    "binding", "TST", "B1", 0, Lifetime::Timeframe};
 
   InputSpec input4{
-    "binding", { "TST", "A1" }, Lifetime::Timeframe
-  };
+    "binding", {"TST", "A1"}, Lifetime::Timeframe};
 
   BOOST_CHECK(DataSpecUtils::match(input1, output1) == true);
   BOOST_CHECK(DataSpecUtils::match(input1, output2) == false);
@@ -187,16 +171,14 @@ BOOST_AUTO_TEST_CASE(PartialMatching)
     "TEST",
     "FOOO",
     1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   InputSpec fullySpecifiedInput{
     "binding",
     "TSET",
     "FOOO",
     1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataOrigin("TEST")));
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataOrigin("TSET")));
@@ -210,14 +192,12 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   InputSpec fullInputSpec{
     "binding",
     "TSET", "FOOO", 1,
-    Lifetime::Timeframe
-  };
+    Lifetime::Timeframe};
 
   InputSpec wildcardInputSpec{
     "binding",
-    { "TSET", "FOOO" },
-    Lifetime::Timeframe
-  };
+    {"TSET", "FOOO"},
+    Lifetime::Timeframe};
 
   auto fromQueryInputSpec = DataDescriptorQueryBuilder::parse("x:TST/A1/77;y:STS/A2;z:FOO/A3");
 

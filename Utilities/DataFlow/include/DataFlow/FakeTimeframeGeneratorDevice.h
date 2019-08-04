@@ -13,31 +13,33 @@
 
 #include "O2Device/O2Device.h"
 
-namespace o2 {
-namespace data_flow {
+namespace o2
+{
+namespace data_flow
+{
 
 /// A device which writes to file the timeframes.
 class FakeTimeframeGeneratorDevice : public base::O2Device
 {
-public:
-    static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
-    static constexpr const char* OptionKeyMaxTimeframes = "max-timeframes";
+ public:
+  static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
+  static constexpr const char* OptionKeyMaxTimeframes = "max-timeframes";
 
-    /// Default constructor
-    FakeTimeframeGeneratorDevice();
+  /// Default constructor
+  FakeTimeframeGeneratorDevice();
 
-    /// Default destructor
-    ~FakeTimeframeGeneratorDevice() override = default;
+  /// Default destructor
+  ~FakeTimeframeGeneratorDevice() override = default;
 
-    void InitTask() final;
+  void InitTask() final;
 
-  protected:
-    /// Overloads the ConditionalRun() method of FairMQDevice
-    bool ConditionalRun() final;
+ protected:
+  /// Overloads the ConditionalRun() method of FairMQDevice
+  bool ConditionalRun() final;
 
-    std::string      mOutChannelName;
-    size_t           mMaxTimeframes;
-    size_t           mTimeframeCount;
+  std::string mOutChannelName;
+  size_t mMaxTimeframes;
+  size_t mTimeframeCount;
 };
 
 } // namespace data_flow

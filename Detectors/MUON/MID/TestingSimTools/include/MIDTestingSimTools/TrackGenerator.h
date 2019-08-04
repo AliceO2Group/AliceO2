@@ -40,21 +40,21 @@ class TrackGenerator
   /// Sets the limits of the track slope
   void setSlopeLimits(float slopeXmin, float slopeXmax, float slopeYmin, float slopeYmax)
   {
-    mSlopeLimits = { { slopeXmin, slopeXmax, slopeYmin, slopeYmax } };
+    mSlopeLimits = {{slopeXmin, slopeXmax, slopeYmin, slopeYmax}};
   }
   /// Sets the limits of the track origin
   void setPositionLimits(float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
   {
-    mPositionLimits = { { xMin, xMax, yMin, yMax, zMin, zMax } };
+    mPositionLimits = {{xMin, xMax, yMin, yMax, zMin, zMax}};
   }
 
  private:
   std::array<float, 4> getLimitsForAcceptance(std::array<float, 3> pos);
 
-  int mMeanTracksPerEvent = 1;                                           ///< Mean tracks per event
-  std::array<float, 4> mSlopeLimits{ { -0.2, 0.2, -0.5, 0.5 } };         ///< Limits for track slope
-  std::array<float, 6> mPositionLimits{ { -2., 2, -2., 2., -5., 5. } };  ///< x,y,z position limits
-  std::default_random_engine mGenerator{ std::default_random_engine() }; ///< Random numbers generator
+  int mMeanTracksPerEvent = 1;                                         ///< Mean tracks per event
+  std::array<float, 4> mSlopeLimits{{-0.2, 0.2, -0.5, 0.5}};           ///< Limits for track slope
+  std::array<float, 6> mPositionLimits{{-2., 2, -2., 2., -5., 5.}};    ///< x,y,z position limits
+  std::default_random_engine mGenerator{std::default_random_engine()}; ///< Random numbers generator
 };
 } // namespace mid
 } // namespace o2

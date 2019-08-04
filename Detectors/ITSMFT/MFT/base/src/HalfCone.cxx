@@ -563,8 +563,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   TGeoXtru* xtru_RL1 = new TGeoXtru(2);
   xtru_RL1->SetName("S_XTRU_RL1");
 
-  Double_t x_RL1[5] = { -1.5, 1.5, 0.5, 0.5, -1.5 }; // 93,93,73,73,-15}; //vertices
-  Double_t y_RL1[5] = { 1.2, 1.2, 2.2, 8.2, 8.2 };   // 357.5,357.5,250.78,145.91};
+  Double_t x_RL1[5] = {-1.5, 1.5, 0.5, 0.5, -1.5}; // 93,93,73,73,-15}; //vertices
+  Double_t y_RL1[5] = {1.2, 1.2, 2.2, 8.2, 8.2};   // 357.5,357.5,250.78,145.91};
   xtru_RL1->DefinePolygon(5, x_RL1, y_RL1);
   xtru_RL1->DefineSection(0, -2.225, 0., 0., 1); // (plane,-zplane/ +zplane, x0, y0,(x/y))
   xtru_RL1->DefineSection(1, 2.225, 0., 0., 1);
@@ -572,8 +572,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   TGeoXtru* xtru_RL2 = new TGeoXtru(2);
   xtru_RL2->SetName("S_XTRU_RL2");
 
-  Double_t x_RL2[8] = { -1.5, 0.5, 0.5, 9.3, 9.3, 7.3, 7.3, -1.5 }; // vertices
-  Double_t y_RL2[8] = { 8.2, 8.2, 13.863, 24.35, 35.75, 35.75, 25.078, 14.591 };
+  Double_t x_RL2[8] = {-1.5, 0.5, 0.5, 9.3, 9.3, 7.3, 7.3, -1.5}; // vertices
+  Double_t y_RL2[8] = {8.2, 8.2, 13.863, 24.35, 35.75, 35.75, 25.078, 14.591};
 
   xtru_RL2->DefinePolygon(8, x_RL2, y_RL2);
 
@@ -609,8 +609,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   TGeoXtru* xtru3_RL = new TGeoXtru(2);
   xtru3_RL->SetName("xtru3_RL");
 
-  Double_t x_3RL[6] = { -0.75, 0.75, 0.75, 2.6487, 1.4997, -0.75 }; // vertices
-  Double_t y_3RL[6] = { -1.75, -1.75, 1.203, 3.465, 4.4311, 1.75 };
+  Double_t x_3RL[6] = {-0.75, 0.75, 0.75, 2.6487, 1.4997, -0.75}; // vertices
+  Double_t y_3RL[6] = {-1.75, -1.75, 1.203, 3.465, 4.4311, 1.75};
 
   xtru3_RL->DefinePolygon(6, x_3RL, y_3RL);
   xtru3_RL->DefineSection(0, -0.75, 0, 0, 1); // (plane,-zplane/+zplane, x0, y0,(x/y))
@@ -676,8 +676,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   // TGeoVolume *vol_RR1 = gGeoManager->MakeXtru("S_part_RR1",kMedAlu,2);
   // TGeoXtru *part_RR1 = (TGeoXtru*)vol_RR1->GetShape();
 
-  Double_t x_RR1[5] = { -1.5, -0.5, -0.5, 1.5, 1.5 }; // C,D,K,L,C' //vertices
-  Double_t y_RR1[5] = { 1.2, 2.2, 8.2, 8.2, 1.2 };    // 357.5,357.5,250.78,145.91};
+  Double_t x_RR1[5] = {-1.5, -0.5, -0.5, 1.5, 1.5}; // C,D,K,L,C' //vertices
+  Double_t y_RR1[5] = {1.2, 2.2, 8.2, 8.2, 1.2};    // 357.5,357.5,250.78,145.91};
 
   part_RR1->DefinePolygon(5, x_RR1, y_RR1);
   part_RR1->DefineSection(0, -2.225, 0, 0, 1); // (plane,-zplane/ +zplane, x0, y0,(x/y))
@@ -688,8 +688,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   // TGeoVolume *vol_RR2 = gGeoManager->MakeXtru("part_RR2",Al,2);
   // TGeoXtru *xtru_RR2 = (TGeoXtru*)vol_RR2->GetShape();
 
-  Double_t x_RR2[8] = { -0.5, -0.5, -9.3, -9.3, -7.3, -7.3, 1.5, 1.5 }; // K,E,F,G,H,I,J,L // vertices
-  Double_t y_RR2[8] = { 8.2, 13.863, 24.35, 35.75, 35.75, 25.078, 14.591, 8.2 };
+  Double_t x_RR2[8] = {-0.5, -0.5, -9.3, -9.3, -7.3, -7.3, 1.5, 1.5}; // K,E,F,G,H,I,J,L // vertices
+  Double_t y_RR2[8] = {8.2, 13.863, 24.35, 35.75, 35.75, 25.078, 14.591, 8.2};
 
   part_RR2->DefinePolygon(8, x_RR2, y_RR2);
   part_RR2->DefineSection(0, 0.776, 0, 0, 1); // (plane,-zplane/+zplane, x0, y0,(x/y))
@@ -700,8 +700,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   TGeoXtru* part_RR3 = new TGeoXtru(2);
   part_RR3->SetName("part_RR3");
 
-  Double_t x_3RR[6] = { 1.0, 1.0, -1.2497, -2.2138, -0.5, -0.5 }; // R,Q,P,O,N.M // vertices
-  Double_t y_3RR[6] = { 10.91, 14.41, 17.0911, 15.9421, 13.86, 10.91 };
+  Double_t x_3RR[6] = {1.0, 1.0, -1.2497, -2.2138, -0.5, -0.5}; // R,Q,P,O,N.M // vertices
+  Double_t y_3RR[6] = {10.91, 14.41, 17.0911, 15.9421, 13.86, 10.91};
 
   part_RR3->DefinePolygon(6, x_3RR, y_3RR);
   part_RR3->DefineSection(0, -0.75, 0, 0, 1); // (plane,-zplane/+zplane, x0, y0,(x/y))
@@ -791,8 +791,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   part_MBL_0->SetName("part_MBL_0"); // V-MBL_0
 
   // vertices a,b,c,d,e,f,g,h
-  Double_t x[8] = { 0., 0, 6.1, 31.55, 34.55, 34.55, 31.946, 6.496 };
-  Double_t y[8] = { -0.4, 0.4, 0.4, 13.0, 13.0, 12.2, 12.2, -0.4 };
+  Double_t x[8] = {0., 0, 6.1, 31.55, 34.55, 34.55, 31.946, 6.496};
+  Double_t y[8] = {-0.4, 0.4, 0.4, 13.0, 13.0, 12.2, 12.2, -0.4};
 
   part_MBL_0->DefinePolygon(8, x, y);
   part_MBL_0->DefineSection(0, -0.4, 0, 0, 1); // (plane, -zplane/ +zplane,x0,y0,(x/y))

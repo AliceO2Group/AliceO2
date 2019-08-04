@@ -40,18 +40,18 @@ BOOST_AUTO_TEST_CASE(CalArray_ROOTIO)
   //CalROC roc(PadSubset::ROC, 10);
   CalArray<unsigned> roc(PadSubset::ROC, 10);
 
-  int iter=0;
+  int iter = 0;
   //unsigned iter=0;
   for (auto& val : roc.getData()) {
-    val=iter++;
+    val = iter++;
   }
 
-  auto f = TFile::Open("CalArray_ROOTIO.root","recreate");
+  auto f = TFile::Open("CalArray_ROOTIO.root", "recreate");
   f->WriteObject(&roc, "roc");
   delete f;
 
   //CalROC *rocRead = nullptr;
-  CalArray<unsigned> *rocRead = nullptr;
+  CalArray<unsigned>* rocRead = nullptr;
   f = TFile::Open("CalArray_ROOTIO.root");
   f->GetObject("roc", rocRead);
   delete f;
@@ -80,51 +80,51 @@ BOOST_AUTO_TEST_CASE(CalDet_ROOTIO)
   int iter = 0;
   // --- ROC type
   padROC.setName("ROCData");
-  for (auto &calArray : padROC.getData()) {
-    for (auto &value : calArray.getData()) {
-       value = iter++;
+  for (auto& calArray : padROC.getData()) {
+    for (auto& value : calArray.getData()) {
+      value = iter++;
     }
   }
 
   // --- Partition type
   padPartition.setName("PartitionData");
-  for (auto &calArray : padPartition.getData()) {
-    for (auto &value : calArray.getData()) {
-       value = iter++;
+  for (auto& calArray : padPartition.getData()) {
+    for (auto& value : calArray.getData()) {
+      value = iter++;
     }
   }
 
   // --- Region type
   padRegion.setName("RegionData");
-  for (auto &calArray : padRegion.getData()) {
-    for (auto &value : calArray.getData()) {
-       value = iter++;
+  for (auto& calArray : padRegion.getData()) {
+    for (auto& value : calArray.getData()) {
+      value = iter++;
     }
   }
 
   // ===| dump all objects to file |============================================
-  auto f = TFile::Open("CalDet.root","recreate");
-  f->WriteObject(&padROC,       "CalDetROC"      );
+  auto f = TFile::Open("CalDet.root", "recreate");
+  f->WriteObject(&padROC, "CalDetROC");
   f->WriteObject(&padPartition, "CalDetPartition");
-  f->WriteObject(&padRegion,    "CalDetRegion"   );
+  f->WriteObject(&padRegion, "CalDetRegion");
   f->Close();
   delete f;
 
   // ===| read back all values |================================================
-  CalPad *padROCRead       = nullptr;
-  CalPad *padPartitionRead = nullptr;
-  CalPad *padRegionRead    = nullptr;
+  CalPad* padROCRead = nullptr;
+  CalPad* padPartitionRead = nullptr;
+  CalPad* padRegionRead = nullptr;
 
   f = TFile::Open("CalDet.root");
-  f->GetObject("CalDetROC",       padROCRead      );
+  f->GetObject("CalDetROC", padROCRead);
   f->GetObject("CalDetPartition", padPartitionRead);
-  f->GetObject("CalDetRegion",    padRegionRead   );
+  f->GetObject("CalDetRegion", padRegionRead);
 
   delete f;
 
-  BOOST_REQUIRE(padROCRead       != nullptr);
+  BOOST_REQUIRE(padROCRead != nullptr);
   BOOST_REQUIRE(padPartitionRead != nullptr);
-  BOOST_REQUIRE(padRegionRead    != nullptr);
+  BOOST_REQUIRE(padRegionRead != nullptr);
 
   // ===| compare values before and after |=====================================
   float sumROC = 0.f;
@@ -180,20 +180,20 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
 
   // for applying the operators on
   CalPad padCmp(PadSubset::ROC);
-  
+
   // ===| fill with data |======================================================
   int iter = 0;
   // --- ROC type
-  for (auto &calArray : pad.getData()) {
-    for (auto &value : calArray.getData()) {
-       value = iter++;
+  for (auto& calArray : pad.getData()) {
+    for (auto& value : calArray.getData()) {
+      value = iter++;
     }
   }
 
   iter = 1;
-  for (auto &calArray : pad2.getData()) {
-    for (auto &value : calArray.getData()) {
-       value = iter++;
+  for (auto& calArray : pad2.getData()) {
+    for (auto& value : calArray.getData()) {
+      value = iter++;
     }
   }
 
@@ -259,10 +259,9 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   padCmp = pad;
   padCmp += pad2;
 
-  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
-    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
-    {
-      isEqual &= isEqualAbs( *itval3, *itval1 + *itval2);
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad != pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3) {
+      isEqual &= isEqualAbs(*itval3, *itval1 + *itval2);
     }
   }
   BOOST_CHECK_EQUAL(isEqual, true);
@@ -272,10 +271,9 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   padCmp = pad;
   padCmp -= pad2;
 
-  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
-    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
-    {
-      isEqual &= isEqualAbs( *itval3, *itval1 - *itval2);
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad != pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3) {
+      isEqual &= isEqualAbs(*itval3, *itval1 - *itval2);
     }
   }
   BOOST_CHECK_EQUAL(isEqual, true);
@@ -285,10 +283,9 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   padCmp = pad;
   padCmp *= pad2;
 
-  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
-    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
-    {
-      isEqual &= isEqualAbs( *itval3, *itval1 * *itval2);
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad != pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3) {
+      isEqual &= isEqualAbs(*itval3, *itval1 * *itval2);
     }
   }
   BOOST_CHECK_EQUAL(isEqual, true);
@@ -298,14 +295,13 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   padCmp = pad;
   padCmp /= pad2;
 
-  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
-    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
-    {
-      isEqual &= isEqualAbs( *itval3, *itval1 / *itval2);
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad != pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3) {
+      isEqual &= isEqualAbs(*itval3, *itval1 / *itval2);
     }
   }
   BOOST_CHECK_EQUAL(isEqual, true);
 }
 
-} // TPC
-} // AliceO2
+} // namespace tpc
+} // namespace o2

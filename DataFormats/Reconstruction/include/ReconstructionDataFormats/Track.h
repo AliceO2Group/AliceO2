@@ -62,7 +62,11 @@ class BaseCluster;
 namespace track
 {
 // aliases for track elements
-enum ParLabels : int { kY, kZ, kSnp, kTgl, kQ2Pt };
+enum ParLabels : int { kY,
+                       kZ,
+                       kSnp,
+                       kTgl,
+                       kQ2Pt };
 enum CovLabels : int {
   kSigY2,
   kSigZY,
@@ -91,14 +95,14 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
 // access to covariance matrix by row and column
-constexpr int CovarMap[kNParams][kNParams] = { { 0, 1, 3, 6, 10 },
-                                               { 1, 2, 4, 7, 11 },
-                                               { 3, 4, 5, 8, 12 },
-                                               { 6, 7, 8, 9, 13 },
-                                               { 10, 11, 12, 13, 14 } };
+constexpr int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
+                                              {1, 2, 4, 7, 11},
+                                              {3, 4, 5, 8, 12},
+                                              {6, 7, 8, 9, 13},
+                                              {10, 11, 12, 13, 14}};
 
 // access to covariance matrix diagonal elements
-constexpr int DiagMap[kNParams] = { 0, 2, 5, 9, 14 };
+constexpr int DiagMap[kNParams] = {0, 2, 5, 9, 14};
 
 constexpr float HugeF = 1e33; // large float as dummy value
 
@@ -181,9 +185,9 @@ class TrackPar
 
  private:
   //
-  float mX = 0.f;               /// X of track evaluation
-  float mAlpha = 0.f;           /// track frame angle
-  float mP[kNParams] = { 0.f }; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
+  float mX = 0.f;             /// X of track evaluation
+  float mAlpha = 0.f;         /// track frame angle
+  float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
 
   ClassDefNV(TrackPar, 1);
 };
@@ -233,8 +237,8 @@ class TrackParCov : public TrackPar
   template <typename T>
   float getPredictedChi2(const BaseCluster<T>& p) const
   {
-    const std::array<float, 2> pyz = { p.getY(), p.getZ() };
-    const std::array<float, 3> cov = { p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
+    const std::array<float, 2> pyz = {p.getY(), p.getZ()};
+    const std::array<float, 3> cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
     return getPredictedChi2(pyz, cov);
   }
 
@@ -249,8 +253,8 @@ class TrackParCov : public TrackPar
   template <typename T>
   bool update(const BaseCluster<T>& p)
   {
-    const std::array<float, 2> pyz = { p.getY(), p.getZ() };
-    const std::array<float, 3> cov = { p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
+    const std::array<float, 2> pyz = {p.getY(), p.getZ()};
+    const std::array<float, 3> cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
     return update(pyz, cov);
   }
 
@@ -270,13 +274,13 @@ class TrackParCov : public TrackPar
   }
 
  protected:
-  float mC[kCovMatSize] = { 0.f }; // 15 covariance matrix elements
+  float mC[kCovMatSize] = {0.f}; // 15 covariance matrix elements
 
   ClassDefNV(TrackParCov, 1);
 };
 
 //____________________________________________________________
-inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams>& par) : mX{ x }, mAlpha{ alpha }
+inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams>& par) : mX{x}, mAlpha{alpha}
 {
   // explicit constructor
   std::copy(par.begin(), par.end(), mP);
@@ -371,12 +375,12 @@ inline float TrackPar::getPt() const
 //____________________________________________________________
 inline TrackParCov::TrackParCov(float x, float alpha, const std::array<float, kNParams>& par,
                                 const std::array<float, kCovMatSize>& cov)
-  : TrackPar{ x, alpha, par }
+  : TrackPar{x, alpha, par}
 {
   // explicit constructor
   std::copy(cov.begin(), cov.end(), mC);
 }
-}
-}
+} // namespace track
+} // namespace o2
 
 #endif

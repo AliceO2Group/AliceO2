@@ -77,6 +77,6 @@ class ClusterPattern
 
   ClassDefNV(ClusterPattern, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 #endif /* ALICEO2_ITS_CLUSTERPATTERN_H */

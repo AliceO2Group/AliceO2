@@ -16,19 +16,19 @@
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return WorkflowSpec{
     {
       "A",
       {},
-      { OutputSpec{ "TST", "A1", 0, Lifetime::Timeframe } },
+      {OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
+          auto aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
           ctx.services().get<ControlService>().readyToQuit(true);
-        } },
-      Options{ { "test-option", VariantType::String, "test", { "A test option" } } },
-    }
-  };
+        }},
+      Options{{"test-option", VariantType::String, "test", {"A test option"}}},
+    }};
 }

@@ -143,18 +143,18 @@ class PadRegionInfo
   const PadPos findPad(const float localX, const float localY, const Side side = Side::A) const;
 
  private:
-  float mPadHeight{ 0.f };             ///< pad height in this region
-  float mPadWidth{ 0.f };              ///< pad width in this region
-  float mRadiusFirstRow{ 0.f };        ///< radial position of first row
-  float mXhelper{ 0.f };               ///< helper value to calculate pads per row
-  unsigned short mNumberOfPads{ 0 };   ///< total number of pads in region
-  unsigned char mPartition{ 0 };       ///< partition number
-  unsigned char mRegion{ 0 };          ///< pad region number
-  unsigned char mNumberOfPadRows{ 0 }; ///< number of rows in region
+  float mPadHeight{0.f};             ///< pad height in this region
+  float mPadWidth{0.f};              ///< pad width in this region
+  float mRadiusFirstRow{0.f};        ///< radial position of first row
+  float mXhelper{0.f};               ///< helper value to calculate pads per row
+  unsigned short mNumberOfPads{0};   ///< total number of pads in region
+  unsigned char mPartition{0};       ///< partition number
+  unsigned char mRegion{0};          ///< pad region number
+  unsigned char mNumberOfPadRows{0}; ///< number of rows in region
 
-  unsigned char mRowOffset{ 0 }; ///< row offset in region with same height
+  unsigned char mRowOffset{0}; ///< row offset in region with same height
 
-  unsigned char mGlobalRowOffset{ 0 }; ///< global pad row offset
+  unsigned char mGlobalRowOffset{0}; ///< global pad row offset
 
   void init();
 

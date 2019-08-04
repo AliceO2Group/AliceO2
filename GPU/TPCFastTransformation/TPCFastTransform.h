@@ -207,7 +207,7 @@ class TPCFastTransform : public FlatObject
   ///
   float mTOFcorr;
 
-  float mPrimVtxZ;      ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+  float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 };
 
 // =======================================================================

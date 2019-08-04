@@ -23,9 +23,9 @@
 
 using namespace o2::field;
 
-ClassImp(MagneticField)
+ClassImp(MagneticField);
 
-  const Double_t MagneticField::sSolenoidToDipoleZ = -700.;
+const Double_t MagneticField::sSolenoidToDipoleZ = -700.;
 
 /// Explanation for polarity conventions: these are the mapping between the
 /// current signs and main field components in L3 (Bz) and Dipole (Bx) (in Alice frame)
@@ -194,7 +194,7 @@ void MagneticField::CreateField()
   initializeMachineField(mBeamType, mBeamEnergy);
   setFactorSolenoid(mMultipicativeFactorSolenoid);
   setFactorDipole(mMultipicativeFactorDipole);
-  double xyz[3] = { 0., 0., 0. };
+  double xyz[3] = {0., 0., 0.};
   mSolenoid = getBz(xyz);
   Print("a");
   //

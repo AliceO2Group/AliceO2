@@ -170,9 +170,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   // Prepare everything for all slices
-  const AliHLTTPCClusterMCData* clusterLabels[NSLICES][NPATCHES] = { nullptr };
-  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][NPATCHES] = { nullptr };
-  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = { nullptr };
+  const AliHLTTPCClusterMCData* clusterLabels[NSLICES][NPATCHES] = {nullptr};
+  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][NPATCHES] = {nullptr};
+  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = {nullptr};
   bool labelsPresent = false;
   GPUTRDTrackletWord* TRDtracklets = nullptr;
   GPUTRDTrackletLabels* TRDtrackletsMC = nullptr;

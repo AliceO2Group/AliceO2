@@ -20,7 +20,7 @@ struct any_type {
 };
 
 template <class T, typename... Args>
-decltype(void(T{ std::declval<Args>()... }), std::true_type())
+decltype(void(T{std::declval<Args>()...}), std::true_type())
   test(int);
 
 template <class T, typename... Args>

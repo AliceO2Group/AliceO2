@@ -94,8 +94,8 @@ bool areNeighboursOk(const Mapping::MpStripIndex& stripIndex, const std::vector<
 
   bool isOk = true;
 
-  double xPos[3] = { stripArea.getXmin() - 0.1, stripArea.getCenterX(), stripArea.getXmax() + 0.1 };
-  double yPos[3] = { stripArea.getYmin() - 0.1, stripArea.getCenterY(), stripArea.getYmax() + 0.1 };
+  double xPos[3] = {stripArea.getXmin() - 0.1, stripArea.getCenterX(), stripArea.getXmax() + 0.1};
+  double yPos[3] = {stripArea.getYmin() - 0.1, stripArea.getCenterY(), stripArea.getYmax() + 0.1};
 
   int nMatched = 0;
   bool checkUpDown = false;

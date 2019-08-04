@@ -96,13 +96,13 @@ static void configITS(Detector* its)
          kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
-    { 2.24, 2.34, 2.67, 9., 16.42, 12 }, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    { 3.01, 3.15, 3.46, 9., 12.18, 16 },
-    { 3.78, 3.93, 4.21, 9., 9.55, 20 },
-    { -1, 19.6, -1, 4., 0., 24 },  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
-    { -1, 24.55, -1, 4., 0., 30 }, // 30 was 61
-    { -1, 34.39, -1, 7., 0., 42 }, // 42 was 88
-    { -1, 39.34, -1, 7., 0., 48 }  // 48 was 100
+    {2.24, 2.34, 2.67, 9., 16.42, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
+    {3.01, 3.15, 3.46, 9., 12.18, 16},
+    {3.78, 3.93, 4.21, 9., 9.55, 20},
+    {-1, 19.6, -1, 4., 0., 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
+    {-1, 24.55, -1, 4., 0., 30}, // 30 was 61
+    {-1, 34.39, -1, 7., 0., 42}, // 42 was 88
+    {-1, 39.34, -1, 7., 0., 48}  // 48 was 100
   };
   const int nChipsPerModule = 7;  // For OB: how many chips in a row
   const double zChipGap = 0.01;   // For OB: gap in Z between chips
@@ -115,9 +115,9 @@ static void configITS(Detector* its)
   its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
-  const double wrpRMin[kNWrapVol] = { 2.1, 19.3, 32.0 };
-  const double wrpRMax[kNWrapVol] = { 14.0, 30.0, 46.0 };
-  const double wrpZSpan[kNWrapVol] = { 70., 93., 160. };
+  const double wrpRMin[kNWrapVol] = {2.1, 19.3, 32.0};
+  const double wrpRMax[kNWrapVol] = {14.0, 30.0, 46.0};
+  const double wrpZSpan[kNWrapVol] = {70., 93., 160.};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
@@ -384,51 +384,51 @@ void Detector::createMaterials()
   Float_t stminAir = 0.0;         // cm "Default value used"
 
   // AIR
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   // Water
-  Float_t aWater[2] = { 1.00794, 15.9994 };
-  Float_t zWater[2] = { 1., 8. };
-  Float_t wWater[2] = { 0.111894, 0.888106 };
+  Float_t aWater[2] = {1.00794, 15.9994};
+  Float_t zWater[2] = {1., 8.};
+  Float_t wWater[2] = {0.111894, 0.888106};
   Float_t dWater = 1.0;
 
   // PEEK CF30
-  Float_t aPEEK[3] = { 12.0107, 1.00794, 15.9994 };
-  Float_t zPEEK[3] = { 6., 1., 8. };
-  Float_t wPEEK[3] = { 19., 12., 3 };
+  Float_t aPEEK[3] = {12.0107, 1.00794, 15.9994};
+  Float_t zPEEK[3] = {6., 1., 8.};
+  Float_t wPEEK[3] = {19., 12., 3};
   Float_t dPEEK = 1.32;
 
   // Kapton
-  Float_t aKapton[4] = { 1.00794, 12.0107, 14.010, 15.9994 };
-  Float_t zKapton[4] = { 1., 6., 7., 8. };
-  Float_t wKapton[4] = { 0.026362, 0.69113, 0.07327, 0.209235 };
+  Float_t aKapton[4] = {1.00794, 12.0107, 14.010, 15.9994};
+  Float_t zKapton[4] = {1., 6., 7., 8.};
+  Float_t wKapton[4] = {0.026362, 0.69113, 0.07327, 0.209235};
   Float_t dKapton = 1.42;
 
   // Tungsten Carbide
-  Float_t aWC[2] = { 183.84, 12.0107 };
-  Float_t zWC[2] = { 74, 6 };
-  Float_t wWC[2] = { 0.5, 0.5 };
+  Float_t aWC[2] = {183.84, 12.0107};
+  Float_t zWC[2] = {74, 6};
+  Float_t wWC[2] = {0.5, 0.5};
   Float_t dWC = 15.63;
 
   // BEOL (Metal interconnection stack in Si sensors)
-  Float_t aBEOL[3] = { 26.982, 28.086, 15.999 };
-  Float_t zBEOL[3] = { 13, 14, 8 }; // Al, Si, O
-  Float_t wBEOL[3] = { 0.170, 0.388, 0.442 };
+  Float_t aBEOL[3] = {26.982, 28.086, 15.999};
+  Float_t zBEOL[3] = {13, 14, 8}; // Al, Si, O
+  Float_t wBEOL[3] = {0.170, 0.388, 0.442};
   Float_t dBEOL = 2.28;
 
   // Inox 304
-  Float_t aInox304[4] = { 12.0107, 51.9961, 58.6928, 55.845 };
-  Float_t zInox304[4] = { 6., 24., 28, 26 };       // C, Cr, Ni, Fe
-  Float_t wInox304[4] = { 0.0003, 0.18, 0.10, 0 }; // [3] will be computed
+  Float_t aInox304[4] = {12.0107, 51.9961, 58.6928, 55.845};
+  Float_t zInox304[4] = {6., 24., 28, 26};       // C, Cr, Ni, Fe
+  Float_t wInox304[4] = {0.0003, 0.18, 0.10, 0}; // [3] will be computed
   Float_t dInox304 = 7.85;
 
   // Ceramic (for IB capacitors) (BaTiO3)
-  Float_t aCeramic[3] = { 137.327, 47.867, 15.999 };
-  Float_t zCeramic[3] = { 56, 22, 8 }; // Ba, Ti, O
-  Float_t wCeramic[3] = { 1, 1, 3 };   // Molecular composition
+  Float_t aCeramic[3] = {137.327, 47.867, 15.999};
+  Float_t zCeramic[3] = {56, 22, 8}; // Ba, Ti, O
+  Float_t wCeramic[3] = {1, 1, 3};   // Molecular composition
   Float_t dCeramic = 6.02;
 
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
@@ -501,9 +501,9 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Flex cable
-  Float_t aFCm[5] = { 12.0107, 1.00794, 14.0067, 15.9994, 26.981538 };
-  Float_t zFCm[5] = { 6., 1., 7., 8., 13. };
-  Float_t wFCm[5] = { 0.520088819984, 0.01983871336, 0.0551367996, 0.157399667056, 0.247536 };
+  Float_t aFCm[5] = {12.0107, 1.00794, 14.0067, 15.9994, 26.981538};
+  Float_t zFCm[5] = {6., 1., 7., 8., 13.};
+  Float_t wFCm[5] = {0.520088819984, 0.01983871336, 0.0551367996, 0.157399667056, 0.247536};
   // Float_t dFCm = 1.6087;  // original
   // Float_t dFCm = 2.55;   // conform with STAR
   Float_t dFCm = 2.595; // conform with Corrado
@@ -1078,13 +1078,13 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 
 void Detector::Print(std::ostream* os) const
 {
-// Standard output format for this class.
-// Inputs:
-//   ostream *os   The output stream
-// Outputs:
-//   none.
-// Return:
-//   none.
+  // Standard output format for this class.
+  // Inputs:
+  //   ostream *os   The output stream
+  // Outputs:
+  //   none.
+  // Return:
+  //   none.
 
 #if defined __GNUC__
 #if __GNUC__ > 2
@@ -1155,4 +1155,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::its::Detector)
+ClassImp(o2::its::Detector);

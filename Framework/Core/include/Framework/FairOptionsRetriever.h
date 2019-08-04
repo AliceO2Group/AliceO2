@@ -29,19 +29,20 @@ namespace o2
 namespace framework
 {
 
-class FairOptionsRetriever : public ParamRetriever {
-public:
- FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts);
+class FairOptionsRetriever : public ParamRetriever
+{
+ public:
+  FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts);
 
- int getInt(const char* name) const final;
- float getFloat(const char* name) const final;
- double getDouble(const char* name) const final;
- bool getBool(const char* name) const final;
- std::string getString(const char* name) const final;
- boost::property_tree::ptree getPTree(const char* name) const final;
+  int getInt(const char* name) const final;
+  float getFloat(const char* name) const final;
+  double getDouble(const char* name) const final;
+  bool getBool(const char* name) const final;
+  std::string getString(const char* name) const final;
+  boost::property_tree::ptree getPTree(const char* name) const final;
 
-private:
-  const FairMQProgOptions *mOpts;
+ private:
+  const FairMQProgOptions* mOpts;
   boost::property_tree::ptree mStore;
 };
 

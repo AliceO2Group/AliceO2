@@ -38,8 +38,10 @@
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
 
-namespace o2 {
-namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 /// @struct BlockDescriptor
 /// Helper struct to provide constructors to AliHLTComponentBlockData
 ///
@@ -86,8 +88,9 @@ struct BlockDescriptor : public AliHLTComponentBlockData {
 /// memory. For transporting them in a message, block descriptors and
 /// payloads are written as a sequence, every block descriptor directly
 /// followed by its payload
-class MessageFormat {
-public:
+class MessageFormat
+{
+ public:
   /// default constructor
   MessageFormat();
   /// destructor
@@ -126,7 +129,7 @@ public:
   void clear();
 
   // set output mode
-  void setOutputMode(unsigned mode) {mOutputMode=mode;}
+  void setOutputMode(unsigned mode) { mOutputMode = mode; }
 
   // add message
   // this will extract the block descriptors from the message
@@ -156,7 +159,7 @@ public:
   // of decriptors
   std::vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
                                            unsigned totalPayloadSize, const AliHLTComponentEventData* evtData = nullptr,
-                                           boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate=nullptr);
+                                           boost::signals2::signal<unsigned char*(unsigned int)>* cbAllocate = nullptr);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
@@ -176,16 +179,16 @@ public:
   int insertEvtData(const AliHLTComponentEventData& evtData);
 
   // get event header list
-  const std::vector<AliHLTComponentEventData>& getEvtDataList() const {
+  const std::vector<AliHLTComponentEventData>& getEvtDataList() const
+  {
     return mListEvtData;
   }
 
   uint64_t byteSwap64(uint64_t src) const;
   uint32_t byteSwap32(uint32_t src) const;
 
-protected:
-
-private:
+ protected:
+ private:
   // copy constructor prohibited
   MessageFormat(const MessageFormat&);
   // assignment operator prohibited
@@ -195,15 +198,15 @@ private:
   // provided callback function or in the internal buffer, which has
   // to be allocated completely in advance in order to ensure validity
   // of the pointers
-  uint8_t* MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate);
+  uint8_t* MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char*(unsigned int)>* cbAllocate);
 
   std::vector<BlockDescriptor> mBlockDescriptors;
   /// internal buffer to assemble message data
-  std::vector<uint8_t>            mDataBuffer;
+  std::vector<uint8_t> mDataBuffer;
   /// list of message payload descriptors
-  std::vector<BufferDesc_t>             mMessages;
+  std::vector<BufferDesc_t> mMessages;
   /// HOMER factory for creation and deletion of HOMER readers and writers
-  o2::alice_hlt::HOMERFactory*        mpFactory;
+  o2::alice_hlt::HOMERFactory* mpFactory;
   /// output mode: HOMER, multi-message, sequential
   int mOutputMode;
   /// list of event descriptors

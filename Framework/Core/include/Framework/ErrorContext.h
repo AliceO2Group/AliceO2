@@ -22,22 +22,23 @@ namespace framework
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an error callback.
-class ErrorContext {
-public:
-  ErrorContext(InputRecord &inputs, ServiceRegistry &services, std::exception &e)
-  : mInputs{inputs},
-    mServices{services},
-    mException{e}
+class ErrorContext
+{
+ public:
+  ErrorContext(InputRecord& inputs, ServiceRegistry& services, std::exception& e)
+    : mInputs{inputs},
+      mServices{services},
+      mException{e}
   {
   }
 
-  InputRecord const &inputs() {return mInputs;}
-  ServiceRegistry const&services() {return mServices;}
-  std::exception const&exception() {return mException;}
+  InputRecord const& inputs() { return mInputs; }
+  ServiceRegistry const& services() { return mServices; }
+  std::exception const& exception() { return mException; }
 
-  InputRecord &mInputs;
-  ServiceRegistry &mServices;
-  std::exception &mException;
+  InputRecord& mInputs;
+  ServiceRegistry& mServices;
+  std::exception& mException;
 };
 
 } // namespace framework

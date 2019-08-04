@@ -22,7 +22,14 @@ namespace o2
 namespace framework
 {
 
-enum class VariantType : int { Int = 0, Int64, Float, Double, String, Bool, Empty, Unknown };
+enum class VariantType : int { Int = 0,
+                               Int64,
+                               Float,
+                               Double,
+                               String,
+                               Bool,
+                               Empty,
+                               Unknown };
 
 template <typename T>
 struct variant_trait {
@@ -122,16 +129,16 @@ class Variant
   using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool>::type;
 
  public:
-  Variant(VariantType type = VariantType::Unknown) : mType{ type } {}
+  Variant(VariantType type = VariantType::Unknown) : mType{type} {}
 
   template <typename T>
-  Variant(T value) : mType{ variant_trait<T>::type() }
+  Variant(T value) : mType{variant_trait<T>::type()}
   {
     variant_helper<storage_t, decltype(value)>::set(&mStore, value);
   }
 
   template <typename T>
-  Variant(std::initializer_list<T>) : mType{ VariantType::Unknown }
+  Variant(std::initializer_list<T>) : mType{VariantType::Unknown}
   {
     static_assert(sizeof(T) == 0,
                   "brace-enclosed initializer list forbidden for Variant"

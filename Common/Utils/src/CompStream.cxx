@@ -80,11 +80,11 @@ void pushCompressor(T& stream, CompressionMethod method)
 }
 
 const std::map<std::string, CompressionMethod> Mapping = {
-  { "none", CompressionMethod::None },
-  { "gzip", CompressionMethod::Gzip },
-  { "zlib", CompressionMethod::Zlib },
-  { "bzip2", CompressionMethod::Bzip2 },
-  { "lzma", CompressionMethod::Lzma },
+  {"none", CompressionMethod::None},
+  {"gzip", CompressionMethod::Gzip},
+  {"zlib", CompressionMethod::Zlib},
+  {"bzip2", CompressionMethod::Bzip2},
+  {"lzma", CompressionMethod::Lzma},
 };
 
 auto Method(std::string method)
@@ -95,7 +95,7 @@ auto Method(std::string method)
   }
   return i->second;
 }
-}
+} // namespace comp_stream_helpers
 
 icomp_stream::icomp_stream(std::string filename, CompressionMethod method)
   : mStreamBuffer(), mInputFile(filename, std::ios_base::in | std::ios_base::binary), std::istream(&mStreamBuffer)
@@ -152,5 +152,5 @@ ocomp_stream::ocomp_stream(std::ostream& backend, std::string method)
   comp_stream_helpers::pushCompressor(mStreamBuffer, comp_stream_helpers::Method(method));
   mStreamBuffer.push(backend);
 }
-}
-}
+} // namespace io
+} // namespace o2

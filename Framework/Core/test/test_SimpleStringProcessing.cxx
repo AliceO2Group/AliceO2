@@ -28,20 +28,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       "string_producer", //
       Inputs{},          //
       {
-        OutputSpec{ { "make" }, "TES", "STRING" }, //
+        OutputSpec{{"make"}, "TES", "STRING"}, //
       },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
-        auto& out1 = ctx.outputs().make<std::string>(Output{ "TES", "STRING" }, "default");
+      AlgorithmSpec{[](ProcessingContext& ctx) {
+        auto& out1 = ctx.outputs().make<std::string>(Output{"TES", "STRING"}, "default");
         assert(out1 == "default");
         out1 = "Hello";
-      } } //
-    },    //
+      }} //
+    },   //
     DataProcessorSpec{
       "string_consumer", //
       {
-        InputSpec{ "make", "TES", "STRING" }, //
-      },                                      //
-      Outputs{},                              //
+        InputSpec{"make", "TES", "STRING"}, //
+      },                                    //
+      Outputs{},                            //
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           auto s = ctx.inputs().get<std::string>("make");

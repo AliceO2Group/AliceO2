@@ -74,11 +74,10 @@ o2::framework::DataProcessorSpec getPreClusterSinkSpec()
 {
   return DataProcessorSpec{
     "PreClusterSink",
-    Inputs{ InputSpec{ "preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe } },
+    Inputs{InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}},
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<PreClusterSinkTask>() },
-    Options{ { "outfile", VariantType::String, "preclusters.out", { "output filename" } } }
-  };
+    AlgorithmSpec{adaptFromTask<PreClusterSinkTask>()},
+    Options{{"outfile", VariantType::String, "preclusters.out", {"output filename"}}}};
 }
 
 } // end namespace mch

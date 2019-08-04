@@ -21,7 +21,7 @@
 
 using namespace o2::itsmft;
 
-ClassImp(o2::itsmft::Cluster)
+ClassImp(o2::itsmft::Cluster);
 
 #ifdef _ClusterTopology_
   //______________________________________________________________________________

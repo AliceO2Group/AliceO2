@@ -68,16 +68,16 @@ class TrackTPCITS : public o2::track::TrackParCov
   void print() const;
 
  private:
-  evIdx mRefTPC;          ///< reference on ITS track entry
-  evIdx mRefITS;          ///< reference on TPC track entry
-  float mChi2Refit = 0.f; ///< chi2 of the refit
-  float mChi2Match = 0.f; ///< chi2 of the match
-  timeEst mTimeMUS;       ///< time estimate in ns
-  o2::track::TrackParCov mParamOut; ///< refitted outer parameter
+  evIdx mRefTPC;                     ///< reference on ITS track entry
+  evIdx mRefITS;                     ///< reference on TPC track entry
+  float mChi2Refit = 0.f;            ///< chi2 of the refit
+  float mChi2Match = 0.f;            ///< chi2 of the match
+  timeEst mTimeMUS;                  ///< time estimate in ns
+  o2::track::TrackParCov mParamOut;  ///< refitted outer parameter
   o2::track::TrackLTIntegral mLTOut; ///< L,TOF integral calculated during the outward refit
   ClassDefNV(TrackTPCITS, 2);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 
 #endif

@@ -65,9 +65,9 @@ void DataSamplingPolicy::configure(const ptree& config)
 
       std::string binding = dataHeaderConfig.second.get<std::string>("binding");
       if (subSpec == -1) {
-        inputSpecs.push_back({ binding, { origin, description } });
+        inputSpecs.push_back({binding, {origin, description}});
       } else {
-        inputSpecs.push_back({ binding, origin, description, static_cast<o2::header::DataHeader::SubSpecificationType>(subSpec) });
+        inputSpecs.push_back({binding, origin, description, static_cast<o2::header::DataHeader::SubSpecificationType>(subSpec)});
       }
     }
   }
@@ -76,23 +76,21 @@ void DataSamplingPolicy::configure(const ptree& config)
 
     if (DataSpecUtils::getOptionalSubSpec(inputSpec).has_value()) {
       OutputSpec outputSpec{
-        { inputSpec.binding },
+        {inputSpec.binding},
         createPolicyDataOrigin(),
         createPolicyDataDescription(mName, outputId++),
         DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
-        inputSpec.lifetime
-      };
+        inputSpec.lifetime};
 
-      mPaths.push_back({ inputSpec, outputSpec });
+      mPaths.push_back({inputSpec, outputSpec});
 
     } else {
       OutputSpec outputSpec{
-        { inputSpec.binding },
-        { createPolicyDataOrigin(), createPolicyDataDescription(mName, outputId++) },
-        inputSpec.lifetime
-      };
+        {inputSpec.binding},
+        {createPolicyDataOrigin(), createPolicyDataDescription(mName, outputId++)},
+        inputSpec.lifetime};
 
-      mPaths.push_back({ inputSpec, outputSpec });
+      mPaths.push_back({inputSpec, outputSpec});
     }
 
     if (outputId > 9) {
@@ -133,9 +131,9 @@ const Output DataSamplingPolicy::prepareOutput(const ConcreteDataMatcher& input,
   auto result = mPaths.find(input);
   if (result != mPaths.end()) {
     auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(result->second);
-    return Output{ dataType.origin, dataType.description, input.subSpec, lifetime };
+    return Output{dataType.origin, dataType.description, input.subSpec, lifetime};
   } else {
-    return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
+    return Output{header::gDataOriginInvalid, header::gDataDescriptionInvalid};
   }
 }
 

@@ -23,13 +23,13 @@ namespace mft
 {
 
 Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index)
-  : xCoordinate{ x },
-    yCoordinate{ y },
-    zCoordinate{ z },
-    phiCoordinate{ 0. },
-    rCoordinate{ 0. },
-    clusterId{ index },
-    indexTableBin{ 0 }
+  : xCoordinate{x},
+    yCoordinate{y},
+    zCoordinate{z},
+    phiCoordinate{0.},
+    rCoordinate{0.},
+    clusterId{index},
+    indexTableBin{0}
 {
   auto clsPoint2D = Point2D<Float_t>(x, y);
   rCoordinate = clsPoint2D.R();
@@ -38,14 +38,14 @@ Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t 
 }
 
 Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
-  : xCoordinate{ other.xCoordinate },
-    yCoordinate{ other.yCoordinate },
-    zCoordinate{ other.zCoordinate },
-    phiCoordinate{ 0. },
-    rCoordinate{ 0. },
-    clusterId{ other.clusterId },
-    indexTableBin{ IndexTableUtils::getBinIndex(IndexTableUtils::getRBinIndex(layerIndex, rCoordinate),
-                                                IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
+  : xCoordinate{other.xCoordinate},
+    yCoordinate{other.yCoordinate},
+    zCoordinate{other.zCoordinate},
+    phiCoordinate{0.},
+    rCoordinate{0.},
+    clusterId{other.clusterId},
+    indexTableBin{IndexTableUtils::getBinIndex(IndexTableUtils::getRBinIndex(layerIndex, rCoordinate),
+                                               IndexTableUtils::getPhiBinIndex(phiCoordinate))}
 {
   auto clsPoint2D = Point2D<Float_t>(other.xCoordinate, other.yCoordinate);
   rCoordinate = clsPoint2D.R();

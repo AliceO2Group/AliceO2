@@ -50,7 +50,7 @@ class ClustererTask : public FairTask
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< MC labels for output
   MCLabelContainer const* mDigitMCTruth;                                    ///< Array for MCTruth information associated to digits
 
-  ClassDefOverride(ClustererTask, 1)
+  ClassDefOverride(ClustererTask, 1);
 };
 } // namespace tof
 } // namespace o2

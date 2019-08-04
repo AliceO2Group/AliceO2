@@ -39,7 +39,7 @@ GPUhdni() float computeCurvature(float x1, float y1, float x2, float y2, float x
 GPUhdni() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
 GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
 
-} // namespace MathUtils
+} // namespace math_utils
 
 GPUhdi() float math_utils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
@@ -61,9 +61,9 @@ GPUhdi() constexpr float math_utils::getNormalizedPhiCoordinate(const float phiC
 GPUhdi() constexpr float3 math_utils::crossProduct(const float3& firstVector, const float3& secondVector)
 {
 
-  return float3{ (firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
-                 (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
-                 (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x) };
+  return float3{(firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
+                (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
+                (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x)};
 }
 
 GPUhdi() float math_utils::computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)

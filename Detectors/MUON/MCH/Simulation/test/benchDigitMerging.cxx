@@ -21,9 +21,9 @@ using o2::mch::Digit;
 std::vector<Digit> createDigits(int N)
 {
   std::vector<Digit> digits;
-  float dummyadc{ 42.0 };
+  float dummyadc{42.0};
   std::srand(std::time(nullptr)); // use current time as seed for random generator
-  float dummytime{ 0.0 };
+  float dummytime{0.0};
   int dummydetID = 100; //to be improved, timing depending on that
 
   for (auto i = 0; i < N; i++) {
@@ -37,9 +37,9 @@ std::vector<Digit> createDigits(int N)
 std::vector<o2::MCCompLabel> createLabels(int N)
 {
   std::vector<o2::MCCompLabel> labels;
-  int dummyEventID{ 1000 };
+  int dummyEventID{1000};
   std::srand(std::time(nullptr)); // use current time as seed for random generator
-  float dummysrcID{ 10 };
+  float dummysrcID{10};
 
   for (auto i = 0; i < N; i++) {
     int randomTrackID = std::rand() * N;
@@ -68,7 +68,7 @@ static void benchDigitMerging(benchmark::State& state)
 static void mergingFunctionIndices(benchmark::internal::Benchmark* b)
 {
   for (auto i = 0; i < mergingFunctions().size(); i++) {
-    b->Args({ i });
+    b->Args({i});
   }
 }
 

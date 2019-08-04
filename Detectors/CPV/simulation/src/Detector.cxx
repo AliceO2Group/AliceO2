@@ -402,11 +402,11 @@ void Detector::ConstructGeometry()
     if (!mActiveModule[iModule + 1]) {
       continue;
     }
-    float angle[3][2] = { 0 };
+    float angle[3][2] = {0};
     geomParams->GetModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
-    float pos[3] = { 0 };
+    float pos[3] = {0};
     geomParams->GetModuleCenter(iModule, pos);
 
     fMC->Gspos("CPV", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
@@ -500,18 +500,18 @@ void Detector::CreateMaterials()
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // --- Air ---
-  float aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  float zAir[4] = { 6., 7., 8., 18. };
-  float wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  float zAir[4] = {6., 7., 8., 18.};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
 
   Mixture(ID_AIR, "Air", aAir, zAir, dAir, 4, wAir);
   Medium(ID_AIR, "Air", ID_AIR, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);
 
   // The Textolit which makes up the box which contains the calorimeter module      -> idtmed[707]
-  float aTX[4] = { 16.0, 28.09, 12.011, 1.00794 };
-  float zTX[4] = { 8.0, 14.0, 6.0, 1.0 };
-  float wTX[4] = { 292.0, 68.0, 462.0, 736.0 };
+  float aTX[4] = {16.0, 28.09, 12.011, 1.00794};
+  float zTX[4] = {8.0, 14.0, 6.0, 1.0};
+  float wTX[4] = {292.0, 68.0, 462.0, 736.0};
   float dTX = 1.75;
 
   Mixture(ID_TEXTOLIT, "Textolit", aTX, zTX, dTX, -4, wTX);
@@ -532,8 +532,8 @@ void Detector::CreateMaterials()
   float dAr = 0.001782; //Argon density
 
   float arContent = 0.80; // Ar-content of the ArCO2-mixture
-  float aArCO[3] = { 39.948, 12.0, 16.0 };
-  float zArCO[3] = { 18.0, 6.0, 8.0 };
+  float aArCO[3] = {39.948, 12.0, 16.0};
+  float zArCO[3] = {18.0, 6.0, 8.0};
   float wArCO[3];
   wArCO[0] = arContent;
   wArCO[1] = (1 - arContent) * 1;

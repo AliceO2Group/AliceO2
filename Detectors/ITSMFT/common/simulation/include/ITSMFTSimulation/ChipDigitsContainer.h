@@ -82,7 +82,7 @@ inline void ChipDigitsContainer::addDigit(ULong64_t key, UInt_t roframe, UShort_
 {
   mDigits.emplace(std::make_pair(key, o2::itsmft::PreDigit(roframe, row, col, charge, lbl)));
 }
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif /* defined(ALICEO2_ITSMFT_CHIPCONTAINER_) */

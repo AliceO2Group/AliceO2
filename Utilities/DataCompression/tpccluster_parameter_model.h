@@ -64,38 +64,37 @@ using tpccluster_parameter_models =
  * For the moment, the placeholders of mpl fold are not expanded, so there are
  * unknown types in the end
  */
-  /// very first attemp
-  //using namespace boost::mpl::placeholders;
-  //
-  //typedef boost::mpl::fold<
-  //  tpccluster_parameter,
-  //  boost::mpl::vector<>,
-  //  boost::mpl::push_back<
-  //    _1
-  //    , AliceO2::HuffmanModel< ProbabilityModel< _2 >, AliceO2::HuffmanNode<std::bitset<64>>, true>
-  //    >
-  //  >::type models_t;
+/// very first attemp
+//using namespace boost::mpl::placeholders;
+//
+//typedef boost::mpl::fold<
+//  tpccluster_parameter,
+//  boost::mpl::vector<>,
+//  boost::mpl::push_back<
+//    _1
+//    , AliceO2::HuffmanModel< ProbabilityModel< _2 >, AliceO2::HuffmanNode<std::bitset<64>>, true>
+//    >
+//  >::type models_t;
 
-  /// trying with additional lambda levels
-  //typedef boost::mpl::string<'T','e','s','t'>::type TestAlphabetName;
-  //typedef ContiguousAlphabet<int16_t, -1, 10, TestAlphabetName> TestAlphabet;
-  //
-  //typedef typename boost::mpl::lambda< ProbabilityModel< _1 > > apply_alphabet;
-  //typedef boost::mpl::apply1<apply_alphabet, TestAlphabet>::type TestAlphabetModel;
-  //typedef typename boost::mpl::lambda< AliceO2::HuffmanModel< _1, AliceO2::HuffmanNode<std::bitset<64>>, true> > apply_probabilitymodel;
-  //typedef typename boost::mpl::apply1<boost::mpl::protect<apply_probabilitymodel>::type, TestAlphabetModel>::type TestHuffmanModel;
-  //
-  //TestAlphabetModel object;
-  //typedef TestAlphabetModel::value_type vtype;
-  //
-  //std::cout << object.getName() << std::endl;
+/// trying with additional lambda levels
+//typedef boost::mpl::string<'T','e','s','t'>::type TestAlphabetName;
+//typedef ContiguousAlphabet<int16_t, -1, 10, TestAlphabetName> TestAlphabet;
+//
+//typedef typename boost::mpl::lambda< ProbabilityModel< _1 > > apply_alphabet;
+//typedef boost::mpl::apply1<apply_alphabet, TestAlphabet>::type TestAlphabetModel;
+//typedef typename boost::mpl::lambda< AliceO2::HuffmanModel< _1, AliceO2::HuffmanNode<std::bitset<64>>, true> > apply_probabilitymodel;
+//typedef typename boost::mpl::apply1<boost::mpl::protect<apply_probabilitymodel>::type, TestAlphabetModel>::type TestHuffmanModel;
+//
+//TestAlphabetModel object;
+//typedef TestAlphabetModel::value_type vtype;
+//
+//std::cout << object.getName() << std::endl;
 
-
-  //typedef boost::mpl::fold<
-  //  tpccluster_parameter,
-  //  boost::mpl::vector<>,
-  //  boost::mpl::push_back<
-  //    _1
-  //    , boost::mpl::apply1< boost::mpl::protect<apply_huffmanmodel>::type, _2 >
-  //    >
-  //  >::type models_t;
+//typedef boost::mpl::fold<
+//  tpccluster_parameter,
+//  boost::mpl::vector<>,
+//  boost::mpl::push_back<
+//    _1
+//    , boost::mpl::apply1< boost::mpl::protect<apply_huffmanmodel>::type, _2 >
+//    >
+//  >::type models_t;

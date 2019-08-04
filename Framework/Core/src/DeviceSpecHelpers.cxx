@@ -48,7 +48,7 @@ struct ExpirationHandlerHelpers {
   static InputRoute::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
-      std::string rateName = std::string{ "period-" } + matcher.binding;
+      std::string rateName = std::string{"period-"} + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
     };
@@ -57,9 +57,9 @@ struct ExpirationHandlerHelpers {
   static InputRoute::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
-      std::string startName = std::string{ "start-value-" } + matcher.binding;
-      std::string endName = std::string{ "end-value-" } + matcher.binding;
-      std::string stepName = std::string{ "step-value-" } + matcher.binding;
+      std::string startName = std::string{"start-value-"} + matcher.binding;
+      std::string endName = std::string{"end-value-"} + matcher.binding;
+      std::string stepName = std::string{"step-value-"} + matcher.binding;
       auto start = options.get<int>(startName.c_str());
       auto stop = options.get<int>(endName.c_str());
       auto step = options.get<int>(stepName.c_str());
@@ -90,8 +90,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Conditions must be fully qualified");
     }
 
-    return [ s = spec, matcher = *m, sourceChannel ](ConfigParamRegistry const& options)
-    {
+    return [s = spec, matcher = *m, sourceChannel](ConfigParamRegistry const& options) {
       auto serverUrl = options.get<std::string>("condition-backend");
       return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, sourceChannel);
     };
@@ -131,7 +130,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+    return [matcher = *m, sourceChannel](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
 
   static InputRoute::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
@@ -141,8 +140,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&)
-    {
+    return [matcher = *m, sourceChannel](ConfigParamRegistry const&) {
       return LifetimeHelpers::enumerate(matcher, sourceChannel);
     };
   }
@@ -253,7 +251,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
   };
 
   auto connectionIdFromEdgeAndPort = [&connections](const DeviceConnectionEdge& edge, size_t port) {
-    DeviceConnectionId id{ edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, port };
+    DeviceConnectionId id{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, port};
     connections.push_back(id);
     return connections.back();
   };
@@ -271,7 +269,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
     auto& device = devices[di];
     auto& edge = logicalEdges[ei];
 
-    deviceIndex.emplace_back(DeviceId{ edge.producer, edge.producerTimeIndex, di });
+    deviceIndex.emplace_back(DeviceId{edge.producer, edge.producerTimeIndex, di});
 
     OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, resources.back().port);
     const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, resources.back().port);
@@ -302,16 +300,14 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
         edge.timeIndex,
         consumer.maxInputTimeslices,
         outputsMatchers[edge.outputGlobalIndex],
-        channel.name
-      };
+        channel.name};
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route{
         edge.timeIndex,
         consumer.maxInputTimeslices,
         workflow[edge.consumer].inputs[edge.consumerInputIndex],
-        channel.name
-      };
+        channel.name};
       device.forwards.emplace_back(route);
     }
   };
@@ -349,7 +345,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
 
 void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              std::vector<DeviceId>& deviceIndex,
-                                             std::vector<ComputingResource> &resources,
+                                             std::vector<ComputingResource>& resources,
                                              const std::vector<DeviceConnectionId>& connections,
                                              const std::vector<size_t>& inEdgeIndex,
                                              const std::vector<DeviceConnectionEdge>& logicalEdges,
@@ -362,7 +358,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   auto findProducerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
     auto& edge = logicalEdges[ei];
 
-    DeviceId pid{ edge.producer, edge.producerTimeIndex, 0 };
+    DeviceId pid{edge.producer, edge.producerTimeIndex, 0};
     auto deviceIt = std::lower_bound(constDeviceIndex.cbegin(), constDeviceIndex.cend(), pid);
     // By construction producer should always be there
     assert(deviceIt != constDeviceIndex.end());
@@ -381,7 +377,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   auto hasConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge, &deviceIndex,
                              &logicalEdges](size_t ei) -> int {
     auto& edge = logicalEdges[ei];
-    DeviceId cid{ edge.consumer, edge.timeIndex, 0 };
+    DeviceId cid{edge.consumer, edge.timeIndex, 0};
     lastConsumerSearchEdge = ei; // This will invalidate the cache
     lastConsumerSearch = std::lower_bound(deviceIndex.begin(), deviceIndex.end(), cid);
     return lastConsumerSearch != deviceIndex.end() && cid.processorIndex == lastConsumerSearch->processorIndex &&
@@ -411,7 +407,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.timeIndex;
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
-    auto id = DeviceId{ edge.consumer, edge.timeIndex, devices.size() };
+    auto id = DeviceId{edge.consumer, edge.timeIndex, devices.size()};
     devices.push_back(device);
     deviceIndex.push_back(id);
     std::sort(deviceIndex.begin(), deviceIndex.end());
@@ -424,7 +420,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // so it's just a matter of looking it up.
   auto findMatchingOutgoingPortForEdge = [&logicalEdges, &connections](size_t ei) {
     auto const& edge = logicalEdges[ei];
-    DeviceConnectionId connectionId{ edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, 0 };
+    DeviceConnectionId connectionId{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, 0};
 
     auto it = std::lower_bound(connections.begin(), connections.end(), connectionId);
 
@@ -524,8 +520,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       edge.producerTimeIndex,
       creationConfigurator,
       danglingConfigurator,
-      expirationConfigurator
-    };
+      expirationConfigurator};
 
     consumerDevice.inputs.push_back(route);
   };
@@ -613,8 +608,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
                        availableForwardsInfo, channelPolicies);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
-  for (auto &device : devices) {
-    for (auto &policy : completionPolicies) {
+  for (auto& device : devices) {
+    for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
         device.completionPolicy = policy;
         break;
@@ -682,8 +677,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // FIXME: add some checksum in framework id. We could use this
     //        to avoid redeploys when only a portion of the workflow is changed.
     // FIXME: this should probably be done in one go with char *, but I am lazy.
-    std::vector<std::string> tmpArgs = { argv[0], "--id", spec.id.c_str(), "--control", "static",
-                                         "--log-color", "false", "--color", "false" };
+    std::vector<std::string> tmpArgs = {argv[0], "--id", spec.id.c_str(), "--control", "static",
+                                        "--log-color", "false", "--color", "false"};
     if (defaultStopped) {
       tmpArgs.push_back("-s");
     }
@@ -707,7 +702,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // if found in the argument list. If not found they will be added with the default value
     FilterFunctionT filterArgsFct = [&](int largc, char** largv, const bpo::options_description& odesc) {
       // spec contains options
-      bpo::command_line_parser parser{ largc, largv };
+      bpo::command_line_parser parser{largc, largv};
       parser.options(odesc).allow_unregistered();
       bpo::parsed_options parsed_options = parser.run();
 

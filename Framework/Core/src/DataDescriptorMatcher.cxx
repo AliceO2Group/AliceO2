@@ -58,7 +58,7 @@ bool OriginValueMatcher::match(header::DataHeader const& header, VariableContext
       return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
     }
     auto maxSize = strnlen(header.dataOrigin.str, 4);
-    context.put({ ref->index, std::string(header.dataOrigin.str, maxSize) });
+    context.put({ref->index, std::string(header.dataOrigin.str, maxSize)});
     return true;
   } else if (auto s = std::get_if<std::string>(&mValue)) {
     return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
@@ -74,7 +74,7 @@ bool DescriptionValueMatcher::match(header::DataHeader const& header, VariableCo
       return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
     }
     auto maxSize = strnlen(header.dataDescription.str, 16);
-    context.put({ ref->index, std::string(header.dataDescription.str, maxSize) });
+    context.put({ref->index, std::string(header.dataDescription.str, maxSize)});
     return true;
   } else if (auto s = std::get_if<std::string>(&this->mValue)) {
     return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
@@ -89,7 +89,7 @@ bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, V
     if (auto value = std::get_if<header::DataHeader::SubSpecificationType>(&variable)) {
       return header.subSpecification == *value;
     }
-    context.put({ ref->index, header.subSpecification });
+    context.put({ref->index, header.subSpecification});
     return true;
   } else if (auto v = std::get_if<header::DataHeader::SubSpecificationType>(&mValue)) {
     return header.subSpecification == *v;
@@ -107,7 +107,7 @@ bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableConte
     if (auto value = std::get_if<uint64_t>(&variable)) {
       return (dph.startTime / mScale) == *value;
     }
-    context.put({ ref->index, dph.startTime / mScale });
+    context.put({ref->index, dph.startTime / mScale});
     return true;
   } else if (auto v = std::get_if<uint64_t>(&mValue)) {
     return (dph.startTime / mScale) == *v;
@@ -116,9 +116,9 @@ bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableConte
 }
 
 DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
-  : mOp{ other.mOp },
-    mLeft{ ConstantValueMatcher{ false } },
-    mRight{ ConstantValueMatcher{ false } }
+  : mOp{other.mOp},
+    mLeft{ConstantValueMatcher{false}},
+    mRight{ConstantValueMatcher{false}}
 {
   if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mLeft)) {
     mLeft = *pval0;
@@ -161,9 +161,9 @@ DataDescriptorMatcher& DataDescriptorMatcher::operator=(DataDescriptorMatcher co
 
 /// Unary operator on a node
 DataDescriptorMatcher::DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs)
-  : mOp{ op },
-    mLeft{ std::move(lhs) },
-    mRight{ std::move(rhs) }
+  : mOp{op},
+    mLeft{std::move(lhs)},
+    mRight{std::move(rhs)}
 {
 }
 
@@ -177,7 +177,7 @@ bool DataDescriptorMatcher::match(ConcreteDataMatcher const& matcher, VariableCo
   dh.subSpecification = matcher.subSpec;
   DataProcessingHeader dph;
   dph.startTime = 0;
-  header::Stack s{ dh, dph };
+  header::Stack s{dh, dph};
 
   return this->match(reinterpret_cast<char const*>(s.data()), context);
 }
@@ -428,16 +428,14 @@ std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher const& matcher)
     [&os](EdgeActions::EnterRight) { os << " "; },
     [&os](EdgeActions::ExitRight) { os << " "; },
     [&os](EdgeActions::ExitNode) { os << ")"; },
-    [&os](auto) {}
-  };
+    [&os](auto) {}};
   auto leafWalker = overloaded{
     [&os](OriginValueMatcher const& origin) { os << "origin:" << origin; },
     [&os](DescriptionValueMatcher const& description) { os << "description:" << description; },
     [&os](SubSpecificationTypeValueMatcher const& subSpec) { os << "subSpec:" << subSpec; },
     [&os](StartTimeValueMatcher const& startTime) { os << "startTime:" << startTime; },
     [&os](ConstantValueMatcher const& constant) {},
-    [&os](auto t) { os << "not implemented " << typeid(decltype(t)).name(); }
-  };
+    [&os](auto t) { os << "not implemented " << typeid(decltype(t)).name(); }};
   DataMatcherWalker::walk(matcher,
                           edgeWalker,
                           leafWalker);

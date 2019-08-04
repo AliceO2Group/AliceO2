@@ -26,10 +26,11 @@ namespace framework
 /// from with a workflow class. This should be used to implement special
 /// `DataProcessors` like one that acts as a gateway to standard FairMQ
 /// devices.
-class RawDeviceService {
-public:
-  virtual FairMQDevice *device() = 0;
-  virtual void setDevice(FairMQDevice *device) = 0;
+class RawDeviceService
+{
+ public:
+  virtual FairMQDevice* device() = 0;
+  virtual void setDevice(FairMQDevice* device) = 0;
 };
 
 } // namespace framework

@@ -85,7 +85,7 @@ class DigitizerTask : public FairTask
 
   ClassDefOverride(DigitizerTask, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

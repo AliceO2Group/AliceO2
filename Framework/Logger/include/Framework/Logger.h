@@ -40,7 +40,7 @@ inline FMT_ENABLE_IF_T(internal::is_string<S>::value, int)
   internal::check_format_string<Args...>(format_str);
   typedef internal::basic_buffer<FMT_CHAR(S)> buffer;
   typedef typename basic_printf_context_t<buffer>::type context;
-  format_arg_store<context, Args...> as{ args... };
+  format_arg_store<context, Args...> as{args...};
   return vfprintf(logger, to_string_view(format_str),
                   basic_format_args<context>(as));
 }

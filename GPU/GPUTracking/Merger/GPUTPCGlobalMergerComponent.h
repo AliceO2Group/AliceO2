@@ -140,7 +140,7 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
   GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;                                      // GPUReconstruction
   GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
 
-  ClassDef(GPUTPCGlobalMergerComponent, 0)
+  ClassDef(GPUTPCGlobalMergerComponent, 0);
 };
 
 #endif // GPUTPCGLOBALMERGERCOMPONENT_H

@@ -83,9 +83,9 @@ class FECInfo
  private:
   std::ostream& print(std::ostream& out) const;
   friend std::ostream& operator<<(std::ostream& out, const FECInfo& fec);
-  unsigned char mIndex{ 0 };        ///< FEC number in the sector
-  unsigned char mSampaChip{ 0 };    ///< SAMPA chip on the FEC
-  unsigned char mSampaChannel{ 0 }; ///< Cannel on the SAMPA chip
+  unsigned char mIndex{0};        ///< FEC number in the sector
+  unsigned char mSampaChip{0};    ///< SAMPA chip on the FEC
+  unsigned char mSampaChannel{0}; ///< Cannel on the SAMPA chip
 
   // unsigned char mConnector    {0};   ///< Connector on the FEC -> Can be deduced from mSampaChip and mSampaChannel
   // unsigned char mChannel      {0};   ///< Channel on the FEC -> Can be deduced from mSampaChip and mSampaChannel

@@ -171,5 +171,5 @@ inline void RandomRing<N>::initialize(TF1& function)
 }
 
 } // namespace tpc
-} // namespace AliceO2
+} // namespace o2
 #endif

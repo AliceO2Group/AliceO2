@@ -24,7 +24,7 @@
 
 //  @file   HOMERFactory.cxx
 //  @author Matthias Richter
-//  @since  2014-05-07 
+//  @since  2014-05-07
 //  @brief  Original AliHLTHOMERLibManager.h of AliRoot adapted to the
 //          ALFA project
 
@@ -61,7 +61,7 @@ using std::cout;
 using std::endl;
 
 // global flag of the library status
-int HOMERFactory::sLibraryStatus=0;
+int HOMERFactory::sLibraryStatus = 0;
 // This list must be NULL terminated, since we use it as a marker to identify
 // the end of the list.
 const char* HOMERFactory::sLibraries[] = {"libAliHLTHOMER.so", "libHOMER.so", nullptr};
@@ -69,17 +69,10 @@ const char* HOMERFactory::sLibraries[] = {"libAliHLTHOMER.so", "libHOMER.so", nu
 int HOMERFactory::sLibRefCount[] = {0, 0};
 
 HOMERFactory::HOMERFactory()
-  : mFctCreateReaderFromTCPPort(nullptr)
-  , mFctCreateReaderFromTCPPorts(nullptr)
-  , mFctCreateReaderFromBuffer(nullptr)
-  , mFctDeleteReader(nullptr)
-  , mFctCreateWriter(nullptr)
-  , mFctDeleteWriter(nullptr)
-  , mLoadedLib(nullptr)
-  , mHandle(nullptr)
+  : mFctCreateReaderFromTCPPort(nullptr), mFctCreateReaderFromTCPPorts(nullptr), mFctCreateReaderFromBuffer(nullptr), mFctDeleteReader(nullptr), mFctCreateWriter(nullptr), mFctDeleteWriter(nullptr), mLoadedLib(nullptr), mHandle(nullptr)
 {
   // constructor
-  // 
+  //
   // Interface to the HLT Online Monitoring Including Root (HOMER) library.
   // It allows to decouple the HLT base library from this additional library
   // while providing the basic functionality to the component libraries
@@ -92,55 +85,58 @@ HOMERFactory::HOMERFactory()
 // over memory corruptions
 HOMERFactory::~HOMERFactory() = default;
 
-AliHLTHOMERReader* HOMERFactory::OpenReader(const char* hostname, unsigned short port )
+AliHLTHOMERReader* HOMERFactory::OpenReader(const char* hostname, unsigned short port)
 {
   // Open Reader instance for host
-  if (sLibraryStatus<0) return nullptr;
+  if (sLibraryStatus < 0)
+    return nullptr;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return nullptr;
+    return nullptr;
   }
-  
-  AliHLTHOMERReader* pReader=nullptr;
-  if (mFctCreateReaderFromTCPPort!=nullptr && (pReader=(((AliHLTHOMERReaderCreateFromTCPPort_t)mFctCreateReaderFromTCPPort)(hostname, port)))==nullptr) {
-    cout <<"can not create instance of HOMER reader from ports" << endl;
+
+  AliHLTHOMERReader* pReader = nullptr;
+  if (mFctCreateReaderFromTCPPort != nullptr && (pReader = (((AliHLTHOMERReaderCreateFromTCPPort_t)mFctCreateReaderFromTCPPort)(hostname, port))) == nullptr) {
+    cout << "can not create instance of HOMER reader from ports" << endl;
   }
-  
+
   return pReader;
 }
 
 AliHLTHOMERReader* HOMERFactory::OpenReader(unsigned int tcpCnt, const char** hostnames, unsigned short* ports)
 {
   // Open Reader instance for a list of hosts
-  if (sLibraryStatus<0) return nullptr;
+  if (sLibraryStatus < 0)
+    return nullptr;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return nullptr;
+    return nullptr;
   }
-  
-  AliHLTHOMERReader* pReader=nullptr;
-  if (mFctCreateReaderFromTCPPorts!=nullptr && (pReader=(((AliHLTHOMERReaderCreateFromTCPPorts_t)mFctCreateReaderFromTCPPorts)(tcpCnt, hostnames, ports)))==nullptr) {
+
+  AliHLTHOMERReader* pReader = nullptr;
+  if (mFctCreateReaderFromTCPPorts != nullptr && (pReader = (((AliHLTHOMERReaderCreateFromTCPPorts_t)mFctCreateReaderFromTCPPorts)(tcpCnt, hostnames, ports))) == nullptr) {
     //HLTError("can not create instance of HOMER reader (function %p)", mFctCreateReaderFromTCPPorts);
-    cout << "can not create instance of HOMER reader from port"<<endl;
+    cout << "can not create instance of HOMER reader from port" << endl;
   }
-  
+
   return pReader;
 }
 
 AliHLTHOMERReader* HOMERFactory::OpenReaderBuffer(const AliHLTUInt8_t* pBuffer, int size)
 {
   // Open Reader instance for a data buffer
-  if (sLibraryStatus<0) return nullptr;
+  if (sLibraryStatus < 0)
+    return nullptr;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return nullptr;
+    return nullptr;
   }
-  
-  AliHLTHOMERReader* pReader=nullptr;
-  if (mFctCreateReaderFromBuffer!=nullptr && (pReader=(((AliHLTHOMERReaderCreateFromBuffer_t)mFctCreateReaderFromBuffer)(pBuffer, size)))==nullptr) {
+
+  AliHLTHOMERReader* pReader = nullptr;
+  if (mFctCreateReaderFromBuffer != nullptr && (pReader = (((AliHLTHOMERReaderCreateFromBuffer_t)mFctCreateReaderFromBuffer)(pBuffer, size))) == nullptr) {
     //HLTError("can not create instance of HOMER reader (function %p)", mFctCreateReaderFromBuffer);
   }
 
@@ -152,52 +148,55 @@ int HOMERFactory::DeleteReader(AliHLTHOMERReader* pReader)
   // delete a reader
 
   // the actual deletion function is inside the HOMER library
-  if (sLibraryStatus<0) return sLibraryStatus;
+  if (sLibraryStatus < 0)
+    return sLibraryStatus;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return sLibraryStatus;
+    return sLibraryStatus;
   }
-  
-  if (mFctDeleteReader!=nullptr) {
+
+  if (mFctDeleteReader != nullptr) {
     ((AliHLTHOMERReaderDelete_t)mFctDeleteReader)(pReader);
   }
-  
+
   return 0;
 }
 
 AliHLTHOMERWriter* HOMERFactory::OpenWriter()
 {
   // open a Writer instance
-  if (sLibraryStatus<0) return nullptr;
+  if (sLibraryStatus < 0)
+    return nullptr;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return nullptr;
+    return nullptr;
   }
-  
-  AliHLTHOMERWriter* pWriter=nullptr;
-  if (mFctCreateWriter!=nullptr && (pWriter=(((AliHLTHOMERWriterCreate_t)mFctCreateWriter)()))==nullptr) {
-//     HLTError("can not create instance of HOMER writer (function %p)", mFctCreateWriter);
+
+  AliHLTHOMERWriter* pWriter = nullptr;
+  if (mFctCreateWriter != nullptr && (pWriter = (((AliHLTHOMERWriterCreate_t)mFctCreateWriter)())) == nullptr) {
+    //     HLTError("can not create instance of HOMER writer (function %p)", mFctCreateWriter);
   }
-  
+
   return pWriter;
 }
 
 int HOMERFactory::DeleteWriter(AliHLTHOMERWriter* pWriter)
 {
   // see header file for class documentation
-  if (sLibraryStatus<0) return sLibraryStatus;
+  if (sLibraryStatus < 0)
+    return sLibraryStatus;
 
-  sLibraryStatus=LoadHOMERLibrary();
+  sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
-        return sLibraryStatus;
+    return sLibraryStatus;
   }
-  
-  if (mFctDeleteWriter!=nullptr) {
+
+  if (mFctDeleteWriter != nullptr) {
     ((AliHLTHOMERWriterDelete_t)mFctDeleteWriter)(pWriter);
   }
-  
+
   return 0;
 }
 
@@ -206,48 +205,48 @@ int HOMERFactory::LoadHOMERLibrary()
   // delete a writer
 
   // the actual deletion function is inside the HOMER library
-  int iResult=-EBADF;
-  const char** library=&sLibraries[0];
+  int iResult = -EBADF;
+  const char** library = &sLibraries[0];
   int* refcount = &sLibRefCount[0];
   do {
-    mHandle=dlopen(*library, RTLD_NOW);
+    mHandle = dlopen(*library, RTLD_NOW);
     if (mHandle) {
       ++(*refcount);
       mLoadedLib = *library;
-      iResult=1;
+      iResult = 1;
       break;
     }
     ++library;
     ++refcount;
-  } while ((*library)!=nullptr);
+  } while ((*library) != nullptr);
 
-  if (iResult>0 && *library!=nullptr) {
+  if (iResult > 0 && *library != nullptr) {
     // print compile info
-    using CompileInfo = void (*)(char *&, char *&);
+    using CompileInfo = void (*)(char*&, char*&);
 
-    mFctCreateReaderFromTCPPort=(void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORT);
-    mFctCreateReaderFromTCPPorts=(void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORTS);
-    mFctCreateReaderFromBuffer=(void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_BUFFER);
-    mFctDeleteReader=(void (*)())dlsym(mHandle, ALIHLTHOMERREADER_DELETE);
-    mFctCreateWriter=(void (*)())dlsym(mHandle, ALIHLTHOMERWRITER_CREATE);
-    mFctDeleteWriter=(void (*)())dlsym(mHandle, ALIHLTHOMERWRITER_DELETE);
-    if (mFctCreateReaderFromTCPPort==nullptr ||
-        mFctCreateReaderFromTCPPorts==nullptr ||
-        mFctCreateReaderFromBuffer==nullptr ||
-        mFctDeleteReader==nullptr ||
-        mFctCreateWriter==nullptr ||
-        mFctDeleteWriter==nullptr) {
-      iResult=-ENOSYS;
+    mFctCreateReaderFromTCPPort = (void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORT);
+    mFctCreateReaderFromTCPPorts = (void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORTS);
+    mFctCreateReaderFromBuffer = (void (*)())dlsym(mHandle, ALIHLTHOMERREADER_CREATE_FROM_BUFFER);
+    mFctDeleteReader = (void (*)())dlsym(mHandle, ALIHLTHOMERREADER_DELETE);
+    mFctCreateWriter = (void (*)())dlsym(mHandle, ALIHLTHOMERWRITER_CREATE);
+    mFctDeleteWriter = (void (*)())dlsym(mHandle, ALIHLTHOMERWRITER_DELETE);
+    if (mFctCreateReaderFromTCPPort == nullptr ||
+        mFctCreateReaderFromTCPPorts == nullptr ||
+        mFctCreateReaderFromBuffer == nullptr ||
+        mFctDeleteReader == nullptr ||
+        mFctCreateWriter == nullptr ||
+        mFctDeleteWriter == nullptr) {
+      iResult = -ENOSYS;
     } else {
     }
   }
-  if (iResult<0 || *library==nullptr) {
-    mFctCreateReaderFromTCPPort=nullptr;
-    mFctCreateReaderFromTCPPorts=nullptr;
-    mFctCreateReaderFromBuffer=nullptr;
-    mFctDeleteReader=nullptr;
-    mFctCreateWriter=nullptr;
-    mFctDeleteWriter=nullptr;
+  if (iResult < 0 || *library == nullptr) {
+    mFctCreateReaderFromTCPPort = nullptr;
+    mFctCreateReaderFromTCPPorts = nullptr;
+    mFctCreateReaderFromBuffer = nullptr;
+    mFctDeleteReader = nullptr;
+    mFctCreateWriter = nullptr;
+    mFctDeleteWriter = nullptr;
   }
 
   return iResult;
@@ -256,24 +255,23 @@ int HOMERFactory::LoadHOMERLibrary()
 int HOMERFactory::UnloadHOMERLibrary()
 {
   // unload HOMER library
-  int iResult=0;
-  
-  if (mLoadedLib != nullptr)
-  {
+  int iResult = 0;
+
+  if (mLoadedLib != nullptr) {
     // Find the corresponding reference count.
-    const char** library=&sLibraries[0];
+    const char** library = &sLibraries[0];
     int* refcount = &sLibRefCount[0];
-    while (*library != nullptr)
-    {
-      if (strcmp(*library, mLoadedLib) == 0) break;
+    while (*library != nullptr) {
+      if (strcmp(*library, mLoadedLib) == 0)
+        break;
       ++library;
       ++refcount;
     }
-    
+
     // Decrease the reference count and remove the library if it is zero.
-    if (*refcount >= 0) --(*refcount);
-    if (*refcount == 0)
-    { /* Matthias 2014-05-08 that part of the code has been disabled for the ROOT-independent
+    if (*refcount >= 0)
+      --(*refcount);
+    if (*refcount == 0) { /* Matthias 2014-05-08 that part of the code has been disabled for the ROOT-independent
          version.
          TODO: dlopen is maintaining an internal reference count, which also makes the
          counters here obsolete

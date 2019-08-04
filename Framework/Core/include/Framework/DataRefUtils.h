@@ -36,7 +36,7 @@ struct DataRefUtils {
   // alternative below, which works for TObject (which are serialised).
   template <typename T>
   static typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
-  as(DataRef const& ref)
+    as(DataRef const& ref)
   {
     using DataHeader = o2::header::DataHeader;
     auto header = o2::header::get<const DataHeader*>(ref.header);
@@ -47,7 +47,7 @@ struct DataRefUtils {
       throw std::runtime_error("Cannot extract POD from message as size do not match");
     }
     //FIXME: provide a const collection
-    return gsl::span<T>(reinterpret_cast<T *>(const_cast<char *>(ref.payload)), header->payloadSize/sizeof(T));
+    return gsl::span<T>(reinterpret_cast<T*>(const_cast<char*>(ref.payload)), header->payloadSize / sizeof(T));
   }
 
   // See above. SFINAE allows us to use this to extract a ROOT-serialized object
@@ -59,9 +59,9 @@ struct DataRefUtils {
   // explicitely using type wrapper @a ROOTSerialized.
   template <typename T>
   static typename std::enable_if<has_root_dictionary<T>::value == true &&
-                                 is_messageable<T>::value == false,
+                                   is_messageable<T>::value == false,
                                  std::unique_ptr<T>>::type
-  as(DataRef const& ref)
+    as(DataRef const& ref)
   {
     using DataHeader = o2::header::DataHeader;
     auto header = o2::header::get<const DataHeader*>(ref.header);
@@ -129,7 +129,7 @@ struct DataRefUtils {
   template <typename W>
   static typename std::enable_if<is_specialization<W, ROOTSerialized>::value == true,
                                  std::unique_ptr<typename W::wrapped_type>>::type
-  as(DataRef const& ref)
+    as(DataRef const& ref)
   {
     using T = typename W::wrapped_type;
     using DataHeader = o2::header::DataHeader;

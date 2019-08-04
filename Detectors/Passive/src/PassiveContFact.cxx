@@ -21,7 +21,6 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-
 //*-- AUTHOR : Denis Bertini
 //*-- Created : 21/06/2005
 
@@ -33,16 +32,15 @@
 //
 /////////////////////////////////////////////////////////////
 #include "DetectorsPassive/PassiveContFact.h"
-#include "FairRuntimeDb.h"              // for FairRuntimeDb
-#include "TList.h"                      // for TList
-#include "TString.h"                    // for TString
-#include <cstring>                     // for strcmp, NULL
-
+#include "FairRuntimeDb.h" // for FairRuntimeDb
+#include "TList.h"         // for TList
+#include "TString.h"       // for TString
+#include <cstring>         // for strcmp, NULL
 
 using namespace std;
 using namespace o2::passive;
 
-ClassImp(o2::passive::PassiveContFact)
+ClassImp(o2::passive::PassiveContFact);
 
 static PassiveContFact gPassiveContFact;
 
@@ -50,8 +48,8 @@ PassiveContFact::PassiveContFact()
   : FairContFact()
 {
   // Constructor (called when the library is loaded)
-  fName="PassiveContFact";
-  fTitle="Factory for parameter containers in libPassive";
+  fName = "PassiveContFact";
+  fTitle = "Factory for parameter containers in libPassive";
   setAllContainers();
   FairRuntimeDb::instance()->addContFactory(this);
 }
@@ -61,9 +59,9 @@ void PassiveContFact::setAllContainers()
   /** Creates the Container objects with all accepted contexts and adds them to
    *  the list of containers for the STS library.*/
 
-  auto* p= new FairContainer("FairGeoPassivePar",
-                                      "Passive Geometry Parameters",
-                                      "TestDefaultContext");
+  auto* p = new FairContainer("FairGeoPassivePar",
+                              "Passive Geometry Parameters",
+                              "TestDefaultContext");
   p->addContext("TestNonDefaultContext");
 
   containers->Add(p);
@@ -74,7 +72,7 @@ FairParSet* PassiveContFact::createContainer(FairContainer* c)
   /** Calls the constructor of the corresponding parameter container.
    * For an actual context, which is not an empty string and not the default context
    * of this container, the name is concatinated with the context. */
- /* const char* name=c->GetName();
+  /* const char* name=c->GetName();
   FairParSet* p=NULL;
   if (strcmp(name,"FairGeoPassivePar")==0) {
     p=new FairGeoPassivePar(c->getConcatName().Data(),c->GetTitle(),c->getContext());

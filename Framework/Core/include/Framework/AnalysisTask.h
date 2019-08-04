@@ -93,7 +93,7 @@ struct AnalysisDataProcessorBuilder {
   static auto bindGroupingTable(InputRecord& record, R (C::*)())
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
-    return o2::soa::Table<>{ nullptr };
+    return o2::soa::Table<>{nullptr};
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -188,7 +188,7 @@ struct AnalysisDataProcessorBuilder {
           // which migh not be the case.
           for (auto& groupedDatum : groupsCollection) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-            task.process(groupingElement, AssociatedType{ groupedElementsTable });
+            task.process(groupingElement, AssociatedType{groupedElementsTable});
             ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
@@ -208,16 +208,18 @@ struct AnalysisDataProcessorBuilder {
 template <typename T>
 struct OutputAppender {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec> &outputs, ANY&) {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&)
+  {
     return false;
   };
 };
 
 template <typename TABLE>
 struct OutputAppender<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec> &outputs, Produces<TABLE> &what) {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what)
+  {
     using metadata = typename aod::MetadataTrait<std::decay_t<TABLE>>::metadata;
-    outputs.emplace_back(OutputSpec{ OutputLabel{ metadata::label() }, metadata::origin(), metadata::description() });
+    outputs.emplace_back(OutputSpec{OutputLabel{metadata::label()}, metadata::origin(), metadata::description()});
     return true;
   };
 };
@@ -283,7 +285,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple(*task);
-  std::apply([&outputs](auto ...x){ return (OutputAppender<decltype(x)>::appendOutput(outputs, x) || ...);}, tupledTask);
+  std::apply([&outputs](auto... x) { return (OutputAppender<decltype(x)>::appendOutput(outputs, x) || ...); }, tupledTask);
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
@@ -292,7 +294,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs);
   }
 
-  auto algo = AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
+  auto algo = AlgorithmSpec::InitCallback{[task](InitContext& ic) {
     if constexpr (has_init<T>::value) {
       task->init(ic);
     }
@@ -304,7 +306,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
         AnalysisDataProcessorBuilder::invokeProcess(*task, pc.inputs(), &T::process);
       }
     };
-  } };
+  }};
 
   DataProcessorSpec spec{
     name,
@@ -313,8 +315,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     // task itself.
     inputs,
     outputs,
-    algo
-  };
+    algo};
   return spec;
 }
 

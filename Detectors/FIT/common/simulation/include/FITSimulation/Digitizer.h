@@ -62,7 +62,7 @@ class Digitizer
  private:
   // digit info
   // parameters
-  Int_t mMode;  //triggered or continuos
+  Int_t mMode;                      //triggered or continuos
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED

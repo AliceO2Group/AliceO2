@@ -79,7 +79,7 @@ const Double_t Geometry::sKaptonGlueThickness = 0.0027 / 2;         // thickness
 
 TGeoHMatrix Geometry::sTransMFT2ITS = [] {
   TGeoHMatrix tmp;
-  Double_t rot[9] = { 0., 1., 0., 0., 0., 1., 1., 0., 0. };
+  Double_t rot[9] = {0., 1., 0., 0., 0., 1., 1., 0., 0.};
   tmp.SetRotation(rot);
   // equivalent to
   // tmp.RotateY(-90.);

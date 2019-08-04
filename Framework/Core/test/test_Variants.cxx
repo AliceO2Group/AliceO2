@@ -19,11 +19,13 @@
 
 using namespace o2::framework;
 
-bool unknown_type(std::runtime_error const &ex) {
+bool unknown_type(std::runtime_error const& ex)
+{
   return strcmp(ex.what(), "Mismatch between types") == 0;
 }
 
-BOOST_AUTO_TEST_CASE(VariantTest) {
+BOOST_AUTO_TEST_CASE(VariantTest)
+{
   std::ostringstream ss{};
   Variant a(10);
   BOOST_CHECK(a.get<int>() == 10);
@@ -37,7 +39,7 @@ BOOST_AUTO_TEST_CASE(VariantTest) {
   BOOST_CHECK_EXCEPTION(a.get<char*>(), std::runtime_error, unknown_type);
   Variant d("foo");
   ss << d;
-  BOOST_CHECK(std::string(d.get<const char *>()) == "foo");
+  BOOST_CHECK(std::string(d.get<const char*>()) == "foo");
 
   Variant e(true);
   BOOST_CHECK_EQUAL(e.get<bool>(), true);
@@ -49,12 +51,12 @@ BOOST_AUTO_TEST_CASE(VariantTest) {
   // Spotted valgrind error while deleting a vector of variants.
   std::vector<Variant> vector{1, 1.2, 1.1f, "foo"};
   Variant sa("foo");
-  Variant sb(sa); // Copy constructor
+  Variant sb(sa);            // Copy constructor
   Variant sc(std::move(sa)); // Move constructor
-  Variant sd = sc; // Copy operator
+  Variant sd = sc;           // Copy operator
 
-  BOOST_CHECK(std::string(sb.get<const char *>()) == "foo");
-  BOOST_CHECK(std::string(sc.get<const char *>()) == "foo");
-  BOOST_CHECK(std::string(sd.get<const char *>()) == "foo");
-  BOOST_CHECK(sa.get<const char *>() == nullptr);
+  BOOST_CHECK(std::string(sb.get<const char*>()) == "foo");
+  BOOST_CHECK(std::string(sc.get<const char*>()) == "foo");
+  BOOST_CHECK(std::string(sd.get<const char*>()) == "foo");
+  BOOST_CHECK(sa.get<const char*>() == nullptr);
 }

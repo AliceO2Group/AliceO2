@@ -11,12 +11,12 @@
 //  Set of data describing the object                              //
 //  but not used to identify the object                            //
 #include "CCDB/ConditionMetaData.h"
-#include <TObjString.h>   // for TObjString
-#include <TTimeStamp.h>   // for TTimeStamp
+#include <TObjString.h> // for TObjString
+#include <TTimeStamp.h> // for TTimeStamp
 
 using namespace o2::ccdb;
 
-ClassImp(ConditionMetaData)
+ClassImp(ConditionMetaData);
 
 ConditionMetaData::ConditionMetaData()
   : TObject(), mObjectClassName(""), mResponsible(""), mBeamPeriod(0), mAliRootVersion(""), mComment(""), mProperties()
@@ -26,8 +26,8 @@ ConditionMetaData::ConditionMetaData()
   mProperties.SetOwner(1);
 }
 
-ConditionMetaData::ConditionMetaData(const char *responsible, UInt_t beamPeriod, const char *alirootVersion,
-                                     const char *comment)
+ConditionMetaData::ConditionMetaData(const char* responsible, UInt_t beamPeriod, const char* alirootVersion,
+                                     const char* comment)
   : TObject(),
     mObjectClassName(""),
     mResponsible(responsible),
@@ -43,26 +43,26 @@ ConditionMetaData::ConditionMetaData(const char *responsible, UInt_t beamPeriod,
 
 ConditionMetaData::~ConditionMetaData() = default;
 
-void ConditionMetaData::setProperty(const char *property, TObject *object)
+void ConditionMetaData::setProperty(const char* property, TObject* object)
 {
   // add something to the list of properties
 
   mProperties.Add(new TObjString(property), object);
 }
 
-TObject *ConditionMetaData::getProperty(const char *property) const
+TObject* ConditionMetaData::getProperty(const char* property) const
 {
   // get a property specified by its name (property)
 
   return mProperties.GetValue(property);
 }
 
-Bool_t ConditionMetaData::removeProperty(const char *property)
+Bool_t ConditionMetaData::removeProperty(const char* property)
 {
   // removes a property
 
   TObjString objStrProperty(property);
-  TObjString *aKey = (TObjString *) mProperties.Remove(&objStrProperty);
+  TObjString* aKey = (TObjString*)mProperties.Remove(&objStrProperty);
 
   if (aKey) {
     delete aKey;
@@ -111,9 +111,9 @@ void ConditionMetaData::printConditionMetaData()
     message += "\tProperties key names:";
 
     TIter iter(mProperties.GetTable());
-    TPair *aPair;
-    while ((aPair = (TPair *) iter.Next())) {
-      message += TString::Format("\t\t%s\n", ((TObjString *) aPair->Key())->String().Data());
+    TPair* aPair;
+    while ((aPair = (TPair*)iter.Next())) {
+      message += TString::Format("\t\t%s\n", ((TObjString*)aPair->Key())->String().Data());
     }
   }
   message += '\n';

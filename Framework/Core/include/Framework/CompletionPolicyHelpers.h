@@ -33,7 +33,7 @@ struct CompletionPolicyHelpers {
   /// without actually consuming them.
   static CompletionPolicy processWhenAny();
   /// Attach a given @a op to a device matching @name.
-  static CompletionPolicy defineByName(std::string const &name, CompletionPolicy::CompletionOp op);
+  static CompletionPolicy defineByName(std::string const& name, CompletionPolicy::CompletionOp op);
 };
 
 } // namespace framework

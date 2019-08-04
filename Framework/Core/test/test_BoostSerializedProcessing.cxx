@@ -36,7 +36,7 @@ class Foo
     fBar1 = 1;
     fBar2[0] = 2.1;
     fBar2[1] = 2.2;
-    fBar3 = { 3.1, 3.2, 3.3 };
+    fBar3 = {3.1, 3.2, 3.3};
     fBar4 = "This is FooBar!";
   };
   Foo(int bar1, double bar21, double bar22, std::vector<float>& bar3, std::string& bar4) : fBar1(bar1),
@@ -69,27 +69,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       "boost_serialized_producer", //
       Inputs{},                    //
       {
-        OutputSpec{ { "make" }, "TES", "BOOST" }, //
+        OutputSpec{{"make"}, "TES", "BOOST"}, //
       },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
-        auto& out1 = ctx.outputs().make<BoostSerialized<std::vector<Foo>>>({ "TES", "BOOST" });
+      AlgorithmSpec{[](ProcessingContext& ctx) {
+        auto& out1 = ctx.outputs().make<BoostSerialized<std::vector<Foo>>>({"TES", "BOOST"});
         // auto& out1 = ctx.outputs().make_boost<std::array<int,6>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<BoostSerialized<std::array<int,6>>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<std::array<int,6>>({ "TES", "BOOST" });
         for (size_t i = 0; i < 17; i++) {
           float iFloat = (float)i;
-          std::vector<float> floatVect = { iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f };
+          std::vector<float> floatVect = {iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f};
           std::string string = "This is Foo!";
-          out1.emplace_back(Foo{ (int)i, 2. * iFloat, 2.1 * iFloat, floatVect, string });
+          out1.emplace_back(Foo{(int)i, 2. * iFloat, 2.1 * iFloat, floatVect, string});
         }
-      } } //
-    },    //
+      }} //
+    },   //
     DataProcessorSpec{
       "boost_serialized_consumer", //
       {
-        InputSpec{ { "make" }, "TES", "BOOST" }, //
-      },                                         //
-      Outputs{},                                 //
+        InputSpec{{"make"}, "TES", "BOOST"}, //
+      },                                     //
+      Outputs{},                             //
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           LOG(INFO) << "Buffer ready to receive";
@@ -98,9 +98,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           std::vector<Foo> check;
           for (size_t i = 0; i < 17; i++) {
             float iFloat = (float)i;
-            std::vector<float> floatVect = { iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f };
+            std::vector<float> floatVect = {iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f};
             std::string string = "This is Foo!";
-            check.emplace_back(Foo{ (int)i, 2. * iFloat, 2.1 * iFloat, floatVect, string });
+            check.emplace_back(Foo{(int)i, 2. * iFloat, 2.1 * iFloat, floatVect, string});
           }
 
           size_t i = 0;
@@ -110,10 +110,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             assert((test.fBar2[1] == check[i].fBar2[1])); // fBar2[1] wrong
             size_t j = 0;
             for (auto const& fBar3It : test.fBar3) {
-              assert((fBar3It == check[i].fBar3[j]));     // fBar3[j] wrong
+              assert((fBar3It == check[i].fBar3[j])); // fBar3[j] wrong
               j++;
             }
-            assert((test.fBar4 == check[i].fBar4));       // fBar4 wrong
+            assert((test.fBar4 == check[i].fBar4)); // fBar4 wrong
             i++;
           }
           ctx.services().get<ControlService>().readyToQuit(true);

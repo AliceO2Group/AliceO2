@@ -361,8 +361,8 @@ TGeoVolumeAssembly* Barrel::createBarrel()
   Int_t nwiresa = 19;
   Int_t nwiresb = 4;
   Int_t nwiresc = 3;
-  Int_t wires_array_pos[26] = { 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2 };
+  Int_t wires_array_pos[26] = {3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                               1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2};
 
   // defining wires shapes
   TGeoVolume* BarrelWiresA =

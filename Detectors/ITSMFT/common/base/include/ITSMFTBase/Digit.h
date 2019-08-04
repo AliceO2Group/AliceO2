@@ -89,7 +89,7 @@ class Digit
 
   ClassDefNV(Digit, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif /* ALICEO2_ITSMFT_DIGIT_H */

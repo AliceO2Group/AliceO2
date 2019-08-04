@@ -23,9 +23,9 @@
 #include <Rtypes.h>
 #include <iostream>
 
-ClassImp(o2::event_visualisation::EventManagerFrame)
+ClassImp(o2::event_visualisation::EventManagerFrame);
 
-  namespace o2
+namespace o2
 {
   namespace event_visualisation
   {

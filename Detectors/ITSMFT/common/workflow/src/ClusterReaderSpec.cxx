@@ -54,17 +54,17 @@ void ClusterReader::run(ProcessingContext& pc)
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{ mOrigin, mOrigin == o2::header::gDataOriginITS ? "ITSClusterROF" : "MFTClusterROF",
-                                0, Lifetime::Timeframe },
+  pc.outputs().snapshot(Output{mOrigin, mOrigin == o2::header::gDataOriginITS ? "ITSClusterROF" : "MFTClusterROF",
+                               0, Lifetime::Timeframe},
                         mClusROFRecOut);
   if (mUseClFull) {
-    pc.outputs().snapshot(Output{ mOrigin, "CLUSTERS", 0, Lifetime::Timeframe }, mClusterArrayOut);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArrayOut);
   }
   if (mUseClComp) {
-    pc.outputs().snapshot(Output{ mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe }, mClusterCompArrayOut);
+    pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArrayOut);
   }
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe }, mClusterMCTruthOut);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruthOut);
   }
 
   mFinished = true;
@@ -173,10 +173,9 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
     "its-cluster-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<ITSClusterReader>(useMC, useClFull, useClComp) },
+    AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, useClFull, useClComp)},
     Options{
-      { "its-cluster-infile", VariantType::String, "o2clus_its.root", { "Name of the input cluster file" } } }
-  };
+      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
 }
 
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp)
@@ -197,10 +196,9 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
     "mft-cluster-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<MFTClusterReader>(useMC, useClFull, useClComp) },
+    AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, useClFull, useClComp)},
     Options{
-      { "mft-cluster-infile", VariantType::String, "o2clus_mft.root", { "Name of the input cluster file" } } }
-  };
+      {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}}}};
 }
 
 } // namespace itsmft

@@ -22,8 +22,8 @@ namespace framework
 
 struct GraphvizHelpers {
   using Devices = std::vector<DeviceSpec>;
-  static void dumpDataProcessorSpec2Graphviz(std::ostream &, const WorkflowSpec &specs);
-  static void dumpDeviceSpec2Graphviz(std::ostream &, const Devices &specs);
+  static void dumpDataProcessorSpec2Graphviz(std::ostream&, const WorkflowSpec& specs);
+  static void dumpDeviceSpec2Graphviz(std::ostream&, const Devices& specs);
 };
 
 } // namespace framework

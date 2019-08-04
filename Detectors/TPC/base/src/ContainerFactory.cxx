@@ -8,14 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "TPCBase/ContainerFactory.h"
-#include "FairRuntimeDb.h"  // for FairRuntimeDb
+#include "FairRuntimeDb.h" // for FairRuntimeDb
 
 class FairParSet;
 using namespace o2::tpc;
 
-ClassImp(ContainerFactory)
+ClassImp(ContainerFactory);
 
 static ContainerFactory gTpcContainerFactory;
 
@@ -23,8 +22,8 @@ ContainerFactory::ContainerFactory()
   : FairContFact()
 {
   /** Constructor (called when the library is loaded) */
-  fName="ContainerFactory";
-  fTitle="Factory for parameter containers in libO2tpc";
+  fName = "ContainerFactory";
+  fTitle = "Factory for parameter containers in libO2tpc";
   setAllContainers();
   FairRuntimeDb::instance()->addContFactory(this);
 }
@@ -36,7 +35,7 @@ void ContainerFactory::setAllContainers()
       the list of containers for the O2tpc library.
   */
 
- /* FairContainer* p= new FairContainer("O2tpcGeoPar",
+  /* FairContainer* p= new FairContainer("O2tpcGeoPar",
                                       "O2tpc Geometry Parameters",
                                       "TestDefaultContext");
   p->addContext("TestNonDefaultContext");
@@ -52,7 +51,7 @@ FairParSet* ContainerFactory::createContainer(FairContainer* c)
       the default context
       of this container, the name is concatinated with the context.
   */
-    /*
+  /*
   const char* name=c->GetName();
   FairParSet* p=NULL;
   if (strcmp(name,"O2tpcGeoPar")==0) {

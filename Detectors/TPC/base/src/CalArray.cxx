@@ -12,5 +12,3 @@
 #include "TPCBase/CalArray.h"
 
 using namespace o2::tpc;
-
-

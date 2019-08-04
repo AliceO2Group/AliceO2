@@ -33,7 +33,7 @@ void DPLBoostSerialize(o2::framework::ProcessingContext& ctx, const std::string&
   /// Serialises a data set (in the form of vector, array or list) in a message
   auto buffer = o2::utils::SerializeContainer<ContT>(dataSet);
   int size = buffer.str().length();
-  auto msg = ctx.outputs().make<char>({ outBinding }, size);
+  auto msg = ctx.outputs().make<char>({outBinding}, size);
   std::memcpy(&(msg[0]), buffer.str().c_str(), size);
 }
 

@@ -254,8 +254,8 @@ class GeometryParams : public TNamed
   Float_t mCradleWall[5];       ///< Size of the wall of the PHOS cradle (shape TUBS)
   Float_t mCradleWheel[3];      ///< "Wheels" by which the cradle rolls over the rails
 
-  ClassDefOverride(GeometryParams, 1)
+  ClassDefOverride(GeometryParams, 1);
 };
-}
-}
+} // namespace phos
+} // namespace o2
 #endif

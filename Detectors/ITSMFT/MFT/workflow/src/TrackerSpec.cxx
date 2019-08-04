@@ -55,7 +55,7 @@ void TrackerDPL::init(InitContext& ic)
                                               o2::TransformType::T2G));
 
     mTracker = std::make_unique<o2::mft::Tracker>();
-    double origD[3] = { 0., 0., 0. };
+    double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
     LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
@@ -130,10 +130,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "MFTTracker pushed " << allTracks.size() << " tracks";
   LOG(INFO) << "MFTTracker pushed " << allTracksLTF.size() << " tracks LTF";
   LOG(INFO) << "MFTTracker pushed " << allTracksCA.size() << " tracks CA";
-  pc.outputs().snapshot(Output{ "MFT", "TRACKS", 0, Lifetime::Timeframe }, allTracks);
-  pc.outputs().snapshot(Output{ "MFT", "TRACKSLTF", 0, Lifetime::Timeframe }, allTracksLTF);
-  pc.outputs().snapshot(Output{ "MFT", "TRACKSCA", 0, Lifetime::Timeframe }, allTracksCA);
-  pc.outputs().snapshot(Output{ "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
+  pc.outputs().snapshot(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe}, allTracks);
+  pc.outputs().snapshot(Output{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe}, allTracksLTF);
+  pc.outputs().snapshot(Output{"MFT", "TRACKSCA", 0, Lifetime::Timeframe}, allTracksCA);
+  pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
 
   mState = 2;
   pc.services().get<ControlService>().readyToQuit(true);
@@ -144,21 +144,20 @@ DataProcessorSpec getTrackerSpec()
   return DataProcessorSpec{
     "mft-tracker",
     Inputs{
-      InputSpec{ "compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe } },
+      InputSpec{"compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
+      InputSpec{"clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe},
+      InputSpec{"labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
+      InputSpec{"ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
+      InputSpec{"MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
     Outputs{
-      OutputSpec{ "MFT", "TRACKS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "TRACKSLTF", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "TRACKSCA", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<TrackerDPL>() },
+      OutputSpec{"MFT", "TRACKS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "TRACKSCA", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>()},
     Options{
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
-    }
-  };
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}},
+    }};
 }
 
 } // namespace mft

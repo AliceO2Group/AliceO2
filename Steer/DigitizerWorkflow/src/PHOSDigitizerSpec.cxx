@@ -122,10 +122,10 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
 
     LOG(INFO) << "Have " << labelAccum->getNElements() << " PHOS labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ "PHS", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
-    pc.outputs().snapshot(Output{ "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe }, *labelAccum.get());
+    pc.outputs().snapshot(Output{"PHS", "DIGITS", 0, Lifetime::Timeframe}, *digitsAccum.get());
+    pc.outputs().snapshot(Output{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe}, *labelAccum.get());
     LOG(INFO) << "PHOS: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "PHS", "ROMode", 0, Lifetime::Timeframe }, roMode);
+    pc.outputs().snapshot(Output{"PHS", "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -169,15 +169,14 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
-    "PHOSDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "PHS", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ "PHS", "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ initIt },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
-  };
+    "PHOSDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    Outputs{OutputSpec{"PHS", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{"PHS", "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{initIt},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 } // namespace phos
 } // namespace o2

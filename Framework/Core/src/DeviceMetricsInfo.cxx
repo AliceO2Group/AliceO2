@@ -127,12 +127,9 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   };
 
   // Find the metric based on the label. Create it if not found.
-  auto cmpFn = [
-    namePtr = match.beginKey,
-    nameSize = match.endKey - match.beginKey
-  ](MetricLabelIndex const& a, MetricLabelIndex const& b)
-                 ->bool
-  {
+  auto cmpFn = [namePtr = match.beginKey,
+                nameSize = match.endKey - match.beginKey](MetricLabelIndex const& a, MetricLabelIndex const& b)
+    -> bool {
     return strncmp(a.label, namePtr, nameSize) < 0;
   };
   auto mi = std::lower_bound(info.metricLabelsIdx.begin(),
@@ -193,13 +190,13 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   }
   assert(metricIndex != -1);
   // We are now guaranteed our metric is present at metricIndex.
-  MetricInfo &metricInfo = info.metrics[metricIndex];
+  MetricInfo& metricInfo = info.metrics[metricIndex];
 
   //  auto mod = info.timestamps[metricIndex].size();
   info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
   info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
 
-  switch(metricInfo.type) {
+  switch (metricInfo.type) {
     case MetricType::Int: {
       info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = match.intValue;
       info.max[metricIndex] = std::max(info.max[metricIndex], (float)match.intValue);
@@ -236,11 +233,11 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
 
 /// @return the index in metrics for the information of given metric
 size_t
-DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
+  DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
 {
   size_t i = 0;
   while (i < info.metricLabelsIdx.size()) {
-    auto &metricName = info.metricLabelsIdx[i];
+    auto& metricName = info.metricLabelsIdx[i];
     if (metricName.label == name) {
       return metricName.index;
     }

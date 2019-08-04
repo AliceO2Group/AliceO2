@@ -164,6 +164,6 @@ void render3D()
   glDisableVertexAttribArray(0);
 }
 
-} // gl
-} // framework
-} // o2
+} // namespace gl
+} // namespace framework
+} // namespace o2

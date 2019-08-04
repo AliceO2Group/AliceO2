@@ -80,7 +80,7 @@ class TRDCommonParam
   // This is a singleton, constructor is private!
   TRDCommonParam();
 
-  ClassDef(TRDCommonParam, 1) // The constant parameters common to simulation and reconstruction
+  ClassDef(TRDCommonParam, 1); // The constant parameters common to simulation and reconstruction
 };
 } // namespace trd
 } // namespace o2

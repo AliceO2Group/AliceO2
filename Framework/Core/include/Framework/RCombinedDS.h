@@ -87,7 +87,7 @@ class RCombinedDSColumnJoinIndex : public RCombinedDSIndex
 {
  public:
   RCombinedDSColumnJoinIndex(std::string const& indexColumnName)
-    : fIndexColumnName{ indexColumnName }
+    : fIndexColumnName{indexColumnName}
   {
   }
 
@@ -106,7 +106,7 @@ class RCombinedDSColumnJoinIndex : public RCombinedDSIndex
     fAssociations.reserve(nEntries);
     // Fill the index with the associations
     auto filler = [& assoc = fAssociations](INDEX_TYPE ri) { assoc.push_back(ri); };
-    right->Foreach(filler, std::vector<std::string>{ fIndexColumnName });
+    right->Foreach(filler, std::vector<std::string>{fIndexColumnName});
 
     // Create the ranges by processing 64 entries per range
     auto deltaRange = 64;
@@ -156,10 +156,10 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
                             bool self = true,
                             BlockCombinationRule combinationType = BlockCombinationRule::Anti,
                             std::string const& rightCategoryColumn = "")
-    : fLeftCategoryColumn{ leftCategoryColumn },
-      fRightCategoryColumn{ rightCategoryColumn.empty() ? leftCategoryColumn : rightCategoryColumn },
-      fSelf{ self },
-      fCombinationType{ combinationType }
+    : fLeftCategoryColumn{leftCategoryColumn},
+      fRightCategoryColumn{rightCategoryColumn.empty() ? leftCategoryColumn : rightCategoryColumn},
+      fSelf{self},
+      fCombinationType{combinationType}
   {
   }
 
@@ -196,7 +196,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
     /// of entries.
     int startSize = fAssociations.size();
     for (auto categoryValue : leftCategories) {
-      std::pair<ULong64_t, ULong64_t> p{ categoryValue, 0 };
+      std::pair<ULong64_t, ULong64_t> p{categoryValue, 0};
       auto outerRange = std::equal_range(leftPairs.begin(), leftPairs.end(), p, same);
       decltype(outerRange) innerRange;
       if (fSelf) {
@@ -209,7 +209,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
         case BlockCombinationRule::Full:
           for (auto out = outerRange.first; out != outerRange.second; ++out) {
             for (auto in = innerRange.first; in != innerRange.second; ++in) {
-              fAssociations.emplace_back(Association{ out->second, in->second });
+              fAssociations.emplace_back(Association{out->second, in->second});
             }
           }
           break;
@@ -220,7 +220,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
               break;
             }
             for (auto in = innerRange.first + offset; in != innerRange.second; ++in) {
-              fAssociations.emplace_back(Association{ out->second, in->second });
+              fAssociations.emplace_back(Association{out->second, in->second});
             }
             offset++;
           }
@@ -232,7 +232,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
               break;
             }
             for (auto in = innerRange.first + offset; in != innerRange.second; ++in) {
-              fAssociations.emplace_back(Association{ out->second, in->second });
+              fAssociations.emplace_back(Association{out->second, in->second});
             }
             offset++;
           }
@@ -243,7 +243,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
               if (std::distance(innerRange.first, in) == std::distance(outerRange.first, out)) {
                 continue;
               }
-              fAssociations.emplace_back(Association{ out->second, in->second });
+              fAssociations.emplace_back(Association{out->second, in->second});
             }
             offset++;
           }
@@ -252,7 +252,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
           auto sizeRow = std::distance(outerRange.first, outerRange.second);
           auto sizeCol = std::distance(innerRange.first, innerRange.second);
           for (size_t i = 0, e = std::min(sizeRow, sizeCol); i < e; ++i) {
-            fAssociations.emplace_back(Association{ (outerRange.first + i)->second, (innerRange.first + i)->second });
+            fAssociations.emplace_back(Association{(outerRange.first + i)->second, (innerRange.first + i)->second});
           }
           break;
       }
@@ -321,8 +321,8 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
   RCombinedDS(std::unique_ptr<RDataSource> left,
               std::unique_ptr<RDataSource> right,
               std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombinedDSFriendIndex>(),
-              std::string leftPrefix = std::string{ "left_" },
-              std::string rightPrefix = std::string{ "right_" });
+              std::string leftPrefix = std::string{"left_"},
+              std::string rightPrefix = std::string{"right_"});
   ~RCombinedDS() override;
 
   template <typename T>

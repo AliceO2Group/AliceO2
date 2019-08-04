@@ -26,7 +26,7 @@ ClassImp(Digitizer);
 //_____________________________________________________________________________
 void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* digit)
 {
-  auto sorted_hits{ *hits };
+  auto sorted_hits{*hits};
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
@@ -37,7 +37,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
   if (channel_data.size() == 0) {
     channel_data.reserve(parameters.mNchannels);
     for (int i = 0; i < parameters.mNchannels; ++i)
-      channel_data.emplace_back(o2::fdd::ChannelData{ i, -1024, 0, 0 });
+      channel_data.emplace_back(o2::fdd::ChannelData{i, -1024, 0, 0});
   }
   Int_t parent = -10;
   Float_t integral = mPMResponse->Integral(-parameters.mPMTransitTime, 2. * parameters.mPMTransitTime);

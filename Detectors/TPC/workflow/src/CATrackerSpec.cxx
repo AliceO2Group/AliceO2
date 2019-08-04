@@ -317,11 +317,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
       if (operation == -1) {
         // EOD is transmitted in the sectorHeader with sector number equal to -1
-        o2::tpc::TPCSectorHeader sh{ -1 };
+        o2::tpc::TPCSectorHeader sh{-1};
         sh.activeSectors = activeSectors;
-        pc.outputs().snapshot(OutputRef{ "output", 0, { sh } }, -1);
+        pc.outputs().snapshot(OutputRef{"output", 0, {sh}}, -1);
         if (processMC) {
-          pc.outputs().snapshot(OutputRef{ "mclblout", 0, { sh } }, -1);
+          pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
         }
         pc.services().get<ControlService>().readyToQuit(false);
         processAttributes->readyToQuit = true;
@@ -429,10 +429,10 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
-      pc.outputs().snapshot(OutputRef{ "output" }, tracks);
+      pc.outputs().snapshot(OutputRef{"output"}, tracks);
       if (processMC) {
         LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
-        pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
+        pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
       }
 
       // TODO - Process Compressed Clusters Output
@@ -460,9 +460,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
   auto createInputSpecs = [inputIds](bool makeMcInput) {
-    Inputs inputs = { InputSpec{ "input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } };
+    Inputs inputs = {InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe}};
     if (makeMcInput) {
-      inputs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe });
+      inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe});
     }
 
     return std::move(mergeInputs(inputs, inputIds.size(),
@@ -476,23 +476,23 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "output" }, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe },
+      OutputSpec{{"output"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
-      OutputLabel label{ "mclblout" };
+      OutputLabel label{"mclblout"};
       constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ "tpc-tracker", // process id
-                            { createInputSpecs(processMC) },
-                            { createOutputSpecs(processMC) },
-                            AlgorithmSpec(initFunction),
-                            Options{
-                              { "tracker-options", VariantType::String, "", { "Option string passed to tracker" } },
-                            } };
+  return DataProcessorSpec{"tpc-tracker", // process id
+                           {createInputSpecs(processMC)},
+                           {createOutputSpecs(processMC)},
+                           AlgorithmSpec(initFunction),
+                           Options{
+                             {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
+                           }};
 }
 
 } // namespace tpc

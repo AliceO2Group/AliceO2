@@ -42,9 +42,9 @@ class ClustererTask : public FairTask
   std::vector<Cluster>* mClustersArray = nullptr; ///< Array of clusters
   const std::vector<Digit>* mDigitsArray;         ///< Input array of digits
   Clusterer* mClusterer;                          ///< Clusterer to do the job
-  ClassDefOverride(ClustererTask, 1)
+  ClassDefOverride(ClustererTask, 1);
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #endif /* ALICEO2_PHOS_CLUSTERERTASK */

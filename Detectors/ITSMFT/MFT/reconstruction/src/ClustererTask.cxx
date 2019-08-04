@@ -76,7 +76,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
 {
   // standalone execution
   setSelfManagedMode(true);
-  Init();                   // create reader, clusterer
+  Init(); // create reader, clusterer
 
   std::unique_ptr<TFile> outFile(TFile::Open(outName.data(), "recreate"));
   if (!outFile || outFile->IsZombie()) {

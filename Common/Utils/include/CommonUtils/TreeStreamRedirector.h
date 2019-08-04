@@ -34,9 +34,9 @@ namespace utils
 ///
 /// The flushing of trees to the file happens on TreeStreamRedirector::Close() call
 /// or at its desctruction.
-/// 
+///
 /// See testTreeStream.cxx for functional example
-///  
+///
 class TreeStreamRedirector
 {
  public:
@@ -61,7 +61,7 @@ class TreeStreamRedirector
 
   ClassDefNV(TreeStreamRedirector, 0);
 };
-}
-}
+} // namespace utils
+} // namespace o2
 
 #endif

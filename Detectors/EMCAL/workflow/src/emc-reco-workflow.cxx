@@ -27,9 +27,9 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    { "input-type", o2::framework::VariantType::String, "digits", { "digitizer, digits, raw, clusters" } },
-    { "output-type", o2::framework::VariantType::String, "digits", { "digits, raw, clusters" } },
-    { "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information" } },
+    {"input-type", o2::framework::VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
+    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
   };
   std::swap(workflowOptions, options);
 }

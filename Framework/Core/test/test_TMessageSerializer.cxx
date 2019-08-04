@@ -18,14 +18,15 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestTMessageSerializer) {
+BOOST_AUTO_TEST_CASE(TestTMessageSerializer)
+{
   const char* testname = "testname";
   const char* testtitle = "testtitle";
   using namespace o2::framework;
 
   TObjArray array;
   array.SetOwner();
-  array.Add(new TNamed(testname,testtitle));
+  array.Add(new TNamed(testname, testtitle));
 
   FairTMessage msg;
   TMessageSerializer::serialize(msg, &array);
@@ -37,9 +38,9 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer) {
   auto out = TMessageSerializer::deserialize(buf);
 
   TObjArray* outarr = dynamic_cast<TObjArray*>(out.get());
-  BOOST_CHECK_EQUAL(out.get(),outarr);
+  BOOST_CHECK_EQUAL(out.get(), outarr);
   TNamed* named = dynamic_cast<TNamed*>(outarr->At(0));
-  BOOST_CHECK_EQUAL(static_cast<void*>(named),static_cast<void*>(outarr->At(0)));
+  BOOST_CHECK_EQUAL(static_cast<void*>(named), static_cast<void*>(outarr->At(0)));
   BOOST_CHECK_EQUAL(named->GetName(), testname);
   BOOST_CHECK_EQUAL(named->GetTitle(), testtitle);
 
@@ -56,7 +57,7 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer) {
 BOOST_AUTO_TEST_CASE(TestTMessageSerializer_NonTObject)
 {
   using namespace o2::framework;
-  std::vector<o2::test::Polymorphic> data{ { 0xaffe }, { 0xd00f } };
+  std::vector<o2::test::Polymorphic> data{{0xaffe}, {0xd00f}};
 
   TClass* cl = TClass::GetClass("std::vector<o2::test::Polymorphic>");
   BOOST_REQUIRE(cl != nullptr);

@@ -13,10 +13,12 @@
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2 {
-namespace workflows{
-  o2::framework::DataProcessorSpec sim_tpc();
+namespace o2
+{
+namespace workflows
+{
+o2::framework::DataProcessorSpec sim_tpc();
 }
-}
+} // namespace o2
 
 #endif // WORKFLOWS_O2_SIM_TPC

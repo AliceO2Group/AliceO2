@@ -26,7 +26,7 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
                              const unsigned char rowOffset,
                              const float xhelper,
                              const unsigned char globalRowOffset)
-  : mRegion{ region }, mPartition{ partition }, mNumberOfPadRows{ numberOfPadRows }, mPadHeight{ padHeight }, mPadWidth{ padWidth }, mRadiusFirstRow{ radiusFirstRow }, mRowOffset{ rowOffset }, mXhelper{ xhelper }, mNumberOfPads{ 0 }, mGlobalRowOffset{ globalRowOffset }, mPadsPerRow(numberOfPadRows)
+  : mRegion{region}, mPartition{partition}, mNumberOfPadRows{numberOfPadRows}, mPadHeight{padHeight}, mPadWidth{padWidth}, mRadiusFirstRow{radiusFirstRow}, mRowOffset{rowOffset}, mXhelper{xhelper}, mNumberOfPads{0}, mGlobalRowOffset{globalRowOffset}, mPadsPerRow(numberOfPadRows)
 {
   init();
 }

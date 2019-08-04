@@ -132,11 +132,11 @@ class MCHDPLDigitizerTask
     mDigitizer.mergeDigits(digitsAccum, labelAccum);
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
-    pc.outputs().snapshot(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
-    pc.outputs().snapshot(Output{ "MCH", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
     LOG(DEBUG) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
     //ROMode: to be understood, check EMCal etc.
-    pc.outputs().snapshot(Output{ "MCH", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -159,15 +159,14 @@ o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "MCHDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "MCH", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "MCH", "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ "MCH", "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<MCHDPLDigitizerTask>() },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{"MCH", "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<MCHDPLDigitizerTask>()},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // end namespace mch

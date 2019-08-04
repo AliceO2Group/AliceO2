@@ -105,23 +105,23 @@ GPU_GLOBAL void trackleterKernel(
       atomicAdd(&counter[1], 1);
     }
     if (currentClusterIndex < GPUclusterSize1) {
-      int storedTracklets{ 0 };
-      const int stride{ currentClusterIndex * maxTrackletsPerCluster };
-      const Cluster currentCluster{ GPUclustersCurrent[currentClusterIndex] };
-      const int layerIndex{ layerOrder == LAYER0_TO_LAYER1 ? 0 : 2 };
-      const int4 selectedBinsRect{ VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut) };
+      int storedTracklets{0};
+      const int stride{currentClusterIndex * maxTrackletsPerCluster};
+      const Cluster currentCluster{GPUclustersCurrent[currentClusterIndex]};
+      const int layerIndex{layerOrder == LAYER0_TO_LAYER1 ? 0 : 2};
+      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
-        int phiBinsNum{ selectedBinsRect.w - selectedBinsRect.y + 1 };
+        int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
           phiBinsNum += PhiBins;
         }
-        for (int iPhiBin{ selectedBinsRect.y }, iPhiCount{ 0 }; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-          const int firstBinIndex{ index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin) };
-          const int firstRowClusterIndex{ indexTableNext[firstBinIndex] };
-          const int maxRowClusterIndex{ indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1] };
-          for (int iNextLayerCluster{ firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
-            const Cluster& nextCluster{ GPUclustersNext[iNextLayerCluster] };
-            const char testMC{ !isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1 };
+        for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+          const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+          const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
+          const int maxRowClusterIndex{indexTableNext[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
+          for (int iNextLayerCluster{firstRowClusterIndex}; iNextLayerCluster < maxRowClusterIndex && iNextLayerCluster < GPUclusterSizeNext; ++iNextLayerCluster) {
+            const Cluster& nextCluster{GPUclustersNext[iNextLayerCluster]};
+            const char testMC{!isMc || MClabelsNext[iNextLayerCluster] == MClabelsCurrent[currentClusterIndex] && MClabelsNext[iNextLayerCluster] != -1};
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut && testMC) {
               if (storedTracklets < maxTrackletsPerCluster) {
                 if (layerOrder == LAYER0_TO_LAYER1) {
@@ -154,13 +154,13 @@ GPU_GLOBAL void trackletSelectionKernel(
   const float tanLambdaCut = 0.025f,
   const int maxTracklets = static_cast<int>(2e3))
 {
-  const int currentClusterIndex{ getGlobalIdx() };
+  const int currentClusterIndex{getGlobalIdx()};
   if (currentClusterIndex < GPUclusterSize1) {
-    const int stride{ currentClusterIndex * maxTracklets };
-    int validTracklets{ 0 };
-    for (int iTracklet12{ 0 }; iTracklet12 < foundTracklets12[currentClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{ 0 }; iTracklet01 < foundTracklets01[currentClusterIndex] && validTracklets < maxTracklets; ++iTracklet01) {
-        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(GPUtracklets01[stride + iTracklet01].tanLambda - GPUtracklets12[stride + iTracklet12].tanLambda) };
+    const int stride{currentClusterIndex * maxTracklets};
+    int validTracklets{0};
+    for (int iTracklet12{0}; iTracklet12 < foundTracklets12[currentClusterIndex]; ++iTracklet12) {
+      for (int iTracklet01{0}; iTracklet01 < foundTracklets01[currentClusterIndex] && validTracklets < maxTracklets; ++iTracklet01) {
+        const float deltaTanLambda{gpu::GPUCommonMath::Abs(GPUtracklets01[stride + iTracklet01].tanLambda - GPUtracklets12[stride + iTracklet12].tanLambda)};
         if (/*deltaTanLambda < tanLambdaCut*/ true) {
           new (destTracklets + stride + validTracklets) Line(GPUtracklets01[stride + iTracklet01], GPUclusters0, GPUclusters1);
           ++validTracklets;
@@ -177,11 +177,11 @@ GPU_GLOBAL void trackletSelectionKernel(
 
 GPU_GLOBAL void debugSumKernel(const int* arrayToSum, const int size)
 {
-  const int currentClusterIndex{ getGlobalIdx() };
+  const int currentClusterIndex{getGlobalIdx()};
   if (currentClusterIndex == 0) {
-    int sum{ 0 };
+    int sum{0};
     printf("on device:\n");
-    for (int i{ 0 }; i < size; ++i) {
+    for (int i{0}; i < size; ++i) {
       printf("\t%d, ", arrayToSum[i]);
       sum += arrayToSum[i];
     }
@@ -204,8 +204,8 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   const int clusterSize1 = static_cast<int>(mClusters[1].size());
   const int clusterSize2 = static_cast<int>(mClusters[2].size());
 
-  dim3 threadsPerBlock{ GPU::Utils::Host::getBlockSize(clusterSize1) };
-  dim3 blocksGrid{ GPU::Utils::Host::getBlocksGrid(threadsPerBlock, clusterSize1) };
+  dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(clusterSize1)};
+  dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, clusterSize1)};
 
   int* numTracks01;
   int* numTracks12;
@@ -289,7 +289,7 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   if (error != cudaSuccess) {
     std::ostringstream errorString{};
     errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
-    throw std::runtime_error{ errorString.str() };
+    throw std::runtime_error{errorString.str()};
   }
 
   // DEBUG section
@@ -309,39 +309,39 @@ void VertexerTraitsGPU::computeTracklets(const bool useMCLabel)
   cudaDeviceSynchronize();
 
   // Dump for debug
-  for (int i{ 0 }; i < clusterSize1; ++i) {
-    const int stride{ i * static_cast<int>(2e3) };
-    for (int j{ 0 }; j < foundTracklets01_h[i]; ++j) {
+  for (int i{0}; i < clusterSize1; ++i) {
+    const int stride{i * static_cast<int>(2e3)};
+    for (int j{0}; j < foundTracklets01_h[i]; ++j) {
       mComb01.push_back(comb01[stride + j]);
     }
   }
 
-  for (int i{ 0 }; i < clusterSize1; ++i) {
-    const int stride{ i * static_cast<int>(2e3) };
-    for (int j{ 0 }; j < foundTracklets12_h[i]; ++j) {
+  for (int i{0}; i < clusterSize1; ++i) {
+    const int stride{i * static_cast<int>(2e3)};
+    for (int j{0}; j < foundTracklets12_h[i]; ++j) {
       mComb12.push_back(comb12[stride + j]);
     }
   }
 
-  for (int i{ 0 }; i < clusterSize1; ++i) {
-    const int stride{ i * static_cast<int>(2e3) };
-    for (int j{ 0 }; j < foundTracklets12_h[i]; ++j) {
-      for (int k{ 0 }; k < foundTracklets01_h[i]; ++k) {
+  for (int i{0}; i < clusterSize1; ++i) {
+    const int stride{i * static_cast<int>(2e3)};
+    for (int j{0}; j < foundTracklets12_h[i]; ++j) {
+      for (int k{0}; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
-        const float deltaTanLambda{ gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda) };
-        mTrackletInfo.push_back(std::array<float, 9>{ deltaTanLambda,
-                                                      mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
-                                                      mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
-                                                      mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
-                                                      42.f, /* dummy */
-                                                      true /* dummy */ });
+        const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
+        mTrackletInfo.push_back(std::array<float, 9>{deltaTanLambda,
+                                                     mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
+                                                     mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
+                                                     mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
+                                                     42.f, /* dummy */
+                                                     true /* dummy */});
       }
     }
   }
 
-  for (int i{ 0 }; i < clusterSize1; ++i) {
-    const int stride{ i * static_cast<int>(2e3) };
-    int counter{ 0 };
+  for (int i{0}; i < clusterSize1; ++i) {
+    const int stride{i * static_cast<int>(2e3)};
+    int counter{0};
     while (!lines[stride + counter].isEmpty) {
       if (counter == static_cast<int>(2e3))
         break;

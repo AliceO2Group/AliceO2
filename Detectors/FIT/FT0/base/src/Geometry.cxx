@@ -18,17 +18,17 @@ ClassImp(o2::ft0::Geometry);
 
 using namespace o2::ft0;
 
-Geometry::Geometry() : mMCP{ { 0, 0, 0 } }
+Geometry::Geometry() : mMCP{{0, 0, 0}}
 {
 
   Float_t zDetA = 333;
-  Float_t xa[24] = { -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
-                     6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8 };
+  Float_t xa[24] = {-11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
+                    6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8};
 
-  Float_t ya[24] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0., -0.,
-                     0., 0., -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9 };
+  Float_t ya[24] = {11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0., -0.,
+                    0., 0., -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9};
 
-  Float_t pmcp[3] = { 2.949, 2.949, 2.8 }; // MCP
+  Float_t pmcp[3] = {2.949, 2.949, 2.8}; // MCP
 
   // Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
@@ -42,22 +42,22 @@ Geometry::Geometry() : mMCP{ { 0, 0, 0 } }
   Double_t btta = 2 * TMath::ATan(dP / crad);
 
   // get noncompensated translation data
-  Double_t grdin[6] = { -3, -2, -1, 1, 2, 3 };
+  Double_t grdin[6] = {-3, -2, -1, 1, 2, 3};
   Double_t gridpoints[6];
   for (Int_t i = 0; i < 6; i++) {
     gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
   }
 
-  Double_t xi[28] = { gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0], gridpoints[1],
-                      gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
-                      gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5],
-                      gridpoints[0], gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
-                      gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4] };
-  Double_t yi[28] = { gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4], gridpoints[4],
-                      gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[3], gridpoints[3],
-                      gridpoints[3], gridpoints[3], gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[2],
-                      gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1],
-                      gridpoints[0], gridpoints[0], gridpoints[0], gridpoints[0] };
+  Double_t xi[28] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0], gridpoints[1],
+                     gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
+                     gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5],
+                     gridpoints[0], gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
+                     gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4]};
+  Double_t yi[28] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4], gridpoints[4],
+                     gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[3], gridpoints[3],
+                     gridpoints[3], gridpoints[3], gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[2],
+                     gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1],
+                     gridpoints[0], gridpoints[0], gridpoints[0], gridpoints[0]};
   Double_t zi[28];
   for (Int_t i = 0; i < 28; i++) {
     zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));

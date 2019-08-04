@@ -95,7 +95,7 @@ std::vector<Point> checkGaps(const CathodeSegmentation& seg, double xstep = 1.0,
   for (double x = bbox.xmin() - xstep; x <= bbox.xmax() + xstep; x += xstep) {
     for (double y = bbox.ymin() - ystep; y <= bbox.ymax() + ystep; y += ystep) {
       double distanceToEnveloppe =
-        std::sqrt(o2::mch::contour::squaredDistancePointToPolygon(o2::mch::contour::Vertex<double>{ x, y }, env[0]));
+        std::sqrt(o2::mch::contour::squaredDistancePointToPolygon(o2::mch::contour::Vertex<double>{x, y}, env[0]));
       bool withinEnveloppe = env.contains(x, y) && (distanceToEnveloppe > 1E-5);
       if (withinEnveloppe && !seg.isValid(seg.findPadByPosition(x, y))) {
         gaps.emplace_back(x, y);
@@ -107,12 +107,12 @@ std::vector<Point> checkGaps(const CathodeSegmentation& seg, double xstep = 1.0,
 
 BOOST_TEST_DECORATOR(*boost::unit_test::label("long"))
 BOOST_DATA_TEST_CASE(NoGapWithinPads,
-                     boost::unit_test::data::make({ 100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700,
-                                                    701, 702, 703, 704, 705, 706, 902, 903, 904, 905 }) *
-                       boost::unit_test::data::make({ true, false }),
+                     boost::unit_test::data::make({100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700,
+                                                   701, 702, 703, 704, 705, 706, 902, 903, 904, 905}) *
+                       boost::unit_test::data::make({true, false}),
                      detElemId, isBendingPlane)
 {
-  CathodeSegmentation seg{ detElemId, isBendingPlane };
+  CathodeSegmentation seg{detElemId, isBendingPlane};
   auto g = checkGaps(seg);
 
   if (!g.empty()) {
@@ -132,7 +132,7 @@ int testOnePosition(const o2::mch::mapping::CathodeSegmentation& seg, rapidjson:
   double y = tp["y"].GetDouble();
   int catPadIndex = seg.findPadByPosition(x, y);
 
-  bool isOutside{ false };
+  bool isOutside{false};
 
   if (tp.HasMember("isoutside")) {
     isOutside = (tp["isoutside"].GetString() == std::string("true"));
@@ -174,7 +174,7 @@ struct hasTestPosFile {
     auto& ts = boost::unit_test::framework::master_test_suite();
     auto n = ts.argc;
     if (n >= 2) {
-      std::string opt{ "--testpos" };
+      std::string opt{"--testpos"};
       for (auto i = 0; i < n - 1; i++) {
         if (opt == ts.argv[i]) {
           path = ts.argv[i + 1];
@@ -193,7 +193,7 @@ struct hasTestPosFile {
 BOOST_TEST_DECORATOR(*boost::unit_test::label("long"))
 BOOST_AUTO_TEST_CASE(TestPositions)
 {
-  std::string filepath{ hasTestPosFile{}.getPath() };
+  std::string filepath{hasTestPosFile{}.getPath()};
 
   if (filepath.empty()) {
     BOOST_TEST(true, "skipping test as to --testpos given");
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(TestPositions)
 
   BOOST_TEST(test_positions.Size() > 0);
 
-  int notok{ 0 };
+  int notok{0};
 
   for (auto& tp : test_positions.GetArray()) {
     int detElemId = tp["de"].GetInt();

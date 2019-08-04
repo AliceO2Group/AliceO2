@@ -41,9 +41,9 @@ class TrackITS : public o2::track::TrackParCov
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
-  TrackITS(const o2::track::TrackParCov& parcov) : TrackParCov{ parcov } {}
+  TrackITS(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
   TrackITS(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
-    : o2::track::TrackParCov{ parCov }, mChi2{ chi2 }, mROFrame{ rof }, mParamOut{ outer } {}
+    : o2::track::TrackParCov{parCov}, mChi2{chi2}, mROFrame{rof}, mParamOut{outer} {}
   TrackITS& operator=(const TrackITS& tr) = default;
   ~TrackITS() = default;
 
@@ -90,13 +90,13 @@ class TrackITS : public o2::track::TrackParCov
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
  private:
-  float mMass = 0.139;                            ///< Assumed mass for this track
-  float mChi2 = 0.;                               ///< Chi2 for this track
-  std::uint32_t mROFrame = 0;                     ///< RO Frame
-  o2::track::TrackParCov mParamOut;               ///< parameter at largest radius
-  ClusRefs mClusRef;                              ///< references on clusters
+  float mMass = 0.139;              ///< Assumed mass for this track
+  float mChi2 = 0.;                 ///< Chi2 for this track
+  std::uint32_t mROFrame = 0;       ///< RO Frame
+  o2::track::TrackParCov mParamOut; ///< parameter at largest radius
+  ClusRefs mClusRef;                ///< references on clusters
 
-  ClassDefNV(TrackITS, 3)
+  ClassDefNV(TrackITS, 3);
 };
 
 class TrackITSExt : public TrackITS
@@ -108,7 +108,7 @@ class TrackITSExt : public TrackITS
 
   TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
               o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
-    : TrackITS(parCov, chi2, rof, outer), mIndex{ cls }
+    : TrackITS(parCov, chi2, rof, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
   }
@@ -131,9 +131,9 @@ class TrackITSExt : public TrackITS
   }
 
  private:
-  std::array<int, MaxClusters> mIndex = { -1 }; ///< Indices of associated clusters
+  std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
   ClassDefNV(TrackITSExt, 1);
 };
-}
-}
+} // namespace its
+} // namespace o2
 #endif /* ALICEO2_ITS_TRACKITS_H */

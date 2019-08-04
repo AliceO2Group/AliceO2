@@ -33,10 +33,10 @@ TPCFastTransformGeo::TPCFastTransformGeo()
     s.sinAlpha = sin(alpha);
     s.cosAlpha = cos(alpha);
   }
-  mSliceInfos[NumberOfSlices] = SliceInfo{ 0.f, 0.f };
+  mSliceInfos[NumberOfSlices] = SliceInfo{0.f, 0.f};
 
   for (int i = 0; i < MaxNumberOfRows + 1; i++) {
-    mRowInfos[i] = RowInfo{ 0.f, -1, 0.f, 0.f, 0.f, 0.f };
+    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
   }
 }
 
@@ -58,7 +58,7 @@ void TPCFastTransformGeo::startConstruction(int numberOfRows)
   mScaleSVtoVsideC = 0.f;
 
   for (int i = 0; i < MaxNumberOfRows; i++) {
-    mRowInfos[i] = RowInfo{ 0.f, -1, 0.f, 0.f, 0.f, 0.f };
+    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
   }
 }
 

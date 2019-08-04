@@ -354,7 +354,7 @@ class MatchTPCITS
   ///< get tolerance on TPC time-bins estimate from highest cluster Z
   float getTPCTimeEdgeZSafeMargin() const { return mTPCTimeEdgeZSafeMargin; }
 
-//<<< ====================== cuts ================================<<<
+  //<<< ====================== cuts ================================<<<
 
 #ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
@@ -483,7 +483,7 @@ class MatchTPCITS
   int mCurrITSClustersTreeEntry = -1; ///< current ITS clusters tree entry loaded to memory
   int mCurrITSTracksTreeEntry = -1;   ///< current ITS tracks tree entry loaded to memory
 
-  bool mMCTruthON = false; ///< flag availability of MC truth
+  bool mMCTruthON = false;        ///< flag availability of MC truth
   o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 
@@ -493,10 +493,10 @@ class MatchTPCITS
   bool mCompareTracksDZ = false;
 
   ///<tolerance on abs. different of ITS/TPC params
-  std::array<float, o2::track::kNParams> mCrudeAbsDiffCut = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
+  std::array<float, o2::track::kNParams> mCrudeAbsDiffCut = {2.f, 2.f, 0.2f, 0.2f, 4.f};
 
   ///<tolerance on per-component ITS/TPC params NSigma
-  std::array<float, o2::track::kNParams> mCrudeNSigma2Cut = { 49.f, 49.f, 49.f, 49.f, 49.f };
+  std::array<float, o2::track::kNParams> mCrudeNSigma2Cut = {49.f, 49.f, 49.f, 49.f, 49.f};
 
   float mCutMatchingChi2 = 200.f; ///< cut on matching chi2
 
@@ -530,34 +530,34 @@ class MatchTPCITS
   float mNTPCBinsFullDrift = 0.;    ///< max time bin for full drift
   float mTPCZMax = 0.;              ///< max drift length
 
-  TTree* mTreeITSTracks = nullptr;   ///< input tree for ITS tracks
-  TTree* mTreeITSTrackROFRec = nullptr; ///< input tree for ITS Tracks ROFRecords vector
-  TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
-  TTree* mTreeITSClusters = nullptr; ///< input tree for ITS clusters
+  TTree* mTreeITSTracks = nullptr;        ///< input tree for ITS tracks
+  TTree* mTreeITSTrackROFRec = nullptr;   ///< input tree for ITS Tracks ROFRecords vector
+  TTree* mTreeTPCTracks = nullptr;        ///< input tree for TPC tracks
+  TTree* mTreeITSClusters = nullptr;      ///< input tree for ITS clusters
   TTree* mTreeITSClusterROFRec = nullptr; ///< input tree for ITS Clusters ROFRecords vector
-  TTree* mTreeFITInfo = nullptr;     ///< input tree for FIT info
+  TTree* mTreeFITInfo = nullptr;          ///< input tree for FIT info
 
-  o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr; ///< TPC cluster reader
+  o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;     ///< TPC cluster reader
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
   std::unique_ptr<o2::tpc::ClusterNative[]> mTPCClusterBufferOwn;        ///< buffer for clusters in mTPCClusterIdxStructOwn
   o2::tpc::MCLabelContainer mTPCClusterMCBufferOwn;                      ///< buffer for mc labels
 
-  std::unique_ptr<TPCTransform> mTPCTransform;                       ///< TPC cluster transformation
-  std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam;               ///< TPC clusters error param
+  std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
+  std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;       ///< input ITS tracks ROFRecord
-  const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;        ///< input ITS tracks
-  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;        ///< input TPC tracks
-  gsl::span<const int> mITSTrackClusIdxSPAN;                                 ///< input ITS track cluster indices span from DPL
-  const std::vector<int>* mITSTrackClusIdxInp = nullptr;                     ///< input ITS track cluster indices
-  const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr;    ///< input ITS clusters
-  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;     ///< input ITS clusters ROFRecord
-  const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;              ///< optional input FIT info
-  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;        ///< struct holding the TPC cluster indices
+  const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;    ///< input ITS tracks ROFRecord
+  const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;     ///< input ITS tracks
+  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;     ///< input TPC tracks
+  gsl::span<const int> mITSTrackClusIdxSPAN;                              ///< input ITS track cluster indices span from DPL
+  const std::vector<int>* mITSTrackClusIdxInp = nullptr;                  ///< input ITS track cluster indices
+  const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr; ///< input ITS clusters
+  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;  ///< input ITS clusters ROFRecord
+  const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;           ///< optional input FIT info
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;     ///< struct holding the TPC cluster indices
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTPCTrkLabels = nullptr; ///< input TPC Track MC labels
@@ -603,18 +603,18 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel> mOutITSLabels; ///< ITS label of matched track
   std::vector<o2::MCCompLabel> mOutTPCLabels; ///< TPC label of matched track
 
-  std::string mITSTrackBranchName = "ITSTrack";          ///< name of branch containing input ITS tracks
+  std::string mITSTrackBranchName = "ITSTrack";               ///< name of branch containing input ITS tracks
   std::string mITSTrackClusIdxBranchName = "ITSTrackClusIdx"; ///< name of branch containing input ITS tracks cluster indices
-  std::string mITSTrackROFRecBranchName = "ITSTracksROF"; ///< name of branch containing input ITS tracks ROFRecords
-  std::string mTPCTrackBranchName = "Tracks";            ///< name of branch containing input TPC tracks
-  std::string mITSClusterBranchName = "ITSCluster";      ///< name of branch containing input ITS clusters
+  std::string mITSTrackROFRecBranchName = "ITSTracksROF";     ///< name of branch containing input ITS tracks ROFRecords
+  std::string mTPCTrackBranchName = "Tracks";                 ///< name of branch containing input TPC tracks
+  std::string mITSClusterBranchName = "ITSCluster";           ///< name of branch containing input ITS clusters
   std::string mITSClusterROFRecBranchName = "ITSClustersROF"; ///< name of branch containing input ITS clusters ROFRecords
-  std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels
-  std::string mTPCMCTruthBranchName = "TracksMCTruth";   ///< name of branch containing input TPC tracks
-  std::string mFITInfoBranchName = "FT0Cluster";         ///< name of branch containing input FIT Info
-  std::string mOutTPCITSTracksBranchName = "TPCITS";     ///< name of branch containing output matched tracks
-  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
-  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
+  std::string mITSMCTruthBranchName = "ITSTrackMCTruth";      ///< name of branch containing ITS MC labels
+  std::string mTPCMCTruthBranchName = "TracksMCTruth";        ///< name of branch containing input TPC tracks
+  std::string mFITInfoBranchName = "FT0Cluster";              ///< name of branch containing input FIT Info
+  std::string mOutTPCITSTracksBranchName = "TPCITS";          ///< name of branch containing output matched tracks
+  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth";   ///< name of branch for output matched tracks TPC MC
+  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth";   ///< name of branch for output matched tracks ITS MC
 
 #ifdef _ALLOW_DEBUG_TREES_
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
@@ -726,7 +726,7 @@ inline void MatchTPCITS::removeITSfromTPC(int itsMatchID, int tpcMatchID)
     next = rcTPC.nextRecID;
   }
 }
-}
-}
+} // namespace globaltracking
+} // namespace o2
 
 #endif

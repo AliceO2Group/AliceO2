@@ -17,11 +17,11 @@
 #include "AliTPCLookUpTable3DInterpolatorIrregularD.h"
 
 /// \cond CLASSIMP3
-ClassImp(AliTPCLookUpTable3DInterpolatorIrregularD)
-  /// \endcond
+ClassImp(AliTPCLookUpTable3DInterpolatorIrregularD);
+/// \endcond
 
-  /// constructor
-  AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD()
+/// constructor
+AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD()
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;

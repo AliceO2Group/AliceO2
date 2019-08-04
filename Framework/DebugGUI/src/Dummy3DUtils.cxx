@@ -26,7 +26,7 @@ void dispose3DContext()
 {
 }
 
-} // sokol
+} // namespace sokol
 
 namespace gl
 {
@@ -41,6 +41,6 @@ void render3D()
 void dispose3DContext()
 {
 }
-} // gl
-} // framework
-} // o2
+} // namespace gl
+} // namespace framework
+} // namespace o2

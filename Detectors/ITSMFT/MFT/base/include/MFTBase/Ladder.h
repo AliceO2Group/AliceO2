@@ -25,14 +25,14 @@ namespace mft
 {
 class LadderSegmentation;
 }
-}
+} // namespace o2
 namespace o2
 {
 namespace mft
 {
 class Flex;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -60,7 +60,7 @@ class Ladder : public TNamed
 
   ClassDefOverride(Ladder, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

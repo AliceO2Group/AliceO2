@@ -75,7 +75,8 @@ void InvertPcon(TGeoPcon* pcon)
   delete[] rmax;
 }
 
-namespace {
+namespace
+{
 TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drMax)
 {
   //
@@ -88,7 +89,7 @@ TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drM
     cpcon->DefineSection(i, pcon->GetZ(i), pcon->GetRmin(i) + drMin, pcon->GetRmax(i) + drMax);
   return cpcon;
 }
-}
+} // namespace
 
 void Shil::ConstructGeometry()
 {
@@ -386,7 +387,7 @@ void Shil::ConstructGeometry()
   Float_t dSt = 4.;
   // 4 Section
   // z-positions
-  Float_t zSaa1StEnv[5] = { 111.2, 113.7, 229.3, 195.0 };
+  Float_t zSaa1StEnv[5] = {111.2, 113.7, 229.3, 195.0};
   // Radii
   // 1
   Float_t rOuSaa1StEnv1 = 40.4 / 2.;
@@ -629,8 +630,7 @@ void Shil::ConstructGeometry()
   Float_t rOuSaa1InnerTube = 36.8 / 2.; // Radius at exit
   Float_t dSaa1InnerTube = 0.2;         // Thickness
   TGeoVolume* voSaa1InnerTube =
-    new TGeoVolume("YSAA1_InnerTube", new TGeoCone(dzSaa1InnerTube, rInSaa1InnerTube - dSaa1InnerTube, rInSaa1InnerTube,
-                                                   rOuSaa1InnerTube - dSaa1InnerTube, rOuSaa1InnerTube),
+    new TGeoVolume("YSAA1_InnerTube", new TGeoCone(dzSaa1InnerTube, rInSaa1InnerTube - dSaa1InnerTube, rInSaa1InnerTube, rOuSaa1InnerTube - dSaa1InnerTube, rOuSaa1InnerTube),
                    kMedSteelSh);
 
   ///////////////////////////////////
@@ -1368,41 +1368,41 @@ void Shil::createMaterials()
   Int_t isxfld2 = 2.; // ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
 
   // Steel
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
   // PbW
-  Float_t apbw[2] = { 207.2, 183.85 };
-  Float_t zpbw[2] = { 82., 74. };
-  Float_t wpbw[2] = { .5, .5 };
+  Float_t apbw[2] = {207.2, 183.85};
+  Float_t zpbw[2] = {82., 74.};
+  Float_t wpbw[2] = {.5, .5};
   // Concrete
-  Float_t aconc[10] = { 1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85 };
-  Float_t zconc[10] = { 1., 6., 8., 11., 12., 13., 14., 19., 20., 26. };
-  Float_t wconc[10] = { .01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014 };
+  Float_t aconc[10] = {1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85};
+  Float_t zconc[10] = {1., 6., 8., 11., 12., 13., 14., 19., 20., 26.};
+  Float_t wconc[10] = {.01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014};
   // Ni-Cu-W alloy
-  Float_t aniwcu[3] = { 58.6934, 183.84, 63.546 };
-  Float_t zniwcu[3] = { 28., 74., 29. };
-  Float_t wniwcu[3] = { 0.015, 0.95, 0.035 };
+  Float_t aniwcu[3] = {58.6934, 183.84, 63.546};
+  Float_t zniwcu[3] = {28., 74., 29.};
+  Float_t wniwcu[3] = {0.015, 0.95, 0.035};
   //
   // Insulation powder
   //                    Si         O       Ti     Al
-  Float_t ains[4] = { 28.0855, 15.9994, 47.867, 26.982 };
-  Float_t zins[4] = { 14., 8., 22., 13. };
-  Float_t wins[4] = { 0.3019, 0.4887, 0.1914, 0.018 };
+  Float_t ains[4] = {28.0855, 15.9994, 47.867, 26.982};
+  Float_t zins[4] = {14., 8., 22., 13.};
+  Float_t wins[4] = {0.3019, 0.4887, 0.1914, 0.018};
   //
   // Air
   //
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-10;
   //
   // Cast iron
   //
-  Float_t acasti[4] = { 55.847, 12.011, 28.085, 54.938 };
-  Float_t zcasti[4] = { 26., 6., 14., 25. };
-  Float_t wcasti[4] = { 0.929, 0.035, 0.031, 0.005 };
+  Float_t acasti[4] = {55.847, 12.011, 28.085, 54.938};
+  Float_t zcasti[4] = {26., 6., 14., 25.};
+  Float_t wcasti[4] = {0.929, 0.035, 0.031, 0.005};
 
   // ****************
   //     Defines tracking media parameters.

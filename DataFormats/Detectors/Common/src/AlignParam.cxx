@@ -138,7 +138,7 @@ bool AlignParam::setLocalParams(double x, double y, double z, double psi, double
   /// returns false and the object parameters are not set.
 
   TGeoHMatrix m;
-  Double_t tr[3] = { x, y, z };
+  Double_t tr[3] = {x, y, z};
   m.SetTranslation(tr);
   setMatrixRotation(psi, theta, phi, m);
 

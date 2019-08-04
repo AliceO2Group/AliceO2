@@ -82,11 +82,11 @@ class MergerCache
   // when active, cache keeps only one entry per queue (per input)
   bool mOverwrite;
   // keeps the index of the timer in the InputRecord
-  int mTimerPosition{ -1 };
+  int mTimerPosition{-1};
   // counts how many inputs have some corresponding objects cached
-  size_t mCachedInputs{ 0 };
+  size_t mCachedInputs{0};
   // counts how many inputs have been updated since the last time the flag was cleared (last publication)
-  size_t mUpdatedInputs{ 0 };
+  size_t mUpdatedInputs{0};
 };
 
 } // namespace experimental::mergers

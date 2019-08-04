@@ -18,7 +18,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"   // for LOG
+#include "FairLogger.h" // for LOG
 
 using o2::itsmft::SegmentationAlpide;
 using namespace o2::its;
@@ -30,20 +30,19 @@ TrivialClusterer::TrivialClusterer() = default;
 
 TrivialClusterer::~TrivialClusterer() = default;
 
-void
-TrivialClusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
+void TrivialClusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
 {
   Float_t sigma2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.;
 
-  for (const auto &d : *digits) {
+  for (const auto& d : *digits) {
     Int_t ix = d.getRow(), iz = d.getColumn();
     Float_t x = 0., y = 0., z = 0.;
     SegmentationAlpide::detectorToLocal(ix, iz, x, z);
-    Point3Df loc(x,0.f,z);
+    Point3Df loc(x, 0.f, z);
     // inverse transform from local to tracking frame
-    auto tra = mGeometry->getMatrixT2L( d.getChipIndex() )^(loc);
+    auto tra = mGeometry->getMatrixT2L(d.getChipIndex()) ^ (loc);
 
-    int noc=clusters->size();
+    int noc = clusters->size();
     clusters->emplace_back(d.getChipIndex(), tra, sigma2, sigma2, 0.);
     (*clusters)[noc].SetUniqueID(noc); // Save the index within the cluster array
     if (mClsLabels) {

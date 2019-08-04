@@ -105,15 +105,14 @@ DataProcessorSpec getPHOSDigitWriterSpec()
 
   return DataProcessorSpec{
     "PHOSDigitWriter",
-    Inputs{ InputSpec{ "phosdigits", "PHS", "DIGITS", 0, Lifetime::Timeframe },
-            InputSpec{ "phosdigitlabels", "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+    Inputs{InputSpec{"phosdigits", "PHS", "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"phosdigitlabels", "PHS", "DIGITSMCTR", 0, Lifetime::Timeframe}},
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "phos-digit-outfile", VariantType::String, "phosdigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {"phos-digit-outfile", VariantType::String, "phosdigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 } // namespace phos
 } // namespace o2

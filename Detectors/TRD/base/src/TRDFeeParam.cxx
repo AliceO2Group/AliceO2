@@ -310,7 +310,7 @@ int TRDFeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigne
   unsigned int cmA = 0, cmB = 0; // Chipmask for each A and B side
 
   // Default chipmask for 4 linkpairs (each bit correponds each alice-mcm)
-  static const unsigned int gkChipmaskDefLp[4] = { 0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF };
+  static const unsigned int gkChipmaskDefLp[4] = {0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF};
 
   rob = dest >> 7;                 // Extract ROB pattern from dest.
   mcm = dest & 0x07F;              // Extract MCM pattern from dest.

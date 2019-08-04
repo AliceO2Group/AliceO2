@@ -82,10 +82,10 @@ int main(int argc, char* argv[])
   }
 
   for (auto& detElemId : detElemIds) {
-    for (auto isBendingPlane : { true, false }) {
+    for (auto isBendingPlane : {true, false}) {
       std::ofstream out(vm["prefix"].as<std::string>() + "-" + std::to_string(detElemId) + "-" +
                         (isBendingPlane ? "B" : "NB") + ".html");
-      CathodeSegmentation seg{ detElemId, isBendingPlane };
+      CathodeSegmentation seg{detElemId, isBendingPlane};
       o2::mch::contour::SVGWriter w(getBBox(seg));
       w.addStyle(svgCathodeSegmentationDefaultStyle());
       svgCathodeSegmentation(seg, w, vm.count("hidedes") == 0, vm.count("hidedualsampas") == 0, vm.count("hidepads") == 0,

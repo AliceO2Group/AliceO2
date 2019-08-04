@@ -176,7 +176,7 @@ std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string maink
     if (iter != provmap->end()) {
       prov = ConfigurableParam::toString(iter->second);
     }
-    ParamDataMember member{ name, value, prov };
+    ParamDataMember member{name, value, prov};
     members->push_back(member);
   };
 

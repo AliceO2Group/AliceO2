@@ -28,13 +28,13 @@ namespace mft
 
 struct Cluster final {
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin)
-    : xCoordinate{ x },
-      yCoordinate{ y },
-      zCoordinate{ z },
-      phiCoordinate{ phi },
-      rCoordinate{ r },
-      clusterId{ idx },
-      indexTableBin{ bin } {};
+    : xCoordinate{x},
+      yCoordinate{y},
+      zCoordinate{z},
+      phiCoordinate{phi},
+      rCoordinate{r},
+      clusterId{idx},
+      indexTableBin{bin} {};
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
   Cluster(const Int_t layerIndex, const Cluster& other);
 

@@ -21,30 +21,32 @@
 
 using namespace std;
 
-namespace o2  {
-namespace event_visualisation {
-  
+namespace o2
+{
+namespace event_visualisation
+{
+
 ConfigurationManager& ConfigurationManager::getInstance()
 {
   static ConfigurationManager instance;
   return instance;
 }
 
-void ConfigurationManager::getConfig(TEnv &settings) const
+void ConfigurationManager::getConfig(TEnv& settings) const
 {
   // TODO:
   // we need a way to point to the O2 installation directory
   //
-  if(settings.ReadFile(Form("%s/.o2eve_config",gSystem->Getenv("HOME")), kEnvUser) < 0){
-    if(settings.ReadFile(Form("%s/o2eve_config",gSystem->Getenv("HOME")), kEnvUser) < 0){
-      cout<<"WARNING -- could not find eve_config in home directory! Trying default one in O2/EventVisualisation/Base/"<<endl;
-      if(settings.ReadFile(Form("%s/EventVisualisation/o2eve_config",gSystem->Getenv("ALICEO2_INSTALL_PATH")), kEnvUser) < 0){
-        cout<<"ERROR -- could not find eve_config file!."<<endl;
+  if (settings.ReadFile(Form("%s/.o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
+    if (settings.ReadFile(Form("%s/o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
+      cout << "WARNING -- could not find eve_config in home directory! Trying default one in O2/EventVisualisation/Base/" << endl;
+      if (settings.ReadFile(Form("%s/EventVisualisation/o2eve_config", gSystem->Getenv("ALICEO2_INSTALL_PATH")), kEnvUser) < 0) {
+        cout << "ERROR -- could not find eve_config file!." << endl;
         exit(0);
       }
     }
   }
 }
-  
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2

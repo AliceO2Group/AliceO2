@@ -35,7 +35,7 @@ void Digitizer::addStrip(const Mapping::MpStripIndex& stripIndex, int cathode, i
     }
   }
 
-  mDigits.emplace_back(ColumnDataMC{ (uint8_t)deId, (uint8_t)stripIndex.column });
+  mDigits.emplace_back(ColumnDataMC{(uint8_t)deId, (uint8_t)stripIndex.column});
   mDigits.back().setTimeStamp(mTime);
   mDigits.back().addStrip(stripIndex.strip, cathode, stripIndex.line);
 }
@@ -59,7 +59,7 @@ bool Digitizer::addBPStrips(double xPos, double yPos, int deId, double prob, dou
   }
   addStrip(stripIndex, 0, deId);
   MpArea area = mMapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
-  std::array<double, 2> dist = { area.getYmax() - yPos, yPos - area.getYmin() };
+  std::array<double, 2> dist = {area.getYmax() - yPos, yPos - area.getYmin()};
   addNeighbours(stripIndex, 0, deId, prob, dist, xOffset);
   return true;
 }
@@ -112,7 +112,7 @@ bool Digitizer::hitToDigits(const Hit& hit)
     addStrip(stripIndex, 0, deId);
     MpArea area = mMapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
     // This is the distance between the hit point and the edges of the strip along y
-    std::array<double, 2> dist = { area.getYmax() - localPoint.y(), localPoint.y() - area.getYmin() };
+    std::array<double, 2> dist = {area.getYmax() - localPoint.y(), localPoint.y() - area.getYmin()};
     addNeighbours(stripIndex, 0, deId, prob, dist);
     // Search for neighbours in the close column toward inside
     addBPStrips(localPoint.x(), localPoint.y(), deId, prob, area.getXmin() - localPoint.x());
@@ -126,7 +126,7 @@ bool Digitizer::hitToDigits(const Hit& hit)
     addStrip(stripIndex, 1, deId);
     MpArea area = mMapping.stripByLocation(stripIndex.strip, 1, stripIndex.line, stripIndex.column, deId);
     // This is the distance between the hit point and the edges of the strip along x
-    std::array<double, 2> dist = { area.getXmax() - localPoint.x(), localPoint.x() - area.getXmin() };
+    std::array<double, 2> dist = {area.getXmax() - localPoint.x(), localPoint.x() - area.getXmin()};
     addNeighbours(stripIndex, 1, deId, prob, dist);
   }
 

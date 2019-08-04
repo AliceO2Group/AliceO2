@@ -171,11 +171,11 @@ class ShishKebabTrd1Module
   static Double_t stanBetta; ///<  tan(fgangle/2.)
   static Double_t sr;        ///<  radius to IP
 
-  TVector2 mOK;           ///< position the module center in ALICE system; x->y; z->x;
-  Double_t mA{ 0. };      ///< parameters of right line : y = A*z + B
-  Double_t mB{ 0. };      ///< system where zero point is IP.
-  Double_t mThetaA{ 0. }; ///< angle coresponding fA - for convinience
-  Double_t mTheta;        ///< theta angle of perpendicular to SK module
+  TVector2 mOK;         ///< position the module center in ALICE system; x->y; z->x;
+  Double_t mA{0.};      ///< parameters of right line : y = A*z + B
+  Double_t mB{0.};      ///< system where zero point is IP.
+  Double_t mThetaA{0.}; ///< angle coresponding fA - for convinience
+  Double_t mTheta;      ///< theta angle of perpendicular to SK module
 
   // position of towers(cells) with differents ieta (1 or 2) in local coordinate of SM
   // Nov 04,2004; Feb 19,2006
@@ -188,8 +188,8 @@ class ShishKebabTrd1Module
   TVector2 mOB2; ///< ieta=0
 
   // Jul 30, 2007
-  Double_t mThetaOB1{ 0. }; ///< theta of cell center line (go through OB1)
-  Double_t mThetaOB2{ 0. }; ///< theta of cell center line (go through OB2)
+  Double_t mThetaOB1{0.}; ///< theta of cell center line (go through OB1)
+  Double_t mThetaOB2{0.}; ///< theta of cell center line (go through OB2)
 
   // 3X3 case - Nov 9,2006
   TVector2 mOK3X3[3];
@@ -198,6 +198,6 @@ class ShishKebabTrd1Module
   TVector2 mORB; ///< position of right/bottom point of module
   TVector2 mORT; ///< position of right/top    point of module
 };
-}
-}
+} // namespace emcal
+} // namespace o2
 #endif

@@ -33,23 +33,15 @@ using namespace o2::devices;
 
 struct f2eHeader {
   uint16_t timeFrameId;
-  int      flpIndex;
+  int flpIndex;
 };
 
 EPNReceiver::EPNReceiver()
-  : mTimeframeBuffer()
-  , mDiscardedSet()
-  , mNumFLPs(0)
-  , mBufferTimeoutInMs(5000)
-  , mTestMode(0)
-  , mInChannelName()
-  , mOutChannelName()
-  , mAckChannelName()
+  : mTimeframeBuffer(), mDiscardedSet(), mNumFLPs(0), mBufferTimeoutInMs(5000), mTestMode(0), mInChannelName(), mOutChannelName(), mAckChannelName()
 {
 }
 
-EPNReceiver::~EPNReceiver()
-= default;
+EPNReceiver::~EPNReceiver() = default;
 
 void EPNReceiver::InitTask()
 {
@@ -129,10 +121,8 @@ void EPNReceiver::Run()
       // }
       // end DEBUG
 
-      if (mDiscardedSet.find(id) == mDiscardedSet.end())
-      {
-        if (mTimeframeBuffer.find(id) == mTimeframeBuffer.end())
-        {
+      if (mDiscardedSet.find(id) == mDiscardedSet.end()) {
+        if (mTimeframeBuffer.find(id) == mTimeframeBuffer.end()) {
           // if this is the first part with this ID, save the receive time.
           mTimeframeBuffer[id].start = steady_clock::now();
         }
@@ -140,9 +130,7 @@ void EPNReceiver::Run()
         // store the data part in the buffer
         mTimeframeBuffer[id].parts.AddPart(move(parts.At(1)));
         // PrintBuffer(fTimeframeBuffer);
-      }
-      else
-      {
+      } else {
         // if received ID has been previously discarded.
         LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
       }
@@ -156,9 +144,7 @@ void EPNReceiver::Run()
           if (ackOutChannel.Send(ack, 0) <= 0) {
             LOG(ERROR) << "Could not send acknowledgement without blocking";
           }
-        }
-        else
-        {
+        } else {
           // LOG(INFO) << "Collected all parts for timeframe #" << id;
           // when all parts are collected send them to the output channel
           Send(mTimeframeBuffer[id].parts, mOutChannelName);

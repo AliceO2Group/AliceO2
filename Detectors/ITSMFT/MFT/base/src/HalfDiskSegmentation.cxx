@@ -90,7 +90,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
   Int_t iladder;
   Int_t nsensor;
   Double_t pos[3];
-  Double_t ang[3] = { 0., 0., 0. };
+  Double_t ang[3] = {0., 0., 0.};
 
   Geometry* mftGeom = Geometry::instance();
 

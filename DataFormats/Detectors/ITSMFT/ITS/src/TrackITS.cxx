@@ -89,7 +89,6 @@ Bool_t TrackITS::update(const Cluster& c, Float_t chi2)
   return kTRUE;
 }
 
-
 Bool_t TrackITS::isBetter(const TrackITS& best, Float_t maxChi2) const
 {
   Int_t ncl = getNumberOfClusters();

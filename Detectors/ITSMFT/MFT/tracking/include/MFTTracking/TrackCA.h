@@ -48,9 +48,9 @@ class TrackCA final
   const std::vector<MCCompLabel>& getMCCompLabels() const { return mMCCompLabels; }
 
  private:
-  Int_t mRoadId{ -1 };
-  Float_t mChiSquareZX{ 0. };
-  Float_t mChiSquareZY{ 0. };
+  Int_t mRoadId{-1};
+  Float_t mChiSquareZX{0.};
+  Float_t mChiSquareZY{0.};
   std::vector<Float_t> mX;
   std::vector<Float_t> mY;
   std::vector<Float_t> mZ;
@@ -59,7 +59,7 @@ class TrackCA final
   std::vector<Int_t> mCellLayer;
   std::vector<Int_t> mCellId;
   std::vector<MCCompLabel> mMCCompLabels;
-  ClassDefNV(TrackCA, 1)
+  ClassDefNV(TrackCA, 1);
 };
 
 inline void TrackCA::addCell(const Int_t layer, const Int_t cellId)
@@ -145,7 +145,7 @@ class TrackLTF final
   std::vector<Int_t> mLayer;
   std::vector<Int_t> mClusterId;
   std::vector<MCCompLabel> mMCCompLabels;
-  ClassDefNV(TrackLTF, 1)
+  ClassDefNV(TrackLTF, 1);
 };
 
 inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)

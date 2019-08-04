@@ -33,8 +33,10 @@
 
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 class Component;
 
 /// @class EventSampler
@@ -42,10 +44,11 @@ class Component;
 ///
 /// The device sends the event descriptor to downstream devices and can
 /// measure latency though a feedback channel
-class EventSampler : public FairMQDevice {
-public:
+class EventSampler : public FairMQDevice
+{
+ public:
   /// default constructor
-  EventSampler(int verbosity=0);
+  EventSampler(int verbosity = 0);
   /// destructor
   ~EventSampler() override;
 
@@ -67,8 +70,7 @@ public:
     "polltimeout",
     "dry-run",
     "latency-log",
-    nullptr
-  };
+    nullptr};
 
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
@@ -81,21 +83,20 @@ public:
   /// sampler loop started in a separate thread
   void samplerLoop();
 
-protected:
-
-private:
+ protected:
+ private:
   // copy constructor prohibited
   EventSampler(const EventSampler&);
   // assignment operator prohibited
   EventSampler& operator=(const EventSampler&);
 
-  int mEventPeriod;          // event rate in us
-  int mInitialDelay;         // initial delay in ms before sending first event
-  int mNEvents;              // number of generated events
-  int mPollingTimeout;       // period of polling on input sockets in ms
-  int mSkipProcessing;       // skip component processing
-  int mVerbosity;            // verbosity level
-  std::string mLatencyLogFileName;   // output file for logging of latency
+  int mEventPeriod;                // event rate in us
+  int mInitialDelay;               // initial delay in ms before sending first event
+  int mNEvents;                    // number of generated events
+  int mPollingTimeout;             // period of polling on input sockets in ms
+  int mSkipProcessing;             // skip component processing
+  int mVerbosity;                  // verbosity level
+  std::string mLatencyLogFileName; // output file for logging of latency
 };
 
 } // namespace alice_hlt

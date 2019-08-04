@@ -112,7 +112,7 @@ class Cluster
   short mNExMax;            ///< number of (Ex-)maxima before unfolding
   double mDistToBadChannel; ///< Distance to nearest bad crystal
 };
-} // namespace PHOS
+} // namespace phos
 } // namespace o2
 
 #endif

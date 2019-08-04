@@ -28,7 +28,7 @@ void render3D();
 
 void dispose3DContext();
 
-} // namespace gl
+} // namespace sokol
 } // namespace framework
 } // namespace o2
 

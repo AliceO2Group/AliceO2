@@ -35,7 +35,7 @@ void IrregularSpline2D3DCalibrator::setRasterSize(int nKnotsU, int nKnotsV)
 {
   /// set maximal size of the spline grid
 
-  int n[2] = { nKnotsU, nKnotsV };
+  int n[2] = {nKnotsU, nKnotsV};
 
   for (int uv = 0; uv < 2; ++uv) {
     if (n[uv] < mMaxNKnots[uv])

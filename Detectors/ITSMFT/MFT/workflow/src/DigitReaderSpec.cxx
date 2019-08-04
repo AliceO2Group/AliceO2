@@ -77,10 +77,10 @@ void DigitReader::run(ProcessingContext& pc)
     LOG(INFO) << "MFTDigitReader pushed " << allDigits.size() << " digits, in "
               << profs->size() << " RO frames and "
               << pmc2rofs->size() << " MC events";
-    pc.outputs().snapshot(Output{ "MFT", "DIGITS", 0, Lifetime::Timeframe }, allDigits);
-    pc.outputs().snapshot(Output{ "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe }, allLabels);
-    pc.outputs().snapshot(Output{ "MFT", "MFTDigitROF", 0, Lifetime::Timeframe }, *profs);
-    pc.outputs().snapshot(Output{ "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe }, *pmc2rofs);
+    pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
+    pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
+    pc.outputs().snapshot(Output{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe}, *profs);
+    pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
   } else {
     LOG(ERROR) << "Cannot read the MFT digits !";
     return;
@@ -95,14 +95,13 @@ DataProcessorSpec getDigitReaderSpec()
     "mft-digit-reader",
     Inputs{},
     Outputs{
-      OutputSpec{ "MFT", "DIGITS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTDigitROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<DigitReader>() },
+      OutputSpec{"MFT", "DIGITS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<DigitReader>()},
     Options{
-      { "mft-digit-infile", VariantType::String, "mftdigits.root", { "Name of the input file" } } }
-  };
+      {"mft-digit-infile", VariantType::String, "mftdigits.root", {"Name of the input file"}}}};
 }
 
 } // namespace mft

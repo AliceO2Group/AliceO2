@@ -11,11 +11,11 @@
 //  The SAX XML file handler used in the CDBManager                       //
 #include "CCDB/XmlHandler.h"
 #include <fairlogger/Logger.h> // for LOG
-#include <TList.h>        // for TList
-#include <TXMLAttr.h>     // for TXMLAttr
+#include <TList.h>             // for TList
+#include <TXMLAttr.h>          // for TXMLAttr
 
 using namespace o2::ccdb;
-ClassImp(XmlHandler)
+ClassImp(XmlHandler);
 
 XmlHandler::XmlHandler() : TObject(), mRun(-1), mStartIdRunRange(-1), mEndIdRunRange(-1), mOCDBFolder("")
 {
@@ -31,9 +31,9 @@ XmlHandler::XmlHandler(Int_t run) : TObject(), mRun(run), mStartIdRunRange(-1), 
   //
 }
 
-XmlHandler::XmlHandler(const XmlHandler &) = default;
+XmlHandler::XmlHandler(const XmlHandler&) = default;
 
-XmlHandler &XmlHandler::operator=(const XmlHandler &sh)
+XmlHandler& XmlHandler::operator=(const XmlHandler& sh)
 {
   //
   // Assignment operator
@@ -42,7 +42,7 @@ XmlHandler &XmlHandler::operator=(const XmlHandler &sh)
     return *this;
   }
 
-  new(this) XmlHandler(sh);
+  new (this) XmlHandler(sh);
   return *this;
 }
 
@@ -61,7 +61,7 @@ void XmlHandler::OnEndDocument()
   // this must be done here
 }
 
-void XmlHandler::OnStartElement(const char *name, const TList *attributes)
+void XmlHandler::OnStartElement(const char* name, const TList* attributes)
 {
   // when a new XML element is found, it is processed here
 
@@ -70,22 +70,22 @@ void XmlHandler::OnStartElement(const char *name, const TList *attributes)
   LOG(DEBUG) << "name = " << strName.Data();
   Int_t startRun = -1;
   Int_t endRun = -1;
-  TXMLAttr *attr;
+  TXMLAttr* attr;
   TIter next(attributes);
-  while ((attr = (TXMLAttr *) next())) {
+  while ((attr = (TXMLAttr*)next())) {
     TString attrName = attr->GetName();
     LOG(DEBUG) << "Name = " << attrName.Data();
     if (attrName == "StartIdRunRange") {
-      startRun = (Int_t) (((TString) (attr->GetValue())).Atoi());
+      startRun = (Int_t)(((TString)(attr->GetValue())).Atoi());
       LOG(DEBUG) << "startRun = " << startRun;
     }
     if (attrName == "EndIdRunRange") {
-      endRun = (Int_t) (((TString) (attr->GetValue())).Atoi());
+      endRun = (Int_t)(((TString)(attr->GetValue())).Atoi());
       LOG(DEBUG) << "endRun = " << endRun;
     }
     if (attrName == "OCDBFolder") {
       if (mRun >= startRun && mRun <= endRun && startRun != -1 && endRun != -1) {
-        mOCDBFolder = (TString) (attr->GetValue());
+        mOCDBFolder = (TString)(attr->GetValue());
         LOG(DEBUG) << "OCDBFolder = " << mOCDBFolder.Data();
         mStartIdRunRange = startRun;
         mEndIdRunRange = endRun;
@@ -95,14 +95,14 @@ void XmlHandler::OnStartElement(const char *name, const TList *attributes)
   return;
 }
 
-void XmlHandler::OnEndElement(const char *name)
+void XmlHandler::OnEndElement(const char* name)
 {
   // do everything that needs to be done when an end tag of an element is found
   TString strName(name);
   LOG(DEBUG) << "name = " << strName.Data();
 }
 
-void XmlHandler::OnCharacters(const char *characters)
+void XmlHandler::OnCharacters(const char* characters)
 {
   // copy the text content of an XML element
   // mContent = characters;
@@ -110,30 +110,30 @@ void XmlHandler::OnCharacters(const char *characters)
   LOG(DEBUG) << "characters = " << strCharacters.Data();
 }
 
-void XmlHandler::OnComment(const char * /*text*/)
+void XmlHandler::OnComment(const char* /*text*/)
 {
   // comments within the XML file are ignored
 }
 
-void XmlHandler::OnWarning(const char *text)
+void XmlHandler::OnWarning(const char* text)
 {
   // process warnings here
   LOG(INFO) << "Warning: " << text;
 }
 
-void XmlHandler::OnError(const char *text)
+void XmlHandler::OnError(const char* text)
 {
   // process errors here
   LOG(ERROR) << "Error: " << text;
 }
 
-void XmlHandler::OnFatalError(const char *text)
+void XmlHandler::OnFatalError(const char* text)
 {
   // process fatal errors here
   LOG(FATAL) << "Fatal error: " << text;
 }
 
-void XmlHandler::OnCdataBlock(const char * /*text*/, Int_t /*len*/)
+void XmlHandler::OnCdataBlock(const char* /*text*/, Int_t /*len*/)
 {
   // process character data blocks here
   // not implemented and should not be used here

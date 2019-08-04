@@ -144,7 +144,7 @@ int updateMFTinGRP(std::string inputGRP, std::string grpName)
     return -12;
   }
 
-  vector<o2::detectors::DetID> contDet = { o2::detectors::DetID::MFT };
+  vector<o2::detectors::DetID> contDet = {o2::detectors::DetID::MFT};
 
   for (auto det : contDet) {
     if (grp->isDetReadOut(det)) {

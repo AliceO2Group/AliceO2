@@ -32,8 +32,8 @@
 #include <boost/algorithm/string.hpp>
 
 using namespace o2::ccdb;
-using std::endl;
 using std::cout;
+using std::endl;
 using std::string;
 
 ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::ccdb::Manager::Instance())
@@ -91,7 +91,7 @@ void ConditionsMQServer::Deserialize(const std::string& messageString, std::stri
 void ConditionsMQServer::Run()
 {
   std::unique_ptr<FairMQPoller> poller(
-    fTransportFactory->CreatePoller(fChannels, { "data-put", "data-get", "broker-get" }));
+    fTransportFactory->CreatePoller(fChannels, {"data-put", "data-get", "broker-get"}));
 
   while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
 

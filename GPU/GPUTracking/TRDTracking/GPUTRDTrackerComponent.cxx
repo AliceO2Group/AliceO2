@@ -42,9 +42,9 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-ClassImp(GPUTRDTrackerComponent)
+ClassImp(GPUTRDTrackerComponent);
 
-  GPUTRDTrackerComponent::GPUTRDTrackerComponent()
+GPUTRDTrackerComponent::GPUTRDTrackerComponent()
   : fTracker(0x0), fGeo(0x0), fTrackList(0x0), fDebugTrackOutput(false), fVerboseDebugOutput(false), fRequireITStrack(false), fBenchmark("TRDTracker")
 {
 }

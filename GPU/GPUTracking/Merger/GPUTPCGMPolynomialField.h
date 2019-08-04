@@ -170,7 +170,7 @@ GPUdi() void GPUTPCGMPolynomialField::GetField(float x, float y, float z, float 
   const float* fByS = &mTpcBy[1];
   const float* fBzS = &mTpcBz[1];
 
-  const float f[NTPCM - 1] = { x, y, z, x * x, x * y, x * z, y * y, y * z, z * z };
+  const float f[NTPCM - 1] = {x, y, z, x * x, x * y, x * z, y * y, y * z, z * z};
   float bx = mTpcBx[0], by = mTpcBy[0], bz = mTpcBz[0];
   for (int i = NTPCM - 1; i--;) {
     // for (int i=0;i<NTPCM-1; i++){
@@ -187,7 +187,7 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldBz(float x, float y, float z) con
 {
   const float* fBzS = &mTpcBz[1];
 
-  const float f[NTPCM - 1] = { x, y, z, x * x, x * y, x * z, y * y, y * z, z * z };
+  const float f[NTPCM - 1] = {x, y, z, x * x, x * y, x * z, y * y, y * z, z * z};
   float bz = mTpcBz[0];
   for (int i = NTPCM - 1; i--;) {
     bz += fBzS[i] * f[i];
@@ -272,7 +272,7 @@ GPUdi() void GPUTPCGMPolynomialField::GetFieldIts(float x, float y, float z, flo
   const float* fByS = &mItsBy[1];
   const float* fBzS = &mItsBz[1];
 
-  const float f[NITSM - 1] = { x, y, z, x * x, x * y, x * z, y * y, y * z, z * z };
+  const float f[NITSM - 1] = {x, y, z, x * x, x * y, x * z, y * y, y * z, z * z};
   float bx = mItsBx[0], by = mItsBy[0], bz = mItsBz[0];
   for (int i = NITSM - 1; i--;) {
     bx += fBxS[i] * f[i];
@@ -288,7 +288,7 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldItsBz(float x, float y, float z) 
 {
   const float* fBzS = &mItsBz[1];
 
-  const float f[NITSM - 1] = { x, y, z, x * x, x * y, x * z, y * y, y * z, z * z };
+  const float f[NITSM - 1] = {x, y, z, x * x, x * y, x * z, y * y, y * z, z * z};
   float bz = mItsBz[0];
   for (int i = NITSM - 1; i--;) {
     bz += fBzS[i] * f[i];

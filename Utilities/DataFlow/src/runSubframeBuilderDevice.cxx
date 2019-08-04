@@ -18,6 +18,7 @@ constexpr uint32_t o2::data_flow::SubframeBuilderDevice::DefaultOrbitsPerTimefra
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     (o2::data_flow::SubframeBuilderDevice::OptionKeyOrbitDuration,
      bpo::value<uint32_t>()->default_value(o2::data_flow::SubframeBuilderDevice::DefaultOrbitDuration),
@@ -40,6 +41,7 @@ void addCustomOptions(bpo::options_description& options)
     (o2::data_flow::SubframeBuilderDevice::OptionKeyStripHBF,
      bpo::bool_switch()->default_value(false),
      "Strip HBH & HBT from each HBF");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

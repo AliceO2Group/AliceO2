@@ -76,19 +76,19 @@ class Digitizer : public TObject
   Digit hitToDigit(const Hit& hit, const Int_t label);
 
  private:
-  const Geometry* mGeometry = nullptr; // EMCAL geometry
-  double mEventTime = 0;               ///< global event time
-  double mCoeffToNanoSecond = 1.0;     ///< coefficient to convert event time (Fair) to ns
-  bool mContinuous = false;            ///< flag for continuous simulation
-  UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
-  int mCurrSrcID = 0;                  ///< current MC source from the manager
-  int mCurrEvID = 0;                   ///< current event ID from the manager
-  bool mSmearTimeEnergy = true;        ///< do time and energy smearing
+  const Geometry* mGeometry = nullptr;     // EMCAL geometry
+  double mEventTime = 0;                   ///< global event time
+  double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
+  bool mContinuous = false;                ///< flag for continuous simulation
+  UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;                  ///< highest RO frame of current digits
+  int mCurrSrcID = 0;                      ///< current MC source from the manager
+  int mCurrEvID = 0;                       ///< current event ID from the manager
+  bool mSmearTimeEnergy = true;            ///< do time and energy smearing
   bool mRemoveDigitsBelowThreshold = true; // remove digits below threshold
   const SimParam* mSimParam = nullptr;     ///< SimParam object
 
-  std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
+  std::unordered_map<Int_t, std::deque<Digit>> mDigits;                 ///< used to sort digits by tower
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthContainer; ///< contains MC truth information
 
   TRandom3* mRandomGenerator = nullptr; // random number generator

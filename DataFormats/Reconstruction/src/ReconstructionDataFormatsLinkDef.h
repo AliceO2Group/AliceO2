@@ -19,19 +19,19 @@
 #pragma link C++ class o2::track::PID + ;
 #pragma link C++ class o2::track::TrackLTIntegral + ;
 
-#pragma link C++ class o2::BaseCluster < float > +;
+#pragma link C++ class o2::BaseCluster < float> + ;
 #pragma link C++ class o2::dataformats::TrackTPCITS + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;
 #pragma link C++ class o2::dataformats::MatchInfoTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::MatchInfoTOF> + ;
 
-#pragma link C++ class std::vector < std::pair < float, float >> +;
-#pragma link C++ class std::vector < std::pair < int, float >> +;
+#pragma link C++ class std::vector < std::pair < float, float>> + ;
+#pragma link C++ class std::vector < std::pair < int, float>> + ;
 #pragma link C++ class std::vector < int> + ;
 
-#pragma link C++ class o2::dataformats::Vertex < int > +;
-#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >> +;
-#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double >> +;
-#pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >>> +;
+#pragma link C++ class o2::dataformats::Vertex < int> + ;
+#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>> + ;
+#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double>> + ;
+#pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
 
 #endif

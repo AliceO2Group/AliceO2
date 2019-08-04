@@ -40,16 +40,7 @@ using std::endl;
 using std::string;
 
 SystemInterface::SystemInterface()
-  : mpAliHLTExtFctInitSystem(nullptr)
-  , mpAliHLTExtFctDeinitSystem(nullptr)
-  , mpAliHLTExtFctLoadLibrary(nullptr)
-  , mpAliHLTExtFctUnloadLibrary(nullptr)
-  , mpAliHLTExtFctCreateComponent(nullptr)
-  , mpAliHLTExtFctDestroyComponent(nullptr)
-  , mpAliHLTExtFctProcessEvent(nullptr)
-  , mpAliHLTExtFctGetOutputDataType(nullptr)
-  , mpAliHLTExtFctGetOutputSize(nullptr)
-  , mEnvironment()
+  : mpAliHLTExtFctInitSystem(nullptr), mpAliHLTExtFctDeinitSystem(nullptr), mpAliHLTExtFctLoadLibrary(nullptr), mpAliHLTExtFctUnloadLibrary(nullptr), mpAliHLTExtFctCreateComponent(nullptr), mpAliHLTExtFctDestroyComponent(nullptr), mpAliHLTExtFctProcessEvent(nullptr), mpAliHLTExtFctGetOutputDataType(nullptr), mpAliHLTExtFctGetOutputSize(nullptr), mEnvironment()
 {
   memset(&mEnvironment, 0, sizeof(mEnvironment));
   mEnvironment.fStructSize = sizeof(mEnvironment);
@@ -57,7 +48,7 @@ SystemInterface::SystemInterface()
 }
 
 SystemInterface::~SystemInterface() = default;
-  /* THINK ABOUT
+/* THINK ABOUT
      make SystemInterface a singleton and release the interface here if still
      active
    */
@@ -90,8 +81,7 @@ const char* gInterfaceCallSignatures[] = {
   // int AliHLTAnalysisGetOutputSize( AliHLTComponentHandle handle, unsigned long* constEventBase, unsigned long* constBlockBase, double* inputBlockMultiplier)
   "int AliHLTAnalysisGetOutputSize(AliHLTComponentHandle,unsigned long*,unsigned long*,double*)",
 
-  nullptr
-};
+  nullptr};
 
 int SystemInterface::initSystem(unsigned long runNo)
 {
@@ -122,7 +112,7 @@ int SystemInterface::initSystem(unsigned long runNo)
 
   const char** arrayCalls = gInterfaceCallSignatures;
   for (int i = 0; arrayCalls[i] != nullptr; i++) {
-    AliHLTExtFctInitSystem call = (AliHLTExtFctInitSystem) (*fctGetSystemCall)(arrayCalls[i]);
+    AliHLTExtFctInitSystem call = (AliHLTExtFctInitSystem)(*fctGetSystemCall)(arrayCalls[i]);
     if (call == nullptr) {
       cerr << "error: can not find function signature '" << arrayCalls[i] << "' in " << libraryPath.c_str() << endl;
     } else {
@@ -179,20 +169,23 @@ int SystemInterface::releaseSystem()
      bookkeeping of loaded libraries and unloading them before releasing the system?
    */
   int iResult = 0;
-  if (mpAliHLTExtFctDeinitSystem) iResult = (*mpAliHLTExtFctDeinitSystem)();
+  if (mpAliHLTExtFctDeinitSystem)
+    iResult = (*mpAliHLTExtFctDeinitSystem)();
   clear();
   return iResult;
 }
 
 int SystemInterface::loadLibrary(const char* libname)
 {
-  if (!mpAliHLTExtFctLoadLibrary) return -ENOSYS;
+  if (!mpAliHLTExtFctLoadLibrary)
+    return -ENOSYS;
   return (*mpAliHLTExtFctLoadLibrary)(libname);
 }
 
 int SystemInterface::unloadLibrary(const char* libname)
 {
-  if (!mpAliHLTExtFctUnloadLibrary) return -ENOSYS;
+  if (!mpAliHLTExtFctUnloadLibrary)
+    return -ENOSYS;
   return (*mpAliHLTExtFctUnloadLibrary)(libname);
 }
 
@@ -201,16 +194,17 @@ int SystemInterface::createComponent(const char* componentId,
                                      int argc,
                                      const char** argv,
                                      AliHLTComponentHandle* handle,
-                                     const char* description
-                                     )
+                                     const char* description)
 {
-  if (!mpAliHLTExtFctCreateComponent) return -ENOSYS;
+  if (!mpAliHLTExtFctCreateComponent)
+    return -ENOSYS;
   return (*mpAliHLTExtFctCreateComponent)(componentId, environParam, argc, argv, handle, description);
 }
 
 int SystemInterface::destroyComponent(AliHLTComponentHandle handle)
 {
-  if (!mpAliHLTExtFctDestroyComponent) return -ENOSYS;
+  if (!mpAliHLTExtFctDestroyComponent)
+    return -ENOSYS;
   return (*mpAliHLTExtFctDestroyComponent)(handle);
 }
 
@@ -218,39 +212,42 @@ int SystemInterface::processEvent(AliHLTComponentHandle handle,
                                   const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
                                   AliHLTComponentTriggerData* trigData,
                                   AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
-                                  AliHLTUInt32_t* outputBlockCnt,       AliHLTComponentBlockData** outputBlocks,
-                                  AliHLTComponentEventDoneData** edd )
+                                  AliHLTUInt32_t* outputBlockCnt, AliHLTComponentBlockData** outputBlocks,
+                                  AliHLTComponentEventDoneData** edd)
 {
-  if (!mpAliHLTExtFctProcessEvent) return -ENOSYS;
+  if (!mpAliHLTExtFctProcessEvent)
+    return -ENOSYS;
   return (*mpAliHLTExtFctProcessEvent)(handle, evtData, blocks, trigData,
                                        outputPtr, size, outputBlockCnt, outputBlocks, edd);
 }
 
 int SystemInterface::getOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType)
 {
-  if (!mpAliHLTExtFctGetOutputDataType) return -ENOSYS;
+  if (!mpAliHLTExtFctGetOutputDataType)
+    return -ENOSYS;
   return (*mpAliHLTExtFctGetOutputDataType)(handle, dataType);
 }
 
 int SystemInterface::getOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
                                    unsigned long* constBlockBase, double* inputBlockMultiplier)
 {
-  if (!mpAliHLTExtFctGetOutputSize) return -ENOSYS;
+  if (!mpAliHLTExtFctGetOutputSize)
+    return -ENOSYS;
   return (*mpAliHLTExtFctGetOutputSize)(handle, constEventBase, constEventBase, inputBlockMultiplier);
 }
 
 void SystemInterface::clear(const char* /*option*/)
 {
   /// clear the object and reset pointer references
-  mpAliHLTExtFctInitSystem        = nullptr;
-  mpAliHLTExtFctDeinitSystem      = nullptr;
-  mpAliHLTExtFctLoadLibrary       = nullptr;
-  mpAliHLTExtFctUnloadLibrary     = nullptr;
-  mpAliHLTExtFctCreateComponent   = nullptr;
-  mpAliHLTExtFctDestroyComponent  = nullptr;
-  mpAliHLTExtFctProcessEvent      = nullptr;
+  mpAliHLTExtFctInitSystem = nullptr;
+  mpAliHLTExtFctDeinitSystem = nullptr;
+  mpAliHLTExtFctLoadLibrary = nullptr;
+  mpAliHLTExtFctUnloadLibrary = nullptr;
+  mpAliHLTExtFctCreateComponent = nullptr;
+  mpAliHLTExtFctDestroyComponent = nullptr;
+  mpAliHLTExtFctProcessEvent = nullptr;
   mpAliHLTExtFctGetOutputDataType = nullptr;
-  mpAliHLTExtFctGetOutputSize     = nullptr;
+  mpAliHLTExtFctGetOutputSize = nullptr;
 }
 
 void SystemInterface::print(const char* /*option*/) const
@@ -267,6 +264,7 @@ void* SystemInterface::alloc(void* /*param*/, unsigned long size)
 void SystemInterface::dealloc(void* buffer, unsigned long /*size*/)
 {
   // deallocate memory
-  if (buffer == nullptr) return;
+  if (buffer == nullptr)
+    return;
   free(buffer);
 }

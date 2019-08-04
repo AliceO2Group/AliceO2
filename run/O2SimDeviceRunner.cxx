@@ -38,7 +38,7 @@ bool initializeSim(std::string transport, std::string address, std::unique_ptr<F
 {
   // This needs an already running PrimaryServer
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto channel = FairMQChannel{ "primary-get", "req", factory };
+  auto channel = FairMQChannel{"primary-get", "req", factory};
   channel.Connect(address);
   channel.ValidateChannel();
 
@@ -67,7 +67,7 @@ int initAndRunDevice(int argc, char* argv[])
   using namespace fair::mq::hooks;
 
   try {
-    fair::mq::DeviceRunner runner{ argc, argv };
+    fair::mq::DeviceRunner runner{argc, argv};
 
     runner.AddHook<SetCustomCmdLineOptions>([](DeviceRunner& r) {
       boost::program_options::options_description customOptions("Custom options");
@@ -76,7 +76,7 @@ int initAndRunDevice(int argc, char* argv[])
     });
 
     runner.AddHook<InstantiateDevice>([](DeviceRunner& r) {
-      r.fDevice = std::unique_ptr<FairMQDevice>{ getDevice(r.fConfig) };
+      r.fDevice = std::unique_ptr<FairMQDevice>{getDevice(r.fConfig)};
     });
 
     return runner.Run();
@@ -94,11 +94,11 @@ int initAndRunDevice(int argc, char* argv[])
 int runSim(std::string transport, std::string primaddress, std::string mergeraddress)
 {
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto primchannel = FairMQChannel{ "primary-get", "req", factory };
+  auto primchannel = FairMQChannel{"primary-get", "req", factory};
   primchannel.Connect(primaddress);
   primchannel.ValidateChannel();
 
-  auto datachannel = FairMQChannel{ "simdata", "push", factory };
+  auto datachannel = FairMQChannel{"simdata", "push", factory};
   datachannel.Connect(mergeraddress);
   datachannel.ValidateChannel();
   // the channels are setup

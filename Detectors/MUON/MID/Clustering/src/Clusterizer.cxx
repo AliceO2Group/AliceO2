@@ -35,9 +35,9 @@ bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
     de->setDEId(deIndex);
     size_t idx = &pc - &preClusters[0];
     if (pc.cathode == 0) {
-      de->getPreClustersBP(pc.firstColumn).push_back({ idx, 0, mPreClusterHelper.getArea(pc) });
+      de->getPreClustersBP(pc.firstColumn).push_back({idx, 0, mPreClusterHelper.getArea(pc)});
     } else {
-      de->getPreClustersNBP().push_back({ idx, 0 });
+      de->getPreClustersNBP().push_back({idx, 0});
       for (int icolumn = pc.firstColumn; icolumn <= pc.lastColumn; ++icolumn) {
         de->getPreClustersNBP().back().area[icolumn] = mPreClusterHelper.getArea(icolumn, pc);
       }
@@ -203,7 +203,7 @@ void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, const
   double deltaY = areaBP.getYmax() - areaBP.getYmin();
   float sigmaX2 = deltaX * deltaX / 12;
   float sigmaY2 = deltaY * deltaY / 12;
-  mClusters.push_back({ static_cast<uint8_t>(deIndex), xCoor, yCoor, sigmaX2, sigmaY2 });
+  mClusters.push_back({static_cast<uint8_t>(deIndex), xCoor, yCoor, sigmaX2, sigmaY2});
 
   LOG(DEBUG) << "pos: (" << xCoor << ", " << yCoor << ") err2: (" << sigmaX2 << ", " << sigmaY2 << ")";
 }
@@ -215,13 +215,13 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
   // This is the general case:
   // perform the full calculation assuming a uniform charge distribution
 
-  double x2[2][2] = { { 0., 0. }, { 0., 0. } };
-  double x3[2][2] = { { 0., 0. }, { 0., 0. } };
+  double x2[2][2] = {{0., 0.}, {0., 0.}};
+  double x3[2][2] = {{0., 0.}, {0., 0.}};
   double dim[2][2];
   double delta[2];
   double sumArea = 0.;
 
-  std::vector<const PreClustersDE::BP*> pcBlist = { &pcBP, &pcBPNeigh };
+  std::vector<const PreClustersDE::BP*> pcBlist = {&pcBP, &pcBPNeigh};
 
   for (auto* pc : pcBlist) {
     int icolumn = (*mPreClusters)[pc->index].firstColumn;
@@ -254,7 +254,7 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
     sigma2[iplane] = (x3[iplane][1] - x3[iplane][0]) / sumArea / 3. - coor[iplane] * coor[iplane];
   }
 
-  mClusters.push_back({ static_cast<uint8_t>(deIndex), static_cast<float>(coor[0]), static_cast<float>(coor[1]), static_cast<float>(sigma2[0]), static_cast<float>(sigma2[1]) });
+  mClusters.push_back({static_cast<uint8_t>(deIndex), static_cast<float>(coor[0]), static_cast<float>(coor[1]), static_cast<float>(sigma2[0]), static_cast<float>(sigma2[1])});
 
   LOG(DEBUG) << "pos: (" << coor[0] << ", " << coor[1] << ") err2: (" << sigma2[0] << ", " << sigma2[1] << ")";
 }

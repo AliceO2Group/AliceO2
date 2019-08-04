@@ -10,7 +10,7 @@
 
 // This is a simple standalone executable to generate suppression files
 // for boost and ROOT
-int
-main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   return 0;
 }

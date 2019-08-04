@@ -17,7 +17,8 @@
 #include <regex>
 #include <string_view>
 
-BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
+BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
+{
   using namespace o2::framework;
   std::string metricString;
   ParsedMetricMatch match;
@@ -26,7 +27,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
 
   // Parse a simple metric
   metricString = "foo[METRIC] bkey,0 12 1789372894 hostname=test.cern.chbar";
-  std::string_view metric{ metricString.data() + 3, metricString.size() - 6 };
+  std::string_view metric{metricString.data() + 3, metricString.size() - 6};
   BOOST_REQUIRE_EQUAL(metric, std::string("[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch"));
   result = DeviceMetricsHelper::parseMetric(metric, match);
   BOOST_REQUIRE_EQUAL(result, true);

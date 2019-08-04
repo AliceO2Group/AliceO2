@@ -42,9 +42,8 @@ class SpaceFrame
   /// This method assembles the Geometries and places them into the
   /// Alice master volume
   void CreateGeometry();
-
 };
-}
-}
+} // namespace emcal
+} // namespace o2
 
 #endif // ALIEMCALSPACEFRAME_H

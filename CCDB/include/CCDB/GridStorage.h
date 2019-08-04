@@ -11,10 +11,10 @@
 #ifndef ALICEO2_CDB_GRID_H_
 #define ALICEO2_CDB_GRID_H_
 
-#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
-#include "Rtypes.h"   // for Bool_t, Long64_t, Long_t, Int_t, ClassDef, etc
-#include "CCDB/Storage.h"  // for Storage
-#include "TString.h"  // for TString
+#include "CCDB/Manager.h" // for StorageFactory, StorageParameters
+#include "Rtypes.h"       // for Bool_t, Long64_t, Long_t, Int_t, ClassDef, etc
+#include "CCDB/Storage.h" // for Storage
+#include "TString.h"      // for TString
 
 class TFile;
 
@@ -118,7 +118,7 @@ class GridStorage : public Storage
   Long64_t mCacheSize;         // local cache size (in bytes)
   Long_t mCleanupInterval;     // local cache cleanup interval
 
-  ClassDefOverride(GridStorage, 0) // access class to a DataBase in an AliEn storage
+  ClassDefOverride(GridStorage, 0); // access class to a DataBase in an AliEn storage
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -141,7 +141,7 @@ class GridStorageFactory : public StorageFactory
  protected:
   Storage* createStorage(const StorageParameters* param) override;
 
-  ClassDefOverride(GridStorageFactory, 0)
+  ClassDefOverride(GridStorageFactory, 0);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -218,8 +218,8 @@ class GridStorageParameters : public StorageParameters
   Long64_t mCacheSize;         // local cache size (in bytes)
   Long_t mCleanupInterval;     // local cache cleanup interval
 
-  ClassDefOverride(GridStorageParameters, 0)
+  ClassDefOverride(GridStorageParameters, 0);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

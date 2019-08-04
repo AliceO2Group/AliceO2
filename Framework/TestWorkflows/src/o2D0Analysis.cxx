@@ -37,7 +37,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         // D0 candidates schema. The first string is just a label
         // so that the algorithm can be in principle be reused for different
         // kind of candidates.
-        InputSpec{ "candidates", "AOD", "DZEROFLAGGED" },
+        InputSpec{"candidates", "AOD", "DZEROFLAGGED"},
       },
       // No outputs for the time being.
       Outputs{},
@@ -75,8 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
           // * Do two histograms with delta_phi, delta_eta
           auto combinations = o2::analysis::doSelfCombinationsWith(input, "d0", "cand_evtID_ML");
           auto deltas = combinations.Filter("d0_cand_type_ML & 0x1 && d0bar_cand_type_ML & 0x1")
-                          .Define("delta_phi", delta, { "d0_phi_cand_ML", "d0bar_phi_cand_ML" })
-                          .Define("delta_eta", delta, { "d0_eta_cand_ML", "d0bar_eta_cand_ML" });
+                          .Define("delta_phi", delta, {"d0_phi_cand_ML", "d0bar_phi_cand_ML"})
+                          .Define("delta_eta", delta, {"d0_eta_cand_ML", "d0bar_eta_cand_ML"});
           auto h2 = deltas.Histo1D("delta_phi");
           auto h3 = deltas.Histo1D("delta_eta");
 
@@ -90,7 +90,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
           h2->Write();
           h3->SetName("DeltaEta");
           h3->Write();
-        }) } }
-  };
+        })}}};
   return workflow;
 }

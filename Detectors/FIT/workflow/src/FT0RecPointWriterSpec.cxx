@@ -60,13 +60,12 @@ DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
     "ft0-recpoint-writer",
     inputSpec,
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<FT0RecPointWriter>(useMC) },
+    AlgorithmSpec{adaptFromTask<FT0RecPointWriter>(useMC)},
     Options{
-      { "ft0-recpoint-outfile", VariantType::String, "o2reco_ft0.root", { "Name of the output file" } },
-      { "ft0-recpoint-tree-name", VariantType::String, "o2sim", { "Name of the FT0 recpoints tree" } },
-      { "ft0-recpoint-branch-name", VariantType::String, "FT0Cluster", { "Name of the FT0 recpoints branch" } },
-    }
-  };
+      {"ft0-recpoint-outfile", VariantType::String, "o2reco_ft0.root", {"Name of the output file"}},
+      {"ft0-recpoint-tree-name", VariantType::String, "o2sim", {"Name of the FT0 recpoints tree"}},
+      {"ft0-recpoint-branch-name", VariantType::String, "FT0Cluster", {"Name of the FT0 recpoints branch"}},
+    }};
 }
 
 } // namespace ft0

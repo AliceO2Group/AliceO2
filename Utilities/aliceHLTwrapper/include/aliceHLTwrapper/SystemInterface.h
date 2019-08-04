@@ -28,8 +28,10 @@
 //  @brief  FairRoot/ALFA interface to ALICE HLT code
 
 #include "AliHLTDataTypes.h"
-namespace o2 {
-namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 
 /// @class SystemInterface
 /// Tool class for the ALICE HLT external interface defined in
@@ -38,8 +40,9 @@ namespace alice_hlt {
 /// The class loads the interface library and loads the function
 /// pointers. The individual functions of the external interface
 /// can be used by calling the corresponding functions of this class.
-class SystemInterface {
-public:
+class SystemInterface
+{
+ public:
   /// default constructor
   SystemInterface();
   /// destructor
@@ -72,12 +75,11 @@ public:
    *  @return 0 on success and valid handle
    */
   int createComponent(const char* componentId,
-			  void* environParam,
-			  int argc,
-			  const char** argv,
-			  AliHLTComponentHandle* handle,
-			  const char* description
-			  );
+                      void* environParam,
+                      int argc,
+                      const char** argv,
+                      AliHLTComponentHandle* handle,
+                      const char* description);
 
   /** create/factorize component
    *  @param handle
@@ -87,12 +89,12 @@ public:
 
   /** process event
    */
-  int processEvent( AliHLTComponentHandle handle,
-			const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
-			AliHLTComponentTriggerData* trigData,
-			AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
-			AliHLTUInt32_t* outputBlockCnt,	AliHLTComponentBlockData** outputBlocks,
-			AliHLTComponentEventDoneData** edd );
+  int processEvent(AliHLTComponentHandle handle,
+                   const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
+                   AliHLTComponentTriggerData* trigData,
+                   AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
+                   AliHLTUInt32_t* outputBlockCnt, AliHLTComponentBlockData** outputBlocks,
+                   AliHLTComponentEventDoneData** edd);
 
   /** get the output data type
    */
@@ -103,7 +105,7 @@ public:
    *  input blocks and input size
    */
   int getOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
-			unsigned long* constBlockBase, double* inputBlockMultiplier);
+                    unsigned long* constBlockBase, double* inputBlockMultiplier);
 
   /// clear the object and reset pointer references
   virtual void clear(const char* /*option*/ = "");
@@ -117,20 +119,19 @@ public:
   /// deallocate memory
   static void dealloc(void* buffer, unsigned long size);
 
-protected:
-
-private:
-  AliHLTExtFctInitSystem        mpAliHLTExtFctInitSystem;
-  AliHLTExtFctDeinitSystem      mpAliHLTExtFctDeinitSystem;
-  AliHLTExtFctLoadLibrary       mpAliHLTExtFctLoadLibrary;
-  AliHLTExtFctUnloadLibrary     mpAliHLTExtFctUnloadLibrary;
-  AliHLTExtFctCreateComponent   mpAliHLTExtFctCreateComponent;
-  AliHLTExtFctDestroyComponent  mpAliHLTExtFctDestroyComponent;
-  AliHLTExtFctProcessEvent      mpAliHLTExtFctProcessEvent;
+ protected:
+ private:
+  AliHLTExtFctInitSystem mpAliHLTExtFctInitSystem;
+  AliHLTExtFctDeinitSystem mpAliHLTExtFctDeinitSystem;
+  AliHLTExtFctLoadLibrary mpAliHLTExtFctLoadLibrary;
+  AliHLTExtFctUnloadLibrary mpAliHLTExtFctUnloadLibrary;
+  AliHLTExtFctCreateComponent mpAliHLTExtFctCreateComponent;
+  AliHLTExtFctDestroyComponent mpAliHLTExtFctDestroyComponent;
+  AliHLTExtFctProcessEvent mpAliHLTExtFctProcessEvent;
   AliHLTExtFctGetOutputDataType mpAliHLTExtFctGetOutputDataType;
-  AliHLTExtFctGetOutputSize     mpAliHLTExtFctGetOutputSize;
+  AliHLTExtFctGetOutputSize mpAliHLTExtFctGetOutputSize;
 
-  AliHLTAnalysisEnvironment     mEnvironment;
+  AliHLTAnalysisEnvironment mEnvironment;
 };
 
 } // namespace alice_hlt

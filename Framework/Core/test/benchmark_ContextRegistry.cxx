@@ -29,7 +29,7 @@ static void BM_ContextRegistrySingleGet(benchmark::State& state)
   RawBufferContext c2(proxy);
   RootObjectContext c3(proxy);
   MessageContext c4(proxy);
-  ContextRegistry registry({ &c0, &c1, &c2, &c3, &c4 });
+  ContextRegistry registry({&c0, &c1, &c2, &c3, &c4});
 
   for (auto _ : state) {
     registry.get<MessageContext>();
@@ -48,7 +48,7 @@ static void BM_ContextRegistryMultiGet(benchmark::State& state)
   RawBufferContext c2(proxy);
   RootObjectContext c3(proxy);
   MessageContext c4(proxy);
-  ContextRegistry registry({ &c0, &c1, &c2, &c3, &c4 });
+  ContextRegistry registry({&c0, &c1, &c2, &c3, &c4});
 
   for (auto _ : state) {
     registry.get<MessageContext>();

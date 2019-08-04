@@ -36,9 +36,9 @@ class Dipole : public FairModule
   void createMaterials();
   void createSpectrometerDipole();
 
-  ClassDefOverride(o2::passive::Dipole, 1)
+  ClassDefOverride(o2::passive::Dipole, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif // DIPOLE_H

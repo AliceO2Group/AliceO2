@@ -47,7 +47,7 @@ struct DefaultKey {
   {
   }
 
-  operator Output() const { return Output{ origin, description, subSpec, lifetime }; }
+  operator Output() const { return Output{origin, description, subSpec, lifetime}; }
 };
 } // namespace rtr
 
@@ -221,8 +221,8 @@ class GenericRootTreeReader
                   HeaderTypes&&... headers) const
   {
     auto snapshot = [&context, &headers...](const KeyType& key, const auto& object) {
-      o2::header::Stack stack{ std::forward<HeaderTypes>(headers)... };
-      context.outputs().snapshot(Output{ key.origin, key.description, key.subSpec, key.lifetime, std::move(stack) }, object);
+      o2::header::Stack stack{std::forward<HeaderTypes>(headers)...};
+      context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, key.lifetime, std::move(stack)}, object);
     };
 
     return process(snapshot);
@@ -291,7 +291,7 @@ class GenericRootTreeReader
     // right now we allow the same key to appear for multiple branches
     auto branch = mInput.GetBranch(branchName);
     if (branch) {
-      mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{ branchName }));
+      mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{branchName}));
       mBranchSpecs.back().second->branch = branch;
       std::string sizebranchName = std::string(branchName) + "Size";
       auto sizebranch = mInput.GetBranch(sizebranchName.c_str());
@@ -339,7 +339,7 @@ class GenericRootTreeReader
       const char* arg = getCharArg(std::forward<Args>(args)...);
       if (arg != nullptr && *arg != 0) {
         // add branch spec if the name is not empty
-        addBranchSpec(KeyType{ key }, arg);
+        addBranchSpec(KeyType{key}, arg);
       }
       return parseConstructorArgs<1>(std::forward<Args>(args)...);
     } else {

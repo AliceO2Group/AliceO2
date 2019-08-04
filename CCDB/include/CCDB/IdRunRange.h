@@ -13,8 +13,8 @@
 
 //  defines the run validity range of the object:		   //
 //  [mFirstRun, mLastRun] 					   //
-#include <TObject.h>  // for TObject
-#include "Rtypes.h"   // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
+#include <TObject.h> // for TObject
+#include "Rtypes.h"  // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
 
 namespace o2
 {
@@ -80,8 +80,8 @@ class IdRunRange : public TObject
 
   static const Int_t sInfinity = 999999999; //! Flag for "infinity"
 
-  ClassDefOverride(IdRunRange, 1)
+  ClassDefOverride(IdRunRange, 1);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

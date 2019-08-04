@@ -53,7 +53,7 @@ class TrackTPC : public o2::track::TrackParCov
   void setHasASideClusters() { mFlags |= HasASideClusters; }
   void setHasCSideClusters() { mFlags |= HasCSideClusters; }
 
-  float getTime0() const { return mTime0; } ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
+  float getTime0() const { return mTime0; }         ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
   short getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
   short getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
   void setDeltaTBwd(short t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
@@ -111,7 +111,7 @@ class TrackTPC : public o2::track::TrackParCov
   ClassDefNV(TrackTPC, 2); // RS TODO set to 1
 };
 
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

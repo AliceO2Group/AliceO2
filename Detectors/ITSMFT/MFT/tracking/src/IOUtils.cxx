@@ -44,7 +44,7 @@ Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event,
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
-  Int_t clusterId{ 0 };
+  Int_t clusterId{0};
 
   auto first = rof.getROFEntry().getIndex();
   auto number = rof.getNROFEntries();
@@ -79,7 +79,7 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
-  Int_t clusterId{ 0 };
+  Int_t clusterId{0};
 
   for (auto& c : *clusters) {
     Int_t layer = geom->getLayer(c.getSensorID());

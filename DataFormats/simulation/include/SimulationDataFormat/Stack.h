@@ -302,7 +302,7 @@ class Stack : public FairGenericStack
   /// \param iTrack  Track number
   void addHit(int iDet, Int_t iTrack);
 
-  ClassDefOverride(Stack, 1)
+  ClassDefOverride(Stack, 1);
 };
 
 inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }

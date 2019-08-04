@@ -34,7 +34,7 @@ class Constants
   static constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
 #endif
 };
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

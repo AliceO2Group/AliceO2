@@ -30,11 +30,11 @@ using DataOrigin = o2::header::DataOrigin;
 template <typename T>
 void fakePayload(std::vector<o2::byte>& buffer, std::function<void(T&, int)> filler, int numOfElements)
 {
-  auto payloadSize = sizeof(T)*numOfElements;
+  auto payloadSize = sizeof(T) * numOfElements;
   LOG(INFO) << "Payload size " << payloadSize << "\n";
   buffer.resize(buffer.size() + payloadSize);
 
-  T *payload = reinterpret_cast<T*>(buffer.data() + sizeof(HeartbeatHeader));
+  T* payload = reinterpret_cast<T*>(buffer.data() + sizeof(HeartbeatHeader));
   for (int i = 0; i < numOfElements; ++i) {
     new (payload + i) T();
     // put some random toy time stamp to each cluster
@@ -42,23 +42,17 @@ void fakePayload(std::vector<o2::byte>& buffer, std::function<void(T&, int)> fil
   }
 }
 
-namespace o2 {
-namespace utilities {
+namespace o2
+{
+namespace utilities
+{
 
 DataPublisherDevice::DataPublisherDevice()
-  : O2Device()
-  , mInputChannelName("input")
-  , mOutputChannelName("output")
-  , mLastIndex(-1)
-  , mDataDescription()
-  , mDataOrigin()
-  , mSubSpecification(~(SubSpecificationT)0)
-  , mFileName()
+  : O2Device(), mInputChannelName("input"), mOutputChannelName("output"), mLastIndex(-1), mDataDescription(), mDataOrigin(), mSubSpecification(~(SubSpecificationT)0), mFileName()
 {
 }
 
-DataPublisherDevice::~DataPublisherDevice()
-= default;
+DataPublisherDevice::~DataPublisherDevice() = default;
 
 void DataPublisherDevice::InitTask()
 {
@@ -78,13 +72,10 @@ void DataPublisherDevice::InitTask()
   // * create the unsigned integer value once from the configurable string and
   //   check in the registry
   // * constructors and assignment operators taking the integer type as argument
-  if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "TPCCLUSTER")
-  {
+  if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "TPCCLUSTER") {
     mDataDescription = DataDescription("CLUSTERS");
     mDataOrigin = DataOrigin("TPC");
-  }
-  else if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "ITSRAW")
-  {
+  } else if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "ITSRAW") {
     mDataDescription = DataDescription("CLUSTERS");
     mDataOrigin = DataOrigin("ITS");
   }
@@ -98,19 +89,13 @@ void DataPublisherDevice::InitTask()
 
   if (!mFileName.empty()) {
     AppendFile(mFileName.c_str(), mFileBuffer);
-  }
-  else if (mDataDescription ==  DataDescription("CLUSTERS") 
-           && mDataOrigin == DataOrigin("TPC"))
-  {
-    auto f = [](TPCTestCluster &cluster, int idx) {cluster.timeStamp = idx;};
+  } else if (mDataDescription == DataDescription("CLUSTERS") && mDataOrigin == DataOrigin("TPC")) {
+    auto f = [](TPCTestCluster& cluster, int idx) { cluster.timeStamp = idx; };
     fakePayload<TPCTestCluster>(mFileBuffer, f, 1000);
     LOG(INFO) << "Payload size (after) " << mFileBuffer.size() << "\n";
     // For the moment, add the data as another part to this message
-  } 
-  else if (mDataDescription ==  DataDescription("CLUSTERS") 
-           && mDataOrigin == DataOrigin("ITS"))
-  {
-    auto f = [](ITSRawData &cluster, int idx) {cluster.timeStamp = idx;};
+  } else if (mDataDescription == DataDescription("CLUSTERS") && mDataOrigin == DataOrigin("ITS")) {
+    auto f = [](ITSRawData& cluster, int idx) { cluster.timeStamp = idx; };
     fakePayload<ITSRawData>(mFileBuffer, f, 500);
   }
 
@@ -141,7 +126,8 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // not handled in O2Device::ForEach at the moment
   // indicate that the block has not been processed by a 'false'
   if (!dataHeader ||
-      (dataHeader->dataDescription) != o2::header::gDataDescriptionHeartbeatFrame) return false;
+      (dataHeader->dataDescription) != o2::header::gDataDescriptionHeartbeatFrame)
+    return false;
 
   if (!hbfEnvelope) {
     LOG(ERROR) << "no heartbeat frame envelope header found";
@@ -157,7 +143,6 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   //   64 bit word
 
   // TODO: make tool for reading and manipulation of the HeartbeatFrame/Envelop
-
 
   // assume everything valid
   // write the HBH and HBT as envelop to the buffer of the file data
@@ -188,12 +173,11 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // is just a proof of principle
   // NewSimpleMessage(mFileBuffer) does not work with the vector
 
-
   // TODO: fix payload size in dh
-  auto *buffer = new char[mFileBuffer.size()];
+  auto* buffer = new char[mFileBuffer.size()];
   memcpy(buffer, mFileBuffer.data(), mFileBuffer.size());
-  o2::base::addDataBlock(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
-                                                  [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
+  o2::base::addDataBlock(outgoing, dh, NewMessage(
+                                         buffer, mFileBuffer.size(), [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());
@@ -206,19 +190,20 @@ bool DataPublisherDevice::AppendFile(const char* name, std::vector<o2::byte>& bu
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);
-  if (ifile.bad()) return false;
+  if (ifile.bad())
+    return false;
 
   // get length of file:
-  ifile.seekg (0, ifile.end);
+  ifile.seekg(0, ifile.end);
   int length = ifile.tellg();
-  ifile.seekg (0, ifile.beg);
+  ifile.seekg(0, ifile.beg);
 
   // allocate memory:
   int position = buffer.size();
   buffer.resize(buffer.size() + length);
 
   // read data as a block:
-  ifile.read(reinterpret_cast<char*>(&buffer[position]),length);
+  ifile.read(reinterpret_cast<char*>(&buffer[position]), length);
   if (!(result = ifile.good())) {
     LOG(ERROR) << "failed to read " << length << " byte(s) from file " << name << std::endl;
   }

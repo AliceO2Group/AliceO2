@@ -122,7 +122,7 @@ class IrregularSpline2D3DCalibrator
 
   /// Class members
 
-  int mMaxNKnots[2] = { 5, 5 }; ///< max N knots, U / V axis
+  int mMaxNKnots[2] = {5, 5}; ///< max N knots, U / V axis
 
   std::list<KnotData> mKnots[2]; ///< list of knots for U/V axis
 

@@ -47,7 +47,7 @@ class Transform3D
 
   GPUd() void ApplyInverse(const float* in, float* out) const
   {
-    const float tmp[3] = { in[0] - m[kDX], in[1] - m[kDY], in[2] - m[kDZ] };
+    const float tmp[3] = {in[0] - m[kDX], in[1] - m[kDY], in[2] - m[kDZ]};
     out[0] = m[kXX] * tmp[0] + m[kYX] * tmp[1] + m[kZX] * tmp[2];
     out[1] = m[kXY] * tmp[0] + m[kYY] * tmp[1] + m[kZY] * tmp[2];
     out[2] = m[kXZ] * tmp[0] + m[kYZ] * tmp[1] + m[kZZ] * tmp[2];

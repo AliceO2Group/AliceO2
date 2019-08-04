@@ -23,8 +23,7 @@ static void BM_MatchedSingleQuery(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::Just,
-    OriginValueMatcher{ "TRD" }
-  };
+    OriginValueMatcher{"TRD"}};
 
   VariableContext context;
 
@@ -44,15 +43,14 @@ static void BM_MatchedFullQuery(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TRD" },
+    OriginValueMatcher{"TRD"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "TRACKLET" },
+      DescriptionValueMatcher{"TRACKLET"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 0 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{0},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 
@@ -72,15 +70,14 @@ static void BM_UnmatchedSingleQuery(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TDR" },
+    OriginValueMatcher{"TDR"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "TRACKLET" },
+      DescriptionValueMatcher{"TRACKLET"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 
@@ -101,15 +98,14 @@ static void BM_UnmatchedFullQuery(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TRD" },
+    OriginValueMatcher{"TRD"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "TRACKLET" },
+      DescriptionValueMatcher{"TRACKLET"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 
@@ -129,15 +125,14 @@ static void BM_OneVariableFullMatch(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ ContextRef{ 0 } },
+    OriginValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "TRACKLET" },
+      DescriptionValueMatcher{"TRACKLET"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 
@@ -163,15 +158,14 @@ static void BM_OneVariableMatchUnmatch(benchmark::State& state)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ ContextRef{ 0 } },
+    OriginValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "TRACKLET" },
+      DescriptionValueMatcher{"TRACKLET"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 

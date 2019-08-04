@@ -40,8 +40,9 @@ void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& pa
   if (vector) {
     auto buffer = (char*)&(*vector)[0];
     auto buffersize = vector->size() * sizeof(T);
-    FairMQMessagePtr message(channel.NewMessage(buffer, buffersize,
-                                                [](void* data, void* hint) {}, buffer));
+    FairMQMessagePtr message(channel.NewMessage(
+      buffer, buffersize,
+      [](void* data, void* hint) {}, buffer));
     parts.AddPart(std::move(message));
   }
 }
@@ -214,5 +215,5 @@ void O2MCApplication::SendData()
   LOG(INFO) << "sending message with " << simdataparts.Size() << " parts";
   mSimDataChannel->Send(simdataparts);
 }
-}
-}
+} // namespace steer
+} // namespace o2

@@ -20,7 +20,6 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
   DataSampling::CustomizeInfrastructure(policies);
 }
 
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
@@ -54,33 +53,30 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec podDataProducer{
     "podDataProducer",
     Inputs{},
-    { OutputSpec{ { "TPC", "CLUSTERS" } },
-      OutputSpec{ { "ITS", "CLUSTERS" } } },
+    {OutputSpec{{"TPC", "CLUSTERS"}},
+     OutputSpec{{"ITS", "CLUSTERS"}}},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}};
 
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
-      { "dataTPC", { "TPC", "CLUSTERS" } },
-      { "dataITS", { "ITS", "CLUSTERS" } } },
+      {"dataTPC", {"TPC", "CLUSTERS"}},
+      {"dataITS", {"ITS", "CLUSTERS"}}},
     Outputs{
-      { { "TPC", "CLUSTERS_P" } },
-      { { "ITS", "CLUSTERS_P" } } },
+      {{"TPC", "CLUSTERS_P"}},
+      {{"ITS", "CLUSTERS_P"}}},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}};
 
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
-      { "dataTPC-proc", { "TPC", "CLUSTERS_P" } },
-      { "dataITS-proc", { "ITS", "CLUSTERS_P" } } },
+      {"dataTPC-proc", {"TPC", "CLUSTERS_P"}},
+      {"dataITS-proc", {"ITS", "CLUSTERS_P"}}},
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
 
   // clang-format off
   DataProcessorSpec qcTaskTpc{
@@ -229,7 +225,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS", 0}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -241,7 +237,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 
-  auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
+  auto itsClusters = ctx.outputs().make<FakeCluster>(Output{"ITS", "CLUSTERS", 0}, collectionChunkSize);
   i = 0;
   for (auto& cluster : itsClusters) {
     assert(i < collectionChunkSize);
@@ -259,9 +255,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
   auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS_P", 0}, collectionChunkSize);
   auto processedItsClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{"ITS", "CLUSTERS_P", 0}, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

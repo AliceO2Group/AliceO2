@@ -36,8 +36,8 @@ void TrackExtrap::setField()
 {
   /// Set field on/off flag.
   /// Set field at the centre of the dipole
-  const double x[3] = { 50., 50., SSimpleBPosition };
-  double b[3] = { 0., 0., 0. };
+  const double x[3] = {50., 50., SSimpleBPosition};
+  double b[3] = {0., 0., 0.};
   TGeoGlobalMagField::Instance()->Field(x, b);
   sSimpleBValue = b[0];
   sFieldON = (TMath::Abs(sSimpleBValue) > 1.e-10) ? true : false;
@@ -191,7 +191,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
   TMatrixD jacob(5, 5);
   jacob.Zero();
   TMatrixD dParam(5, 1);
-  double direction[5] = { -1., -1., 1., 1., -1. };
+  double direction[5] = {-1., -1., 1., 1., -1.};
   for (int i = 0; i < 5; i++) {
     // Skip jacobian calculation for parameters with no associated error
     if (kParamCov(i, i) <= 0.) {
@@ -372,7 +372,7 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
   // sign of charge (sign of fInverseBendingMomentum if forward motion)
   // must be changed if backward extrapolation
   double chargeExtrap = forwardBackward * TMath::Sign(double(1.0), trackParam->getInverseBendingMomentum());
-  double v3[7] = { 0. }, v3New[7] = { 0. };
+  double v3[7] = {0.}, v3New[7] = {0.};
   double dZ(0.), step(0.);
   int stepNumber = 0;
 
@@ -470,10 +470,10 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   ///  ******************************************************************
   /// </pre>
 
-  double h2(0.), h4(0.), f[4] = { 0. };
-  double xyzt[3] = { FLT_MAX, FLT_MAX, FLT_MAX };
+  double h2(0.), h4(0.), f[4] = {0.};
+  double xyzt[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
   double a(0.), b(0.), c(0.), ph(0.), ph2(0.);
-  double secxs[4] = { 0. }, secys[4] = { 0. }, seczs[4] = { 0. }, hxp[3] = { 0. };
+  double secxs[4] = {0.}, secys[4] = {0.}, seczs[4] = {0.}, hxp[3] = {0.};
   double g1(0.), g2(0.), g3(0.), g4(0.), g5(0.), g6(0.), ang2(0.), dxt(0.), dyt(0.), dzt(0.);
   double est(0.), at(0.), bt(0.), ct(0.), cba(0.);
   double f1(0.), f2(0.), f3(0.), f4(0.), rho(0.), tet(0.), hnorm(0.), hp(0.), rho1(0.), sint(0.), cost(0.);

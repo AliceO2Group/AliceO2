@@ -38,17 +38,16 @@ namespace reco_workflow
 {
 
 const std::unordered_map<std::string, InputType> InputMap{
-  { "digitizer", InputType::Digitizer },
-  { "digits", InputType::Digits },
-  { "raw", InputType::Raw },
-  { "clusters", InputType::Clusters },
+  {"digitizer", InputType::Digitizer},
+  {"digits", InputType::Digits},
+  {"raw", InputType::Raw},
+  {"clusters", InputType::Clusters},
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
-  { "digits", OutputType::Digits },
-  { "raw", OutputType::Raw },
-  { "clusters", OutputType::Clusters }
-};
+  {"digits", OutputType::Digits},
+  {"raw", OutputType::Raw},
+  {"clusters", OutputType::Clusters}};
 
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         std::string const& cfgInput,
@@ -77,10 +76,10 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     specs.emplace_back(o2::emcal::getPublisherSpec(PublisherConf{
                                                      "emcal-digit-reader",
                                                      "o2sim",
-                                                     { "digitbranch", "EMCALDigit", "Digit branch" },
-                                                     { "mcbranch", "EMCALDigitMCTruth", "MC label branch" },
-                                                     o2::framework::OutputSpec{ "EMC", "DIGITS" },
-                                                     o2::framework::OutputSpec{ "EMC", "DIGITSMCTR" } },
+                                                     {"digitbranch", "EMCALDigit", "Digit branch"},
+                                                     {"mcbranch", "EMCALDigitMCTruth", "MC label branch"},
+                                                     o2::framework::OutputSpec{"EMC", "DIGITS"},
+                                                     o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
                                                    propagateMC));
 
     specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec());
@@ -111,12 +110,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     // or one branch definition
     if (propagateMC) {
       return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                             o2::framework::MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
+                                                             o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                              std::move(databranch),
                                                              std::move(mcbranch)));
     }
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
+                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(databranch)));
   };
 
@@ -126,12 +125,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     specs.push_back(makeWriterSpec("emcal-digits-writer",
                                    inputType == InputType::Digits ? "emc-filtered-digits.root" : "emcdigits.root",
                                    "o2sim",
-                                   BranchDefinition<DigitOutputType>{ o2::framework::InputSpec{ "data", "EMC", "DIGITS", 0 },
-                                                                      "EMCDigit",
-                                                                      "digit-branch-name" },
-                                   BranchDefinition<MCLabelContainer>{ o2::framework::InputSpec{ "mc", "EMC", "DIGITSMCTR", 0 },
-                                                                       "EMCDigitMCTruth",
-                                                                       "digitmc-branch-name" })());
+                                   BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "DIGITS", 0},
+                                                                     "EMCDigit",
+                                                                     "digit-branch-name"},
+                                   BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "DIGITSMCTR", 0},
+                                                                      "EMCDigitMCTruth",
+                                                                      "digitmc-branch-name"})());
   }
 
   return std::move(specs);

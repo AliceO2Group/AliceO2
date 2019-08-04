@@ -75,8 +75,7 @@ TGeoVolume* Ladder::createVolume()
   Double_t shiftY =
     4 * Geometry::sSensorTopOffset + SegmentationAlpide::SensorSizeRows - Geometry::sFlexHeight / 2; // to be verified!!
   TGeoVolumeAssembly* flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);
-  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength / 2 + Geometry::sSensorSideOffset / 2, shiftY,
-                                                         Geometry::sFlexThickness / 2 - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)));
+  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength / 2 + Geometry::sSensorSideOffset / 2, shiftY, Geometry::sFlexThickness / 2 - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)));
 
   // Create the CMOS Sensors
   createSensors();
@@ -131,11 +130,11 @@ void Ladder::createSensors()
     TGeoCombiTrans* chipPosGlue = chipSeg->getTransformation();
 
     // Position of the center on the chip in the chip coordinate system
-    Double_t pos[3] = { SegmentationAlpide::SensorSizeCols / 2., SegmentationAlpide::SensorSizeRows / 2.,
-                        Geometry::sChipThickness / 2. - Geometry::sGlueThickness - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness) };
+    Double_t pos[3] = {SegmentationAlpide::SensorSizeCols / 2., SegmentationAlpide::SensorSizeRows / 2.,
+                       Geometry::sChipThickness / 2. - Geometry::sGlueThickness - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)};
 
-    Double_t posglue[3] = { SegmentationAlpide::SensorSizeCols / 2., SegmentationAlpide::SensorSizeRows / 2.,
-                            Geometry::sGlueThickness / 2 - Geometry::sChipThickness - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness) };
+    Double_t posglue[3] = {SegmentationAlpide::SensorSizeCols / 2., SegmentationAlpide::SensorSizeRows / 2.,
+                           Geometry::sGlueThickness / 2 - Geometry::sChipThickness - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)};
 
     Double_t master[3];
     Double_t masterglue[3];

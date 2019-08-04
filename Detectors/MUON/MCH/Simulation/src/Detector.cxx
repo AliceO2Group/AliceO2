@@ -26,12 +26,12 @@ namespace mch
 {
 
 Detector::Detector(bool active)
-  : o2::base::DetImpl<Detector>("MCH", active), mStepper{ new o2::mch::Stepper }
+  : o2::base::DetImpl<Detector>("MCH", active), mStepper{new o2::mch::Stepper}
 {
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::base::DetImpl<Detector>(rhs), mStepper{ new o2::mch::Stepper }
+  : o2::base::DetImpl<Detector>(rhs), mStepper{new o2::mch::Stepper}
 {
 }
 

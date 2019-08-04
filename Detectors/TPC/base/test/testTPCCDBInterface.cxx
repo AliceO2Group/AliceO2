@@ -323,5 +323,5 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_Default_ReadFromFile)
   checkCalPadEqual(pedestals, pedestalsFromFile);
   checkCalPadEqual(gainmap, gainmapFromFile);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

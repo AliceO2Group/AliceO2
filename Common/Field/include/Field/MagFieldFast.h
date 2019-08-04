@@ -28,8 +28,14 @@ namespace field
 class MagFieldFast
 {
  public:
-  enum { kNSolRRanges = 5, kNSolZRanges = 22, kNQuadrants = 4, kNPolCoefs = 20 };
-  enum EDim { kX, kY, kZ, kNDim };
+  enum { kNSolRRanges = 5,
+         kNSolZRanges = 22,
+         kNQuadrants = 4,
+         kNPolCoefs = 20 };
+  enum EDim { kX,
+              kY,
+              kZ,
+              kNDim };
   struct SolParam {
     float parBxyz[kNDim][kNPolCoefs];
   };
@@ -57,6 +63,7 @@ class MagFieldFast
   bool GetBz(const float xyz[3], float& bz) const { return GetBcomp(kZ, xyz, bz); }
   void setFactorSol(float v = 1.f) { mFactorSol = v; }
   float getFactorSol() const { return mFactorSol; }
+
  protected:
   bool GetSegment(float x, float y, float z, int& zSeg, int& rSeg, int& quadrant) const;
   static const float kSolR2Max[kNSolRRanges]; // Rmax2 of each range
@@ -74,7 +81,7 @@ class MagFieldFast
   float mFactorSol; // scaling factor
   SolParam mSolPar[kNSolRRanges][kNSolZRanges][kNQuadrants];
 
-  ClassDef(MagFieldFast, 1)
+  ClassDef(MagFieldFast, 1);
 };
 
 inline float MagFieldFast::CalcPol(const float* cf, float x, float y, float z) const
@@ -91,7 +98,7 @@ inline float MagFieldFast::CalcPol(const float* cf, float x, float y, float z) c
 
   return val;
 }
-}
-}
+} // namespace field
+} // namespace o2
 
 #endif

@@ -25,29 +25,29 @@ using namespace o2::mch::contour::impl;
 
 struct ContourCreatorPolygons {
   ContourCreatorPolygons()
-    : testPads{ { { { 0.0, 0.0 }, { 1.0, 0.0 }, { 1.0, 1.0 }, { 0.0, 1.0 }, { 0.0, 0.0 } } },
-                { { { 1.0, 3.0 }, { 2.0, 3.0 }, { 2.0, 4.0 }, { 1.0, 4.0 }, { 1.0, 3.0 } } },
-                { { { 1.0, 0.0 }, { 2.0, 0.0 }, { 2.0, 1.0 }, { 1.0, 1.0 }, { 1.0, 0.0 } } },
-                { { { 0.0, 1.0 }, { 1.0, 1.0 }, { 1.0, 2.0 }, { 0.0, 2.0 }, { 0.0, 1.0 } } },
-                { { { 1.0, 1.0 }, { 2.0, 1.0 }, { 2.0, 2.0 }, { 1.0, 2.0 }, { 1.0, 1.0 } } },
-                { { { 1.0, 2.0 }, { 2.0, 2.0 }, { 2.0, 3.0 }, { 1.0, 3.0 }, { 1.0, 2.0 } } } }
+    : testPads{{{{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}, {0.0, 0.0}}},
+               {{{1.0, 3.0}, {2.0, 3.0}, {2.0, 4.0}, {1.0, 4.0}, {1.0, 3.0}}},
+               {{{1.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}}},
+               {{{0.0, 1.0}, {1.0, 1.0}, {1.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}}},
+               {{{1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}}},
+               {{{1.0, 2.0}, {2.0, 2.0}, {2.0, 3.0}, {1.0, 3.0}, {1.0, 2.0}}}}
   {
   }
 
   std::vector<Polygon<double>> testPads;
   Polygon<double> polygon;
-  Polygon<double> testPolygon{ { { 0.1, 0.1 },
-                                 { 1.1, 0.1 },
-                                 { 1.1, 1.1 },
-                                 { 2.1, 1.1 },
-                                 { 2.1, 3.1 },
-                                 { 1.1, 3.1 },
-                                 { 1.1, 2.1 },
-                                 { 0.1, 2.1 },
-                                 { 0.1, 0.1 } } };
-  Polygon<int> counterClockwisePolygon{ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
-  Polygon<int> clockwisePolygon{ { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 0 }, { 0, 0 } };
-  Polygon<double> clockwisePolygonDouble{ { 0, 0 }, { 0, 1 }, { 1, 1 }, { 1, 0 }, { 0, 0 } };
+  Polygon<double> testPolygon{{{0.1, 0.1},
+                               {1.1, 0.1},
+                               {1.1, 1.1},
+                               {2.1, 1.1},
+                               {2.1, 3.1},
+                               {1.1, 3.1},
+                               {1.1, 2.1},
+                               {0.1, 2.1},
+                               {0.1, 0.1}}};
+  Polygon<int> counterClockwisePolygon{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}};
+  Polygon<int> clockwisePolygon{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}};
+  Polygon<double> clockwisePolygonDouble{{0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}};
 };
 
 BOOST_AUTO_TEST_SUITE(o2_mch_contour)
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(ContourCreationThrowsIfInputPolygonsAreNotCounterClockwiseO
 BOOST_AUTO_TEST_CASE(ContourCreationReturnsInputIfInputIsASinglePolygon)
 {
   std::vector<Polygon<double>> list;
-  Polygon<double> onePolygon{ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
+  Polygon<double> onePolygon{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}};
   list.push_back(onePolygon);
   auto contour = createContour(list);
   BOOST_REQUIRE(contour.size() == 1);
@@ -81,11 +81,11 @@ BOOST_AUTO_TEST_CASE(ContourCreationReturnsInputIfInputIsASinglePolygon)
 BOOST_AUTO_TEST_CASE(VerticalEdgeSortingMustSortSameAbcissaPointsLeftEdgeFirst)
 {
   std::vector<VerticalEdge<double>> edges;
-  constexpr double sameX{ 42 };
-  VerticalEdge<double> lastEdge{ sameX + 1, 2, 0 };
-  VerticalEdge<double> leftEdgeBottom{ sameX, 2, 0 };
-  VerticalEdge<double> leftEdgeTop{ sameX, 10, 5 };
-  VerticalEdge<double> rightEdge{ sameX, 0, 2 };
+  constexpr double sameX{42};
+  VerticalEdge<double> lastEdge{sameX + 1, 2, 0};
+  VerticalEdge<double> leftEdgeBottom{sameX, 2, 0};
+  VerticalEdge<double> leftEdgeTop{sameX, 10, 5};
+  VerticalEdge<double> rightEdge{sameX, 0, 2};
 
   edges.push_back(lastEdge);
   edges.push_back(rightEdge);
@@ -102,73 +102,75 @@ BOOST_AUTO_TEST_CASE(VerticalEdgeSortingMustSortSameAbcissaPointsLeftEdgeFirst)
 
 BOOST_AUTO_TEST_CASE(VerticalsToHorizontals)
 {
-  std::vector<VerticalEdge<double>> testVerticals{ { 0.0, 7.0, 1.0 }, { 1.0, 1.0, 0.0 }, { 3.0, 0.0, 1.0 },
-                                                   { 5.0, 1.0, 0.0 }, { 6.0, 0.0, 7.0 }, { 2.0, 5.0, 3.0 },
-                                                   { 4.0, 3.0, 5.0 } };
-  std::vector<HorizontalEdge<double>> he{ verticalsToHorizontals(testVerticals) };
+  // clang-format off
+  std::vector<VerticalEdge<double>> testVerticals{{0.0, 7.0, 1.0}, {1.0, 1.0, 0.0}, {3.0, 0.0, 1.0},
+                                                  {5.0, 1.0, 0.0}, {6.0, 0.0, 7.0}, {2.0, 5.0, 3.0},
+                                                  {4.0, 3.0, 5.0}};
+  // clang-format on
+  std::vector<HorizontalEdge<double>> he{verticalsToHorizontals(testVerticals)};
 
-  std::vector<HorizontalEdge<double>> expected{ { 1, 0, 1 }, { 0, 1, 3 }, { 1, 3, 5 }, { 0, 5, 6 },
-                                                { 7, 6, 0 }, { 3, 2, 4 }, { 5, 4, 2 } };
+  std::vector<HorizontalEdge<double>> expected{{1, 0, 1}, {0, 1, 3}, {1, 3, 5}, {0, 5, 6}, {7, 6, 0}, {3, 2, 4}, {5, 4, 2}};
 
   BOOST_CHECK(he == expected);
 }
 
 BOOST_AUTO_TEST_CASE(FinalizeContourThrowsIfNumberOfVerticalsDifferFromNumberOfHorizontals)
 {
-  std::vector<VerticalEdge<double>> v{ { 0, 1, 0 }, { 1, 0, 1 } };
-  std::vector<HorizontalEdge<double>> h{ { 0, 0, 1 } };
+  std::vector<VerticalEdge<double>> v{{0, 1, 0}, {1, 0, 1}};
+  std::vector<HorizontalEdge<double>> h{{0, 0, 1}};
   BOOST_CHECK_THROW(finalizeContour(v, h), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(FinalizeContourThrowsIfEndOfVerticalsDoNotMatchBeginOfHorizontals)
 {
-  std::vector<VerticalEdge<double>> v{ { 0, 7, 1 } };
-  std::vector<HorizontalEdge<double>> wrong{ { 1, 2, 3 } };
+  std::vector<VerticalEdge<double>> v{{0, 7, 1}};
+  std::vector<HorizontalEdge<double>> wrong{{1, 2, 3}};
   BOOST_CHECK_THROW(finalizeContour(v, wrong), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(FinalizeContourIEEEExample)
 {
-  std::vector<VerticalEdge<double>> testVerticals{ { 0.0, 7.0, 1.0 }, { 1.0, 1.0, 0.0 }, { 3.0, 0.0, 1.0 },
-                                                   { 5.0, 1.0, 0.0 }, { 6.0, 0.0, 7.0 }, { 2.0, 5.0, 3.0 },
-                                                   { 4.0, 3.0, 5.0 } };
-  auto he{ verticalsToHorizontals(testVerticals) };
+  // clang-format off
+  std::vector<VerticalEdge<double>> testVerticals{{0.0, 7.0, 1.0}, {1.0, 1.0, 0.0}, {3.0, 0.0, 1.0},
+                                                  {5.0, 1.0, 0.0}, {6.0, 0.0, 7.0}, {2.0, 5.0, 3.0},
+                                                  {4.0, 3.0, 5.0}};
+  // clang-format on
+  auto he{verticalsToHorizontals(testVerticals)};
 
   auto contour = finalizeContour(testVerticals, he);
 
   Contour<double> expected{
-    { { 0, 7 }, { 0, 1 }, { 1, 1 }, { 1, 0 }, { 3, 0 }, { 3, 1 }, { 5, 1 }, { 5, 0 }, { 6, 0 }, { 6, 7 }, { 0, 7 } },
-    { { 2, 5 }, { 2, 3 }, { 4, 3 }, { 4, 5 }, { 2, 5 } }
-  };
+    {{0, 7}, {0, 1}, {1, 1}, {1, 0}, {3, 0}, {3, 1}, {5, 1}, {5, 0}, {6, 0}, {6, 7}, {0, 7}},
+    {{2, 5}, {2, 3}, {4, 3}, {4, 5}, {2, 5}}};
 
   BOOST_TEST(contour == expected);
 }
 
 BOOST_AUTO_TEST_CASE(FinalizeContourWithOneCommonVertex)
 {
-  std::vector<VerticalEdge<double>> ve{ { 0, 2, 0 }, { 1, 0, 2 }, { 1, 4, 2 }, { 2, 2, 4 } };
+  std::vector<VerticalEdge<double>> ve{{0, 2, 0}, {1, 0, 2}, {1, 4, 2}, {2, 2, 4}};
 
-  auto he{ verticalsToHorizontals(ve) };
+  auto he{verticalsToHorizontals(ve)};
 
   auto contour = finalizeContour(ve, he);
 
-  Contour<double> expected{ { { 0, 2 }, { 0, 0 }, { 1, 0 }, { 1, 2 }, { 0, 2 } },
-                            { { 1, 4 }, { 1, 2 }, { 2, 2 }, { 2, 4 }, { 1, 4 } } };
+  Contour<double> expected{{{0, 2}, {0, 0}, {1, 0}, {1, 2}, {0, 2}},
+                           {{1, 4}, {1, 2}, {2, 2}, {2, 4}, {1, 4}}};
 
   BOOST_TEST(contour == expected);
 }
 
 BOOST_AUTO_TEST_CASE(CreateContourWithOneCommonVertex)
 {
-  std::vector<Polygon<double>> input{ { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } },
-                                      { { 0, 1 }, { 1, 1 }, { 1, 2 }, { 0, 2 }, { 0, 1 } },
-                                      { { 1, 2 }, { 2, 2 }, { 2, 3 }, { 1, 3 }, { 1, 2 } },
-                                      { { 1, 3 }, { 2, 3 }, { 2, 4 }, { 1, 4 }, { 1, 3 } } };
+  std::vector<Polygon<double>> input{{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}},
+                                     {{0, 1}, {1, 1}, {1, 2}, {0, 2}, {0, 1}},
+                                     {{1, 2}, {2, 2}, {2, 3}, {1, 3}, {1, 2}},
+                                     {{1, 3}, {2, 3}, {2, 4}, {1, 4}, {1, 3}}};
 
   auto contour = createContour(input);
 
-  Contour<double> expected{ { { 0, 2 }, { 0, 0 }, { 1, 0 }, { 1, 2 }, { 0, 2 } },
-                            { { 1, 4 }, { 1, 2 }, { 2, 2 }, { 2, 4 }, { 1, 4 } } };
+  Contour<double> expected{{{0, 2}, {0, 0}, {1, 0}, {1, 2}, {0, 2}},
+                           {{1, 4}, {1, 2}, {2, 2}, {2, 4}, {1, 4}}};
 
   BOOST_CHECK(contour == expected);
 }

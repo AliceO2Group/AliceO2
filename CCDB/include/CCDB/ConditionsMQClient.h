@@ -43,9 +43,8 @@ class ConditionsMQClient : public FairMQDevice
   std::string mOperationType;
   std::string mDataSource;
   std::string mObjectPath;
-
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 
 #endif /* ALICEO2_CDB_CONDITIONSMQCLIENT_H_ */

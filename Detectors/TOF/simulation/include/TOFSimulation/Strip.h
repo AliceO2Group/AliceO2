@@ -112,7 +112,7 @@ inline o2::tof::Digit* Strip::findDigit(ULong64_t key)
   return digitentry != mDigits.end() ? &(digitentry->second) : nullptr;
 }
 
-} // close namespace tof
-} // close namespace o2
+} // namespace tof
+} // namespace o2
 
 #endif /* defined(ALICEO2_TOF_STRIP_H_) */

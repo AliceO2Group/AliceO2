@@ -32,7 +32,7 @@ enum struct ChannelType {
   Pull,
 };
 
-/// This describes an input channel. Since they are point to 
+/// This describes an input channel. Since they are point to
 /// point connections, there is not much to say about them.
 struct InputChannelSpec {
   std::string name;

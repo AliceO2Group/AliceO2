@@ -34,7 +34,7 @@ namespace mch
 /// Constants
 
 // chamber z position
-const double kChamberZPos[2] = { -676.4, -695.4 };
+const double kChamberZPos[2] = {-676.4, -695.4};
 
 // quadrant z position w.r.t the chamber center
 const double kQuadrantZPos = 3.9;
@@ -57,16 +57,16 @@ const int kNEdges = 5;
 /// Segments
 const int kNSegments = 3;
 
-const double kSegmentRadius[2] = { 23.1, 117.6 };
+const double kSegmentRadius[2] = {23.1, 117.6};
 
 // box segment dimensions
-const double kBoxSegHalfLength[kNSegments] = { 95.5 / 2, 0., 0.5 };
-const double kBoxSegHalfHeight[kNSegments] = { 0.6, 0., 95.5 / 2 };
+const double kBoxSegHalfLength[kNSegments] = {95.5 / 2, 0., 0.5};
+const double kBoxSegHalfHeight[kNSegments] = {0.6, 0., 95.5 / 2};
 
 /// Frames
 const int kNFrames = 8;
-const double kFrameHalfLength[kNFrames] = { 101. / 2, 2., 0., 0.5, 2.7 / 2, 0.5, 0., 2.5 / 2 };
-const double kFrameHalfHeight[kNFrames] = { 2.5 / 2, 0.6, 0., 2., 101. / 2, 2.5 / 2, 0., 0.6 };
+const double kFrameHalfLength[kNFrames] = {101. / 2, 2., 0., 0.5, 2.7 / 2, 0.5, 0., 2.5 / 2};
+const double kFrameHalfHeight[kNFrames] = {2.5 / 2, 0.6, 0., 2., 101. / 2, 2.5 / 2, 0., 0.6};
 
 const double kRibHalfLength[kNFrames] = {
   kFrameHalfLength[0],
@@ -76,8 +76,7 @@ const double kRibHalfLength[kNFrames] = {
   0.8 / 2,
   kFrameHalfLength[5],
   0.,
-  kFrameHalfLength[7] - 0.5
-};
+  kFrameHalfLength[7] - 0.5};
 const double kRibHalfHeight[kNFrames] = {
   0.3,
   kFrameHalfHeight[1],
@@ -86,14 +85,13 @@ const double kRibHalfHeight[kNFrames] = {
   kFrameHalfHeight[4],
   1.5 / 2,
   0.,
-  kFrameHalfHeight[7]
-};
+  kFrameHalfHeight[7]};
 
-const double kFrame3Radius[2] = { kSegmentRadius[1], 121.6 };
-const double kRib3Radius[2] = { kSegmentRadius[1], 120.6 };
+const double kFrame3Radius[2] = {kSegmentRadius[1], 121.6};
+const double kRib3Radius[2] = {kSegmentRadius[1], 120.6};
 
-const double kFrame7Radius[2] = { 20.6, kSegmentRadius[0] };
-const double kRib7Radius[2] = { 21.6, kSegmentRadius[0] };
+const double kFrame7Radius[2] = {20.6, kSegmentRadius[0]};
+const double kRib7Radius[2] = {21.6, kSegmentRadius[0]};
 
 const double kEpoxyHalfThickness = 2.;
 const double kRibHalfThickness = 0.5;
@@ -111,9 +109,9 @@ TGeoVolume* createSegment(int i)
 
   const int kNLayers = 6;
 
-  const std::string kLayerName[kNLayers] = { "gas", "cathode", "insulator", "rohacell", "MEB", "EERB" };
-  const std::array<TGeoMedium*, kNLayers> kLayerMedium = { assertMedium(Medium::Gas), assertMedium(Medium::Copper), assertMedium(Medium::FR4), assertMedium(Medium::Rohacell), assertMedium(Medium::Epoxy), assertMedium(Medium::Copper) };
-  const double kLayerHalfThickness[kNLayers] = { kGasHalfThickness, kCathodeHalfThickness, kInsuHalfThickness, kRohaHalfThickness, kMEBHalfThickness, kEERBHalfThickness };
+  const std::string kLayerName[kNLayers] = {"gas", "cathode", "insulator", "rohacell", "MEB", "EERB"};
+  const std::array<TGeoMedium*, kNLayers> kLayerMedium = {assertMedium(Medium::Gas), assertMedium(Medium::Copper), assertMedium(Medium::FR4), assertMedium(Medium::Rohacell), assertMedium(Medium::Epoxy), assertMedium(Medium::Copper)};
+  const double kLayerHalfThickness[kNLayers] = {kGasHalfThickness, kCathodeHalfThickness, kInsuHalfThickness, kRohaHalfThickness, kMEBHalfThickness, kEERBHalfThickness};
 
   // volume dimensions
   double halfLength = kBoxSegHalfLength[i], halfHeight = kBoxSegHalfHeight[i], halfThickness = kLayerHalfThickness[0];
@@ -215,8 +213,7 @@ void createFrames()
     0.,
     kFrameHalfHeight[5] - kRibHalfHeight[5], // upper edge
     0.,
-    0.
-  };
+    0.};
 
   // useful variables
   double halfThickness = 0., z = 0.;
@@ -325,8 +322,8 @@ TGeoVolume* createQuadrant()
   auto quadrant = new TGeoVolumeAssembly("Station 2 quadrant");
 
   // create and place the segments in the quadrant
-  const double kSegXPos[kNSegments] = { kSegmentRadius[0] + kBoxSegHalfLength[0], 0., -kBoxSegHalfLength[2] };
-  const double kSegYPos[kNSegments] = { -kBoxSegHalfHeight[0], 0., kSegmentRadius[0] + kBoxSegHalfHeight[2] };
+  const double kSegXPos[kNSegments] = {kSegmentRadius[0] + kBoxSegHalfLength[0], 0., -kBoxSegHalfLength[2]};
+  const double kSegYPos[kNSegments] = {-kBoxSegHalfHeight[0], 0., kSegmentRadius[0] + kBoxSegHalfHeight[2]};
 
   for (int i = 0; i < kNSegments; i++)
     quadrant->AddNode(createSegment(i), 0, new TGeoTranslation(kSegXPos[i], kSegYPos[i], 0.));
@@ -379,7 +376,7 @@ void createStation2Geometry(TGeoVolume& topVolume)
   auto rot1 = new TGeoRotation("reflXZ", 90., 180., 90., 90., 180., 0.);
   auto rot2 = new TGeoRotation("reflXY", 90., 180., 90., 270., 0., 0.);
   auto rot3 = new TGeoRotation("reflYZ", 90., 0., 90., -90., 180., 0.);
-  std::array<TGeoRotation*, kNQuad> rot = { rot0, rot1, rot2, rot3 };
+  std::array<TGeoRotation*, kNQuad> rot = {rot0, rot1, rot2, rot3};
 
   // build the two chambers
   double z = kQuadrantZPos;

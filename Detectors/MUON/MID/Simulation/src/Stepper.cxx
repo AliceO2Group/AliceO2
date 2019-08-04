@@ -21,7 +21,7 @@ namespace o2
 namespace mid
 {
 
-Stepper::Stepper() : mHits{ o2::utils::createSimVector<o2::mid::Hit>() } {}
+Stepper::Stepper() : mHits{o2::utils::createSimVector<o2::mid::Hit>()} {}
 Stepper::~Stepper()
 {
   o2::utils::freeSimVector(mHits);
@@ -29,7 +29,7 @@ Stepper::~Stepper()
 
 bool Stepper::process(const TVirtualMC& vmc)
 {
-  o2::SimTrackStatus ts{ vmc };
+  o2::SimTrackStatus ts{vmc};
 
   int detElemId;
   vmc.CurrentVolOffID(1, detElemId); // go up 1 level in the hierarchy to get the DE
@@ -38,7 +38,7 @@ bool Stepper::process(const TVirtualMC& vmc)
 
   if (ts.isEntering() || ts.isExiting()) {
     // generate a track referenced
-    o2::TrackReference tr{ vmc, detElemId };
+    o2::TrackReference tr{vmc, detElemId};
     stack->addTrackReference(tr);
   }
 
@@ -56,7 +56,7 @@ bool Stepper::process(const TVirtualMC& vmc)
     float x, y, z;
     vmc.TrackPosition(x, y, z);
     mHits->emplace_back(stack->GetCurrentTrackNumber(), detElemId, mEntrancePoint,
-                        Point3D<float>{ x, y, z }, mTrackEloss, mTrackLength);
+                        Point3D<float>{x, y, z}, mTrackEloss, mTrackLength);
     resetStep();
   }
 

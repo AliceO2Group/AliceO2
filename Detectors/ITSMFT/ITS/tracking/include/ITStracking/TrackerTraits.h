@@ -48,7 +48,7 @@ class TrackerTraits
  public:
   virtual ~TrackerTraits() = default;
 
-  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
+  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
   void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
@@ -91,12 +91,12 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
     return getEmptyBinsRect();
   }
 
-  return int4{ gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
-               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax)) };
+  return int4{gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
+              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+              gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
+              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */

@@ -85,4 +85,4 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
   }
 }
 
-} // end namespace AliceO2
+} // namespace o2

@@ -16,8 +16,8 @@
 
 #pragma link C++ class o2::hmpid::Param + ;
 #pragma link C++ class o2::hmpid::Digit + ;
-#pragma link C++ class vector<o2::hmpid::Digit>+;
-#pragma link C++ class o2::hmpid::HitType+;
-#pragma link C++ class vector<o2::hmpid::HitType>+;
+#pragma link C++ class vector < o2::hmpid::Digit> + ;
+#pragma link C++ class o2::hmpid::HitType + ;
+#pragma link C++ class vector < o2::hmpid::HitType> + ;
 
 #endif

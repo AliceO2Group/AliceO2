@@ -19,23 +19,26 @@ namespace framework
 
 /// Fairly unsophisticated service which simply stores and return the
 /// requested FairMQDevice
-class SimpleRawDeviceService : public RawDeviceService {
-public:
-  SimpleRawDeviceService(FairMQDevice *device)
-  :mDevice(device)
-  {}
+class SimpleRawDeviceService : public RawDeviceService
+{
+ public:
+  SimpleRawDeviceService(FairMQDevice* device)
+    : mDevice(device)
+  {
+  }
 
-  FairMQDevice *device() final
+  FairMQDevice* device() final
   {
     return mDevice;
   }
 
-  void setDevice(FairMQDevice *device) final
+  void setDevice(FairMQDevice* device) final
   {
     mDevice = device;
   }
-private:
-  FairMQDevice *mDevice;
+
+ private:
+  FairMQDevice* mDevice;
 };
 
 } // namespace framework

@@ -39,7 +39,7 @@ GPU_HOST_DEVICE int getBinIndex(const int, const int);
 GPU_HOST_DEVICE int countRowSelectedBins(
   const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>&, const int, const int,
   const int);
-} // namespace IndexTableUtils
+} // namespace index_table_utils
 
 inline float getInverseZCoordinate(const int layerIndex)
 {
@@ -67,8 +67,8 @@ GPU_HOST_DEVICE inline int index_table_utils::countRowSelectedBins(
   const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
   const int phiBinIndex, const int minZBinIndex, const int maxZBinIndex)
 {
-  const int firstBinIndex{ getBinIndex(minZBinIndex, phiBinIndex) };
-  const int maxBinIndex{ firstBinIndex + maxZBinIndex - minZBinIndex + 1 };
+  const int firstBinIndex{getBinIndex(minZBinIndex, phiBinIndex)};
+  const int maxBinIndex{firstBinIndex + maxZBinIndex - minZBinIndex + 1};
 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
 }

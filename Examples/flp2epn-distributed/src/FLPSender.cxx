@@ -31,26 +31,15 @@ using namespace o2::devices;
 
 struct f2eHeader {
   uint16_t timeFrameId;
-  int      flpIndex;
+  int flpIndex;
 };
 
 FLPSender::FLPSender()
-  : mSTFBuffer()
-  , mArrivalTime()
-  , mNumEPNs(0)
-  , mIndex(0)
-  , mSendOffset(0)
-  , mSendDelay(8)
-  , mEventSize(10000)
-  , mTestMode(0)
-  , mTimeFrameId(0)
-  , mInChannelName()
-  , mOutChannelName()
+  : mSTFBuffer(), mArrivalTime(), mNumEPNs(0), mIndex(0), mSendOffset(0), mSendDelay(8), mEventSize(10000), mTestMode(0), mTimeFrameId(0), mInChannelName(), mOutChannelName()
 {
 }
 
-FLPSender::~FLPSender()
-= default;
+FLPSender::~FLPSender() = default;
 
 void FLPSender::InitTask()
 {
@@ -98,7 +87,8 @@ void FLPSender::Run()
 
     FairMQParts parts;
 
-    parts.AddPart(NewMessage(header, sizeof(f2eHeader), [](void* data, void* hint){ delete static_cast<f2eHeader*>(hint); }, header));
+    parts.AddPart(NewMessage(
+      header, sizeof(f2eHeader), [](void* data, void* hint) { delete static_cast<f2eHeader*>(hint); }, header));
     parts.AddPart(NewMessage());
 
     // save the arrival time of the message.

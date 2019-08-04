@@ -22,9 +22,11 @@
 // is part of the BaseHeader
 #include "Headers/DataHeader.h" // for o2::header::get
 
-namespace o2 {
+namespace o2
+{
 
-namespace algorithm {
+namespace algorithm
+{
 
 /**
  * Generic utility for the O2 header stack, redirect to header specific callbacks
@@ -42,13 +44,12 @@ namespace algorithm {
  *                                 // do something with h
  *                               }
  */
-template<
+template <
   typename PtrType,
   typename SizeType,
   typename HeaderType,
   typename HeaderCallbackType,
-  typename... MoreTypes
-  >
+  typename... MoreTypes>
 void dispatchHeaderStackCallback(PtrType ptr,
                                  SizeType size,
                                  HeaderType header,
@@ -56,12 +57,11 @@ void dispatchHeaderStackCallback(PtrType ptr,
                                  MoreTypes&&... types);
 
 // template specialization: handler for one pair of type and callback
-template<
+template <
   typename PtrType,
   typename SizeType,
   typename HeaderType,
-  typename HeaderCallbackType
-  >
+  typename HeaderCallbackType>
 void dispatchHeaderStackCallback(PtrType ptr,
                                  SizeType size,
                                  HeaderType /*dummy*/,
@@ -74,17 +74,18 @@ void dispatchHeaderStackCallback(PtrType ptr,
 }
 
 // an empty function in case no StackTypes have been provided to call
-template<typename PtrType, typename SizeType>
-void dispatchHeaderStackCallback(PtrType ptr, SizeType size) {}
+template <typename PtrType, typename SizeType>
+void dispatchHeaderStackCallback(PtrType ptr, SizeType size)
+{
+}
 
 // actual implementation
-template<
+template <
   typename PtrType,
   typename SizeType,
   typename HeaderType,
   typename HeaderCallbackType,
-  typename... MoreTypes
-  >
+  typename... MoreTypes>
 void dispatchHeaderStackCallback(PtrType ptr,
                                  SizeType size,
                                  HeaderType header,
@@ -113,26 +114,24 @@ void dispatchHeaderStackCallback(PtrType ptr,
  *                    dataheader,
  *                    triggerheader
  */
-template<
+template <
   typename PtrType,
   typename SizeType,
   typename HeaderType,
-  typename... MoreTypes
-  >
+  typename... MoreTypes>
 void parseHeaderStack(PtrType ptr,
                       SizeType size,
-                      HeaderType & header,
+                      HeaderType& header,
                       MoreTypes&&... types);
 
 // template specialization: handler for one type
-template<
+template <
   typename PtrType,
   typename SizeType,
-  typename HeaderType
-  >
+  typename HeaderType>
 void parseHeaderStack(PtrType ptr,
                       SizeType size,
-                      HeaderType & header)
+                      HeaderType& header)
 {
   const HeaderType* h = o2::header::get<HeaderType*>(ptr, size);
   if (h) {
@@ -141,19 +140,20 @@ void parseHeaderStack(PtrType ptr,
 }
 
 // an empty function in case no StackTypes have been provided to call
-template<typename PtrType, typename SizeType>
-void parseHeaderStack(PtrType ptr, SizeType size) {}
+template <typename PtrType, typename SizeType>
+void parseHeaderStack(PtrType ptr, SizeType size)
+{
+}
 
 // generic implementation
-template<
+template <
   typename PtrType,
   typename SizeType,
   typename HeaderType,
-  typename... MoreTypes
-  >
+  typename... MoreTypes>
 void parseHeaderStack(PtrType ptr,
                       SizeType size,
-                      HeaderType & header,
+                      HeaderType& header,
                       MoreTypes&&... types)
 {
   // call for current

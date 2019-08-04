@@ -305,8 +305,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             rval.length += step;
 
 #ifdef _DBG_LOC_
-            float pos0[3] = { ray.getPos(tStartZ, 0), ray.getPos(tStartZ, 1), ray.getPos(tStartZ, 2) };
-            float pos1[3] = { ray.getPos(tEndZ, 0), ray.getPos(tEndZ, 1), ray.getPos(tEndZ, 2) };
+            float pos0[3] = {ray.getPos(tStartZ, 0), ray.getPos(tStartZ, 1), ray.getPos(tStartZ, 2)};
+            float pos1[3] = {ray.getPos(tEndZ, 0), ray.getPos(tEndZ, 1), ray.getPos(tEndZ, 2)};
             printf(
               "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
               "Step: %.3e StrpCor: %.3e\n",
@@ -325,8 +325,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           rval.length += step;
 
 #ifdef _DBG_LOC_
-          float pos0[3] = { ray.getPos(tStartPhi, 0), ray.getPos(tStartPhi, 1), ray.getPos(tStartPhi, 2) };
-          float pos1[3] = { ray.getPos(tEndPhi, 0), ray.getPos(tEndPhi, 1), ray.getPos(tEndPhi, 2) };
+          float pos0[3] = {ray.getPos(tStartPhi, 0), ray.getPos(tStartPhi, 1), ray.getPos(tStartPhi, 2)};
+          float pos1[3] = {ray.getPos(tEndPhi, 0), ray.getPos(tEndPhi, 1), ray.getPos(tEndPhi, 2)};
           printf(
             "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
             "Step: %.3e StrpCor: %.3e\n",

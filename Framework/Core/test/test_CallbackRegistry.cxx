@@ -20,7 +20,8 @@ using namespace o2::framework;
 
 BOOST_AUTO_TEST_CASE(TestCallbackregistry)
 {
-  enum class StepId { StateChange, Exit };
+  enum class StepId { StateChange,
+                      Exit };
 
   using ExitCallback = std::function<void()>;
   using StateChangeCallback = std::function<void(int)>;

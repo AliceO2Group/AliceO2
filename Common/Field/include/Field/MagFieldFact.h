@@ -40,9 +40,9 @@ class MagFieldFact : public FairFieldFactory
 
   MagFieldParam* mFieldPar;
 
-  ClassDefOverride(MagFieldFact, 2)
+  ClassDefOverride(MagFieldFact, 2);
 };
-}
-}
+} // namespace field
+} // namespace o2
 
 #endif

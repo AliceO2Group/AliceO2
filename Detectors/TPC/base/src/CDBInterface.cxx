@@ -145,8 +145,8 @@ const ParameterGEM& CDBInterface::getParameterGEM()
 void CDBInterface::loadNoiseAndPedestalFromFile()
 {
   auto file = TFile::Open(mPedestalNoiseFileName.data());
-  CalPad* pedestals{ nullptr };
-  CalPad* noise{ nullptr };
+  CalPad* pedestals{nullptr};
+  CalPad* noise{nullptr};
   file->GetObject("Pedestals", pedestals);
   file->GetObject("Noise", noise);
   delete file;
@@ -169,7 +169,7 @@ void CDBInterface::loadNoiseAndPedestalFromFile()
 void CDBInterface::loadGainMapFromFile()
 {
   auto file = TFile::Open(mGainMapFileName.data());
-  CalPad* gain{ nullptr };
+  CalPad* gain{nullptr};
   file->GetObject("Gain", gain);
   delete file;
 

@@ -25,7 +25,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       "producer",
       Inputs{},
       {
-        OutputSpec{ "TST", "TEST" },
+        OutputSpec{"TST", "TEST"},
       },
       AlgorithmSpec{
         // define init callback
@@ -37,22 +37,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           return [](ProcessingContext& ctx) {
             // there is nothing to do, simply stop the workflow but we have to send at least one message
             // to make sure that the callback of the consumer is called
-            ctx.outputs().make<int>(Output{ "TST", "TEST", 0, Lifetime::Timeframe }) = 42;
+            ctx.outputs().make<int>(Output{"TST", "TEST", 0, Lifetime::Timeframe}) = 42;
           };
         },
       },
       {
-        ConfigParamSpec{ "channel-config",
-                         VariantType::String,
-                         "name=foo,type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
-                         { "Out-of-band channel config" } },
-        ConfigParamSpec{ "global-config", VariantType::String, { "A global config option for all processor specs" } },
+        ConfigParamSpec{"channel-config",
+                        VariantType::String,
+                        "name=foo,type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
+                        {"Out-of-band channel config"}},
+        ConfigParamSpec{"global-config", VariantType::String, {"A global config option for all processor specs"}},
       },
     },
     DataProcessorSpec{
       "consumer",
       Inputs{
-        InputSpec{ "in", "TST", "TEST" },
+        InputSpec{"in", "TST", "TEST"},
       },
       {},
       AlgorithmSpec{
@@ -86,16 +86,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         },
       },
       {
-        ConfigParamSpec{ "global-config", VariantType::String, { "A global config option for all processor specs" } },
-        ConfigParamSpec{ "local-option", VariantType::String, { "Option only valid for this processor spec" } },
-        ConfigParamSpec{ "a-boolean", VariantType::Bool, true, { "A boolean which we pick by default" } },
-        ConfigParamSpec{ "a-boolean2", VariantType::Bool, false, { "Another boolean which we pick by default" } },
-        ConfigParamSpec{ "a-boolean3", VariantType::Bool, false, { "Another boolean which we pick from the outside options" } },
-        ConfigParamSpec{ "an-int", VariantType::Int, 10, { "An int for which we pick up the default" } },
-        ConfigParamSpec{ "an-int2", VariantType::Int, 1, { "An int for which we pick up the override" } },
-        ConfigParamSpec{ "a-double", VariantType::Double, 11., { "A double for which we pick up the override" } },
-        ConfigParamSpec{ "a-double2", VariantType::Double, 12., { "A double for which we pick up the override" } },
+        ConfigParamSpec{"global-config", VariantType::String, {"A global config option for all processor specs"}},
+        ConfigParamSpec{"local-option", VariantType::String, {"Option only valid for this processor spec"}},
+        ConfigParamSpec{"a-boolean", VariantType::Bool, true, {"A boolean which we pick by default"}},
+        ConfigParamSpec{"a-boolean2", VariantType::Bool, false, {"Another boolean which we pick by default"}},
+        ConfigParamSpec{"a-boolean3", VariantType::Bool, false, {"Another boolean which we pick from the outside options"}},
+        ConfigParamSpec{"an-int", VariantType::Int, 10, {"An int for which we pick up the default"}},
+        ConfigParamSpec{"an-int2", VariantType::Int, 1, {"An int for which we pick up the override"}},
+        ConfigParamSpec{"a-double", VariantType::Double, 11., {"A double for which we pick up the override"}},
+        ConfigParamSpec{"a-double2", VariantType::Double, 12., {"A double for which we pick up the override"}},
       },
-    }
-  };
+    }};
 }

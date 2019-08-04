@@ -51,7 +51,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
     strobe = dgParams.roFrameLength;
   }
   clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
-  clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
+  clus->getClusterer().setWantFullClusters(true);              // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(withDictionary); // require compact clusters with patternID
 
   clus->getClusterer().print();

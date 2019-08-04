@@ -154,15 +154,15 @@ class Cluster : public o2::BaseCluster<float>
                     ///> The last 7 bits are used for clusters usage counter
 
 #ifdef _ClusterTopology_
-  UShort_t mPatternNRows = 0;                 ///< pattern span in rows
-  UShort_t mPatternNCols = 0;                 ///< pattern span in columns
-  UShort_t mPatternRowMin = 0;                ///< pattern start row
-  UShort_t mPatternColMin = 0;                ///< pattern start column
-  UChar_t mPattern[kMaxPatternBytes] = { 0 }; ///< cluster topology
+  UShort_t mPatternNRows = 0;               ///< pattern span in rows
+  UShort_t mPatternNCols = 0;               ///< pattern span in columns
+  UShort_t mPatternRowMin = 0;              ///< pattern start row
+  UShort_t mPatternColMin = 0;              ///< pattern start column
+  UChar_t mPattern[kMaxPatternBytes] = {0}; ///< cluster topology
   //
-  ClassDefNV(Cluster, CLUSTER_VERSION + 1)
+  ClassDefNV(Cluster, CLUSTER_VERSION + 1);
 #else
-  ClassDefNV(Cluster, CLUSTER_VERSION)
+  ClassDefNV(Cluster, CLUSTER_VERSION);
 #endif
 };
 //______________________________________________________

@@ -49,17 +49,17 @@ void gpuMemcpyHostToDeviceAsync(void*, const void*, int, Stream&);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
 void gpuStartProfiler();
 void gpuStopProfiler();
-}
+} // namespace Host
 
 namespace Device
 {
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
 GPUd() int gpuAtomicAdd(int*, const int);
-}
-}
-}
-}
-}
+} // namespace Device
+} // namespace Utils
+} // namespace GPU
+} // namespace its
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_GPU_UTILS_H_ */

@@ -147,7 +147,7 @@ void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
 {
   /** set interaction vertex **/
 
-  Double_t xyz[3] = { event->GetX(), event->GetY(), event->GetZ() };
+  Double_t xyz[3] = {event->GetX(), event->GetY(), event->GetZ()};
   SetBeam(xyz[0], xyz[1], 0., 0.);
   SetTarget(xyz[2], 0.);
   SmearVertexXY(false);
@@ -203,4 +203,4 @@ Bool_t PrimaryGenerator::embedInto(TString fname)
 } /* namespace eventgen */
 } /* namespace o2 */
 
-ClassImp(o2::eventgen::PrimaryGenerator)
+ClassImp(o2::eventgen::PrimaryGenerator);

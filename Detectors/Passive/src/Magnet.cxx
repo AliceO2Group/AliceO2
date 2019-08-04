@@ -68,16 +68,16 @@ void Magnet::createMaterials()
 
   // --- Define the various materials for GEANT ---
   // Steel
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
-  Float_t aWater[2] = { 1.00794, 15.9994 };
-  Float_t zWater[2] = { 1., 8. };
-  Float_t wWater[2] = { 0.111894, 0.888106 };
+  Float_t aWater[2] = {1.00794, 15.9994};
+  Float_t zWater[2] = {1., 8.};
+  Float_t wWater[2] = {0.111894, 0.888106};
 
   //     Aluminum
   matmgr.Material("MAG", 9, "Al0$", 26.98, 13., 2.7, 8.9, 37.2);

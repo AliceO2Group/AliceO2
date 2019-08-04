@@ -33,19 +33,20 @@ namespace o2
 namespace framework
 {
 
-class MessageContext {
+class MessageContext
+{
  public:
   using DispatchCallback = std::function<void(FairMQParts&& message, std::string const&, int)>;
   // so far we are only using one instance per named channel
   static constexpr int DefaultChannelIndex = 0;
 
   MessageContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
+    : mProxy{proxy}
   {
   }
 
   MessageContext(FairMQDeviceProxy proxy, DispatchCallback&& dispatcher)
-    : mProxy{ proxy }, mDispatchCallback{ dispatcher }
+    : mProxy{proxy}, mDispatchCallback{dispatcher}
   {
   }
 
@@ -60,13 +61,13 @@ class MessageContext {
    public:
     ContextObject() = default;
     ContextObject(FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, const std::string& bindingChannel)
-      : mParts{}, mChannel{ bindingChannel }
+      : mParts{}, mChannel{bindingChannel}
     {
       mParts.AddPart(std::move(headerMsg));
       mParts.AddPart(std::move(payloadMsg));
     }
     ContextObject(FairMQMessagePtr&& headerMsg, const std::string& bindingChannel)
-      : mParts{}, mChannel{ bindingChannel }
+      : mParts{}, mChannel{bindingChannel}
     {
       mParts.AddPart(std::move(headerMsg));
     }
@@ -153,11 +154,11 @@ class MessageContext {
     ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, Args&&... args)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
         // the transport factory
-        mFactory{ context->proxy().getTransport(bindingChannel, index) },
+        mFactory{context->proxy().getTransport(bindingChannel, index)},
         // the memory resource takes ownership of the message
-        mResource{ mFactory ? mFactory->GetMemoryResource() : nullptr },
+        mResource{mFactory ? mFactory->GetMemoryResource() : nullptr},
         // create the vector with apropriate underlying memory resource for the message
-        mData{ std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(mResource) }
+        mData{std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(mResource)}
     {
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
@@ -417,7 +418,7 @@ class MessageContext {
   void clear()
   {
     // Verify that everything has been sent on clear.
-    for (auto &m : mMessages) {
+    for (auto& m : mMessages) {
       assert(m->empty());
     }
     mMessages.clear();

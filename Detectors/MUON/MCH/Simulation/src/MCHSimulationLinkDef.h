@@ -21,10 +21,10 @@
 #pragma link C++ class o2::mch::test::Dummy;
 #pragma link C++ class o2::mch::Detector + ;
 #pragma link C++ class o2::mch::Hit + ;
-#pragma link C++ class std::vector < o2::mch::Hit > +;
-#pragma link C++ class o2::base::DetImpl < o2::mch::Detector > +;
+#pragma link C++ class std::vector < o2::mch::Hit> + ;
+#pragma link C++ class o2::base::DetImpl < o2::mch::Detector> + ;
 #pragma link C++ class o2::mch::Digit + ;
-#pragma link C++ class std::vector < o2::mch::Digit > +;
+#pragma link C++ class std::vector < o2::mch::Digit> + ;
 
 #pragma link C++ function o2::mch::createGeometry;
 #pragma link C++ function o2::mch::getSensitiveVolumes;

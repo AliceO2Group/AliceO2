@@ -18,14 +18,12 @@
 
 namespace bpo = boost::program_options;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Arguments parsing
-  bpo::variables_map vm; 
+  bpo::variables_map vm;
   bpo::options_description desc("Allowed options");
-  desc.add_options()
-    ("help,h", "Produce help message.")
-    ("file,f",  "input file(s)");
+  desc.add_options()("help,h", "Produce help message.")("file,f", "input file(s)");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
 
@@ -42,8 +40,8 @@ int main(int argc, char *argv[])
   std::cout << "#### Starting TPC simple online monitor" << '\n';
   std::cout << "#### filename: " << file << '\n';
   std::cout << "####" << '\n';
-  std::cout << '\n' << '\n';
+  std::cout << '\n'
+            << '\n';
 
   return EXIT_SUCCESS;
 }
-

@@ -103,7 +103,7 @@ class AliHLT3DTrackParam : public TObject
 
   void TransportToPoint(double Bz, double x, double y, double z, const double* T0 = 0)
   {
-    double xyz[3] = { x, y, z };
+    double xyz[3] = {x, y, z};
     TransportToPoint(Bz, xyz, T0);
   }
 

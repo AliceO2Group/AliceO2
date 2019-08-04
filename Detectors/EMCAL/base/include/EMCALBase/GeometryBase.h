@@ -27,7 +27,9 @@ enum EMCALSMType {
   DCAL_EXT = 4
 }; // possible SM Type
 
-enum AcceptanceType_t { EMCAL_ACCEPTANCE = 1, DCAL_ACCEPTANCE = 2, NON_ACCEPTANCE = 0 };
+enum AcceptanceType_t { EMCAL_ACCEPTANCE = 1,
+                        DCAL_ACCEPTANCE = 2,
+                        NON_ACCEPTANCE = 0 };
 
 const std::string DEFAULT_GEOMETRY = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
@@ -112,7 +114,7 @@ class InvalidSupermoduleTypeException : public std::exception
   ~InvalidSupermoduleTypeException() noexcept final = default;
   const char* what() const noexcept final { return "Uknown SuperModule Type !!"; }
 };
-}
-}
+} // namespace emcal
+} // namespace o2
 
 #endif

@@ -38,7 +38,11 @@ class V3Layer : public V11Geometry
 {
 
  public:
-  enum { kStave, kHalfStave, kModule, kChip, kNHLevels };
+  enum { kStave,
+         kHalfStave,
+         kModule,
+         kChip,
+         kNHLevels };
 
   // Default constructor
   V3Layer();
@@ -511,9 +515,9 @@ class V3Layer : public V11Geometry
   static const Double_t sOBSFrameULegThick;   ///< OB SF U-Leg thickness
   static const Double_t sOBSFrameULegXPos;    ///< OB SF U-Leg X position
 
-  ClassDefOverride(V3Layer, 0) // ITS v3 geometry
+  ClassDefOverride(V3Layer, 0); // ITS v3 geometry
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

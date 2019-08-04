@@ -97,7 +97,7 @@ int InteractionSampler::simulateInteractingBC()
   // Returns number of collisions assigned to selected BC
 
   do {
-    nextCollidingBC(); // pick next interacting bunch
+    nextCollidingBC();                          // pick next interacting bunch
   } while (gRandom->Rndm() > mProbInteraction); // skip BCs w/o collisions
 
   // once BC is decided, enforce at least one interaction
@@ -106,7 +106,7 @@ int InteractionSampler::simulateInteractingBC()
   for (int i = ncoll; i--;) {
     double tInBC = 0; // tInBC should be in the vicinity of the BC
     do {
-      tInBC = gRandom->Gaus(0.,mBCTimeRMS);
+      tInBC = gRandom->Gaus(0., mBCTimeRMS);
     } while (std::abs(tInBC) > o2::constants::lhc::LHCBunchSpacingNS / 2.1);
     mTimeInBC.push_back(tInBC);
   }

@@ -92,7 +92,7 @@ class Propagator
 
   ClassDef(Propagator, 0);
 };
-}
-}
+} // namespace base
+} // namespace o2
 
 #endif

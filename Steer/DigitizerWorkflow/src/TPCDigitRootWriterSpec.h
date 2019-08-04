@@ -19,7 +19,7 @@ namespace tpc
 {
 // numberofsourcedevices is the number of devices we receive digits from
 o2::framework::DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices = 1);
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_SRC_TPCDIGITROOTWRITERSPEC_H_ */

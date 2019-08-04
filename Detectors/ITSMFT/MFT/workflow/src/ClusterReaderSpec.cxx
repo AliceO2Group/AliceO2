@@ -74,11 +74,11 @@ void ClusterReader::run(ProcessingContext& pc)
               << rofs->size() << " RO frames and "
               << mc2rofs->size() << " MC events";
 
-    pc.outputs().snapshot(Output{ "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe }, allCompClusters);
-    pc.outputs().snapshot(Output{ "MFT", "CLUSTERS", 0, Lifetime::Timeframe }, allClusters);
-    pc.outputs().snapshot(Output{ "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, allLabels);
-    pc.outputs().snapshot(Output{ "MFT", "MFTClusterROF", 0, Lifetime::Timeframe }, *rofs);
-    pc.outputs().snapshot(Output{ "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe }, *mc2rofs);
+    pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, allCompClusters);
+    pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, allClusters);
+    pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, allLabels);
+    pc.outputs().snapshot(Output{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe}, *rofs);
+    pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, *mc2rofs);
   } else {
     LOG(ERROR) << "Cannot read the MFT clusters !";
     return;
@@ -93,15 +93,14 @@ DataProcessorSpec getClusterReaderSpec()
     "mft-cluster-reader",
     Inputs{},
     Outputs{
-      OutputSpec{ "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTClusterROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<ClusterReader>() },
+      OutputSpec{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "CLUSTERS", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
+      OutputSpec{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<ClusterReader>()},
     Options{
-      { "mft-cluster-infile", VariantType::String, "mftclusters.root", { "Name of the input file" } } }
-  };
+      {"mft-cluster-infile", VariantType::String, "mftclusters.root", {"Name of the input file"}}}};
 }
 
 } // namespace mft

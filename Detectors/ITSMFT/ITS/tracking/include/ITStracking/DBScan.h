@@ -67,20 +67,20 @@ template <typename T>
 void DBScan<T>::classifyVertices(std::function<unsigned char(std::vector<Edge>& edges)> classFunction)
 {
   mClassFunction = classFunction;
-  const size_t size = { this->mVertices->size() };
+  const size_t size = {this->mVertices->size()};
   mStates.resize(size);
 
   if (!this->isMultiThreading()) {
-    for (size_t iVertex{ 0 }; iVertex < size; ++iVertex) {
+    for (size_t iVertex{0}; iVertex < size; ++iVertex) {
       mStates[iVertex] = std::make_pair<int, unsigned char>(iVertex, classFunction(this->getEdges()[iVertex]));
     }
   } else {
-    const size_t stride{ static_cast<size_t>(std::ceil(this->mVertices->size() / static_cast<size_t>(this->mExecutors.size()))) };
-    for (size_t iExecutor{ 0 }; iExecutor < this->mExecutors.size(); ++iExecutor) {
+    const size_t stride{static_cast<size_t>(std::ceil(this->mVertices->size() / static_cast<size_t>(this->mExecutors.size())))};
+    for (size_t iExecutor{0}; iExecutor < this->mExecutors.size(); ++iExecutor) {
       // We cannot pass a template function to std::thread(), using lambda instead
       this->mExecutors[iExecutor] = std::thread(
         [iExecutor, stride, this](const auto& classFunction) {
-          for (size_t iVertex{ iExecutor * stride }; iVertex < stride * (iExecutor + 1) && iVertex < this->mVertices->size(); ++iVertex) {
+          for (size_t iVertex{iExecutor * stride}; iVertex < stride * (iExecutor + 1) && iVertex < this->mVertices->size(); ++iVertex) {
             mStates[iVertex] = std::make_pair<int, unsigned char>(iVertex, classFunction(this->getEdges()[iVertex]));
           }
         },
@@ -116,7 +116,7 @@ std::vector<std::vector<int>> DBScan<T>::computeClusters()
   std::vector<int> cores = getCores();
   std::vector<unsigned char> usedVertices(this->mVertices->size(), false);
 
-  for (size_t core{ 0 }; core < cores.size(); ++core) {
+  for (size_t core{0}; core < cores.size(); ++core) {
     if (!usedVertices[cores[core]]) {
       std::vector<unsigned char> clusterFlags = this->getCluster(cores[core]);
       std::transform(usedVertices.begin(), usedVertices.end(), clusterFlags.begin(), usedVertices.begin(), std::logical_or<>());

@@ -171,10 +171,10 @@ void SpaceCharge::calculateLookupTables()
         for (int iz = 0; iz < mNZSlices; ++iz) {
           // A side
           float z = mCoordZ[iz];
-          float x0[3] = { radius, phi, z };
-          float x1[3] = { radius, phi, z - mLengthZSlice };
-          double eVector0[3] = { 0.f, 0.f, 0.f };
-          double eVector1[3] = { 0.f, 0.f, 0.f };
+          float x0[3] = {radius, phi, z};
+          float x1[3] = {radius, phi, z - mLengthZSlice};
+          double eVector0[3] = {0.f, 0.f, 0.f};
+          double eVector1[3] = {0.f, 0.f, 0.f};
           mLookUpTableCalculator.GetElectricFieldCyl(x0, roc, eVector0);
           mLookUpTableCalculator.GetElectricFieldCyl(x1, roc, eVector1);
           matrixDzA(ir, iz) = DvDEoverv0 * (mLengthZSlice / 2.f) * (eVector0[2] + eVector1[2]);
@@ -297,8 +297,8 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = TMath::ATan2(x[1], x[0]);
   if (phi < 0) {
     phi += TMath::TwoPi();
@@ -316,8 +316,8 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = TMath::ATan2(x[1], x[0]);
   if (phi < 0) {
     phi += TMath::TwoPi();

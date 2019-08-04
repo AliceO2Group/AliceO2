@@ -48,23 +48,23 @@ namespace framework
 {
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry)
-  : mSpec{ spec },
-    mInit{ spec.algorithm.onInit },
-    mStatefulProcess{ nullptr },
-    mStatelessProcess{ spec.algorithm.onProcess },
-    mError{ spec.algorithm.onError },
-    mConfigRegistry{ nullptr },
-    mFairMQContext{ FairMQDeviceProxy{ this } },
-    mRootContext{ FairMQDeviceProxy{ this } },
-    mStringContext{ FairMQDeviceProxy{ this } },
-    mDataFrameContext{ FairMQDeviceProxy{ this } },
-    mRawBufferContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext },
-    mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
-    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
-    mServiceRegistry{ registry },
-    mErrorCount{ 0 },
-    mProcessingCount{ 0 }
+  : mSpec{spec},
+    mInit{spec.algorithm.onInit},
+    mStatefulProcess{nullptr},
+    mStatelessProcess{spec.algorithm.onProcess},
+    mError{spec.algorithm.onError},
+    mConfigRegistry{nullptr},
+    mFairMQContext{FairMQDeviceProxy{this}},
+    mRootContext{FairMQDeviceProxy{this}},
+    mStringContext{FairMQDeviceProxy{this}},
+    mDataFrameContext{FairMQDeviceProxy{this}},
+    mRawBufferContext{FairMQDeviceProxy{this}},
+    mContextRegistry{&mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
+    mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
+    mRelayer{spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
+    mServiceRegistry{registry},
+    mErrorCount{0},
+    mProcessingCount{0}
 {
   StateMonitoring<DataProcessingStatus>::start();
   auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
@@ -83,8 +83,9 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 /// * Materialize the correct callbacks for expiring records. We need to do it
 ///   here because the configuration is available only at this point.
 /// * Invoke the actual init callback, which returns the processing callback.
-void DataProcessingDevice::Init() {
-  // For some reason passing rateLogging does not work anymore. 
+void DataProcessingDevice::Init()
+{
+  // For some reason passing rateLogging does not work anymore.
   // This makes sure we never have more than one notification per minute.
   for (auto& x : fChannels) {
     for (auto& c : x.second) {
@@ -102,8 +103,7 @@ void DataProcessingDevice::Init() {
       route.matcher.lifetime,
       route.creatorConfigurator(*mConfigRegistry),
       route.danglingConfigurator(*mConfigRegistry),
-      route.expirationConfigurator(*mConfigRegistry)
-    };
+      route.expirationConfigurator(*mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
 
@@ -114,7 +114,7 @@ void DataProcessingDevice::Init() {
   monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
-    InitContext initContext{*mConfigRegistry,mServiceRegistry};
+    InitContext initContext{*mConfigRegistry, mServiceRegistry};
     mStatefulProcess = mInit(initContext);
   }
 }
@@ -143,25 +143,25 @@ bool DataProcessingDevice::ConditionalRun()
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
 
-    monitoring.send(Metric{ (int)relayerStats.malformedInputs, "malformed_inputs" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (int)relayerStats.droppedComputations, "dropped_computations" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (int)relayerStats.relayedMessages, "relayed_messages" }.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)relayerStats.malformedInputs, "malformed_inputs"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)relayerStats.droppedComputations, "dropped_computations"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
 
-    monitoring.send(Metric{ (int)stats.pendingInputs, "inputs/relayed/pending" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (int)stats.incomplete, "inputs/relayed/incomplete" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (int)stats.inputParts, "inputs/relayed/total" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ stats.lastElapsedTimeMs, "elapsed_time_ms" }.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ stats.lastTotalProcessedSize, "processed_input_size_byte" }
+    monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
-                            "processing_rate_mb_s" }
+    monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
+                           "processing_rate_mb_s"}
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ stats.lastLatency.minLatency, "min_input_latency_ms" }
+    monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ stats.lastLatency.maxLatency, "max_input_latency_ms" }
+    monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
                       .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{ (stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s" }
+    monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                       .addTag(Key::Subsystem, Value::DPL));
 
     lastSent = currentTime;
@@ -169,7 +169,7 @@ bool DataProcessingDevice::ConditionalRun()
   };
 
   /// This will flush metrics only once every second.
-  auto flushMetrics = [&stats = mStats,
+  auto flushMetrics = [& stats = mStats,
                        &relayer = mRelayer,
                        &lastFlushed = mLastMetricFlushedTimestamp,
                        &currentTime = mBeginIterationTimestamp,
@@ -185,7 +185,7 @@ bool DataProcessingDevice::ConditionalRun()
     // sent...
     for (size_t si = 0; si < stats.relayerState.size(); ++si) {
       auto state = stats.relayerState[si];
-      monitoring.send({ state, "data_relayer/" + std::to_string(si) });
+      monitoring.send({state, "data_relayer/" + std::to_string(si)});
     }
     relayer.sendContextState();
     monitoring.flushBuffer();
@@ -248,20 +248,20 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&stats = mStats, &parts]() -> bool {
+  auto isValidInput = [& stats = mStats, &parts]() -> bool {
     stats.inputParts = parts.Size();
 
     if (parts.Size() % 2) {
       return false;
     }
-    for (size_t hi = 0; hi < parts.Size()/2; ++hi) {
-      auto pi = hi*2;
+    for (size_t hi = 0; hi < parts.Size() / 2; ++hi) {
+      auto pi = hi * 2;
       auto dh = o2::header::get<DataHeader*>(parts.At(pi)->GetData());
       if (!dh) {
         LOG(ERROR) << "Header is not a DataHeader?";
         return false;
       }
-      if (dh->payloadSize != parts.At(pi+1)->GetSize()) {
+      if (dh->payloadSize != parts.At(pi + 1)->GetSize()) {
         LOG(ERROR) << "DataHeader payloadSize mismatch";
         return false;
       }
@@ -278,12 +278,12 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
     device.error(message);
   };
 
-  auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
+  auto putIncomingMessageIntoCache = [&parts, &relayer, &reportError]() {
     // We relay execution to make sure we have a complete set of parts
     // available.
-    for (size_t pi = 0; pi < (parts.Size()/2); ++pi) {
-      auto headerIndex = 2*pi;
-      auto payloadIndex = 2*pi+1;
+    for (size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
+      auto headerIndex = 2 * pi;
+      auto payloadIndex = 2 * pi + 1;
       assert(payloadIndex < parts.Size());
       auto relayed = relayer.relay(std::move(parts.At(headerIndex)),
                                    std::move(parts.At(payloadIndex)));
@@ -376,11 +376,11 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
-    InputSpan span{ [&currentSetOfInputs](size_t i) -> char const* {
+    InputSpan span{[&currentSetOfInputs](size_t i) -> char const* {
                      return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
                    },
-                    currentSetOfInputs.size() };
-    return InputRecord{ inputsSchema, std::move(span) };
+                   currentSetOfInputs.size()};
+    return InputRecord{inputsSchema, std::move(span)};
   };
 
   // This is the thing which does the actual computation. No particular reason
@@ -416,7 +416,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
-      monitoringService.send({ 1, "error" });
+      monitoringService.send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
@@ -462,7 +462,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
-    assert(record.size()*2 == currentSetOfInputs.size());
+    assert(record.size() * 2 == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -484,12 +484,11 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
 
-      auto &header = currentSetOfInputs[ii*2];
-      auto &payload = currentSetOfInputs[ii*2+1];
+      auto& header = currentSetOfInputs[ii * 2];
+      auto& payload = currentSetOfInputs[ii * 2 + 1];
 
       for (auto forward : forwards) {
-        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)
-            && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
           if (header.get() == nullptr) {
             LOG(ERROR) << "Missing header!";
@@ -518,7 +517,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   };
 
   auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> DataProcessingStats::InputLatency {
-    DataProcessingStats::InputLatency result{ static_cast<int>(-1), 0 };
+    DataProcessingStats::InputLatency result{static_cast<int>(-1), 0};
 
     auto currentTime = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
     for (auto& item : record) {
@@ -549,12 +548,12 @@ bool DataProcessingDevice::tryDispatchComputation()
     return false;
   }
 
-  for (auto action: getReadyActions()) {
+  for (auto action : getReadyActions()) {
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       continue;
     }
 
-    prepareAllocatorForCurrentTimeSlice(TimesliceSlot{ action.slot });
+    prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
     InputRecord record = fillInputs(action.slot);
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       if (forwards.empty() == false) {
@@ -571,7 +570,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
     try {
       dispatchProcessing(action.slot, record);
-    } catch(std::exception &e) {
+    } catch (std::exception& e) {
       errorHandling(e, record);
     }
     for (size_t ai = 0; ai != record.size(); ai++) {
@@ -598,11 +597,11 @@ bool DataProcessingDevice::tryDispatchComputation()
   return true;
 }
 
-void
-DataProcessingDevice::error(const char *msg) {
+void DataProcessingDevice::error(const char* msg)
+{
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send(Metric{ mErrorCount, "errors" }.addTag(Key::Subsystem, Value::DPL));
+  mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
 }
 
 } // namespace framework

@@ -250,7 +250,7 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
   auto nTracks = mRun2DeltaTree->GetEntries();
   int nTracksSelected = 0;
   int nTracksSelectedWithOutliers = 0;
-  std::array<int, 3> counterTrkValidation{ 0 };
+  std::array<int, 3> counterTrkValidation{0};
   int nRejCl = 0, nRejHelix = 0, nRejQpt = 0, nRejValidation = 0;
   LOG(info) << "Building local residual trees from " << nTracks << " tracks.";
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
@@ -884,8 +884,8 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
     LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
   }
-  std::array<float, 2> res{ 0.f };
-  std::array<float, 3> err{ 0.f };
+  std::array<float, 2> res{0.f};
+  std::array<float, 3> err{0.f};
   float sigMAD = fitPoly1Robust(tg, dy, res, err, mLTMCut);
   if (sigMAD < 0) {
     LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
@@ -1099,9 +1099,9 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
   // get smooth estimate for distortions for point in sector coordinates
   /// \todo correct use of the symmetric matrix should speed up the code
 
-  std::array<int, VoxDim> minPointsDir{ 0 }; // min number of points per direction
+  std::array<int, VoxDim> minPointsDir{0}; // min number of points per direction
   const float kTrialStep = 0.5;
-  std::array<bool, ResDim> doDim{ false };
+  std::array<bool, ResDim> doDim{false};
   for (int i = 0; i < ResDim; ++i) {
     doDim[i] = (whichDim & (0x1 << i)) > 0;
     if (doDim[i]) {
@@ -1139,7 +1139,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
   maxTrials[VoxF] = mNY2XBins / 2;
   maxTrials[VoxX] = mMaxBadXBinsToCover * 2;
 
-  std::array<int, VoxDim> trial{ 0 };
+  std::array<int, VoxDim> trial{0};
 
   while (true) {
     std::fill(mLastSmoothingRes.begin(), mLastSmoothingRes.end(), 0);
@@ -1257,7 +1257,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
     }
 
     // check if we have enough points in every dimension
-    std::array<int, VoxDim> nPoints{ 0 };
+    std::array<int, VoxDim> nPoints{0};
     for (int i = ixMax - ixMin + 1; i--;) {
       if (nOccX[i]) {
         ++nPoints[VoxX];
@@ -1274,7 +1274,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
       }
     }
     bool enoughPoints = true;
-    std::array<bool, VoxDim> incrDone{ false };
+    std::array<bool, VoxDim> incrDone{false};
     for (int i = 0; i < VoxDim; ++i) {
       if (nPoints[i] < minPointsDir[i]) {
         // need to extend smoothing neighbourhood
@@ -1610,7 +1610,7 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   o2::math_utils::math_base::Reorder(x, indices);
   //
   // robust estimate of sigma after crude slope correction
-  float sigMAD = getMAD2Sigma({ ycm.begin() + vecOffset, ycm.begin() + vecOffset + nPointsUsed });
+  float sigMAD = getMAD2Sigma({ycm.begin() + vecOffset, ycm.begin() + vecOffset + nPointsUsed});
   // find LTM estimate matching to sigMAD, keaping at least given fraction
   if (!o2::math_utils::math_base::LTMUnbinnedSig(ycm, indY, yResults, mMinFracLTM, sigMAD, true)) {
     return -1;

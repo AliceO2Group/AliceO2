@@ -72,8 +72,8 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
         for (float pad = 0.5; pad < nPads; pad += 1.) {
           for (float time = 0; time < lastTimeBin; time++) {
-            Int_t is[] = { iSec };
-            double orig[3] = { static_cast<Double_t>(iRow), pad, time };
+            Int_t is[] = {iSec};
+            double orig[3] = {static_cast<Double_t>(iRow), pad, time};
             origTransform->Transform(orig, is, 0, 1);
             nCalls1++;
             sum1 += orig[0] + orig[1] + orig[2];
@@ -133,12 +133,12 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
         AliHLTTPCGeometry::Sector2Slice(slice, slicerow, iSec, iRow);
         for (float pad = 0.5; pad < nPads; pad += 1.) {
           for (float time = 0; time < lastTimeBin; time++) {
-            Int_t is[] = { iSec };
-            double orig[3] = { static_cast<Double_t>(iRow), pad, time };
+            Int_t is[] = {iSec};
+            double orig[3] = {static_cast<Double_t>(iRow), pad, time};
             float fast[3];
             origTransform->Transform(orig, is, 0, 1);
             fastTransform.Transform(slice, slicerow, pad, time, fast[0], fast[1], fast[2]);
-            float entry[] = { (float)iSec, (float)iRow, pad, time, (float)orig[0], (float)orig[1], (float)orig[2], fast[0], fast[1], fast[2] };
+            float entry[] = {(float)iSec, (float)iRow, pad, time, (float)orig[0], (float)orig[1], (float)orig[2], fast[0], fast[1], fast[2]};
             nt->Fill(entry);
           }
         }

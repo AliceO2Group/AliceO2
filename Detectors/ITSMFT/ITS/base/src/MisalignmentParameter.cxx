@@ -17,9 +17,9 @@
 
 using namespace o2::its;
 
-ClassImp(o2::its::MisalignmentParameter)
+ClassImp(o2::its::MisalignmentParameter);
 
-  MisalignmentParameter::MisalignmentParameter(const char* name, const char* title, const char* context)
+MisalignmentParameter::MisalignmentParameter(const char* name, const char* title, const char* context)
   : FairParGenericSet(name, title, context),
     mShiftX(),
     mShiftY(),

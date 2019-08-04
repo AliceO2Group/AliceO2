@@ -17,7 +17,7 @@
 #pragma link C++ struct o2::mid::Cluster2D + ;
 #pragma link C++ struct o2::mid::Cluster3D + ;
 #pragma link C++ struct o2::mid::ColumnData + ;
-#pragma link C++ class std::vector < o2::mid::ColumnData > +;
+#pragma link C++ class std::vector < o2::mid::ColumnData> + ;
 #pragma link C++ struct o2::mid::Track + ;
 
 #endif

@@ -144,6 +144,6 @@ struct InteractionTimeRecord : public InteractionRecord {
 
   ClassDefNV(InteractionTimeRecord, 1);
 };
-}
+} // namespace o2
 
 #endif

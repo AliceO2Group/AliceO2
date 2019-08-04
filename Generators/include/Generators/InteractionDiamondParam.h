@@ -28,8 +28,8 @@ namespace eventgen
  **/
 
 struct InteractionDiamondParam : public o2::conf::ConfigurableParamHelper<InteractionDiamondParam> {
-  double position[3] = { 0., 0., 0. };
-  double width[3] = { 0., 0., 0. };
+  double position[3] = {0., 0., 0.};
+  double width[3] = {0., 0., 0.};
   O2ParamDef(InteractionDiamondParam, "Diamond");
 };
 

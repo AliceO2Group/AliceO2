@@ -138,7 +138,6 @@ int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
   return nData;
 }
 
-
 //_____________________________________
 void AlpideCoder::resetMap()
 {

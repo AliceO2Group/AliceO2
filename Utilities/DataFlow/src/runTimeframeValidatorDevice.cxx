@@ -15,10 +15,12 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     (o2::data_flow::TimeframeValidatorDevice::OptionKeyInputChannelName,
      bpo::value<std::string>()->default_value("input"),
      "Name of the input channel");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

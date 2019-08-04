@@ -103,15 +103,14 @@ DataProcessorSpec getEMCALDigitWriterSpec()
 
   return DataProcessorSpec{
     "EMCALDigitWriter",
-    Inputs{ InputSpec{ "emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe },
-            InputSpec{ "emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+    Inputs{InputSpec{"emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}},
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "emcal-digit-outfile", VariantType::String, "emcaldigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {"emcal-digit-outfile", VariantType::String, "emcaldigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace emcal
 } // end namespace o2

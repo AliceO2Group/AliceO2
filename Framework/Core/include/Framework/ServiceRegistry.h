@@ -26,7 +26,7 @@ namespace framework
 /// them by type.
 class ServiceRegistry
 {
-public:
+ public:
   // Register a service for the given interface T
   // with actual implementation C, i.e. C is derived from T.
   // Only one instance of type C can be registered per type T.
@@ -34,8 +34,9 @@ public:
   // of the service still belongs to whatever created it, and is
   // not passed to the registry. It's therefore responsibility of
   // the creator of the service to properly dispose it.
-  template<class I, class C>
-  void registerService(C *service) {
+  template <class I, class C>
+  void registerService(C* service)
+  {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
     // advance
@@ -84,19 +85,19 @@ public:
 
  private:
   using TypeInfoRef = std::reference_wrapper<const std::type_info>;
-  using ServicePtr = void *;
+  using ServicePtr = void*;
   using ConstServicePtr = void const*;
   struct Hasher {
-      std::size_t operator()(TypeInfoRef code) const
-      {
-          return code.get().hash_code();
-      }
+    std::size_t operator()(TypeInfoRef code) const
+    {
+      return code.get().hash_code();
+    }
   };
   struct EqualTo {
-      bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const
-      {
-          return lhs.get() == rhs.get();
-      }
+    bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const
+    {
+      return lhs.get() == rhs.get();
+    }
   };
   std::unordered_map<TypeInfoRef, ServicePtr, Hasher, EqualTo> mServices;
   // Services which we want to expose as read only

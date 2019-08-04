@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(MessageSizePair_test)
 
 // some (modified) convenience functions to be able to create messages
 // copied from FairRoot
-template<typename T>
+template <typename T>
 inline static void SimpleMsgCleanup(void* /*data*/, void* obj)
 {
   delete static_cast<T*>(obj);
@@ -110,5 +110,5 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   }
 }
 
-} // namespace data_flow
-} // end namespace AliceO2
+} // namespace dataformats
+} // namespace o2

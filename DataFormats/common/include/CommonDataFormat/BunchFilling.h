@@ -40,6 +40,6 @@ class BunchFilling
 
   ClassDefNV(BunchFilling, 1);
 };
-}
+} // namespace o2
 
 #endif

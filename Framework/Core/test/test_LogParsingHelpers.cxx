@@ -17,7 +17,8 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestParseTokenLevel) {
+BOOST_AUTO_TEST_CASE(TestParseTokenLevel)
+{
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][ERROR] Some message") == LogParsingHelpers::LogLevel::Error);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][WARN] Some message") == LogParsingHelpers::LogLevel::Warning);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][INFO] Some message") == LogParsingHelpers::LogLevel::Info);

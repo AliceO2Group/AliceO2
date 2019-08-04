@@ -134,14 +134,14 @@ template <typename... T>
 float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::ostream& ostream,
                              T&&... args)
 {
-  float diff{ 0.f };
+  float diff{0.f};
 
   if (constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<T>(args)...);
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double, std::milli> diff_t{ end - start };
+    std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
     if (taskName == nullptr) {

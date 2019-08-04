@@ -25,7 +25,6 @@
 
 #include <TClonesArray.h>
 
-
 namespace o2
 {
 namespace framework
@@ -38,18 +37,17 @@ using DataProcessingHeader = o2::framework::DataProcessingHeader;
 DataAllocator::DataAllocator(TimingInfo* timingInfo,
                              ContextRegistry* contextRegistry,
                              const AllowedOutputRoutes& routes)
-  : mAllowedOutputRoutes{ routes },
-    mTimingInfo{ timingInfo },
-    mContextRegistry{ contextRegistry }
+  : mAllowedOutputRoutes{routes},
+    mTimingInfo{timingInfo},
+    mContextRegistry{contextRegistry}
 {
 }
 
-std::string
-DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
+std::string DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
+{
   // FIXME: we should take timeframeId into account as well.
-  for (auto &output : mAllowedOutputRoutes) {
-    if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec)
-        && ((timeslice % output.maxTimeslices) == output.timeslice)) {
+  for (auto& output : mAllowedOutputRoutes) {
+    if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec) && ((timeslice % output.maxTimeslices) == output.timeslice)) {
       return output.channel;
     }
   }
@@ -69,7 +67,7 @@ DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
-                                                           );
+  );
   auto& co = context->add<MessageContext::ContainerRefObject<DataChunk>>(std::move(headerMessage), channel, 0, size);
   return co;
 }
@@ -83,7 +81,7 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
-                                                           );
+  );
 
   // FIXME: how do we want to use subchannels? time based parallelism?
   auto context = mContextRegistry->get<MessageContext>();
@@ -106,7 +104,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   auto context = mContextRegistry->get<MessageContext>();
 
   auto channelAlloc = o2::pmr::getTransportAllocator(context->proxy().getTransport(channel, 0));
-  return o2::pmr::getMessage(o2::header::Stack{ channelAlloc, dh, dph, spec.metaHeader });
+  return o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, spec.metaHeader});
 }
 
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
@@ -223,12 +221,12 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
     if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
       auto spec = mAllowedOutputRoutes[ri].matcher;
       auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
-      return Output{ dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
+      return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
     }
   }
   throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
   O2_BUILTIN_UNREACHABLE();
 }
 
-}
-}
+} // namespace framework
+} // namespace o2

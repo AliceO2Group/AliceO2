@@ -105,10 +105,9 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
     "its-cluster-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<ClusterWriter>(useMC) },
+    AlgorithmSpec{adaptFromTask<ClusterWriter>(useMC)},
     Options{
-      { "its-cluster-outfile", VariantType::String, "o2clus_its.root", { "Name of the output file" } } }
-  };
+      {"its-cluster-outfile", VariantType::String, "o2clus_its.root", {"Name of the output file"}}}};
 }
 
 } // namespace its

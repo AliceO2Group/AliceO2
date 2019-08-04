@@ -15,6 +15,6 @@ namespace o2
 struct SimSetup {
   static void setup(const char* engine);
 };
-}
+} // namespace o2
 
 #endif

@@ -91,9 +91,9 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   // second branch handles two inputs of the same data type, the mapping of the
   // input data to the target branch is taken from the sub specification
   RootTreeWriter writer(filename.c_str(), treename, // file and tree name
-                        RootTreeWriter::BranchDef<int>{ "input1", "intbranch" },
+                        RootTreeWriter::BranchDef<int>{"input1", "intbranch"},
                         RootTreeWriter::BranchDef<Container>{
-                          std::vector<std::string>({ "input2", "input3" }), "containerbranch",
+                          std::vector<std::string>({"input2", "input3"}), "containerbranch",
                           // define two target branches (this matches the input list)
                           2,
                           // the callback extracts the sub specification from the DataHeader as index
@@ -102,8 +102,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
                             return dataHeader->subSpecification;
                           },
                           // the branch names are simply built by adding the index
-                          [](std::string base, size_t i) { return base + "_" + std::to_string(i); } },
-                        RootTreeWriter::BranchDef<const char*>{ "input4", "binarybranch" });
+                          [](std::string base, size_t i) { return base + "_" + std::to_string(i); }},
+                        RootTreeWriter::BranchDef<const char*>{"input4", "binarybranch"});
 
   BOOST_CHECK(writer.getStoreSize() == 3);
 
@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   auto createPlainMessage = [&transport, &store](DataHeader&& dh, auto& data) {
     dh.payloadSize = sizeof(data);
     dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    DataProcessingHeader dph{ 0, 1 };
-    o2::header::Stack stack{ dh, dph };
+    DataProcessingHeader dph{0, 1};
+    o2::header::Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(sizeof(data));
     memcpy(header->GetData(), stack.data(), stack.size());
@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     TMessageSerializer().Serialize(*payload, &data, cl);
     dh.payloadSize = payload->GetSize();
     dh.payloadSerializationMethod = o2::header::gSerializationMethodROOT;
-    DataProcessingHeader dph{ 0, 1 };
-    o2::header::Stack stack{ dh, dph };
+    DataProcessingHeader dph{0, 1};
+    o2::header::Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     memcpy(header->GetData(), stack.data(), stack.size());
     store.emplace_back(std::move(header));
@@ -139,12 +139,12 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   };
 
   int a = 23;
-  Container b{ { 0 } };
-  Container c{ { 21 } };
-  createPlainMessage(o2::header::DataHeader{ "INT", "TST", 0 }, a);
-  createSerializedMessage(o2::header::DataHeader{ "CONTAINER", "TST", 0 }, b);
-  createSerializedMessage(o2::header::DataHeader{ "CONTAINER", "TST", 1 }, c);
-  createPlainMessage(o2::header::DataHeader{ "BINARY", "TST", 0 }, a);
+  Container b{{0}};
+  Container c{{21}};
+  createPlainMessage(o2::header::DataHeader{"INT", "TST", 0}, a);
+  createSerializedMessage(o2::header::DataHeader{"CONTAINER", "TST", 0}, b);
+  createSerializedMessage(o2::header::DataHeader{"CONTAINER", "TST", 1}, c);
+  createPlainMessage(o2::header::DataHeader{"BINARY", "TST", 0}, a);
 
   // Note: InputRecord works on references to the schema and the message vector
   // so we can not specify the schema definition directly in the definition of
@@ -153,26 +153,25 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   // temporary argument is still in memory
   // FIXME: check why the compiler does not detect this
   std::vector<InputRoute> schema = {
-    { InputSpec{ "input1", "TST", "INT" }, "input1", 0 },       //
-    { InputSpec{ "input2", "TST", "CONTAINER" }, "input2", 0 }, //
-    { InputSpec{ "input3", "TST", "CONTAINER" }, "input3", 1 }, //
-    { InputSpec{ "input4", "TST", "BINARY" }, "input4", 0 },    //
+    {InputSpec{"input1", "TST", "INT"}, "input1", 0},       //
+    {InputSpec{"input2", "TST", "CONTAINER"}, "input2", 0}, //
+    {InputSpec{"input3", "TST", "CONTAINER"}, "input3", 1}, //
+    {InputSpec{"input4", "TST", "BINARY"}, "input4", 0},    //
   };
 
   auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };
 
   InputRecord inputs{
     schema,
-    InputSpan{ getter, store.size() }
-  };
+    InputSpan{getter, store.size()}};
 
   writer(inputs);
   writer.close();
 
   checkTree(filename.c_str(), treename,
-            BranchContent<int>{ "intbranch", a },
-            BranchContent<Container>{ "containerbranch_0", b },
-            BranchContent<Container>{ "containerbranch_1", c });
+            BranchContent<int>{"intbranch", a},
+            BranchContent<Container>{"containerbranch_0", b},
+            BranchContent<Container>{"containerbranch_1", c});
 }
 
 template <typename T>
@@ -181,9 +180,9 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
 {
   // setup the spec helper and retrieve the spec by calling the operator
-  MakeRootTreeWriterSpec("writer-process",                                                              //
-                         BranchDefinition<int>{ InputSpec{ "input1", "TST", "INTDATA" }, "intbranch" }, //
-                         BranchDefinition<float>{ InputSpec{ "input2", "TST", "FLOATDATA" },            //
-                                                  "floatbranch", "floatbranchname" }                    //
+  MakeRootTreeWriterSpec("writer-process",                                                          //
+                         BranchDefinition<int>{InputSpec{"input1", "TST", "INTDATA"}, "intbranch"}, //
+                         BranchDefinition<float>{InputSpec{"input2", "TST", "FLOATDATA"},           //
+                                                 "floatbranch", "floatbranchname"}                  //
                          )();
 }

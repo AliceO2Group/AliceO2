@@ -24,10 +24,11 @@ namespace framework
 {
 
 /// A simple service to create ROOT files in the local folder
-class LocalRootFileService : public RootFileService {
-public:
-  std::shared_ptr<TFile> open(const char *fmt, ...) final;
-  std::string format(const char *fmt, ...) final;
+class LocalRootFileService : public RootFileService
+{
+ public:
+  std::shared_ptr<TFile> open(const char* fmt, ...) final;
+  std::string format(const char* fmt, ...) final;
 };
 
 } // namespace framework

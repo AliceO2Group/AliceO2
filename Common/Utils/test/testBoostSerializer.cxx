@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
 
   for (size_t i = 0; i < 17; i++) {
     float iFloat = (float)i;
-    inputV.emplace_back(TestCluster{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
+    inputV.emplace_back(TestCluster{(uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat});
   }
 
   auto msgStr = BoostSerialize(inputV).str();

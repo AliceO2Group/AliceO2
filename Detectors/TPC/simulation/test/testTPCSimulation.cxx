@@ -22,32 +22,34 @@
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
-namespace o2 {
-namespace tpc {
+namespace o2
+{
+namespace tpc
+{
 
-  /// \brief Trivial test of the initialization of a Point and its getters
-  /// Precision: 1E-12 %
-  BOOST_AUTO_TEST_CASE(Point_test)
-  {
-    Point testpoint(2.f, 3.f, 4.f, 5.f, 6, 7, 8);
-    BOOST_CHECK_CLOSE(testpoint.GetX(),2.,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetY(),3.,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetZ(),4.,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetTime(),5.,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetEnergyLoss(),6,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetTrackID(),7.,1E-12);
-    BOOST_CHECK_CLOSE(testpoint.GetDetectorID(),8.,1E-12);
-  }
+/// \brief Trivial test of the initialization of a Point and its getters
+/// Precision: 1E-12 %
+BOOST_AUTO_TEST_CASE(Point_test)
+{
+  Point testpoint(2.f, 3.f, 4.f, 5.f, 6, 7, 8);
+  BOOST_CHECK_CLOSE(testpoint.GetX(), 2., 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetY(), 3., 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetZ(), 4., 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetTime(), 5., 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetEnergyLoss(), 6, 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetTrackID(), 7., 1E-12);
+  BOOST_CHECK_CLOSE(testpoint.GetDetectorID(), 8., 1E-12);
+}
 
-  /// \brief Trivial test of the initialization of a DigitMCMetaData and its getters
-  /// Precision: 1E-12 %
-  BOOST_AUTO_TEST_CASE(DigitMCMetaData_test)
-  {
-    DigitMCMetaData testdigit(1.f, 2.f, 3.f, 4.f);
-    BOOST_CHECK_CLOSE(testdigit.getRawADC(), 1.f, 1E-12);
-    BOOST_CHECK_CLOSE(testdigit.getCommonMode(), 2.f,1E-12);
-    BOOST_CHECK_CLOSE(testdigit.getPedestal(), 3.f,1E-12);
-    BOOST_CHECK_CLOSE(testdigit.getNoise(), 4.f,1E-12);
-  }
+/// \brief Trivial test of the initialization of a DigitMCMetaData and its getters
+/// Precision: 1E-12 %
+BOOST_AUTO_TEST_CASE(DigitMCMetaData_test)
+{
+  DigitMCMetaData testdigit(1.f, 2.f, 3.f, 4.f);
+  BOOST_CHECK_CLOSE(testdigit.getRawADC(), 1.f, 1E-12);
+  BOOST_CHECK_CLOSE(testdigit.getCommonMode(), 2.f, 1E-12);
+  BOOST_CHECK_CLOSE(testdigit.getPedestal(), 3.f, 1E-12);
+  BOOST_CHECK_CLOSE(testdigit.getNoise(), 4.f, 1E-12);
 }
-}
+} // namespace tpc
+} // namespace o2

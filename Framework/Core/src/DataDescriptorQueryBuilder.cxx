@@ -115,16 +115,16 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   auto buildMatchingTree = [&nodes](std::string const& binding) -> InputSpec {
     auto lastMatcher =
       std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
-                                              StartTimeValueMatcher(ContextRef{ 0 }));
+                                              StartTimeValueMatcher(ContextRef{0}));
     for (size_t ni = 0, ne = nodes.size(); ni < ne; ++ni) {
       auto& node = nodes[nodes.size() - 1 - ni];
       auto tmp = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And,
-                                                            std::move(node),
-                                                            std::move(lastMatcher));
+                                                         std::move(node),
+                                                         std::move(lastMatcher));
       assert(lastMatcher.get() == nullptr);
       lastMatcher = std::move(tmp);
     }
-    return InputSpec{ binding, std::move(*lastMatcher.release()) };
+    return InputSpec{binding, std::move(*lastMatcher.release())};
   };
 
   while (states.empty() == false) {
@@ -178,7 +178,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_END_ORIGIN: {
         assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_DESCRIPTION);
-        nodes.push_back(OriginValueMatcher{ *currentOrigin });
+        nodes.push_back(OriginValueMatcher{*currentOrigin});
       } break;
       case IN_BEGIN_DESCRIPTION: {
         pushState(IN_END_DESCRIPTION);
@@ -186,7 +186,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_END_DESCRIPTION: {
         assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC);
-        nodes.push_back(DescriptionValueMatcher{ *currentDescription });
+        nodes.push_back(DescriptionValueMatcher{*currentDescription});
       } break;
       case IN_BEGIN_SUBSPEC: {
         pushState(IN_END_SUBSPEC);
@@ -194,7 +194,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_END_SUBSPEC: {
         assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO);
-        nodes.push_back(SubSpecificationTypeValueMatcher{ *currentSubSpec });
+        nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
       } break;
       case IN_BEGIN_TIMEMODULO: {
         pushState(IN_END_TIMEMODULO);
@@ -251,11 +251,11 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string 
     std::unique_ptr<DataDescriptorMatcher> next;
     auto newNode = std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{ m[1] },
+      OriginValueMatcher{m[1]},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{ m[2] },
-        SubSpecificationTypeValueMatcher{ m[3] }));
+        DescriptionValueMatcher{m[2]},
+        SubSpecificationTypeValueMatcher{m[3]}));
     if (result.get() == nullptr) {
       result = std::move(newNode);
     } else {
@@ -266,7 +266,7 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string 
     }
   }
 
-  return std::move(DataDescriptorQuery{ {}, std::move(result) });
+  return std::move(DataDescriptorQuery{{}, std::move(result)});
 }
 
 } // namespace framework

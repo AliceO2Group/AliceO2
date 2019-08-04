@@ -50,7 +50,7 @@ struct PrimaryChunk {
   std::vector<TParticle> mParticles; // the particles for this chunk
   ClassDefNV(PrimaryChunk, 1);
 };
-}
-}
+} // namespace data
+} // namespace o2
 
 #endif

@@ -76,15 +76,14 @@ DataProcessorSpec getTrackWriterSpec()
   return DataProcessorSpec{
     "mft-track-writer",
     Inputs{
-      InputSpec{ "tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe },
-      InputSpec{ "tracksltf", "MFT", "TRACKSLTF", 0, Lifetime::Timeframe },
-      InputSpec{ "tracksca", "MFT", "TRACKSCA", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe } },
+      InputSpec{"tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe},
+      InputSpec{"tracksltf", "MFT", "TRACKSLTF", 0, Lifetime::Timeframe},
+      InputSpec{"tracksca", "MFT", "TRACKSCA", 0, Lifetime::Timeframe},
+      InputSpec{"labels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}},
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<TrackWriter>() },
+    AlgorithmSpec{adaptFromTask<TrackWriter>()},
     Options{
-      { "mft-track-outfile", VariantType::String, "mfttracks.root", { "Name of the output file" } } }
-  };
+      {"mft-track-outfile", VariantType::String, "mfttracks.root", {"Name of the output file"}}}};
 }
 
 } // namespace mft

@@ -40,37 +40,28 @@ struct ClusterData {
   uint8_t e;
 
   ClusterData()
-    : clusterid(0)
-    , x(0)
-    , y(0)
-    , z(0)
-    , e(0)
-  {}
+    : clusterid(0), x(0), y(0), z(0), e(0)
+  {
+  }
 
   ClusterData(uint32_t _id, uint16_t _x, uint16_t _y, uint16_t _z, uint8_t _e)
-    : clusterid(_id)
-    , x(_x)
-    , y(_y)
-    , z(_z)
-    , e(_e)
-  {}
+    : clusterid(_id), x(_x), y(_y), z(_z), e(_e)
+  {
+  }
 
-  bool operator==(const ClusterData& rhs) {
-    return clusterid == rhs.clusterid
-      && x == rhs.x
-      && y == rhs.y
-      && z == rhs.z
-      && e == rhs.e;
+  bool operator==(const ClusterData& rhs)
+  {
+    return clusterid == rhs.clusterid && x == rhs.x && y == rhs.y && z == rhs.z && e == rhs.e;
   }
 };
 
-template<typename ListT,
-         typename PageHeaderT,
-         typename GroupT = void,
-         bool GroupHeaderPerPage = false>
+template <typename ListT,
+          typename PageHeaderT,
+          typename GroupT = void,
+          bool GroupHeaderPerPage = false>
 std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
-                                                       PageHeaderT pageheader,
-                                                       const ListT& dataset)
+                                                         PageHeaderT pageheader,
+                                                         const ListT& dataset)
 {
   static_assert(std::is_void<GroupT>::value || std::is_integral<GroupT>::value,
                 "Invalid group type");
@@ -80,15 +71,16 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
   maxElementsPerPage /= sizeof(typename ListT::value_type);
 
   if (std::is_void<GroupT>::value || !GroupHeaderPerPage) {
-  unsigned nPages = 0;
-  do {
-    totalSize += sizeof(PageHeaderT);
-    ++nPages;
-  } while (nPages * pagesize < totalSize);
+    unsigned nPages = 0;
+    do {
+      totalSize += sizeof(PageHeaderT);
+      ++nPages;
+    } while (nPages * pagesize < totalSize);
   } else {
-    auto nRequiredPages = dataset.size()  / maxElementsPerPage;
-    if (dataset.size() % maxElementsPerPage > 0) ++nRequiredPages;
-    totalSize = (nRequiredPages > 0? nRequiredPages : 1) * pagesize;
+    auto nRequiredPages = dataset.size() / maxElementsPerPage;
+    if (dataset.size() % maxElementsPerPage > 0)
+      ++nRequiredPages;
+    totalSize = (nRequiredPages > 0 ? nRequiredPages : 1) * pagesize;
   }
 
   auto buffer = std::make_unique<uint8_t[]>(totalSize);
@@ -155,7 +147,7 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
   return result;
 }
 
-template<typename ListT>
+template <typename ListT>
 void FillData(ListT& dataset, unsigned entries)
 {
   for (unsigned i = 0; i < entries; i++) {
@@ -163,16 +155,16 @@ void FillData(ListT& dataset, unsigned entries)
   }
 }
 
-template<typename DataSetT,
-         typename PageHeaderT,
-         typename GroupHeaderT,
-         size_t pagesize,
-         bool GroupHeaderPerPage = false>
-void runParserTest(const DataSetT &dataset)
+template <typename DataSetT,
+          typename PageHeaderT,
+          typename GroupHeaderT,
+          size_t pagesize,
+          bool GroupHeaderPerPage = false>
+void runParserTest(const DataSetT& dataset)
 {
   std::cout << std::endl
             << "Testing PageParser in grouped mode and "
-            << (GroupHeaderPerPage?"multiple":"single")
+            << (GroupHeaderPerPage ? "multiple" : "single")
             << " group header(s)" << std::endl
             << " pagesize " << pagesize << std::endl;
   auto buffer = MakeBuffer<DataSetT, PageHeaderT, GroupHeaderT, GroupHeaderPerPage>(pagesize, PageHeaderT(0), dataset);
@@ -184,7 +176,7 @@ void runParserTest(const DataSetT &dataset)
   unsigned dataidx = 0;
   for (auto i : parser) {
     o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
-    BOOST_REQUIRE( i == dataset[dataidx++]);
+    BOOST_REQUIRE(i == dataset[dataidx++]);
   }
 }
 
@@ -202,20 +194,20 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
   unsigned dataidx = 0;
   for (auto i : parser) {
     o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
-    BOOST_REQUIRE( i == dataset[dataidx++]);
+    BOOST_REQUIRE(i == dataset[dataidx++]);
   }
 
   std::vector<RawParser::value_type> linearizedData;
   linearizedData.insert(linearizedData.begin(), parser.begin(), parser.end());
   dataidx = 0;
   for (auto i : linearizedData) {
-    BOOST_REQUIRE( i == dataset[dataidx++]);
+    BOOST_REQUIRE(i == dataset[dataidx++]);
   }
 
   dataidx = 0;
   RawParser writer(buffer.first.get(), buffer.second);
   std::vector<std::pair<unsigned, unsigned>> xvalues;
-  for (auto &i : writer) {
+  for (auto& i : writer) {
     i.x = (dataidx * 3) % 7;
     xvalues.emplace_back(i.x, dataidx);
     ++dataidx;
@@ -225,7 +217,7 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
   dataidx = 0;
   for (auto i : parser) {
     o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
-    BOOST_REQUIRE( i.x == xvalues[dataidx++].first);
+    BOOST_REQUIRE(i.x == xvalues[dataidx++].first);
   }
 }
 
@@ -237,7 +229,7 @@ BOOST_AUTO_TEST_CASE(test_pageparser_group)
 
   runParserTest<DataSetT, PageHeader, int, 128, false>(dataset);
   runParserTest<DataSetT, PageHeader, int, 100, false>(dataset);
-  runParserTest<DataSetT, PageHeader, int,  89, false>(dataset);
+  runParserTest<DataSetT, PageHeader, int, 89, false>(dataset);
 }
 
 BOOST_AUTO_TEST_CASE(test_pageparser_group_perpage)
@@ -248,5 +240,5 @@ BOOST_AUTO_TEST_CASE(test_pageparser_group_perpage)
 
   runParserTest<DataSetT, PageHeader, int, 128, true>(dataset);
   runParserTest<DataSetT, PageHeader, int, 100, true>(dataset);
-  runParserTest<DataSetT, PageHeader, int,  89, true>(dataset);
+  runParserTest<DataSetT, PageHeader, int, 89, true>(dataset);
 }

@@ -17,14 +17,15 @@
 #include <iostream>
 #include <memory>
 
-BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
+BOOST_AUTO_TEST_CASE(TestServiceRegistry)
+{
   using namespace o2::framework;
   struct InterfaceA {
     virtual bool method() = 0;
   };
 
   struct ConcreteA : InterfaceA {
-    bool method() final {return true; }
+    bool method() final { return true; }
   };
 
   struct InterfaceB {
@@ -32,7 +33,7 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
   };
 
   struct ConcreteB : InterfaceB {
-    bool method() final {return false; }
+    bool method() final { return false; }
   };
 
   struct InterfaceC {

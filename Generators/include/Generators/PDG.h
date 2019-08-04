@@ -33,6 +33,6 @@ class PDG
 
   ClassDefNV(PDG, 1); // PDG database related information
 };
-}
+} // namespace o2
 
 #endif

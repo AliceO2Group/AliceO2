@@ -50,6 +50,6 @@ struct PreDigit {
 
   ClassDefNV(PreDigit, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 #endif /* ALICEO2_ITSMFT_PREDIGIT_H */

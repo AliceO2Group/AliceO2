@@ -31,7 +31,7 @@ Contour<double> getEnvelop(const Segmentation& seg)
 {
   std::vector<Polygon<double>> polygons;
 
-  for (auto& contour : { getEnvelop(seg.nonBending()), getEnvelop(seg.bending()) }) {
+  for (auto& contour : {getEnvelop(seg.nonBending()), getEnvelop(seg.bending())}) {
     for (auto& p : contour.getPolygons()) {
       polygons.push_back(p);
     }

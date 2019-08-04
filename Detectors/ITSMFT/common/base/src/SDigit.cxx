@@ -19,9 +19,9 @@
 using std::istream;
 using std::swap;
 
-ClassImp(o2::itsmft::SDigit)
+ClassImp(o2::itsmft::SDigit);
 
-  using namespace o2::itsmft;
+using namespace o2::itsmft;
 
 //______________________________________________________________________
 SDigit::SDigit() : mChip(0), mNumOfTracks(0), mROCycle(0), mTotalSignal(0.0), mNoise(0.0), mSignalAfterElect(0.0)

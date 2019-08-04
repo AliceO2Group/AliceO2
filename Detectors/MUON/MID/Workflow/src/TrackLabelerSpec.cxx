@@ -51,9 +51,9 @@ class TrackLabelerDeviceDPL
     std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>(mInputLabelsBinding.c_str());
 
     mTrackLabeler.process(clusters, tracks, *labels);
-    pc.outputs().snapshot(of::Output{ "MID", "TRACKSLABELS", 0, of::Lifetime::Timeframe }, mTrackLabeler.getTracksLabels());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
     LOG(INFO) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks";
-    pc.outputs().snapshot(of::Output{ "MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe }, mTrackLabeler.getTrackClustersLabels());
+    pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
     LOG(INFO) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters";
   }
 
@@ -71,18 +71,17 @@ framework::DataProcessorSpec getTrackLabelerSpec()
   std::string inputLabelsBinding = "mid_clusterlabels";
 
   std::vector<of::InputSpec> inputSpecs{
-    of::InputSpec{ inputClustersBinding, "MID", "TRCLUS_MC" },
-    of::InputSpec{ inputTracksBinding, "MID", "TRACKS_MC" },
-    of::InputSpec{ inputLabelsBinding, "MID", "CLUSTERSLABELS" },
+    of::InputSpec{inputClustersBinding, "MID", "TRCLUS_MC"},
+    of::InputSpec{inputTracksBinding, "MID", "TRACKS_MC"},
+    of::InputSpec{inputLabelsBinding, "MID", "CLUSTERSLABELS"},
   };
-  std::vector<of::OutputSpec> outputSpecs{ of::OutputSpec{ "MID", "TRACKSLABELS" }, of::OutputSpec{ "MID", "TRCLUSLABELS" } };
+  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "TRACKSLABELS"}, of::OutputSpec{"MID", "TRCLUSLABELS"}};
 
   return of::DataProcessorSpec{
     "TrackLabeler",
-    { inputSpecs },
-    { outputSpecs },
-    of::adaptFromTask<o2::mid::TrackLabelerDeviceDPL>(inputClustersBinding.c_str(), inputTracksBinding.c_str(), inputLabelsBinding.c_str())
-  };
+    {inputSpecs},
+    {outputSpecs},
+    of::adaptFromTask<o2::mid::TrackLabelerDeviceDPL>(inputClustersBinding.c_str(), inputTracksBinding.c_str(), inputLabelsBinding.c_str())};
 }
 } // namespace mid
 } // namespace o2

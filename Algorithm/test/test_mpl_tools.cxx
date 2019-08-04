@@ -132,7 +132,8 @@ struct checktype {
 BOOST_AUTO_TEST_CASE(test_mpl_fold)
 {
   using types = bmpl::vector<long, float, short, double, float, long, long double>;
-  std::cout << std::endl << "checking types:" << std::endl;
+  std::cout << std::endl
+            << "checking types:" << std::endl;
   bmpl::for_each<types>(checktype());
 
   // bmpl::fold recursivly applies the elements of the list to the previous result
@@ -146,12 +147,14 @@ BOOST_AUTO_TEST_CASE(test_mpl_fold)
   static_assert(number_of_floats::value == 4, "inconsistent number of float values in the type definition");
 
   // wrapping all elements into the Model class
-  std::cout << std::endl << "checking first fold:" << std::endl;
+  std::cout << std::endl
+            << "checking first fold:" << std::endl;
   using models = o2::mpl::do_typewrap<types, bmpl::lambda<Model<_>>::type>::type;
   bmpl::for_each<models>(checktype());
 
   // wrapping all elements into the Codec class
-  std::cout << std::endl << "checking second fold:" << std::endl;
+  std::cout << std::endl
+            << "checking second fold:" << std::endl;
   using codecs = o2::mpl::do_typewrap<models, bmpl::lambda<Codec<_>>::type>::type;
   bmpl::for_each<codecs>(checktype());
 }

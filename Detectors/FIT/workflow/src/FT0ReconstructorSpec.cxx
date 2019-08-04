@@ -53,7 +53,7 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
   // do we ignore MC in this task?
 
   LOG(INFO) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
-  pc.outputs().snapshot(Output{ mOrigin, "RECPOINTS", 0, Lifetime::Timeframe }, mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
 
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(false);
@@ -74,9 +74,8 @@ DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{ adaptFromTask<FT0ReconstructorDPL>(useMC) },
-    Options{}
-  };
+    AlgorithmSpec{adaptFromTask<FT0ReconstructorDPL>(useMC)},
+    Options{}};
 }
 
 } // namespace ft0

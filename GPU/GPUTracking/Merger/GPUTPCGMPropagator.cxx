@@ -37,7 +37,7 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = { X * cs - Y * sn, X * sn + Y * cs, Z };
+  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   bb[0] *= kCLight;
@@ -95,7 +95,7 @@ GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) c
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = { X * cs - Y * sn, X * sn + Y * cs, Z };
+  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   return bb[2] * kCLight;

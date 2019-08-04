@@ -21,7 +21,7 @@ static void BM_TableBuilderOverhead(benchmark::State& state)
 
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.persist<float, float, float>({ "x", "y", "z" });
+    auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
     auto table = builder.finalize();
   }
 }
@@ -33,7 +33,7 @@ static void BM_TableBuilderScalar(benchmark::State& state)
   using namespace o2::framework;
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.persist<float>({ "x" });
+    auto rowWriter = builder.persist<float>({"x"});
     for (size_t i = 0; i < state.range(0); ++i) {
       rowWriter(0, 0.f);
     }
@@ -49,7 +49,7 @@ static void BM_TableBuilderScalarPresized(benchmark::State& state)
   using namespace o2::framework;
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.preallocatedPersist<float>({ "x" }, state.range(0));
+    auto rowWriter = builder.preallocatedPersist<float>({"x"}, state.range(0));
     for (size_t i = 0; i < state.range(0); ++i) {
       rowWriter(0, 0.f);
     }
@@ -67,7 +67,7 @@ static void BM_TableBuilderScalarBulk(benchmark::State& state)
   std::vector<float> buffer(chunkSize, 0.); // We assume data is chunked in blocks 256th of the total size
   for (auto _ : state) {
     TableBuilder builder;
-    auto bulkWriter = builder.bulkPersist<float>({ "x" }, state.range(0));
+    auto bulkWriter = builder.bulkPersist<float>({"x"}, state.range(0));
     for (size_t i = 0; i < state.range(0) / chunkSize; ++i) {
       bulkWriter(0, chunkSize, buffer.data());
     }
@@ -82,7 +82,7 @@ static void BM_TableBuilderSimple(benchmark::State& state)
   using namespace o2::framework;
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.persist<float, float, float>({ "x", "y", "z" });
+    auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
     for (size_t i = 0; i < state.range(0); ++i) {
       rowWriter(0, 0.f, 0.f, 0.f);
     }
@@ -97,7 +97,7 @@ static void BM_TableBuilderSimple2(benchmark::State& state)
   using namespace o2::framework;
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.persist<float, float, float>({ "x", "y", "z" });
+    auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
     for (size_t i = 0; i < state.range(0); ++i) {
       rowWriter(0, 0.f, 0.f, 0.f);
     }
@@ -136,7 +136,7 @@ static void BM_TableBuilderComplex(benchmark::State& state)
   using namespace o2::framework;
   for (auto _ : state) {
     TableBuilder builder;
-    auto rowWriter = builder.persist<int, float, std::string, bool>({ "x", "y", "s", "b" });
+    auto rowWriter = builder.persist<int, float, std::string, bool>({"x", "y", "s", "b"});
     for (size_t i = 0; i < state.range(0); ++i) {
       rowWriter(0, 0, 0., "foo", true);
     }

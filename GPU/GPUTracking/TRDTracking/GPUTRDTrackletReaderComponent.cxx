@@ -32,7 +32,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-ClassImp(GPUTRDTrackletReaderComponent)
+ClassImp(GPUTRDTrackletReaderComponent);
 
 #define LogError(...)               \
   {                                 \

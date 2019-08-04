@@ -30,7 +30,7 @@
 namespace bpo = boost::program_options;
 using namespace o2::tpc;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 
   // Arguments parsing
@@ -65,10 +65,11 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
   }
 
-  if (infile[0] == "NOFILE") return EXIT_SUCCESS;
+  if (infile[0] == "NOFILE")
+    return EXIT_SUCCESS;
 
   // Initialize logger
-  FairLogger *logger = FairLogger::GetLogger();
+  FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel(verbLevel.c_str());
   logger->SetLogScreenLevel(logLevel.c_str());
   logger->SetColoredLog(false);
@@ -91,8 +92,8 @@ int main(int argc, char *argv[])
 
   PadPos padPos;
   int j = 0;
-  while((j < readers[0].getNumberOfEvents()) & ((readEvents>=0)? j<=readEvents : true)) {
-    for (auto &rr : readers) {
+  while ((j < readers[0].getNumberOfEvents()) & ((readEvents >= 0) ? j <= readEvents : true)) {
+    for (auto& rr : readers) {
       rr.loadEvent(j);
     }
     ++j;

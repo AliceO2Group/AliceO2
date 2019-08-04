@@ -19,7 +19,6 @@
 // -----                  M. Al-Turany   June 2014                     -----
 // -------------------------------------------------------------------------
 
-
 // -------------------------------------------------------------------------
 // -----                Pythia6Generator header file                 -----
 // -----          Created 08/08/08  by S. Spataro                      -----
@@ -67,7 +66,6 @@
  Derived from FairGenerator.
 **/
 
-
 #ifndef PND_PYTHIAGENERATOR_H
 #define PND_PYTHIAGENERATOR_H
 
@@ -76,60 +74,53 @@
 #define _DLFCN_H
 #endif
 
-#include <cstdio>          // for FILE
+#include <cstdio>           // for FILE
 #include "FairGenerator.h"  // for FairGenerator
 #include "Rtypes.h"         // for Int_t, Pythia6Generator::Class, Bool_t, etc
-class FairPrimaryGenerator;  // lines 68-68
+class FairPrimaryGenerator; // lines 68-68
 
 namespace o2
 {
 namespace eventgen
 {
 
-class Pythia6Generator : public FairGenerator  
+class Pythia6Generator : public FairGenerator
 {
 
- public: 
-
+ public:
   /** Default constructor without arguments should not be used. **/
   Pythia6Generator();
-
 
   /** Standard constructor. 
    ** @param fileName The input file name
    **/
   Pythia6Generator(const char* fileName);
 
-
   /** Destructor. **/
   ~Pythia6Generator() override;
 
-	
   /** Reads on event from the input file and pushes the tracks onto
    ** the stack. Abstract method in base class.
    ** @param primGen  pointer to the CbmrimaryGenerator
    **/
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
 
-  void SetVerbose (Int_t verb) { mVerbose = verb; };
+  void SetVerbose(Int_t verb) { mVerbose = verb; };
 
  private:
-
-  const Char_t * mFileName;           //! Input file Name
-  FILE *mInputFile;                   //! File
-  Int_t mVerbose;                     //! Verbose Level
+  const Char_t* mFileName; //! Input file Name
+  FILE* mInputFile;        //! File
+  Int_t mVerbose;          //! Verbose Level
 
   /** Private method CloseInput. Just for convenience. Closes the 
    ** input file properly. Called from destructor and from ReadEvent. **/
   void CloseInput();
-	
-	
+
   /** PDG data base */
-  
-//  TDatabasePDG *mPDG; //!
 
-  ClassDefOverride(Pythia6Generator,1);
+  //  TDatabasePDG *mPDG; //!
 
+  ClassDefOverride(Pythia6Generator, 1);
 };
 
 } // namespace eventgen

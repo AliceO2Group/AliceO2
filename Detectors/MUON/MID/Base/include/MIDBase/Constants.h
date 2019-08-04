@@ -112,11 +112,9 @@ class Constants
   static constexpr double sBeamAngle = -0.794; ///< Angle between beam position and horizontal
 
   static constexpr std::array<const double, 4> sScaleFactors{
-    { 1., 1.01060, 1.06236, 1.07296 }
-  }; ///< Array of scale factors for projective geometry
+    {1., 1.01060, 1.06236, 1.07296}}; ///< Array of scale factors for projective geometry
   static constexpr std::array<const double, 4> sDefaultChamberZ{
-    { -1603.5, -1620.5, -1703.5, -1720.5 }
-  }; ///< Array of default z position of the chamber
+    {-1603.5, -1620.5, -1703.5, -1720.5}}; ///< Array of default z position of the chamber
 };
 } // namespace mid
 } // namespace o2

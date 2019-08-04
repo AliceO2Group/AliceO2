@@ -48,11 +48,11 @@ class O2MessageMonitor : public o2::base::O2Device
   void InitTask() override;
 
  private:
-  std::string mPayload{ "I am the info payload" };
-  std::string mName{ R"(My name is "gDataDescriptionInfo")" };
-  long long mDelay{ 1000 };
-  long long mIterations{ 10 };
-  long long mLimitOutputCharacters{ 1024 };
+  std::string mPayload{"I am the info payload"};
+  std::string mName{R"(My name is "gDataDescriptionInfo")"};
+  long long mDelay{1000};
+  long long mIterations{10};
+  long long mLimitOutputCharacters{1024};
 };
 
 #endif /* O2MESSAGEMONITOR_H_ */

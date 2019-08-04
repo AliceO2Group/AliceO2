@@ -45,9 +45,9 @@ class ContainerFactory : public FairContFact
   /// of this container, the name is concatinated with the context.
   FairParSet* createContainer(FairContainer*) override;
 
-  ClassDefOverride(ContainerFactory, 0) // Factory for all AliceO2 ITS parameter containers
+  ClassDefOverride(ContainerFactory, 0); // Factory for all AliceO2 ITS parameter containers
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

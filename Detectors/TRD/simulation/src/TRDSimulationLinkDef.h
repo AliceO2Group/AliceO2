@@ -14,10 +14,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::trd::Detector+;
-#pragma link C++ class o2::base::DetImpl<o2::trd::Detector>+;
-#pragma link C++ class o2::trd::HitType+;
-#pragma link C++ class o2::trd::TRsim+;
-#pragma link C++ class o2::trd::Digitizer+;
+#pragma link C++ class o2::trd::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::trd::Detector> + ;
+#pragma link C++ class o2::trd::HitType + ;
+#pragma link C++ class o2::trd::TRsim + ;
+#pragma link C++ class o2::trd::Digitizer + ;
 
 #endif

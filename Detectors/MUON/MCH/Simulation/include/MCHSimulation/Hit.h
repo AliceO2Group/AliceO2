@@ -25,7 +25,7 @@ class Hit : public ::o2::BasicXYZEHit<float>
  public:
   Hit(int trackId = 0, short detElemId = 0, Point3D<float> entrancePoint = {}, const Point3D<float> exitPoint = {},
       float eloss = 0.0, float length = 0.0, float tof = 0.0)
-    : ::o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), tof, eloss, trackId, detElemId), mLength{ length }, mExitPoint(exitPoint)
+    : ::o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), tof, eloss, trackId, detElemId), mLength{length}, mExitPoint(exitPoint)
   {
   }
 

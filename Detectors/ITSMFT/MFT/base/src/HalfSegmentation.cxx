@@ -111,8 +111,8 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
   // this function display all accessible information about xml node and its children
   Int_t idisk;
   Int_t nladder;
-  Double_t pos[3] = { 0., 0., 0. };
-  Double_t ang[3] = { 0., 0., 0. };
+  Double_t pos[3] = {0., 0., 0.};
+  Double_t ang[3] = {0., 0., 0.};
 
   Geometry* mftGeom = Geometry::instance();
 
@@ -180,8 +180,8 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
   // Set Position and Orientation of the Half-MFT
   Int_t isTop;
   Int_t ndisk;
-  Double_t pos[3] = { 0., 0., 0. };
-  Double_t ang[3] = { 0., 0., 0. };
+  Double_t pos[3] = {0., 0., 0.};
+  Double_t ang[3] = {0., 0., 0.};
 
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("half")) {

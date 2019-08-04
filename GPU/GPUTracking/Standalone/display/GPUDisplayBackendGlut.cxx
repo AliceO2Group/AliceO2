@@ -203,7 +203,7 @@ int GPUDisplayBackendGlut::OpenGLMain()
 {
   me = this;
   int nopts = 2;
-  char* opts[] = { "progname", "-direct" };
+  char* opts[] = {"progname", "-direct"};
   glutInit(&nopts, opts);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
   glutInitWindowSize(INIT_WIDTH, INIT_HEIGHT);

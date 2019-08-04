@@ -96,6 +96,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void addAlignableVolumes() const override;
 
   void setTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
+
  protected:
   virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
@@ -134,8 +135,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Int_t mEventNr; // event count
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
-  Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
-  Int_t mLastChannelID = -1;///< Last channel seen by the hit
+  Bool_t mTOFHoles;          // flag to allow for holes in front of the PHOS
+  Int_t mLastChannelID = -1; ///< Last channel seen by the hit
 
   /// container for data points
   std::vector<HitType>* mHits; //!
@@ -144,8 +145,8 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-}
-}
+} // namespace tof
+} // namespace o2
 
 #ifdef USESHM
 namespace o2

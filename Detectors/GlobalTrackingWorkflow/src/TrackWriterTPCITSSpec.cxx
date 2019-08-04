@@ -77,10 +77,9 @@ DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)
     "itstpc-track-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<TrackWriterTPCITS>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackWriterTPCITS>(useMC)},
     Options{
-      { "tpcits-tracks-outfile", VariantType::String, "o2match_itstpc.root", { "Name of the output file" } } }
-  };
+      {"tpcits-tracks-outfile", VariantType::String, "o2match_itstpc.root", {"Name of the output file"}}}};
 }
 
 } // namespace globaltracking

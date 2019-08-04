@@ -91,7 +91,7 @@ class TRDCalPadStatus
  private:
   std::string mName;
   std::string mTitle;
-  ClassDefNV(TRDCalPadStatus, 1) //  TRD calibration class for the single pad status
+  ClassDefNV(TRDCalPadStatus, 1); //  TRD calibration class for the single pad status
 };
 } //namespace trd
 } //namespace o2

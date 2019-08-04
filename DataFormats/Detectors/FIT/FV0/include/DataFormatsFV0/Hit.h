@@ -81,7 +81,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   float mEnergyStart;             ///< total energy at entrance
   int mParticlePdg;               ///< PDG code of the particle associated with this track
 
-  ClassDefNV(Hit, 1)
+  ClassDefNV(Hit, 1);
 };
 
 Hit::Hit(int trackID,

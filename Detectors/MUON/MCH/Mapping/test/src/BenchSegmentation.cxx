@@ -19,7 +19,7 @@
 static void segmentationList(benchmark::internal::Benchmark* b)
 {
   o2::mch::mapping::forOneDetectionElementOfEachSegmentationType([&b](int detElemId) {
-    b->Args({ detElemId });
+    b->Args({detElemId});
   });
 }
 
@@ -33,7 +33,7 @@ BENCHMARK_DEFINE_F(BenchSegO2, ctor)
   int detElemId = state.range(0);
 
   for (auto _ : state) {
-    o2::mch::mapping::Segmentation seg{ detElemId };
+    o2::mch::mapping::Segmentation seg{detElemId};
   }
 }
 
@@ -53,7 +53,7 @@ static void benchSegmentationCtorAll(benchmark::State& state)
   std::vector<int> deids = getDetElemIds();
   for (auto _ : state) {
     for (auto detElemId : deids) {
-      o2::mch::mapping::Segmentation seg{ detElemId };
+      o2::mch::mapping::Segmentation seg{detElemId};
     }
   }
 }

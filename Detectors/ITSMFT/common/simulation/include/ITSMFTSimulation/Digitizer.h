@@ -106,12 +106,12 @@ class Digitizer : public TObject
 
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams;  ///< digitization parameters
-  double mEventTime = 0;           ///< global event time
-  bool mContinuous = false;        ///< flag for continuous simulation
-  UInt_t mROFrameMin = 0;          ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;          ///< highest RO frame of current digits
-  UInt_t mNewROFrame = 0;          ///< ROFrame corresponding to provided time
+  o2::itsmft::DigiParams mParams; ///< digitization parameters
+  double mEventTime = 0;          ///< global event time
+  bool mContinuous = false;       ///< flag for continuous simulation
+  UInt_t mROFrameMin = 0;         ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;         ///< highest RO frame of current digits
+  UInt_t mNewROFrame = 0;         ///< ROFrame corresponding to provided time
 
   UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
@@ -129,7 +129,7 @@ class Digitizer : public TObject
 
   ClassDefOverride(Digitizer, 2);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif /* ALICEO2_ITSMFT_DIGITIZER_H */

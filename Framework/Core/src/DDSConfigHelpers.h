@@ -27,9 +27,9 @@ namespace framework
 ///          which we want to dump.
 /// @a executions is the transient parameters for the afore mentioned
 ///          specifications
-void dumpDeviceSpec2DDS(std::ostream &out,
-                        std::vector<DeviceSpec> const &specs,
-                        std::vector<DeviceExecution> const &executions);
+void dumpDeviceSpec2DDS(std::ostream& out,
+                        std::vector<DeviceSpec> const& specs,
+                        std::vector<DeviceExecution> const& executions);
 
 } // namespace framework
 } // namespace o2

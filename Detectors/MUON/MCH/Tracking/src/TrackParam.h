@@ -145,7 +145,7 @@ class TrackParam
   /// Y       = Bending coordinate       (cm)
   /// SlopeY  = Bending slope            (cm ** -1)
   /// InvP_yz = Inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)  </pre>
-  TMatrixD mParameters{ 5, 1 }; ///< \brief Track parameters
+  TMatrixD mParameters{5, 1}; ///< \brief Track parameters
 
   /// Covariance matrix of track parameters, ordered as follow:      <pre>
   ///    <X,X>      <X,SlopeX>        <X,Y>      <X,SlopeY>       <X,InvP_yz>

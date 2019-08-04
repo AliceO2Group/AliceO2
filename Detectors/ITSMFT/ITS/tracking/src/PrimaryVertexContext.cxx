@@ -24,12 +24,12 @@ namespace its
 void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
-  mPrimaryVertex = { pVtx[0], pVtx[1], pVtx[2] };
+  mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
-  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
 
-    const auto& currentLayer{ cl[iLayer] };
-    const int clustersNum{ static_cast<int>(currentLayer.size()) };
+    const auto& currentLayer{cl[iLayer]};
+    const int clustersNum{static_cast<int>(currentLayer.size())};
 
     if (iteration == 0) {
       mClusters[iLayer].clear();
@@ -37,9 +37,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
 
-        const Cluster& currentCluster{ currentLayer.at(iCluster) };
+        const Cluster& currentCluster{currentLayer.at(iCluster)};
         mClusters[iLayer].emplace_back(iLayer, mPrimaryVertex, currentCluster);
       }
 
@@ -78,22 +78,22 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
 
     const int clustersNum = static_cast<int>(mClusters[iLayer].size());
 
     if (iLayer > 0 && iteration == 0) {
 
-      int previousBinIndex{ 0 };
+      int previousBinIndex{0};
       mIndexTables[iLayer - 1][0] = 0;
 
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
 
-        const int currentBinIndex{ mClusters[iLayer][iCluster].indexTableBinIndex };
+        const int currentBinIndex{mClusters[iLayer][iCluster].indexTableBinIndex};
 
         if (currentBinIndex > previousBinIndex) {
 
-          for (int iBin{ previousBinIndex + 1 }; iBin <= currentBinIndex; ++iBin) {
+          for (int iBin{previousBinIndex + 1}; iBin <= currentBinIndex; ++iBin) {
 
             mIndexTables[iLayer - 1][iBin] = iCluster;
           }
@@ -102,7 +102,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         }
       }
 
-      for (int iBin{ previousBinIndex + 1 }; iBin < (int)mIndexTables[iLayer - 1].size(); iBin++) {
+      for (int iBin{previousBinIndex + 1}; iBin < (int)mIndexTables[iLayer - 1].size(); iBin++) {
         mIndexTables[iLayer - 1][iBin] = clustersNum;
       }
     }

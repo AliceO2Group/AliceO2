@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mctruthcontainer;
   std::vector<o2::mch::Digit> digits;
-  o2::mch::mapping::Segmentation seg1{ detElemId1 };
-  o2::mch::mapping::Segmentation seg2{ detElemId2 };
+  o2::mch::mapping::Segmentation seg1{detElemId1};
+  o2::mch::mapping::Segmentation seg2{detElemId2};
   digitizer.process(hits, digits);
   digitizer.provideMC(mctruthcontainer);
 

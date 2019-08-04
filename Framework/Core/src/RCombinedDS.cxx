@@ -121,13 +121,13 @@ RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RD
   : // FIXME: we cache the bare pointers, under the assumption that
     // the dataframes fLeftDF, fRightDF have longer lifetime as
     // they actually own them.
-    fLeft{ inLeft.get() },
-    fRight{ inRight.get() },
-    fLeftDF{ std::make_unique<RDataFrame>(std::move(inLeft)) },
-    fRightDF{ std::make_unique<RDataFrame>(std::move(inRight)) },
-    fLeftPrefix{ inLeftPrefix },
-    fRightPrefix{ inRightPrefix },
-    fIndex{ std::move(inIndex) }
+    fLeft{inLeft.get()},
+    fRight{inRight.get()},
+    fLeftDF{std::make_unique<RDataFrame>(std::move(inLeft))},
+    fRightDF{std::make_unique<RDataFrame>(std::move(inRight))},
+    fLeftPrefix{inLeftPrefix},
+    fRightPrefix{inRightPrefix},
+    fIndex{std::move(inIndex)}
 {
   fColumnNames.reserve(fLeft->GetColumnNames().size() + fRight->GetColumnNames().size());
   for (auto& c : fLeft->GetColumnNames()) {

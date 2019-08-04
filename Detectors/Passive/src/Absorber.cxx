@@ -61,41 +61,41 @@ void Absorber::createMaterials()
   //
   // Air
   //
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-10;
   //
   // Polyethylene
   //
-  Float_t apoly[2] = { 12.01, 1. };
-  Float_t zpoly[2] = { 6., 1. };
-  Float_t wpoly[2] = { .33, .67 };
+  Float_t apoly[2] = {12.01, 1.};
+  Float_t zpoly[2] = {6., 1.};
+  Float_t wpoly[2] = {.33, .67};
   //
   // Concrete
   //
-  Float_t aconc[10] = { 1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85 };
-  Float_t zconc[10] = { 1., 6., 8., 11., 12., 13., 14., 19., 20., 26. };
-  Float_t wconc[10] = { .01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014 };
+  Float_t aconc[10] = {1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85};
+  Float_t zconc[10] = {1., 6., 8., 11., 12., 13., 14., 19., 20., 26.};
+  Float_t wconc[10] = {.01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014};
   //
   // Steel
   //
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
   //
   // Ni-Cu-W alloy
   //
-  Float_t aniwcu[3] = { 58.6934, 183.84, 63.546 };
-  Float_t zniwcu[3] = { 28., 74., 29 };
-  Float_t wniwcu[3] = { 0.015, 0.95, 0.035 };
+  Float_t aniwcu[3] = {58.6934, 183.84, 63.546};
+  Float_t zniwcu[3] = {28., 74., 29};
+  Float_t wniwcu[3] = {0.015, 0.95, 0.035};
   //
   // Poly Concrete
   //                      H     Li     F       C      Al     Si      Ca      Pb     O
-  Float_t aPolyCc[9] = { 1., 6.941, 18.998, 12.01, 26.98, 28.086, 40.078, 207.2, 15.999 };
-  Float_t zPolyCc[9] = { 1., 3., 9., 6., 13., 14., 20., 82., 8. };
-  Float_t wPolyCc[9] = { 4.9, 1.2, 1.3, 1.1, 0.15, 0.02, 0.06, 0.7, 1.1 };
+  Float_t aPolyCc[9] = {1., 6.941, 18.998, 12.01, 26.98, 28.086, 40.078, 207.2, 15.999};
+  Float_t zPolyCc[9] = {1., 3., 9., 6., 13., 14., 20., 82., 8.};
+  Float_t wPolyCc[9] = {4.9, 1.2, 1.3, 1.1, 0.15, 0.02, 0.06, 0.7, 1.1};
   Float_t wtot = 0;
   Int_t i = 0;
 
@@ -109,9 +109,9 @@ void Absorber::createMaterials()
   //
   // Insulation powder
   //                    Si         O       Ti     Al
-  Float_t ains[4] = { 28.0855, 15.9994, 47.867, 26.982 };
-  Float_t zins[4] = { 14., 8., 22., 13. };
-  Float_t wins[4] = { 0.3019, 0.4887, 0.1914, 0.018 };
+  Float_t ains[4] = {28.0855, 15.9994, 47.867, 26.982};
+  Float_t zins[4] = {14., 8., 22., 13.};
+  Float_t wins[4] = {0.3019, 0.4887, 0.1914, 0.018};
 
   // ****************
   //     Defines tracking media parameters.
@@ -756,8 +756,7 @@ void Absorber::ConstructGeometry()
   Float_t dFaCH2Cone = 7.5 / TMath::Cos(10. * kDegRad);
 
   TGeoVolume* voFaCH2Cone =
-    new TGeoVolume("AFaCH2Cone", new TGeoCone(dzFaCH2Cone / 2., rInFaCH2Cone1, rInFaCH2Cone1 + dFaCH2Cone,
-                                              rInFaCH2Cone2, rInFaCH2Cone2 + dFaCH2Cone),
+    new TGeoVolume("AFaCH2Cone", new TGeoCone(dzFaCH2Cone / 2., rInFaCH2Cone1, rInFaCH2Cone1 + dFaCH2Cone, rInFaCH2Cone2, rInFaCH2Cone2 + dFaCH2Cone),
                    kMedCH2Sh);
 
   // Pos 15
@@ -773,8 +772,7 @@ void Absorber::ConstructGeometry()
   Float_t rOuFaSteelCone25B = rOuFaSteelCone25A + dzFaSteelCone25 * angle10;
 
   TGeoVolume* voFaSteelCone25 = new TGeoVolume(
-    "AFaSteelCone25", new TGeoCone(dzFaSteelCone25 / 2., rInFaSteelCone25A + eps, rOuFaSteelCone25A - eps,
-                                   rInFaSteelCone25B + eps, rOuFaSteelCone25B - eps),
+    "AFaSteelCone25", new TGeoCone(dzFaSteelCone25 / 2., rInFaSteelCone25A + eps, rOuFaSteelCone25A - eps, rInFaSteelCone25B + eps, rOuFaSteelCone25B - eps),
     kMedSteelSh);
 
   // Pos 16
@@ -790,8 +788,7 @@ void Absorber::ConstructGeometry()
   Float_t rOuFaSteelCone31B = rOuFaSteelCone31A + dzFaSteelCone31 * angle10;
 
   TGeoVolume* voFaSteelCone31 = new TGeoVolume(
-    "AFaSteelCone31", new TGeoCone(dzFaSteelCone31 / 2., rInFaSteelCone31A + eps, rOuFaSteelCone31A - eps,
-                                   rInFaSteelCone31B + eps, rOuFaSteelCone31B - eps),
+    "AFaSteelCone31", new TGeoCone(dzFaSteelCone31 / 2., rInFaSteelCone31A + eps, rOuFaSteelCone31A - eps, rInFaSteelCone31B + eps, rOuFaSteelCone31B - eps),
     kMedSteelSh);
   // Outer Region with higher transport cuts
   dz = 5.;
@@ -1006,8 +1003,7 @@ void Absorber::ConstructGeometry()
   //    A2
 
   TGeoVolume* voFassUMFlange = new TGeoVolume(
-    "AFassUMFlange", new TGeoTrap(kFassUMFlangeH / 2., kFassUMFalpha, 0., 1.5, kFassUMFlangeB / 2., kFassUMFlangeB / 2.,
-                                  0., 1.5, kFassUMFlangeT / 2., kFassUMFlangeT / 2., 0.),
+    "AFassUMFlange", new TGeoTrap(kFassUMFlangeH / 2., kFassUMFalpha, 0., 1.5, kFassUMFlangeB / 2., kFassUMFlangeB / 2., 0., 1.5, kFassUMFlangeT / 2., kFassUMFlangeT / 2., 0.),
     kMedSteel);
 
   TGeoRotation* rotFass1 = new TGeoRotation("rotFass1", 180., 0., 90., 0., 90., 90.);
@@ -1024,8 +1020,7 @@ void Absorber::ConstructGeometry()
   const Float_t kFassLMFlangeT = 43.;
   const Float_t kFassLMFalpha = -TMath::ATan((kFassLMFlangeB - kFassLMFlangeT) / kFassLMFlangeH / 2.) / kDegRad;
   TGeoVolume* voFassLMFlange = new TGeoVolume(
-    "AFassLMFlange", new TGeoTrap(kFassLMFlangeH / 2., kFassLMFalpha, 0., 1.5, kFassLMFlangeB / 2., kFassLMFlangeB / 2.,
-                                  0., 1.5, kFassLMFlangeT / 2., kFassLMFlangeT / 2., 0.),
+    "AFassLMFlange", new TGeoTrap(kFassLMFlangeH / 2., kFassLMFalpha, 0., 1.5, kFassLMFlangeB / 2., kFassLMFlangeB / 2., 0., 1.5, kFassLMFlangeT / 2., kFassLMFlangeT / 2., 0.),
     kMedSteel);
   TGeoRotation* rotFass2 = new TGeoRotation("rotFass2", 180., 0., 90., 0., 90., 270.);
   voFass->AddNode(voFassLMFlange, 1,

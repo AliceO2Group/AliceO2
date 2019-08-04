@@ -172,14 +172,13 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
                           std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   static std::vector<ImColor> palette = {
-    ImColor{ 218, 124, 48 },
-    ImColor{ 62, 150, 81 },
-    ImColor{ 204, 37, 41 },
-    ImColor{ 83, 81, 84 },
-    ImColor{ 107, 76, 154 },
-    ImColor{ 146, 36, 40 },
-    ImColor{ 148, 139, 61 }
-  };
+    ImColor{218, 124, 48},
+    ImColor{62, 150, 81},
+    ImColor{204, 37, 41},
+    ImColor{83, 81, 84},
+    ImColor{107, 76, 154},
+    ImColor{146, 36, 40},
+    ImColor{148, 139, 61}};
   std::vector<void const*> metricsToDisplay;
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
@@ -420,7 +419,7 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
     const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
     /// Nothing to draw, if no metric selected.
     if (selectedMetric == -1) {
-      columns.push_back({ MetricType::Int, -1 });
+      columns.push_back({MetricType::Int, -1});
       continue;
     }
     auto currentMetricName = driverInfo.availableMetrics[selectedMetric];
@@ -428,11 +427,11 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
 
     // We did not find any plot, skipping this.
     if (idx == metricsInfo.metricLabelsIdx.size()) {
-      columns.push_back({ MetricType::Int, -1 });
+      columns.push_back({MetricType::Int, -1});
       continue;
     }
     auto metric = metricsInfos[j].metrics[idx];
-    columns.push_back({ metric.type, static_cast<int>(metric.storeIdx) });
+    columns.push_back({metric.type, static_cast<int>(metric.storeIdx)});
   }
   return columns;
 };
@@ -478,8 +477,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     "lines",
     "histograms",
     "sparks",
-    "table"
-  };
+    "table"};
   ImGui::SameLine();
   static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
   ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));

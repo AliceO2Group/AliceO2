@@ -66,7 +66,7 @@ bool Encoder::encode(/*define input structure*/)
   unsigned int nWords = 0;
 
   // crate header
-  mUnion->CrateHeader = { 0x0 };
+  mUnion->CrateHeader = {0x0};
   mUnion->CrateHeader.mustBeOne = 1;
   //    mUnion->CrateHeader.drmID = summary.DRMGlobalHeader.drmID;
   //    mUnion->CrateHeader.eventCounter = summary.DRMGlobalTrailer.LocalEventCounter;
@@ -87,7 +87,7 @@ bool Encoder::encode(/*define input structure*/)
 
   /** loop over TRMs **/
 
-  unsigned char nPackedHits[256] = { 0 };
+  unsigned char nPackedHits[256] = {0};
   PackedHit_t PackedHit[256][256];
   for (int itrm = 0; itrm < 10; itrm++) {
 
@@ -128,7 +128,7 @@ bool Encoder::encode(/*define input structure*/)
         continue;
 
       // frame header
-      mUnion->FrameHeader = { 0x0 };
+      mUnion->FrameHeader = {0x0};
       mUnion->FrameHeader.mustBeZero = 0;
       mUnion->FrameHeader.trmID = itrm + 3;
       mUnion->FrameHeader.frameID = iframe;
@@ -174,7 +174,7 @@ bool Encoder::encode(/*define input structure*/)
   }
 
   // crate trailer
-  mUnion->CrateTrailer = { 0x0 };
+  mUnion->CrateTrailer = {0x0};
   mUnion->CrateTrailer.mustBeOne = 1;
 #ifdef VERBOSE
   if (mVerbose) {

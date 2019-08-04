@@ -109,8 +109,8 @@ class Hit : public o2::BasicXYZEHit<float>
 };
 
 std::ostream& operator<<(std::ostream& stream, const Hit& point);
-}
-}
+} // namespace emcal
+} // namespace o2
 
 #ifdef USESHM
 namespace std

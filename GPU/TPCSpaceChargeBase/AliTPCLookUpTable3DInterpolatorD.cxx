@@ -18,11 +18,11 @@
 #include "AliTPCLookUpTable3DInterpolatorD.h"
 
 /// \cond CLASSIMP3
-ClassImp(AliTPCLookUpTable3DInterpolatorD)
-  /// \endcond
+ClassImp(AliTPCLookUpTable3DInterpolatorD);
+/// \endcond
 
-  /// constructor
-  AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD()
+/// constructor
+AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD()
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;

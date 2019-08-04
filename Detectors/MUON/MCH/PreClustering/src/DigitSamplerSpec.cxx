@@ -80,7 +80,7 @@ class DigitSamplerTask
 
     // create the output message
     auto size = digitBlock.header.fNrecords * SSizeOfDigitStruct;
-    auto msgOut = pc.outputs().make<char>(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, SSizeOfDigitBlock + size);
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfDigitBlock + size);
     if (msgOut.size() != SSizeOfDigitBlock + size) {
       throw length_error("incorrect message payload");
     }
@@ -117,11 +117,10 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
   return DataProcessorSpec{
     "DigitSampler",
     Inputs{},
-    Outputs{ OutputSpec{ "MCH", "DIGITS", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<DigitSamplerTask>() },
-    Options{ { "infile", VariantType::String, "", { "input file name" } },
-             { "print", VariantType::Bool, false, { "print digits" } } }
-  };
+    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<DigitSamplerTask>()},
+    Options{{"infile", VariantType::String, "", {"input file name"}},
+            {"print", VariantType::Bool, false, {"print digits"}}}};
 }
 
 } // end namespace mch

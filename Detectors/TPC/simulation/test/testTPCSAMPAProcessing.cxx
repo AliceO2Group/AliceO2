@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE(SAMPA_saturation_test)
   cdb.setUseDefaults();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
 
-  std::vector<float> ADCin = {{ 1.f, 50.f, 100.f, 1000.f, 1023.f, 1024.f, 2000.f, 10000.f }};
-  std::vector<float> ADCout = {{ 1.f, 50.f, 100.f, 1000.f, 1023.f, 1023.f, 1023.f, 1023.f }};
+  std::vector<float> ADCin = {{1.f, 50.f, 100.f, 1000.f, 1023.f, 1024.f, 2000.f, 10000.f}};
+  std::vector<float> ADCout = {{1.f, 50.f, 100.f, 1000.f, 1023.f, 1023.f, 1023.f, 1023.f}};
 
   for (size_t i = 0; i < ADCin.size(); ++i) {
     BOOST_CHECK(sampa.getADCSaturation(ADCin[i]) == ADCout[i]);
@@ -67,9 +67,9 @@ BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
   cdb.setUseDefaults();
   auto& eleParam = ParameterElectronics::Instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
-  float timeInit[4] = { 0.1, 3.3, 1.f, 90.5 };
-  float startTimeInit[4] = { 0.f, 3.f, 0.f, 90.f };
-  float ADCinit[4] = { 1.f, 50.f, 100.f, 100.f };
+  float timeInit[4] = {0.1, 3.3, 1.f, 90.5};
+  float startTimeInit[4] = {0.f, 3.f, 0.f, 90.f};
+  float ADCinit[4] = {1.f, 50.f, 100.f, 100.f};
   Vc::float_v time;
   Vc::float_v startTime;
   Vc::float_v ADC;
@@ -103,5 +103,5 @@ BOOST_AUTO_TEST_CASE(SAMPA_Conversion_test)
   BOOST_CHECK(sampa.getTimeBin(detParam.TPClength) == 0);
   BOOST_CHECK_CLOSE(sampa.getZfromTimeBin(0, Side::A), detParam.TPClength, 1E-6);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

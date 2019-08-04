@@ -65,7 +65,7 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
   }
   if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Columns(2);
-    auto labels = { "Name", "Value" };
+    auto labels = {"Name", "Value"};
     for (auto& label : labels) {
       ImGui::TextUnformatted(label);
       ImGui::NextColumn();

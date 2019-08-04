@@ -38,9 +38,9 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
       dh.payloadSize = parts.At(i)->GetSize();
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
-      DataProcessingHeader dph{ *counter, 0 };
+      DataProcessingHeader dph{*counter, 0};
       (*counter) += 1UL;
-      o2::header::Stack headerStack{ dh, dph };
+      o2::header::Stack headerStack{dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i)), index);
     }
   };

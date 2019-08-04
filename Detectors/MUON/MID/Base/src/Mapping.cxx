@@ -34,15 +34,15 @@ void Mapping::init()
 {
   /// Initializes mapping
 
-  buildDETypeLarge(0, { { 1, 17, 39, 61, 77, 93, 109 } });
-  buildDETypeMedium(1, { { 2, 18, 40, 62, 78, 94, 110 } }, true);
-  buildDETypeMedium(2, { { 4, 20, 42, 64, 80, 96, 111 } }, false);
-  buildDETypeCut(3, { { 6, 22, 44, 66, 82, 98, 112 } }, true);
-  buildDETypeShort(4, { { 0, 26, 48, 68, 84, 100, 113 } });
-  buildDETypeCut(5, { { 9, 30, 52, 70, 86, 102, 114 } }, false);
-  buildDETypeMedium(6, { { 12, 34, 56, 72, 88, 104, 115 } }, false);
-  buildDETypeMedium(7, { { 14, 36, 58, 74, 90, 106, 116 } }, true);
-  buildDETypeLarge(8, { { 16, 38, 60, 76, 92, 108, 117 } });
+  buildDETypeLarge(0, {{1, 17, 39, 61, 77, 93, 109}});
+  buildDETypeMedium(1, {{2, 18, 40, 62, 78, 94, 110}}, true);
+  buildDETypeMedium(2, {{4, 20, 42, 64, 80, 96, 111}}, false);
+  buildDETypeCut(3, {{6, 22, 44, 66, 82, 98, 112}}, true);
+  buildDETypeShort(4, {{0, 26, 48, 68, 84, 100, 113}});
+  buildDETypeCut(5, {{9, 30, 52, 70, 86, 102, 114}}, false);
+  buildDETypeMedium(6, {{12, 34, 56, 72, 88, 104, 115}}, false);
+  buildDETypeMedium(7, {{14, 36, 58, 74, 90, 106, 116}}, true);
+  buildDETypeLarge(8, {{16, 38, 60, 76, 92, 108, 117}});
 }
 
 //______________________________________________________________________________
@@ -50,7 +50,7 @@ void Mapping::setupSegmentation(int rpcType, int column, int nStripsNBP, int str
                                 int firstBoardId, bool isBelowBeamPipe)
 {
   /// Initializes column segmentation
-  MpColumn& columnStruct{ mDetectionElements[rpcType].columns[column] };
+  MpColumn& columnStruct{mDetectionElements[rpcType].columns[column]};
   columnStruct.nStripsNBP = nStripsNBP;
   columnStruct.stripPitchNBP = stripPitchNBP;
   columnStruct.stripPitchBP = (nBoardsBP > 0) ? 4 / nBoardsBP : 0;
@@ -398,7 +398,7 @@ bool Mapping::isValidColumn(int column, int rpcType) const
 bool Mapping::isValidLine(int line, int column, int rpcType) const
 {
   /// Checks if board is valid
-  auto& columnStruct{ mDetectionElements[rpcType].columns[column] };
+  auto& columnStruct{mDetectionElements[rpcType].columns[column]};
 
   if (line >= columnStruct.boardsBP.size() || columnStruct.boardsBP[line] == 117) {
     return false;
@@ -494,7 +494,7 @@ MpArea Mapping::stripByLocation(int strip, int cathode, int line, int column, in
   int deType = getRPCType(deId);
   int chamber = Constants::getChamber(deId);
   assert(strip < 16);
-  auto& columnStruct{ mDetectionElements[deType].columns[column] };
+  auto& columnStruct{mDetectionElements[deType].columns[column]};
 
   double x1 = 0., y1 = 0., x2 = 0., y2 = 0.;
 
@@ -530,7 +530,7 @@ MpArea Mapping::stripByLocationInBoard(int strip, int cathode, int boardId, int 
   /// @param chamber The chamber number (0-3)
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
   assert(boardId <= 234);
-  auto& boardIndex{ mBoardIndexes[(boardId - 1) % 117] };
+  auto& boardIndex{mBoardIndexes[(boardId - 1) % 117]};
   int deId = boardIndex.deType + 9 * chamber;
   if (boardId > 117) {
     deId += 36;
@@ -610,7 +610,7 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
     return stripIndex;
   }
 
-  const auto& column{ mDetectionElements[rpcType].columns[stripIndex.column] };
+  const auto& column{mDetectionElements[rpcType].columns[stripIndex.column]};
   stripIndex.line = getLine(yPos, column, chamber);
   if (stripIndex.line >= 4) {
     if (warn) {

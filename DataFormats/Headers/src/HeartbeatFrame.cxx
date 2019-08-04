@@ -19,5 +19,5 @@
 const o2::header::DataDescription o2::header::gDataDescriptionHeartbeatFrame("HEARTBEATFRAME");
 
 const uint32_t o2::header::HeartbeatFrameEnvelope::sVersion = 1;
-const o2::header::HeaderType o2::header::HeartbeatFrameEnvelope::sHeaderType= String2<uint64_t>("HBFEnvel");
+const o2::header::HeaderType o2::header::HeartbeatFrameEnvelope::sHeaderType = String2<uint64_t>("HBFEnvel");
 const o2::header::SerializationMethod o2::header::HeartbeatFrameEnvelope::sSerializationMethod = o2::header::gSerializationMethodNone;

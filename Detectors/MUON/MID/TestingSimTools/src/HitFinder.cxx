@@ -89,7 +89,7 @@ std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
   double xErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarX));
   double yPos = defPos.y() / mCosTheta;
   double yErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarY));
-  double positions[3] = { yPos, yPos - yErr, yPos + yErr };
+  double positions[3] = {yPos, yPos - yErr, yPos + yErr};
   int centerRpc = -1;
   for (int ipos = 0; ipos < 3; ++ipos) {
     int rpc = guessRPC(positions[ipos], chamber);

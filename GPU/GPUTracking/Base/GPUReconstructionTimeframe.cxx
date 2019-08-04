@@ -157,7 +157,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
   }
   unsigned int nClustersTotal = 0;
   unsigned int nClustersTotalRaw = 0;
-  unsigned int nClustersSliceOffset[NSLICES] = { 0 };
+  unsigned int nClustersSliceOffset[NSLICES] = {0};
   for (unsigned int i = 0; i < NSLICES; i++) {
     nClustersSliceOffset[i] = nClustersTotal;
     nClustersTotal += mChain->mIOPtrs.nClusterData[i];
@@ -175,7 +175,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
   mChain->mIOPtrs.clustersNative = nullptr;
 
   unsigned int nTrackOffset = 0;
-  unsigned int nClustersEventOffset[NSLICES] = { 0 };
+  unsigned int nClustersEventOffset[NSLICES] = {0};
   for (unsigned int i = 0; i < mShiftedEvents.size(); i++) {
     auto& ptr = std::get<0>(mShiftedEvents[i]);
     unsigned int inEventOffset = 0;

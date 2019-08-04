@@ -205,55 +205,55 @@ class ChipMappingITS
   // sub-barrel types, their number, N layers, Max N GBT Links per RU
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
-  static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = { 0x1 << 5, 0x1 << 6, 0x1 << 6 }; // prefixes for data GBT header byte
+  static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = {0x1 << 5, 0x1 << 6, 0x1 << 6}; // prefixes for data GBT header byte
 
   ///< N chips per cable of each sub-barrel
-  static constexpr std::array<int, NSubB> NChipsPerCableSB = { 1, 7, 7 };
+  static constexpr std::array<int, NSubB> NChipsPerCableSB = {1, 7, 7};
 
   ///< N modules along the stave (or halfstave..)
-  static constexpr std::array<int, NSubB> NModulesAlongStaveSB = { 9, 4, 7 };
+  static constexpr std::array<int, NSubB> NModulesAlongStaveSB = {9, 4, 7};
 
   ///< N chips per module of each sub-barrel
-  static constexpr std::array<int, NSubB> NChipsPerModuleSB = { 9, 14, 14 };
+  static constexpr std::array<int, NSubB> NChipsPerModuleSB = {9, 14, 14};
 
   ///< N cables per module of each sub-barrel
-  static constexpr std::array<int, NSubB> NCablesPerModule = { 9, 2, 2 }; // NChipsPerModuleSB[]/NChipsPerCableSB[]
+  static constexpr std::array<int, NSubB> NCablesPerModule = {9, 2, 2}; // NChipsPerModuleSB[]/NChipsPerCableSB[]
 
   ///< N modules per stage of each sub-barrel
-  static constexpr std::array<int, NSubB> NModulesPerStaveSB = { 1, 8, 14 };
+  static constexpr std::array<int, NSubB> NModulesPerStaveSB = {1, 8, 14};
 
   ///< number of staves per layer
-  static constexpr std::array<int, NLayers> NStavesOnLr = { 12, 16, 20, 24, 30, 42, 48 };
+  static constexpr std::array<int, NLayers> NStavesOnLr = {12, 16, 20, 24, 30, 42, 48};
 
   ///< number of staves per layer
-  static constexpr std::array<int, NLayers> FirstStaveOnLr = { 0, 12, 28, 48, 72, 102, 144 };
+  static constexpr std::array<int, NLayers> FirstStaveOnLr = {0, 12, 28, 48, 72, 102, 144};
 
   ///< RU types for each layer
-  static constexpr std::array<uint8_t, NLayers> RUTypeLr = { IB, IB, IB, MB, MB, OB, OB };
+  static constexpr std::array<uint8_t, NLayers> RUTypeLr = {IB, IB, IB, MB, MB, OB, OB};
 
   ///< number of staves per sub-barrel
-  static constexpr std::array<int, NSubB> NStavesSB = { NStavesOnLr[0] + NStavesOnLr[1] + NStavesOnLr[2],
-                                                        NStavesOnLr[3] + NStavesOnLr[4],
-                                                        NStavesOnLr[5] + NStavesOnLr[6] };
+  static constexpr std::array<int, NSubB> NStavesSB = {NStavesOnLr[0] + NStavesOnLr[1] + NStavesOnLr[2],
+                                                       NStavesOnLr[3] + NStavesOnLr[4],
+                                                       NStavesOnLr[5] + NStavesOnLr[6]};
   ///< number of chips per stave of sub-barrel
-  static constexpr std::array<int, NSubB> NChipsPerStaveSB = { NModulesPerStaveSB[IB] * NChipsPerModuleSB[IB],
-                                                               NModulesPerStaveSB[MB] * NChipsPerModuleSB[MB],
-                                                               NModulesPerStaveSB[OB] * NChipsPerModuleSB[OB] };
+  static constexpr std::array<int, NSubB> NChipsPerStaveSB = {NModulesPerStaveSB[IB] * NChipsPerModuleSB[IB],
+                                                              NModulesPerStaveSB[MB] * NChipsPerModuleSB[MB],
+                                                              NModulesPerStaveSB[OB] * NChipsPerModuleSB[OB]};
 
   ///< number of cables per stave of sub-barrel
-  static constexpr std::array<int, NSubB> NCablesPerStaveSB = { NCablesPerModule[IB] * NModulesPerStaveSB[IB],
-                                                                NCablesPerModule[MB] * NModulesPerStaveSB[MB],
-                                                                NCablesPerModule[OB] * NModulesPerStaveSB[OB] };
+  static constexpr std::array<int, NSubB> NCablesPerStaveSB = {NCablesPerModule[IB] * NModulesPerStaveSB[IB],
+                                                               NCablesPerModule[MB] * NModulesPerStaveSB[MB],
+                                                               NCablesPerModule[OB] * NModulesPerStaveSB[OB]};
 
   ///< pattern of cables per stave of sub-barrel
-  static constexpr std::array<int, NSubB> CablesOnStaveSB = { (0x1 << NCablesPerModule[IB] * NModulesPerStaveSB[IB]) - 1,
-                                                              (0x1 << NCablesPerModule[MB] * NModulesPerStaveSB[MB]) - 1,
-                                                              (0x1 << NCablesPerModule[OB] * NModulesPerStaveSB[OB]) - 1 };
+  static constexpr std::array<int, NSubB> CablesOnStaveSB = {(0x1 << NCablesPerModule[IB] * NModulesPerStaveSB[IB]) - 1,
+                                                             (0x1 << NCablesPerModule[MB] * NModulesPerStaveSB[MB]) - 1,
+                                                             (0x1 << NCablesPerModule[OB] * NModulesPerStaveSB[OB]) - 1};
 
   ///< number of chips per sub-barrel
-  static constexpr std::array<int, NSubB> NChipsSB = { NChipsPerStaveSB[IB] * NStavesSB[IB],
-                                                       NChipsPerStaveSB[MB] * NStavesSB[MB],
-                                                       NChipsPerStaveSB[OB] * NStavesSB[OB] };
+  static constexpr std::array<int, NSubB> NChipsSB = {NChipsPerStaveSB[IB] * NStavesSB[IB],
+                                                      NChipsPerStaveSB[MB] * NStavesSB[MB],
+                                                      NChipsPerStaveSB[OB] * NStavesSB[OB]};
 
   static constexpr int NChips = NChipsSB[IB] + NChipsSB[MB] + NChipsSB[OB];
 
@@ -265,9 +265,9 @@ class ChipMappingITS
      0/ 0| 1/ 1| 2/ 2| 3/ 3| 4/ 4| 5/ 5| 6/ 6
    */
   // SW ID -> HW ID within the module
-  static constexpr std::uint8_t ChipOBModSW2HW[14] = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14 };
+  static constexpr std::uint8_t ChipOBModSW2HW[14] = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14};
   // HW ID -> SW ID within the module
-  static constexpr std::uint8_t ChipOBModHW2SW[15] = { 0, 1, 2, 3, 4, 5, 6, 255, 7, 8, 9, 10, 11, 12, 13 };
+  static constexpr std::uint8_t ChipOBModHW2SW[15] = {0, 1, 2, 3, 4, 5, 6, 255, 7, 8, 9, 10, 11, 12, 13};
 
   /// info per stave
   std::array<RUInfo, NStavesSB[IB] + NStavesSB[MB] + NStavesSB[OB]> mStavesInfo;
@@ -275,14 +275,14 @@ class ChipMappingITS
 
   // info on chips info within the stave
   std::array<ChipOnRUInfo, NChipsPerStaveSB[IB] + NChipsPerStaveSB[MB] + NChipsPerStaveSB[OB]> mChipsInfo;
-  int mChipInfoEntrySB[NSubB] = { 0 };
+  int mChipInfoEntrySB[NSubB] = {0};
 
   std::vector<uint8_t> mCableHW2SW[NSubB];       ///< table of cables HW to SW conversion for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
-  ClassDefNV(ChipMappingITS, 1)
+  ClassDefNV(ChipMappingITS, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

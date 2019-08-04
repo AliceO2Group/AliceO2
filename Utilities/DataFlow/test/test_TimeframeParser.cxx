@@ -15,38 +15,34 @@
 #include <istream>
 #include <cstdlib>
 
-struct OneShotReadBuf : public std::streambuf
-{
-    OneShotReadBuf(char* s, std::size_t n)
-    {
-        setg(s, s, s + n);
-    }
+struct OneShotReadBuf : public std::streambuf {
+  OneShotReadBuf(char* s, std::size_t n)
+  {
+    setg(s, s, s + n);
+  }
 };
 
 using DataHeader = o2::header::DataHeader;
 
-int
-main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   // Construct a dummy timeframe.
   // Stream it and get the parts
   FairMQParts parts;
-  auto onAddParts = [](FairMQParts &p, char *buffer, size_t size) {
+  auto onAddParts = [](FairMQParts& p, char* buffer, size_t size) {
     LOG(INFO) << "Adding part to those to be sent.\n";
   };
-  auto onSend = [](FairMQParts &p) {
+  auto onSend = [](FairMQParts& p) {
     LOG(INFO) << "Everything OK. Sending parts\n";
   };
 
   // Prepare a test timeframe to be streamed
-  auto zeroFiller = [](char *b, size_t s) {memset(b, 0, s);};
+  auto zeroFiller = [](char* b, size_t s) { memset(b, 0, s); };
   std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
-    {
-      .origin = "TPC",
-      .dataDescription = "CLUSTERS",
-      .bufferFiller = zeroFiller,
-      .bufferSize = 1000
-    }
-  };
+    {.origin = "TPC",
+     .dataDescription = "CLUSTERS",
+     .bufferFiller = zeroFiller,
+     .bufferSize = 1000}};
 
   size_t testBufferSize;
   auto testBuffer = fakeTimeframeGenerator(specs, testBufferSize);
@@ -56,7 +52,7 @@ main(int argc, char **argv) {
 
   try {
     o2::data_flow::streamTimeframe(s, onAddParts, onSend);
-  } catch(std::runtime_error &e) {
+  } catch (std::runtime_error& e) {
     LOG(ERROR) << e.what() << std::endl;
     exit(1);
   }

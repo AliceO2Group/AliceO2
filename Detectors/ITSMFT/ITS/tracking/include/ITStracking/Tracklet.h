@@ -35,19 +35,19 @@ struct Tracklet final {
   const float phiCoordinate;
 };
 
-inline Tracklet::Tracklet() : firstClusterIndex{ 0 }, secondClusterIndex{ 0 }, tanLambda{ 0.0f }, phiCoordinate{ 0.0f }
+inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLambda{0.0f}, phiCoordinate{0.0f}
 {
   // Nothing to do
 }
 
 inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
                                      const Cluster& firstCluster, const Cluster& secondCluster)
-  : firstClusterIndex{ firstClusterOrderingIndex },
-    secondClusterIndex{ secondClusterOrderingIndex },
-    tanLambda{ (firstCluster.zCoordinate - secondCluster.zCoordinate) /
-               (firstCluster.rCoordinate - secondCluster.rCoordinate) },
-    phiCoordinate{ gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                                             firstCluster.xCoordinate - secondCluster.xCoordinate) }
+  : firstClusterIndex{firstClusterOrderingIndex},
+    secondClusterIndex{secondClusterOrderingIndex},
+    tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
+              (firstCluster.rCoordinate - secondCluster.rCoordinate)},
+    phiCoordinate{gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                                            firstCluster.xCoordinate - secondCluster.xCoordinate)}
 {
   // Nothing to do
 }

@@ -22,8 +22,10 @@
 #include <vector>
 #include <ctime>
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 /// Minimalistic description of an event
 ///
@@ -34,30 +36,30 @@ namespace event_visualisation {
 
 class MinimalisticEvent
 {
-  public:
-    // Default constructor
-    MinimalisticEvent(int eventNumber, int runNumber, double energy, int multiplicity, std::string collidingSystem, time_t timeStamp);
-  
-    // Adds minimalistic track inside minimalistic event
-    void addTrack(const MinimalisticTrack& track){ mTracks.push_back(track); }
-    // Generates random tracks
-    void fillWithRandomTracks();
-  
-    // Multiplicity getter
-    inline int GetMultiplicity(){return mMultiplicity;}
-    // Returns track with index i
-    MinimalisticTrack* getTrack(int i);
-private:
-    int mEventNumber;                       /// event number in file
-    int mRunNumber;                         /// run number
-    double mEnergy;                         /// energy of the collision
-    int mMultiplicity;                      /// number of particles reconstructed
-    std::string mCollidingSystem;           /// colliding system (e.g. proton-proton)
-    std::time_t mTimeStamp;                 /// collision timestamp
-    std::vector<MinimalisticTrack> mTracks; /// an array of minimalistic tracks
+ public:
+  // Default constructor
+  MinimalisticEvent(int eventNumber, int runNumber, double energy, int multiplicity, std::string collidingSystem, time_t timeStamp);
+
+  // Adds minimalistic track inside minimalistic event
+  void addTrack(const MinimalisticTrack& track) { mTracks.push_back(track); }
+  // Generates random tracks
+  void fillWithRandomTracks();
+
+  // Multiplicity getter
+  inline int GetMultiplicity() { return mMultiplicity; }
+  // Returns track with index i
+  MinimalisticTrack* getTrack(int i);
+
+ private:
+  int mEventNumber;                       /// event number in file
+  int mRunNumber;                         /// run number
+  double mEnergy;                         /// energy of the collision
+  int mMultiplicity;                      /// number of particles reconstructed
+  std::string mCollidingSystem;           /// colliding system (e.g. proton-proton)
+  std::time_t mTimeStamp;                 /// collision timestamp
+  std::vector<MinimalisticTrack> mTracks; /// an array of minimalistic tracks
 };
 
 #endif
-
 }
 }

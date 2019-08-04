@@ -30,32 +30,33 @@ PadResponse::PadResponse()
     mOROC12(),
     mOROC3()
 {
-  mIROC   = std::make_unique<TGraph2D>();
+  mIROC = std::make_unique<TGraph2D>();
   mOROC12 = std::make_unique<TGraph2D>();
-  mOROC3  = std::make_unique<TGraph2D>();
-  
+  mOROC3 = std::make_unique<TGraph2D>();
+
   importPRF("PRF_IROC.dat", mIROC);
   importPRF("PRF_OROC1-2.dat", mOROC12);
   importPRF("PRF_OROC3.dat", mOROC3);
 }
 
-bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF) const
+bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D>& grPRF) const
 {
   std::string inputDir;
-  const char* aliceO2env=std::getenv("O2_ROOT");
-  if (aliceO2env) inputDir=aliceO2env;
-  inputDir+="/share/Detectors/TPC/files/";
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  if (aliceO2env)
+    inputDir = aliceO2env;
+  inputDir += "/share/Detectors/TPC/files/";
 
   float x, y, normalizedPadResponse;
-  int i=0;
-  std::ifstream prfFile(inputDir+file, std::ifstream::in);
-  if(!prfFile) {
-    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir+file << "' does not exist! No PRF loaded!" << FairLogger::endl;
+  int i = 0;
+  std::ifstream prfFile(inputDir + file, std::ifstream::in);
+  if (!prfFile) {
+    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir + file << "' does not exist! No PRF loaded!" << FairLogger::endl;
     return false;
   }
-  for (std::string line; std::getline(prfFile, line); ) {
+  for (std::string line; std::getline(prfFile, line);) {
     std::istringstream is(line);
-    while(is >> x >> y >> normalizedPadResponse) {
+    while (is >> x >> y >> normalizedPadResponse) {
       grPRF->SetPoint(i++, x, y, normalizedPadResponse);
     }
   }
@@ -75,16 +76,14 @@ float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos) 
   ///std::cout << padCentrePos.X() << " " << posEle.X() << " " << padCentrePos.Y() << " " << posEle.Y() << "\n";
 
   const int gemStack = int(cru.gemStack());
-  const float offsetX = std::abs(posEle.X() - padCentre.X())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
-  const float offsetY = std::abs(posEle.Y() - padCentre.Y())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetX = std::abs(posEle.X() - padCentre.X()) * 10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetY = std::abs(posEle.Y() - padCentre.Y()) * 10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
   float normalizedPadResponse = 0;
-  if(gemStack == 0) {
+  if (gemStack == 0) {
     normalizedPadResponse = mIROC->Interpolate(offsetX, offsetY);
-  }
-  else if(gemStack == 1 || gemStack == 2) {
+  } else if (gemStack == 1 || gemStack == 2) {
     normalizedPadResponse = mOROC12->Interpolate(offsetX, offsetY);
-  }
-  else {
+  } else {
     normalizedPadResponse = mOROC3->Interpolate(offsetX, offsetY);
   }
   return normalizedPadResponse;

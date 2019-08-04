@@ -83,5 +83,5 @@ BOOST_AUTO_TEST_CASE(ClusterHardware_test1)
     } while ((time += 0.5) <= 511);
   }
 }
-}
-}
+} // namespace tpc
+} // namespace o2

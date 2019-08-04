@@ -27,8 +27,10 @@
 #include <utility>
 #include <memory>
 
-namespace o2{
-namespace tpc {
+namespace o2
+{
+namespace tpc
+{
 
 class Digit;
 class ClusterHardware;
@@ -275,8 +277,7 @@ inline short HwClusterer::getFirstSetBitOfField()
   return -1;
 }
 
-}
-}
-
+} // namespace tpc
+} // namespace o2
 
 #endif

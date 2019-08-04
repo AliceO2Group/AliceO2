@@ -43,7 +43,7 @@ void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const 
       }
     }
     if (isNew) {
-      std::vector<size_t> vec = { idx };
+      std::vector<size_t> vec = {idx};
       mDigitsLabels.emplace_back(std::make_pair(*inIt, vec));
     }
   }

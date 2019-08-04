@@ -25,7 +25,7 @@ class BaseHit
 {
  public:
   BaseHit() = default;
-  BaseHit(int id) : mTrackID{ id } {}
+  BaseHit(int id) : mTrackID{id} {}
   int GetTrackID() const { return mTrackID; }
   void SetTrackID(int id) { mTrackID = id; }
 

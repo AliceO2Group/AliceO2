@@ -20,22 +20,22 @@
 
 using DataHeader = o2::header::DataHeader;
 
-namespace {
-struct OneShotReadBuf : public std::streambuf
+namespace
 {
-    OneShotReadBuf(char* s, std::size_t n)
-    {
-        setg(s, s, s + n);
-    }
+struct OneShotReadBuf : public std::streambuf {
+  OneShotReadBuf(char* s, std::size_t n)
+  {
+    setg(s, s, s + n);
+  }
 };
-}
-namespace o2 { namespace data_flow {
+} // namespace
+namespace o2
+{
+namespace data_flow
+{
 
 FakeTimeframeGeneratorDevice::FakeTimeframeGeneratorDevice()
-  : O2Device{}
-  , mOutChannelName{}
-  , mMaxTimeframes{}
-  , mTimeframeCount{0}
+  : O2Device{}, mOutChannelName{}, mMaxTimeframes{}, mTimeframeCount{0}
 {
 }
 
@@ -47,29 +47,25 @@ void FakeTimeframeGeneratorDevice::InitTask()
 
 bool FakeTimeframeGeneratorDevice::ConditionalRun()
 {
-  auto addPartFn = [this](FairMQParts &parts, char *buffer, size_t size) {
-        parts.AddPart(this->NewMessage(buffer,
-                                       size,
-                                       [](void* data, void* hint) { delete[] (char*)data; },
-                                       nullptr));
+  auto addPartFn = [this](FairMQParts& parts, char* buffer, size_t size) {
+    parts.AddPart(this->NewMessage(
+      buffer,
+      size,
+      [](void* data, void* hint) { delete[](char*) data; },
+      nullptr));
   };
-  auto sendFn = [this](FairMQParts &parts) {this->Send(parts, this->mOutChannelName);};
-  auto zeroFiller = [](char *b, size_t s) {memset(b, 0, s);};
+  auto sendFn = [this](FairMQParts& parts) { this->Send(parts, this->mOutChannelName); };
+  auto zeroFiller = [](char* b, size_t s) { memset(b, 0, s); };
 
   std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
-    {
-      .origin = "TPC",
-      .dataDescription = "CLUSTERS",
-      .bufferFiller = zeroFiller,
-      .bufferSize = 1000
-    },
-    {
-      .origin = "ITS",
-      .dataDescription = "CLUSTERS",
-      .bufferFiller = zeroFiller,
-      .bufferSize = 500
-    }
-  };
+    {.origin = "TPC",
+     .dataDescription = "CLUSTERS",
+     .bufferFiller = zeroFiller,
+     .bufferSize = 1000},
+    {.origin = "ITS",
+     .dataDescription = "CLUSTERS",
+     .bufferFiller = zeroFiller,
+     .bufferSize = 500}};
 
   try {
     size_t totalSize;
@@ -80,7 +76,7 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
     streamTimeframe(s,
                     addPartFn,
                     sendFn);
-  } catch(std::runtime_error &e) {
+  } catch (std::runtime_error& e) {
     LOG(ERROR) << e.what() << "\n";
   }
 
@@ -92,4 +88,5 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
   return false;
 }
 
-}} // namespace o2::data_flow
+} // namespace data_flow
+} // namespace o2

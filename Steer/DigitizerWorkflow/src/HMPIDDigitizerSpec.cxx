@@ -92,7 +92,7 @@ class HMPIDDPLDigitizerTask
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::hmpid::Digit> digitsAccum; // accumulator for digits
+    std::vector<o2::hmpid::Digit> digitsAccum;                     // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
 
     auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum]() {
@@ -143,11 +143,11 @@ class HMPIDDPLDigitizerTask
     flushDigitsAndLabels();
 
     // send out to next stage
-    pc.outputs().snapshot(Output{ "HMP", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
-    pc.outputs().snapshot(Output{ "HMP", "DIGITLBL", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
 
     LOG(INFO) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "HMP", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"HMP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -173,17 +173,16 @@ o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "HMPIDDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "HMP", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "HMP", "DIGITLBL", 0, Lifetime::Timeframe },
-             OutputSpec{ "HMP", "ROMode", 0, Lifetime::Timeframe } },
+    Outputs{OutputSpec{"HMP", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"HMP", "DIGITLBL", 0, Lifetime::Timeframe},
+            OutputSpec{"HMP", "ROMode", 0, Lifetime::Timeframe}},
 
-    AlgorithmSpec{ adaptFromTask<HMPIDDPLDigitizerTask>() },
+    AlgorithmSpec{adaptFromTask<HMPIDDPLDigitizerTask>()},
 
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // end namespace hmpid

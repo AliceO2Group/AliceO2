@@ -81,21 +81,21 @@ class SimParam
   static o2::emcal::SimParam* mSimParam; // pointer to the unique instance of the class
 
   // Digitizer
-  Int_t mDigitThreshold{ 3 };              // Threshold for storing digits in EMC
-  Int_t mMeanPhotonElectron{ 4400 };       // number of photon electrons per GeV deposited energy
-  Float_t mGainFluctuations{ 15. };        // correct fMeanPhotonElectron by the gain fluctuations
-  Float_t mPinNoise{ 0.012 };              // Electronics noise in EMC, APD
-  Double_t mTimeNoise{ 1.28e-5 };          // Electronics noise in EMC, time
-  Double_t mTimeDelay{ 600e-9 };           // Simple time delay to mimick roughly delay in data
-  Bool_t mTimeDelayFromCDB{ false };       // Get time delay from OCDB
-  Double_t mTimeResolutionPar0{ 0.26666 }; // Time resolution of FEE electronics
-  Double_t mTimeResolutionPar1{ 1.4586 };  // Time resolution of FEE electronics
-  Int_t mNADCEC{ 0x10000 };                // number of channels in EC section ADC
+  Int_t mDigitThreshold{3};              // Threshold for storing digits in EMC
+  Int_t mMeanPhotonElectron{4400};       // number of photon electrons per GeV deposited energy
+  Float_t mGainFluctuations{15.};        // correct fMeanPhotonElectron by the gain fluctuations
+  Float_t mPinNoise{0.012};              // Electronics noise in EMC, APD
+  Double_t mTimeNoise{1.28e-5};          // Electronics noise in EMC, time
+  Double_t mTimeDelay{600e-9};           // Simple time delay to mimick roughly delay in data
+  Bool_t mTimeDelayFromCDB{false};       // Get time delay from OCDB
+  Double_t mTimeResolutionPar0{0.26666}; // Time resolution of FEE electronics
+  Double_t mTimeResolutionPar1{1.4586};  // Time resolution of FEE electronics
+  Int_t mNADCEC{0x10000};                // number of channels in EC section ADC
 
   // SDigitizer
-  Float_t mA{ 0. };                 // Pedestal parameter
-  Float_t mB{ 1.e+6 };              // Slope Digitizition parameters
-  Float_t mECPrimThreshold{ 0.05 }; // To store primary if EC Shower Elos > threshold
+  Float_t mA{0.};                 // Pedestal parameter
+  Float_t mB{1.e+6};              // Slope Digitizition parameters
+  Float_t mECPrimThreshold{0.05}; // To store primary if EC Shower Elos > threshold
 };
 
 std::ostream& operator<<(std::ostream& stream, const SimParam& s);

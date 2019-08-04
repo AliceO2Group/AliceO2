@@ -63,6 +63,7 @@ constexpr const char* Component::OptionKeys[];
 
 bpo::options_description Component::GetOptionsDescription()
 {
+  // clang-format off
   bpo::options_description od("HLT Component options");
   od.add_options()
     ((std::string(OptionKeys[OptionKeyLibrary]) + ",l").c_str(),
@@ -86,7 +87,7 @@ bpo::options_description Component::GetOptionsDescription()
     ((std::string(OptionKeys[OptionKeyOutputMode]) + ",m").c_str(),
      bpo::value<string>()->default_value("3"),
      "output mode");
-
+  // clang-format on
   return od;
 }
 

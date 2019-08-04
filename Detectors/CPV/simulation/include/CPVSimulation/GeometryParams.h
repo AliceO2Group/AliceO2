@@ -93,7 +93,7 @@ class GeometryParams : public TNamed
   float mIPtoCPVSurface;        // Distance from IP to CPV front cover
   float mModuleAngle[5][3][2];  // Orientation angles of CPV modules
   float mModuleCenter[5][3];    // Coordunates of modules centra in ALICE system
-  ClassDefOverride(GeometryParams, 1)
+  ClassDefOverride(GeometryParams, 1);
 };
 } // namespace cpv
 } // namespace o2

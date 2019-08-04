@@ -207,8 +207,8 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   //float clTOFX = clTOF.getX() * ca + clTOF.getY() * sa;                                 // cluster x in sector coordinate frame
   //std::array<float, 2> clTOFYZ{ -clTOF.getX() * sa + clTOF.getY() * ca, clTOF.getZ() }; // cluster y and z in sector coordinate frame
   float clTOFX = clTOF.getX();
-  std::array<float, 2> clTOFYZ{ clTOF.getY(), clTOF.getZ() };
-  std::array<float, 3> clTOFCov{ mSigYZ2TOF, 0.f, mSigYZ2TOF }; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
+  std::array<float, 2> clTOFYZ{clTOF.getY(), clTOF.getZ()};
+  std::array<float, 3> clTOFCov{mSigYZ2TOF, 0.f, mSigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
   if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, o2::constants::physics::MassPionCharged, mMaxSnp, mMaxStep, mMatCorr)) {
     LOG(debug) << "Failed final propagation to TOF radius";
     return false;

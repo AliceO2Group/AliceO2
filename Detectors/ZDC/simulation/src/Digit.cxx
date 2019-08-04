@@ -18,9 +18,9 @@ using namespace o2::zdc;
 void Digit::print() const
 {
 
-  const char* nameDet[] = { "ZNA", "ZPA", "ZEM", "ZNC", "ZPC" };
-  const char* namesZH[] = { "Com", "Ch1", "Ch2", "Ch3", "Ch4", "Sum" };
-  const char* namesZE[] = { "Ch1", "Ch2" };
+  const char* nameDet[] = {"ZNA", "ZPA", "ZEM", "ZNC", "ZPC"};
+  const char* namesZH[] = {"Com", "Ch1", "Ch2", "Ch3", "Ch4", "Sum"};
+  const char* namesZE[] = {"Ch1", "Ch2"};
 
   mIntRecord.print();
 

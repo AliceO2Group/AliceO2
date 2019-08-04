@@ -71,13 +71,13 @@ struct ConfigEntry {
 
 // \brief Merger configuration structure. Default configuration should work in most cases, out of the box.
 struct MergerConfig {
-  ConfigEntry<OwnershipMode> ownershipMode = { OwnershipMode::Full };
-  ConfigEntry<MergingMode> mergingMode = { MergingMode::Binwise };
-  ConfigEntry<MergingTime> mergingTime = { MergingTime::BeforePublication };
-  ConfigEntry<Timespan> timespan = { Timespan::FullHistory };
-  ConfigEntry<PublicationDecision> publicationDecision = { PublicationDecision::WhenXInputsUpdated, 0.999999 };
-  ConfigEntry<TopologySize, int> topologySize = { TopologySize::NumberOfLayers, 1 };
-  ConfigEntry<UnpackingMethod> unpackingMethod = { UnpackingMethod::NoUnpackingNeeded };
+  ConfigEntry<OwnershipMode> ownershipMode = {OwnershipMode::Full};
+  ConfigEntry<MergingMode> mergingMode = {MergingMode::Binwise};
+  ConfigEntry<MergingTime> mergingTime = {MergingTime::BeforePublication};
+  ConfigEntry<Timespan> timespan = {Timespan::FullHistory};
+  ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::WhenXInputsUpdated, 0.999999};
+  ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
+  ConfigEntry<UnpackingMethod> unpackingMethod = {UnpackingMethod::NoUnpackingNeeded};
 };
 
 } // namespace experimental::mergers

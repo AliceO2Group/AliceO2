@@ -48,7 +48,7 @@ bool o2::data_flow::HeartbeatSampler::ConditionalRun()
   O2Message outgoing;
 
   // build multipart message from header and payload
-  o2::base::addDataBlock(outgoing, { dh, specificHeader }, NewSimpleMessage(hbfPayload));
+  o2::base::addDataBlock(outgoing, {dh, specificHeader}, NewSimpleMessage(hbfPayload));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());

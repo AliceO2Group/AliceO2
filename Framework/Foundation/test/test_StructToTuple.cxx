@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(TestStructToTuple)
   //#BOOST_CHECK_EQUAL(std::get<0>(t1), 1);
   // Expand a struct which inherits from
   // another..
-  Bar bar{ 4, 5 };
+  Bar bar{4, 5};
   BOOST_CHECK_EQUAL(bar.foo, 4);
   BOOST_CHECK_EQUAL(bar.bar, 5);
   auto t2 = o2::framework::to_tuple(bar);

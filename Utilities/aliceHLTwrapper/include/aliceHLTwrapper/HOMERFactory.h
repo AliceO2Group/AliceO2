@@ -26,7 +26,7 @@
 
 //  @file   HOMERFactory.h
 //  @author Matthias Richter
-//  @since  2014-05-07 
+//  @since  2014-05-07
 //  @brief  Original AliHLTHOMERLibManager.h of AliRoot adapted to the
 //          ALFA project
 
@@ -38,8 +38,10 @@
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
 
-namespace o2 {
-  namespace alice_hlt {
+namespace o2
+{
+namespace alice_hlt
+{
 
 /**
  * @class HOMERFactory
@@ -78,7 +80,8 @@ namespace o2 {
  *
  * @ingroup alihlt_homer
  */
-class HOMERFactory {
+class HOMERFactory
+{
  public:
   /** standard constructor */
   HOMERFactory();
@@ -88,7 +91,7 @@ class HOMERFactory {
   /**
    * Open a homer reader working on a TCP port.
    */
-  AliHLTHOMERReader* OpenReader(const char* hostname, unsigned short port );
+  AliHLTHOMERReader* OpenReader(const char* hostname, unsigned short port);
 
   /**
    * Open a homer reader working on multiple TCP ports.
@@ -138,7 +141,6 @@ class HOMERFactory {
   int DeleteWriter(AliHLTHOMERWriter* pWriter);
 
  protected:
-
  private:
   /** copy constructor prohibited */
   HOMERFactory(const HOMERFactory&);
@@ -156,7 +158,7 @@ class HOMERFactory {
   int UnloadHOMERLibrary();
 
   /** status of the loading of the HOMER library */
-  static  int sLibraryStatus; //!transient
+  static int sLibraryStatus; //!transient
 
   /** entry in the HOMER library */
   void (*mFctCreateReaderFromTCPPort)(); //!transient
@@ -177,14 +179,14 @@ class HOMERFactory {
   void (*mFctDeleteWriter)(); //!transient
 
   /** Indicates the library that was actually (and if) loaded in LoadHOMERLibrary(). */
-  const char* mLoadedLib;  //!transient
+  const char* mLoadedLib; //!transient
 
   /** library handle returned by dlopen */
   void* mHandle;
 
   static const char* sLibraries[]; /// List of libraries to try and load.
-  static int sLibRefCount[]; /// The library reference count to control when to unload the library.
+  static int sLibRefCount[];       /// The library reference count to control when to unload the library.
 };
-}    // namespace alice_hlt
-}    // namespace o2
+} // namespace alice_hlt
+} // namespace o2
 #endif

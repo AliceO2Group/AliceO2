@@ -37,6 +37,5 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("track-iteration-tutorial")
-  };
+    adaptAnalysisTask<ATask>("track-iteration-tutorial")};
 }

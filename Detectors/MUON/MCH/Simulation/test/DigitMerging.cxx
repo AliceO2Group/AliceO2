@@ -19,7 +19,7 @@ using o2::mch::Digit;
 
 void dumpDigits(const std::vector<Digit>& digits)
 {
-  int i{ 0 };
+  int i{0};
   std::cout << "dumpDigits" << std::string(40, '-') << "\n";
   for (auto& d : digits) {
     std::cout << "i=" << i << ":[" << d.getPadID() << "," << d.getADC() << " ] ";
@@ -55,7 +55,7 @@ std::vector<Digit> mergeDigits_sortnosizeadjust(const std::vector<Digit>& inputD
     while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
       j++;
     }
-    float adc{ 0 };
+    float adc{0};
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
     }
@@ -95,7 +95,7 @@ std::vector<Digit> mergeDigits_sortsizeadjust(const std::vector<Digit>& inputDig
     while (j < indices.size() && (sortedDigits(i).getPadID() == sortedDigits(j).getPadID())) {
       j++;
     }
-    float adc{ 0 };
+    float adc{0};
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
     }
@@ -114,8 +114,8 @@ std::vector<Digit> mergeDigits_map(const std::vector<Digit>& inputDigits, const 
   int index = 0;
   std::map<int, int> padidmap;
   std::set<int> forRemoval;
-  std::vector<Digit> digits{ inputDigits };
-  std::vector<o2::MCCompLabel> labels{ inputLabels };
+  std::vector<Digit> digits{inputDigits};
+  std::vector<o2::MCCompLabel> labels{inputLabels};
 
   for (auto& digit : digits) {
     int count = 0;
@@ -145,5 +145,5 @@ std::vector<Digit> mergeDigits_map(const std::vector<Digit>& inputDigits, const 
 
 std::vector<MergingFunctionType> mergingFunctions()
 {
-  return std::vector<MergingFunctionType>{ mergeDigits_sortnosizeadjust, mergeDigits_sortsizeadjust, mergeDigits_map };
+  return std::vector<MergingFunctionType>{mergeDigits_sortnosizeadjust, mergeDigits_sortsizeadjust, mergeDigits_map};
 }

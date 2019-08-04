@@ -51,7 +51,7 @@ TH1* TimeCalibrationParams::getHistogramRepresentation(bool isLowGain) const
     auto hist = new TH1S("TimeCalibrationParams", "Time Calibration Params HG", 17664, 0, 17664);
     hist->SetDirectory(nullptr);
 
-    for (std::size_t icell{ 0 }; icell < mTimeCalibParamsHG.size(); ++icell)
+    for (std::size_t icell{0}; icell < mTimeCalibParamsHG.size(); ++icell)
       hist->SetBinContent(icell + 1, mTimeCalibParamsHG[icell]);
 
     return hist;
@@ -59,7 +59,7 @@ TH1* TimeCalibrationParams::getHistogramRepresentation(bool isLowGain) const
     auto hist = new TH1S("TimeCalibrationParams", "Time Calibration Params LG", 17664, 0, 17664);
     hist->SetDirectory(nullptr);
 
-    for (std::size_t icell{ 0 }; icell < mTimeCalibParamsLG.size(); ++icell)
+    for (std::size_t icell{0}; icell < mTimeCalibParamsLG.size(); ++icell)
       hist->SetBinContent(icell + 1, mTimeCalibParamsLG[icell]);
 
     return hist;

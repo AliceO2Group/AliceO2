@@ -20,16 +20,18 @@ namespace framework
 /// A resource manager with infinite resources at its disposal.
 /// This is a trivial implementation which can be used to do
 /// laptop deploys.
-class SimpleResourceManager : public ResourceManager {
+class SimpleResourceManager : public ResourceManager
+{
  public:
   /// @a initialPort is the first port which can be used
   ///              by this trivial resource manager.
   /// @a maxPorts is the maximum number of ports starting from
   ///             initialPort that this resource manager can allocate.
   SimpleResourceManager(unsigned short initialPort, unsigned short maxPorts = 1000)
-    : mInitialPort{ initialPort },
-      mMaxPorts{ maxPorts }
-  {}
+    : mInitialPort{initialPort},
+      mMaxPorts{maxPorts}
+  {
+  }
   std::vector<ComputingResource> getAvailableResources() override;
 
  private:

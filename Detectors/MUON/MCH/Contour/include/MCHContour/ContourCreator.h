@@ -47,18 +47,18 @@ Contour<T> createContour(const std::vector<Polygon<T>>& polygons)
     return trivialContour;
   }
 
-  std::vector<impl::VerticalEdge<T>> polygonVerticalEdges{ impl::getVerticalEdges(polygons) };
+  std::vector<impl::VerticalEdge<T>> polygonVerticalEdges{impl::getVerticalEdges(polygons)};
 
   sortVerticalEdges(polygonVerticalEdges);
 
   // Initialize the segment tree that is used by the sweep() function
-  std::unique_ptr<impl::Node<T>> segmentTree{ impl::createSegmentTree(impl::getYPositions(polygons)) };
+  std::unique_ptr<impl::Node<T>> segmentTree{impl::createSegmentTree(impl::getYPositions(polygons))};
 
   // Find the vertical edges of the merged contour. This is the meat of the algorithm...
-  std::vector<impl::VerticalEdge<T>> contourVerticalEdges{ impl::sweep(segmentTree.get(), polygonVerticalEdges) };
+  std::vector<impl::VerticalEdge<T>> contourVerticalEdges{impl::sweep(segmentTree.get(), polygonVerticalEdges)};
 
   // Deduce the horizontal edges from the vertical ones
-  std::vector<impl::HorizontalEdge<T>> contourHorizontalEdges{ impl::verticalsToHorizontals(contourVerticalEdges) };
+  std::vector<impl::HorizontalEdge<T>> contourHorizontalEdges{impl::verticalsToHorizontals(contourVerticalEdges)};
 
   return impl::finalizeContour(contourVerticalEdges, contourHorizontalEdges);
 }

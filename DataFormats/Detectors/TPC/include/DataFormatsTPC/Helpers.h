@@ -27,7 +27,7 @@ namespace dataformats
 template <class T>
 class MCTruthContainer;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -47,6 +47,7 @@ class ClusterHardwareContainerFixedSize
     return ((sizeof(mFixSize) - sizeof(ClusterHardwareContainer)) / sizeof(ClusterHardware));
   }
   ClusterHardwareContainerFixedSize() { memset(this, 0, size); }
+
  private:
   uint8_t mFixSize[size];
 
@@ -54,7 +55,7 @@ class ClusterHardwareContainerFixedSize
   static_assert(size >= sizeof(ClusterHardwareContainer), "Size must be at least sizeof(ClusterHardwareContainer)");
 };
 typedef ClusterHardwareContainerFixedSize<8192> ClusterHardwareContainer8kb;
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif
