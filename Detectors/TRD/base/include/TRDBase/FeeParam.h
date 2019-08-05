@@ -8,11 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDFEEPARAM_H
-#define O2_TRDFEEPARAM_H
-
-//Forwards to standard header with protection for GPU compilation
-#include "GPUCommonRtypes.h" // for ClassDef
+#ifndef O2_TRD_FEEPARAM_H
+#define O2_TRD_FEEPARAM_H
 
 namespace o2
 {
@@ -27,30 +24,30 @@ namespace trd
 //                                                                        //
 //  Author:                                                               //
 //    Ken Oyama (oyama@physi.uni-heidelberg.de)                           //
-//                                                                        //
-//  many things now configured by AliTRDtrapConfig reflecting             //
-//  the real memory structure of the TRAP (Jochen)                        //
+//    Merging LTUParam in here for Run3                                   //
+//    TrapChip configs remain inside the TrapConfig class reflecting      //
+//  the real memory structure of the TRAP (Jochen and a tiny bit of Sean) //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-class TRootIoCtor;
+#include <iosfwd>
+#include <array>
 
 class TRDCommonParam;
 class TRDPadPlane;
 class TRDGeometry;
 
 //_____________________________________________________________________________
-class TRDFeeParam
+class FeeParam
 {
 
  public:
-  TRDFeeParam(TRootIoCtor*);
-  TRDFeeParam(const TRDFeeParam& p);
-  virtual ~TRDFeeParam();
-  TRDFeeParam& operator=(const TRDFeeParam& p);
-  virtual void Copy(TRDFeeParam& p) const;
+  FeeParam(const FeeParam& p);
+  virtual ~FeeParam();
+  FeeParam& operator=(const FeeParam& p);
+  virtual void Copy(FeeParam& p) const;
 
-  static TRDFeeParam* instance(); // Singleton
+  static FeeParam* instance(); // Singleton
   static void terminate();
 
   // Translation from MCM to Pad and vice versa
@@ -71,7 +68,7 @@ class TRDFeeParam
   static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // geometry
-  static Float_t getSamplingFrequency() { return (Float_t)mgkLHCfrequency / 4000000.0; }
+  static Float_t getSamplingFrequency() { return (Float_t)mgkLHCfrequency / 4000000.0; } //TODO put the 40MHz into a static variable somewhere.
   static int getNmcmRob() { return mgkNmcmRob; }
   static int getNmcmRobInRow() { return mgkNmcmRobInRow; }
   static int getNmcmRobInCol() { return mgkNmcmRobInCol; }
@@ -99,9 +96,53 @@ class TRDFeeParam
 
   inline short padMcmLUT(int index) { return mgLUTPadNumbering[index]; }
 
+  // configuration settings
+  // called with special SCSN commands
+  void setPtMin(int data)
+  {
+    mPtMin = float(data) / 1000.;
+    mInvPtMin = 1 / mPtMin;
+  }
+  void setMagField(int data) { mMagField = float(data) / 1000.; }
+  void setOmegaTau(int data) { mOmegaTau = float(data) / 1.e6; }
+  void setNtimebins(int data) { mNtimebins = data; }
+  void setScaleQ0(int data) { mScaleQ0 = data; }
+  void setScaleQ1(int data) { mScaleQ1 = data; }
+  void setLengthCorrectionEnable(int data) { mPidTracklengthCorr = bool(data); }
+  void setTiltCorrectionEnable(int data) { mTiltCorr = bool(data); }
+  void setPIDgainCorrectionEnable(bool data) { mPidGainCorr = data; }
+
+  // set values directly
+  void setRawPtMin(float data) { mPtMin = data; }
+  void setRawMagField(float data) { mMagField = data; }
+  void setRawOmegaTau(float data) { mOmegaTau = data; }
+  void setRawNtimebins(int data) { mNtimebins = data; }
+  void setRawScaleQ0(int data) { mScaleQ0 = data; }
+  void setRawScaleQ1(int data) { mScaleQ1 = data; }
+  void setRawLengthCorrectionEnable(bool data) { mPidTracklengthCorr = data; }
+  void setRawTiltCorrectionEnable(bool data) { mTiltCorr = data; }
+  void setRawPIDgainCorrectionEnable(bool data) { mPidGainCorr = data; }
+
+  // retrieve the calculated information
+  // which is written to the TRAPs
+  int getDyCorrection(int det, int rob, int mcm) const;
+  void getDyRange(int det, int rob, int mcm, int ch, int& dyMinInt, int& dyMaxInt) const;
+  void getCorrectionFactors(int det, int rob, int mcm, int ch,
+                            unsigned int& cor0, unsigned int& cor1, float gain = 1.) const;
+  int getNtimebins() const;
+
+  float getX(int det, int rob, int mcm) const;
+  float getLocalY(int det, int rob, int mcm, int ch) const;
+  float getLocalZ(int det, int rob, int mcm) const;
+
+  float getDist(int det, int rob, int mcm, int ch) const;
+  float getElongation(int det, int rob, int mcm, int) const;
+  float getPhi(int det, int rob, int mcm, int ch) const;
+  float getPerp(int det, int rob, int mcm, int ch) const;
+
  protected:
-  static TRDFeeParam* mgInstance; // Singleton instance
-  static bool mgTerminated;       // Defines if this class has already been terminated
+  static FeeParam* mgInstance; // Singleton instance
+  static bool mgTerminated;    // Defines if this class has already been terminated
 
   TRDCommonParam* mCP = nullptr; // TRD common parameters class
 
@@ -132,10 +173,39 @@ class TRDFeeParam
   // For raw production
   int mRAWversion{3};                    // Raw data production version
   static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
- private:
-  TRDFeeParam();
 
-  ClassDefNV(TRDFeeParam, 1); // The TRD front end electronics parameter
+  // geometry constants
+  static std::array<float, 30> mgZrow;            // z-position of pad row edge 6x5
+  static std::array<float, 6> mgX;                // x-position for all layers
+  static std::array<float, 6> mgInvX;             // inverse x-position for all layers (to remove divisions)
+  static std::array<float, 6> mgTiltingAngle;     // tilting angle for every layer
+  static std::array<float, 6> mgTiltingAngleTan;  // tan of tilting angle for every layer (look up table to avoid tan calculations)
+  static std::array<float, 6> mgWidthPad;         // pad width for all layers
+  static std::array<float, 6> mgInvWidthPad;      // inverse pad width for all layers (to remove divisions)
+  static float mgLengthInnerPadC0;                // inner pad length C0 chamber
+  static float mgLengthOuterPadC0;                // outer pad length C0 chamber
+  static std::array<float, 6> mgLengthInnerPadC1; // inner pad length C1 chambers
+  static std::array<float, 6> mgLengthOuterPadC1; // outer pad length C1 chambers
+  static float mgScalePad;                        // scaling factor for pad width
+  static float mgDriftLength;                     // length of the  parse gaintbl Krypton_2009-01 drift region
+  static float mgBinDy;                           // bin in dy (140 um)
+  static int mgDyMax;                             // max dy for a tracklet (hard limit)
+  static int mgDyMin;                             // min dy for a tracklet (hard limit)
+
+  // settings
+  float mMagField;          // magnetic field
+  float mOmegaTau;          // omega tau, i.e. tan(Lorentz angle)
+  float mPtMin;             // min. pt for deflection cut
+  float mInvPtMin;          // min. pt for deflection cut (Inverted to remove division)
+  int mNtimebins;           // drift time in units of timebins << 5n
+  unsigned int mScaleQ0;    // scale factor for accumulated charge Q0
+  unsigned int mScaleQ1;    // scale factor for accumulated charge Q1
+  bool mPidTracklengthCorr; // enable tracklet length correction
+  bool mTiltCorr;           // enable tilt correction
+  bool mPidGainCorr;        // enable MCM gain correction factor for PID
+
+ private:
+  FeeParam();
 };
 
 } //namespace trd
