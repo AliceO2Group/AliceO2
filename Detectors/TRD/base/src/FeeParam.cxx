@@ -37,23 +37,49 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
-#include "TRDBase/TRDFeeParam.h"
+#include "TRDBase/FeeParam.h"
 #include "TRDBase/TRDCommonParam.h"
 
 using namespace o2::trd;
 
 //_____________________________________________________________________________
 
-TRDFeeParam* TRDFeeParam::mgInstance = nullptr;
-bool TRDFeeParam::mgTerminated = kFALSE;
-bool TRDFeeParam::mgTracklet = kTRUE;
-bool TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
-bool TRDFeeParam::mgUseMisalignCorr = kFALSE;
-bool TRDFeeParam::mgUseTimeOffset = kFALSE;
-bool TRDFeeParam::mgLUTPadNumberingFilled = kFALSE;
-std::vector<short> TRDFeeParam::mgLUTPadNumbering;
+FeeParam* FeeParam::mgInstance = nullptr;
+bool FeeParam::mgTerminated = kFALSE;
+bool FeeParam::mgTracklet = kTRUE;
+bool FeeParam::mgRejectMultipleTracklets = kFALSE;
+bool FeeParam::mgUseMisalignCorr = kFALSE;
+bool FeeParam::mgUseTimeOffset = kFALSE;
+bool FeeParam::mgLUTPadNumberingFilled = kFALSE;
+std::vector<short> FeeParam::mgLUTPadNumbering;
+
+// definition of geometry constants
+std::array<float, 30> FeeParam::mgZrow = {
+  301, 177, 53, -57, -181,
+  301, 177, 53, -57, -181,
+  315, 184, 53, -57, -188,
+  329, 191, 53, -57, -195,
+  343, 198, 53, -57, -202,
+  347, 200, 53, -57, -204};
+std::array<float, 6> FeeParam::mgX = {300.65, 313.25, 325.85, 338.45, 351.05, 363.65};
+std::array<float, 6> FeeParam::mgTiltingAngle = {-2., 2., -2., 2., -2., 2.};
+int FeeParam::mgDyMax = 63;
+int FeeParam::mgDyMin = -64;
+float FeeParam::mgBinDy = 140e-4;
+std::array<float, 6> FeeParam::mgWidthPad = {0.635, 0.665, 0.695, 0.725, 0.755, 0.785};
+std::array<float, 6> FeeParam::mgLengthInnerPadC1 = {7.5, 7.5, 8.0, 8.5, 9.0, 9.0};
+std::array<float, 6> FeeParam::mgLengthOuterPadC1 = {7.5, 7.5, 7.5, 7.5, 7.5, 8.5};
+std::array<float, 6> FeeParam::mgInvX;
+std::array<float, 6> FeeParam::mgTiltingAngleTan;
+std::array<float, 6> FeeParam::mgInvWidthPad;
+
+float FeeParam::mgLengthInnerPadC0 = 9.0;
+float FeeParam::mgLengthOuterPadC0 = 8.0;
+float FeeParam::mgScalePad = 256. * 32.;
+float FeeParam::mgDriftLength = 3.;
+
 //_____________________________________________________________________________
-TRDFeeParam* TRDFeeParam::instance()
+FeeParam* FeeParam::instance()
 {
   //
   // Instance constructor
@@ -64,14 +90,14 @@ TRDFeeParam* TRDFeeParam::instance()
   }
 
   if (mgInstance == nullptr) {
-    mgInstance = new TRDFeeParam();
+    mgInstance = new FeeParam();
   }
 
   return mgInstance;
 }
 
 //_____________________________________________________________________________
-void TRDFeeParam::terminate()
+void FeeParam::terminate()
 {
   //
   // Terminate the class and release memory
@@ -86,7 +112,15 @@ void TRDFeeParam::terminate()
 }
 
 //_____________________________________________________________________________
-TRDFeeParam::TRDFeeParam()
+FeeParam::FeeParam() : mMagField(0.),
+                       mOmegaTau(0.),
+                       mPtMin(0.1),
+                       mNtimebins(20 << 5),
+                       mScaleQ0(0),
+                       mScaleQ1(0),
+                       mPidTracklengthCorr(false),
+                       mTiltCorr(false),
+                       mPidGainCorr(false)
 {
   //
   // Default constructor
@@ -94,21 +128,32 @@ TRDFeeParam::TRDFeeParam()
 
   mCP = TRDCommonParam::Instance();
   createPad2MCMLookUpTable();
+
+  // These variables are used internally in the class to elliminate divisions.
+  // putting them at the top was messy.
+  int j = 0;
+  std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { x = 1. / mgX[j]; });
+  j = 0;
+  std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { x = 1. / mgWidthPad[j]; });
+  j = 0;
+  std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { x = std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
+
+  mInvPtMin = 1 / mPtMin;
 }
 
 //_____________________________________________________________________________
-TRDFeeParam::TRDFeeParam(TRootIoCtor*)
-{
-  //
-  // IO constructor
-  //
-}
+//FeeParam::FeeParam(TRootIoCtor*)
+//{
+//
+// IO constructor
+//
+//}
 
 //_____________________________________________________________________________
-TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
+FeeParam::FeeParam(const FeeParam& p)
 {
   //
-  // TRDFeeParam copy constructor
+  // FeeParam copy constructor
   //
   mRAWversion = p.mRAWversion;
   mCP = p.mCP;
@@ -116,24 +161,24 @@ TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
 }
 
 //_____________________________________________________________________________
-TRDFeeParam::~TRDFeeParam() = default;
+FeeParam::~FeeParam() = default;
 
 //_____________________________________________________________________________
-TRDFeeParam& TRDFeeParam::operator=(const TRDFeeParam& p)
+FeeParam& FeeParam::operator=(const FeeParam& p)
 {
   //
   // Assignment operator
   //
 
   if (this != &p) {
-    ((TRDFeeParam&)p).Copy(*this);
+    ((FeeParam&)p).Copy(*this);
   }
 
   return *this;
 }
 
 //_____________________________________________________________________________
-void TRDFeeParam::Copy(TRDFeeParam& p) const
+void FeeParam::Copy(FeeParam& p) const
 {
   //
   // Copy function
@@ -144,7 +189,7 @@ void TRDFeeParam::Copy(TRDFeeParam& p) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getPadRowFromMCM(int irob, int imcm) const
+int FeeParam::getPadRowFromMCM(int irob, int imcm) const
 {
   //
   // Return on which pad row this mcm sits
@@ -154,7 +199,7 @@ int TRDFeeParam::getPadRowFromMCM(int irob, int imcm) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
+int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
 {
   //
   // Return which pad is connected to this adc channel.
@@ -180,7 +225,7 @@ int TRDFeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
+int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
 {
   //
   // Return which pad coresponds to the extended digit container pad numbering
@@ -197,7 +242,7 @@ int TRDFeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getMCMfromPad(int irow, int icol) const
+int FeeParam::getMCMfromPad(int irow, int icol) const
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -211,7 +256,7 @@ int TRDFeeParam::getMCMfromPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getMCMfromSharedPad(int irow, int icol) const
+int FeeParam::getMCMfromSharedPad(int irow, int icol) const
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -241,7 +286,7 @@ int TRDFeeParam::getMCMfromSharedPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getROBfromPad(int irow, int icol) const
+int FeeParam::getROBfromPad(int irow, int icol) const
 {
   //
   // Return on which rob this pad is
@@ -251,7 +296,7 @@ int TRDFeeParam::getROBfromPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getROBfromSharedPad(int irow, int icol) const
+int FeeParam::getROBfromSharedPad(int irow, int icol) const
 {
   //
   // Return on which rob this pad is for shared pads
@@ -264,7 +309,7 @@ int TRDFeeParam::getROBfromSharedPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getRobSide(int irob) const
+int FeeParam::getRobSide(int irob) const
 {
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
@@ -277,7 +322,7 @@ int TRDFeeParam::getRobSide(int irob) const
 }
 
 //_____________________________________________________________________________
-int TRDFeeParam::getColSide(int icol) const
+int FeeParam::getColSide(int icol) const
 {
   //
   // Return on which side this column sits (A side = 0, B side = 1)
@@ -289,7 +334,7 @@ int TRDFeeParam::getColSide(int icol) const
   return icol / (mgkNcol / 2);
 }
 
-unsigned int TRDFeeParam::aliToExtAli(int rob, int aliid)
+unsigned int FeeParam::aliToExtAli(int rob, int aliid)
 {
   if (aliid != 127)
     return ((1 << 10) | (rob << 7) | aliid);
@@ -297,7 +342,7 @@ unsigned int TRDFeeParam::aliToExtAli(int rob, int aliid)
   return 127;
 }
 
-int TRDFeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigned short rocType, int* mcmList, int listSize)
+int FeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigned short rocType, int* mcmList, int listSize)
 {
   // Converts an extended ALICE ID which identifies a single MCM or a group of MCMs to
   // the corresponding list of MCMs. Only broadcasts (127) are encoded as 127
@@ -376,7 +421,7 @@ int TRDFeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigne
   return nmcm;
 }
 
-short TRDFeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
+short FeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 {
   // Converts the ROB part of the extended ALICE ID to robs
 
@@ -410,7 +455,7 @@ short TRDFeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
   return 0;
 }
 
-short TRDFeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
+short FeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
 {
   // Converts the chipmask to a list of MCMs
 
@@ -432,7 +477,7 @@ short TRDFeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigne
 }
 
 //_____________________________________________________________________________
-void TRDFeeParam::setRAWversion(int rawver)
+void FeeParam::setRAWversion(int rawver)
 {
   //
   // Set raw data version (major number only)
@@ -446,7 +491,7 @@ void TRDFeeParam::setRAWversion(int rawver)
   }
 }
 
-void TRDFeeParam::createPad2MCMLookUpTable()
+void FeeParam::createPad2MCMLookUpTable()
 {
 
   //
@@ -456,17 +501,203 @@ void TRDFeeParam::createPad2MCMLookUpTable()
 
   if (!mgLUTPadNumberingFilled) {
 
-    //   mgLUTPadNumbering.resize(TRDFeeParam::getNcol());
-    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * TRDFeeParam::getNcol());
+    //   mgLUTPadNumbering.resize(FeeParam::getNcol());
+    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * FeeParam::getNcol());
 
     for (int mcm = 0; mcm < 8; mcm++) {
       int lowerlimit = 0 + mcm * 18;
       int upperlimit = 18 + mcm * 18;
       int shiftposition = 1 + 3 * mcm;
       for (int index = lowerlimit; index < upperlimit; index++) {
-        TRDFeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
+        FeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
     mgLUTPadNumberingFilled = kTRUE;
   }
+}
+
+int FeeParam::getDyCorrection(int det, int rob, int mcm) const
+{
+  // calculate the correction of the deflection
+  // i.e. Lorentz angle and tilt correction (if active)
+
+  int layer = det % 6;
+
+  float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * M_PI / 180.) *
+                  getLocalZ(det, rob, mcm) * mgInvX[layer]);
+
+  // calculate Lorentz correction
+  float dyCorr = -mOmegaTau * mgDriftLength;
+
+  if (mTiltCorr)
+    dyCorr += dyTilt; // add tilt correction
+
+  return (int)TMath::Nint(dyCorr * mgScalePad * mgInvWidthPad[layer]);
+}
+
+void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
+                          int& dyMinInt, int& dyMaxInt) const
+{
+  // calculate the deflection range in which tracklets are accepted
+
+  dyMinInt = mgDyMin;
+  dyMaxInt = mgDyMax;
+
+  // deflection cut is considered for |B| > 0.1 T only
+  if (std::abs(mMagField) < 0.1)
+    return;
+
+  float e = 0.30;
+
+  float maxDeflTemp = getPerp(det, rob, mcm, ch) / 2. *             // Sekante/2 (cm)
+                      (e * 1e-2 * std::abs(mMagField) * mInvPtMin); // 1/R (1/cm)
+
+  float phi = getPhi(det, rob, mcm, ch);
+  if (maxDeflTemp < std::cos(phi)) {
+    float maxDeflAngle = std::asin(maxDeflTemp);
+
+    float dyMin = (mgDriftLength *
+                   std::tan(phi - maxDeflAngle));
+
+    dyMinInt = int(dyMin / mgBinDy);
+    // clipping to allowed range
+    if (dyMinInt < mgDyMin)
+      dyMinInt = mgDyMin;
+    else if (dyMinInt > mgDyMax)
+      dyMinInt = mgDyMax;
+
+    float dyMax = (mgDriftLength *
+                   std::tan(phi + maxDeflAngle));
+
+    dyMaxInt = int(dyMax / mgBinDy);
+    // clipping to allowed range
+    if (dyMaxInt > mgDyMax)
+      dyMaxInt = mgDyMax;
+    else if (dyMaxInt < mgDyMin)
+      dyMaxInt = mgDyMin;
+  } else if (maxDeflTemp < 0.) {
+    // this must not happen
+    printf("Inconsistent calculation of sin(alpha): %f\n", maxDeflTemp);
+  } else {
+    // TRD is not reached at the given pt threshold
+    // max range
+  }
+
+  if ((dyMaxInt - dyMinInt) <= 0) {
+    LOG(info) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
+    dyMaxInt = mgDyMax;
+    dyMinInt = mgDyMin;
+  }
+}
+
+float FeeParam::getElongation(int det, int rob, int mcm, int ch) const
+{
+  // calculate the ratio of the distance to the primary vertex and the
+  // distance in x-direction for the given ADC channel
+
+  int layer = det % 6;
+
+  float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
+
+  // sanity check
+  if (elongation < 0.001) {
+    elongation = 1.;
+  }
+  return elongation;
+}
+
+void FeeParam::getCorrectionFactors(int det, int rob, int mcm, int ch,
+                                    unsigned int& cor0, unsigned int& cor1, float gain) const
+{
+  // calculate the gain correction factors for the given ADC channel
+  float Invgain = 1.0;
+  if (mPidGainCorr == true)
+    Invgain = 1 / gain;
+
+  if (mPidTracklengthCorr == true) {
+    float InvElongationOverGain = 1 / getElongation(det, rob, mcm, ch) * Invgain;
+    cor0 = (unsigned int)(mScaleQ0 * InvElongationOverGain);
+    cor1 = (unsigned int)(mScaleQ1 * InvElongationOverGain);
+  } else {
+    cor0 = (unsigned int)(mScaleQ0 * Invgain);
+    cor1 = (unsigned int)(mScaleQ1 * Invgain);
+  }
+}
+
+int FeeParam::getNtimebins() const
+{
+  // return the number of timebins used
+
+  return mNtimebins;
+}
+
+float FeeParam::getX(int det, int /* rob */, int /* mcm */) const
+{
+  // return the distance to the beam axis in x-direction
+
+  int layer = det % 6;
+  return mgX[layer];
+}
+
+float FeeParam::getLocalY(int det, int rob, int mcm, int ch) const
+{
+  // get local y-position (r-phi) w.r.t. the chamber centre
+
+  int layer = det % 6;
+  // calculate the pad position as in the TRAP
+  float ypos = (-4 + 1 + (rob & 0x1) * 4 + (mcm & 0x3)) * 18 - ch - 0.5; // y position in bins of pad widths
+  return ypos * mgWidthPad[layer];
+}
+
+float FeeParam::getLocalZ(int det, int rob, int mcm) const
+{
+  // get local z-position w.r.t. to the chamber boundary
+
+  int stack = (det % 30) / 6;
+  int layer = det % 6;
+  int row = (rob / 2) * 4 + mcm / 4;
+
+  if (stack == 2) {
+    if (row == 0)
+      return (mgZrow[layer * 6 + stack] - 0.5 * mgLengthOuterPadC0);
+    else if (row == 11)
+      return (mgZrow[layer * 6 + stack] - 1.5 * mgLengthOuterPadC0 - (row - 1) * mgLengthInnerPadC0);
+    else
+      return (mgZrow[layer * 6 + stack] - mgLengthOuterPadC0 - (row - 0.5) * mgLengthInnerPadC0);
+  } else {
+    if (row == 0)
+      return (mgZrow[layer * 6 + stack] - 0.5 * mgLengthOuterPadC1[layer]);
+    else if (row == 15)
+      return (mgZrow[layer * 6 + stack] - 1.5 * mgLengthOuterPadC1[layer] - (row - 1) * mgLengthInnerPadC1[layer]);
+    else
+      return (mgZrow[layer * 6 + stack] - mgLengthOuterPadC1[layer] - (row - 0.5) * mgLengthInnerPadC1[layer]);
+  }
+}
+
+float FeeParam::getPerp(int det, int rob, int mcm, int ch) const
+{
+  // get transverse distance to the beam axis
+  float y;
+  float x;
+  x = getX(det, rob, mcm);
+  y = getLocalY(det, rob, mcm, ch);
+  return std::sqrt(y * y + x * x);
+}
+
+float FeeParam::getPhi(int det, int rob, int mcm, int ch) const
+{
+  // calculate the azimuthal angle for the given ADC channel
+
+  return std::atan2(getLocalY(det, rob, mcm, ch), getX(det, rob, mcm));
+}
+
+float FeeParam::getDist(int det, int rob, int mcm, int ch) const
+{
+  // calculate the distance from the origin for the given ADC channel
+  float x, y, z;
+  x = getX(det, rob, mcm);
+  y = getLocalY(det, rob, mcm, ch);
+  z = getLocalZ(det, rob, mcm);
+
+  return std::sqrt(y * y + x * x + z * z);
 }
