@@ -21,8 +21,7 @@ o2_add_library(TRDBase
                        src/TRDCalSingleChamberStatus.cxx
                        src/CalDet.cxx
                        src/CalROC.cxx
-                       src/TRDFeeParam.cxx
-                       src/LTUParam.cxx
+                       src/FeeParam.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::Field
@@ -42,8 +41,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/MCLabel.h
                                   include/TRDBase/CalDet.h
                                   include/TRDBase/CalROC.h
-                                  include/TRDBase/TRDFeeParam.h
-                                  include/TRDBase/LTUParam.h)
+                                  include/TRDBase/FeeParam.h)
 
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx
