@@ -165,10 +165,9 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
 ///
 /// "<namespace>/<InputRoute.origin>/<InputRoute.description>"
 ///
-/// FIXME: actually implement the fetching
-/// FIXME: for the moment we always go to CCDB every time we are expired.
-/// FIXME: this should really be done in the common fetcher.
-/// FIXME: provide a way to customize the namespace from the ProcessingContext
+/// \todo for the moment we always go to CCDB every time we are expired.
+/// \todo this should really be done in the common fetcher.
+/// \todo provide a way to customize the namespace from the ProcessingContext
 ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher, std::string const& prefix, std::string const& sourceChannel)
 {
   return [ matcher, sourceChannel, serverUrl = prefix ](ServiceRegistry & services, PartRef & ref, uint64_t timestamp)->void
