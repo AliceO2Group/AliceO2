@@ -139,7 +139,7 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   /// Specifies PHOS modules as alignable volumes
   ///
-  void addAlignableVolumes() const;
+  void addAlignableVolumes() const override;
 
  protected:
   ///

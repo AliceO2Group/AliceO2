@@ -85,6 +85,7 @@ bool CalibParams::setHGLGRatio(TH2* h, int module)
       }
     }
   }
+  return true;
 }
 
 bool CalibParams::setHGTimeCalib(TH2* h, int module)
@@ -119,6 +120,7 @@ bool CalibParams::setHGTimeCalib(TH2* h, int module)
       }
     }
   }
+  return true;
 }
 
 bool CalibParams::setLGTimeCalib(TH2* h, int module)
@@ -153,4 +155,5 @@ bool CalibParams::setLGTimeCalib(TH2* h, int module)
       }
     }
   }
+  return true;
 }
