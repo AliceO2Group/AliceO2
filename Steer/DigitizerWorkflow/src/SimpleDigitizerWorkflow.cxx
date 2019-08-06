@@ -64,6 +64,10 @@
 #include "MIDDigitizerSpec.h"
 #include "MIDDigitWriterSpec.h"
 
+// for PHOS
+#include "PHOSDigitizerSpec.h"
+#include "PHOSDigitWriterSpec.h"
+
 // for ZDC
 #include "ZDCDigitizerSpec.h"
 #include "ZDCDigitWriterSpec.h"
@@ -475,6 +479,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the FDD digit writer
     specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
   }
+
+  // the PHOS part
+  if (isEnabled(o2::detectors::DetID::PHS)) {
+    detList.emplace_back(o2::detectors::DetID::PHS);
+    // connect the PHOS digitization
+    specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++));
+    // add TOF PHOS writer
+    specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
+  }
+
 
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(detList));
