@@ -21,5 +21,7 @@
 #pragma link C++ class o2::TObjectWrapper < o2::emcal::TimeCalibrationParams> + ;
 #pragma link C++ class o2::emcal::TempCalibrationParams + ;
 #pragma link C++ class o2::TObjectWrapper < o2::emcal::TempCalibrationParams> + ;
+#pragma link C++ class o2::emcal::GainCalibrationFactors + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::GainCalibrationFactors> + ;
 
 #endif
