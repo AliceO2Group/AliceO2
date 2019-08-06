@@ -12,6 +12,7 @@ o2_add_library(EMCALCalib
                SOURCES src/BadChannelMap.cxx
                        src/TimeCalibrationParams.cxx
                        src/TempCalibrationParams.cxx
+                       src/GainCalibrationFactors.cxx
                        src/CalibDB.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase)
 
@@ -19,6 +20,7 @@ o2_target_root_dictionary(EMCALCalib
                           HEADERS include/EMCALCalib/BadChannelMap.h
                                   include/EMCALCalib/TimeCalibrationParams.h
                                   include/EMCALCalib/TempCalibrationParams.h
+                                  include/EMCALCalib/GainCalibrationFactors.h
                                   include/EMCALCalib/CalibDB.h
                           LINKDEF src/EMCALCalibLinkDef.h)
 
@@ -36,6 +38,12 @@ o2_add_test(TimeCalibrationParams
 
 o2_add_test(TempCalibrationParams
             SOURCES test/testTempCalibration.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            COMPONENT_NAME emcal
+            LABELS emcal)
+
+o2_add_test(GainCalibrationFactors
+            SOURCES test/testGainCalibration.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
             LABELS emcal)
