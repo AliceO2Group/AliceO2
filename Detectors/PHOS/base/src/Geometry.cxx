@@ -128,10 +128,10 @@ bool Geometry::RelToAbsNumbering(const int* relId, int& absId) const
   const int nZ = 56;   // nStripZ * nCellsZInStrip
   const int nPhi = 64; // nStripZ * nCellsZInStrip
 
-    absId =
-      ( relId[0] - 1 ) * nPhi * nZ  +      // the offset of PHOS modules
-      ( relId[1] - 1 ) * nZ  +             // the offset along phi
-        relId[2] ;                         // the offset along z
+  absId =
+    (relId[0] - 1) * nPhi * nZ + // the offset of PHOS modules
+    (relId[1] - 1) * nZ +        // the offset along phi
+    relId[2];                    // the offset along z
 
-  return true ;
+  return true;
 }

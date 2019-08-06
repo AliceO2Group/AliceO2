@@ -489,7 +489,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
   }
 
-
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(detList));
 
