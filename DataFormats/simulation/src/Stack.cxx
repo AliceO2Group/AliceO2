@@ -653,5 +653,22 @@ void Stack::fillParentIDs(std::vector<int>& parentids) const
   } while (mother != -1);
 }
 
+/// query parent tracks relative to current track a given number of levels
+/// up
+o2::MCTrack const* Stack::getParentTrack(int& trackID, int level) const
+{
+  int mother = mIndexOfCurrentTrack;
+  trackID = mother;
+  for (int l = 0; l < level; ++l) {
+    mother = getMotherTrackId(mother);
+    trackID = mother;
+    if (mother == -1) {
+      return nullptr;
+    }
+  }
+  const int particleentry = mTrackIDtoParticlesEntry[mother];
+  return &mParticles[particleentry];
+}
+
 FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
 ClassImp(o2::data::Stack);

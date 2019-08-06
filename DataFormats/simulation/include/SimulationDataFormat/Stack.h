@@ -211,6 +211,12 @@ class Stack : public FairGenericStack
   // The resulting ids will be in strictly monotonously decreasing order
   void fillParentIDs(std::vector<int>& ids) const;
 
+  /// Query parent tracks relative to current track a given number of levels "up"
+  /// Returns MCTrack pointer and trackID
+  /// Beware that pointer should not be cached since underlaying storage might
+  /// change anytime
+  MCTrack const* getParentTrack(int& trackID, int level = 1) const;
+
   /// set MCEventStats (for current event)
   /// used by MCApplication to inject here so that
   /// stack can set some information

@@ -6,7 +6,7 @@
 /mcVerbose/opGeometryManager 1
 /mcTracking/loopVerbose 1
 /mcVerbose/composedPhysicsList 2
-#/tracking/verbose 1
+/tracking/verbose 1
 #//control/cout/ignoreThreadsExcept 0
 
 /mcPhysics/rangeCuts 0.01 mm

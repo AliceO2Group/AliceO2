@@ -38,7 +38,19 @@ ClassImp(o2::zdc::Detector);
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("ZDC", active),
     mHits(new std::vector<o2::zdc::Hit>),
-    mXImpact(-999, -999, -999)
+    mXImpact(-999, -999, -999),
+    mNeutronResponseImage(Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2,
+                          Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2,
+                          Geometry::ZNAPOSITION[0] - Geometry::ZNDIMENSION[0],
+                          Geometry::ZNAPOSITION[1] - Geometry::ZNDIMENSION[1],
+                          Geometry::ZNDIMENSION[0] * 2,
+                          Geometry::ZNDIMENSION[1] * 2),
+    mProtonResponseImage(Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2,
+                         Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2,
+                         Geometry::ZPAPOSITION[0] - Geometry::ZPDIMENSION[0],
+                         Geometry::ZPAPOSITION[1] - Geometry::ZPDIMENSION[1],
+                         Geometry::ZPDIMENSION[0] * 2,
+                         Geometry::ZPDIMENSION[1] * 2)
 {
   mTrackEta = 999;
   resetHitIndices();
@@ -133,7 +145,7 @@ void Detector::defineSensitiveVolumes()
   if (vol) {
     AddSensitiveVolume(vol);
     mZNENVVolID = vol->GetNumber(); // initialize id
-
+    LOG(INFO) << "registering ZENVVOLID " << mZNENVVolID;
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
@@ -241,6 +253,70 @@ void Detector::resetHitIndices()
   }
 }
 
+void Detector::flushSpatialResponse()
+{
+  if (mAddResponse) {
+    mResponses.push_back(std::make_pair(mCurrentPrincipalParticle,
+                                        std::make_pair(mNeutronResponseImage, mProtonResponseImage)));
+  }
+  mNeutronResponseImage.reset();
+  mProtonResponseImage.reset();
+}
+
+int getPrincipalTrackID(int detector, int trackn, o2::data::Stack const& stack)
+{
+  auto isOutSide = [](double x, double y, double z, double lx, double ly, double lz, double ox, double oy, double oz) {
+    if ((std::abs(x - ox) > lx) ||
+        (std::abs(y - oy) > ly) ||
+        (std::abs(z - oz) > lz)) {
+      return true;
+    }
+    return false;
+  };
+
+  auto getLastOutsideTrack = [trackn, &stack, &isOutSide](double lx, double ly, double lz, double ox, double oy, double oz) {
+    int level{0};
+    int trackidup{trackn};
+    while (auto track = stack.getParentTrack(trackidup, level)) {
+      //LOG(INFO) << "LEVEL " << level
+      //          << " TRACKID " << trackidup
+      //          << " VX " << track->GetStartVertexCoordinatesX()
+      //          << " VY " << track->GetStartVertexCoordinatesY()
+      //         << " VZ " << track->GetStartVertexCoordinatesZ();
+
+      if (isOutSide(track->GetStartVertexCoordinatesX(),
+                    track->GetStartVertexCoordinatesY(),
+                    track->GetStartVertexCoordinatesZ(), lx, ly, lz, ox, oy, oz)) {
+        return trackidup;
+      }
+
+      level++;
+    }
+    return -1;
+  };
+
+  // the case of ZN
+  if (detector == 1) {
+    return getLastOutsideTrack(Geometry::ZNDIMENSION[0], Geometry::ZNDIMENSION[1], Geometry::ZNDIMENSION[2],
+                               Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
+  } else if (detector == 4) {
+    return getLastOutsideTrack(Geometry::ZNDIMENSION[0], Geometry::ZNDIMENSION[1], Geometry::ZNDIMENSION[2],
+                               Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
+  }
+
+  // the case of ZP
+  else if (detector == 2) {
+    return getLastOutsideTrack(Geometry::ZPDIMENSION[0], Geometry::ZPDIMENSION[1], Geometry::ZPDIMENSION[2],
+                               Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
+  } else if (detector == 5) {
+    return getLastOutsideTrack(Geometry::ZPDIMENSION[0], Geometry::ZPDIMENSION[1], Geometry::ZPDIMENSION[2],
+                               Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
+  }
+
+  // the case of EM
+  LOG(INFO) << "NOT SUPPORTED";
+}
+
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
@@ -266,13 +342,30 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   volID = fMC->CurrentVolID(copy);
   //printf("--- track %d in vol. %d %d  trackMother %d \n",trackn, detector, sector, stack->GetCurrentTrack()->GetMother(0));
 
-  // a new principal track is a track which previously was not seen by any ZDC detector
+  // a new principal track is a track which was previously not seen by any ZDC detector
   // we will account all detector response associated to principal tracks only
   if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID) && fMC->IsTrackEntering()) {
-    if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
-      mLastPrincipalTrackEntered = trackn;
-      resetHitIndices();
 
+    if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
+
+      if (mLastPrincipalTrackEntered != -1) {
+        resetHitIndices();
+        flushSpatialResponse();
+      }
+
+      // update information for principal track
+      mLastPrincipalTrackEntered = trackn;
+
+      mCurrentPrincipalParticle = *stack->GetCurrentTrack();
+      // correct for current position, momentum
+      mCurrentPrincipalParticle.SetProductionVertex(x[0], x[1], x[2], 0);
+
+      Float_t p[3] = {0., 0., 0.};
+      Float_t trackenergy = 0.;
+      fMC->TrackMomentum(p[0], p[1], p[2], trackenergy);
+      mCurrentPrincipalParticle.SetMomentum(p[0], p[1], p[2], trackenergy);
+
+      mAddResponse = true;
       // there is nothing more to do here as we are not
       // in the fiber volumes
       return false;
@@ -282,11 +375,36 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // it could be that the entering track was not noticed
   // (tracking precision problems); warn about it for the moment until we have
   // a better solution (like checking the origin coordinates of the track)
-  if (mLastPrincipalTrackEntered == -1) {
-    LOG(WARN) << "Problem with principal track detection ; now in " << volname;
-    // if we come here we are definitely in a sensitive volume !!
-    mLastPrincipalTrackEntered = trackn;
-    resetHitIndices();
+  if (!(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered)) && fMC->IsTrackEntering()) {
+    // LOG(INFO) << "NEED TO ADJUST PRINCIPAL TRACK FOR TRACK " << trackn << " FOUND IN " << volname;
+
+    const auto princtrack = getPrincipalTrackID(detector, trackn, *stack);
+
+    // LOG(INFO) << "DETERMINED " << princtrack;
+
+    if (mLastPrincipalTrackEntered != -1) {
+      resetHitIndices();
+      flushSpatialResponse();
+    }
+
+    // update information for principal track
+    mLastPrincipalTrackEntered = princtrack;
+
+    if (princtrack == trackn) {
+      mAddResponse = true;
+    } else {
+      // we can't trust the impact point so we neglect this data for the moment
+      LOG(INFO) << "neglecting response ";
+      mAddResponse = false;
+    }
+
+    mCurrentPrincipalParticle = *stack->GetCurrentTrack();
+    // correct for current position, momentum
+    Float_t p[3] = {0., 0., 0.};
+    Float_t trackenergy = 0.;
+    fMC->TrackMomentum(p[0], p[1], p[2], trackenergy);
+    mCurrentPrincipalParticle.SetProductionVertex(x[0], x[1], x[2], 0);
+    mCurrentPrincipalParticle.SetMomentum(p[0], p[1], p[2], trackenergy);
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -325,6 +443,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         }
       }
     }
+  }
+
+  // some diagnostic; trying to really get the pixel fired
+  if (nphe > 0 && (detector == 1 || detector == 4)) {
+    mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
+  }
+  if (nphe > 0 && (detector == 2 || detector == 5)) {
+    mProtonResponseImage.addPhoton(x[0], x[1], nphe);
   }
 
   // A new hit is created when there is nothing yet for this det + sector
@@ -2251,6 +2377,7 @@ void Detector::FinishPrimary()
 {
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
+  flushSpatialResponse();
   resetHitIndices();
 }
 
@@ -2263,6 +2390,9 @@ void Detector::Register()
 
   if (FairRootManager::Instance()) {
     FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+
+    // non-standard just for learning
+    FairRootManager::Instance()->RegisterAny(addNameTo("ResponseImage").data(), mResponsesPtr, kTRUE);
   }
 }
 
@@ -2272,6 +2402,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mResponses.clear();
   mLastPrincipalTrackEntered = -1;
   resetHitIndices();
 }
