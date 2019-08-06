@@ -51,6 +51,7 @@ bool CalibParams::setGain(TH2* h, int module)
       }
     }
   }
+  return true;
 }
 
 bool CalibParams::setHGLGRatio(TH2* h, int module)
