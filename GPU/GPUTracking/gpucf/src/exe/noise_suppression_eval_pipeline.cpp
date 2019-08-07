@@ -90,6 +90,8 @@ std::vector<int> countPeaksPerTrack(
         }
     }
 
+    log::Debug() << "total hits = " << trackToPeaknum.size();
+
     int maxPeaks = 0;
     for (auto &p : trackToPeaknum)
     {
@@ -234,12 +236,14 @@ int main(int argc, const char *argv[])
     noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025)); */
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 10));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025));
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 5)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025)); */
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 10));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 5));
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 5)); */
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 10));
     noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 10));
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
@@ -259,6 +263,14 @@ int main(int argc, const char *argv[])
             gpucf::read<RawDigit>(args::get(digitfile));
         digits = Digit::bySector(rawdigits);
     }
+
+    size_t totalDigits = 0;
+    for (size_t sector = 0; sector < TPC_SECTORS; sector++)
+    {
+        totalDigits += digits[sector].size();
+    }
+
+    log::Debug() << "num of digits = " << totalDigits;
 
     SectorMap<LabelContainer> labels;
     {

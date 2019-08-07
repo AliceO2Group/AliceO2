@@ -129,8 +129,8 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     std::vector<int> x(n);
     std::vector<int> pc0(n);
     std::vector<int> pc1(n);
-    std::vector<int> pc2(n);
-    std::vector<int> pc10(n);
+    /* std::vector<int> pc2(n); */
+    /* std::vector<int> pc10(n); */
     std::vector<int> pcX(n);
 
     for (size_t i = 0; i < n; i++)
@@ -140,9 +140,9 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
         const PeakCount &pc = counts[i];
         pc0[i] = pc.peakNum0;
         pc1[i] = pc.peakNum1;
-        pc2[i] = pc.peakNum2;
-        pc10[i] = pc.peakNum10;
-        pcX[i] = pc.peakNumX;
+        /* pc2[i] = pc.peakNum2; */
+        /* pc10[i] = pc.peakNum10; */
+        pcX[i] = pc.peakNum2 + pc.peakNum10 + pc.peakNumX;
     }
 
     TCanvas *c = new TCanvas("c1", "Cluster per Track", 1200, 800);
@@ -151,31 +151,31 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     TGraph *g0 = new TGraph(n, x.data(), pc0.data());
     g0->SetLineColor(1);
     g0->SetMarkerColor(1);
-    g0->SetTitle("# Lost Hits");
+    g0->SetTitle("# Hits ohne Peak");
     mg->Add(g0);
 
     TGraph *g1 = new TGraph(n, x.data(), pc1.data());
-    g1->SetLineColor(2);
-    g1->SetMarkerColor(2);
-    g1->SetTitle("# Hits w. 1 peak");
+    g1->SetLineColor(3);
+    g1->SetMarkerColor(3);
+    g1->SetTitle("# Hits mit einem Peak");
     mg->Add(g1);
 
-    TGraph *g2 = new TGraph(n, x.data(), pc2.data());
-    g2->SetLineColor(3);
-    g2->SetMarkerColor(3);
-    g2->SetTitle("# Hits w. 2 peak");
-    mg->Add(g2);
+    /* TGraph *g2 = new TGraph(n, x.data(), pc2.data()); */
+    /* g2->SetLineColor(3); */
+    /* g2->SetMarkerColor(3); */
+    /* g2->SetTitle("# Hits w. 2 peak"); */
+    /* mg->Add(g2); */
 
-    TGraph *g10 = new TGraph(n, x.data(), pc10.data());
-    g10->SetLineColor(4);
-    g10->SetMarkerColor(4);
-    g10->SetTitle("# Hits w. 3-10 peaks");
-    mg->Add(g10);
+    /* TGraph *g10 = new TGraph(n, x.data(), pc10.data()); */
+    /* g10->SetLineColor(4); */
+    /* g10->SetMarkerColor(4); */
+    /* g10->SetTitle("# Hits w. 3-10 peaks"); */
+    /* mg->Add(g10); */
 
     TGraph *gX = new TGraph(n, x.data(), pcX.data());
-    gX->SetLineColor(5);
-    gX->SetMarkerColor(5);
-    gX->SetTitle("# Hits w. >10 peaks");
+    gX->SetLineColor(2);
+    gX->SetMarkerColor(2);
+    gX->SetTitle("# Hits mit >1 Peaks");
     mg->Add(gX);
 
     mg->Draw("AL");
@@ -225,7 +225,7 @@ int main(int argc, const char *argv[])
     }
 
     std::vector<PeakCount> cutoffToPeakCount = 
-            peaksPerHitCutoff(digits, chargemaps, labels, 100);
+            peaksPerHitCutoff(digits, chargemaps, labels, 30);
 
     for (size_t cutoff = 0; cutoff < cutoffToPeakCount.size(); cutoff++)
     {
