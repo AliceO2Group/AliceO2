@@ -21,4 +21,7 @@
 #pragma link C++ class o2::phos::Digitizer + ;
 #pragma link C++ class o2::phos::DigitizerTask + ;
 
+#pragma link C++ class o2::phos::PHOSSimParams +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper<PHOSSimParams> +;
+
 #endif

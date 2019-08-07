@@ -11,7 +11,7 @@
 o2_add_library(PHOSSimulation
                SOURCES src/Detector.cxx src/GeometryParams.cxx src/Digitizer.cxx
                        src/DigitizerTask.cxx src/PHOSSimParams.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::PHOSBase)
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::PHOSBase O2::SimConfig)
 
 o2_target_root_dictionary(PHOSSimulation
                           HEADERS include/PHOSSimulation/Detector.h
