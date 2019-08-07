@@ -56,6 +56,13 @@ struct lightVertex {
   int mTimeStamp;
 };
 
+struct ClusterMCLabelInfo {
+  int TrackId;
+  int MotherId;
+  int EventId;
+  float Pt;
+};
+
 enum class VertexerDebug : unsigned int {
   TrackletTreeAll = 0x1 << 1,
   LineTreeAll = 0x1 << 2,
@@ -71,7 +78,13 @@ class VertexerTraits
 {
  public:
   VertexerTraits();
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   virtual ~VertexerTraits();
+#else
+  virtual ~VertexerTraits() = default;
+#endif
+
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_HOST_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
   GPU_HOST_DEVICE static const int2 getPhiBins(float phi, float deltaPhi);

@@ -147,7 +147,7 @@ void run_trac_ca_its(bool useITSVertex = false,
     mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
     o2::its::ioutils::loadROFrameData(rof, event, clusters, labels);
     if (useITSVertex) {
-    
+
       vertexer.initialiseVertexer(&event);
       vertexer.findTracklets();
       // vertexer.filterMCTracklets(); // to use MC check
