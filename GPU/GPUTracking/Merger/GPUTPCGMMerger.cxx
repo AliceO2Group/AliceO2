@@ -1182,7 +1182,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
       cl[i].leg = clA[i].y;
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
       cl[i].pad = trackClusters[i].mPad;
-      cl[i].time = trackClusters[i].fTime;
+      cl[i].time = trackClusters[i].mTime;
 #endif
     }
 
