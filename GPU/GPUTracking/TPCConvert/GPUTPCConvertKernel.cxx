@@ -49,6 +49,10 @@ GPUd() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlock
     cout.amp = cin.qMax;
     cout.flags = cin.getFlags();
     cout.id = idOffset + k;
+#ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
+    cout.pad = cin.getPad();
+    cout.time = cin.getTime();
+#endif
   }
 }
 #endif
