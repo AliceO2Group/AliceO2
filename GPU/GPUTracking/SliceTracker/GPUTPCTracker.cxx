@@ -260,8 +260,8 @@ GPUh() void GPUTPCTracker::WriteOutput()
       GPUTPCSliceOutCluster c;
       c.Set(id, iRow, flags, amp, origX, origY, origZ);
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
-      c.pad = mData.ClusterData()[clusterIndex].pad;
-      c.time = mData.ClusterData()[clusterIndex].time;
+      c.mPad = mData.ClusterData()[clusterIndex].pad;
+      c.mTime = mData.ClusterData()[clusterIndex].time;
 #endif
       out->SetCluster(nClu, c);
       nClu++;
