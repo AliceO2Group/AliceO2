@@ -62,7 +62,7 @@ Digit& Digit::operator+=(const Digit& other)
     mTime = other.mTime;
   }
 
-  if (mLabel = -1) {
+  if (mLabel == -1) {
     mLabel = other.mLabel;
   } else {
     if (mLabel != other.mLabel && other.mLabel != -1) {
