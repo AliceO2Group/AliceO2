@@ -62,13 +62,12 @@ Digit& Digit::operator+=(const Digit& other)
     mTime = other.mTime;
   }
 
-  if(mLabel=-1){
-    mLabel = other.mLabel ;
-  }
-  else{
-    if( mLabel != other.mLabel && other.mLabel !=-1){
+  if (mLabel = -1) {
+    mLabel = other.mLabel;
+  } else {
+    if (mLabel != other.mLabel && other.mLabel != -1) {
       //if Label indexes are different, something wrong
-      LOG(ERROR) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel ;
+      LOG(ERROR) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
     }
   }
 

@@ -103,7 +103,7 @@ class CalibParams
   bool setLGTimeCalib(TH2* h, int module);
 
  private:
-  static constexpr int NCHANNELS = 14337;           ///< Number of channels starting from 1
+  static constexpr int NCHANNELS = 14337;    ///< Number of channels starting from 1
   std::array<float, NCHANNELS> mGainCalib;   ///< Container for the gain calibration coefficients
   std::array<float, NCHANNELS> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios
   std::array<float, NCHANNELS> mHGTimeCalib; ///< Container for the High Gain time calibration coefficients

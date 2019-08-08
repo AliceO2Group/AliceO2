@@ -125,8 +125,8 @@ class BadChannelMap
   void PrintStream(std::ostream& stream) const;
 
  private:
-  static constexpr int NCHANNELS = 14337;  ///< Number of channels starting from 1 (4*64*56+1
-  std::bitset<NCHANNELS> mBadCells; ///< Container for bad cells, 1 means bad sell
+  static constexpr int NCHANNELS = 14337; ///< Number of channels starting from 1 (4*64*56+1
+  std::bitset<NCHANNELS> mBadCells;       ///< Container for bad cells, 1 means bad sell
 
   ClassDefNV(BadChannelMap, 1);
 };
