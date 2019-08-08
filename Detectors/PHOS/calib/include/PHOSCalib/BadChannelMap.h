@@ -103,15 +103,15 @@ class BadChannelMap
   bool isChannelGood(unsigned short channelID) const { return !mBadCells.test(channelID); }
 
   /// \brief Convert map into 2D histogram representation
-  /// \return Histogram representation of the bad channel map.
+  /// \param mod Module number
+  /// \param h Histogram of size 64*56 to be filled with the bad channel map.
   ///
   /// Convert bad channel map into a 2D map with phi(64) vs z(56) dimensions.
   /// Entries in the histogram are:
   /// - 0: GOOD_CELL
   /// - 1: BAD_CELL
-  ///
-  /// Attention: It is responsibility of user to delete histogram
-  TH2* getHistogramRepresentation(int mod) const;
+  /// Attention: It is responsibility of user to create/delete histogram
+  void getHistogramRepresentation(int mod, TH2* h) const;
 
   /// \brief Print bad channels on a given stream
   /// \param stream Stream on which the bad channel map is printed on
@@ -125,7 +125,8 @@ class BadChannelMap
   void PrintStream(std::ostream& stream) const;
 
  private:
-  std::bitset<14337> mBadCells; ///< Container for bad cells (size corresponding to the maximum amount of cells 4*64*56+1(since cell numbering starts from 1)) 1 means bad sell
+  static constexpr int NCHANNELS = 14337;  ///< Number of channels starting from 1 (4*64*56+1
+  std::bitset<NCHANNELS> mBadCells; ///< Container for bad cells, 1 means bad sell
 
   ClassDefNV(BadChannelMap, 1);
 };

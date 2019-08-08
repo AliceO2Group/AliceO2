@@ -103,10 +103,11 @@ class CalibParams
   bool setLGTimeCalib(TH2* h, int module);
 
  private:
-  std::array<float, 14337> mGainCalib;   ///< Container for the gain calibration coefficients
-  std::array<float, 14337> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios
-  std::array<float, 14337> mHGTimeCalib; ///< Container for the High Gain time calibration coefficients
-  std::array<float, 14337> mLGTimeCalib; ///< Container for the Low Gain time calibration coefficients
+  static constexpr int NCHANNELS = 14337;           ///< Number of channels starting from 1
+  std::array<float, NCHANNELS> mGainCalib;   ///< Container for the gain calibration coefficients
+  std::array<float, NCHANNELS> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios
+  std::array<float, NCHANNELS> mHGTimeCalib; ///< Container for the High Gain time calibration coefficients
+  std::array<float, NCHANNELS> mLGTimeCalib; ///< Container for the Low Gain time calibration coefficients
 
   ClassDefNV(CalibParams, 1);
 };

@@ -19,17 +19,24 @@
 
 using namespace o2::phos;
 
-TH2* BadChannelMap::getHistogramRepresentation(int module) const
+void BadChannelMap::getHistogramRepresentation(int module, TH2* h) const
 {
+  if (!h) {
+    LOG(ERROR) << "provide histogram to be filled";
+  }
+
   const int MAXX = 64,
             MAXZ = 56;
-  auto hist = new TH2S(Form("PHOSBadMapMod%d", module), Form("PHOS Bad Channel Map module %d", module),
-                       MAXX, -0.5, float(MAXX) - 0.5, MAXZ, -0.5, float(MAXZ) - 0.5);
-  hist->SetDirectory(nullptr);
+  if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
+    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    return;
+  }
+
+  h->Reset();
   auto geo = Geometry::GetInstance();
   if (!geo) {
     LOG(ERROR) << "Geometry needs to be initialized";
-    return hist;
+    return;
   }
 
   int relid[3] = {module, 1, 1};
@@ -40,12 +47,11 @@ TH2* BadChannelMap::getHistogramRepresentation(int module) const
       relid[2] = iz;
       if (geo->RelToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {
-          hist->SetBinContent(ix, iz, 1);
+          h->SetBinContent(ix, iz, 1);
         }
       }
     }
   }
-  return hist;
 }
 
 void BadChannelMap::PrintStream(std::ostream& stream) const
