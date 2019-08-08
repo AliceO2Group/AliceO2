@@ -126,6 +126,8 @@ void Detector::ConstructGeometry()
   LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle();
   CreateShiskebabGeometry();
 
+  geom->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(), TVirtualMC::GetMC()->GetTitle());
+
   gGeoManager->CheckGeometry();
 }
 
@@ -170,7 +172,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Double_t lightyield(eloss);
   if (fMC->TrackCharge())
     lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
-  lightyield /= geom->GetSampling();
+  lightyield *= geom->GetSampling();
 
   auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
   const bool isDaughterOfSeenTrack = o2stack->isTrackDaughterOf(partID, mCurrentTrackID);
