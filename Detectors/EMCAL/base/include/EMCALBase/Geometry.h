@@ -98,13 +98,11 @@ class Geometry
                                             const std::string_view mcname = "TGeant3",
                                             const std::string_view mctitle = "");
 
-  ///
-  /// Set the value of fSampling used to calibrate the MC hits energy (check)
-  /// Called in AliEMCALv0 and not anymore here in Init() in order to be able to work with Geant4
+  /// Set the value of the Sampling used to calibrate the MC hits energy (check)
+  /// Called in Detector::ConstructGeometry and not anymore here in Init() in order to be able to work with Geant4
   ///
   /// \param mcname: Geant3/4, Flukla, ...
   /// \param mctitle: Geant4 physics list tag name
-  ///
   void DefineSamplingFraction(const std::string_view mcname = "", const std::string_view mctitle = "");
 
   //////////
