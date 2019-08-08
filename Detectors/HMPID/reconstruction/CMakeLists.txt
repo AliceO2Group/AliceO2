@@ -8,12 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(HMPIDBase
-               SOURCES src/Param.cxx src/Digit.cxx src/Cluster.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
-                                     O2::SimulationDataFormat ROOT::Physics)
-
-o2_target_root_dictionary(HMPIDBase
-                          HEADERS include/HMPIDBase/Param.h
-                                  include/HMPIDBase/Digit.h
-                                  include/HMPIDBase/Cluster.h)
+o2_add_library(HMPIDReconstruction
+               SOURCES src/Clusterer.cxx src/DataReader.cxx
+               PUBLIC_LINK_LIBRARIES O2::HMPIDBase
+                                     O2::HMPIDSimulation)
+                       
+o2_target_root_dictionary(HMPIDReconstruction
+                          HEADERS include/HMPIDReconstruction/Clusterer.h
+                                  include/HMPIDReconstruction/DataReader.h)
