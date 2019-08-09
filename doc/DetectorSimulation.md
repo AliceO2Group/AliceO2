@@ -93,7 +93,7 @@ o2-sim --embedIntoFile o2sim.background.root
 
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
 
-#### 5. **How can I obtained detailed stepping information?**
+#### 5. **How can I obtain detailed stepping information?**
 Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
 MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10
