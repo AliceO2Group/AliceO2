@@ -33,9 +33,6 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF TPCFastTransformationLinkDef_O2.h)
 
-  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                             GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
-
   install(FILES ${HDRS_CINT_O2} DESTINATION include/GPU)
   file(COPY ${HDRS_CINT_O2} DESTINATION ${CMAKE_BINARY_DIR}/stage/include/GPU)
 
@@ -45,7 +42,8 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           IrregularSpline2D3DTest.C
           RegularSpline1DTest.C
           SemiregularSpline2D3DTest.C
-          fastTransformQA.C)
+          fastTransformQA.C
+          generateTPCDistortionNTupleAliRoot.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  PUBLIC_INCLUDE_DIRECTORIES
