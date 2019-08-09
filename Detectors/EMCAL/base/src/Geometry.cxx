@@ -189,7 +189,7 @@ Geometry* Geometry::GetInstance(const std::string_view name, const std::string_v
                                 const std::string_view mctitle)
 {
   if (!sGeom) {
-    if (name != std::string("")) { // get default geometry
+    if (!name.length()) { // get default geometry
       sGeom = new Geometry(DEFAULT_GEOMETRY, mcname, mctitle);
     } else {
       sGeom = new Geometry(name, mcname, mctitle);
