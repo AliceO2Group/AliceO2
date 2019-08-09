@@ -23,6 +23,7 @@ namespace emcal
 class BadChannelMap;
 class TempCalibrationParams;
 class TimeCalibrationParams;
+class GainCalibrationFactors;
 
 /// \class CalibDB
 /// \brief Interface to calibration data from CCDB for EMCAL
@@ -207,6 +208,20 @@ class CalibDB
   /// \throw ObjectNotFoundException if object is not found for the given timestamp
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   TempCalibrationParams* readTempCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
+  /// \brief Store gain calibration factors in the CCDB
+  /// \brief gcf temperature calibration coefficiencts to be stored
+  /// \brief metadata Additional metadata that can be used in the query
+  /// \timestart Start of the time range of the validity of the object
+  /// \timeend End of the time range of the validity of the object
+  void storeGainCalibFactors(GainCalibrationFactors* gcf, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find gain calibration factors in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  GainCalibrationFactors* readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Set new CCDB server URL
   /// \param server Name of the CCDB server to be used in queries
