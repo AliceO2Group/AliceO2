@@ -1777,7 +1777,7 @@ int MatchTPCITS::prepareInteractionTimes()
   mInteractions.clear();
   if (mFITInfoInp) {
     for (const auto& ft : *mFITInfoInp) {
-      if (!ft.isValidTime(o2::t0::RecPoints::TimeMean)) {
+      if (!ft.isValidTime(o2::ft0::RecPoints::TimeMean)) {
         continue;
       }
       auto fitTime = intRecord2TPCTimeBin(ft.getInteractionRecord()); // FIT time in TPC timebins
@@ -1788,7 +1788,7 @@ int MatchTPCITS::prepareInteractionTimes()
           continue;
         }
         if (fitTime >= mITSROFTimes[rof].min()) { // belongs to this ROF
-          mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, T0UncertaintyTB, rof, o2::detectors::DetID::T0);
+          mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, T0UncertaintyTB, rof, o2::detectors::DetID::FT0);
         }
         break; // this or next ITSrof in time is > fitTime
       }
@@ -1851,7 +1851,7 @@ void MatchTPCITS::runAfterBurner()
 //______________________________________________
 bool MatchTPCITS::runAfterBurner(int tpcWID, int iCStart, int iCEnd)
 {
-  // Try to match TPC tracks to ITS clusters, assuming that it comes from interaction candidate in the rane [iCStart:iCEnd)
+  // Try to match TPC tracks to ITS clusters, assuming that it comes from interaction candidate in the range [iCStart:iCEnd)
   // The track is already propagated to the outer R of the outermost layer
 
   LOG(INFO) << "AfterBurner for TPC track " << tpcWID << " with int.candidates " << iCStart << " " << iCEnd;

@@ -41,10 +41,10 @@ struct RecoGeomHelper {
 
   struct RecoChip {
     ///< boundaries + frame data for single chip
-    uint16_t id = 0xffff;                                        // global chip id
-    float alp = 0.f, snAlp = 0.f, csAlp = 0.f;                   // cos and sin of sensor alpha
-    float xRef = 0.f;                                            // reference X
-    BracketF yRange = { 1.e9, -1.e9 }, zRange = { 1.e9, -1.e9 }; // bounding box in tracking frame
+    uint16_t id = 0xffff;                                    // global chip id
+    float alp = 0.f, snAlp = 0.f, csAlp = 0.f;               // cos and sin of sensor alpha
+    float xRef = 0.f;                                        // reference X
+    BracketF yRange = {1.e9, -1.e9}, zRange = {1.e9, -1.e9}; // bounding box in tracking frame
     Vec2D xyEdges;
 
     void updateLimits(const Point3D<float>& pnt);
@@ -55,9 +55,9 @@ struct RecoGeomHelper {
   struct RecoLadder {
     ///< group of chips at same (modulo alignment) phi, r (stave in IB, 1/4 stave in OB)
     int id = 0; // assigned ladder ID within the layer
-    BracketF phiRange = { o2::constants::math::TwoPI, 0. };
-    BracketF zRange = { 1e9, -1e9 }; // Z ranges in lab frame
-    Vec2D xyEdges;                   // envelop for chip edges
+    BracketF phiRange = {o2::constants::math::TwoPI, 0.};
+    BracketF zRange = {1e9, -1e9}; // Z ranges in lab frame
+    Vec2D xyEdges;                 // envelop for chip edges
     float phiMean = 0., dphiH = 0.;
     std::vector<RecoChip> chips;
 
@@ -73,10 +73,10 @@ struct RecoGeomHelper {
     int id = 0;       // layer ID
     int nLadders = 0; // number of ladders
     int lastChipInLadder = 0;
-    float z2chipID = 0;              // conversion factor for Z (relative to zmin) to rough chip ID
-    float rInv = 0.;                 // inverse mean radius
-    BracketF rRange = { 1e9, 0. };   // min and max radii
-    BracketF zRange = { 1e9, -1e9 }; // min and max Z
+    float z2chipID = 0;            // conversion factor for Z (relative to zmin) to rough chip ID
+    float rInv = 0.;               // inverse mean radius
+    BracketF rRange = {1e9, 0.};   // min and max radii
+    BracketF zRange = {1e9, -1e9}; // min and max Z
     std::vector<RecoLadder> ladders;
     std::vector<uint16_t> phi2ladder; // mapping from phi to ladderID
 

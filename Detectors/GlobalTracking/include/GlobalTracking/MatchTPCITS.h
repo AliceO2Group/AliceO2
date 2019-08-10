@@ -699,7 +699,7 @@ class MatchTPCITS
   std::string mITSTrackROFRecBranchName = "ITSTracksROF";     ///< name of branch containing input ITS tracks ROFRecords
   std::string mTPCTrackBranchName = "Tracks";                 ///< name of branch containing input TPC tracks
   std::string mITSClusterBranchName = "ITSCluster";           ///< name of branch containing input ITS clusters
-  std::string mITSClusMCTruthBranchName = "ITSClusterMCTruth";///< name of branch containing input ITS clusters MC
+  std::string mITSClusMCTruthBranchName = "ITSClusterMCTruth"; ///< name of branch containing input ITS clusters MC
   std::string mITSClusterROFRecBranchName = "ITSClustersROF"; ///< name of branch containing input ITS clusters ROFRecords
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth";      ///< name of branch containing ITS MC labels
   std::string mTPCMCTruthBranchName = "TracksMCTruth";        ///< name of branch containing input TPC tracks
@@ -797,10 +797,6 @@ inline void MatchTPCITS::removeITSfromTPC(int itsID, int tpcID)
     next = rcTPC.nextRecID;
   }
 }
-<<<<<<< HEAD
-} // namespace globaltracking
-} // namespace o2
-=======
 
 //______________________________________________
 inline void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset)
@@ -860,8 +856,7 @@ inline void MatchTPCITS::cleanAfterBurnerClusRefCache(int currentIC, int& startI
     mITSChipClustersRefs.pop_front();
   }
 }
-}
-}
->>>>>>> Matching
+} // namespace globaltracking
+} // namespace o2
 
 #endif
