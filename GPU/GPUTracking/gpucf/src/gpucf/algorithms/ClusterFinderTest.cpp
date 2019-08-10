@@ -24,6 +24,7 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 {
     this->digits = digits;
 
+    log::Info() << "Run cpu cluster finder.";
     res = gt.run(digits);
 
     log::Debug() << "send Digits to GPU";
@@ -170,6 +171,11 @@ void ClusterFinderTest::checkCluster(
     {
         bool posOk = clpos.contains(c);
         correctCluster += posOk;
+
+        /* if (!posOk) */
+        /* { */
+        /*     log::Debug() << c; */
+        /* } */
     }
 
     float correctFraction = float(correctCluster) / cluster.size();
