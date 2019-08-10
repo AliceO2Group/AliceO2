@@ -45,7 +45,7 @@ class TRDCalPadStatus
   TRDCalPadStatus();
   TRDCalPadStatus(const Text_t* name, const Text_t* title);
   TRDCalPadStatus(const TRDCalPadStatus& c);
-  virtual ~TRDCalPadStatus();
+  ~TRDCalPadStatus();
   TRDCalPadStatus& operator=(const TRDCalPadStatus& c);
 
   void Copy(TRDCalPadStatus& c) const;

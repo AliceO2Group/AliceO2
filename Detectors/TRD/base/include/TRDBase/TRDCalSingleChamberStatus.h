@@ -37,7 +37,7 @@ class TRDCalSingleChamberStatus
   TRDCalSingleChamberStatus();
   TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t cols);
   TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c);
-  virtual ~TRDCalSingleChamberStatus();
+  ~TRDCalSingleChamberStatus();
   TRDCalSingleChamberStatus& operator=(const TRDCalSingleChamberStatus& c);
   void Copy(TRDCalSingleChamberStatus& c) const;
 
