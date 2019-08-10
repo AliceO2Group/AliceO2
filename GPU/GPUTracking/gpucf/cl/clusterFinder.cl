@@ -607,7 +607,7 @@ bool isPeakScratchPad(
         peak &= (digit->charge > q) 
              || (INNER_TEST_EQ[i] && digit->charge == q);
     }
-    peak &= (digit->charge > CHARGE_THRESHOLD);
+    peak &= (digit->charge > QMAX_CUTOFF);
 
     return peak;
 }
@@ -674,7 +674,7 @@ bool isPeak(
 #undef CMP_RB
 #undef CMP_NEIGHBOR
 
-    peak &= (myCharge > CHARGE_THRESHOLD);
+    peak &= (myCharge > QMAX_CUTOFF);
 
     return peak;
 }
@@ -1058,7 +1058,7 @@ void computeClusters(
     IS_PEAK(peakMap, gpad, myDigit.time) = 0;
 
 #if defined(CUT_QTOT)
-    bool aboveQTotCutoff = (pc.Q > QTOT_THRESHOLD);
+    bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
 #else
     bool aboveQTotCutoff = true;
 #endif

@@ -36,6 +36,8 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
     std::vector<Digit> peaks;
     std::vector<unsigned char> isPeakPred;
 
+    DBG(config.qmaxCutoff);
+
     for (const Digit &d : digits)
     {
         bool p = isPeak(d, chargemap, config.qmaxCutoff);
