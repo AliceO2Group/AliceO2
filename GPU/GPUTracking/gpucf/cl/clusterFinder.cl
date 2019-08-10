@@ -219,12 +219,12 @@ void addCorner(
 {
     charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
     
-    /* if (q > CHARGE_THRESHOLD) */
-    /* { */
+    if (q > CHARGE_THRESHOLD)
+    {
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp,   dt);
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time,   dp, 2*dt);
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
-    /* } */
+    }
 }
 
 void addLine(
@@ -238,10 +238,10 @@ void addLine(
 {
     charge_t q = addInnerCharge(chargeMap, peakCountMap, myCluster, gpad, time, dp, dt);
 
-    /* if (q > CHARGE_THRESHOLD) */
-    /* { */
+    if (q > CHARGE_THRESHOLD)
+    {
         addOuterCharge(chargeMap, peakCountMap, myCluster, gpad, time, 2*dp, 2*dt);
-    /* } */
+    }
 }
 
 void reset(PartialCluster *clus)
@@ -375,13 +375,12 @@ void updateClusterScratchpadOuter(
         charge_t q = buf[N * lid + i];
         char    pc = peakCount[N * lid + i];
 
-        /* q = (q < 0) ? -q : 0.f; */
-        /* bool contributes = (q > OUTER_CHARGE_THRESHOLD */ 
-        /*         && innerAboveThreshold(aboveThreshold, outerIdx)); */
-
-        /* q = (contributes) ? q : 0.f; */
-
         ushort outerIdx = i + offset;
+
+        /* q = (q < 0) ? -q : 0.f; */
+        bool contributes = innerAboveThreshold(aboveThreshold, outerIdx);
+        q = (contributes) ? q : 0.f;
+
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
         delta_t dp = d.x;
         delta_t dt = d.y;
@@ -559,6 +558,7 @@ void buildClusterNaive(
     // o i I i o
     // o o O o o
     addLine(chargeMap, peakCountMap, myCluster, gpad, time,  0,  1); 
+
     // Add charges in bottom right corner:
     // o o o o o
     // o i i i o
