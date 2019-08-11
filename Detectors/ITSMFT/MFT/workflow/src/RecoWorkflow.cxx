@@ -27,12 +27,12 @@ namespace mft
 namespace RecoWorkflow
 {
 
-framework::WorkflowSpec getWorkflow()
+framework::WorkflowSpec getWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
   specs.emplace_back(o2::mft::getDigitReaderSpec());
-  specs.emplace_back(o2::mft::getClustererSpec());
+  specs.emplace_back(o2::mft::getClustererSpec(useMC));
   specs.emplace_back(o2::mft::getClusterWriterSpec());
 
   specs.emplace_back(o2::mft::getClusterReaderSpec());
