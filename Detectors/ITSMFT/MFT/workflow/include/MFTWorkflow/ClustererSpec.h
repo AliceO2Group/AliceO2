@@ -28,20 +28,23 @@ namespace mft
 class ClustererDPL : public o2::framework::Task
 {
  public:
-  ClustererDPL() = default;
+  ClustererDPL(bool useMC) : mUseMC(useMC) {}
   ~ClustererDPL() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
+  bool mFullClusters = true;
+  bool mCompactClusters = true;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
 /// run MFT cluster finder
-o2::framework::DataProcessorSpec getClustererSpec();
+o2::framework::DataProcessorSpec getClustererSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2

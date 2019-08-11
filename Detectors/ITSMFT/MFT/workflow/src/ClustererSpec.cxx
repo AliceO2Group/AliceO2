@@ -59,6 +59,9 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
+  mFullClusters = !ic.options().get<bool>("full-clusters");
+  mCompactClusters = !ic.options().get<bool>("compact-clusters");
+
   auto filename = ic.options().get<std::string>("mft-dictionary-file");
   mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
   if (mFile->good()) {
@@ -66,7 +69,7 @@ void ClustererDPL::init(InitContext& ic)
     LOG(INFO) << "MFTClusterer running with a provided dictionary: " << filename.c_str();
     mState = 1;
   } else {
-    LOG(WARNING) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(WARNING) << "Cannot open the " << filename.c_str() << "  file, compact clusters cannot be produced";
     mState = 0;
   }
 
@@ -79,29 +82,40 @@ void ClustererDPL::run(ProcessingContext& pc)
     return;
 
   auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  if (mUseMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  }
 
   LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, "
-            << labels->getIndexedSize() << " MC label objects, in "
+            << (labels ? labels->getIndexedSize() : 0) << " MC label objects, in "
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
   o2::itsmft::DigitPixelReader reader;
   reader.setDigits(&digits);
   reader.setROFRecords(&rofs);
-  reader.setMC2ROFRecords(&mc2rofs);
-  reader.setDigitsMCTruth(labels.get());
+  if (mUseMC) {
+    reader.setMC2ROFRecords(&mc2rofs);
+    reader.setDigitsMCTruth(labels.get());
+  }
   reader.init();
 
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
   std::vector<o2::itsmft::ROFRecord> clusterROframes;                  // To be filled in future
   std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+  std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
+  if (mUseMC) {
+    clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  }
+
   LOG(INFO) << "BV===== mClusterer->process\n";
-  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels, &clusterROframes);
+  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, mCompactClusters ? &compClusters : nullptr,
+                      clusterLabels.get(), &clusterROframes);
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
 
@@ -111,33 +125,45 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
   pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
-  pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, clusterLabels);
   pc.outputs().snapshot(Output{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
-  pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
+    std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+    pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+  }
 
   mState = 2;
   //pc.services().get<ControlService>().readyToQuit(true);
 }
 
-DataProcessorSpec getClustererSpec()
+DataProcessorSpec getClustererSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "ITSDigitROF", 0, Lifetime::Timeframe);
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+
+  if (useMC) {
+    inputs.emplace_back("labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "mft-clusterer",
-    Inputs{
-      InputSpec{"digits", "MFT", "DIGITS", 0, Lifetime::Timeframe},
-      InputSpec{"labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe},
-      InputSpec{"ROframes", "MFT", "MFTDigitROF", 0, Lifetime::Timeframe},
-      InputSpec{"MC2ROframes", "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}},
-    Outputs{
-      OutputSpec{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "CLUSTERS", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<ClustererDPL>()},
+    inputs,
+    outputs,
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
       {"mft-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
+      {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
+      {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}}}};
 }
 
 } // namespace mft

@@ -11,10 +11,18 @@
 #include "Framework/runDataProcessing.h"
 
 #include "MFTWorkflow/RecoWorkflow.h"
+#include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  return std::move(o2::mft::RecoWorkflow::getWorkflow());
+  // Update the (declared) parameters if changed from the command line
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  // write the configuration used for the digitizer workflow
+  o2::conf::ConfigurableParam::writeINI("o2mftrecoflow_configuration.ini");
+
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+
+  return std::move(o2::mft::RecoWorkflow::getWorkflow(useMC));
 }
