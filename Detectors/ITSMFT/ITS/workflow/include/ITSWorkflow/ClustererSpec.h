@@ -38,6 +38,8 @@ class ClustererDPL : public Task
  private:
   int mState = 0;
   bool mUseMC = true;
+  bool mFullClusters = true;
+  bool mCompactClusters = true;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };
