@@ -44,6 +44,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/FeeParam.h
                                   ../../../DataFormats/simulation/include/SimulationDataFormat/MCTruthContainer.h)
 
+
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx
             COMPONENT_NAME trd
