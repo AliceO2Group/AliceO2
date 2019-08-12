@@ -179,6 +179,7 @@ class TPCDPLDigitizerTask
       LOG(INFO) << "TPC: Sending ROMode= " << (mDigitizer.isContinuousReadout() ? "Continuous" : "Triggered")
                 << " to GRPUpdater from channel " << mChannel;
       pc.outputs().snapshot(Output{"TPC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+      mWriteGRP = false;
     }
 
     // extract which sector to treat
