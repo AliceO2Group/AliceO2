@@ -147,7 +147,7 @@ void TPCFastTransform::print() const
 #endif
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 
 int TPCFastTransform::writeToFile(std::string outFName, std::string name)
 {
