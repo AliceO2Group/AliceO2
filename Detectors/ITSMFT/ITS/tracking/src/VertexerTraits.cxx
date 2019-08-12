@@ -71,8 +71,6 @@ void trackleterKernelSerial(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < (int)clustersNextLayer.size(); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
-          const auto& lblNext = evt->getClusterLabels(layerIndex, nextCluster.clusterId);
-          const auto& lblCurr = evt->getClusterLabels(1, currentCluster.clusterId);
           if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (pairOfLayers == LAYER0_TO_LAYER1) {
