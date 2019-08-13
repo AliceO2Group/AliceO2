@@ -192,6 +192,14 @@ class Detector : public FairDetector
   // ... for things that should be setup in each simulation worker separately)
   virtual void initializeLate() = 0;
 
+  /// helper wrapper function to register a geometry volume given by name with FairRoot
+  /// @returns The MonteCarlo ID for the volume
+  int registerSensitiveVolumeAndGetVolID(std::string const& name);
+
+  /// helper wrapper function to register a geometry volume given by TGeoVolume vol
+  /// @returns The MonteCarlo ID for the volume
+  int registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol);
+
   // The GetCollection interface is made final and deprecated since
   // we no longer support TClonesArrays
   [[deprecated("Use getHits API on concrete detectors!")]] TClonesArray* GetCollection(int iColl) const final;
