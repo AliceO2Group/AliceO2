@@ -61,7 +61,7 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
         }
     }
 
-    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, true);
+    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, chargemap, true);
 
     std::vector<Cluster> clusters;
 
@@ -119,6 +119,7 @@ Cluster ReferenceClusterFinder::clusterize(
 Map<ReferenceClusterFinder::PeakCount> ReferenceClusterFinder::makePeakCountMap(
         nonstd::span<const Digit> digits,
         nonstd::span<const Digit> peaks,
+        const Map<float> &chargemap,
         bool deconv)
 {
     if (!deconv)
@@ -129,49 +130,41 @@ Map<ReferenceClusterFinder::PeakCount> ReferenceClusterFinder::makePeakCountMap(
     Map<bool> peakmap(peaks, true, false);
     return {
         digits, 
-            [=](const Digit &d) { return countPeaks(d, peakmap); },
+            [=](const Digit &d) { return countPeaks(d, peakmap, chargemap); },
             1};
 }
 
 ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
         const Digit &d, 
-        const Map<bool> &peakmap)
+        const Map<bool> &peakmap,
+        const Map<float> &chargemap)
 {
-
-    if (peakmap[{d, 0, 0}]) 
+    if (peakmap[d])
     {
         return PCMASK_HAS_3X3_PEAKS | 1;
     }
 
-    PeakCount peaks = 0; 
+    PeakCount innerPeaks = 0;
+    PeakCount outerPeaks = 0;
 
-    for (int dp = -1; dp <= 1; dp++)
+    for (const auto &p : innerToOuter)
     {
-        for (int dt = -1; dt <= 1; dt++)
+        Delta inner = p.first;
+
+        innerPeaks += peakmap[{d, inner.pad, inner.time}];
+
+        if (chargemap[{d, inner.pad, inner.time}] <= CHARGE_THRESHOLD)
         {
-            peaks += peakmap[{d, dp, dt}];
+            continue;
+        }
+
+        for (const auto &outer : p.second)
+        {
+            outerPeaks += peakmap[{d, outer.pad, outer.time}];
         }
     }
 
-    if (peaks > 0)
-    {
-        return PCMASK_HAS_3X3_PEAKS | peaks;
-    }
-
-    for (int dp = -2; dp <= 2; dp++)
-    {
-        for (int dt = -2; dt <= 2; dt++)
-        {
-            if (std::abs(dt) < 2 && std::abs(dp) < 2)
-            {
-                continue;
-            }
-
-            peaks += peakmap[{d, dp, dt}];
-        }
-    }
-
-    return peaks;
+    return (innerPeaks > 0) ? (PCMASK_HAS_3X3_PEAKS | innerPeaks) : outerPeaks;
 }
 
 

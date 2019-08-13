@@ -22,6 +22,8 @@ public:
 
     Map() = default;
 
+    Map(T fallback) : fallback(fallback) {}
+
     Map(nonstd::span<const Digit> keys, Predicate pred, T fallback)
         : fallback(fallback)
     {
@@ -46,11 +48,15 @@ public:
         }
     }
 
-
     const T &operator[](const Position &p) const
     {
         auto lookup = data.find(p);
         return (lookup == data.end()) ? fallback : lookup->second;
+    }
+
+    void insert(const Position &p, const T &val)
+    {
+        data[p] = val;
     }
 
 private:
