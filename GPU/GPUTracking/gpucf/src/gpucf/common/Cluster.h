@@ -55,7 +55,6 @@ public:
 
     Object serialize() const;
     void deserialize(const Object &);
-
     bool hasNaN() const;
     bool hasNegativeEntries() const;
 
