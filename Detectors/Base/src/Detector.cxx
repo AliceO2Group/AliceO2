@@ -17,6 +17,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
+#include "TGeoManager.h"
 
 using std::cout;
 using std::endl;
@@ -165,6 +166,29 @@ TClonesArray* Detector::GetCollection(int) const
 void Detector::addAlignableVolumes() const
 {
   LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)
+{
+  // register this volume with FairRoot
+  this->FairModule::AddSensitiveVolume(const_cast<TGeoVolume*>(vol));
+  // retrieve the VMC Monte Carlo ID for this volume
+  const int volid = TVirtualMC::GetMC()->VolId(vol->GetName());
+  if (volid <= 0) {
+    LOG(ERROR) << "Could not retrieve VMC volume ID for " << vol->GetName();
+  }
+  return volid;
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(std::string const& name)
+{
+  // we need to fetch the TGeoVolume which is needed for FairRoot
+  auto vol = gGeoManager->GetVolume(name.c_str());
+  if (!vol) {
+    LOG(ERROR) << "Volume " << name << " not found in geometry; Cannot register sensitive volume";
+    return -1;
+  }
+  return registerSensitiveVolumeAndGetVolID(vol);
 }
 
 #include <FairMQMessage.h>
