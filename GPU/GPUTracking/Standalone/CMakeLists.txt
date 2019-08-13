@@ -10,6 +10,7 @@
 
 # Some general CMake settings
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+project(GPUTrackingStandalone)
 include(FeatureSummary)
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}")
@@ -33,7 +34,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Werror -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
   add_definitions(-DNDEBUG)
 endif()
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -Wl,--no-undefined")

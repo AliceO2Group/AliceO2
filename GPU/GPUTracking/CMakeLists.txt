@@ -122,10 +122,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/display/GPUDisplayBackend.cxx)
+endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
-        Standalone/display/GPUDisplayBackend.cxx
         Global/GPUChainITS.cxx
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
