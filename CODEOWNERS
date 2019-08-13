@@ -1,3 +1,106 @@
+# Codeowners for ALICE O2.
+#
+# Map top directories only for now.
+# Add the lower lever directories where appropriate.
+# Order is important; the last matching pattern takes the most
+# precedence.
+
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence
 * @ktf @AliceO2Group/core
 
+/Algorithm
+
+/CCDB
+
+/Common
+#/Common/Constants
+#/Common/Field
+#/Common/MathUtils
+#/Common/SimConfig
+#/Common/Topologies
+#/Common/Types
+#/Common/Utils
+#/Common/maps
+
+/DataFormats
+#/DataFormats/Detectors
+#/DataFormats/Headers
+#/DataFormats/Legacy
+#/DataFormats/MemoryResources
+#/DataFormats/Parameters
+#/DataFormats/Reconstruction
+#/DataFormats/TimeFrame
+#/DataFormats/common
+#/DataFormats/simulation
+
+/Detectors/Base
+/Detectors/Geometry
+/Detectors/CPV
+/Detectors/EMCAL
+/Detectors/FIT
+/Detectors/GlobalTracking
+/Detectors/GlobalTrackingWorkflow
+/Detectors/HMPID
+/Detectors/ITSMFT
+/Detectors/MUON
+/Detectors/PHOS
+/Detectors/Passive
+/Detectors/TOF
+/Detectors/TPC
+/Detectors/TRD
+/Detectors/ZDC
+
+/EventVisualisation
+#/EventVisualisation/Base
+#/EventVisualisation/DataConverter
+#/EventVisualisation/Detectors
+#/EventVisualisation/View
+#/EventVisualisation/o2eve_config
+
+/Examples
+#/Examples/Ex1
+#/Examples/Ex2
+#/Examples/Ex3
+#/Examples/Ex4
+#/Examples/Ex5
+#/Examples/flp2epn
+#/Examples/flp2epn-distributed
+
+
 /Framework @AliceO2Group/framework-admins
+#/Framework/AnalysisTutorial
+#/Framework/ArrowTests
+#/Framework/CMakeLists.txt
+#/Framework/Core
+#/Framework/DebugGUI
+#/Framework/Foundation
+#/Framework/Logger
+#/Framework/README.md
+#/Framework/TestWorkflows
+#/Framework/Utils
+
+/GPU
+#/GPU/Common
+#/GPU/GPUTracking
+#/GPU/TPCFastTransformation
+#/GPU/TPCSpaceChargeBase
+
+/Generators
+
+/Steer
+
+/Testing
+
+/Utilities
+#/Utilities/DataCompression
+#/Utilities/DataFlow
+#/Utilities/MCStepLogger
+#/Utilities/Mergers
+#/Utilities/O2Device
+#/Utilities/O2MessageMonitor
+#/Utilities/PCG
+#/Utilities/Publishers
+#/Utilities/Tools
+#/Utilities/aliceHLTwrapper
+#/Utilities/hough
