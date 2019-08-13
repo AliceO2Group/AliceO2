@@ -14,7 +14,6 @@
 #define GPUCA_GPUTYPE_PASCAL
 
 #include <cuda.h>
-#include <sm_20_atomic_functions.h>
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"

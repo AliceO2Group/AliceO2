@@ -14,6 +14,11 @@
 #define GPUCA_GPUTYPE_HIP
 #include "hip/hip_runtime.h"
 
+#ifdef __CUDACC__
+#define __HIPCC_CUDA__
+#undef __CUDACC__
+#endif
+
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"
 #include "GPUReconstructionIncludes.h"
