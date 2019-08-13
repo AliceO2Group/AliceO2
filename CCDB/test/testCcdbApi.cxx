@@ -18,6 +18,8 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/IdPath.h"    // just as test object
+#include "CCDB/Condition.h" // just as test object
 #include <boost/test/unit_test.hpp>
 #include <cassert>
 #include <iostream>
@@ -32,6 +34,7 @@
 #include <TStreamerInfo.h>
 #include <TGraph.h>
 #include <TTree.h>
+#include <TString.h>
 
 using namespace std;
 using namespace o2::ccdb;
@@ -120,37 +123,69 @@ BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
   f.api.storeAsTFile(tree, "Test/tree", f.metadata);
 }
 
+BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+
+  f.api.storeAsTFileAny(&path, "Test/CCDBPath", f.metadata);
+
+  // try to retrieve strongly typed user defined class
+  // since we don't depend on anything, we are using an object known to CCDB
+  o2::ccdb::IdPath* path2 = nullptr;
+
+  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPath", f.metadata);
+  BOOST_CHECK_NE(path2, nullptr);
+
+  // check some non-trivial data content
+  BOOST_CHECK(path2 && path2->getPathString().CompareTo("HelloWorld") == 0);
+
+  // try to query with different type and verify that we get nullptr
+  BOOST_CHECK(f.api.retrieveFromTFileAny<o2::ccdb::Condition>("Test/CCDBPath", f.metadata) == nullptr);
+}
+
 BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
   TObject* obj = f.api.retrieveFromTFile("Test/th1", f.metadata);
   BOOST_CHECK_NE(obj, nullptr);
-  BOOST_CHECK_EQUAL(obj->ClassName(), "TH1F");
-  auto h1 = dynamic_cast<TH1F*>(obj);
-  BOOST_CHECK_NE(h1, nullptr);
-  BOOST_CHECK_EQUAL(obj->GetName(), "th1name");
-  delete obj;
+  if (obj) {
+    BOOST_CHECK_EQUAL(obj->ClassName(), "TH1F");
+    auto h1 = dynamic_cast<TH1F*>(obj);
+    BOOST_CHECK_NE(h1, nullptr);
+    BOOST_CHECK_EQUAL(obj->GetName(), "th1name");
+    delete obj;
+  }
 
   obj = f.api.retrieveFromTFile("Test/graph", f.metadata);
   BOOST_CHECK_NE(obj, nullptr);
-  BOOST_CHECK_EQUAL(obj->ClassName(), "TGraph");
-  auto graph = dynamic_cast<TGraph*>(obj);
-  BOOST_CHECK_NE(graph, nullptr);
-  double x, y;
-  int ret = graph->GetPoint(0, x, y);
-  BOOST_CHECK_EQUAL(ret, 0);
-  BOOST_CHECK_EQUAL(x, 2);
-  BOOST_CHECK_EQUAL(graph->GetN(), 10);
-  delete graph;
+  if (obj) {
+
+    BOOST_CHECK_EQUAL(obj->ClassName(), "TGraph");
+    auto graph = dynamic_cast<TGraph*>(obj);
+    BOOST_CHECK_NE(graph, nullptr);
+    double x, y;
+    int ret = graph->GetPoint(0, x, y);
+    BOOST_CHECK_EQUAL(ret, 0);
+    BOOST_CHECK_EQUAL(x, 2);
+    BOOST_CHECK_EQUAL(graph->GetN(), 10);
+    delete graph;
+  }
 
   obj = f.api.retrieveFromTFile("Test/tree", f.metadata);
   BOOST_CHECK_NE(obj, nullptr);
-  BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
-  auto tree = dynamic_cast<TTree*>(obj);
-  BOOST_CHECK_NE(tree, nullptr);
-  BOOST_CHECK_EQUAL(tree->GetName(), "mytree");
-  delete obj;
+  if (obj) {
+    BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
+    auto tree = dynamic_cast<TTree*>(obj);
+    BOOST_CHECK_NE(tree, nullptr);
+    BOOST_CHECK_EQUAL(tree->GetName(), "mytree");
+    delete obj;
+  }
 
   // wrong url
   obj = f.api.retrieveFromTFile("Wrong/wrong", f.metadata);

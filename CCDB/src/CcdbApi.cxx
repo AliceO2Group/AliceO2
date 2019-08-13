@@ -29,6 +29,7 @@
 #include <TTree.h>
 #include <FairLogger.h>
 #include <TError.h>
+#include <TClass.h>
 
 namespace o2
 {
@@ -36,10 +37,6 @@ namespace ccdb
 {
 
 using namespace std;
-
-CcdbApi::CcdbApi() : mUrl("")
-{
-}
 
 CcdbApi::~CcdbApi()
 {
@@ -52,7 +49,7 @@ void CcdbApi::curlInit()
   curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
-void CcdbApi::init(std::string host)
+void CcdbApi::init(std::string const& host)
 {
   mUrl = host;
   curlInit();
@@ -72,8 +69,8 @@ std::string sanitizeObjectName(const std::string& objectName)
   return tmpObjectName;
 }
 
-void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
-                    long startValidityTimestamp, long endValidityTimestamp, bool doStoreStreamerInfo)
+void CcdbApi::store(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+                    long startValidityTimestamp, long endValidityTimestamp, bool doStoreStreamerInfo) const
 {
   // Serialize the object
   TMessage message(kMESS_OBJECT);
@@ -137,8 +134,98 @@ void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string,
   }
 }
 
-void CcdbApi::storeAsTFile(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
-                           long startValidityTimestamp, long endValidityTimestamp)
+void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::string const& path, std::map<std::string, std::string> const& metadata,
+                                long startValidityTimestamp, long endValidityTimestamp) const
+{
+  std::cout << "Using template version\n";
+  // We need the TClass for this type; will verify if dictionary exists
+  auto tcl = TClass::GetClass(tinfo);
+  if (!tcl) {
+    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to write to CCDB";
+    return;
+  }
+
+  // Prepare file name (for now the name corresponds to the name stored by TClass)
+  string objectName = string(tcl->GetName());
+  utils::trim(objectName);
+  string tmpFileName = objectName + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
+#if ROOT_VERSION_CODE < ROOT_VERSION(6, 18, 0)
+  TMemFile memFile(tmpFileName.c_str(), "RECREATE");
+#else
+  size_t memFileBlockSize = 1024; // 1KB
+  TMemFile memFile(tmpFileName.c_str(), "RECREATE", "", ROOT::RCompressionSetting::EDefaults::kUseGeneralPurpose,
+                   memFileBlockSize);
+#endif
+  if (memFile.IsZombie()) {
+    cerr << "Error opening file " << tmpFileName << ", we can't store object " << objectName << endl;
+    memFile.Close();
+    return;
+  }
+  memFile.WriteObjectAny(obj, tcl, objectName.c_str());
+  memFile.Close();
+
+  // Prepare Buffer
+  void* buffer = malloc(memFile.GetSize());
+  memFile.CopyTo(buffer, memFile.GetSize());
+
+  // Prepare URL
+  long sanitizedStartValidityTimestamp = startValidityTimestamp;
+  if (startValidityTimestamp == -1) {
+    cout << "Start of Validity not set, current timestamp used." << endl;
+    sanitizedStartValidityTimestamp = getCurrentTimestamp();
+  }
+  long sanitizedEndValidityTimestamp = endValidityTimestamp;
+  if (endValidityTimestamp == -1) {
+    cout << "End of Validity not set, start of validity plus 1 year used." << endl;
+    sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
+  }
+  string fullUrl = getFullUrlForStorage(path, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
+  std::cout << "FULL URL " << fullUrl << "\n";
+
+  // Curl preparation
+  CURL* curl;
+  struct curl_httppost* formpost = nullptr;
+  struct curl_httppost* lastptr = nullptr;
+  struct curl_slist* headerlist = nullptr;
+  static const char buf[] = "Expect:";
+  curl_formadd(&formpost,
+               &lastptr,
+               CURLFORM_COPYNAME, "send",
+               CURLFORM_BUFFER, tmpFileName.c_str(),
+               CURLFORM_BUFFERPTR, buffer, //.Buffer(),
+               CURLFORM_BUFFERLENGTH, memFile.GetSize(),
+               CURLFORM_END);
+
+  curl = curl_easy_init();
+  headerlist = curl_slist_append(headerlist, buf);
+  if (curl != nullptr) {
+    /* what URL that receives this POST */
+    curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+    curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+
+    /* Perform the request, res will get the return code */
+    CURLcode res = curl_easy_perform(curl);
+    /* Check for errors */
+    if (res != CURLE_OK) {
+      fprintf(stderr, "curl_easy_perform() failed: %s\n",
+              curl_easy_strerror(res));
+    }
+
+    /* always cleanup */
+    curl_easy_cleanup(curl);
+
+    /* then cleanup the formpost chain */
+    curl_formfree(formpost);
+    /* free slist */
+    curl_slist_free_all(headerlist);
+  } else {
+    cerr << "curl initialization failure" << endl;
+  }
+}
+
+void CcdbApi::storeAsTFile(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+                           long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare file
   string objectName = string(rootObject->GetName());
@@ -219,7 +306,7 @@ void CcdbApi::storeAsTFile(TObject* rootObject, std::string path, std::map<std::
 }
 
 string CcdbApi::getFullUrlForStorage(const string& path, const map<string, string>& metadata,
-                                     long startValidityTimestamp, long endValidityTimestamp)
+                                     long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare timestamps
   string startValidityString = getTimestampString(startValidityTimestamp < 0 ? getCurrentTimestamp() : startValidityTimestamp);
@@ -234,7 +321,7 @@ string CcdbApi::getFullUrlForStorage(const string& path, const map<string, strin
 }
 
 // todo make a single method of the one above and below
-string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, string>& metadata, long timestamp)
+string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, string>& metadata, long timestamp) const
 {
   // Prepare timestamps
   string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
@@ -282,8 +369,8 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
   return realsize;
 }
 
-TObject* CcdbApi::retrieve(std::string path, std::map<std::string, std::string> metadata,
-                           long timestamp)
+TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
+                           long timestamp) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
@@ -365,7 +452,7 @@ TObject* CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
   return result;
 }
 
-TObject* CcdbApi::retrieveFromTFile(std::string path, std::map<std::string, std::string> metadata, long timestamp)
+TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
@@ -442,6 +529,94 @@ TObject* CcdbApi::retrieveFromTFile(std::string path, std::map<std::string, std:
   return result;
 }
 
+void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
+                                 std::map<std::string, std::string> const& metadata, long timestamp) const
+{
+  // We need the TClass for this type; will verify if dictionary exists
+  auto tcl = TClass::GetClass(tinfo);
+  if (!tcl) {
+    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB";
+    return nullptr;
+  }
+  string objectName = string(tcl->GetName());
+  utils::trim(objectName);
+
+  // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
+  // Thus it does not comply to our coding guidelines as it is a copy paste.
+
+  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+
+  // Prepare CURL
+  CURL* curl_handle;
+  CURLcode res;
+  struct MemoryStruct chunk {
+    (char*)malloc(1) /*memory*/, 0 /*size*/
+  };
+
+  /* init the curl session */
+  curl_handle = curl_easy_init();
+
+  /* specify URL to get */
+  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
+
+  /* send all data to this function  */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
+  /* we pass our 'chunk' struct to the callback function */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
+
+  /* some servers don't like requests that are made without a user-agent
+         field, so we provide one */
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+  /* if redirected , we tell libcurl to follow redirection */
+  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  /* get it! */
+  res = curl_easy_perform(curl_handle);
+
+  void* result = nullptr;
+  if (res == CURLE_OK) {
+    long response_code;
+    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+    if ((res == CURLE_OK) && (response_code != 404)) {
+      Int_t previousErrorLevel = gErrorIgnoreLevel;
+      gErrorIgnoreLevel = kFatal;
+      TMemFile memFile("name", chunk.memory, chunk.size, "READ");
+      gErrorIgnoreLevel = previousErrorLevel;
+      if (!memFile.IsZombie()) {
+        void* object = memFile.GetObjectChecked(objectName.c_str(), tcl);
+        if (object != nullptr) {
+          result = object;
+          //              // Copy object in memory and make sure we detach it from the file
+          //              result = ((TObject*)(object))->Clone(); // the buffer will be discarded so we have to copy
+          //              // because objects of these classes will belong to the current directory, ie. the file, we ahve to explicitly unset the directory
+          //              if (result->InheritsFrom("TTree")) {
+          //                auto* tree = dynamic_cast<TTree*>(result);
+          //                tree->SetDirectory(nullptr);
+          //              } else if (result->InheritsFrom("TH1")) {
+          //                auto* h = dynamic_cast<TH1*>(result);
+          //                h->SetDirectory(nullptr);
+          //              }
+        } else {
+          LOG(ERROR) << "Couldn't retrieve the object " << path << endl;
+        }
+        memFile.Close();
+      } else {
+        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile" << endl;
+      }
+    } else {
+      LOG(ERROR) << "Invalid URL : " << fullUrl << endl;
+    }
+  } else {
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+  }
+
+  curl_easy_cleanup(curl_handle);
+  free(chunk.memory);
+  return result;
+}
+
 size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nmemb, std::string* s)
 {
   size_t newLength = size * nmemb;
@@ -457,7 +632,7 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   return size * nmemb;
 }
 
-std::string CcdbApi::list(std::string path, bool latestOnly, std::string returnFormat)
+std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string const& returnFormat) const
 {
   CURL* curl;
   CURLcode res;
@@ -490,7 +665,7 @@ std::string CcdbApi::list(std::string path, bool latestOnly, std::string returnF
   return result;
 }
 
-long CcdbApi::getFutureTimestamp(int secondsInFuture)
+long CcdbApi::getFutureTimestamp(int secondsInFuture) const
 {
   std::chrono::seconds sec(secondsInFuture);
   auto future = std::chrono::system_clock::now() + sec;
@@ -500,7 +675,7 @@ long CcdbApi::getFutureTimestamp(int secondsInFuture)
   return value.count();
 }
 
-long CcdbApi::getCurrentTimestamp()
+long CcdbApi::getCurrentTimestamp() const
 {
   auto now = std::chrono::system_clock::now();
   auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
@@ -509,14 +684,14 @@ long CcdbApi::getCurrentTimestamp()
   return value.count();
 }
 
-std::string CcdbApi::getTimestampString(long timestamp)
+std::string CcdbApi::getTimestampString(long timestamp) const
 {
   stringstream ss;
   ss << timestamp;
   return ss.str();
 }
 
-void CcdbApi::deleteObject(std::string path, long timestamp)
+void CcdbApi::deleteObject(std::string const& path, long timestamp) const
 {
   CURL* curl;
   CURLcode res;
@@ -539,7 +714,7 @@ void CcdbApi::deleteObject(std::string path, long timestamp)
   }
 }
 
-void CcdbApi::truncate(std::string path)
+void CcdbApi::truncate(std::string const& path) const
 {
   CURL* curl;
   CURLcode res;
@@ -564,7 +739,7 @@ size_t write_data(void* buffer, size_t size, size_t nmemb, void* userp)
   return size * nmemb;
 }
 
-bool CcdbApi::isHostReachable()
+bool CcdbApi::isHostReachable() const
 {
   CURL* curl;
   CURLcode res;
