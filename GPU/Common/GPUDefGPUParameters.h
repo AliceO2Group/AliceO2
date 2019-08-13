@@ -72,7 +72,6 @@
 
 // #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                        // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 
-#define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 // Default maximum numbers
@@ -97,14 +96,17 @@
     #undef GPUCA_TEXTURE_FETCH_NEIGHBORS
   #endif
 
-  // Do not cache Row Hits during Tracklet selection in Registers for CPU Tracker
-  #undef GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE
   #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 0
-
   #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 0
 #else
   #define GPUCA_SORT_STARTHITS // Sort start hits for GPU tracker
-  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+  #ifdef __HIPCC__
+    #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+    #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+  #else
+    #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+    #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+  #endif
 #endif
 
 #ifdef GPUCA_NOCOMPAT
