@@ -17,6 +17,10 @@
 #define SCRATCH_PAD_WORK_GROUP_SIZE 64
 
 
+#define GET_IS_PEAK(val) (val & 0x01)
+#define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
+
+
 typedef struct PartialCluster_s
 {
     charge_t Q;
@@ -42,9 +46,13 @@ typedef short2 local_id;
 constant delta2_t INNER_NEIGHBORS[8] =
 {
     (delta2_t)(-1, -1), 
+
     (delta2_t)(-1, 0), 
+
     (delta2_t)(-1, 1),
+
     (delta2_t)(0, -1),
+
     (delta2_t)(0, 1),
     (delta2_t)(1, -1),
     (delta2_t)(1, 0), 
@@ -711,16 +719,21 @@ void finalize(
 char countPeaksAroundDigit(
                const global_pad_t  gpad,
                const timestamp     time,
+        global const charge_t     *chargeMap,
         global const uchar        *peakMap)
 {
     char peakCount = 0;
 
+    uchar aboveThreshold = 0;
     for (uchar i = 0; i < 8; i++)
     {
         delta2_t d = INNER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
-        peakCount += IS_PEAK(peakMap, gpad+dp, time+dt);
+        
+        uchar p = IS_PEAK(peakMap, gpad+dp, time+dt);
+        peakCount += GET_IS_PEAK(p);
+        aboveThreshold |= GET_IS_ABOVE_THRESHOLD(p) << i;
     }
 
     if (peakCount > 0)
@@ -733,7 +746,11 @@ char countPeaksAroundDigit(
         delta2_t d = OUTER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
-        peakCount -= IS_PEAK(peakMap, gpad+dp, time+dt);
+
+        if (innerAboveThreshold(aboveThreshold, i))
+        {
+            peakCount -= GET_IS_PEAK(IS_PEAK(peakMap, gpad+dp, time+dt));
+        }
     }
 
     return peakCount;
@@ -746,7 +763,7 @@ char countPeaksScratchpad(
     char peaks = 0;
     for (uchar i = 0; i < 8; i++)
     {
-        peaks += isPeak[ll * 8 + i];
+        peaks += GET_IS_PEAK(isPeak[ll * 8 + i]);
     }
 
     return peaks;
@@ -847,7 +864,7 @@ void findPeaks(
     // These dummy items also compute the last digit but discard the result.
     Digit myDigit = digits[min(idx, (size_t)(digitnum-1) )];
 
-    bool peak;
+    uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
     IF_DBG_INST printf("Looking for peaks (using LDS)\n");
     const ushort N = 8;
@@ -868,13 +885,16 @@ void findPeaks(
     isPeakPredicate[idx] = peak;
 
     const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-    IS_PEAK(peakMap, gpad, myDigit.time) = peak;
+
+    IS_PEAK(peakMap, gpad, myDigit.time) = 
+          ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 
 kernel
 void countPeaks(
         global const uchar    *peakMap,
+        global const charge_t *chargeMap,
         global const Digit    *digits,
                const uint      digitnum,
         global const uchar    *isPeak,
@@ -984,7 +1004,7 @@ void countPeaks(
     ChargePos pos = posBcast1[ll];
     PEAK_COUNT(peakCountMap, pos.gpad, pos.time) = pc;
 #else
-    peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
+    peakCount = countPeaksAroundDigit(gpad, myDigit.time, chargeMap, peakMap);
 
     if (iamDummy)
     {

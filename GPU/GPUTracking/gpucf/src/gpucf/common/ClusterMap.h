@@ -26,6 +26,8 @@ public:
     void setClusterEqParams(float, float, Cluster::FieldMask);
 
     size_t size() const;
+
+    Cluster findClosest(const Cluster &) const;
     
 private:
     std::unordered_map<int, std::vector<Cluster>> clusters;

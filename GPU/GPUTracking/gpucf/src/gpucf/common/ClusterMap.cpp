@@ -1,5 +1,7 @@
 #include "ClusterMap.h"
 
+#include <gpucf/common/log.h>
+
 #include <limits>
 
 
@@ -80,6 +82,33 @@ nonstd::optional<Cluster> ClusterMap::tryLookup(
 
     return lookup;
 }
+
+Cluster ClusterMap::findClosest(const Cluster &c) const
+{
+    auto tgtEntry = clusters.find(c.globalRow());
+
+    ASSERT(tgtEntry != clusters.end());
+
+    const std::vector<Cluster> &tgtRow = tgtEntry->second;
+
+    float dist = std::numeric_limits<float>::infinity();
+
+    Cluster neighbor;
+
+    for (const Cluster &other : tgtRow)
+    {
+        float distToOther = c.dist(other);
+        if (distToOther < dist)
+        {
+            neighbor = other;
+            dist = distToOther;
+        }
+    }
+
+    return neighbor;
+}
+
+
 
 std::vector<Cluster> ClusterMap::findDuplicates() const
 {

@@ -9,9 +9,10 @@ executables(
     plot_qmaxcutoff
     run_gpucf
     root_test
+    testbench
 )
 
-add_executable(testbench 
-    "testbench.cpp"
+add_executable(unittests 
+    "unittests.cpp"
     ${TEST_SRC})
-target_link_libraries(testbench gpucf)
+target_link_libraries(unittests gpucf)

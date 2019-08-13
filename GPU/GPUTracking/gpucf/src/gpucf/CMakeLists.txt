@@ -1,5 +1,14 @@
 set(GPUCF_SRC
     "./ClusterChecker.cpp"
+
+    "./algorithms/ClusterFinder.cpp"
+    "./algorithms/ClusterFinderConfig.cpp"
+    "./algorithms/ClusterFinderProfiler.cpp"
+    "./algorithms/ClusterFinderState.cpp"
+    "./algorithms/ClusterFinderTest.cpp"
+    "./algorithms/cpu.cpp"
+    "./algorithms/ReferenceClusterFinder.cpp"
+    "./algorithms/StreamCompaction.cpp"
     
     "./common/ClEnv.cpp"
     "./common/Cluster.cpp"
@@ -19,25 +28,19 @@ set(GPUCF_SRC
     "./common/Position.cpp"
     "./common/RowInfo.cpp"
 
-    "./debug/SCFuzzer.cpp"
     "./debug/DigitDrawer.cpp"
+    "./debug/PeakCountTest.cpp"
+    "./debug/SCFuzzer.cpp"
+    "./debug/utils.cpp"
 
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
     "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
+    "./executable/Testbench.cpp"
 
     "./experiments/Experiment.cpp"
     "./experiments/TimeCf.cpp"
-
-    "./algorithms/ClusterFinder.cpp"
-    "./algorithms/ClusterFinderConfig.cpp"
-    "./algorithms/ClusterFinderProfiler.cpp"
-    "./algorithms/ClusterFinderState.cpp"
-    "./algorithms/ClusterFinderTest.cpp"
-    "./algorithms/cpu.cpp"
-    "./algorithms/ReferenceClusterFinder.cpp"
-    "./algorithms/StreamCompaction.cpp"
 
     "./noisesuppression/NoiseSuppression.cpp"
     "./noisesuppression/NoiseSuppressionOverArea.cpp"

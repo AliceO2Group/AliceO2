@@ -20,10 +20,11 @@ public:
         size_t workitems = state.digitnum + dummyItems;
 
         kernel.setArg(0, state.peakMap);
-        kernel.setArg(1, state.digits);
-        kernel.setArg(2, static_cast<cl_uint>(state.digitnum));
-        kernel.setArg(3, state.isPeak);
-        kernel.setArg(4, state.peakCountMap);
+        kernel.setArg(1, state.chargeMap);
+        kernel.setArg(2, state.digits);
+        kernel.setArg(3, static_cast<cl_uint>(state.digitnum));
+        kernel.setArg(4, state.isPeak);
+        kernel.setArg(5, state.peakCountMap);
 
         Kernel1D::call(0, workitems, 64, queue);
     }

@@ -48,9 +48,10 @@ private:
     Map<PeakCount> makePeakCountMap(
             nonstd::span<const Digit>, 
             nonstd::span<const Digit>, 
+            const Map<float> &,
             bool);
 
-    PeakCount countPeaks(const Digit &, const Map<bool> &);
+    PeakCount countPeaks(const Digit &, const Map<bool> &, const Map<float> &);
 
     Cluster clusterize(
             const Digit &, 
