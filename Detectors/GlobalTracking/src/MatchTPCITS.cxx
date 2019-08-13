@@ -37,6 +37,11 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
+#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#define GPUCA_O2_LIB        // Temporary workaround, must not be set globally, but needed right now for GPUParam.h
+#include "GPUParam.h"       // Consider more universal access
+#undef GPUCA_O2_LIB
+
 using namespace o2::globaltracking;
 
 using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
@@ -47,6 +52,12 @@ constexpr float MatchTPCITS::XTPCOuterRef;
 constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
+
+//______________________________________________
+MatchTPCITS::MatchTPCITS() = default;
+
+//______________________________________________
+MatchTPCITS::~MatchTPCITS() = default;
 
 //______________________________________________
 void MatchTPCITS::setDPLIO(bool v)

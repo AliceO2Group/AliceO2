@@ -16,10 +16,10 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "GPUO2Interface.h"
 #include "TPCFastTransform.h"
+
+#include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
-#include "GPUDataTypes.h"
 
 using namespace o2::gpu;
 
