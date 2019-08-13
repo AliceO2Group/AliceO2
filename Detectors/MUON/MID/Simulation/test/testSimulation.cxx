@@ -138,15 +138,15 @@ std::vector<GenTrack> generateTracks(int nTracks)
     GenTrack genTrack;
     genTrack.track = track;
     for (int ich = 0; ich < 4; ++ich) {
-      auto pairs = simTracking.hitFinder.getLocalPositions(track, ich);
+      auto clusters = simTracking.hitFinder.getLocalPositions(track, ich);
       bool isFired = false;
-      for (auto pair : pairs) {
-        stripIndex = simBase.mapping.stripByPosition(pair.second.x(), pair.second.y(), 0, pair.first, false);
+      for (auto& cl : clusters) {
+        stripIndex = simBase.mapping.stripByPosition(cl.xCoor, cl.yCoor, 0, cl.deId, false);
         if (!stripIndex.isValid()) {
           continue;
         }
-        auto pos = simBase.geoTrans.localToGlobal(pair.first, pair.second.x(), pair.second.y());
-        genTrack.hits.emplace_back(trackId, pair.first, pos, pos);
+        auto pos = simBase.geoTrans.localToGlobal(cl.deId, cl.xCoor, cl.yCoor);
+        genTrack.hits.emplace_back(trackId, cl.deId, pos, pos);
         isFired = true;
       }
       if (isFired) {
