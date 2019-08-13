@@ -11,18 +11,6 @@
 using namespace gpucf;
 
 
-const std::unordered_map<Delta, std::vector<Delta>> ReferenceClusterFinder::innerToOuter =
-    {
-        { {-1, -1}, { {-2, -1}, {-2, -2}, {-1, -2} } },
-        { {-1, 0}, { {-2, 0} } },
-        { {-1, 1},{ {-2, 1}, {-2, 2}, {-1, 2} } },
-        { {0, -1},{ {0, -2} } },
-        { {0, 1},{ {0, 2} } },
-        { {1, -1},{ {2, -1}, {2, -2}, {1, -2} } },
-        { {1, 0}, { {2, 0} } },
-        { {1, 1},{ {2, 1}, {2, 2}, {1, 2} } },
-    };
-
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
     : config(config)
 {
@@ -83,30 +71,34 @@ Cluster ReferenceClusterFinder::clusterize(
 {
     Cluster c;
 
-    for (const auto &p : innerToOuter)
+    for (int dp = -1; dp <= 1; dp++)
     {
-        const Delta &inner = p.first; 
-
-        PeakCount pc = PCMASK_PEAK_COUNT & peakcount[{d, inner.pad, inner.time}];
-        float q = chargemap[{d, inner.pad, inner.time}] / pc;
-        update(c, q, inner.pad, inner.time);
-
-        if (q <= CHARGE_THRESHOLD)
+        for (int dt = -1; dt <= 1; dt++)
         {
-            continue;
+            PeakCount pc = PCMASK_PEAK_COUNT & peakcount[{d, dp, dt}];
+            float q = chargemap[{d, dp, dt}] / pc;
+            update(c, q, dp, dt);
         }
+    }
 
-        for (const auto &outer : p.second)
+    for (int dp = -2; dp <= 2; dp++)
+    {
+        for (int dt = -2; dt <= 2; dt++)
         {
-            PeakCount pc = peakcount[{d, outer.pad, outer.time}];
+            if (std::abs(dt) < 2 && std::abs(dp) < 2)
+            {
+                continue;
+            }
+
+            PeakCount pc = peakcount[{d, dp, dt}];
             if (PCMASK_HAS_3X3_PEAKS & pc)
             {
                 continue;
             }
 
             pc = PCMASK_PEAK_COUNT & pc;
-            float q = chargemap[{d, outer.pad, outer.time}] / pc;
-            update(c, q, outer.pad, outer.time); 
+            float q = chargemap[{d, dp, dt}] / pc;
+            update(c, q, dp, dt); 
         }
     }
 
@@ -179,7 +171,7 @@ void ReferenceClusterFinder::update(Cluster &c, float q, int dp, int dt)
 
 void ReferenceClusterFinder::finalize(Cluster &c, const Digit &peak)
 {
-    float qtot      = c.Q + peak.charge;
+    float qtot      = c.Q;
     float padMean   = c.padMean;
     float timeMean  = c.timeMean;
     float padSigma  = c.padSigma;

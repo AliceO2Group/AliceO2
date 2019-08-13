@@ -5,9 +5,7 @@
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Map.h>
 #include <gpucf/common/View.h>
-#include <gpucf/noisesuppression/Delta.h>
 
-#include <unordered_map>
 #include <vector>
 
 
@@ -41,9 +39,6 @@ private:
     };
 
     static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF);
-
-
-    static const std::unordered_map<Delta, std::vector<Delta>> innerToOuter;
 
     Map<PeakCount> makePeakCountMap(
             nonstd::span<const Digit>, 
