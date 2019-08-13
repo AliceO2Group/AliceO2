@@ -11,9 +11,9 @@
 
 /Algorithm
 
-/CCDB
+/CCDB @AliceO2Group/framework-admins
 
-/Common
+/Common @AliceO2Group/framework-admins
 #/Common/Constants
 #/Common/Field
 #/Common/MathUtils
@@ -23,7 +23,7 @@
 #/Common/Utils
 #/Common/maps
 
-/DataFormats
+/DataFormats @AliceO2Group/framework-admins
 #/DataFormats/Detectors
 #/DataFormats/Headers
 #/DataFormats/Legacy
@@ -34,8 +34,8 @@
 #/DataFormats/common
 #/DataFormats/simulation
 
-/Detectors/Base
-/Detectors/Geometry
+/Detectors/Base @AliceO2Group/framework-admins
+/Detectors/Geometry @AliceO2Group/framework-admins
 /Detectors/CPV
 /Detectors/EMCAL
 /Detectors/FIT
@@ -51,7 +51,7 @@
 /Detectors/TRD
 /Detectors/ZDC
 
-/EventVisualisation
+/EventVisualisation @AliceO2Group/framework-admins
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -80,7 +80,7 @@
 #/Framework/TestWorkflows
 #/Framework/Utils
 
-/GPU
+/GPU @AliceO2Group/framework-admins
 #/GPU/Common
 #/GPU/GPUTracking
 #/GPU/TPCFastTransformation
@@ -88,12 +88,12 @@
 
 /Generators
 
-/Steer
+/Steer @AliceO2Group/framework-admins
 
 /Testing
 
-/Utilities
-#/Utilities/DataCompression
+/Utilities @AliceO2Group/framework-admins
+#/Utilities/DataCompression 
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
 #/Utilities/Mergers
