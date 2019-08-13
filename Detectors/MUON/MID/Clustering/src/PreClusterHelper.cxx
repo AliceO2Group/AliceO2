@@ -19,7 +19,7 @@ namespace o2
 namespace mid
 {
 
-MpArea PreClusterHelper::getArea(const PreCluster& pc)
+MpArea PreClusterHelper::getArea(const PreCluster& pc) const
 {
   /// Gets the area of the pre-cluster in the bending plane
   /// The method can also return the full area in the NBP
@@ -46,7 +46,7 @@ MpArea PreClusterHelper::getArea(const PreCluster& pc)
   return MpArea{firstX, firstY, lastX, lastY};
 }
 
-MpArea PreClusterHelper::getArea(int column, const PreCluster& pc)
+MpArea PreClusterHelper::getArea(int column, const PreCluster& pc) const
 {
   /// Gets the area of the pre-cluster in the non-bending plane in column
   if (column > pc.lastColumn || column < pc.firstColumn) {
