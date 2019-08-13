@@ -35,8 +35,6 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
-#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
-#include "GPUParam.h"       // Consider more universal access
 
 class TTree;
 
@@ -62,6 +60,11 @@ class Cluster;
 namespace tpc
 {
 class TrackTPC;
+}
+
+namespace gpu
+{
+struct GPUParam;
 }
 
 namespace globaltracking
@@ -148,6 +151,9 @@ class MatchTPCITS
   using TPCTransform = o2::gpu::TPCFastTransform;
 
  public:
+  MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
+  ~MatchTPCITS();
+
   static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
   static constexpr float XTPCOuterRef = 255.0;                           ///< reference radius to propagate outer TPC track
   static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching

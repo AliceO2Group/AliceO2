@@ -35,8 +35,11 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "GPUO2Interface.h"
+#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUReconstruction/GPUChain
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#undef GPUCA_O2_LIB
+
 using namespace o2::gpu;
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
