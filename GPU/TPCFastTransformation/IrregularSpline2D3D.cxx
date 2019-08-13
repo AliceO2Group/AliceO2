@@ -34,17 +34,6 @@ void IrregularSpline2D3D::destroy()
   FlatObject::destroy();
 }
 
-void IrregularSpline2D3D::relocateBufferPointers(const char* oldBuffer, char* actualBuffer)
-{
-  /// relocate pointers from old to new buffer location
-
-  char* bufferU = FlatObject::relocatePointer(oldBuffer, actualBuffer, mGridU.getFlatBufferPtr());
-  mGridU.setActualBufferAddress(bufferU);
-
-  char* bufferV = FlatObject::relocatePointer(oldBuffer, actualBuffer, mGridV.getFlatBufferPtr());
-  mGridV.setActualBufferAddress(bufferV);
-}
-
 void IrregularSpline2D3D::cloneFromObject(const IrregularSpline2D3D& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
@@ -63,17 +52,17 @@ void IrregularSpline2D3D::cloneFromObject(const IrregularSpline2D3D& obj, char* 
 void IrregularSpline2D3D::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-  const char* oldFlatBufferPtr = mFlatBufferPtr;
   FlatObject::moveBufferTo(newFlatBufferPtr);
-  relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
+  setActualBufferAddress(mFlatBufferPtr);
 }
 
 void IrregularSpline2D3D::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
-  const char* oldFlatBufferPtr = mFlatBufferPtr;
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-  relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
+  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  mGridU.setActualBufferAddress(mFlatBufferPtr);
+  mGridV.setActualBufferAddress(mFlatBufferPtr + vOffset);
 }
 
 void IrregularSpline2D3D::setFutureBufferAddress(char* futureFlatBufferPtr)

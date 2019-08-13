@@ -222,9 +222,9 @@ class FlatObject
 
   /// _____________  Methods for moving the class with its external buffer to another location  __________________________
 
-  /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another maschine)
+  /// Sets the actual location of the flat buffer after it has been moved (i.e. to another maschine)
   /// It sets  mFlatBufferPtr to actualFlatBufferPtr.
-  /// A daughter class should later update all the pointers inside the buffer in the new location.
+  /// A daughter class should later update all the pointers inside the buffer to the new location.
   ///
   void setActualBufferAddress(char* actualFlatBufferPtr);
 
@@ -427,12 +427,7 @@ inline void FlatObject::setActualBufferAddress(char* actualFlatBufferPtr)
   /// It sets  mFlatBufferPtr to actualFlatBufferPtr.
   /// A daughter class should update all the pointers inside the buffer in the new location.
 
-  assert(!isBufferInternal());
   mFlatBufferPtr = actualFlatBufferPtr;
-#ifndef GPUCA_GPUCODE            // code invisible on GPU
-  delete[] mFlatBufferContainer; // for a case..
-#endif                           // !GPUCA_GPUCODE
-  mFlatBufferContainer = nullptr;
 }
 
 inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)

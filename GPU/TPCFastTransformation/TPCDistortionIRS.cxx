@@ -119,9 +119,31 @@ void TPCDistortionIRS::moveBufferTo(char* newFlatBufferPtr)
 void TPCDistortionIRS::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another maschine)
-  const char* oldFlatBufferPtr = mFlatBufferPtr;
+
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-  relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
+
+  size_t rowsOffset = 0;
+  size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
+
+  mRowSplineInfoPtr = reinterpret_cast<RowSplineInfo*>(mFlatBufferPtr + rowsOffset);
+
+  size_t scOffset = alignSize(rowsOffset + rowsSize, IrregularSpline2D3D::getClassAlignmentBytes());
+  size_t scSize = sizeof(IrregularSpline2D3D) * mNumberOfScenarios;
+
+  mScenarioPtr = reinterpret_cast<IrregularSpline2D3D*>(mFlatBufferPtr + scOffset);
+
+  size_t scBufferOffset = alignSize(scOffset + scSize, IrregularSpline2D3D::getBufferAlignmentBytes());
+  size_t scBufferSize = 0;
+
+  for (int i = 0; i < mNumberOfScenarios; i++) {
+    IrregularSpline2D3D& sp = mScenarioPtr[i];
+    sp.setActualBufferAddress(mFlatBufferPtr + scBufferOffset + scBufferSize);
+    scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
+  }
+
+  size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, IrregularSpline2D3D::getDataAlignmentBytes());
+
+  mSplineData = reinterpret_cast<char*>(mFlatBufferPtr + sliceDataOffset);
 }
 
 void TPCDistortionIRS::setFutureBufferAddress(char* futureFlatBufferPtr)

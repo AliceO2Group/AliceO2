@@ -19,8 +19,15 @@
 #include "FlatObject.h"
 #include "TPCFastTransformGeo.h"
 #include "TPCDistortionIRS.h"
-#include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
+
+#if !defined(GPUCA_GPUCODE)
+#include <string>
+#endif // !GPUCA_GPUCODE
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+//#include "Rtypes.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -157,6 +164,14 @@ class TPCFastTransform : public FlatObject
   /// Return mVDrift in cm / time bin
   GPUd() float getVDrift() const { return mVdrift; }
 
+#if !defined(GPUCA_GPUCODE)
+
+  int writeToFile(std::string outFName = "", std::string name = "");
+
+  static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
+
+#endif // !GPUCA_GPUCODE
+
   /// Print method
   void print() const;
 
@@ -168,11 +183,7 @@ class TPCFastTransform : public FlatObject
 
   /// _______________  Utilities  _______________________________________________
 
-  void relocateBufferPointers(const char* oldBuffer, char* actualBuffer);
-
   /// _______________  Data members  _______________________________________________
-
-  TPCFastTransformGeo mGeo; ///< TPC geometry information
 
   /// _______________  Calibration data. See Transform() method  ________________________________
 
@@ -208,6 +219,8 @@ class TPCFastTransform : public FlatObject
   float mTOFcorr;
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+
+  ClassDefNV(TPCFastTransform, 1);
 };
 
 // =======================================================================
@@ -271,7 +284,7 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
 
   bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
   float distZ = z - mPrimVtxZ;
-  float dv = -sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
+  float dv = -GPUCommonMath::Sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
   dz = sideC ? dv : -dv;
 }
 

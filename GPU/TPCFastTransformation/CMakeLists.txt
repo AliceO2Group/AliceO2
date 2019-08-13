@@ -42,7 +42,8 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           IrregularSpline2D3DTest.C
           RegularSpline1DTest.C
           SemiregularSpline2D3DTest.C
-          fastTransformQA.C)
+          fastTransformQA.C
+          generateTPCDistortionNTupleAliRoot.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  PUBLIC_INCLUDE_DIRECTORIES

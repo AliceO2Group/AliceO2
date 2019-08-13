@@ -23,6 +23,8 @@
 #include "Riostream.h"
 #include "TStopwatch.h"
 
+#define GPUCA_ALIROOT_LIB
+
 #include "TPCFastTransform.h"
 #include "TPCFastTransformManager.h"
 #include "TPCFastTransformQA.h"

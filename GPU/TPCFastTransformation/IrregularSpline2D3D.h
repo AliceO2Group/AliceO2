@@ -186,7 +186,6 @@ class IrregularSpline2D3D : public FlatObject
   void print() const;
 
  private:
-  void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
 
   ///
   /// ====  Data members   ====
