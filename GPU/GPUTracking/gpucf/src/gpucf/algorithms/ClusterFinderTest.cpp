@@ -166,9 +166,21 @@ void ClusterFinderTest::checkCluster(
     DigitDrawer drawer(digits, peaksGT, peaks);
 
     size_t correctCluster = 0;
+    size_t printCluster = 3;
     for (const Cluster &c : cluster)
     {
         bool posOk = clpos.contains(c);
+
+        if (!posOk && printCluster > 0)
+        {
+            log::Debug() 
+                << "Print around cluster:\n"
+                << drawer.drawArea(
+                    Digit{0, c.globalRow(), int(c.padMean), int(c.timeMean)},
+                    3);
+            printCluster--;
+        }
+
         correctCluster += posOk;
     }
 
