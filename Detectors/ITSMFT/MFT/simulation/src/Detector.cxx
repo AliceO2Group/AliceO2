@@ -449,20 +449,14 @@ void Detector::ConstructGeometry()
 //_____________________________________________________________________________
 void Detector::defineSensitiveVolumes()
 {
-
-  TGeoVolume* vol;
   Geometry* mftGeom = Geometry::instance();
 
-  vol = gGeoManager->GetVolume("MFTSensor");
-  if (!vol) {
-    LOG(FATAL) << "can't find volume MFTSensor";
-  } else {
-    AddSensitiveVolume(vol);
-    if (!mftGeom->getSensorVolumeID()) {
-      mftGeom->setSensorVolumeID(vol->GetNumber());
-    } else if (mftGeom->getSensorVolumeID() != vol->GetNumber()) {
-      LOG(FATAL) << "CreateSensors: different Sensor volume ID !!!!";
-    }
+  auto id = registerSensitiveVolumeAndGetVolID("MFTSensor");
+  if (id <= 0) {
+    LOG(FATAL) << "Can't register volume MFTSensor";
+  }
+  if (!mftGeom->getSensorVolumeID()) {
+    mftGeom->setSensorVolumeID(id);
   }
 }
 
