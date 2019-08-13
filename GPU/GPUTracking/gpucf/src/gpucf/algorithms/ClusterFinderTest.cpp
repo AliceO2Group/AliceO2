@@ -172,10 +172,11 @@ void ClusterFinderTest::checkCluster(
         bool posOk = clpos.contains(c);
         correctCluster += posOk;
 
-        /* if (!posOk) */
-        /* { */
-        /*     log::Debug() << c; */
-        /* } */
+        if (!posOk)
+        {
+            log::Debug() << "GT closest: " << clpos.findClosest(c);
+            log::Debug() << "GPU:        " << c;
+        }
     }
 
     float correctFraction = float(correctCluster) / cluster.size();
