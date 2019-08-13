@@ -33,12 +33,12 @@ std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGene
   std::vector<o2::mid::Track> tracks = trackGen.generate(nTracks);
   for (auto& track : tracks) {
     for (int ich = 0; ich < 4; ++ich) {
-      std::vector<std::pair<int, Point3D<float>>> pairs = hitFinder.getLocalPositions(track, ich);
+      auto hits = hitFinder.getLocalPositions(track, ich);
       bool isFired = false;
-      for (auto& pair : pairs) {
-        int deId = pair.first;
-        float xPos = pair.second.x();
-        float yPos = pair.second.y();
+      for (auto& hit : hits) {
+        int deId = hit.deId;
+        float xPos = hit.xCoor;
+        float yPos = hit.yCoor;
         stripIndex = mapping.stripByPosition(xPos, yPos, 0, deId, false);
         if (!stripIndex.isValid()) {
           continue;
