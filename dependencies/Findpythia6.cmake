@@ -8,19 +8,26 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_library(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED
-             NAMES libpythia6.so libpythia6.dylib)
+set(PKGNAME ${CMAKE_FIND_PACKAGE_NAME})
+string(TOUPPER ${PKGNAME} PKGENVNAME)
 
-if(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED)
+find_library(${PKGNAME}_LIBRARY_SHARED
+             NAMES libpythia6.so libpythia6.dylib
+             PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
+
+if(${PKGNAME}_LIBRARY_SHARED)
   add_library(pythia6 SHARED IMPORTED)
   set_target_properties(pythia6
                         PROPERTIES IMPORTED_LOCATION
-                                   ${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED})
+                                   ${${PKGNAME}_LIBRARY_SHARED})
 endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  ${CMAKE_FIND_PACKAGE_NAME}
-  REQUIRED_VARS ${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED)
+  ${PKGNAME}
+  REQUIRED_VARS ${PKGNAME}_LIBRARY_SHARED)
 
-mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY_SHARED)
+mark_as_advanced(${PKGNAME}_LIBRARY_SHARED)
+
+unset(PKGNAME)
+unset(PKGENVNAME)
