@@ -472,8 +472,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> diff = end - start;
-  LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s"
-            << FairLogger::endl;
+  LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s";
 
   start = end;
 
@@ -486,7 +485,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
   unloadClusters();
   end = std::chrono::system_clock::now();
   diff = end - start;
-  LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
+  LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s";
 
   start = end;
 }

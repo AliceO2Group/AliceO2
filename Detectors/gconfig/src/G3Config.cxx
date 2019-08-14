@@ -40,7 +40,7 @@ namespace g3config
 
 void G3Config()
 {
-  LOG(INFO) << "Setting up G3 sim from library code" << FairLogger::endl;
+  LOG(INFO) << "Setting up G3 sim from library code";
   Config();
   SetCuts();
 }

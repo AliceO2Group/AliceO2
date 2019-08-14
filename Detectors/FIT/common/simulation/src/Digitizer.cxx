@@ -192,18 +192,17 @@ void Digitizer::setTriggers(o2::ft0::Digit* digit)
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
 
   // Debug output -------------------------------------------------------------
-  LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
+  LOG(DEBUG) << "\n\nTest digizing data ===================";
 
-  LOG(INFO) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
+  LOG(INFO) << "Event ID: " << mEventID << " Event Time " << mEventTime;
   LOG(INFO) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
             << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
-            << " mean time C: " << mean_time_C << FairLogger::endl;
+            << " mean time C: " << mean_time_C;
 
   LOG(INFO) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
-            << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex << FairLogger::endl;
+            << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex;
 
-  LOG(DEBUG) << "======================================\n\n"
-             << FairLogger::endl;
+  LOG(DEBUG) << "======================================\n\n";
   // --------------------------------------------------------------------------
 }
 
