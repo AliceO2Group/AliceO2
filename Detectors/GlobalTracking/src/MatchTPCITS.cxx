@@ -53,39 +53,183 @@ constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
 
-void MatchTPCITS::printABTree(const ABTrackLinksList& llist) const
+//______________________________________________
+void MatchTPCITS::printABTracksTree(const ABTrackLinksList& llist) const
 {
-
-  int startLayer = 0, nextHyp;
-  while ((nextHyp = llist.firstInLr[startLayer]) == MinusOne && startLayer < NITSLayers) {
-    startLayer++;
-  }
-  if (startLayer == NITSLayers) {
+  // dump all hypotheses
+  if (llist.lowestLayer == NITSLayers) {
     printf("No matches\n");
     return;
   }
-  auto lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].source.getIndex())[0]; // tmp
-  LOG(INFO) << "Matches for track " << llist.trackID << " " << lblTrc;
-  while (nextHyp > MinusOne) {
-    printf("Lr/IC/ClID/Chi2/{MC}:%c ", lblTrc.getTrackID() > 0 ? 'C' : 'F');
-    int parID = nextHyp; // print particular hypothesis
-    int lr = startLayer;
-    do {
-      const auto& lnk = mABLinks[parID];
+  o2::MCCompLabel lblTrc;
+  if (mTPCTrkLabels) {
+    lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].source.getIndex())[0];
+  }
+  LOG(INFO) << "Matches for track " << llist.trackID << " lowest lr: " << int(llist.lowestLayer) << " " << lblTrc
+            << " pT= " << mTPCWork[llist.trackID].getPt();
+
+  auto printHyp = [this,&lblTrc](int nextHyp, int cnt) {
+    printf("#%d Lr/IC/Lnk/ClID/Chi2/Chi2Nrm/{MC}:%c ", cnt++, mTPCTrkLabels ? (lblTrc.isFake() ? 'F' : 'C') : '-');
+    int nFakeClus = 0, nTotClus = 0, parID = nextHyp; // print particular hypothesis
+    while (1) {
+      const auto& lnk = mABTrackLinks[parID];
       int mcEv = -1, mcTr = -1;
-      if (lnk.clID > MinusOne) {
-        const auto lab = mITSClsLabels->getLabels(lnk.clID)[0];
-        mcEv = lab.getEventID();
-        mcTr = lab.getTrackID();
-      } else if (lnk.parentID == MinusOne) { // top layer, use TPC MC lbl
-        mcEv = lblTrc.getEventID();
-        mcTr = lblTrc.getTrackID();
+      if (lnk.clID > MinusOne && mITSClsLabels) {
+	nTotClus++;
+	const auto lab = mITSClsLabels->getLabels(lnk.clID)[0];
+	if (lab.isValid()) {
+	  mcEv = lab.getEventID();
+	  mcTr = lab.getTrackID();
+	  if (mcEv != lblTrc.getEventID() || mcTr != lblTrc.getTrackID()) {
+	    nFakeClus++;
+	  }
+            } else {
+	  mcEv = mcTr = -999; // noise
+	  nFakeClus++;
+	}
+      } else if (lnk.isDummyTop() && mTPCTrkLabels) { // top layer, use TPC MC lbl
+	mcEv = lblTrc.getEventID();
+	mcTr = lblTrc.getTrackID();
       }
-      printf("[%d/%3d/%5d/%6.2f/{%d/%d}]", lr++, lnk.icCandID, lnk.clID, lnk.chi2, mcEv, mcTr);
+      printf("[%d/%d/%d/%d/%6.2f/%6.2f/{%d/%d}]", lnk.layerID, lnk.icCandID, parID, lnk.clID, lnk.chi2, lnk.chi2Norm(), mcEv, mcTr);
+      if (lnk.isDummyTop()) { // reached dummy seed on the dummy layer above the last ITS layer
+	break;
+      }
       parID = lnk.parentID;
-    } while (parID > MinusOne);
+    }
+    printf(" NTot:%d NFakes:%d\n", nTotClus, nFakeClus);
+  };
+
+  
+  int cnt = 0; // tmp
+  for (int lowest = llist.lowestLayer;lowest<=mABRequireToReachLayer;lowest++) {    
+    int nextHyp = llist.firstInLr[lowest];
+    while (nextHyp > MinusOne) {
+      if (mABTrackLinks[nextHyp].nDaughters==0) { // select only head links, w/o daughters
+	printHyp(nextHyp, cnt++);
+      }
+      nextHyp = mABTrackLinks[nextHyp].nextOnLr;
+    }
+  }
+  
+  if (llist.bestOrdLinkID>MinusOne) { // print best matches list
+    int next = llist.bestOrdLinkID;
+    LOG(INFO) << "Best matches:";
+    int cnt = 0;
+    while (next>MinusOne) {
+      const auto& lnkOrd = mABBestLinks[next];
+      int nextHyp = lnkOrd.trackLinkID;
+      printHyp(nextHyp, cnt++);
+      next = lnkOrd.nextLinkID;
+      refitABTrack(nextHyp);
+    }
+  }
+  
+}
+
+//______________________________________________
+void MatchTPCITS::dumpABTracksDebugTree(const ABTrackLinksList& llist)
+{
+  // dump all hypotheses
+  static int entCnt = 0;
+  if (llist.lowestLayer == NITSLayers) {
+    return;
+  }
+  LOG(INFO) << "Dump AB Matches for track " << llist.trackID;
+  o2::MCCompLabel lblTrc;
+  if (mTPCTrkLabels) {
+    lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].source.getIndex())[0]; // tmp
+  }
+  int ord = 0;
+  for (int lowest = llist.lowestLayer; lowest <= mABRequireToReachLayer; lowest++) {
+    int nextHyp = llist.firstInLr[lowest];
+    while (nextHyp > MinusOne) {
+      if (mABTrackLinks[nextHyp].nDaughters != 0) { // select only head links, w/o daughters
+        nextHyp = mABTrackLinks[nextHyp].nextOnLr;
+        continue;
+      }
+      // fill debug AB track
+      ABDebugTrack dbgTrack;
+      int parID = nextHyp; // print particular hypothesis
+      while (1) {
+        const auto& lnk = mABTrackLinks[parID];
+        if (lnk.clID > MinusOne) {
+          auto& dbgLnk = dbgTrack.links.emplace_back();
+#ifdef _ALLOW_DEBUG_AB_
+          dbgLnk.seed = lnk.seed; // seed before update
+#endif
+          dbgLnk.clLabel = mITSClsLabels->getLabels(lnk.clID)[0];
+          dbgLnk.chi2 = lnk.chi2;
+          dbgLnk.lr = lnk.layerID;
+          (o2::BaseCluster<float>&)dbgLnk = (*mITSClustersArrayInp)[lnk.clID];
+          dbgTrack.nClusITS++;
+          if (lblTrc.getEventID() == dbgLnk.clLabel.getEventID() && std::abs(lblTrc.getTrackID()) == dbgLnk.clLabel.getTrackID()) {
+            dbgTrack.nClusITSCorr++;
+          }
+        }
+        if (lnk.isDummyTop()) {   // reached dummy seed on the dummy layer above the last ITS layer
+          dbgTrack.tpcSeed = lnk; // tpc seed
+          dbgTrack.trackID = llist.trackID;
+          dbgTrack.tpcLabel = lblTrc;
+          dbgTrack.icCand = lnk.icCandID;
+          dbgTrack.icTimeBin = mInteractions[lnk.icCandID].timeBins;
+	  const auto& tpcTrOrig = (*mTPCTracksArrayInp)[mTPCWork[llist.trackID].source.getIndex()];
+	  unsigned nclTPC = tpcTrOrig.getNClusterReferences();
+	  dbgTrack.nClusTPC = nclTPC > 0xff ? 0xff : nclTPC;
+	  dbgTrack.sideAC = tpcTrOrig.hasASideClusters() + (tpcTrOrig.hasCSideClusters() ? 2 : 0);
+          break;
+        }
+        parID = lnk.parentID;
+      }
+      dbgTrack.chi2 = dbgTrack.links.front().chi2;
+      // at the moment links contain cumulative chi2, convert to track-to-cluster chi2
+      for (int i = 0; i < dbgTrack.nClusITS - 1; i++) {
+        dbgTrack.links[i].chi2 -= dbgTrack.links[i + 1].chi2;
+      }
+      // at the moment the links are stored from inner to outer layers, invert this order
+      for (int i=dbgTrack.nClusITS/2;i--;) {
+	std::swap(dbgTrack.links[i], dbgTrack.links[dbgTrack.nClusITS - i - 1]);
+      }
+      dbgTrack.valid = ord == 0 && llist.isValidated();
+      dbgTrack.order = ord++;
+      // dump debug track
+      (*mDBGOut) << "abtree"
+                 << "trc=" << dbgTrack << "\n";
+      entCnt++;
+      nextHyp = mABTrackLinks[nextHyp].nextOnLr;
+    }
+  } // loop over layers
+}
+
+//______________________________________________
+void MatchTPCITS::printABClusterUsage() const
+{
+  // print links info of clusters involved in AB tracks
+  int ncl = mABClusterLinkIndex.size();
+  for (int icl = 0; icl < ncl; icl++) {
+    int lnkIdx = mABClusterLinkIndex[icl];
+    if (lnkIdx <= MinusOne) { // not used or used in standard ITS tracks
+      continue;
+    }
+    LOG(INFO) << "Links for cluster " << icl;
+    int count = 0;
+    while (lnkIdx > MinusOne) {
+      const auto& linkCl = mABClusterLinks[lnkIdx];
+      const auto& linkTrack = mABTrackLinks[linkCl.linkedABTrack];
+      // find top track link on the dummy layer
+      int topIdx = linkCl.linkedABTrack, nUp = 0;
+      while (1) {
+        if (mABTrackLinks[topIdx].isDummyTop()) {
+          break;
+        }
+        nUp++;
+        topIdx = mABTrackLinks[topIdx].parentID;
+      }
+      const auto& topTrack = mABTrackLinks[topIdx];
+      printf("[#%d Tr:%d IC:%d Chi2:%.2f NP:%d]", count++, topTrack.parentID, linkTrack.icCandID, linkTrack.chi2, nUp);
+      lnkIdx = linkCl.nextABClusterLink;
+    }
     printf("\n");
-    nextHyp = mABLinks[nextHyp].nextOnLr;
   }
 }
 
@@ -308,14 +452,17 @@ bool MatchTPCITS::validateTPCMatch(int iTPC)
 {
   const auto& tTPC = mTPCWork[iTPC];
   auto& rcTPC = mMatchRecordsTPC[tTPC.matchID]; // best TPC->ITS match
+  /* // should never happen
   if (rcTPC.nextRecID == Validated) {
+    LOG(WARNING) << "TPC->ITS was already validated";
     return false; // RS do we need this
   }
+  */
   // check if it is consistent with corresponding ITS->TPC match
   auto& tITS = mITSWork[rcTPC.partnerID];       //  partner ITS track
   auto& rcITS = mMatchRecordsITS[tITS.matchID]; // best ITS->TPC match record
   if (rcITS.nextRecID == Validated) {
-    return false;              // RS do we need this ?
+    return false;
   }
   if (rcITS.partnerID == iTPC) { // is best matching TPC track for this ITS track actually iTPC?
     // unlink winner TPC track from all ITS candidates except winning one
@@ -490,8 +637,22 @@ bool MatchTPCITS::prepareTPCTracks()
     const auto& trcOrig = mTPCTracksArray[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > XTPCInnerRef + 0.1)
-      continue; // failed propagation to inner TPC radius, cannot be matched
+    if (trcOrig.getX() > XTPCInnerRef + 0.1 || trcOrig.getPt() < mMinTPCPt) {
+      continue;
+    }
+    // discard tracks with too few clusters
+    if (trcOrig.getNClusterReferences() < mMinTPCClusters) {
+      continue;
+    }
+    // discard tracks w/o certain number of innermost pads (last cluster is innermost one
+    {
+      uint8_t clSect = 0, clRow = 0;
+      uint32_t clIdx = 0;
+      trcOrig.getClusterReference(trcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
+      if (clRow > mAskMinTPCRow) {
+        continue;
+      }
+    }
 
     // create working copy of track param
     mTPCWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig), it);
@@ -661,8 +822,8 @@ bool MatchTPCITS::prepareITSTracks()
   // total N ITS clusters in TF
   const auto& lastClROF = mITSClusterROFRec->back();
   int nITSClus = lastClROF.getROFEntry().getIndex() + lastClROF.getNROFEntries();
-  mITSClustersFlags.clear();
-  mITSClustersFlags.resize(nITSClus, 0);
+  mABClusterLinkIndex.clear();
+  mABClusterLinkIndex.resize(nITSClus, MinusOne);
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
@@ -697,9 +858,7 @@ bool MatchTPCITS::prepareITSTracks()
       }
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param
-      mITSWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig.getParamOut()), it);
-      auto& trc = mITSWork.back();
-
+      auto& trc = mITSWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig.getParamOut()), it);
       if (!trc.rotate(o2::utils::Angle2Alpha(trc.getPhiPos()))) {
         mITSWork.pop_back(); // discard failed track
         continue;
@@ -724,18 +883,18 @@ bool MatchTPCITS::prepareITSTracks()
       // [(Xr*tg(10)-Yr)/(tgPhir+tg70)]^2  / cos(70)^2  // for the next sector
       // [(Xr*tg(10)+Yr)/(tgPhir-tg70)]^2  / cos(70)^2  // for the prev sector
       // Distances to the sector edges in neighbourings sectors (at Xref in theit proper frames)
-      float tgp = trc.getSnp();
+      float tgp = trc.getSnp(), trcY = trc.getY();
       tgp /= std::sqrt((1.f - tgp) * (1.f + tgp)); // tan of track direction XY
 
       // sector up
-      float dy2Up = (YMaxAtXMatchingRef - trc.getY()) / (tgp + Tan70);
+      float dy2Up = (YMaxAtXMatchingRef - trcY) / (tgp + Tan70);
       if ((dy2Up * dy2Up * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector up
-        addTrackCloneForNeighbourSector(trc, sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
+        addLastTrackCloneForNeighbourSector(sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
       }
       // sector down
-      float dy2Dn = (YMaxAtXMatchingRef + trc.getY()) / (tgp - Tan70);
+      float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
-        addTrackCloneForNeighbourSector(trc, sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
+        addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
       }
     }
   }
@@ -1182,13 +1341,13 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
 }
 
 //______________________________________________
-void MatchTPCITS::addTrackCloneForNeighbourSector(const TrackLocITS& src, int sector)
+void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
 {
   // add clone of the src ITS track cashe, propagate it to ref.X in requested sector
   // and register its index in the sector cache. Used for ITS tracks which are so close
   // to their setctor edge that their matching should be checked also in the neighbouring sector
-
-  mITSWork.push_back(src); // clone the track defined in given sector
+  mITSWork.reserve(mITSWork.size() + 100);
+  mITSWork.push_back(mITSWork.back()); // clone the last track defined in given sector
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
@@ -1360,8 +1519,8 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
                                   MaxSnp, maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       break;
     }
-    chi2 += trfit.getPredictedChi2(static_cast<const o2::BaseCluster<float>&>(clus));
-    if (!trfit.update(static_cast<const o2::BaseCluster<float>&>(clus))) {
+    chi2 += trfit.getPredictedChi2(clus);
+    if (!trfit.update(clus)) {
       break;
     }
     nclRefit++;
@@ -1543,7 +1702,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getFirstEntry();
   int clEntry = itsTrOrig.getFirstClusterEntry();
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = mITSClustersArrayInp[clusIndOffs + mITSTrackClusIdx[clEntry++];
+    const auto& clus = mITSClustersArray[clusIndOffs + mITSTrackClusIdx[clEntry++];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
@@ -1554,8 +1713,8 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
                                   MaxSnp, maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
       break;
     }
-    chi2 += trfit.getPredictedChi2(static_cast<const o2::BaseCluster<float>&>(clus));
-    if (!trfit.update(static_cast<const o2::BaseCluster<float>&>(clus))) {
+    chi2 += trfit.getPredictedChi2(clus);
+    if (!trfit.update(clus)) {
       break;
     }
     nclRefit++;
@@ -1689,6 +1848,94 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   return true;
 }
 
+//______________________________________________
+bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, float xTgt, int trcID, float timeTB, float m) const
+{
+  // inward refit
+  constexpr float TolSNP = 0.99;
+  const auto& tpcTrOrig = mTPCTracksArray[trcID];
+
+  constexpr int MaxClus = 2 * 152 + 1; // TODO
+  std::array<const o2::tpc::ClusterNative*, MaxClus> clsArr;
+  std::array<uint8_t, MaxClus> sectArr;
+  std::array<uint8_t, MaxClus> rowArr;
+  // select clusters to use
+  int iclPrev = 0, nclAcc = 0, icl = tpcTrOrig.getNClusterReferences();
+  // the innermost cluster is last one
+  clsArr[nclAcc] = &tpcTrOrig.getCluster(mTPCTrackClusIdx, --icl, *mTPCClusterIdxStruct, sectArr[nclAcc], rowArr[nclAcc]);
+  nclAcc++;
+  for (; icl--;) {
+    clsArr[nclAcc] = &tpcTrOrig.getCluster(mTPCTrackClusIdx, icl, *mTPCClusterIdxStruct, sectArr[nclAcc], rowArr[nclAcc]);
+    if (rowArr[iclPrev] < rowArr[nclAcc] ||                                           // row grows
+        (rowArr[iclPrev] == rowArr[nclAcc] && sectArr[iclPrev] == sectArr[nclAcc])) { // split clusters?
+      iclPrev = nclAcc++;
+    } else {
+      break; // discard looping part
+    }
+  }
+  // now selected clusters span from inner to outer rows
+
+  std::array<float, 2> clsYZ;
+  std::array<float, 3> clsCov = {};
+  float clsX;
+  trcIn = tpcTrOrig.getOuterParam();
+  trcIn.resetCovariance();
+  trcIn.setCov(tpcTrOrig.getQ2Pt() * tpcTrOrig.getQ2Pt(), o2::track::kSigQ2Pt2); // 100% error of the *original track inner param*
+  chi2 = 0;
+  icl = nclAcc - 1;
+
+  printf("RowsSpan: %d %d | %d clusters of %d\n", rowArr[0], rowArr[icl], nclAcc, tpcTrOrig.getNClusterReferences()); // tmp
+
+  auto propagator = o2::base::Propagator::Instance();
+  mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
+  mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
+  uint8_t sectCurr = sectArr[icl];
+  if (!trcIn.rotate(o2::utils::Sector2Angle(sectCurr % 18))) {
+    LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
+    return false;
+  }
+  trcIn.setX(clsX);
+  trcIn.setY(clsYZ[0]);
+  trcIn.setZ(clsYZ[1]);
+  if (!trcIn.update(clsYZ, clsCov)) {
+    LOG(WARNING) << "Update failed at cluster " << icl << ", chi2 =" << chi2;
+    LOG(WARNING) << trcIn.asString();
+    return false;
+  }
+  for (; icl--;) {
+    if (sectArr[icl] != sectCurr) {
+      sectCurr = sectArr[icl];
+      if (!trcIn.rotate(o2::utils::Sector2Angle(sectCurr % 18))) {
+        LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
+        LOG(WARNING) << trcIn.asString();
+        return false;
+      }
+    }
+    mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
+    mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
+    if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., o2::base::Propagator::USEMatCorrNONE)) { // no material correction!
+      LOG(INFO) << "Propagation to cluster at X="
+                << clsX << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
+      LOG(WARNING) << trcIn.asString();
+      return false;
+    }
+    chi2 += trcIn.getPredictedChi2(clsYZ, clsCov);
+    if (!trcIn.update(clsYZ, clsCov)) {
+      LOG(WARNING) << "Update failed at cluster " << icl << ", chi2 =" << chi2;
+      LOG(WARNING) << trcIn.asString();
+      return false;
+    }
+  }
+  // propagate to the inner edge of the TPC
+  // Note: it is allowed to not reach the requested radius
+  if (!propagator->PropagateToXBxByBz(trcIn, xTgt, m, MaxSnp, 2., mUseMatCorrFlag)) {
+    LOG(INFO) << "Propagation to target X=" << xTgt << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
+    LOG(WARNING) << trcIn.asString();
+    return false;
+  }
+  return true;
+}
+
 //>>============================= AfterBurner for TPC-track / ITS cluster matching ===================>>
 //______________________________________________
 int MatchTPCITS::prepareTPCTracksAfterBurner()
@@ -1758,7 +2005,7 @@ int MatchTPCITS::prepareInteractionTimes()
 //______________________________________________
 void MatchTPCITS::runAfterBurner()
 {
-  mABLinks.clear();
+  mABTrackLinks.clear();
 
   int nIntCand = prepareInteractionTimes();
   int nTPCCand = prepareTPCTracksAfterBurner();
@@ -1788,15 +2035,15 @@ void MatchTPCITS::runAfterBurner()
       } while (++iCEnd < nIntCand && !tTPC.timeBins.isOutside(mInteractions[iCEnd].timeBins));
 
       auto lbl = mTPCLblWork[mTPCABIndexCache[itr]]; // tmp
-      runAfterBurner(mTPCABIndexCache[itr], iCStart, iCEnd);
-      lbl.print(); // tmp
-      //tmp
-      if (tTPC.matchID > MinusOne) {
-        printf("AB Matching tree for TPC WID %d and IC %d : %d\n", mTPCABIndexCache[itr], iCStart, iCEnd);
-        auto& llinks = mABTrackLinksList[tTPC.matchID];
-        printABTree(llinks);
+      if (runAfterBurner(mTPCABIndexCache[itr], iCStart, iCEnd)) {
+        lbl.print(); // tmp
+        //tmp
+        if (tTPC.matchID > MinusOne) {
+          printf("AB Matching tree for TPC WID %d and IC %d : %d\n", mTPCABIndexCache[itr], iCStart, iCEnd);
+          auto& llinks = mABTrackLinksList[tTPC.matchID];
+          printABTracksTree(llinks);
+        }
       }
-
     } else if (iCRes > 0) {
       continue; // TPC track precedes the interaction (means orphan track?), no need to check it
     } else {
@@ -1804,6 +2051,17 @@ void MatchTPCITS::runAfterBurner()
       break; // all interaction candidates precede TPC track
     }
   }
+  buildABCluster2TracksLinks();  
+  selectBestMatchesAB(); // validate matches which are good in both ways: TPCtrack->ITSclusters and ITSclusters->TPCtrack
+
+  // tmp
+  if (mDBGOut) {
+    for (const auto& llinks : mABTrackLinksList) {
+      dumpABTracksDebugTree(llinks);
+    }
+  }
+  // tmp
+
 }
 
 //______________________________________________
@@ -1814,74 +2072,95 @@ bool MatchTPCITS::runAfterBurner(int tpcWID, int iCStart, int iCEnd)
 
   LOG(INFO) << "AfterBurner for TPC track " << tpcWID << " with int.candidates " << iCStart << " " << iCEnd;
 
-  const auto& tTPC = mTPCWork[tpcWID];
-  auto& abTrackLinksList = getCreateABTrackLinksList(tpcWID);
+  auto& tTPC = mTPCWork[tpcWID];
+  auto& abTrackLinksList = createABTrackLinksList(tpcWID);
 
   const int maxMissed = 0;
 
   for (int iCC = iCStart; iCC < iCEnd; iCC++) {
     const auto& iCCand = mInteractions[iCC];
-    int topLinkID = registerABLink(abTrackLinksList, tTPC, iCC, NITSLayers, MinusOne, MinusOne); // add track copy as a link on N+1 layer
+    int topLinkID = registerABTrackLink(abTrackLinksList, tTPC, iCC, NITSLayers, tpcWID, MinusTen); // add track copy as a link on N+1 layer
     if (topLinkID == MinusOne) {
-      continue; // link to be discarded
+      continue; // link to be discarded, RS: do we need this for the fake layer?
     }
-    auto& topLink = mABLinks[topLinkID];
+    auto& topLink = mABTrackLinks[topLinkID];
 
-    correctTPCTrack(topLink, tTPC, iCCand); // correct track for assumed Z location calibration
+    if (correctTPCTrack(topLink, tTPC, iCCand) < 0) { // correct track for assumed Z location calibration
+      topLink.disable();
+      continue;
+    }
+    /*
+    // tmp
     LOG(INFO) << "Check track TPC mtc=" << tTPC.matchID << " int.cand. " << iCC
               << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "] for interaction "
               << " [" << iCCand.timeBins.min() << ":" << iCCand.timeBins.max() << "]";
+    */
     if (std::abs(topLink.getZ()) > mITSFiducialZCut) { // we can discard this seed
       topLink.disable();
     }
   }
-
   for (int ilr = NITSLayers; ilr > 0; ilr--) {
     int nextLinkID = abTrackLinksList.firstInLr[ilr];
-    while (nextLinkID > MinusOne) {
-      int nMissed = 0;
-      auto& seed = mABLinks[nextLinkID];
-      if (!seed.isDisabled()) {
-        checkABSeedFromLr(ilr, nextLinkID, abTrackLinksList, nMissed);
-      }
-      nextLinkID = seed.nextOnLr;
+    if (nextLinkID < 0) {
+      break;
     }
+    while (nextLinkID > MinusOne) {
+      if (!mABTrackLinks[nextLinkID].isDisabled()) {
+        checkABSeedFromLr(ilr, nextLinkID, abTrackLinksList);
+      }
+      nextLinkID = mABTrackLinks[nextLinkID].nextOnLr;
+    }
+    accountForOverlapsAB(ilr-1);
+    //    printf("After seeds of Lr %d:\n",ilr);
+    //    printABTracksTree(abTrackLinksList); // tmp tmp
+  }
+  // disable link-list if neiher of seeds reached highest requested layer
+  if (abTrackLinksList.lowestLayer > mABRequireToReachLayer) {
+    destroyLastABTrackLinksList();
+    tTPC.matchID = MinusTen;
+    return false;
   }
 
   return true;
 }
 
 //______________________________________________
-bool MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist, int& nMissed)
+void MatchTPCITS::accountForOverlapsAB(int lrSeed)
+{
+  // TODO
+  LOG(WARNING) << "TODO";
+}
+
+//______________________________________________
+int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist)
 {
   // check seed isd on layer lrSeed for prolongation to next layer
   int lrTgt = lrSeed - 1;
-  auto& seedLink = mABLinks[seedID];
+  auto& seedLink = mABTrackLinks[seedID];
   o2::track::TrackParCov seed(seedLink); // operate with copy
   auto propagator = o2::base::Propagator::Instance();
   float xTgt;
   const auto& lr = mRGHelper.layers[lrTgt];
   if (!seed.getXatLabR(lr.rRange.max(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
       !propagator->PropagateToXBxByBz(seed, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
-    return false;
+    return 0;
   }
-
-  // fetch cluster reference object for the ITS ROF corresponding to interaction candidate
-  const auto& clRefs = *static_cast<const ITSChipClustersRefs*>(mInteractions[seedLink.icCandID].clRefPtr);
-  const float nSigmaZ = 5., nSigmaY = 5.;
-  const float YErr2Extra = 0.1 * 0.1;
-  constexpr int NZSpan = 3;
+  auto icCandID = seedLink.icCandID;
+  
+  // fetch clusters reference object for the ITS ROF corresponding to interaction candidate
+  const auto& clRefs = *static_cast<const ITSChipClustersRefs*>(mInteractions[icCandID].clRefPtr);
+  const float nSigmaZ = 5., nSigmaY = 5.; // RS TODO: convert to settable parameter
+  const float YErr2Extra = 0.1 * 0.1; // // RS TODO: convert to settable parameter
   float sna, csa;                                     // circle parameters for B ON data
   float zDRStep = -seed.getTgl() * lr.rRange.delta(); // approximate Z span when going from layer rMin to rMax
   float errZ = std::sqrt(seed.getSigmaZ2());
   if (lr.zRange.isOutside(seed.getZ(), nSigmaZ * errZ + std::abs(zDRStep))) {
-    nMissed++;
-    printf("Lr %d (skip %d) missed by Z = %.2f + %.3f\n", lrTgt, nMissed, seed.getZ(), nSigmaZ * errZ + std::abs(zDRStep));
-    return false;
+    // printf("Lr %d missed by Z = %.2f + %.3f\n", lrTgt, seed.getZ(), nSigmaZ * errZ + std::abs(zDRStep)); // tmp
+    return 0;
   }
   std::vector<int> chipSelClusters; // preliminary cluster candidates //RS TODO do we keep this local / consider array instead of vector
   o2::utils::CircleXY trcCircle;
-  o2::utils::IntervalXY trcLinPar; // line parameters fpr B OFF data
+  o2::utils::IntervalXY trcLinPar; // line parameters for B OFF data
   // approximate errors
   float errY = std::sqrt(seed.getSigmaY2() + YErr2Extra), errYFrac = errY * mRGHelper.ladderWidthInv(), errPhi = errY * lr.rInv;
   if (mFieldON) {
@@ -1891,8 +2170,7 @@ bool MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& ll
   }
   float xCurr, yCurr;
   o2::utils::rotateZ(seed.getX(), seed.getY(), xCurr, yCurr, sna, csa);
-  float phi = std::atan2(yCurr, xCurr);
-
+  float phi = std::atan2(yCurr, xCurr); // RS: TODO : can we use fast atan2 here?
   // find approximate ladder and chip_in_ladder corresponding to this track extrapolation
   int nLad2Check = 0, ladIDguess = lr.getLadderID(phi), chipIDguess = lr.getChipID(seed.getZ() + 0.5 * zDRStep);
   std::array<int, MaxLadderCand> lad2Check;
@@ -1919,27 +2197,26 @@ bool MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& ll
       if (chipID < 0 || chipID >= lad.chips.size()) {
         continue;
       }
-      const auto& chip = lad.chips[chipID];
-      if (chip.zRange.isOutside(zCross, nSigmaZ * errZ)) {
+      if (lad.chips[chipID].zRange.isOutside(zCross, nSigmaZ * errZ)) {
         continue;
       }
-      int chipGID = chip.id;
-      const auto& clRange = clRefs.chipRefs[chipGID];
+      const auto& clRange = clRefs.chipRefs[lad.chips[chipID].id];
       if (!clRange.getEntries()) {
         continue;
       }
+      /*
+      // tmp
       printf("Lr %d #%d/%d LadID: %d (phi:%+d) ChipID: %d [%d Ncl: %d from %d] (rRhi:%d Z:%+d[%+.1f:%+.1f]) | %+.3f %+.3f -> %+.3f %+.3f %+.3f (zErr: %.3f)\n",
              lrTgt, ilad, ich, ladID, lad.isPhiOutside(phi, errPhi), chipID,
              chipGID, clRange.getEntries(), clRange.getFirstEntry(),
-             chip.xyEdges.seenByCircle(trcCircle, errYFrac), chip.zRange.isOutside(zCross, 3 * errZ), chip.zRange.min(), chip.zRange.max(),
+             lad.chips[chipID].xyEdges.seenByCircle(trcCircle, errYFrac), lad.chips[chipID].zRange.isOutside(zCross, 3 * errZ), lad.chips[chipID].zRange.min(), lad.chips[chipID].zRange.max(),
              xCurr, yCurr, xCross, yCross, zCross, errZ);
-
+      */
       // track Y error in chip frame
       float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
       float tolerZ = errZ * nSigmaZ, tolerY = errYcalp * nSigmaY;
       float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp; // track-chip crossing Y in chip frame
-      // select candidate clusters for this chip
-      if (!preselectChipClusters(chipSelClusters, clRange, clRefs, yTrack, zCross, tolerY, tolerZ, lblTrc)) {
+      if (!preselectChipClusters(chipSelClusters, clRange, clRefs, yTrack, zCross, tolerY, tolerZ, lblTrc)) {  // select candidate clusters for this chip
         continue;
       }
       o2::track::TrackParCov trcLC = seed;
@@ -1952,21 +2229,61 @@ bool MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& ll
       for (auto clID : chipSelClusters) {
         const auto& cls = (*mITSClustersArrayInp)[clID];
         auto chi2 = trcLC.getPredictedChi2(cls);
-
+        /*
         const auto lab = mITSClsLabels->getLabels(clID)[0];                                           // tmp
-        LOG(INFO) << "cl " << cntc++ << "ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2; // tmp
-
+        LOG(INFO) << "cl " << cntc++ << " ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2 << " chipGID: " << lad.chips[chipID].id; // tmp
+	*/
         if (chi2 > mCutABTrack2ClChi2) {
           continue;
         }
-        int lnkID = registerABLink(llist, trcLC, seedLink.icCandID, lrTgt, seedID, clID); // add new link with track copy
-        auto& link = mABLinks[lnkID];
-        link.update(cls);
-        link.chi2 = chi2 + seedLink.chi2;
+        int lnkID = registerABTrackLink(llist, trcLC, icCandID, lrTgt, seedID, clID, chi2); // add new link with track copy
+        if (lnkID > MinusOne) {
+          auto& link = mABTrackLinks[lnkID];
+	  link.ladderID = ladID; // store ladderID for double hit check
+#ifdef _ALLOW_DEBUG_AB_
+          link.seed = link;
+#endif
+          link.update(cls);
+          link.chi2 = chi2 + mABTrackLinks[seedID].chi2; // don't use seedLink since it may be changed are reallocation
+          mABTrackLinks[seedID].nDaughters++;            // idem, don't use seedLink.nDaughters++;
+
+          if (lrTgt < llist.lowestLayer) {
+            llist.lowestLayer = lrTgt; // update lowest layer reached
+          }
+          //	  printf("Added chi2 %.3f @ lr %d as %d\n",link.chi2, lrTgt, lnkID); // tmp tmp
+        }
       }
     }
   }
-  return true;
+  return mABTrackLinks[seedID].nDaughters;
+}
+
+
+//______________________________________________
+void MatchTPCITS::mergeABSeedsOnOverlaps(int ilrPar, ABTrackLinksList& llist)
+{
+  // try to merge seeds which may come from double hit on the layer. Parent layer is provided,
+  // The merged seeds will be added unconditionally (if they pass chi2 cut)
+  int linksFilled = mABTrackLinks.size();
+  int lrID = ilrPar - 1;
+  int topLinkID = llist.firstInLr[lrID];
+  while(topLinkID>MinusOne) {
+    const auto& topLink = mABTrackLinks[topLinkID];
+    int runLinkID = topLink.nextOnLr; // running link ID
+    while(runLinkID>MinusOne) {
+      const auto& runLink = mABTrackLinks[runLinkID];
+      // to be considered as double hit candidate 2 links must have common parent and neighbouring ladders
+      while(1) {
+	if (topLink.parentID!=runLink.parentID) {
+	  break;
+	}
+	int dLadder = topLink.ladderID - runLink.ladderID;
+	if (dLadder==0 || (dLadder>1 && dLadder!=mRGHelper.layers[lrID].ladders.size()-1)) { // difference must be 1 or Nladders-1
+	  break;
+	}
+      }
+    }
+  }
 }
 
 //______________________________________________
@@ -2042,28 +2359,99 @@ int MatchTPCITS::findLaddersToCheckBOff(int ilr, int lad0, const o2::utils::Inte
 }
 
 //______________________________________________
-int MatchTPCITS::registerABLink(ABTrackLinksList& llist, const o2::track::TrackParCov& src, int ic, int lr, int parentID, int clID)
+void MatchTPCITS::buildABCluster2TracksLinks()
+{
+  // build links from clusters to tracks for afterburner
+  int nTrackLinkList = mABTrackLinksList.size();
+  for (int ils = 0; ils < nTrackLinkList; ils++) {
+    auto& trList = mABTrackLinksList[ils];
+    if (trList.trackID <= MinusOne) {
+      LOG(ERROR) << "ABTrackLinksList does not point on tracks, impossible"; // tmp
+      continue;
+    }
+    // register all clusters of all seeds starting from the innermost layer
+    for (int lr = trList.lowestLayer; lr <= mABRequireToReachLayer; lr++) {
+      int finalTrackLinkIdx = trList.firstInLr[lr];
+      while (finalTrackLinkIdx > MinusOne) { // loop over all links of this layer
+        auto& finalTrackLink = mABTrackLinks[finalTrackLinkIdx];
+        if (finalTrackLink.nDaughters) {
+          finalTrackLinkIdx = finalTrackLink.nextOnLr; // pick next link on the layer
+          continue;                                    // at this moment we need to find the end-point of the seed
+        }
+        // register links for clusters of this seed moving from lowest to upper layer
+        int followLinkIdx = finalTrackLinkIdx;
+        while (1) { //>> loop over links of the same seed
+          const auto& followLink = mABTrackLinks[followLinkIdx];
+          int clID = followLink.clID; // in principle, the cluster might be missing on particular layer
+          if (clID > MinusOne) {      //>> register cluster usage
+            int newClLinkIdx = mABClusterLinks.size();
+            auto& newClLink = mABClusterLinks.emplace_back(finalTrackLinkIdx, ils); // create new link
+
+            //>> insert new link in the list of other links for this cluster ordering in track final quality
+            int clLinkIdx = mABClusterLinkIndex[clID];
+            int prevClLinkIdx = MinusOne;
+            while (clLinkIdx > MinusOne) {
+              auto& clLink = mABClusterLinks[clLinkIdx];
+              const auto& competingTrackLink = mABTrackLinks[clLink.linkedABTrack];
+              if (isBetter(finalTrackLink.chi2Norm(), competingTrackLink.chi2Norm())) {
+                newClLink.nextABClusterLink = clLinkIdx;
+                break;
+              }
+              prevClLinkIdx = clLinkIdx; // check next link
+              clLinkIdx = clLink.nextABClusterLink;
+            }
+            if (prevClLinkIdx > MinusOne) { // new link is not the best (1st) one, register it in its predecessor
+              mABClusterLinks[prevClLinkIdx].nextABClusterLink = newClLinkIdx;
+            } else { // new link is the 1st one, register it in the mABClusterLinkIndex
+              mABClusterLinkIndex[clID] = newClLinkIdx;
+            }
+            //<< insert new link in the list of other links for this cluster ordering in track final quality
+
+          }                                   //<< register cluster usage
+          else if (followLink.isDummyTop()) { // we reached dummy seed on the dummy layer above the last ITS layer
+            break;
+          }
+
+          followLinkIdx = followLink.parentID; // go upward
+        }                                      //>> loop over links of the same seed
+
+        finalTrackLinkIdx = finalTrackLink.nextOnLr; // pick next link on the layer
+      }                                              // loop over all final seeds of this layer
+    }
+  }
+  printABClusterUsage();
+}
+
+//______________________________________________
+int MatchTPCITS::registerABTrackLink(ABTrackLinksList& llist, const o2::track::TrackParCov& src, int ic, int lr, int parentID, int clID, float chi2Cl)
 {
   // registers new ABLink on the layer, assigning provided kinematics. The link will be registered in a
   // way preserving the quality ordering of the links on the layer
-  int lnkID = mABLinks.size();
+  int lnkID = mABTrackLinks.size();
   if (llist.firstInLr[lr] == MinusOne) { // no links on this layer yet
+    if (lr == NITSLayers) {
+      llist.firstLinkID = lnkID; // register very 1st link
+    }
     llist.firstInLr[lr] = lnkID;
-    mABLinks.emplace_back(src, ic, parentID, clID);
+    mABTrackLinks.emplace_back(src, ic, lr, parentID, clID);
     return lnkID;
   }
   // add new link sorting links of this layer in quality
 
   int count = 0, nextID = llist.firstInLr[lr], topID = MinusOne;
   do {
-    auto& nextLink = mABLinks[nextID];
+    auto& nextLink = mABTrackLinks[nextID];
     count++;
-    if (isBetter(src, nextLink)) {      // need to insert new link before nexLink
+    // if clID==-10, this is a special link on the dummy layer, corresponding to particular Interaction Candidate, in this case
+    // it does not matter if we add new link before or after the preceding link of the same dummy layer
+    if (clID == MinusTen || isBetter(mABTrackLinks[parentID].chi2NormPredict(chi2Cl), nextLink.chi2Norm())) { // need to insert new link before nextLink
       if (count < mMaxABLinksOnLayer) { // will insert in front of nextID
-        auto& newLnk = mABLinks.emplace_back(src, ic, parentID, clID);
+        auto& newLnk = mABTrackLinks.emplace_back(src, ic, lr, parentID, clID);
         newLnk.nextOnLr = nextID; // point to the next one
         if (topID > MinusOne) {
-          mABLinks[topID].nextOnLr = lnkID; // point from previous one
+          mABTrackLinks[topID].nextOnLr = lnkID; // point from previous one
+        } else {
+          llist.firstInLr[lr] = lnkID; // flag as best on the layer
         }
         return lnkID;
       } else {                                     // max number of candidates reached, will overwrite the last one
@@ -2076,9 +2464,9 @@ int MatchTPCITS::registerABLink(ABTrackLinksList& llist, const o2::track::TrackP
   } while (nextID > MinusOne);
   // new link is worse than all others, add it only if there is a room to expand
   if (count < mMaxABLinksOnLayer) {
-    mABLinks.emplace_back(src, ic, parentID, clID);
+    mABTrackLinks.emplace_back(src, ic, lr, parentID, clID);
     if (topID > MinusOne) {
-      mABLinks[topID].nextOnLr = lnkID; // point from previous one
+      mABTrackLinks[topID].nextOnLr = lnkID; // point from previous one
     }
     return lnkID;
   }
@@ -2086,13 +2474,10 @@ int MatchTPCITS::registerABLink(ABTrackLinksList& llist, const o2::track::TrackP
 }
 
 //______________________________________________
-ABTrackLinksList& MatchTPCITS::getCreateABTrackLinksList(int tpcWID)
+ABTrackLinksList& MatchTPCITS::createABTrackLinksList(int tpcWID)
 {
   // return existing or newly created AB links list for TPC track work copy ID
   auto& tTPC = mTPCWork[tpcWID];
-  if (tTPC.matchID > MinusOne) {
-    return mABTrackLinksList[tTPC.matchID];
-  }
   tTPC.matchID = mABTrackLinksList.size(); // register new list in the TPC track
   return mABTrackLinksList.emplace_back(tpcWID);
 }
@@ -2109,16 +2494,38 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
     return 0.;
   }
   float timeIC = cand.timeBins.mean(), timeTrc = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
+  float driftErr = cand.timeBins.delta() * mTPCBin2Z;
+
+  // we use this for refit
+  /*
+  {
+    float r = std::sqrt(trc.getX()*trc.getX() + trc.getY()*trc.getY());
+    float chi2 = 0;
+    bool res = refitTPCInward(trc, chi2, r, tTPC.source.getIndex(), timeIC );
+    if (!res) {
+      return -1;
+    }
+    float xTgt;
+    auto propagator = o2::base::Propagator::Instance();
+    if (!trc.getXatLabR(r, xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
+	!propagator->PropagateToXBxByBz(trc, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
+      return -1;
+    }
+  }
+  */
   // if interaction time precedes the initial assumption on t0 (i.e. timeIC < timeTrc),
   // the track actually was drifting longer, i.e. tracks should be shifted closer to the CE
-  float dDrift = (timeIC - timeTrc) * mTPCBin2Z, driftErr = cand.timeBins.delta() * mTPCBin2Z;
+  float dDrift = (timeIC - timeTrc) * mTPCBin2Z;
+  float zz = tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift);                                 // tmp
+  LOG(INFO) << "CorrTrack Z=" << trc.getZ() << " (zold= " << zz << ") at TIC= " << timeIC << " Ttr= " << timeTrc; // tmp
 
-  trc.setZ(tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift));
+  // we use this w/o refit
+  //  /*
+  {
+    trc.setZ(tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift));
+  }
+  //  */
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-  // tmp
-  printf("Ttrack A=%d: pT:%.1f Ncl:%2d T:%.2f  TIC: %.2f -> Z=%+.2f -> %+.2f +- %.3f [shift = %f]\n",
-         tpcTrOrig.hasASideClustersOnly(), trc.getPt(), tpcTrOrig.getNClusterReferences(), timeTrc, timeIC, tTPC.getZ(), trc.getZ(),
-         driftErr, (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift));
 
   return driftErr;
 }
@@ -2136,7 +2543,7 @@ void MatchTPCITS::fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int r
   refCont.clear();
   auto& idxSort = refCont.clusterID;
   for (int icl = first; icl < last; icl++) {
-    if (!mITSClustersFlags[icl]) {
+    if (mABClusterLinkIndex[icl] != MinusTen) { // clusters with MinusOne are used in main matching
       idxSort.push_back(icl);
     }
   }
@@ -2173,17 +2580,245 @@ void MatchTPCITS::fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int r
   }
 }
 
-/*
+//______________________________________________
+void MatchTPCITS::selectBestMatchesAB()
 {
-  auto rcen2 = xc*xc+yc*yc, rcen = sqrtf(rcen2); // radius^2 of the circle center
-  auto rlPrt = rLr + rTra, rlMrt = rLr - rTra; // sum and differenc of layer and track radii
-  auto dtPart = (rcen2-rlMrt*rlMrt)*(rcen2-rlPrt*rlPrt);
-  if (dtPart>0.) {
-    return false; // no intersection
+  ///< loop over After-Burner match records and select the ones with best quality
+  LOG(INFO) << "Selecting best AfterBurner matches ";
+  int nValidated = 0, iter = 0;
+
+  int nTrackLinkList = mABTrackLinksList.size(), nremaining = 0;
+  do {
+    nValidated = nremaining = 0;
+    for (int ils = 0; ils < nTrackLinkList; ils++) {
+      auto& trList = mABTrackLinksList[ils];
+      if (trList.isValidated() || trList.isDisabled()) {
+        continue;
+      }
+      nremaining++;
+      if (validateABMatch(ils)) {
+        nValidated++;
+        continue;
+      }
+    }
+    printf("iter %d Validated %d of %d remaining AB matches\n", iter, nValidated, nremaining);
+    iter++;
+  } while (nValidated);
+}
+
+//______________________________________________
+bool MatchTPCITS::validateABMatch(int ilink)
+{
+  // make sure the preference of the set of cluster by this link is reciprocal
+  
+  buildBestLinksList(ilink);
+    
+  auto& trList = mABTrackLinksList[ilink];
+
+  // pick the best TPC->ITS links branch
+  int bestHypID = trList.firstInLr[trList.lowestLayer];
+  const auto& bestHyp = mABTrackLinks[bestHypID]; // best hypothesis
+
+  LOG(INFO) << "validateABMatch " << ilink;
+  printABTracksTree(trList);
+
+  int parID = bestHypID;
+  int headID = parID;
+  while (1) {
+    const auto& lnk = mABTrackLinks[parID];
+    LOG(INFO) << " *link " << parID << "(head " << headID << " cl: " << lnk.clID << " on Lr:" << int(lnk.layerID) << ")"; // tmp
+    if (lnk.clID > MinusOne) {
+      int clLnkIdx = mABClusterLinkIndex[lnk.clID]; // id of ITSclus->TPCtracks quality records
+      if (clLnkIdx < Zero) {
+        LOG(ERROR) << "AB-referred cluster " << lnk.clID << " does not have ABlinks record";
+        continue;
+      }
+
+      // navigate to best *available* ABlTrackLinkList contributed by this cluster
+      while (mABTrackLinksList[mABClusterLinks[clLnkIdx].linkedABTrackList].isValidated()) {
+        clLnkIdx = mABClusterLinks[clLnkIdx].nextABClusterLink;
+      }
+      if (clLnkIdx < Zero) {
+        LOG(ERROR) << "AB-referred cluster " << lnk.clID << " does not have ABlinks record, exhausted?";
+        continue;
+      }
+
+      const auto& linkCl = mABClusterLinks[clLnkIdx];
+
+      //<< tmp : for printout only
+      std::stringstream mcStr;
+      mcStr << " **cl" << lnk.clID << " -> seed:" << linkCl.linkedABTrack << '/' << linkCl.linkedABTrackList << " | ";
+      // find corresponding TPC track
+      int linkID = linkCl.linkedABTrack;
+      while (1) {
+        const auto& linkTrack = mABTrackLinks[linkID];
+        linkID = linkTrack.parentID;
+        if (linkTrack.isDummyTop()) {
+          break;
+        }
+      }
+      mcStr << "{TPCwrk: " << linkID << "} ";
+      if (mITSClsLabels) {
+        auto lbls = mITSClsLabels->getLabels(lnk.clID);
+        for (const auto lbl : lbls) {
+          if (lbl.isValid()) {
+            mcStr << '[' << lbl.getSourceID() << '/' << lbl.getEventID() << '/' << (lbl.isFake() ? '-' : '+') << std::setw(6) << lbl.getTrackID() << ']';
+          } else {
+            mcStr << (lbl.isNoise() ? "[noise]" : "[unset]");
+          }
+        }
+      }
+      LOG(INFO) << mcStr.str();
+      //>> tmp
+
+      if (linkCl.linkedABTrack != headID) { // best link for this cluster differs from the link we are checking
+        return false;
+      }
+    } else if (lnk.isDummyTop() && mTPCTrkLabels) { // top layer reached, this is winner
+      break;
+    }
+    parID = lnk.parentID; // check next cluster of the same link
+  }
+  LOG(INFO) << "OK validateABMatch " << ilink;
+  trList.validate();
+  return true;
+}
+
+//______________________________________________
+void MatchTPCITS::buildBestLinksList(int ilink)
+{
+  ///< build ordered list of links for given ABTrackLinksList, including those finishing on higher layers
+  auto& trList = mABTrackLinksList[ilink];
+
+  // pick the best TPC->ITS links branch
+  //  int bestHypID = trList.firstInLr[trList.lowestLayer];
+  //
+
+  int start = mABBestLinks.size(); // order links will be added started from here 
+  // 1) the links on the lowestLayer are already sorted, just copy them
+  int lowestLayer = trList.lowestLayer;
+  int nextID = trList.firstInLr[lowestLayer];
+  int prevOrdLink = MinusOne, newOrdLinkID = MinusOne;
+  int nHyp = 0;
+  while( nextID > MinusOne && nHyp < mMaxABFinalHyp ) {
+    newOrdLinkID = mABBestLinks.size();
+    auto& best = mABBestLinks.emplace_back( nextID );
+    nHyp++;
+    if (prevOrdLink!=MinusOne) {
+      mABBestLinks[prevOrdLink].nextLinkID = newOrdLinkID; // register reference on the new link from previous one
+    }
+    prevOrdLink = newOrdLinkID;
+    nextID = mABTrackLinks[nextID].nextOnLr;
+  }
+  trList.bestOrdLinkID = start;
+   
+  // now check if shorter seed links from layers above need to be considered as final track candidates
+  while(++lowestLayer <= mABRequireToReachLayer) {
+    nextID = trList.firstInLr[lowestLayer];
+    
+    while(nextID > MinusOne) {      
+      auto& candHyp = mABTrackLinks[nextID];
+      // compare candHyp with already stored best hypotheses (keeping in mind that within a single layer they are already sorted in quality
+
+      int nextBest = trList.bestOrdLinkID, prevBest = MinusOne;      
+      while(nextBest > MinusOne) {
+	const auto& bestOrd = mABBestLinks[nextBest];
+	const auto& bestHyp = mABTrackLinks[ bestOrd.trackLinkID ];
+	if ( isBetter( candHyp.chi2Norm(), bestHyp.chi2Norm()) ) { // need to insert new candidate before bestOrd
+	  break;
+	}
+	prevBest = nextBest;
+	nextBest = bestOrd.nextLinkID;
+      }
+
+      bool reuseWorst = false, newIsWorst = (nextBest <= MinusOne);
+      if (nHyp==mMaxABFinalHyp) { // max number of best hypotheses reached
+	if (newIsWorst) { // the bestHyp is worse than all already registered hypotheses,
+	  break;          // ignore candHyp and all remaining hypotheses on this layer since they are worse
+	}
+	reuseWorst = true; // we don't add new ordLink slot to the pool but reuse the worst one
+      }
+
+      int newID = mABBestLinks.size();
+      if (reuseWorst) {  // navigate to worst hypothesis link in order to use it for registration of new ordLink
+	int nextWorst = nextBest, prevWorst = prevBest;
+	while(mABBestLinks[nextWorst].nextLinkID > MinusOne) { // navigate to worst hypothesis link
+	  prevWorst = nextWorst;
+	  nextWorst = mABBestLinks[nextWorst].nextLinkID;
+	}
+	newID = nextWorst;
+	if (prevWorst>MinusOne) { // detach the reused slot from the superior slot refferring to suppressed one
+	  mABBestLinks[prevWorst].nextLinkID = MinusOne;
+	}
+      }
+      else { // add new slot to the pool
+	mABBestLinks.emplace_back();
+	nHyp++;
+      }
+      mABBestLinks[newID].trackLinkID = nextID;
+      if (newID!=nextBest) { // if we did not reuse the worst link, register the worse one here
+	mABBestLinks[newID].nextLinkID = nextBest;
+      }
+      if (prevBest>MinusOne) {
+	mABBestLinks[prevBest].nextLinkID = newID; // register new ordLink in its superior link
+      }
+      else { // register new ordLink as best link
+	trList.bestOrdLinkID = newID;
+      }
+
+      nextID = candHyp.nextOnLr;
+      
+    }
+   
   }
 
 }
-*/
+
+void MatchTPCITS::refitABTrack(int ibest) const
+{
+  auto propagator = o2::base::Propagator::Instance();
+  const float maxStep = 2.f; // max propagation step (TODO: tune)
+  
+  int ncl = 0;
+  const auto& lnk0 = mABTrackLinks[ibest];
+  o2::track::TrackParCov trc = lnk0;
+  trc.resetCovariance();
+  const auto& cl0 = (*mITSClustersArrayInp)[lnk0.clID];
+  trc.setY(cl0.getY());
+  trc.setZ(cl0.getZ());
+  trc.setCov(cl0.getSigmaY2(), o2::track::kSigY2);
+  trc.setCov(cl0.getSigmaZ2(), o2::track::kSigZ2);
+  trc.setCov(cl0.getSigmaYZ(), o2::track::kSigZY); // for the 1st point we don't need any fit
+  ibest = lnk0.parentID;
+  float chi2 = 0;
+  while(ibest>MinusOne) {
+    const auto& lnk = mABTrackLinks[ibest];
+    if (!trc.rotate(lnk.getAlpha()) ||
+	!propagator->propagateToX(trc, lnk.getX(), propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
+ 				   MaxSnp, maxStep, mUseMatCorrFlag, nullptr) ) {
+      LOG(WARNING) << "Failed to rotate to " << lnk.getAlpha() << " or propagate to " << lnk.getX();
+      LOG(WARNING) << trc.asString();
+      break;
+    }
+    if (lnk.clID > MinusOne) {      
+      const auto& cl = (*mITSClustersArrayInp)[lnk.clID];
+      chi2 += trc.getPredictedChi2(cl);
+      if (!trc.update(cl)) {
+	LOG(WARNING) << "Failed to update by " << cl;
+	LOG(WARNING) << trc.asString();
+	break;
+      }
+      ncl++;
+    }
+    else if (lnk.isDummyTop()) { // dummy layer to which TPC track was propagated
+      LOG(INFO) << "end of fit: chi2=" << chi2 << " ncl= " << ncl;
+      LOG(INFO) << "TPCtrc: " << lnk.asString();
+      LOG(INFO) << "ITStrc: " << trc.asString();
+      break;
+    }
+    ibest = lnk.parentID;
+  }
+}
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<
 
