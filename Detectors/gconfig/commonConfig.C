@@ -35,7 +35,7 @@ void stackSetup(T* vmc, R* run)
       }
     }
     if (!foundCave) {
-      LOG(FATAL) << "Cave volume not found; Could not attach observers" << FairLogger::endl;
+      LOG(FATAL) << "Cave volume not found; Could not attach observers";
     }
   }
 */

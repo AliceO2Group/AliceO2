@@ -55,7 +55,7 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
             << srcID << " at time " << mEventTime + mParams.getTimeOffset() << " (TOff.= "
             << mParams.getTimeOffset() << " ROFrame= " << mNewROFrame << ")"
             << " cont.mode: " << isContinuous()
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << FairLogger::endl;
+            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -101,14 +101,14 @@ void Digitizer::setEventTime(double t)
   if (mEventTime < 0.) {
     mEventTime = 0.;
   } else if (mEventTime > UINT_MAX * mParams.getROFrameLength()) {
-    LOG(FATAL) << "ROFrame for event time " << t << " exceeds allowe maximum " << UINT_MAX << FairLogger::endl;
+    LOG(FATAL) << "ROFrame for event time " << t << " exceeds allowe maximum " << UINT_MAX;
   }
 
   // RO frame corresponding to provided time
   mNewROFrame = static_cast<UInt_t>(mEventTime * mParams.getROFrameLengthInv());
 
   if (mNewROFrame < mROFrameMin) {
-    LOG(FATAL) << "New ROFrame (time=" << t << ") precedes currently cashed " << mROFrameMin << FairLogger::endl;
+    LOG(FATAL) << "New ROFrame (time=" << t << ") precedes currently cashed " << mROFrameMin;
   }
 
   if (mParams.isContinuous() && mROFrameMax < mNewROFrame) {
@@ -127,7 +127,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   getExtraDigBuffer(mROFrameMax);
 
   LOG(INFO) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
-            << frameLast << FairLogger::endl;
+            << frameLast;
 
   o2::itsmft::ROFRecord rcROF;
 

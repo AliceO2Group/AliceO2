@@ -29,7 +29,7 @@ CollisionTimeRecoTask::CollisionTimeRecoTask()
 void CollisionTimeRecoTask::Process(const Digit& digits,
                                     RecPoints& recPoints) const
 {
-  //  LOG(INFO) << "Running reconstruction on new event" << FairLogger::endl;
+  //  LOG(INFO) << "Running reconstruction on new event";
   recPoints.fillFromDigits(digits);
 }
 //________________________________________________________

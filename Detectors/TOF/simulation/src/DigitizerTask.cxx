@@ -35,13 +35,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::tof::HitType>*>("TOFHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "TOF hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "TOF hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -78,7 +78,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
 
   /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
   /// provided and identified.

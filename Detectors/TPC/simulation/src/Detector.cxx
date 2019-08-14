@@ -147,7 +147,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "tpc::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -241,7 +241,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
-  //<< numberOfElectrons << FairLogger::endl;
+  //<< numberOfElectrons;
 
   if (numberOfElectrons <= 0) // Could maybe be smaller than 0 due to the Gamma function
     return kFALSE;
@@ -276,7 +276,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
   //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
-  // numberOfElectrons << FairLogger::endl;
+  // numberOfElectrons;
   // I.H. - the code above does not compile if uncommented
 
   // Increment number of Detector det points in TParticle
@@ -944,7 +944,7 @@ void Detector::ConstructTPCGeometry()
   //
 
   //   if (!mParam) {
-  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry" << FairLogger::endl;
+  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry";
   //     return;
   //   }
 
@@ -1604,7 +1604,7 @@ void Detector::ConstructTPCGeometry()
   ifstream in;
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
@@ -1748,7 +1748,7 @@ void Detector::ConstructTPCGeometry()
   fileName += "/Detectors/Geometry/TPC/conn_oroc.dat";
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 232; i++) {
     Double_t x, z, ang;
@@ -3025,23 +3025,23 @@ void Detector::LoadGeometryFromFile()
 {
   // ===| Read the TPC geometry from file |=====================================
   if (mGeoFileName.IsNull()) {
-    LOG(FATAL) << "TPC geometry file name not set" << FairLogger::endl;
+    LOG(FATAL) << "TPC geometry file name not set";
     return;
   }
 
   TFile* fGeoFile = TFile::Open(mGeoFileName);
   if (!fGeoFile || !fGeoFile->IsOpen() || fGeoFile->IsZombie()) {
-    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'";
     return;
   }
 
   TGeoVolume* tpcVolume = dynamic_cast<TGeoVolume*>(fGeoFile->Get("TPC_M"));
   if (!tpcVolume) {
-    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'";
     return;
   }
 
-  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
   TGeoVolume* alice = gGeoManager->GetVolume("cave");
   alice->AddNode(tpcVolume, 1);
 }
@@ -3061,7 +3061,7 @@ void Detector::defineSensitiveVolumes()
     TString volumeName = volumeNames[ivol];
     v = geoManager->GetVolume(volumeName.Data());
     if (!v) {
-      LOG(ERROR) << "Could not find volume '" << volumeName << "'" << FairLogger::endl;
+      LOG(ERROR) << "Could not find volume '" << volumeName << "'";
       continue;
     }
 

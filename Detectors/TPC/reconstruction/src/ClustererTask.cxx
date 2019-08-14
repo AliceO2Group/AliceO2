@@ -37,16 +37,16 @@ ClustererTask::ClustererTask(int sectorid)
 /// Inititializes the clusterer and connects input and output container
 InitStatus ClustererTask::Init()
 {
-  LOG(DEBUG) << "Enter Initializer of ClustererTask" << FairLogger::endl;
+  LOG(DEBUG) << "Enter Initializer of ClustererTask";
 
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   if (mClusterSector < 0 || mClusterSector >= Sector::MAXSECTOR) {
-    LOG(ERROR) << "Sector ID " << mClusterSector << " is not supported. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Sector ID " << mClusterSector << " is not supported. Exiting ...";
     return kERROR;
   }
 
@@ -57,7 +57,7 @@ InitStatus ClustererTask::Init()
   mDigitsArray = std::unique_ptr<const std::vector<Digit>>(
     mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str()));
   if (!mDigitsArray) {
-    LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
   std::stringstream mcsectornamestr;
@@ -65,7 +65,7 @@ InitStatus ClustererTask::Init()
   mDigitMCTruthArray = std::unique_ptr<const MCLabelContainer>(
     mgr->InitObjectAs<const MCLabelContainer*>(mcsectornamestr.str().c_str()));
   if (!mDigitMCTruthArray) {
-    LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -95,7 +95,7 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  LOG(DEBUG) << "Running clusterization on event " << mEventCount << " with " << mDigitsArray->size() << " digits." << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on event " << mEventCount << " with " << mDigitsArray->size() << " digits.";
 
   if (mHwClustersArray)
     mHwClustersArray->clear();
@@ -103,8 +103,7 @@ void ClustererTask::Exec(Option_t* option)
     mHwClustersMCTruthArray->clear();
 
   mHwClusterer->process(*mDigitsArray.get(), mDigitMCTruthArray.get());
-  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
-             << FairLogger::endl;
+  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl;
 
   ++mEventCount;
 }
@@ -112,7 +111,7 @@ void ClustererTask::Exec(Option_t* option)
 //_____________________________________________________________________
 void ClustererTask::FinishTask()
 {
-  LOG(DEBUG) << "Finish clusterization" << FairLogger::endl;
+  LOG(DEBUG) << "Finish clusterization";
 
   if (mHwClustersArray)
     mHwClustersArray->clear();
@@ -120,8 +119,7 @@ void ClustererTask::FinishTask()
     mHwClustersMCTruthArray->clear();
 
   mHwClusterer->finishProcess(*mDigitsArray.get(), mDigitMCTruthArray.get());
-  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
-             << FairLogger::endl;
+  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl;
 
   ++mEventCount;
 }

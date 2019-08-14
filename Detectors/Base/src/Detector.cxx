@@ -158,14 +158,14 @@ void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 
 TClonesArray* Detector::GetCollection(int) const
 {
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  LOG(WARNING) << "Use the GetHits function on invidiual detectors" << FairLogger::endl;
+  LOG(WARNING) << "GetCollection interface no longer supported";
+  LOG(WARNING) << "Use the GetHits function on invidiual detectors";
   return nullptr;
 }
 
 void Detector::addAlignableVolumes() const
 {
-  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
+  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName();
 }
 
 int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)

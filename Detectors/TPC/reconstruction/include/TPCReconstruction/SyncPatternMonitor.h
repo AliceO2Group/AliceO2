@@ -123,10 +123,10 @@ inline void SyncPatternMonitor::checkWord(const short hw, const short pos)
 inline void SyncPatternMonitor::patternFound(const short hw)
 {
   LOG(DEBUG) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-             << "SYNC found at Position " << hw << " in checked half word #" << mCheckedWords << FairLogger::endl;
+             << "SYNC found at Position " << hw << " in checked half word #" << mCheckedWords;
   if (mPatternFound) {
     LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-                 << "SYNC was already found" << FairLogger::endl;
+                 << "SYNC was already found";
   }
   mPatternFound = true;
   mPosition = SYNC_START;

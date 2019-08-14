@@ -63,7 +63,7 @@ bool RawReader::addInputFile(std::string infile)
   boost::char_separator<char> sep{":"};
   tokenizer tok{infile, sep};
   if (std::distance(tok.begin(), tok.end()) < 3) {
-    LOG(ERROR) << "Not enough arguments" << FairLogger::endl;
+    LOG(ERROR) << "Not enough arguments";
     return false;
   }
 
@@ -76,7 +76,7 @@ bool RawReader::addInputFile(std::string infile)
     ++it1;
     region = boost::lexical_cast<int>(*it1);
   } catch (boost::bad_lexical_cast) {
-    LOG(ERROR) << "Please enter a region for " << path << FairLogger::endl;
+    LOG(ERROR) << "Please enter a region for " << path;
     return false;
   }
 
@@ -84,18 +84,18 @@ bool RawReader::addInputFile(std::string infile)
     ++it1;
     link = boost::lexical_cast<int>(*it1);
   } catch (boost::bad_lexical_cast) {
-    LOG(ERROR) << "Please enter a link number for " << path << FairLogger::endl;
+    LOG(ERROR) << "Please enter a link number for " << path;
     return false;
   }
 
   int sampaVersion = -1;
   if (++it1 == tok.end()) {
-    LOG(DEBUG) << "No SAMPA version was entered, assuming latest." << FairLogger::endl;
+    LOG(DEBUG) << "No SAMPA version was entered, assuming latest.";
   } else {
     try {
       sampaVersion = boost::lexical_cast<int>(*it1);
     } catch (boost::bad_lexical_cast) {
-      LOG(ERROR) << "Please enter a valid SAMPA version for " << path << FairLogger::endl;
+      LOG(ERROR) << "Please enter a valid SAMPA version for " << path;
       return false;
     }
   }
@@ -115,28 +115,28 @@ bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string
     mSampaVersion = sampaVersion;
 
   if (run != mRun) {
-    LOG(DEBUG) << "Run of RawReader is " << mRun << " and not " << run << FairLogger::endl;
+    LOG(DEBUG) << "Run of RawReader is " << mRun << " and not " << run;
     return false;
   }
 
   if (region != mRegion) {
-    LOG(DEBUG) << "Region of RawReader is " << mRegion << " and not " << region << FairLogger::endl;
+    LOG(DEBUG) << "Region of RawReader is " << mRegion << " and not " << region;
     return false;
   }
 
   if (link != mLink) {
-    LOG(DEBUG) << "Link of RawReader is " << mLink << " and not " << link << FairLogger::endl;
+    LOG(DEBUG) << "Link of RawReader is " << mLink << " and not " << link;
     return false;
   }
 
   if (sampaVersion != mSampaVersion) {
-    LOG(DEBUG) << "SAMPA Version of RawReader is " << mSampaVersion << " and not " << sampaVersion << FairLogger::endl;
+    LOG(DEBUG) << "SAMPA Version of RawReader is " << mSampaVersion << " and not " << sampaVersion;
     return false;
   }
 
   std::ifstream file(path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << path << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << path;
     return false;
   }
 
@@ -149,7 +149,7 @@ bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string
   while (pos < length) {
     file.read((char*)&h, sizeof(h));
     if (h.reserved_01 != 0x0F || h.reserved_2() != 0x3fec2fec1fec0fec) {
-      LOG(ERROR) << "Header does not look consistent" << FairLogger::endl;
+      LOG(ERROR) << "Header does not look consistent";
     }
     EventInfo eD;
     eD.path = path;
@@ -161,7 +161,7 @@ bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string
       ins.first->second->push_back(eD);
 
       if (h.eventCount() == 0) {
-        LOG(DEBUG) << "Processing event 0 to find sync pattern for event synchronization" << FairLogger::endl;
+        LOG(DEBUG) << "Processing event 0 to find sync pattern for event synchronization";
         loadEvent(0); // processing first event to find the SYNC pattern (mode 1) or start of data (mode 2)
         mLastEvent = -1;
       }
@@ -173,7 +173,7 @@ bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string
       file.seekg(pos + (h.nWords * 4));
       pos = file.tellg();
     } else {
-      LOG(ERROR) << "Header version " << (int)h.headerVersion << " not implemented." << FairLogger::endl;
+      LOG(ERROR) << "Header version " << (int)h.headerVersion << " not implemented.";
       return false;
     }
   }
@@ -185,14 +185,14 @@ bool RawReader::loadEvent(int64_t event)
 {
   const Mapper& mapper = Mapper::instance();
   const PartitionInfo& partInfo = mapper.getPartitionInfo(mRegion / 2);
-  LOG(DEBUG) << "Loading event " << event << " for Link " << (mRegion * partInfo.getNumberOfFECs()) + mLink << FairLogger::endl;
+  LOG(DEBUG) << "Loading event " << event << " for Link " << (mRegion * partInfo.getNumberOfFECs()) + mLink;
 
   if (mLastEvent == -1 && event != getFirstEvent()) {
-    LOG(DEBUG) << "First event was not loaded (maybe important for decoding RAW GBT frames) loading first event." << FairLogger::endl;
+    LOG(DEBUG) << "First event was not loaded (maybe important for decoding RAW GBT frames) loading first event.";
     mSyncPos.fill(-1);
     mTimestampOfFirstData.fill(0);
     loadEvent(getFirstEvent());
-    LOG(DEBUG) << "Continue with event " << event << FairLogger::endl;
+    LOG(DEBUG) << "Continue with event " << event;
   }
   mData.clear();
 
@@ -206,14 +206,14 @@ bool RawReader::loadEvent(int64_t event)
     switch (eventInfo.header.dataType) {
       case 1: // RAW GBT frames
       {
-        LOG(DEBUG) << "Data of readout mode 1 (RAW GBT frames)" << FairLogger::endl;
+        LOG(DEBUG) << "Data of readout mode 1 (RAW GBT frames)";
         if (!decodeRawGBTFrames(eventInfo))
           return false;
         break;
       }
       case 2: // Decoded data
       {
-        LOG(DEBUG) << "Data of readout mode 2 (decoded data)" << FairLogger::endl;
+        LOG(DEBUG) << "Data of readout mode 2 (decoded data)";
         if (!decodePreprocessedData(eventInfo))
           return false;
         break;
@@ -221,26 +221,26 @@ bool RawReader::loadEvent(int64_t event)
       case 3: // both, RAW GBT frames and decoded data
       {
         if (mUseRawInMode3) {
-          LOG(DEBUG) << "Data of readout mode 3 (decoding RAW GBT frames)" << FairLogger::endl;
+          LOG(DEBUG) << "Data of readout mode 3 (decoding RAW GBT frames)";
           if (!decodeRawGBTFrames(eventInfo))
             return false;
         } else {
-          LOG(DEBUG) << "Data of readout mode 3 (using decoded data)" << FairLogger::endl;
+          LOG(DEBUG) << "Data of readout mode 3 (using decoded data)";
           if (!decodePreprocessedData(eventInfo))
             return false;
         }
         break;
       }
       default: {
-        LOG(DEBUG) << "Readout mode not known" << FairLogger::endl;
+        LOG(DEBUG) << "Readout mode not known";
         break;
       }
     }
   }
 
   mDataIterator = mData.begin();
-  LOG(DEBUG) << FairLogger::endl;
-  LOG(DEBUG) << FairLogger::endl;
+  LOG(DEBUG);
+  LOG(DEBUG);
   return true;
 }
 
@@ -248,13 +248,13 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo)
 {
   std::ifstream file(eventInfo.path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << eventInfo.path << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << eventInfo.path;
     return false;
   }
 
   int nWords = eventInfo.header.nWords - 8;
   uint32_t words[nWords];
-  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path << FairLogger::endl;
+  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path;
   file.seekg(eventInfo.posInFile);
   file.read((char*)&words, nWords * sizeof(words[0]));
 
@@ -282,14 +282,13 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo)
   if (eventInfo.header.eventCount() > 0) {
     LOG(DEBUG) << "Using offset [" << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) << "] "
                << "instead of [" << eventInfo.header.timeStamp() << "] "
-               << " (diff = " << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() << ") "
-               << FairLogger::endl;
+               << " (diff = " << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() << ") ";
 
     i_start = mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() - 1;
     i_start *= indexStep;
   }
 
-  LOG(DEBUG) << "Start index for Event " << eventInfo.header.eventCount() << " is " << i_start << FairLogger::endl;
+  LOG(DEBUG) << "Start index for Event " << eventInfo.header.eventCount() << " is " << i_start;
 
   for (long i = i_start; i < nWords; i = i + indexStep) {
     ids[4] = (words[i + offset] >> 4) & 0xF;
@@ -344,14 +343,14 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
 {
   std::ifstream file(eventInfo.path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << eventInfo.path << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << eventInfo.path;
     return false;
   }
 
   int nWords = eventInfo.header.nWords - 8;
   uint32_t words[nWords];
-  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path << FairLogger::endl;
-  LOG(DEBUG) << "Header time stamp is " << eventInfo.header.timeStamp() << FairLogger::endl;
+  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path;
+  LOG(DEBUG) << "Header time stamp is " << eventInfo.header.timeStamp();
   file.seekg(eventInfo.posInFile);
   file.read((char*)&words, nWords * sizeof(words[0]));
 
@@ -390,14 +389,13 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
   if (eventInfo.header.eventCount() > 0) {
     LOG(DEBUG) << "Using offset [" << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) << "] "
                << "instead of [" << eventInfo.header.timeStamp() << "] "
-               << " (diff = " << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() << ") "
-               << FairLogger::endl;
+               << " (diff = " << mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() << ") ";
 
     i_start = mTimestampOfFirstData[0] + mEventSynchronizer->getEventOffset(eventInfo.header.eventCount()) - eventInfo.header.timeStamp() - 1;
     i_start *= indexStep;
   }
 
-  LOG(DEBUG) << "Start index for Event " << eventInfo.header.eventCount() << " is " << i_start << FairLogger::endl;
+  LOG(DEBUG) << "Start index for Event " << eventInfo.header.eventCount() << " is " << i_start;
 
   GBTFrame frame;
   if (eventInfo.header.eventCount() > 0)
@@ -435,17 +433,17 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
         adcClockFound[2] = adcClockFound[2] | !adcCheckErr2;
       if (adcClockFound[0] & adcCheckErr0) {
         adcClockFound[0] = false;
-        LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 3 : 0) << " in frame [" << i / indexStep << "]" << FairLogger::endl;
+        LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 3 : 0) << " in frame [" << i / indexStep << "]";
         mAdcError->emplace_back(std::make_tuple((mRegion % 2) ? 3 : 0, i, mSyncPos[0]));
       };
       if (adcClockFound[1] & adcCheckErr1) {
         adcClockFound[1] = false;
-        LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 4 : 1) << " in frame [" << i / indexStep << "]" << FairLogger::endl;
+        LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 4 : 1) << " in frame [" << i / indexStep << "]";
         mAdcError->emplace_back(std::make_tuple((mRegion % 2) ? 4 : 1, i, mSyncPos[2]));
       };
       if (adcClockFound[2] & adcCheckErr2) {
         adcClockFound[2] = false;
-        LOG(DEBUG) << "ADC clock error of SAMPA " << 2 << " in frame [" << i / indexStep << "]" << FairLogger::endl;
+        LOG(DEBUG) << "ADC clock error of SAMPA " << 2 << " in frame [" << i / indexStep << "]";
         mAdcError->emplace_back(std::make_tuple(2, i, mSyncPos[4]));
       };
     }
@@ -454,17 +452,17 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
     short value2;
     for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
       if (mSyncPos[iHalfSampa] < 0) {
-        LOG(DEBUG1) << "Sync pattern for half SAMPA " << iHalfSampa << " not yet found" << FairLogger::endl;
+        LOG(DEBUG1) << "Sync pattern for half SAMPA " << iHalfSampa << " not yet found";
         continue;
       }
       if (lastSyncPos[iHalfSampa] < 0) {
-        LOG(DEBUG1) << "Sync pattern for half SAMPA " << iHalfSampa << " not yet found" << FairLogger::endl;
-        LOG(DEBUG1) << lastFrame << FairLogger::endl;
+        LOG(DEBUG1) << "Sync pattern for half SAMPA " << iHalfSampa << " not yet found";
+        LOG(DEBUG1) << lastFrame;
         continue;
       }
       if (mTimestampOfFirstData[iHalfSampa] == 0) {
         if (iHalfSampa == 0)
-          LOG(DEBUG) << "Setting timestamp of first data to " << eventInfo.header.timeStamp() + 1 + i / indexStep << " for half SAMPA " << iHalfSampa << " (" << 1 + i / indexStep << ")" << FairLogger::endl;
+          LOG(DEBUG) << "Setting timestamp of first data to " << eventInfo.header.timeStamp() + 1 + i / indexStep << " for half SAMPA " << iHalfSampa << " (" << 1 + i / indexStep << ")";
         mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i / indexStep;
       }
 

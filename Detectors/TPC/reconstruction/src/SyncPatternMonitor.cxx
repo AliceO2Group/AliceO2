@@ -36,5 +36,5 @@ void SyncPatternMonitor::reset()
   mHwWithPattern = -1;
   mCheckedWords = 0;
   LOG(DEBUG) << "Sync pattern monitoring for SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits) "
-             << "was resetted" << FairLogger::endl;
+             << "was resetted";
 }

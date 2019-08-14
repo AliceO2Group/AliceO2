@@ -49,8 +49,7 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   Geometry* mftGeom = Geometry::instance();
   SetUniqueID(mSegmentation->GetUniqueID());
 
-  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID())
-              << FairLogger::endl;
+  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID());
 
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
   /*
@@ -99,7 +98,7 @@ TGeoVolumeAssembly* HalfDisk::createHeatExchanger()
 void HalfDisk::createLadders()
 {
 
-  LOG(DEBUG1) << "CreateLadders: start building ladders" << FairLogger::endl;
+  LOG(DEBUG1) << "CreateLadders: start building ladders";
   for (Int_t iLadder = 0; iLadder < mSegmentation->getNLadders(); iLadder++) {
 
     LadderSegmentation* ladderSeg = mSegmentation->getLadder(iLadder);

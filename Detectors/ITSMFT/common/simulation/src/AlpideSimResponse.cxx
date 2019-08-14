@@ -52,7 +52,7 @@ void AlpideSimResponse::initData()
   // read X grid
   inpGrid.open(inpfname, std::ifstream::in);
   if (inpGrid.fail()) {
-    LOG(FATAL) << "Failed to open file " << inpfname << FairLogger::endl;
+    LOG(FATAL) << "Failed to open file " << inpfname;
   }
 
   while (inpGrid >> mStepInvCol && inpGrid.good()) {
@@ -60,7 +60,7 @@ void AlpideSimResponse::initData()
   }
 
   if (!mNBinCol || mStepInvCol < kTiny) {
-    LOG(FATAL) << "Failed to read X(col) binning from " << inpfname << FairLogger::endl;
+    LOG(FATAL) << "Failed to read X(col) binning from " << inpfname;
   }
   mMaxBinCol = mNBinCol - 1;
   mStepInvCol = mMaxBinCol / mStepInvCol; // inverse of the X bin width
@@ -70,13 +70,13 @@ void AlpideSimResponse::initData()
   inpfname = mDataPath + mGridRowName;
   inpGrid.open(inpfname, std::ifstream::in);
   if (inpGrid.fail()) {
-    LOG(FATAL) << "Failed to open file " << inpfname << FairLogger::endl;
+    LOG(FATAL) << "Failed to open file " << inpfname;
   }
 
   while (inpGrid >> mStepInvRow && inpGrid.good())
     mNBinRow++;
   if (!mNBinRow || mStepInvRow < kTiny) {
-    LOG(FATAL) << "Failed to read Y(row) binning from " << inpfname << FairLogger::endl;
+    LOG(FATAL) << "Failed to read Y(row) binning from " << inpfname;
   }
   mMaxBinRow = mNBinRow - 1;
   mStepInvRow = mMaxBinRow / mStepInvRow; // inverse of the Row bin width
@@ -97,7 +97,7 @@ void AlpideSimResponse::initData()
       inpfname = composeDataName(ix, iy);
       inpGrid.open(inpfname, std::ifstream::in);
       if (inpGrid.fail()) {
-        LOG(FATAL) << "Failed to open file " << inpfname << FairLogger::endl;
+        LOG(FATAL) << "Failed to open file " << inpfname;
       }
       inpGrid >> nz;
       if (cnt == 0) {
@@ -106,7 +106,7 @@ void AlpideSimResponse::initData()
         mData.reserve(dataSize); // reserve space for data
       } else if (nz != mNBinDpt) {
         LOG(FATAL) << "Mismatch in Nz slices of bin X(col): " << ix << " Y(row): " << iy
-                   << " wrt bin 0,0. File " << inpfname << FairLogger::endl;
+                   << " wrt bin 0,0. File " << inpfname;
       }
 
       // load data
@@ -123,12 +123,11 @@ void AlpideSimResponse::initData()
 
         if (inpGrid.bad()) {
           LOG(FATAL) << "Failed reading data for depth(Z) slice " << iz << " from "
-                     << inpfname << FairLogger::endl;
+                     << inpfname;
         }
         if (!nele) {
           LOG(FATAL) << "Wrong normalization Nele=" << nele << "for  depth(Z) slice "
-                     << iz << " from " << inpfname
-                     << FairLogger::endl;
+                     << iz << " from " << inpfname;
         }
 
         if (mDptMax < -1e9)
@@ -151,7 +150,7 @@ void AlpideSimResponse::initData()
   // final check
   if (dataSize != mData.size()) {
     LOG(FATAL) << "Mismatch between expected " << dataSize << " and loaded " << mData.size()
-               << " number of bins" << FairLogger::endl;
+               << " number of bins";
   }
 
   // normalize Dpt boundaries
@@ -204,7 +203,7 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
    * vCol(sensor local Z, along columns) and vDepth (sensor local Y, i.e. depth)
    */
   if (!mNBinDpt) {
-    LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
+    LOG(FATAL) << "response object is not initialized";
   }
   bool flipCol = false, flipRow = true;
   if (vDepth < mDptMin || vDepth > mDptMax)
@@ -228,7 +227,7 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol)
                << ":" << getDepthBin(vDepth) << ")"
                << ">= maxBin " << mData.size()
-               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
+               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth;
   }
   // printf("bin %d %d %d\n",getColBin(vCol),getRowBin(vRow),getDepthBin(vDepth));
   //  return &mData[bin];
@@ -244,7 +243,7 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
    * vCol(sensor local Z, along columns) and vDepth (sensor local Y, i.e. depth)
    */
   if (!mNBinDpt) {
-    LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
+    LOG(FATAL) << "response object is not initialized";
   }
   if (vDepth < mDptMin || vDepth > mDptMax)
     return nullptr;
@@ -271,7 +270,7 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol)
                << ":" << getDepthBin(vDepth) << ")"
                << ">= maxBin " << mData.size()
-               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
+               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth;
   }
   return &mData[bin];
 }

@@ -120,7 +120,7 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
   /// extracted from the matrix
   //
   if (std::abs(rot[0]) < 1e-7 || std::abs(rot[8]) < 1e-7) {
-    LOG(ERROR) << "Failed to extract roll-pitch-yall angles!" << FairLogger::endl;
+    LOG(ERROR) << "Failed to extract roll-pitch-yall angles!";
     return false;
   }
   psi = std::atan2(-rot[5], rot[8]);
@@ -154,8 +154,7 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
   // returns false and the object parameters are not set.
   //
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't set the local alignment object parameters! gGeoManager doesn't exist or it is still open!"
-               << FairLogger::endl;
+    LOG(ERROR) << "Can't set the local alignment object parameters! gGeoManager doesn't exist or it is still open!";
     return false;
   }
 
@@ -167,7 +166,7 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
     pn = pne->GetPhysicalNode();
     if (pn) {
       if (pn->IsAligned()) {
-        LOG(WARNING) << "Volume " << symname << " has been misaligned already!" << FairLogger::endl;
+        LOG(WARNING) << "Volume " << symname << " has been misaligned already!";
       }
       gprime = *pn->GetMatrix();
     } else {
@@ -175,9 +174,9 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
     }
   } else {
     LOG(WARNING) << "The symbolic volume name " << symname
-                 << " does not correspond to a physical entry. Using it as volume path!" << FairLogger::endl;
+                 << " does not correspond to a physical entry. Using it as volume path!";
     if (!gGeoManager->cd(symname)) {
-      LOG(ERROR) << "Volume name or path " << symname << " is not valid!" << FairLogger::endl;
+      LOG(ERROR) << "Volume name or path " << symname << " is not valid!";
       return false;
     }
     gprime = *gGeoManager->GetCurrentMatrix();
@@ -202,8 +201,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
   // returns false and the object parameters are not set.
   //
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't get the local alignment object parameters! gGeoManager doesn't exist or it is still open!"
-               << FairLogger::endl;
+    LOG(ERROR) << "Can't get the local alignment object parameters! gGeoManager doesn't exist or it is still open!";
     return false;
   }
 
@@ -218,12 +216,12 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
     }
   } else {
     LOG(WARNING) << "The symbolic volume name " << symname
-                 << " does not correspond to a physical entry. Using it as volume path!" << FairLogger::endl;
+                 << " does not correspond to a physical entry. Using it as volume path!";
     node = (TGeoPhysicalNode*)gGeoManager->MakePhysicalNode(symname);
   }
 
   if (!node) {
-    LOG(ERROR) << "Volume name or path " << symname << " is not valid!" << FairLogger::endl;
+    LOG(ERROR) << "Volume name or path " << symname << " is not valid!";
     return false;
   }
   m = createMatrix();
@@ -244,13 +242,12 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
   /// valid neither to get a TGeoPEntry nor as a volume path
   //
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't apply the alignment object! gGeoManager doesn't exist or it is still open!"
-               << FairLogger::endl;
+    LOG(ERROR) << "Can't apply the alignment object! gGeoManager doesn't exist or it is still open!";
     return false;
   }
 
   if (gGeoManager->IsLocked()) {
-    LOG(ERROR) << "Can't apply the alignment object! Geometry is locked!" << FairLogger::endl;
+    LOG(ERROR) << "Can't apply the alignment object! Geometry is locked!";
     return false;
   }
 
@@ -263,21 +260,21 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
     node = gGeoManager->MakeAlignablePN(pne);
   } else {
     LOG(DEBUG) << "The symbolic volume name " << symname
-               << " does not correspond to a physical entry. Using it as a volume path!" << FairLogger::endl;
+               << " does not correspond to a physical entry. Using it as a volume path!";
     path = symname;
     if (!gGeoManager->CheckPath(path)) {
-      LOG(ERROR) << "Volume path " << path << " is not valid" << FairLogger::endl;
+      LOG(ERROR) << "Volume path " << path << " is not valid";
       return false;
     }
     if (gGeoManager->GetListOfPhysicalNodes()->FindObject(path)) {
-      LOG(ERROR) << "Volume path " << path << " has been misaligned already!" << FairLogger::endl;
+      LOG(ERROR) << "Volume path " << path << " has been misaligned already!";
       return false;
     }
     node = (TGeoPhysicalNode*)gGeoManager->MakePhysicalNode(path);
   }
 
   if (!node) {
-    LOG(ERROR) << "Volume path " << path << " is not valid" << FairLogger::endl;
+    LOG(ERROR) << "Volume path " << path << " is not valid";
     return false;
   }
 
@@ -291,7 +288,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
   *ginv = g->Inverse();
   *ginv *= gprime;
 
-  LOG(DEBUG) << "Aligning volume " << symname << FairLogger::endl;
+  LOG(DEBUG) << "Aligning volume " << symname;
 
   if (ovlpcheck) {
     node->Align(ginv, nullptr, true, ovlToler);
@@ -299,7 +296,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
     Int_t nOvlp = ovlpArray->GetEntriesFast();
     if (nOvlp) {
       LOG(INFO) << "Misalignment of node " << node->GetName() << " generated the following " << nOvlp
-                << "overlaps/extrusions:" << FairLogger::endl;
+                << "overlaps/extrusions:";
       for (int i = 0; i < nOvlp; i++) {
         ((TGeoOverlap*)ovlpArray->UncheckedAt(i))->PrintInfo();
       }
@@ -334,8 +331,7 @@ int AlignParam::getLevel() const
   /// slashes in the corresponding volume path
   //
   if (!gGeoManager) {
-    LOG(ERROR) << "gGeoManager doesn't exist or it is still open: unable to return meaningful level value."
-               << FairLogger::endl;
+    LOG(ERROR) << "gGeoManager doesn't exist or it is still open: unable to return meaningful level value.";
     return -1;
   }
   const char* symname = getSymName();

@@ -1048,17 +1048,16 @@ float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSe
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
 
   if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha()
-               << FairLogger::endl;
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha();
     return 2. * HugeF;
   }
   if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX() << FairLogger::endl;
+    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX();
     return 2. * HugeF;
   }
   buildCombinedCovMatrix(rhs, covToSet);
   if (!covToSet.Invert()) {
-    LOG(ERROR) << "Cov.matrix inversion failed: " << covToSet << FairLogger::endl;
+    LOG(ERROR) << "Cov.matrix inversion failed: " << covToSet;
     return 2. * HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
@@ -1081,12 +1080,11 @@ bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
 
   // consider skipping this check, since it is usually already done upstream
   if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha()
-               << FairLogger::endl;
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha();
     return false;
   }
   if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX() << FairLogger::endl;
+    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX();
     return false;
   }
 
@@ -1149,7 +1147,7 @@ bool TrackParCov::update(const TrackParCov& rhs)
   MatrixDSym5 covI; // perform matrix operations in double!
   buildCombinedCovMatrix(rhs, covI);
   if (!covI.Invert()) {
-    LOG(ERROR) << "Cov.matrix inversion failed: " << covI << FairLogger::endl;
+    LOG(ERROR) << "Cov.matrix inversion failed: " << covI;
     return false;
   }
   return update(rhs, covI);

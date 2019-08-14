@@ -117,7 +117,7 @@ void SDigit::addSignal(Int_t track, Int_t hit, Double_t signal)
   if (TMath::Abs(signal) > 2147483647.0) {
     // PH 2147483647 is the max. integer
     // PH This apparently is a problem which needs investigation
-    LOG(WARNING) << "Too big or too small signal value " << signal << FairLogger::endl;
+    LOG(WARNING) << "Too big or too small signal value " << signal;
     signal = TMath::Sign((Double_t)2147483647, signal);
   }
   //

@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(testTOFIndex)
                       << indextof[4] << " --> out:" << indextofTest[0] << ", "
                       << indextofTest[1] << ", " << indextofTest[2] << ", "
                       << indextofTest[3] << ", " << indextofTest[4]
-                      << " (ch=" << chan << ")" << FairLogger::endl;
+                      << " (ch=" << chan << ")";
             // }
           }
         }

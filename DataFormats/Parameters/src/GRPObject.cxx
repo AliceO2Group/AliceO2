@@ -113,13 +113,13 @@ GRPObject* GRPObject::loadFrom(const std::string grpFileName, std::string grpNam
   // load object from file
   TFile flGRP(grpFileName.data());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << grpFileName << FairLogger::endl;
+    LOG(ERROR) << "Failed to open " << grpFileName;
     return nullptr;
   }
   auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
     flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
   if (!grp) {
-    LOG(ERROR) << "Did not find GRP object named " << grpName << FairLogger::endl;
+    LOG(ERROR) << "Did not find GRP object named " << grpName;
     return nullptr;
   }
   return grp;

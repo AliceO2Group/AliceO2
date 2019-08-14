@@ -45,7 +45,7 @@ const CalPad& CDBInterface::getPedestals()
   }
 
   if (!mPedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid pedestal object was loaded";
   }
 
   return *mPedestals;
@@ -68,7 +68,7 @@ const CalPad& CDBInterface::getNoise()
   }
 
   if (!mNoise) {
-    LOG(FATAL) << "No valid noise object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid noise object was loaded";
   }
 
   return *mNoise;
@@ -91,7 +91,7 @@ const CalPad& CDBInterface::getGainMap()
   }
 
   if (!mGainMap) {
-    LOG(FATAL) << "No valid gain object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid gain object was loaded";
   }
 
   return *mGainMap;
@@ -152,17 +152,17 @@ void CDBInterface::loadNoiseAndPedestalFromFile()
   delete file;
 
   if (!pedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid pedestal object was loaded";
   }
 
   if (!noise) {
-    LOG(FATAL) << "No valid noise object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid noise object was loaded";
   }
 
   mPedestals.reset(pedestals);
   mNoise.reset(noise);
 
-  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
 }
 
 //______________________________________________________________________________
@@ -174,12 +174,12 @@ void CDBInterface::loadGainMapFromFile()
   delete file;
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid gain map object was loaded";
   }
 
   mGainMap.reset(gain);
 
-  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()

@@ -27,9 +27,9 @@ Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
   mROFRef.clear();
 #ifdef _ClusterTopology_
-  LOG(INFO) << "*********************************************************************" << FairLogger::endl;
-  LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN" << FairLogger::endl;
-  LOG(INFO) << "*********************************************************************" << FairLogger::endl;
+  LOG(INFO) << "*********************************************************************";
+  LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN";
+  LOG(INFO) << "*********************************************************************";
 #endif //_ClusterTopology_
 
 #ifdef _PERFORM_TIMING_
@@ -77,7 +77,7 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
 
     auto chipID = mChipData->getChipID();
     // LOG(DEBUG) << "ITSClusterer got Chip " << chipID << " ROFrame " << mChipData->getROFrame()
-    //            << " Nhits " << mChipData->getData().size() << FairLogger::endl;
+    //            << " Nhits " << mChipData->getData().size();
 
     if (mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       if (mChipsOld.size() < mChips.size()) {
@@ -224,7 +224,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         }
         next = pixEntry.first;
       } else {
-        LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size" << FairLogger::endl;
+        LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size";
       }
     }
     mPreClusterIndices[i1] = -1;
@@ -244,7 +244,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
           }
           next = pixEntry.first;
         } else {
-          LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size" << FairLogger::endl;
+          LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size";
         }
       }
       mPreClusterIndices[i2] = -1;

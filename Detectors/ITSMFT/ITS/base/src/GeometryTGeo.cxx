@@ -66,7 +66,7 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::its::GeometryTGeo instance exists" << FairLogger::endl;
+    LOG(FATAL) << "Invalid use of public constructor: o2::its::GeometryTGeo instance exists";
     // throw std::runtime_error("Invalid use of public constructor: o2::its::GeometryTGeo instance exists");
   }
 
@@ -83,7 +83,7 @@ void GeometryTGeo::adopt(GeometryTGeo* raw)
 {
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   if (sInstance) {
-    LOG(FATAL) << "No adoption: o2::its::GeometryTGeo instance exists" << FairLogger::endl;
+    LOG(FATAL) << "No adoption: o2::its::GeometryTGeo instance exists";
   }
   sInstance = std::unique_ptr<o2::its::GeometryTGeo>(raw);
 }
@@ -308,7 +308,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   if (!gGeoManager->cd(path.Data())) {
     gGeoManager->PopPath();
-    LOG(ERROR) << "Error in cd-ing to " << path.Data() << FairLogger::endl;
+    LOG(ERROR) << "Error in cd-ing to " << path.Data();
     return nullptr;
   } // end if !gGeoManager
 
@@ -331,13 +331,13 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 void GeometryTGeo::Build(int loadTrans)
 {
   if (isBuilt()) {
-    LOG(WARNING) << "Already built" << FairLogger::endl;
+    LOG(WARNING) << "Already built";
     return; // already initialized
   }
 
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
-    LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
+    LOG(FATAL) << "Geometry is not loaded";
   }
 
   mNumberOfLayers = extractNumberOfLayers();
@@ -379,7 +379,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   // populate matrix cache for requested transformations
   //
   if (mSize < 1) {
-    LOG(WARNING) << "The method Build was not called yet" << FairLogger::endl;
+    LOG(WARNING) << "The method Build was not called yet";
     Build(mask);
     return;
   }
@@ -387,7 +387,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   // build matrices
   if ((mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
-    LOG(INFO) << "Loading ITS L2G matrices from TGeo" << FairLogger::endl;
+    LOG(INFO) << "Loading ITS L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
 
@@ -399,7 +399,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local (Sensor!!! rather than the full chip) frame transformation
-    LOG(INFO) << "Loading ITS T2L matrices from TGeo" << FairLogger::endl;
+    LOG(INFO) << "Loading ITS T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
     cacheT2L.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
@@ -409,9 +409,9 @@ void GeometryTGeo::fillMatrixCache(int mask)
   }
 
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled()) {
-    LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices" << FairLogger::endl;
+    LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices";
     // matrices for Tracking to Global frame transformation
-    LOG(INFO) << "Loading ITS T2G matrices from TGeo" << FairLogger::endl;
+    LOG(INFO) << "Loading ITS T2G matrices from TGeo";
     auto& cacheT2G = getCacheT2G();
     cacheT2G.setSize(mSize);
 
@@ -424,7 +424,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
     // 2D rotation matrices for Tracking frame to Global rotations
-    LOG(INFO) << "Loading ITS T2G rotation 2D matrices" << FairLogger::endl;
+    LOG(INFO) << "Loading ITS T2G rotation 2D matrices";
     auto& cacheT2Gr = getCacheT2GRot();
     cacheT2Gr.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
@@ -454,7 +454,7 @@ int GeometryTGeo::extractNumberOfLayers()
 
   TGeoVolume* itsV = gGeoManager->GetVolume(getITSVolPattern());
   if (!itsV) {
-    LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry" << FairLogger::endl;
+    LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry";
   }
 
   // Loop on all ITSV nodes, count Layer volumes by checking names
@@ -470,7 +470,7 @@ int GeometryTGeo::extractNumberOfLayers()
     if (strstr(name, getITSLayerPattern())) {
       numberOfLayers++;
       if ((lrID = extractVolumeCopy(name, GeometryTGeo::getITSLayerPattern())) < 0) {
-        LOG(FATAL) << "Failed to extract layer ID from the " << name << FairLogger::endl;
+        LOG(FATAL) << "Failed to extract layer ID from the " << name;
         exit(1);
       }
 
@@ -478,7 +478,7 @@ int GeometryTGeo::extractNumberOfLayers()
     } else if (strstr(name, getITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
       int wrID = -1;
       if ((wrID = extractVolumeCopy(name, GeometryTGeo::getITSWrapVolPattern())) < 0) {
-        LOG(FATAL) << "Failed to extract wrapper ID from the " << name << FairLogger::endl;
+        LOG(FATAL) << "Failed to extract wrapper ID from the " << name;
         exit(1);
       }
 
@@ -489,7 +489,7 @@ int GeometryTGeo::extractNumberOfLayers()
         TGeoNode* ndW = (TGeoNode*)nodesW->At(jw);
         if (strstr(ndW->GetName(), getITSLayerPattern())) {
           if ((lrID = extractVolumeCopy(ndW->GetName(), GeometryTGeo::getITSLayerPattern())) < 0) {
-            LOG(FATAL) << "Failed to extract layer ID from the " << name << FairLogger::endl;
+            LOG(FATAL) << "Failed to extract layer ID from the " << name;
             exit(1);
           }
           numberOfLayers++;
@@ -509,7 +509,7 @@ int GeometryTGeo::extractNumberOfStaves(int lay) const
   snprintf(laynam, 30, "%s%d", getITSLayerPattern(), lay);
   TGeoVolume* volLr = gGeoManager->GetVolume(laynam);
   if (!volLr) {
-    LOG(FATAL) << "can't find " << laynam << " volume" << FairLogger::endl;
+    LOG(FATAL) << "can't find " << laynam << " volume";
     return -1;
   }
 
@@ -518,7 +518,7 @@ int GeometryTGeo::extractNumberOfStaves(int lay) const
   for (int j = 0; j < nNodes; j++) {
     // LOG(INFO) << "L" << lay << " " << j << " of " << nNodes << " "
     //           << volLr->GetNodes()->At(j)->GetName() << " "
-    //           << getITSStavePattern() << " -> " << numberOfStaves << FairLogger::endl;
+    //           << getITSStavePattern() << " -> " << numberOfStaves;
     if (strstr(volLr->GetNodes()->At(j)->GetName(), getITSStavePattern())) {
       numberOfStaves++;
     }
@@ -537,7 +537,7 @@ int GeometryTGeo::extractNumberOfHalfStaves(int lay) const
   snprintf(stavnam, 30, "%s%d", getITSStavePattern(), lay);
   TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
-    LOG(FATAL) << "can't find volume " << stavnam << FairLogger::endl;
+    LOG(FATAL) << "can't find volume " << stavnam;
   }
   // Loop on all stave nodes, count Chip volumes by checking names
   int nNodes = volLd->GetNodes()->GetEntries();
@@ -606,7 +606,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) {
-    LOG(FATAL) << "can't find volume containing chips on layer " << lay << FairLogger::endl;
+    LOG(FATAL) << "can't find volume containing chips on layer " << lay;
   }
 
   // Loop on all stave nodes, count Chip volumes by checking names
@@ -643,8 +643,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
       TGeoShape* chShape = node->GetVolume()->GetShape();
       TGeoBBox* bbox = dynamic_cast<TGeoBBox*>(chShape);
       if (!bbox) {
-        LOG(FATAL) << "Chip " << node->GetName() << " volume is of unprocessed shape " << chShape->IsA()->GetName()
-                   << FairLogger::endl;
+        LOG(FATAL) << "Chip " << node->GetName() << " volume is of unprocessed shape " << chShape->IsA()->GetName();
       } else {
         dx = 2 * bbox->GetDX();
         dz = 2 * bbox->GetDZ();
@@ -659,8 +658,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   if (nrow * ncol != numberOfChips) {
     LOG(ERROR) << "Inconsistency between Nchips=" << numberOfChips << " and Nrow*Ncol=" << nrow << "*" << ncol << "->"
                << nrow * ncol << FairLogger::endl
-               << "Extracted chip dimensions (x,z): " << dx << " " << dz << " Module Span: " << spanX << " " << spanZ
-               << FairLogger::endl;
+               << "Extracted chip dimensions (x,z): " << dx << " " << dz << " Module Span: " << spanX << " " << spanZ;
   }
   return numberOfChips;
 }
@@ -672,7 +670,7 @@ int GeometryTGeo::extractLayerChipType(int lay) const
   snprintf(stavnam, 30, "%s%d", getITSLayerPattern(), lay);
   TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
-    LOG(FATAL) << "can't find volume " << stavnam << FairLogger::endl;
+    LOG(FATAL) << "can't find volume " << stavnam;
     return -1;
   }
   return volLd->GetUniqueID();

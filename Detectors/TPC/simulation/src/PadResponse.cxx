@@ -51,7 +51,7 @@ bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D>& grPRF) 
   int i = 0;
   std::ifstream prfFile(inputDir + file, std::ifstream::in);
   if (!prfFile) {
-    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir + file << "' does not exist! No PRF loaded!" << FairLogger::endl;
+    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir + file << "' does not exist! No PRF loaded!";
     return false;
   }
   for (std::string line; std::getline(prfFile, line);) {

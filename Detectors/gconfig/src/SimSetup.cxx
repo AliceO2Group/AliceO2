@@ -31,7 +31,7 @@ void SimSetup::setup(const char* engine)
   } else if (strcmp(engine, "TGeant4") == 0) {
     g4config::G4Config();
   } else {
-    LOG(FATAL) << "Unsupported engine " << engine << FairLogger::endl;
+    LOG(FATAL) << "Unsupported engine " << engine;
   }
 }
 } // namespace o2

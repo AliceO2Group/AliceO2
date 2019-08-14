@@ -95,7 +95,7 @@ Stack::Stack(const Stack& rhs)
     mTrackRefs(new std::vector<o2::TrackReference>),
     mIsG4Like(rhs.mIsG4Like)
 {
-  LOG(DEBUG) << "copy constructor called" << FairLogger::endl;
+  LOG(DEBUG) << "copy constructor called";
   mTracks = new std::vector<MCTrack>();
   // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
@@ -109,7 +109,7 @@ Stack::~Stack()
 
 Stack& Stack::operator=(const Stack& rhs)
 {
-  LOG(FATAL) << "operator= called" << FairLogger::endl;
+  LOG(FATAL) << "operator= called";
   // check assignment to self
   if (this == &rhs) {
     return *this;
@@ -154,7 +154,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
 
-  // LOG(INFO) << "Pushing " << trackId << " with parent " << parentId << FairLogger::endl;
+  // LOG(INFO) << "Pushing " << trackId << " with parent " << parentId;
 
   TParticle p(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
@@ -237,7 +237,7 @@ void Stack::notifyFinishPrimary()
   // this means we can do some filtering and cleanup
 
   mPrimariesDone++;
-  LOG(DEBUG) << "Finish primary hook " << mPrimariesDone << FairLogger::endl;
+  LOG(DEBUG) << "Finish primary hook " << mPrimariesDone;
   mCleanupCounter++;
   if (mCleanupCounter == mCleanupThreshold || mCleanupCounter == mPrimaryParticles.size() ||
       mPrimariesDone == mPrimaryParticles.size()) {
@@ -350,7 +350,7 @@ void Stack::finishCurrentPrimary()
 {
   // Here transport of a primary and all its secondaries is finished
   // we can do some cleanup of the memory structures
-  LOG(DEBUG) << "STACK: Cleaning up" << FairLogger::endl;
+  LOG(DEBUG) << "STACK: Cleaning up";
   auto selected = selectTracks();
   // loop over current particle buffer
   int index = 0;
@@ -402,7 +402,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   // as the right type to avoid repeated dynamic casts
   if (mActiveDetectors.size() == 0) {
     if (detList == nullptr) {
-      LOG(FATAL) << "No detList passed to Stack" << FairLogger::endl;
+      LOG(FATAL) << "No detList passed to Stack";
     }
     auto iter = detList->MakeIterator();
     while (auto det = iter->Next()) {
@@ -410,7 +410,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {
-        LOG(INFO) << "Found nonconforming detector " << det->GetName() << FairLogger::endl;
+        LOG(INFO) << "Found nonconforming detector " << det->GetName();
       }
     }
   }
@@ -492,7 +492,7 @@ void Stack::Reset()
   mTracks->clear();
   if (!mIsExternalMode && (mPrimariesDone != mPrimaryParticles.size())) {
     LOG(FATAL) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
-               << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)" << FairLogger::endl;
+               << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)";
   }
   mPrimariesDone = 0;
   mPrimaryParticles.clear();
@@ -593,7 +593,7 @@ bool Stack::selectTracks()
         }
       }
     }
-    // LOG(INFO) << "storing " << store << FairLogger::endl;
+    // LOG(INFO) << "storing " << store;
     thisPart.setStore(store);
   }
 
@@ -616,8 +616,7 @@ bool Stack::selectTracks()
 
 TClonesArray* Stack::GetListOfParticles()
 {
-  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n"
-             << FairLogger::endl;
+  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n";
   return nullptr;
 }
 

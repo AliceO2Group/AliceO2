@@ -33,7 +33,7 @@ void Clusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* 
   // Collect digits to clusters
   MakeClusters(digits, clusters);
 
-  LOG(DEBUG) << "Number of PHOS clusters" << clusters->size() << FairLogger::endl;
+  LOG(DEBUG) << "Number of PHOS clusters" << clusters->size();
 
   // Unfold overlapped clusters
   // TODO:
@@ -41,7 +41,7 @@ void Clusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* 
 
   // Calculate properties of collected clusters (Local position, energy, disp etc.)
   EvalCluProperties(digits, clusters);
-  LOG(DEBUG) << "PHOS clustrization done" << FairLogger::endl;
+  LOG(DEBUG) << "PHOS clustrization done";
 }
 //____________________________________________________________________________
 void Clusterer::MakeClusters(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
@@ -117,20 +117,19 @@ void Clusterer::MakeClusters(const std::vector<Digit>* digits, std::vector<Clust
 void Clusterer::EvalCluProperties(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
 {
   const double kThreshold = 0.020; // TODO: Should be in RecoParams
-  LOG(DEBUG) << "EvalCluProperties: nclu=" << clusters->size() << FairLogger::endl;
+  LOG(DEBUG) << "EvalCluProperties: nclu=" << clusters->size();
 
   for (int i = 0; i < clusters->size(); i++) {
-    LOG(DEBUG) << "   i=" << i << FairLogger::endl;
+    LOG(DEBUG) << "   i=" << i;
 
     Cluster* clu = &(clusters->at(i));
-    LOG(DEBUG) << " clu=" << clu << FairLogger::endl;
+    LOG(DEBUG) << " clu=" << clu;
 
     clu->Purify(kThreshold);
-    //  LOG(DEBUG) << "Purify done" << FairLogger::endl;
+    //  LOG(DEBUG) << "Purify done";
     clu->EvalAll(digits);
     double PosX, PosZ;
     clu->GetLocalPosition(PosX, PosZ);
-    LOG(DEBUG) << "EvalALl done: clu E=" << clu->GetEnergy() << " pos = (" << PosX << "," << PosZ << ")"
-               << FairLogger::endl;
+    LOG(DEBUG) << "EvalALl done: clu E=" << clu->GetEnergy() << " pos = (" << PosX << "," << PosZ << ")";
   }
 }

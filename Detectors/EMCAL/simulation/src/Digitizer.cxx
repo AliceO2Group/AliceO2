@@ -54,7 +54,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       Int_t id = digit.getTower();
 
       if (id < 0 || id > mGeometry->GetNCells()) {
-        LOG(WARNING) << "tower index out of range: " << id << FairLogger::endl;
+        LOG(WARNING) << "tower index out of range: " << id;
         continue;
       }
 
@@ -75,7 +75,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       o2::MCCompLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false);
       mMCTruthContainer.addElementRandomAccess(LabelIndex, label);
     } catch (InvalidPositionException& e) {
-      LOG(ERROR) << "Error in creating the digit: " << e.what() << FairLogger::endl;
+      LOG(ERROR) << "Error in creating the digit: " << e.what();
     }
   }
 
@@ -99,7 +99,7 @@ void Digitizer::setEventTime(double t)
   t *= mCoeffToNanoSecond;
 
   if (t < mEventTime && mContinuous) {
-    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")" << FairLogger::endl;
+    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
   mEventTime = t;
 }
@@ -150,8 +150,7 @@ void Digitizer::setCurrSrcID(int v)
 {
   // set current MC source ID
   if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID()
-               << FairLogger::endl;
+    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
   }
   mCurrSrcID = v;
 }
@@ -161,8 +160,7 @@ void Digitizer::setCurrEvID(int v)
 {
   // set current MC event ID
   if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID()
-               << FairLogger::endl;
+    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
   }
   mCurrEvID = v;
 }

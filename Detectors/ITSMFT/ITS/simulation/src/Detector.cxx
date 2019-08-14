@@ -688,7 +688,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   // Creates an air-filled wrapper cylindrical volume
 
   if (mWrapperMinRadius[id] < 0 || mWrapperMaxRadius[id] < 0 || mWrapperZSpan[id] < 0) {
-    LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined" << FairLogger::endl;
+    LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined";
   }
 
   // Now create the actual shape and volume

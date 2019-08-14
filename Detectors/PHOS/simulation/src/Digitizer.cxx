@@ -168,7 +168,7 @@ void Digitizer::setEventTime(double t)
   t *= mCoeffToNanoSecond;
 
   if (t < mEventTime && mContinuous) {
-    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")" << FairLogger::endl;
+    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
   mEventTime = t;
 }
@@ -178,8 +178,7 @@ void Digitizer::setCurrSrcID(int v)
 {
   // set current MC source ID
   if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID()
-               << FairLogger::endl;
+    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
   }
   mCurrSrcID = v;
 }
@@ -189,8 +188,7 @@ void Digitizer::setCurrEvID(int v)
 {
   // set current MC event ID
   if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID()
-               << FairLogger::endl;
+    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
   }
   mCurrEvID = v;
 }

@@ -46,13 +46,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Hit>*>("PHSHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "PHOS hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "PHOS hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -82,7 +82,7 @@ void DigitizerTask::Exec(Option_t* option)
 
   mDigitizer.setEventTime(mgr->GetEventTime());
 
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 

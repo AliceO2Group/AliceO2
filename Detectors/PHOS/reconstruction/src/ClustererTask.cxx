@@ -48,13 +48,13 @@ InitStatus ClustererTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mDigitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Digit>*>("PHSDigit");
   if (!mDigitsArray) {
-    LOG(ERROR) << "PHOS digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "PHOS digits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -72,7 +72,7 @@ void ClustererTask::Exec(Option_t* option)
 {
   if (mClustersArray)
     mClustersArray->clear();
-  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event";
 
   mClusterer->process(mDigitsArray, mClustersArray);
 }
