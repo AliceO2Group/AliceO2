@@ -56,15 +56,15 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //-------- init geometry and field --------//
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   if (!grp) {
-    LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
+    LOG(FATAL) << "Cannot run w/o GRP object";
   }
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readoute" << FairLogger::endl;
+    LOG(WARNING) << "ITS is not in the readoute";
     return;
   }
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
+  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
   o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
   auto gman = o2::its::GeometryTGeo::Instance();
@@ -73,7 +73,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
-    LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
+    LOG(FATAL) << "Failed to load ma";
   }
 
   //>>>---------- attach input data --------------->>>
@@ -81,7 +81,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   itsClusters.AddFile((path + inputClustersITS).data());
 
   if (!itsClusters.GetBranch("ITSCluster")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
+    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree";
   }
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
@@ -89,7 +89,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
+    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
@@ -99,7 +99,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   itsClustersROF.AddFile((path + inputClustersITS).data());
 
   if (!itsClustersROF.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);

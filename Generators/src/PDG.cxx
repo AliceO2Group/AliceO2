@@ -23,12 +23,12 @@ void o2::PDG::addParticle(const char* name, const char* title, double mass, bool
 {
   TDatabasePDG* pdgDB = TDatabasePDG::Instance();
   if (verbose > 1) {
-    LOG(INFO) << "Adding particle " << name << " with pdg code " << pdgCode << FairLogger::endl;
+    LOG(INFO) << "Adding particle " << name << " with pdg code " << pdgCode;
   }
   TParticlePDG* part = pdgDB->GetParticle(pdgCode);
   if (part) {
     if (verbose) {
-      LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")" << FairLogger::endl;
+      LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")";
     }
     return;
   }
@@ -39,12 +39,12 @@ void o2::PDG::addAntiParticle(const char* name, int pdgCode, int verbose)
 {
   TDatabasePDG* pdgDB = TDatabasePDG::Instance();
   if (verbose > 1) {
-    LOG(INFO) << "Adding anti-particle " << name << " with pdg code " << pdgCode << FairLogger::endl;
+    LOG(INFO) << "Adding anti-particle " << name << " with pdg code " << pdgCode;
   }
   TParticlePDG* part = pdgDB->GetParticle(pdgCode);
   if (part) {
     if (verbose) {
-      LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")" << FairLogger::endl;
+      LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")";
     }
     return;
   }

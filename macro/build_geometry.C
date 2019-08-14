@@ -235,13 +235,13 @@ void finalize_geometry(FairRunSim* run)
   // this should be called geometry is fully built
 
   if (!gGeoManager) {
-    LOG(ERROR) << "gGeomManager is not available" << FairLogger::endl;
+    LOG(ERROR) << "gGeomManager is not available";
     return;
   }
 
   gGeoManager->CloseGeometry();
   if (!run) {
-    LOG(ERROR) << "FairRunSim is not available" << FairLogger::endl;
+    LOG(ERROR) << "FairRunSim is not available";
     return;
   }
 

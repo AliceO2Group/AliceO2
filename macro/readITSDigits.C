@@ -25,28 +25,28 @@ void readITSDigits(std::string path = "./",
 
   std::unique_ptr<TFile> digiFile(TFile::Open((path + digiFName).c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << (path + digiFName) << FairLogger::endl;
+    LOG(ERROR) << "Failed to open input digits file " << (path + digiFName);
     return;
   }
   std::unique_ptr<TFile> rcFile(TFile::Open((path + runContextFName).c_str()));
   if (!rcFile || rcFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open runContext file " << (path + runContextFName) << FairLogger::endl;
+    LOG(ERROR) << "Failed to open runContext file " << (path + runContextFName);
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree" << FairLogger::endl;
+    LOG(ERROR) << "Failed to get digits tree";
     return;
   }
   TTree* rofTree = (TTree*)digiFile->Get("ROF");
   if (!rofTree) {
-    LOG(ERROR) << "Failed to get ROF tree" << FairLogger::endl;
+    LOG(ERROR) << "Failed to get ROF tree";
     return;
   }
   TTree* mc2rofTree = (TTree*)digiFile->Get("MC2ROF");
   if (!mc2rofTree) {
-    LOG(ERROR) << "Failed to get MC->ROF tree" << FairLogger::endl;
+    LOG(ERROR) << "Failed to get MC->ROF tree";
     return;
   }
 
@@ -68,7 +68,7 @@ void readITSDigits(std::string path = "./",
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::RunContext*>(rcFile->GetObjectChecked("RunContext", "o2::steer::RunContext"));
   if (!runContext) {
-    LOG(WARNING) << "Did not find RunContext" << FairLogger::endl;
+    LOG(WARNING) << "Did not find RunContext";
     return;
   }
 
@@ -88,7 +88,7 @@ void readITSDigits(std::string path = "./",
     printf("\n");
 
     if (int(mc2rofVec->size()) <= iev || (*mc2rofVec)[iev].eventRecordID < 0) {
-      LOG(WARNING) << "Event was not digitized" << FairLogger::endl;
+      LOG(WARNING) << "Event was not digitized";
       continue;
     }
     const auto& m2r = (*mc2rofVec)[iev];

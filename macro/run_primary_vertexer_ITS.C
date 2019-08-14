@@ -72,7 +72,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   mcHeaderTree.AddFile((path + simfilename).data());
   o2::dataformats::MCEventHeader* mcHeader = nullptr;
   if (!mcHeaderTree.GetBranch("MCEventHeader.")) {
-    LOG(FATAL) << "Did not find MC event header in the input header file." << FairLogger::endl;
+    LOG(FATAL) << "Did not find MC event header in the input header file.";
   }
   mcHeaderTree.SetBranchAddress("MCEventHeader.", &mcHeader);
 
@@ -84,7 +84,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   itsClustersROF.AddFile((path + inputClustersITS).data());
 
   if (!itsClustersROF.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);

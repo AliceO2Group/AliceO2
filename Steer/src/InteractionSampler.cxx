@@ -20,23 +20,22 @@ void InteractionSampler::init()
 
   int nBCSet = mBCFilling.getNBunches();
   if (!nBCSet) {
-    LOG(WARNING) << "No bunch filling provided, impose default one" << FairLogger::endl;
+    LOG(WARNING) << "No bunch filling provided, impose default one";
     mBCFilling.setDefault();
     nBCSet = mBCFilling.getNBunches();
   }
 
   if (mMuBC < 0. && mIntRate < 0.) {
-    LOG(WARNING) << "No IR or muBC is provided, setting default IR" << FairLogger::endl;
+    LOG(WARNING) << "No IR or muBC is provided, setting default IR";
     mIntRate = DefIntRate;
   }
 
   if (mMuBC > 0.) {
     mIntRate = mMuBC * nBCSet * o2::constants::lhc::LHCRevFreq;
-    LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC << FairLogger::endl;
+    LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC;
   } else {
     mMuBC = mIntRate / (nBCSet * o2::constants::lhc::LHCRevFreq);
-    LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs"
-              << FairLogger::endl;
+    LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
   }
 
   mBCMin = 0;
@@ -120,6 +119,6 @@ int InteractionSampler::simulateInteractingBC()
 void InteractionSampler::warnOrbitWrapped() const
 {
   /// in run3 the orbit is 32 bits and should never wrap
-  LOG(WARN) << "Orbit wraps, current state of InteractionSampler:" << FairLogger::endl;
+  LOG(WARN) << "Orbit wraps, current state of InteractionSampler:";
   print();
 }

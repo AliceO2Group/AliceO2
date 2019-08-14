@@ -164,7 +164,7 @@ class O2SimDevice : public FairMQDevice
       // asking for primary generation
 
       if (requestchannel.Receive(reply, timeoutinMS) > 0) {
-        LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes " << FairLogger::endl;
+        LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
 
         // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
         auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
@@ -212,7 +212,7 @@ class O2SimDevice : public FairMQDevice
     return Kernel(fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
   }
 
-  void PostRun() final { LOG(INFO) << "Shutting down " << FairLogger::endl; }
+  void PostRun() final { LOG(INFO) << "Shutting down "; }
 
  private:
   TStopwatch mTimer;                             //!
