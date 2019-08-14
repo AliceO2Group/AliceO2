@@ -41,7 +41,7 @@ void RunCompareMode3(TString fileInfo)
   uint64_t checkedAdcValues = 0;
   for (const auto& o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
-    LOG(INFO) << "Checking file " << data.Data() << FairLogger::endl;
+    LOG(INFO) << "Checking file " << data.Data();
     // get file info: file name, cru, link
     RawReader rawReaderRaw;
     RawReader rawReaderDec;
@@ -54,7 +54,7 @@ void RunCompareMode3(TString fileInfo)
     auto eventInfoVecDec = rawReaderDec.getEventInfo(rawReaderDec.getFirstEvent());
 
     if (eventInfoVecRaw->begin()->header.dataType != 3) {
-      LOG(ERROR) << "Readout mode was " << (int)eventInfoVecRaw->begin()->header.dataType << " instead of 3." << FairLogger::endl;
+      LOG(ERROR) << "Readout mode was " << (int)eventInfoVecRaw->begin()->header.dataType << " instead of 3.";
       return;
     }
     //    std::cout << eventInfoVecRaw->begin()->path << " "
@@ -80,7 +80,7 @@ void RunCompareMode3(TString fileInfo)
 
     for (uint64_t ev = rawReaderRaw.getFirstEvent(); ev <= rawReaderRaw.getLastEvent(); ++ev) {
       if (rawReaderRaw.loadEvent(ev) != rawReaderDec.loadEvent(ev)) {
-        LOG(ERROR) << "Event " << ev << " can't be decoded by both decoders" << FairLogger::endl;
+        LOG(ERROR) << "Event " << ev << " can't be decoded by both decoders";
         return;
       }
 
@@ -96,9 +96,8 @@ void RunCompareMode3(TString fileInfo)
                          << " in row " << (int)padPos.getRow()
                          << " in timebin " << i
                          << " RawVec size: " << dataRaw->size()
-                         << " DecVec size: " << dataDec->size()
-                         << FairLogger::endl;
-              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
+                         << " DecVec size: " << dataDec->size();
+              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
             }
           }
         } else {
@@ -110,15 +109,14 @@ void RunCompareMode3(TString fileInfo)
                          << " in row " << (int)padPos.getRow()
                          << " in timebin " << i
                          << " RawVec size: " << dataRaw->size()
-                         << " DecVec size: " << dataDec->size()
-                         << FairLogger::endl;
-              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
+                         << " DecVec size: " << dataDec->size();
+              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
             }
           }
         }
       }
     }
-    LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total" << FairLogger::endl;
+    LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
   }
-  LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total" << FairLogger::endl;
+  LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
 }

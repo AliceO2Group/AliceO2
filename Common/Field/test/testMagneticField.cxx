@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
   // create magnetic field
   std::unique_ptr<MagneticField> fld = std::make_unique<MagneticField>("Maps", "Maps", 1., 1., o2::field::MagFieldParam::k5kG);
   double bz0 = fld->solenoidField();
-  LOG(INFO) << "Created default magnetic field for " << bz0 << "kG" << FairLogger::endl;
+  LOG(INFO) << "Created default magnetic field for " << bz0 << "kG";
   const double nomBz = 5.00685;
   BOOST_CHECK_CLOSE(bz0, nomBz, 0.1);
 
@@ -71,12 +71,12 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
   double sF = swFast.CpuTime() / (ntst * repFactor);
   double rat = sF > 0. ? sS / sF : -1;
   LOG(INFO) << "Timing: Exact param: " << sS << " Fast param: " << sF
-            << "s/call -> factor " << rat << FairLogger::endl;
+            << "s/call -> factor " << rat;
 
   // compare slow/fast param precision
   double mean[3] = {0.}, rms[3] = {0.};
   const char comp[] = "XYZ";
-  LOG(INFO) << "Relative precision of fast field wrt exact field" << FairLogger::endl;
+  LOG(INFO) << "Relative precision of fast field wrt exact field";
   for (int it = ntst; it--;) {
     fld->Field(xyz[it], bfast);
     for (int i = 0; i < 3; i++) {
@@ -92,8 +92,7 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
     rms[i] = TMath::Sqrt(rms[i]);
     LOG(INFO) << "deltaB" << comp[i] << ": "
               << " mean=" << mean[i] << "(" << mean[i] / nomBz * 100. << "%)"
-              << " RMS =" << rms[i] << "(" << rms[i] / nomBz * 100. << "%)"
-              << FairLogger::endl;
+              << " RMS =" << rms[i] << "(" << rms[i] / nomBz * 100. << "%)";
     BOOST_CHECK(TMath::Abs(mean[i] / nomBz) < 1.e-3);
     BOOST_CHECK(TMath::Abs(rms[i] / nomBz) < 1.e-3);
   }

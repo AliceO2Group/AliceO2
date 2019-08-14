@@ -35,7 +35,7 @@ void AdcClockMonitor::reset()
   mPrevSequence = 0;
   mSequencePosition = 0;
   mState = state::error;
-  LOG(INFO) << "ADC clock monitoring for SAMPA " << mSampa << " was resetted" << FairLogger::endl;
+  LOG(INFO) << "ADC clock monitoring for SAMPA " << mSampa << " was resetted";
 }
 
 int AdcClockMonitor::addSequence(const short seq)

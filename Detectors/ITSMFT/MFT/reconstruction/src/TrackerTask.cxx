@@ -50,13 +50,13 @@ InitStatus TrackerTask::Init()
 
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mClustersArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Cluster>*>("MFTCluster");
   if (!mClustersArray) {
-    LOG(ERROR) << "MFT clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "MFT clusters not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -70,7 +70,7 @@ InitStatus TrackerTask::Init()
     mgr->RegisterAny("MFTTrackMCTruth", mTrkLabels, kTRUE);
     mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("MFTClusterMCTruth");
     if (!mClsLabels) {
-      LOG(ERROR) << "MFT cluster labels not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      LOG(ERROR) << "MFT cluster labels not registered in the FairRootManager. Exiting ...";
       return kERROR;
     }
   }
@@ -95,7 +95,7 @@ void TrackerTask::Exec(Option_t* option)
   if (mTrkLabels) {
     mTrkLabels->clear();
   }
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event";
 
   mTracker.process(*mClustersArray, *mTracksArray);
 }

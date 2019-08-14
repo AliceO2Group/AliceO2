@@ -201,8 +201,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator+=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects"
-               << FairLogger::endl;
+    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -216,8 +215,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator-=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects"
-               << FairLogger::endl;
+    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -231,8 +229,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator*=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subste type of the objects it not compatible"
-               << FairLogger::endl;
+    LOG(ERROR) << "pad subste type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -246,8 +243,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subste type of the objects it not compatible"
-               << FairLogger::endl;
+    LOG(ERROR) << "pad subste type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {

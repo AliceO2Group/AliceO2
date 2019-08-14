@@ -92,7 +92,7 @@ Cave& Cave::operator=(const Cave& rhs)
 FairModule* Cave::CloneModule() const { return new Cave(*this); }
 void Cave::FinishPrimary()
 {
-  LOG(DEBUG) << "CAVE: Primary finished" << FairLogger::endl;
+  LOG(DEBUG) << "CAVE: Primary finished";
   for (auto& f : mFinishPrimaryHooks) {
     f();
   }

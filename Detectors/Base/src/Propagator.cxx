@@ -29,17 +29,17 @@ Propagator::Propagator()
 
   // we need the geoemtry loaded
   if (!gGeoManager) {
-    LOG(FATAL) << "No active geometry!" << FairLogger::endl;
+    LOG(FATAL) << "No active geometry!";
   }
 
   o2::field::MagneticField* slowField = nullptr;
   slowField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!slowField) {
-    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna" << FairLogger::endl;
+    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
     slowField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
   }
   if (!slowField) {
-    LOG(FATAL) << "Magnetic field is not initialized!" << FairLogger::endl;
+    LOG(FATAL) << "Magnetic field is not initialized!";
   }
   if (!slowField->getFastField()) {
     slowField->AllowFastField(true);
@@ -211,7 +211,7 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCo
 int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName)
 {
   /// load grp and init magnetic field
-  LOG(INFO) << "Loading field from GRP of " << grpFileName << FairLogger::endl;
+  LOG(INFO) << "Loading field from GRP of " << grpFileName;
   const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
   if (!grp) {
     return -1;
@@ -228,21 +228,20 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
 
   if (TGeoGlobalMagField::Instance()->IsLocked()) {
     if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored" << FairLogger::endl;
-      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field" << FairLogger::endl;
+      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
+      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
       return 0;
     } else {
-      LOG(INFO) << "Destroying existing B field instance" << FairLogger::endl;
+      LOG(INFO) << "Destroying existing B field instance";
       delete TGeoGlobalMagField::Instance();
     }
   }
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
-  LOG(INFO) << "Running with the B field constructed out of GRP" << FairLogger::endl;
-  LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via" << FairLogger::endl;
-  LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )"
-            << FairLogger::endl;
+  LOG(INFO) << "Running with the B field constructed out of GRP";
+  LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+  LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
 
   return 0;
 }

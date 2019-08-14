@@ -66,7 +66,7 @@ HalfSegmentation::HalfSegmentation(const Char_t* nameGeomFile, const Short_t id)
   XMLDocPointer_t xmldoc = geomFile->ParseFile(nameGeomFile);
   if (xmldoc == nullptr) {
     delete geomFile;
-    LOG(FATAL) << "Could not parse Geometry XML File named " << nameGeomFile << FairLogger::endl;
+    LOG(FATAL) << "Could not parse Geometry XML File named " << nameGeomFile;
   }
   XMLNodePointer_t mainnode = geomFile->DocGetRootElement(xmldoc);
 
@@ -125,7 +125,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("idisk")) {
         idisk = attrVal.Atoi();
         if (idisk >= constants::DisksNumber || idisk < 0) {
-          LOG(FATAL) << "Wrong disk number : " << idisk << FairLogger::endl;
+          LOG(FATAL) << "Wrong disk number : " << idisk;
         }
       } else if (!attrName.CompareTo("nladder")) {
         nladder = attrVal.Atoi();
@@ -142,7 +142,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }
@@ -156,8 +156,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     halfDisk->createLadders(xml, node);
     if (halfDisk->getNLaddersBuild() != halfDisk->getNLadders()) {
       LOG(FATAL) << "Number of ladder build " << halfDisk->getNLaddersBuild()
-                 << " does not correspond to the number declared " << halfDisk->getNLadders() << " Check XML file"
-                 << FairLogger::endl;
+                 << " does not correspond to the number declared " << halfDisk->getNLadders() << " Check XML file";
     }
     new ((*mHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
     delete halfDisk;
@@ -192,12 +191,12 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
       if (!attrName.CompareTo("top")) {
         isTop = attrVal.Atoi();
         if (isTop > 1 || isTop < 0) {
-          LOG(FATAL) << "Wrong Half MFT number : " << isTop << FairLogger::endl;
+          LOG(FATAL) << "Wrong Half MFT number : " << isTop;
         }
       } else if (!attrName.CompareTo("ndisk")) {
         ndisk = attrVal.Atoi();
         if (ndisk > 5 || ndisk < 0) {
-          LOG(ERROR) << "Wrong number of disk : " << ndisk << FairLogger::endl;
+          LOG(ERROR) << "Wrong number of disk : " << ndisk;
         }
 
       } else if (!attrName.CompareTo("xpos")) {
@@ -213,7 +212,7 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
 
       attr = xml->GetNextAttr(attr);
