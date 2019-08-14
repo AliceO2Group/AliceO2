@@ -12,11 +12,9 @@
 
 find_path(FairRoot_INC FairDetector.h
           PATH_SUFFIXES FairRoot/include
-          PATHS ${FAIRROOTPATH}/include)
-
-# if(NOT EXISTS ${FairRoot_INC}) set(FairRoot_FOUND FALSE)
-# if(FairRoot_FIND_REQUIRED) message(FATAL_ERROR "Could not find FairRoot")
-# endif() return() endif()
+          PATHS ${FAIRROOTPATH}/include
+          ${FAIRROOT_ROOT}/include
+          $ENV{FAIRROOT_ROOT}/include)
 
 get_filename_component(FairRoot_TOPDIR "${FairRoot_INC}/.." ABSOLUTE)
 

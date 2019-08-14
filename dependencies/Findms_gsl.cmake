@@ -8,7 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_path(MS_GSL_INCLUDE_DIR gsl/gsl PATH_SUFFIXES ms_gsl/include)
+find_path(MS_GSL_INCLUDE_DIR gsl/gsl PATH_SUFFIXES ms_gsl/include include
+        PATHS $ENV{MS_GSL_ROOT})
 
 if(NOT MS_GSL_INCLUDE_DIR)
   set(MS_GSL_FOUND FALSE)
