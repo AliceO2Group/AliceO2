@@ -169,7 +169,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
                     "()";
     }
     if (gROOT->LoadMacro(extgen_filename.c_str()) != 0) {
-      LOG(FATAL) << "Cannot find " << extgen_filename << FairLogger::endl;
+      LOG(FATAL) << "Cannot find " << extgen_filename;
       return;
     }
     /** retrieve FairGenerator **/

@@ -53,7 +53,7 @@ class GRPDPLUpdatedTask
 
     TFile flGRP(inputGRP.c_str(), "update");
     if (flGRP.IsZombie()) {
-      LOG(ERROR) << "Failed to open  in update mode " << inputGRP << FairLogger::endl;
+      LOG(ERROR) << "Failed to open  in update mode " << inputGRP;
       return;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
@@ -65,7 +65,7 @@ class GRPDPLUpdatedTask
       }
       grp->setDetROMode(det, roMode);
     }
-    LOG(INFO) << "Updated GRP in " << inputGRP << " for detectors RO mode" << FairLogger::endl;
+    LOG(INFO) << "Updated GRP in " << inputGRP << " for detectors RO mode";
     grp->print();
     flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
     flGRP.Close();

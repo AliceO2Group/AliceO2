@@ -657,7 +657,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   int ncol = TMath::Nint(spanZ / dz + 1);
   if (nrow * ncol != numberOfChips) {
     LOG(ERROR) << "Inconsistency between Nchips=" << numberOfChips << " and Nrow*Ncol=" << nrow << "*" << ncol << "->"
-               << nrow * ncol << FairLogger::endl
+               << nrow * ncol << "\n"
                << "Extracted chip dimensions (x,z): " << dx << " " << dz << " Module Span: " << spanX << " " << spanZ;
   }
   return numberOfChips;
