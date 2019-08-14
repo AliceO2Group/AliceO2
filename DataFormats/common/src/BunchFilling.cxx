@@ -18,8 +18,7 @@ void BunchFilling::setBC(int bcID, bool active)
 {
   // add interacting BC slot
   if (bcID >= o2::constants::lhc::LHCMaxBunches) {
-    LOG(FATAL) << "BCid is limited to " << 0 << '-' << o2::constants::lhc::LHCMaxBunches - 1
-               << FairLogger::endl;
+    LOG(FATAL) << "BCid is limited to " << 0 << '-' << o2::constants::lhc::LHCMaxBunches - 1;
   }
   mPattern.set(bcID, active);
 }

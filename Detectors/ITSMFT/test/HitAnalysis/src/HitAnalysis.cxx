@@ -69,13 +69,13 @@ InitStatus HitAnalysis::Init()
   // Get the FairRootManager
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHits = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("ITSHit");
   if (!mHits) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
