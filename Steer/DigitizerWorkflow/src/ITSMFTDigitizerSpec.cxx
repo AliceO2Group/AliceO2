@@ -59,7 +59,7 @@ class ITSMFTDPLDigitizerTask
     auto qedfilename = ic.options().get<std::string>("simFileQED");
     if (qedfilename.size() > 0) {
       mQEDChain.AddFile(qedfilename.c_str());
-      LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries() << FairLogger::endl;
+      LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries();
     }
 
     setDigitizationOptions(); // set options provided via configKeyValues mechanism
@@ -100,14 +100,14 @@ class ITSMFTDPLDigitizerTask
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES" << FairLogger::endl;
+    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
     }
     TStopwatch timer;
     timer.Start();
-    LOG(INFO) << " CALLING ITS DIGITIZATION " << FairLogger::endl;
+    LOG(INFO) << " CALLING ITS DIGITIZATION ";
 
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
@@ -136,7 +136,7 @@ class ITSMFTDPLDigitizerTask
         retrieveHits(part.sourceID, part.entryID);
 
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID
-                  << " found " << mHits.size() << " hits " << FairLogger::endl;
+                  << " found " << mHits.size() << " hits ";
 
         mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
       }
@@ -160,7 +160,7 @@ class ITSMFTDPLDigitizerTask
     pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s" << FairLogger::endl;
+    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -202,7 +202,7 @@ class ITSMFTDPLDigitizerTask
     mLastQEDTimeNS = -mQEDEntryTimeBinNS / 2; // time will be assigned to the middle of the bin
     qedBranch->SetAddress(&mHitsP);
     LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(QEDSourceID) << ", entry integrates "
-              << mQEDEntryTimeBinNS << " ns" << FairLogger::endl;
+              << mQEDEntryTimeBinNS << " ns";
   }
 
   // helper function which will be offered as a service
@@ -211,7 +211,7 @@ class ITSMFTDPLDigitizerTask
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
     if (!br) {
-      LOG(ERROR) << "No branch " << (detStr + "Hit").c_str() << " found for sourceID=" << sourceID << FairLogger::endl;
+      LOG(ERROR) << "No branch " << (detStr + "Hit").c_str() << " found for sourceID=" << sourceID;
       return;
     }
     br->SetAddress(&mHitsP);
@@ -251,7 +251,7 @@ class ITSMFTDPLDigitizerTask
     }
     std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
     mLabelsAccum.mergeAtBack(mLabels);
-    LOG(INFO) << "Added " << mDigits.size() << " digits " << FairLogger::endl;
+    LOG(INFO) << "Added " << mDigits.size() << " digits ";
     // clean containers from already accumulated stuff
     mLabels.clear();
     mDigits.clear();
