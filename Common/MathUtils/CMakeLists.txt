@@ -41,3 +41,9 @@ o2_add_test(Cartesian3D
             COMPONENT_NAME MathUtils
             PUBLIC_LINK_LIBRARIES O2::MathUtils
             LABELS utils)
+
+o2_add_test(Utils
+            SOURCES test/testUtils.cxx
+            COMPONENT_NAME MathUtils
+            PUBLIC_LINK_LIBRARIES O2::MathUtils
+            LABELS utils)
