@@ -24,11 +24,6 @@ void TempCalibrationParams::addTempCalibParam(unsigned short cellID, float Slope
   mTempCalibParamsA0[cellID] = ParamA0;
 }
 
-void TempCalibrationParams::addTempCalibParamPerSM(unsigned short iSM, float ParamSM)
-{
-  mTempCalibParamsPerSM[iSM] = ParamSM;
-}
-
 float TempCalibrationParams::getTempCalibParamSlope(unsigned short cellID) const
 {
   return mTempCalibParamsSlope[cellID];
@@ -37,11 +32,6 @@ float TempCalibrationParams::getTempCalibParamSlope(unsigned short cellID) const
 float TempCalibrationParams::getTempCalibParamA0(unsigned short cellID) const
 {
   return mTempCalibParamsA0[cellID];
-}
-
-float TempCalibrationParams::getTempCalibParamPerSM(unsigned short iSM) const
-{
-  return mTempCalibParamsPerSM[iSM];
 }
 
 TH1* TempCalibrationParams::getHistogramRepresentationSlope() const
