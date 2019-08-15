@@ -706,12 +706,11 @@ void finalize(
     pc->timeMean += myDigit->time;
 
 #if defined(CORRECT_EDGE_CLUSTERS)
-    if (isAtEdge(myDigit) 
-            && fabs(pc->padMean - (charge_t)myDigit->pad) > 0.0f
-            && fabs(pc->timeMean - (charge_t)myDigit->time) > 0.0f)
+    if (isAtEdge(myDigit))
     {
-        pc->padMean = myDigit->pad; 
-        pc->timeMean = myDigit->time;
+        float s = (myDigit->pad < 2) ? 1.f : -1.f;
+        bool c  = s*(pc->padMean - myDigit->pad) > 0.f;
+        pc->padMean = (c) ? myDigit->pad : pc->padMean;
     }
 #endif
 }
