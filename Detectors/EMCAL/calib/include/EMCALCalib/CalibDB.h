@@ -22,7 +22,9 @@ namespace emcal
 
 class BadChannelMap;
 class TempCalibrationParams;
+class TempCalibParamSM;
 class TimeCalibrationParams;
+class TimeCalibParamL1Phase;
 class GainCalibrationFactors;
 
 /// \class CalibDB
@@ -195,6 +197,20 @@ class CalibDB
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   TimeCalibrationParams* readTimeCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
+  /// \brief Store L1 phase shifts in the CCDB
+  /// \brief tcp L1 phase shifts to be stored
+  /// \brief metadata Additional metadata that can be used in the query
+  /// \timestart Start of the time range of the validity of the object
+  /// \timeend End of the time range of the validity of the object
+  void storeTimeCalibParamL1Phase(TimeCalibParamL1Phase* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find L1 phase shifts in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  TimeCalibParamL1Phase* readTimeCalibParamL1Phase(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
   /// \brief Store temperature calibration coefficiencts in the CCDB
   /// \brief tcp temperature calibration coefficiencts to be stored
   /// \brief metadata Additional metadata that can be used in the query
@@ -208,6 +224,20 @@ class CalibDB
   /// \throw ObjectNotFoundException if object is not found for the given timestamp
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   TempCalibrationParams* readTempCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
+  /// \brief Store temperature calibration coefficiencts per SM in the CCDB
+  /// \brief tcp temperature calibration coefficiencts per SM to be stored
+  /// \brief metadata Additional metadata that can be used in the query
+  /// \timestart Start of the time range of the validity of the object
+  /// \timeend End of the time range of the validity of the object
+  void storeTempCalibParamSM(TempCalibParamSM* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find temperature calibration coefficiencts per SM in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  TempCalibParamSM* readTempCalibParamSM(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store gain calibration factors in the CCDB
   /// \brief gcf temperature calibration coefficiencts to be stored

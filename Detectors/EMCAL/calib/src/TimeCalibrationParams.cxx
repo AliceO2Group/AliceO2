@@ -26,22 +26,12 @@ void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, unsigned sh
     mTimeCalibParamsLG[cellID] = time;
 }
 
-void TimeCalibrationParams::addTimeCalibParamL1Phase(unsigned short iSM, unsigned char L1Phase)
-{
-  mTimeCalibParamsL1Phase[iSM] = L1Phase;
-}
-
 unsigned short TimeCalibrationParams::getTimeCalibParam(unsigned short cellID, bool isLowGain) const
 {
   if (isLowGain)
     return mTimeCalibParamsLG[cellID];
   else
     return mTimeCalibParamsHG[cellID];
-}
-
-unsigned char TimeCalibrationParams::getTimeCalibParamL1Phase(unsigned short iSM) const
-{
-  return mTimeCalibParamsL1Phase[iSM];
 }
 
 TH1* TimeCalibrationParams::getHistogramRepresentation(bool isLowGain) const

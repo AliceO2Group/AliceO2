@@ -21,23 +21,11 @@
 /// gain it should be set to 1.
 /// ~~~
 ///
-/// The L1Phase shift can be added for each SM by
-/// ~~~.{cxx}
-/// o2::emcal::TimeCalibrationParams TCP;
-/// TCP.addTimeCalibParamL1Phase(13, 2);
-/// ~~~
-///
 /// One can read the time calibration coefficient by calling
 /// ~~~.{cxx}
 /// auto param = TCP.getTimeCalibParam(1234, 0);
 /// This will return the time calibration coefficient for a certain HG cell.
 /// For low gain cells you have to set the last parameter 1
-/// ~~~
-///
-/// One can read the L1 Phase shift for each SM by calling
-/// ~~~.{cxx}
-/// auto param = TCP.getTimeCalibParamL1Phase(13);
-/// This will return the L1 Phase shift for a SM.
 /// ~~~
 ///
 
@@ -75,21 +63,11 @@ class TimeCalibrationParams
   /// \param isLowGain is flag whether this cell is LG or HG
   void addTimeCalibParam(unsigned short cellID, unsigned short time, bool isLowGain);
 
-  /// \brief Add L1 phase shifts to the container
-  /// \param iSM is the Super Module
-  /// \param L1Phase is the L1 phase shift
-  void addTimeCalibParamL1Phase(unsigned short iSM, unsigned char L1Phase);
-
   /// \brief Get the time calibration coefficient for a certain cell
   /// \param cellID Absolute ID of cell
   /// \param isLowGain is flag whether this cell is LG or HG
   /// \return time calibration coefficient of the cell
   unsigned short getTimeCalibParam(unsigned short cellID, bool isLowGain) const;
-
-  /// \brief Get the L1 phase for a certain SM
-  /// \param iSM is the Super Module
-  /// \return L1 phase shifts of the SM
-  unsigned char getTimeCalibParamL1Phase(unsigned short iSM) const;
 
   /// \brief Convert the time calibration coefficient array to a histogram
   /// \param isLowGain is flag whether to draw for LG or HG
@@ -99,8 +77,6 @@ class TimeCalibrationParams
  private:
   std::array<unsigned short, 17664> mTimeCalibParamsHG; ///< Container for the time calibration coefficient for the High Gain cells
   std::array<unsigned short, 17664> mTimeCalibParamsLG; ///< Container for the time calibration coefficient for the Low Gain cells
-
-  std::array<unsigned char, 20> mTimeCalibParamsL1Phase; ///< Container for the L1 phase shift
 
   ClassDefNV(TimeCalibrationParams, 1);
 };

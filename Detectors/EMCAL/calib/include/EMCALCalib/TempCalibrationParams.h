@@ -20,12 +20,6 @@
 /// The temperature calibration coefficiencts are the slope and A0 param.
 /// ~~~
 ///
-/// The calibration parameters for each SM can be added by
-/// ~~~.{cxx}
-/// o2::emcal::TempCalibrationParams TCP;
-/// TCP.addTempCalibParamPerSM(13, 2);
-/// ~~~
-///
 /// One can read the temperature calibration coefficient by calling
 /// ~~~.{cxx}
 /// auto param = TCP.getTempCalibParamSlope(1234);
@@ -33,12 +27,6 @@
 /// and
 /// auto param = TCP.getTempCalibParamA0(1234);
 /// This will return the A0 param for a certain cell.
-/// ~~~
-///
-/// One can read the temperature calibration coefficients for each SM by calling
-/// ~~~.{cxx}
-/// auto param = TCP.getTempCalibParamPerSM(13);
-/// This will return the temperature calibration coefficients for a SM.
 /// ~~~
 ///
 
@@ -76,11 +64,6 @@ class TempCalibrationParams
   /// \param ParamA0 is the A0 param
   void addTempCalibParam(unsigned short cellID, float Slope, float ParamA0);
 
-  /// \brief Add temperature coefficients to the container
-  /// \param iSM is the Super Module
-  /// \param TempSM is the temperature coefficients for the SM
-  void addTempCalibParamPerSM(unsigned short iSM, float TempSM);
-
   /// \brief Get the temperature calibration coefficient (slope) for a certain cell
   /// \param cellID Absolute ID of cell
   /// \return slope of the cell
@@ -91,11 +74,6 @@ class TempCalibrationParams
   /// \return A0 param of the cell
   float getTempCalibParamA0(unsigned short cellID) const;
 
-  /// \brief Get the temperature calibration coefficient for a certain SM
-  /// \param iSM is the Super Module
-  /// \return temperature calibration coefficient of the SM
-  float getTempCalibParamPerSM(unsigned short iSM) const;
-
   /// \brief Convert the temperature calibration coefficient arrays to histograms
   /// \return Histogram representation for temperature calibration coefficient
   TH1* getHistogramRepresentationSlope() const;
@@ -104,8 +82,6 @@ class TempCalibrationParams
  private:
   std::array<float, 17664> mTempCalibParamsSlope; ///< Temp calibration: Slope
   std::array<float, 17664> mTempCalibParamsA0;    ///< Temp calibration coefficient: A0 param
-
-  std::array<float, 20> mTempCalibParamsPerSM; ///< Temp calibration coefficient per SM.
 
   ClassDefNV(TempCalibrationParams, 1);
 };
