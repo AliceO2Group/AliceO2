@@ -46,19 +46,19 @@ Bool_t TrivialVertexer::openInputFile(const Char_t* fname)
   mFile = TFile::Open(fname, "old");
   if (!mFile) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot open the input file !" << FairLogger::endl;
+               << "Cannot open the input file !";
     return kFALSE;
   }
   mTree = (TTree*)mFile->Get("o2sim");
   if (!mTree) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input tree !" << FairLogger::endl;
+               << "Cannot get the input tree !";
     return kFALSE;
   }
   Int_t rc = mTree->SetBranchAddress("MCEventHeader.", &mHeader);
   if (rc != 0) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input branch ! rc=" << rc << FairLogger::endl;
+               << "Cannot get the input branch ! rc=" << rc;
     return kFALSE;
   }
   return kTRUE;
@@ -68,14 +68,14 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
 {
   if (mClsLabels == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "No cluster labels available ! Running with a default MC vertex..." << FairLogger::endl;
+              << "No cluster labels available ! Running with a default MC vertex...";
     vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
 
   if (mTree == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "No MC information available ! Running with a default MC vertex..." << FairLogger::endl;
+              << "No MC information available ! Running with a default MC vertex...";
     vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
@@ -102,6 +102,6 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
     Double_t vz = mHeader->GetZ();
     vertices.emplace_back(std::array<Double_t, 3>{vx, vy, vz});
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')' << FairLogger::endl;
+              << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')';
   }
 }

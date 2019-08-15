@@ -67,7 +67,7 @@ class ShishKebabTrd1Module
 
   ShishKebabTrd1Module& operator=(const ShishKebabTrd1Module& /*rvalue*/)
   {
-    LOG(FATAL) << "operator = not implemented" << FairLogger::endl;
+    LOG(FATAL) << "operator = not implemented";
     return *this;
   }
 
@@ -117,8 +117,7 @@ class ShishKebabTrd1Module
       zr = mOK1.X();
     }
     LOG(DEBUG2) << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
-                << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr
-                << FairLogger::endl;
+                << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr;
   }
 
   void GetCenterOfCellInLocalCoordinateofSM3X3(Int_t ieta, Double_t& xr, Double_t& zr) const

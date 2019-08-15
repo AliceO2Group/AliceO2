@@ -44,7 +44,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : mHalves(nullptr)
   delete halfBottom;
   delete halfTop;
 
-  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
+  LOG(DEBUG1) << "MFT segmentation set!";
 }
 
 //_____________________________________________________________________________

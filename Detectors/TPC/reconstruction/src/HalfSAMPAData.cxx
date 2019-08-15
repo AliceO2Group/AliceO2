@@ -31,7 +31,7 @@ HalfSAMPAData::HalfSAMPAData(int id, bool low, std::array<short, 16>& data)
   : mID(id), mLow(low)
 {
   //  if (data.size() != 16)
-  //    LOG(ERROR) << "Vector does not contain 16 elements." << FairLogger::endl;
+  //    LOG(ERROR) << "Vector does not contain 16 elements.";
 
   mData = data;
 }

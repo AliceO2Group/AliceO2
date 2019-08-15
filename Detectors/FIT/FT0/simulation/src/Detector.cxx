@@ -479,7 +479,7 @@ void Detector::DefineOpticalProperties()
   Int_t result = ReadOptProperties(optPropPath.Data());
   if (result < 0) {
     // Error reading file
-    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data() << FairLogger::endl;
+    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data();
     return;
   }
   Int_t nBins = mPhotonEnergyD.size();

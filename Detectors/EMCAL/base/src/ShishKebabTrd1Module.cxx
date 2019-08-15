@@ -47,7 +47,7 @@ ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, Geometry* g)
 
   // DefineName(mTheta);
   LOG(DEBUG4) << "o2::emcal::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
-              << std::setprecision(4) << mTheta << " geometry " << g << FairLogger::endl;
+              << std::setprecision(4) << mTheta << " geometry " << g;
 }
 
 ShishKebabTrd1Module::ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor)
@@ -297,11 +297,10 @@ Double_t ShishKebabTrd1Module::GetMaxEtaOfModule() const
   LOG(DEBUG) << " Right bottom point of module : eta " << std::setw(5) << std::setprecision(4) << etaBottom
              << " : theta " << std::setw(6) << std::setprecision(4) << thetaBottom << " (" << std::setw(6)
              << std::setprecision(2) << thetaBottom * TMath::RadToDeg() << " ) : x(zglob) " << std::setw(7)
-             << std::setprecision(2) << mORB.X() << " y(phi) " << std::setw(5) << std::setprecision(2) << mORB.Y()
-             << FairLogger::endl;
+             << std::setprecision(2) << mORB.X() << " y(phi) " << std::setw(5) << std::setprecision(2) << mORB.Y();
   LOG(DEBUG) << " Right    top point of module : eta " << std::setw(5) << std::setprecision(4) << etaTop << ": theta "
              << std::setw(6) << std::setprecision(4) << thetaTop << " (" << std::setw(6) << std::setprecision(2)
              << thetaTop * TMath::RadToDeg() << ") : x(zglob) " << std::setw(7) << std::setprecision(2) << mORT.X()
-             << "  y(phi) " << std::setw(5) << std::setprecision(2) << mORT.Y() << FairLogger::endl;
+             << "  y(phi) " << std::setw(5) << std::setprecision(2) << mORT.Y();
   return etaBottom > etaTop ? etaBottom : etaTop;
 }
