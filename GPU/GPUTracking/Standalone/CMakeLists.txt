@@ -182,6 +182,10 @@ if(CONFIG_VC)
   target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
 
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(ca PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 # Installation
 install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
