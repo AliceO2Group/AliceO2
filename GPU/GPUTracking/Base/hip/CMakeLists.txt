@@ -72,6 +72,7 @@ endif()
 
 if(HIP_AMDGPUTARGET)
   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
 endif()
 
 target_compile_options(${targetName}
