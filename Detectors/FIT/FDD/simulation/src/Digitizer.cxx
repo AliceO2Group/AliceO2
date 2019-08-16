@@ -56,7 +56,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
     //LOG(INFO) << "NphE = "<<nPhE<<FairLogger::endl;
     Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / integral;
     for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
-      Float_t tPhE = t + mSignalShape->GetRandom(0,mBinSize*Float_t(mNBins));
+      Float_t tPhE = t + mSignalShape->GetRandom(0, mBinSize * Float_t(mNBins));
       Float_t gainVar = mSinglePhESpectrum->GetRandom(0, 20) / meansPhE;
       Int_t firstBin = TMath::Max((UInt_t)0, (UInt_t)((tPhE - parameters.mPMTransitTime) / mBinSize));
       Int_t lastBin = TMath::Min(mNBins - 1, (UInt_t)((tPhE + 2. * parameters.mPMTransitTime) / mBinSize));
@@ -74,34 +74,36 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
         mMCLabels->addElement(mMCLabels->getIndexedSize(), label);
       parent = parentID;
     } //labels
-  } //hit loop
+  }   //hit loop
 
   //Conversion of analogue pulse shape to values provided by FEE
   for (Int_t ipmt = 0; ipmt < parameters.mNchannels; ++ipmt) {
     channel_data[ipmt].mTime = SimulateTimeCFD(ipmt);
-    for (Int_t iBin = 0; iBin < mNBins; ++iBin)channel_data[ipmt].mChargeADC += mTime[ipmt][iBin] / parameters.mChargePerADC;
+    for (Int_t iBin = 0; iBin < mNBins; ++iBin)
+      channel_data[ipmt].mChargeADC += mTime[ipmt][iBin] / parameters.mChargePerADC;
     //LOG(INFO) <<"ADC "<<channel_data[ipmt].mChargeADC<<" Time "<<channel_data[ipmt].mTime<<FairLogger::endl;
-    }
-    
+  }
 }
 //_____________________________________________________________________________
 Float_t Digitizer::SimulateTimeCFD(Int_t channel)
 {
 
   Float_t timeCFD = -1024;
-  Int_t binShift = TMath::Nint(parameters.mTimeShiftCFD/mBinSize);
-  for (Int_t iBin = 0; iBin < mNBins; ++iBin){
+  Int_t binShift = TMath::Nint(parameters.mTimeShiftCFD / mBinSize);
+  for (Int_t iBin = 0; iBin < mNBins; ++iBin) {
     //if(mTime[channel][iBin]!=0)LOG(INFO) <<iBin<<"  "<<mTime[channel][iBin]/parameters.mChargePerADC<<FairLogger::endl;
-    if(iBin >= binShift)mTimeCFD[iBin] = 5.0*mTime[channel][iBin-binShift] - mTime[channel][iBin];
-    else mTimeCFD[iBin] = -1.0*mTime[channel][iBin];
-    }
-  for (Int_t iBin = 1; iBin < mNBins; ++iBin){
-    if(mTimeCFD[iBin-1] < 0 && mTimeCFD[iBin] >= 0){
-      timeCFD = mBinSize*Float_t(iBin); 
+    if (iBin >= binShift)
+      mTimeCFD[iBin] = 5.0 * mTime[channel][iBin - binShift] - mTime[channel][iBin];
+    else
+      mTimeCFD[iBin] = -1.0 * mTime[channel][iBin];
+  }
+  for (Int_t iBin = 1; iBin < mNBins; ++iBin) {
+    if (mTimeCFD[iBin - 1] < 0 && mTimeCFD[iBin] >= 0) {
+      timeCFD = mBinSize * Float_t(iBin);
       break;
-      }
     }
-    
+  }
+
   return timeCFD;
 }
 //_____________________________________________________________________________
@@ -134,7 +136,7 @@ Double_t Digitizer::SignalShape(Double_t* x, Double_t*)
 {
 
   const Double_t xx = x[0];
-  return TMath::Exp(-0.5*TMath::Power(TMath::Log((xx+parameters.mShapeOffset)/parameters.mShapeTau)/parameters.mShapeSigma,2));
+  return TMath::Exp(-0.5 * TMath::Power(TMath::Log((xx + parameters.mShapeOffset) / parameters.mShapeTau) / parameters.mShapeSigma, 2));
 }
 //_____________________________________________________________________________
 void Digitizer::SetTriggers(o2::fdd::Digit* digit)
@@ -161,7 +163,6 @@ void Digitizer::init()
     mSinglePhESpectrum = std::make_unique<o2::base::CachingTF1>("SinglePhESpectrum", this, &Digitizer::SinglePhESpectrum, 0, 20, 0);
   if (!mSignalShape)
     mSignalShape = std::make_unique<o2::base::CachingTF1>("SignalShape", this, &Digitizer::SignalShape, 0, 300, 0);
-    
 }
 //_______________________________________________________________________
 void Digitizer::finish() {}

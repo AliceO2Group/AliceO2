@@ -28,17 +28,15 @@ namespace fdd
 class RecPoint
 {
  public:
-
   RecPoint() = default;
-  RecPoint( Double_t timeA, Double_t timeC,
-            std::vector<o2::fdd::ChannelData> channeldata)
+  RecPoint(Double_t timeA, Double_t timeC,
+           std::vector<o2::fdd::ChannelData> channeldata)
     : mMeanTimeFDA(timeA),
       mMeanTimeFDC(timeC),
       mChannelData(std::move(channeldata))
   {
   }
   ~RecPoint() = default;
-
 
   Double_t GetMeanTimeFDA() const { return mMeanTimeFDA; }
   Double_t GetMeanTimeFDC() const { return mMeanTimeFDC; }
@@ -68,9 +66,9 @@ class RecPoint
   Double_t mMeanTimeFDA = o2::InteractionRecord::DummyTime;
   Double_t mMeanTimeFDC = o2::InteractionRecord::DummyTime;
   std::vector<o2::fdd::ChannelData> mChannelData;
-					   
+
   Double_t mEventTime = o2::InteractionRecord::DummyTime; //event time from Fair for continuous
-  o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
+  o2::InteractionRecord mIntRecord;                       // Interaction record (orbit, bc) from digits
 
   ClassDefNV(RecPoint, 1);
 };

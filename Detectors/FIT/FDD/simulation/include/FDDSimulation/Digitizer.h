@@ -70,7 +70,7 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* mMCLabels = nullptr;
 
   std::vector<std::vector<Float_t>> mTime;                  // Charge time series aka analogue signal pulse from PM
-  std::vector<Float_t> mTimeCFD;			    // Time series for CFD measurement
+  std::vector<Float_t> mTimeCFD;                            // Time series for CFD measurement
   UInt_t mNBins;                                            // Number of bins in pulse series
   Float_t mBinSize;                                         // Time width of the pulse bin - HPTDC resolution
   std::unique_ptr<o2::base::CachingTF1> mPMResponse;        // function which describes the PM time response

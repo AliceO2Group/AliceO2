@@ -27,9 +27,8 @@ struct DigitizationParameters {
   const Float_t mShapeOffset = 6;
   const Float_t mShapeTau = 20;
   const Float_t mShapeSigma = 0.45;
-  //const Float_t mPedestal = 0; 
+  //const Float_t mPedestal = 0;
   const Float_t mTimeShiftCFD = 1.42;
-  
 };
 } // namespace o2::fdd
 #endif
