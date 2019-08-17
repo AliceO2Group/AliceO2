@@ -14,7 +14,7 @@ public:
 
     void call(ClusterFinderState &state, cl::CommandQueue queue)
     {
-        kernel.setArg(0, state.peaks);
+        kernel.setArg(0, state.digits);
         kernel.setArg(1, state.chargeMap);
         kernel.setArg(2, state.peakCountMap);
         Kernel1D::call(0, state.digitnum, 64, queue);

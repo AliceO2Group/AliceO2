@@ -111,6 +111,28 @@ constant uchar OUTER_TO_INNER[16] =
     7, 7, 7
 };
 
+// outer to inner mapping change for the peak counting step,
+// as the other position is the position of the peak
+constant uchar OUTER_TO_INNER_INV[16] =
+{
+    1,
+    0,
+    3,
+    1,
+    1,
+    2,
+    4,
+    3,
+    4,
+    6,
+    5,
+    3,
+    6,
+    6,
+    7,
+    4
+};
+
 
 bool isAtEdge(const Digit *d)
 {
@@ -363,6 +385,12 @@ void updateClusterScratchpadInner(
 bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
 {
     return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
+}
+
+
+bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+{
+    return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
 }
 
 void updateClusterScratchpadOuter(
@@ -746,7 +774,7 @@ char countPeaksAroundDigit(
         delta_t dp = d.x;
         delta_t dt = d.y;
 
-        if (innerAboveThreshold(aboveThreshold, i))
+        if (innerAboveThresholdInv(aboveThreshold, i))
         {
             peakCount -= GET_IS_PEAK(IS_PEAK(peakMap, gpad+dp, time+dt));
         }
