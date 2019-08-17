@@ -41,7 +41,7 @@ add_custom_command(
           -I${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
           -DGPUCA_GPULIBRARY=OCL2
           -D__OPENCLCPP__
-          -cl-std=c++
+          -cl-std=clc++
           -mcpu=${OCL2_GPUTARGET}
   MAIN_DEPENDENCY ${CL_SRC})
 
