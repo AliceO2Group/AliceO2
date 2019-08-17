@@ -59,6 +59,10 @@ bool PeakCountTest::run(
     log::Debug() << "isPeakMap\n" << print(isPeak, pads, timebins);
     log::Debug() << "peakCountMap\n" << print(peakCount, pads, timebins);
 
+    resetMaps.call(state, queue);
+
+    queue.finish();
+
     return true;
 }
 

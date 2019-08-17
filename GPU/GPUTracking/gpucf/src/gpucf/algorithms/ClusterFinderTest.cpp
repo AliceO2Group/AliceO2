@@ -177,7 +177,7 @@ void ClusterFinderTest::checkCluster(
                 << "Print around cluster:\n"
                 << drawer.drawArea(
                     Digit{0, c.globalRow(), int(c.padMean), int(c.timeMean)},
-                    3);
+                    4);
             printCluster--;
         }
 

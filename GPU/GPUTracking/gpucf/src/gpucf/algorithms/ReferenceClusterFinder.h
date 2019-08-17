@@ -43,6 +43,7 @@ private:
     static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF);
 
     static const std::unordered_map<Delta, std::vector<Delta>> innerToOuter;
+    static const std::unordered_map<Delta, std::vector<Delta>> innerToOuterInv;
 
     Map<PeakCount> makePeakCountMap(
             nonstd::span<const Digit>, 

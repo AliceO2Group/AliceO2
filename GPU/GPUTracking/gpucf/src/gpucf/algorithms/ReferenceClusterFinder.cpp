@@ -23,6 +23,18 @@ const std::unordered_map<Delta, std::vector<Delta>> ReferenceClusterFinder::inne
         { {1, 1},{ {2, 1}, {2, 2}, {1, 2} } },
     };
 
+const std::unordered_map<Delta, std::vector<Delta>> ReferenceClusterFinder::innerToOuterInv =
+    {
+        { {-1, -1}, { {-2, -2} } },
+        { {-1, 0}, { {-2, -1}, {-2, 0}, {-2, 1} } },
+        { {-1, 1},{ {-2, 2} } },
+        { {0, -1},{ {-1, -2}, {0, -2}, {1, -2} } },
+        { {0, 1},{ {-1, 2}, {0, 2}, {1, 2} } },
+        { {1, -1},{ {2, -2}  }},
+        { {1, 0}, { {2, -1}, {2, 0}, {2, 1} } },
+        { {1, 1},{ {2, 2} } },
+    };
+
 
 
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
@@ -149,7 +161,7 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
     PeakCount innerPeaks = 0;
     PeakCount outerPeaks = 0;
 
-    for (const auto &p : innerToOuter)
+    for (const auto &p : innerToOuterInv)
     {
         Delta inner = p.first;
 
