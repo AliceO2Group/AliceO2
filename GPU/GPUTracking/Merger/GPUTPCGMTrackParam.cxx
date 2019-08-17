@@ -65,7 +65,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
   prop.SetMatLUT(merger->MatLUT());
-  ShiftZ(merger->pField(), clusters, param, N);
+  if ((clusters[0].slice < 18) == (clusters[N - 1].slice < 18)) {
+    ShiftZ(merger->pField(), clusters, param, N);
+  }
 
   int nWays = param.rec.NWays;
   int maxN = N;
@@ -113,14 +115,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
     for (; ihit >= 0 && ihit < maxN; ihit += wayDirection) {
       const bool crossCE = lastSlice != 255 && ((lastSlice < 18) ^ (clusters[ihit].slice < 18));
       if (crossCE) {
-        mZOffset = -mZOffset;
         lastSlice = clusters[ihit].slice;
         noFollowCircle2 = true;
       }
 
       float xx = clusters[ihit].x;
       float yy = clusters[ihit].y;
-      float zz = clusters[ihit].z - mZOffset;
+      const float zOffset = (clusters[ihit].slice < 18) == (clusters[0].slice < 18) ? mZOffset : -mZOffset;
+      float zz = clusters[ihit].z - zOffset;
       unsigned char clusterState = clusters[ihit].state;
       const float clAlpha = param.Alpha(clusters[ihit].slice);
       // clang-format off
@@ -286,7 +288,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
         break; // bad chi2 for the whole track, stop the fit
       }
     }
-    if (((nWays - iWay) & 1)) {
+    if (((nWays - iWay) & 1) && (clusters[0].slice < 18) == (clusters[maxN - 1].slice < 18)) {
       ShiftZ(merger->pField(), clusters, param, N);
     }
   }
@@ -378,7 +380,9 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection
     xx = yy = zz = 0.f;
     clusterState = 0;
     while (true) {
-      float dy = clusters[ihit].y - projY, dz = clusters[ihit].z - projZ;
+      const float zOffset = (clusters[ihit].slice < 18) == (clusters[0].slice < 18) ? mZOffset : -mZOffset;
+      float dy = clusters[ihit].y - projY;
+      float dz = clusters[ihit].z - zOffset - projZ;
       if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ)) {
         CADEBUG(GPUInfo("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)", dy, dz, sqrtf(maxDistY), sqrtf(maxDistZ), mP[0], projY, clusters[ihit].y, mP[1], projZ, clusters[ihit].z));
         if (rejectChi2) {
@@ -389,7 +393,7 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection
         const float amp = clusters[ihit].amp;
         xx += clusters[ihit].x * amp;
         yy += clusters[ihit].y * amp;
-        zz += (clusters[ihit].z - mZOffset) * amp;
+        zz += (clusters[ihit].z - zOffset) * amp;
         clusterState |= clusters[ihit].state;
         count += amp;
       }
@@ -427,13 +431,14 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* Merger, int
     return;
   }
 
+  const float zOffset = (Merger->OutputTracks()[iTrack].CSide() ^ (slice >= 18)) ? -mZOffset : mZOffset;
   const float y0 = row.Grid().YMin();
   const float stepY = row.HstepY();
-  const float z0 = row.Grid().ZMin() - mZOffset; // We can use our own ZOffset, since this is only used temporarily anyway
+  const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
   const float stepZ = row.HstepZ();
   int bin, ny, nz;
   const float tube = 2.5f;
-  row.Grid().GetBinArea(Y, Z + mZOffset, tube, tube, bin, ny, nz);
+  row.Grid().GetBinArea(Y, Z + zOffset, tube, tube, bin, ny, nz);
   float sy2 = tube * tube, sz2 = tube * tube;
 
   for (int k = 0; k <= nz; k++) {
@@ -661,9 +666,6 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMPolynomialField* field, con
   if (!param.ContinuousTracking) {
     return;
   }
-  if ((clusters[0].slice < 18) ^ (clusters[N - 1].slice < 18)) {
-    return; // Do not shift tracks crossing the central electrode
-  }
   const float cosPhi = CAMath::Abs(mP[2]) < 1.f ? CAMath::Sqrt(1 - mP[2] * mP[2]) : 0.f;
   const float dxf = -CAMath::Abs(mP[2]);
   const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
@@ -815,15 +817,11 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
     GPUTPCGMTrackParam t = track.Param();
     float Alpha = track.Alpha();
     CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
-    float zOffset = t.ZOffset();
     bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
     CADEBUG(GPUInfo("Finished Fit Track %d", cadebug_nTracks));
 
     if (CAMath::Abs(t.QPt()) < 1.e-4f) {
       t.QPt() = 1.e-4f;
-    }
-    if (track.CCE()) {
-      t.ZOffset() = zOffset;
     }
 
     CADEBUG(GPUInfo("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
