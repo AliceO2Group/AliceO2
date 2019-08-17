@@ -411,13 +411,13 @@ void updateClusterScratchpadOuter(
         charge_t q = buf[N * lid + i];
         char    pc = peakCount[N * lid + i];
 
-        /* q = (q < 0) ? -q : 0.f; */
-        /* bool contributes = (q > OUTER_CHARGE_THRESHOLD */ 
-        /*         && innerAboveThreshold(aboveThreshold, outerIdx)); */
-
-        /* q = (contributes) ? q : 0.f; */
-
         ushort outerIdx = i + offset;
+
+        /* q = (q < 0) ? -q : 0.f; */
+        bool contributes = innerAboveThreshold(aboveThreshold, outerIdx);
+
+        q = (contributes) ? q : 0.f;
+
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
         delta_t dp = d.x;
         delta_t dt = d.y;
