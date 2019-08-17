@@ -783,14 +783,35 @@ char countPeaksAroundDigit(
     return peakCount;
 }
 
-char countPeaksScratchpad(
+char countPeaksScratchpadInner(
                     ushort  ll,
+        local const uchar  *isPeak,
+                    uchar  *aboveThreshold)
+{
+    char peaks = 0;
+    for (uchar i = 0; i < 8; i++)
+    {
+        uchar p = isPeak[ll * 8 + i];
+        peaks += GET_IS_PEAK(p);
+        *aboveThreshold |= GET_IS_ABOVE_THRESHOLD(p) << i;
+    }
+
+    return peaks;
+}
+
+char countPeaksScratchpadOuter(
+                    ushort  ll,
+                    ushort  offset,
+                    uchar   aboveThreshold,
         local const uchar  *isPeak)
 {
     char peaks = 0;
     for (uchar i = 0; i < 8; i++)
     {
-        peaks += GET_IS_PEAK(isPeak[ll * 8 + i]);
+        uchar p = isPeak[ll * 8 + i];
+        bool extend = innerAboveThresholdInv(aboveThreshold, i + offset);
+        p = (extend) ? p : 0;
+        peaks += GET_IS_PEAK(p);
     }
 
     return peaks;
@@ -831,6 +852,28 @@ ushort partition(
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     return part;
+}
+
+ushort partition2(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
+{
+    bool participates = ll < partSize;
+
+    IF_DBG_INST DBGPR_1("ll = %d", ll);
+    IF_DBG_INST DBGPR_1("partSize = %d", partSize);
+    IF_DBG_INST DBGPR_1("pred = %d", pred);
+
+    ushort lpos = work_group_scan_inclusive_add(!pred && participates);
+    IF_DBG_INST DBGPR_1("lpos = %d", lpos);
+
+    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
+    IF_DBG_INST DBGPR_1("part = %d", part);
+
+    lpos -= 1;
+    ushort pos = (participates && !pred) ? lpos : part;
+    IF_DBG_INST DBGPR_1("pos = %d", pos);
+
+    *newPartSize = part;
+    return pos;
 }
 
 void sortIntoBuckets(
@@ -938,111 +981,72 @@ void countPeaks(
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
     bool iamPeak  = isPeak[idx];
 
-    char peakCount = 0;
+    char peakCount = (iamPeak) ? 1 : 0;
+
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
     ushort ll = get_local_linear_id();
+    ushort partId = ll;
 
     const ushort N = 8;
 
     local ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
-    local ChargePos posBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
-    local char      pcBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
-    local char      pcBcast2[SCRATCH_PAD_WORK_GROUP_SIZE];
     local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
 
-    posBcast1[ll]    = (ChargePos){gpad, myDigit.time};
-    pcBcast1[ll] = 0;
+    ushort in3x3 = 0;
+    partId = partition2(ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
-    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    IF_DBG_INST DBGPR_2("partId = %d, in3x3 = %d", partId, in3x3);
 
-    int numOfDummies = work_group_reduce_add((int) iamDummy);
-
-    IF_DBG_INST DBGPR_1("dummies = %d", numOfDummies);
-
-    ushort in3x3 = partition(
-            ll, 
-            iamPeak,
-            SCRATCH_PAD_WORK_GROUP_SIZE - numOfDummies, 
-            pcBcast1, 
-            posBcast1, 
-            pcBcast2, 
-            posBcast2);
-
-    IF_DBG_INST DBGPR_1("in3x3 = %d", in3x3);
-
-    IF_DBG_INST DBGPR_0("Fill LDS 1.");
-    fillScratchPad_uchar(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast2, buf);
-    /* fillScratchPadNaive(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast2, buf); */
-    if (ll < in3x3)
+    if (partId < in3x3)
     {
-        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
-        peakCount = countPeaksScratchpad(ll, buf);
-
-        if (peakCount > 0)
-        {
-            pcBcast2[ll] = peakCount;
-        }
+        posBcast1[partId] = (ChargePos){gpad, myDigit.time};
     }
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
-    IF_DBG_GROUP DBGPR_2("ll = %d, peakCount = %d", ll, peakCount);
+    fillScratchPad_uchar(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast1, buf);
+
+    uchar aboveThreshold = 0;
+    if (partId < in3x3)
+    {
+        peakCount = countPeaksScratchpadInner(partId, buf, &aboveThreshold);
+    }
 
 
-    IF_DBG_INST DBGPR_0("Partition 2.");
-    ushort in5x5 = partition(
-            ll,
-            peakCount > 0,
-            in3x3,
-            pcBcast2,
-            posBcast2,
-            pcBcast1,
-            posBcast1);
+    ushort in5x5 = 0;
+    partId = partition2(partId, peakCount > 0, in3x3, &in5x5);
 
-    IF_DBG_INST DBGPR_0("Fill LDS 2.");
+    IF_DBG_INST DBGPR_2("partId = %d, in5x5 = %d", partId, in5x5);
+
+    if (partId < in5x5)
+    {
+        posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+    }
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
     fillScratchPad_uchar(peakMap, in5x5, ll, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
-    /* fillScratchPadNaive(peakMap, in5x5, ll, 0, N, OUTER_NEIGHBORS, posBcast1, buf); */
-    if (ll < in5x5)
+    if (partId < in5x5)
     {
-        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
-        peakCount = countPeaksScratchpad(ll, buf);
+        peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, buf);
     }
 
-    IF_DBG_INST DBGPR_0("Fill LDS 3.");
     fillScratchPad_uchar(peakMap, in5x5, ll, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
-    /* fillScratchPadNaive(peakMap, in5x5, ll, 8, N, OUTER_NEIGHBORS, posBcast1, buf); */
-    if (ll < in5x5)
+    if (partId < in5x5)
     {
-        IF_DBG_INST DBGPR_0("Counting peaks in LDS.");
-        peakCount += countPeaksScratchpad(ll, buf);
+        peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, buf);
         peakCount *= -1;
-        pcBcast1[ll] = peakCount;
     }
 
-    IF_DBG_GROUP DBGPR_2("ll = %d, peakCount = %d", ll, peakCount);
-
-    IF_DBG_INST DBGPR_0("Write results back.");
-
-    if (iamDummy)
-    {
-        return;
-    }
-
-    char pc = pcBcast1[ll];
-    ChargePos pos = posBcast1[ll];
-    PEAK_COUNT(peakCountMap, pos.gpad, pos.time) = pc;
 #else
     peakCount = countPeaksAroundDigit(gpad, myDigit.time, chargeMap, peakMap);
+    peakCount = iamPeak ? 1 : peakCount;
+#endif
 
     if (iamDummy)
     {
         return;
     }
 
-    /* peakCount = select(peakCount, (uchar) (PCMask_Has3x3Peak | 1), (uchar)iamPeak); */
-    peakCount = iamPeak ? 1 : peakCount;
-
     PEAK_COUNT(peakCountMap, gpad, myDigit.time) = peakCount;
-#endif
 }
 
 
