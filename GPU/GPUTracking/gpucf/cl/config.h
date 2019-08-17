@@ -25,28 +25,48 @@ typedef PackedDigit Digit;
 #endif
 
 
+size_t idxSquareTiling(global_pad_t gpad, timestamp time, size_t N)
+{
+    time += PADDING; 
+
+    const size_t C = TPC_NUM_OF_PADS + N - 1;
+
+    const size_t inTilePad = gpad % N;
+    const size_t inTileTime = time % N;
+
+    return N * (time * C + gpad + inTileTime) + inTilePad;
+}
+
+size_t idxTiling4x4(global_pad_t gpad, timestamp time)
+{
+    return idxSquareTiling(gpad, time, 4);
+}
+
+size_t idxTiling8x8(global_pad_t gpad, timestamp time)
+{
+    return idxSquareTiling(gpad, time, 8);
+}
+
+
 inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 {
-    time += PADDING;
+
 
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT) \
     || defined(CHARGEMAP_4x8_TILING_LAYOUT) \
     || defined(CHARGEMAP_8x4_TILING_LAYOUT)
-
 #define CHARGEMAP_TILING_LAYOUT
+#endif
 
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT)
-  #define TILE_WIDTH 4
-  #define TILE_HEIGHT 4
+    
+    return idxTiling4x4(gpad, time);
+
 #elif defined(CHARGEMAP_4x8_TILING_LAYOUT)
   #define TILE_WIDTH 4
   #define TILE_HEIGHT 8
-#elif defined(CHARGEMAP_8x4_TILING_LAYOUT)
-  #define TILE_WIDTH 8
-  #define TILE_HEIGHT 4
-#else
-  #error("Unknown tiling layout")
-#endif
+
+    time += PADDING;
 
     const size_t tileW = TILE_WIDTH;
     const size_t tileH = TILE_HEIGHT;
@@ -64,12 +84,18 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 #undef TILE_WIDTH
 #undef TILE_HEIGHT
 
+#elif defined(CHARGEMAP_8x4_TILING_LAYOUT)
+
+    return idxTiling4x4(gpad, time);
+
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 
+    time += PADDING;
     return TPC_MAX_TIME_PADDED * gpad + time;
 
 #else // Use row time-major layout
 
+    time += PADDING;
     return TPC_NUM_OF_PADS * time + gpad;
 
 #endif
