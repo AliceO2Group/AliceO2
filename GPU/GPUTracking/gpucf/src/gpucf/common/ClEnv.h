@@ -25,21 +25,32 @@ public:
     public:
         args::ValueFlag<std::string> clSrcDir;    
         args::ValueFlag<size_t> gpuId;
+        args::Flag useCpu;
 
         Flags(args::Group &required, args::Group &optional)
             : clSrcDir(required, "clsrc", "Base directory of cl source files.",
                     {'s', "src"}) 
             , gpuId(optional, "gpuid", "Id of the gpu device.", 
                     {'g', "gpu"}, 0)
+            , useCpu(optional, "", "Use cpu as openCl device.", {'c', "clcpu"})
         {
         }
 
     };
 
 
-    ClEnv(const filesystem::path &srcDir, ClusterFinderConfig cfg, size_t gpuid=0);
+    ClEnv(
+            const filesystem::path &srcDir, 
+            ClusterFinderConfig cfg, 
+            size_t gpuid=0, 
+            bool useCpu=false);
+
     ClEnv(Flags &flags, ClusterFinderConfig cfg) 
-        : ClEnv(args::get(flags.clSrcDir), cfg, args::get(flags.gpuId)) 
+        : ClEnv(
+                args::get(flags.clSrcDir), 
+                cfg, 
+                args::get(flags.gpuId), 
+                args::get(flags.useCpu)) 
     {
     }
 
@@ -75,7 +86,7 @@ private:
     filesystem::path sourceDir;
 
 
-    cl::Program buildFromSrc();
+    cl::Program buildFromSrc(bool);
             
     cl::Program::Sources loadSrc(const std::vector<filesystem::path> &srcFiles);
 
