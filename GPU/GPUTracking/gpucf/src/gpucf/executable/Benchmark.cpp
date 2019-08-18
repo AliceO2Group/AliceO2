@@ -56,6 +56,8 @@ int Benchmark::mainImpl()
     SectorMap<std::vector<Digit>> alldigits = Digit::bySector(rawdigits);
     digits = alldigits[0];
 
+    log::Debug() << "Timebins = " << digits.back().time;
+
     registerExperiments();
 
     runExperiments();
@@ -65,6 +67,50 @@ int Benchmark::mainImpl()
 
 void Benchmark::registerExperiments()
 {
+    {
+        ClusterFinderConfig scratchpad;
+        scratchpad.halfs = true;
+        scratchpad.layout = ChargemapLayout::Tiling4x4;
+        scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Load charges into scratchpad",
+                        "scratchpad4x4.json",
+                        scratchpad,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
+    {
+        ClusterFinderConfig scratchpad;
+        scratchpad.halfs = true;
+        scratchpad.layout = ChargemapLayout::Tiling4x8;
+        scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Load charges into scratchpad",
+                        "scratchpad4x8.json",
+                        scratchpad,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
+
+    {
+        ClusterFinderConfig scratchpad;
+        scratchpad.halfs = true;
+        scratchpad.layout = ChargemapLayout::Tiling8x4;
+        scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Load charges into scratchpad",
+                        "scratchpad8x4.json",
+                        scratchpad,
+                        digits,
+                        iterations->Get(),
+                        baseDir));
+    }
 
     {
         ClusterFinderConfig timeMajorLayout;
@@ -79,18 +125,18 @@ void Benchmark::registerExperiments()
                         baseDir));
     }
 
-    {
-        ClusterFinderConfig tilingLayout;
-        tilingLayout.layout = ChargemapLayout::Tiling4x4;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Chargemap with tiling layout", 
-                        "tilingLayout.json",
-                        tilingLayout,
-                        digits,
-                        iterations->Get(), 
-                        baseDir));
-    }
+    /* { */
+    /*     ClusterFinderConfig tilingLayout; */
+    /*     tilingLayout.layout = ChargemapLayout::Tiling4x4; */
+    /*     experiments.emplace_back( */
+    /*             new TimeCf( */
+    /*                     "Chargemap with tiling layout", */ 
+    /*                     "tilingLayout.json", */
+    /*                     tilingLayout, */
+    /*                     digits, */
+    /*                     iterations->Get(), */ 
+    /*                     baseDir)); */
+    /* } */
 
     {
         ClusterFinderConfig padMajorLayout;
@@ -162,36 +208,6 @@ void Benchmark::registerExperiments()
     /*                     baseDir)); */
     /* } */
 
-    {
-        ClusterFinderConfig scratchpad;
-        scratchpad.halfs = true;
-        scratchpad.layout = ChargemapLayout::Tiling8x4;
-        scratchpad.clusterbuilder = ClusterBuilder::ScratchPad;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Load charges into scratchpad",
-                        "scratchpad.json",
-                        scratchpad,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
-    }
-
-    {
-        ClusterFinderConfig unroll;
-        unroll.halfs = true;
-        unroll.layout = ChargemapLayout::Tiling8x4;
-        unroll.clusterbuilder = ClusterBuilder::ScratchPad;
-        unroll.unrollLoops = true;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Load charges into scratchpad",
-                        "scratchpadUnroll.json",
-                        unroll,
-                        digits,
-                        iterations->Get(),
-                        baseDir));
-    }
 
 }
 

@@ -29,8 +29,7 @@ ClusterFinderState::ClusterFinderState(
     std::vector<int> globalRowToCruMap = RowInfo::instance().globalRowToCruMap;
     const size_t numOfRows = globalToLocalRowMap.size();
 
-    const size_t mapEntries = numOfRows 
-        * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED; 
+    const size_t mapEntries = TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED; 
 
     if (cfg.halfs)
     {
