@@ -18,7 +18,7 @@ const std::vector<fs::path> ClEnv::srcs = {
 };
 
 
-ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid)
+ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid, bool useCpu)
     : gpuId(gid) 
     , sourceDir(srcDir) 
 {
@@ -34,7 +34,9 @@ ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid)
         throw NoPlatformFoundError(); 
     }
     
-    platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    cl_device_type dtype = (useCpu) ? CL_DEVICE_TYPE_CPU 
+                                    : CL_DEVICE_TYPE_GPU;
+    platforms.front().getDevices(dtype, &devices);
 
     if (devices.empty()) 
     {
@@ -82,10 +84,10 @@ ClEnv::ClEnv(const fs::path &srcDir, ClusterFinderConfig cfg, size_t gid)
     addDefine("NDEBUG");
 #endif
 
-    program = buildFromSrc();
+    program = buildFromSrc(useCpu);
 }
 
-cl::Program ClEnv::buildFromSrc()
+cl::Program ClEnv::buildFromSrc(bool cpudebug)
 {
     cl::Program::Sources src = loadSrc(srcs);
 
@@ -94,6 +96,11 @@ cl::Program ClEnv::buildFromSrc()
     std::string buildOpts = "-Werror";
     buildOpts += " -I" + sourceDir.str();
     buildOpts += " -cl-std=CL2.0";
+
+    if (cpudebug)
+    {
+        buildOpts += " -g -O0"; 
+    }
 
     for (const std::string &def : defines)
     {
