@@ -817,44 +817,8 @@ char countPeaksScratchpadOuter(
     return peaks;
 }
 
-ushort partition(
-                    ushort     ll, 
-                    bool       pred, 
-                    ushort     partSize,
-        local const char      *pcBcastIn,
-        local const ChargePos *posBcastIn,
-        local       char      *pcBcastOut,
-        local       ChargePos *posBcastOut)
-{
-    bool participates = ll < partSize;
 
-    IF_DBG_INST DBGPR_1("partSize = %d", partSize);
-
-    ushort lpos = work_group_scan_inclusive_add(!pred && participates);
-    IF_DBG_GROUP DBGPR_3("ll = %d, pred = %d, lpos = %d", ll, pred, lpos);
-
-    ushort rpos = work_group_scan_inclusive_add( pred && participates);
-    IF_DBG_GROUP DBGPR_3("ll = %d, pred = %d, rpos = %d", ll, pred, rpos);
-
-    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
-
-    IF_DBG_INST DBGPR_1("part = %d", part);
-
-    lpos -= 1;
-    rpos += part-1;
-    ushort pos = (participates) ? ((pred) ? rpos : lpos) : ll;
-
-    IF_DBG_GROUP DBGPR_2("ll = %d, pos = %d", ll, pos);
-
-    pcBcastOut[pos]  = pcBcastIn[ll];
-    posBcastOut[pos] = posBcastIn[ll];
-
-    work_group_barrier(CLK_LOCAL_MEM_FENCE);
-
-    return part;
-}
-
-ushort partition2(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
+ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
 {
     bool participates = ll < partSize;
 
@@ -995,7 +959,7 @@ void countPeaks(
     local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
 
     ushort in3x3 = 0;
-    partId = partition2(ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
+    partId = partition(ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
     IF_DBG_INST DBGPR_2("partId = %d, in3x3 = %d", partId, in3x3);
 
@@ -1015,7 +979,7 @@ void countPeaks(
 
 
     ushort in5x5 = 0;
-    partId = partition2(partId, peakCount > 0, in3x3, &in5x5);
+    partId = partition(partId, peakCount > 0, in3x3, &in5x5);
 
     IF_DBG_INST DBGPR_2("partId = %d, in5x5 = %d", partId, in5x5);
 
