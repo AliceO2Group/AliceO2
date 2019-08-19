@@ -233,13 +233,13 @@ class GPUTRDTrackerDebug
   }
 
   // tracklet parameters
-  void SetRawTrackletPosition(const float fX, const float* fYZ, int ly)
+  void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly)
   {
     fTrackletX(ly) = fX;
     fTrackletY(ly) = fYZ[0];
     fTrackletZ(ly) = fYZ[1];
   }
-  void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly)
+  void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly)
   {
     fTrackletYcorr(ly) = fYZ[0];
     fTrackletZcorr(ly) = fYZ[1];
@@ -474,8 +474,8 @@ class GPUTRDTrackerDebug
   GPUd() void SetTrack(const GPUTRDTrack& trk) {}
 
   // tracklet parameters
-  GPUd() void SetRawTrackletPosition(const float fX, const float* fYZ, int ly) {}
-  GPUd() void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly) {}
+  GPUd() void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
+  GPUd() void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) {}
   GPUd() void SetTrackletCovariance(const My_Float* fCov, int ly) {}
   GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
   GPUd() void SetRawTrackletPositionReal(float fX, float* fYZ, int ly) {}
