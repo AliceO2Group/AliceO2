@@ -285,6 +285,28 @@ void reset(ClusterAccumulator *clus)
     clus->splitInPad  = 0;
 }
 
+ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
+{
+    bool participates = ll < partSize;
+
+    IF_DBG_INST DBGPR_1("ll = %d", ll);
+    IF_DBG_INST DBGPR_1("partSize = %d", partSize);
+    IF_DBG_INST DBGPR_1("pred = %d", pred);
+
+    ushort lpos = work_group_scan_inclusive_add(!pred && participates);
+    IF_DBG_INST DBGPR_1("lpos = %d", lpos);
+
+    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
+    IF_DBG_INST DBGPR_1("part = %d", part);
+
+    lpos -= 1;
+    ushort pos = (participates && !pred) ? lpos : part;
+    IF_DBG_INST DBGPR_1("pos = %d", pos);
+
+    *newPartSize = part;
+    return pos;
+}
+
 
 #define DECL_FILL_SCRATCH_PAD(type, accessFunc) \
     void fillScratchPad_##type( \
@@ -620,15 +642,24 @@ bool isPeakScratchPad(
     const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
     ChargePos pos = {gpad, time};
 
-    IF_DBG_INST DBGPR_2("pos = %d, %d", pos.gpad, pos.time);
+    bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
 
-    posBcast[ll] = pos;
-    IF_DBG_INST DBGPR_2("pos = %d, %d", posBcast[ll].gpad, posBcast[ll].time);
+    ushort lookForPeaks;
+    ushort partId = partition(
+            ll, 
+            belowThreshold, 
+            SCRATCH_PAD_WORK_GROUP_SIZE, 
+            &lookForPeaks);
+
+    if (partId < lookForPeaks)
+    {
+        posBcast[partId] = pos;
+    }
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     fillScratchPad_charge_t(
             chargeMap,
-            SCRATCH_PAD_WORK_GROUP_SIZE,
+            lookForPeaks,
             ll,
             0,
             N,
@@ -636,14 +667,18 @@ bool isPeakScratchPad(
             posBcast,
             buf);
 
+    if (belowThreshold)
+    {
+        return false;
+    }
+
     bool peak = true;
     for (ushort i = 0; i < N; i++)
     {
-        charge_t q = buf[N * ll + i];
+        charge_t q = buf[N * partId + i];
         peak &= (digit->charge > q) 
              || (INNER_TEST_EQ[i] && digit->charge == q);
     }
-    peak &= (digit->charge > QMAX_CUTOFF);
 
     return peak;
 }
@@ -652,6 +687,11 @@ bool isPeak(
                const Digit    *digit,
         global const charge_t *chargeMap)
 {
+    if (digit->charge <= QMAX_CUTOFF)
+    {
+        return false;
+    }
+
     const charge_t myCharge = digit->charge;
     const timestamp time = digit->time;
     const row_t row = digit->row;
@@ -709,8 +749,6 @@ bool isPeak(
 #undef CMP_B
 #undef CMP_RB
 #undef CMP_NEIGHBOR
-
-    peak &= (myCharge > QMAX_CUTOFF);
 
     return peak;
 }
@@ -818,27 +856,6 @@ char countPeaksScratchpadOuter(
 }
 
 
-ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
-{
-    bool participates = ll < partSize;
-
-    IF_DBG_INST DBGPR_1("ll = %d", ll);
-    IF_DBG_INST DBGPR_1("partSize = %d", partSize);
-    IF_DBG_INST DBGPR_1("pred = %d", pred);
-
-    ushort lpos = work_group_scan_inclusive_add(!pred && participates);
-    IF_DBG_INST DBGPR_1("lpos = %d", lpos);
-
-    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
-    IF_DBG_INST DBGPR_1("part = %d", part);
-
-    lpos -= 1;
-    ushort pos = (participates && !pred) ? lpos : part;
-    IF_DBG_INST DBGPR_1("pos = %d", pos);
-
-    *newPartSize = part;
-    return pos;
-}
 
 void sortIntoBuckets(
                const ClusterNative *cluster,

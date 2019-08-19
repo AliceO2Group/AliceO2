@@ -17,8 +17,7 @@ public:
             filesystem::path,
             ClusterFinderConfig,
             nonstd::span<const Digit>, 
-            size_t, 
-            filesystem::path);
+            size_t);
 
     void run(ClEnv &) override;
 

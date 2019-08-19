@@ -14,13 +14,24 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
 
     compactPeaks.call(state, queue);
     
+    log::Debug() << "Counting Peaks START";
     countPeaks.call(state, queue);
-
-    computeCluster.call(state, queue);
-
-    resetMaps.call(state, queue);
-
     queue.finish();
+    log::Debug() << "Counting Peaks END";
+
+    log::Debug() << "Computing cluster START";
+    computeCluster.call(state, queue);
+    queue.finish();
+    log::Debug() << "Computing cluster END";
+
+    log::Debug() << "Reset maps START";
+    resetMaps.call(state, queue);
+    queue.finish();
+    log::Debug() << "Reset maps END";
+
+    log::Debug() << "Finish queue START";
+    queue.finish();
+    log::Debug() << "Finish queue END";
 
 
     log::Info() << "Collecting OpenCL profiling data.";
