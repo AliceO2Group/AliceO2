@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gpucf/common/Event.h>
-#include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
 
 #include <CL/cl2.hpp>
@@ -40,7 +39,7 @@ public:
         Worker(const Worker &) = default;
 
         size_t run(
-                const Fragment &,
+                size_t,
                 cl::CommandQueue,
                 cl::Buffer,
                 cl::Buffer,
@@ -81,7 +80,7 @@ public:
 
         cl::Event *addScanEvent();
 
-        size_t stepnum(const Fragment &) const;
+        size_t stepnum(size_t) const;
 
         Worker(cl::Program, cl::Device, DeviceMemory, CompType);
 
