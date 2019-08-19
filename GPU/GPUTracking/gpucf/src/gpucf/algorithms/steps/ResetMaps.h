@@ -17,6 +17,7 @@ public:
         kernel.setArg(0, state.digits);
         kernel.setArg(1, state.chargeMap);
         kernel.setArg(2, state.peakCountMap);
+        kernel.setArg(3, state.isPeak);
         Kernel1D::call(0, state.digitnum, 64, queue);
     }
     

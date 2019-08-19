@@ -907,7 +907,8 @@ kernel
 void resetMaps(
         global const Digit    *digits,
         global       charge_t *chargeMap,
-        global       char     *peakCountMap)
+        global       char     *peakCountMap,
+        global       uchar    *isPeakMap)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
@@ -916,6 +917,7 @@ void resetMaps(
 
     CHARGE(chargeMap, gpad, myDigit.time) = 0.f;
     PEAK_COUNT(peakCountMap, gpad, myDigit.time) = 1;
+    IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;
 }
 
 
@@ -1058,8 +1060,7 @@ void computeClusters(
                      uint           clusternum,
                      uint           maxClusterPerRow,
         global       uint          *clusterInRow,
-        global       ClusterNative *clusterByRow,
-        global       uchar         *peakMap)
+        global       ClusterNative *clusterByRow)
 {
     uint idx = get_global_linear_id();
 
@@ -1102,11 +1103,6 @@ void computeClusters(
 
     ClusterNative myCluster;
     toNative(&pc, &myDigit, &myCluster);
-
-    /* clusters[idx] = myCluster; */
-    /* rows[idx] = myDigit.row; */
-
-    IS_PEAK(peakMap, gpad, myDigit.time) = 0;
 
 #if defined(CUT_QTOT)
     bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
