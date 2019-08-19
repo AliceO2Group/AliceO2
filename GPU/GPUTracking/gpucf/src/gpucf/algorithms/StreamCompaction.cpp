@@ -288,6 +288,8 @@ size_t StreamCompaction::Worker::run(
             nullptr,
             compactArrEv.get());
 
+    log::Debug() << "Get num of peaks.";
+
     cl_int newDigitNum;
 
     // Read the last element from index buffer to get the new number of digits
@@ -299,6 +301,9 @@ size_t StreamCompaction::Worker::run(
             &newDigitNum,
             nullptr,
             readNewDigitNum.get());
+
+    DBG(newDigitNum);
+    
 
     if (debug)
     {

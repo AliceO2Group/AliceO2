@@ -33,6 +33,7 @@ set(GPUCF_SRC
 
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
+    "./executable/CfCLIFlags.cpp"
     "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
     "./executable/Testbench.cpp"
