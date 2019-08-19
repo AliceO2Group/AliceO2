@@ -1506,7 +1506,7 @@ int GPUChainTracking::RunChain()
       if (RunTRDTracking()) {
         return 1;
       }
-      if (GetDeviceProcessingSettings().debugLevel >= 1) {
+      if (GetDeviceProcessingSettings().debugLevel >= 0) {
         printf("TRD tracking time: %'d us\n", (int)(1000000 * timer.GetCurrentElapsedTime()));
       }
     } else {
