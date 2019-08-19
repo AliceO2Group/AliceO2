@@ -1,5 +1,4 @@
 set(GPUCF_SRC
-    "./ClusterChecker.cpp"
 
     "./algorithms/ClusterFinder.cpp"
     "./algorithms/ClusterFinderConfig.cpp"
@@ -15,10 +14,8 @@ set(GPUCF_SRC
     "./common/ClusterMap.cpp"
     "./common/DataSet.cpp"
     "./common/Digit.cpp"
-    "./common/DigitDivider.cpp"
     "./common/Event.cpp"
     "./common/float.cpp"
-    "./common/Fragment.cpp"
     "./common/Kernel1D.cpp"
     "./common/LabelContainer.cpp"
     "./common/log.cpp"
@@ -28,6 +25,7 @@ set(GPUCF_SRC
     "./common/Position.cpp"
     "./common/RowInfo.cpp"
 
+    "./debug/ClusterChecker.cpp"
     "./debug/DigitDrawer.cpp"
     "./debug/PeakCountTest.cpp"
     "./debug/SCFuzzer.cpp"

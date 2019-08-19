@@ -112,9 +112,8 @@ bool SCFuzzer::runTest(size_t N)
             predicateBytes,
             predicate.data());
 
-    Fragment all(insize);
     int res = worker.run(
-            all,
+            insize,
             queue,
             digitsInBuf,
             digitsOutBuf,

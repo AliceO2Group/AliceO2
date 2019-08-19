@@ -125,7 +125,7 @@ void StreamCompaction::setDigitNum(size_t digitnum, size_t workernum)
 }
 
 size_t StreamCompaction::Worker::run(
-        const Fragment &range,
+        size_t items,
         cl::CommandQueue queue,
         cl::Buffer digits,
         cl::Buffer digitsOut,
@@ -144,8 +144,8 @@ size_t StreamCompaction::Worker::run(
     ASSERT(!mem.incrBufSizes.empty());
     ASSERT(mem.incrBufs.size() == mem.incrBufSizes.size());
 
-    size_t digitnum = range.backlog + range.items;
-    size_t offset = range.start;
+    size_t digitnum = items;
+    size_t offset = 0;
 
     /* queue.enqueueCopyBuffer( */
     /*         predicate, */
@@ -159,7 +159,7 @@ size_t StreamCompaction::Worker::run(
     std::vector<size_t> offsets;
     std::vector<size_t> digitnums;
 
-    size_t stepnum = this->stepnum(range);
+    size_t stepnum = this->stepnum(digitnum);
     DBG(stepnum);
     DBG(mem.incrBufs.size());
     ASSERT(stepnum <= mem.incrBufs.size());
@@ -294,7 +294,7 @@ size_t StreamCompaction::Worker::run(
     queue.enqueueReadBuffer(
             mem.incrBufs.front(),
             CL_TRUE,
-            (range.start + digitnum-1) * sizeof(cl_int),
+            (digitnum-1) * sizeof(cl_int),
             sizeof(cl_int),
             &newDigitNum,
             nullptr,
@@ -307,18 +307,16 @@ size_t StreamCompaction::Worker::run(
 
     ASSERT(size_t(newDigitNum) <= digitnum);
 
-
     return newDigitNum;
 }
 
-size_t StreamCompaction::Worker::stepnum(const Fragment &range) const
+size_t StreamCompaction::Worker::stepnum(size_t items) const
 {
     size_t c = 0;
-    size_t itemnum = range.backlog + range.items;
 
-    while (itemnum > 0)
+    while (items > 0)
     {
-        itemnum /= scanUpWorkGroupSize;
+        items /= scanUpWorkGroupSize;
         c++;
     }
 
