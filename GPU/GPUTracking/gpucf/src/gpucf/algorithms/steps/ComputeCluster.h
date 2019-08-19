@@ -25,7 +25,6 @@ public:
         kernel.setArg(4, cl_uint(state.maxClusterPerRow));
         kernel.setArg(5, state.clusterInRow);
         kernel.setArg(6, state.clusterByRow);
-        kernel.setArg(7, state.peakMap);
 
         Kernel1D::call(0, workitems, 64, queue);
     }
