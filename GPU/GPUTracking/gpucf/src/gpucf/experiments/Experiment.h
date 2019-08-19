@@ -12,7 +12,7 @@ namespace gpucf
 class Experiment
 {
 public:
-    Experiment(filesystem::path, ClusterFinderConfig cfg);
+    Experiment(ClusterFinderConfig cfg);
 
     virtual ~Experiment();
 
@@ -27,9 +27,6 @@ protected:
     ClusterFinderConfig cfg;
 
     void save(filesystem::path, const Measurements &);
-
-private:
-    filesystem::path baseDir;
 
 };
 

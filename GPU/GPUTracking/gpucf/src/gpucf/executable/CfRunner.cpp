@@ -18,7 +18,8 @@ CfRunner::CfRunner()
 
 void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 {
-    envFlags  = std::make_unique<ClEnv::Flags>(required, optional); 
+    envFlags = std::make_unique<ClEnv::Flags>(required, optional); 
+    cfflags = std::make_unique<CfCLIFlags>(required, optional);
 
     digitFile = INIT_FLAG(
             StringFlag,
@@ -41,43 +42,13 @@ void CfRunner::setupFlags(args::Group &required, args::Group &optional)
             "Cluster peaks are writtern here.",
             {'p', "peaks"});
 
-    cfconfig = std::make_unique<args::Group>(
-            optional,
-            "Cluster finder config");
-
     cpu = INIT_FLAG(
             args::Flag,
-            *cfconfig,
+            optional,
             "",
             "Run cluster finder on cpu.",
             {"cpu"});
 
-    #define CLUSTER_FINDER_FLAG(name, val, def, desc) \
-            name = INIT_FLAG( \
-                    args::Flag, \
-                    *cfconfig, \
-                    "", \
-                    desc, \
-                    {#name});
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-
-    #define MEMORY_LAYOUT(name, def, desc) \
-            layout##name = INIT_FLAG( \
-                    args::Flag, \
-                    *cfconfig, \
-                    "", \
-                    desc, \
-                    {"layout" #name});
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-
-    #define CLUSTER_BUILDER(name, def, desc) \
-            builder##name = INIT_FLAG( \
-                    args::Flag, \
-                    *cfconfig, \
-                    "", \
-                    desc, \
-                    {"builder" #name});
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
 }
 
 int CfRunner::mainImpl()
@@ -95,25 +66,7 @@ int CfRunner::mainImpl()
 
     /* std::vector<Digit> digits = digitSet.deserialize<Digit>(); */
 
-    ClusterFinderConfig config;
-
-    #define CLUSTER_FINDER_FLAG(name, val, def, desc) config.name = *name;
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-
-    #define MEMORY_LAYOUT(name, def, desc) \
-        if (*layout##name) \
-        { \
-            config.layout = ChargemapLayout::name; \
-        }
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-
-    #define CLUSTER_BUILDER(name, def, desc) \
-        if (*builder##name) \
-        { \
-            config.clusterbuilder = ClusterBuilder::name; \
-        }
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-
+    ClusterFinderConfig config = cfflags->asConfig();
 
     DataSet clusters;
 

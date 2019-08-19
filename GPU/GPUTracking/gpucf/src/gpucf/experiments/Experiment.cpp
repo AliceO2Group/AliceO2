@@ -9,9 +9,8 @@ using namespace gpucf;
 namespace fs = filesystem;
 
 
-Experiment::Experiment(fs::path base, ClusterFinderConfig cfg)
+Experiment::Experiment(ClusterFinderConfig cfg)
     : cfg(cfg)
-    , baseDir(base)
 {
 }
 
@@ -21,11 +20,9 @@ Experiment::~Experiment()
 
 void Experiment::save(fs::path fname, const Measurements &data)
 {
-    fs::path fullname = baseDir / fname;
+    log::Info() << "Writing measurements to " << fname;
 
-    log::Info() << "Writing measurements to " << fullname;
-
-    std::ofstream out(fullname.str());
+    std::ofstream out(fname.str());
     out << data;
 }
 

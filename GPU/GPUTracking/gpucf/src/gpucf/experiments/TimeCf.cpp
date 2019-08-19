@@ -14,9 +14,8 @@ TimeCf::TimeCf(
         fs::path tgt,
         ClusterFinderConfig conf,
         nonstd::span<const Digit> d, 
-        size_t N, 
-        fs::path baseDir)
-    : Experiment(baseDir, conf)
+        size_t N)
+    : Experiment(conf)
     , name(n)
     , tgtFile(tgt)
     , repeats(N)
@@ -28,9 +27,6 @@ void TimeCf::run(ClEnv &env)
 {
 
     log::Info() << "Benchmarking " << name << "(" << cfg << ")";
-
-    ClusterFinderTest tester(cfg, digits.size(), env);
-    tester.run(digits);
 
     Measurements measurements;
 

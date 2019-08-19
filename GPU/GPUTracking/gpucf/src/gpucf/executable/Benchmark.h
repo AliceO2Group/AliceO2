@@ -2,13 +2,14 @@
 
 #include <gpucf/common/ClEnv.h>
 #include <gpucf/common/Digit.h>
+#include <gpucf/executable/CfCLIFlags.h>
 #include <gpucf/executable/Executable.h>
 #include <gpucf/experiments/Experiment.h>
 
 
 namespace gpucf
 {
-    
+
 class Benchmark : public Executable
 {
 public:
@@ -20,9 +21,11 @@ protected:
 
 private:
     std::unique_ptr<ClEnv::Flags> envFlags;
+    std::unique_ptr<CfCLIFlags> cfflags;
     OptStringFlag digitFile;
-    OptStringFlag benchmarkDir;
     OptIntFlag iterations;
+    OptStringFlag outFile;
+
 
     filesystem::path baseDir;
 

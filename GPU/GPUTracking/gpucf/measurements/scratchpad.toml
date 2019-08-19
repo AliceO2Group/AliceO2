@@ -1,5 +1,5 @@
 input = [
-    { file = "in/padMajor.json", label = "naive (pad major)" }
+    { file = "in/padmajor.json", label = "naive (pad major)" }
     { file = "in/timemajor.json", label = "naive (time major)" }
     { file = "in/scratchpad4x4.json", label = "scratchpad 4x4" }
     { file = "in/scratchpad8x4.json", label = "scratchpad 8x4" }
