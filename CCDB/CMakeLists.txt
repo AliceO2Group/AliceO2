@@ -28,6 +28,7 @@ o2_add_library(CCDB
                        src/ConditionsMQServer.cxx
                        src/ConditionsMQClient.cxx
                        src/BasicCCDBManager.cxx
+                       src/CCDBTimeStampUtils.cxx
                        src/request.proto
                PUBLIC_LINK_LIBRARIES FairMQ::FairMQ
                                      protobuf::libprotobuf
@@ -61,6 +62,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/TObjectWrapper.h
                                   include/CCDB/CcdbApi.h
                                   include/CCDB/BasicCCDBManager.h
+                                  include/CCDB/CCDBTimeStampUtils.h
                                   test/TestClass.h)
 
 o2_add_executable(conditions-server

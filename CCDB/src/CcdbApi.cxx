@@ -30,6 +30,7 @@
 #include <FairLogger.h>
 #include <TError.h>
 #include <TClass.h>
+#include <CCDB/CCDBTimeStampUtils.h>
 
 namespace o2
 {
@@ -93,7 +94,7 @@ void CcdbApi::store(TObject* rootObject, std::string const& path, std::map<std::
   string fullUrl = getFullUrlForStorage(sanitizedPath, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
 
   // Curl preparation
-  CURL* curl;
+  CURL* curl = nullptr;
   struct curl_httppost* formpost = nullptr;
   struct curl_httppost* lastptr = nullptr;
   struct curl_slist* headerlist = nullptr;
@@ -183,7 +184,7 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
   std::cout << "FULL URL " << fullUrl << "\n";
 
   // Curl preparation
-  CURL* curl;
+  CURL* curl = nullptr;
   struct curl_httppost* formpost = nullptr;
   struct curl_httppost* lastptr = nullptr;
   struct curl_slist* headerlist = nullptr;
@@ -511,14 +512,14 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
             h->SetDirectory(nullptr);
           }
         } else {
-          LOG(ERROR) << "Couldn't retrieve the object " << path << endl;
+          LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
         memFile.Close();
       } else {
-        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile" << endl;
+        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile";
       }
     } else {
-      LOG(ERROR) << "Invalid URL : " << fullUrl << endl;
+      LOG(ERROR) << "Invalid URL : " << fullUrl;
     }
   } else {
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
@@ -599,14 +600,14 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
           //                h->SetDirectory(nullptr);
           //              }
         } else {
-          LOG(ERROR) << "Couldn't retrieve the object " << path << endl;
+          LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
         memFile.Close();
       } else {
-        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile" << endl;
+        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile";
       }
     } else {
-      LOG(ERROR) << "Invalid URL : " << fullUrl << endl;
+      LOG(ERROR) << "Invalid URL : " << fullUrl;
     }
   } else {
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
@@ -624,7 +625,7 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   try {
     s->resize(oldLength + newLength);
   } catch (std::bad_alloc& e) {
-    cerr << "memory error when getting data from CCDB" << endl;
+    cerr << "memory error when getting data from CCDB";
     return 0;
   }
 
@@ -663,25 +664,6 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
   }
 
   return result;
-}
-
-long CcdbApi::getFutureTimestamp(int secondsInFuture) const
-{
-  std::chrono::seconds sec(secondsInFuture);
-  auto future = std::chrono::system_clock::now() + sec;
-  auto future_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(future);
-  auto epoch = future_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
-}
-
-long CcdbApi::getCurrentTimestamp() const
-{
-  auto now = std::chrono::system_clock::now();
-  auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-  auto epoch = now_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
 }
 
 std::string CcdbApi::getTimestampString(long timestamp) const

@@ -166,25 +166,12 @@ class CcdbApi //: public DatabaseInterface
 
  private:
   /**
-   * Get the current timestamp.
-   *
-   * @return the current timestamp as a long
-   */
-  long getCurrentTimestamp() const;
-  /**
    * Transform and return a string representation of the given timestamp.
    *
    * @param timestamp
    * @return a string representation of the given timestamp.
    */
   std::string getTimestampString(long timestamp) const;
-  /**
-   * Compute and return a timestamp X seconds in the future.
-   *
-   * @param secondsInFuture The number of seconds in the future.
-   * @return the future timestamp
-   */
-  long getFutureTimestamp(int secondsInFuture) const;
 
   /**
    * Build the full url to store an object.

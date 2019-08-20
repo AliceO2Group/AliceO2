@@ -20,6 +20,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/IdPath.h"    // just as test object
 #include "CCDB/Condition.h" // just as test object
+#include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
 #include <cassert>
 #include <iostream>
@@ -84,25 +85,6 @@ struct test_fixture {
   map<string, string> metadata;
 };
 
-long getFutureTimestamp(int secondsInFuture)
-{
-  std::chrono::seconds sec(secondsInFuture);
-  auto future = std::chrono::system_clock::now() + sec;
-  auto future_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(future);
-  auto epoch = future_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
-}
-
-long getCurrentTimestamp()
-{
-  auto now = std::chrono::system_clock::now();
-  auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-  auto epoch = now_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
-}
-
 BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
@@ -146,6 +128,41 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
 
   // try to query with different type and verify that we get nullptr
   BOOST_CHECK(f.api.retrieveFromTFileAny<o2::ccdb::Condition>("Test/CCDBPath", f.metadata) == nullptr);
+}
+
+/// A test verifying that the DB responds the correct result for given timestamps
+BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+
+  const long timestamp = 1000;             // inclusive start of validity
+  const long endvalidity = timestamp + 10; // exclusive end of validitiy
+  f.api.storeAsTFileAny(&path, "Test/CCDBPathUnitTest", f.metadata, timestamp, endvalidity);
+
+  // try to retrieve strongly typed user defined class
+  // since we don't depend on anything, we are using an object known to CCDB
+  o2::ccdb::IdPath* path2 = nullptr;
+
+  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, timestamp);
+  BOOST_CHECK_NE(path2, nullptr);
+
+  // check that we get something for the whole time range
+  for (int t = timestamp; t < endvalidity; ++t) {
+    auto p = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, t);
+    BOOST_CHECK_NE(p, nullptr);
+  }
+
+  // check that answer is null for anything outside
+  auto plower = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, timestamp - 1);
+  BOOST_CHECK(plower == nullptr);
+
+  auto pupper = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, endvalidity);
+  BOOST_CHECK(pupper == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
@@ -202,7 +219,12 @@ BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
 
   auto h2 = new TH1F("object2", "object2", 100, 0, 99);
   h2->FillRandom("gaus", 10000);
-  f.api.store(h2, "Test/Detector", f.metadata, -1, -1, true);
+  // f.api.store(h2, "Test/Detector", f.metadata, -1, -1, true);
+
+  if (h1)
+    delete h1;
+  if (h2)
+    delete h2;
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
@@ -219,9 +241,9 @@ BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
 
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
   h1->FillRandom("gaus", 10000);
-  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+  f.api.storeAsTFile(h1, "Test/Detector2", f.metadata, -1, -1);
 
-  auto h2 = f.api.retrieve("Test/Detector", f.metadata);
+  auto h2 = f.api.retrieveFromTFile("Test/Detector2", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   if (h2 != nullptr) {
     BOOST_CHECK_EQUAL(h2->GetName(), "object1");
@@ -247,8 +269,8 @@ BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
   test_fixture f;
 
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  long from = getCurrentTimestamp();
-  long to = getFutureTimestamp(60 * 60 * 24 * 365 * 10);
+  long from = o2::ccdb::getCurrentTimestamp();
+  long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
   f.api.store(h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
   auto h2 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);

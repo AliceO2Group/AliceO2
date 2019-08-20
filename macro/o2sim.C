@@ -27,6 +27,8 @@
 #include <DetectorsBase/MaterialManager.h>
 #include <unistd.h>
 #include <sstream>
+#include <CCDB/BasicCCDBManager.h>
+#include <TPCBase/Digit.h>
 #endif
 
 FairRunSim* o2sim_init(bool asservice)
@@ -34,6 +36,14 @@ FairRunSim* o2sim_init(bool asservice)
   auto& confref = o2::conf::SimConfig::Instance();
   // we can read from CCDB (for the moment faking with a TFile)
   // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
+
+  auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+  ccdb.setCanDefault(true);
+  // try to get a TPC digit
+  auto tpcdigit = ccdb.getForTimeStamp<o2::tpc::Digit>("TPC/RefDigit", 0);
+  LOG(INFO) << "FIRST TPC DIGIT " << tpcdigit;
+  auto tpcdigit2 = ccdb.getOrDefaultForTimestamp<o2::tpc::Digit>("TPC/RefDigit", 0, 1, 1., 0, 0, 1);
+  LOG(INFO) << "SECOND TPC DIGIT " << tpcdigit2;
 
   // update the parameters from an INI/JSON file, if given (overrides code-based version)
   o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
