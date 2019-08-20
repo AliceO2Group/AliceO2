@@ -77,7 +77,7 @@ class Geometry
     return sGeom;
   }
 
-  int AreNeighbours(Int_t absId1, Int_t absId2) const;
+  int AreNeighbours(int absId1, int absId2) const;
 
   ///
   /// \return AbsId index of the PHOS cell
@@ -86,19 +86,19 @@ class Geometry
   /// \param strip: strip number
   //  \param cell: cell in strip number
   ///
-  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell) const;
+  int RelToAbsId(int moduleNumber, int strip, int cell) const;
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:module
   //  relid[1] = Row number inside a PHOS module (Phi coordinate)
   //  relid[2] = Column number inside a PHOS module (Z coordinate)
-  Bool_t AbsToRelNumbering(Int_t absId, Int_t* relid) const;
-  Int_t AbsIdToModule(Int_t absId);
+  bool AbsToRelNumbering(int absId, int* relid) const;
+  int AbsIdToModule(int absId);
   void AbsIdToRelPosInModule(int absId, double& x, double& z) const;
-  Bool_t RelToAbsNumbering(const Int_t* RelId, Int_t& AbsId) const;
+  bool RelToAbsNumbering(const int* RelId, int& AbsId) const;
   // converts the absolute PHOS numbering to a relative
 
-  Int_t GetTotalNCells() const { return 56 * 64 * 4; } // TODO: evaluate from real geometry
-  Int_t IsCellExists(Int_t absId) const
+  int GetTotalNCells() const { return 56 * 64 * 4; } // TODO: evaluate from real geometry
+  int IsCellExists(int absId) const
   {
     return absId > 0 && absId <= GetTotalNCells();
   } // TODO: evaluate from real geometry
