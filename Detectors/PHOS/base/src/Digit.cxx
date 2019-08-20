@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "FairLogger.h"
 
 #include "PHOSBase/Digit.h"
 #include <iostream>
@@ -59,6 +60,15 @@ Digit& Digit::operator+=(const Digit& other)
   // TODO: What about time? Should we assign time of more energetic digit? More complicated treatment?
   if (mAmplitude < other.mAmplitude) {
     mTime = other.mTime;
+  }
+
+  if (mLabel == -1) {
+    mLabel = other.mLabel;
+  } else {
+    if (mLabel != other.mLabel && other.mLabel != -1) {
+      //if Label indexes are different, something wrong
+      LOG(ERROR) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
+    }
   }
 
   mAmplitude += other.mAmplitude;

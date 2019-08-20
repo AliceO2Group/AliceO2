@@ -15,6 +15,7 @@
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 #include "TVirtualMC.h"
+#include "TGeoPhysicalNode.h"
 
 #include "FairGeoNode.h"
 #include "FairRootManager.h"
@@ -25,6 +26,7 @@
 #include "PHOSSimulation/Detector.h"
 #include "PHOSSimulation/GeometryParams.h"
 
+#include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -917,6 +919,66 @@ void Detector::defineSensitiveVolumes()
       AddSensitiveVolume(vsense);
     } else {
       LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
+    }
+  }
+}
+
+//-----------------------------------------
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Create entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+
+  phos::GeometryParams* geom = phos::GeometryParams::GetInstance();
+
+  // Alignable modules
+  // Volume path /cave_1/PHOS_<i> => symbolic name /PHOS/Module<i>, <i>=1,2,3,4,5
+
+  o2::detectors::DetID::ID idPHOS = o2::detectors::DetID::PHS;
+
+  TString physModulePath = "/cave_1/PHOS_";
+
+  TString symbModuleName = "PHOS/Module";
+
+  for (Int_t iModule = 1; iModule <= geom->GetNModules(); iModule++) {
+
+    TString volPath(physModulePath);
+    volPath += iModule;
+
+    TString symName(symbModuleName);
+    symName += iModule;
+
+    int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule - 1);
+
+    LOG(DEBUG) << "--------------------------------------------"
+               << "\n";
+    LOG(DEBUG) << "Alignable object" << iModule << "\n";
+    LOG(DEBUG) << "volPath=" << volPath << "\n";
+    LOG(DEBUG) << "symName=" << symName << "\n";
+    LOG(DEBUG) << "--------------------------------------------"
+               << "\n";
+
+    LOG(DEBUG) << "Check for alignable entry: " << symName;
+
+    if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
+      LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+    }
+    LOG(DEBUG) << "Alignable entry " << symName << " set";
+
+    // Create the Tracking to Local transformation matrix for PHOS modules
+    TGeoPNEntry* alignableEntry = gGeoManager->GetAlignableEntryByUID(modUID);
+    LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
+
+    if (alignableEntry) {
+      Float_t angle = geom->GetPHOSAngle(iModule);
+      TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
+
+      TGeoHMatrix* matTtoL = new TGeoHMatrix;
+      matTtoL->RotateZ(270. + angle);
+      const TGeoHMatrix& globmatrixi = globMatrix->Inverse();
+      matTtoL->MultiplyLeft(&globmatrixi);
+      alignableEntry->SetMatrix(matTtoL);
     }
   }
 }
