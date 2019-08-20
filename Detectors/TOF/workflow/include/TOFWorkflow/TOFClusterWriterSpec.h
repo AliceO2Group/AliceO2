@@ -45,7 +45,7 @@ class ClusterWriter : public Task
 /// write ITS tracks a root file
 o2::framework::DataProcessorSpec getTOFClusterWriterSpec(bool useMC);
 
-} // namespace globaltracking
+} // namespace tof
 } // namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_ */
