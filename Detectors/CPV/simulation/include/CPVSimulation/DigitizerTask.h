@@ -44,6 +44,7 @@ class DigitizerTask : public FairTask
   Digitizer mDigitizer;                         ///< Digitizer
   const std::vector<Hit>* mHitsArray = nullptr; ///< Array of MC hits
   std::vector<Digit>* mDigitsArray = nullptr;   ///< Array of digits
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mLabels = nullptr; ///< Array of digit labels
 
   ClassDefOverride(DigitizerTask, 1);
 };

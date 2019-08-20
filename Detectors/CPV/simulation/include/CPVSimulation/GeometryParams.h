@@ -45,12 +45,16 @@ class GeometryParams : public TNamed
       for (int ian = 0; ian < 2; ian++)
         angle[i][ian] = mModuleAngle[module][i][ian];
   }
+
+  float GetCPVAngle(Int_t index) const { return mCPVAngle[index - 1]; }
+
   void GetModuleCenter(int module, float* pos) const
   {
     for (int i = 0; i < 3; i++)
       pos[i] = mModuleCenter[module][i];
   }
 
+  int GetNModules() const { return mNModules; }
   int GetNumberOfCPVPadsPhi() const { return mNumberOfCPVPadsPhi; }
   int GetNumberOfCPVPadsZ() const { return mNumberOfCPVPadsZ; }
   float GetCPVPadSizePhi() const { return mCPVPadSizePhi; }
@@ -92,6 +96,7 @@ class GeometryParams : public TNamed
   float mCPVFrameSize[3];       // CPV frame size (0 - in phi, 1 - in z, 2 - thickness (along ALICE radius))
   float mIPtoCPVSurface;        // Distance from IP to CPV front cover
   float mModuleAngle[5][3][2];  // Orientation angles of CPV modules
+  float mCPVAngle[5];           // Direction to the center of CPV modules in phi
   float mModuleCenter[5][3];    // Coordunates of modules centra in ALICE system
   ClassDefOverride(GeometryParams, 1);
 };
