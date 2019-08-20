@@ -49,8 +49,10 @@ class Dispatcher : public Task
 
  private:
   DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec);
+  header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
   void send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const;
-  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel, DataSamplingHeader&& dsHeader) const;
+  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
+                  header::Stack&& stack) const;
 
   std::string mName;
   std::string mReconfigurationSource;
