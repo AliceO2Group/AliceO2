@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Encoder.h
+/// \file Decoder.h
 /// \brief Definition of the TOF encoder
 
-#ifndef ALICEO2_TOF_ENCODER_H
-#define ALICEO2_TOF_ENCODER_H
+#ifndef ALICEO2_TOF_DECODER_H
+#define ALICEO2_TOF_DECODER_H
 
 #include <fstream>
 #include <string>
@@ -20,6 +20,7 @@
 #include "DataFormatsTOF/DataFormat.h"
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
+#include <array>
 
 namespace o2
 {
@@ -27,45 +28,44 @@ namespace tof
 {
 namespace compressed
 {
-/// \class Encoder
-/// \brief Encoder class for TOF
+/// \class Decoder
+/// \brief Decoder class for TOF
 ///
-class Encoder
+class Decoder
 {
 
  public:
-  Encoder() = default;
-  ~Encoder() = default;
+  Decoder() = default;
+  ~Decoder() = default;
 
   bool open(std::string name);
-  bool alloc(long size);
 
-  bool encode(std::vector<Digit> summary, int tofwindow = 0);
-  int encodeCrate(const std::vector<Digit>& summary, Int_t icrate, int& istart); // return next crate index
-  void encodeEmptyCrate(Int_t icrate);
-  int encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t itrm, int& istart); // return next trm index
+  bool decode(std::vector<Digit>* digits);
+  void readTRM(std::vector<Digit>* digits, int iddl, int orbit, int bunchid);
 
-  bool flush();
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
+
+  void printCrateInfo() const;
+  void printTRMInfo() const;
+  void printCrateTrailerInfo() const;
+  void printHitInfo() const;
+
+  static void fromRawHit2Digit(int iddl, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 4>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
 
  protected:
   // benchmarks
   double mIntegratedBytes = 0.;
   double mIntegratedTime = 0.;
 
-  std::ofstream mFile;
+  std::ifstream mFile;
   bool mVerbose = false;
 
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;
-  Union_t* mUnion = nullptr;
-
-  // temporary variable for encoding
-  int mBunchID;      //!
-  int mOrbitID;      //!
-  int mEventCounter; //!
+  Union_t* mUnion;
+  Union_t* mUnionEnd;
 };
 
 } // namespace compressed

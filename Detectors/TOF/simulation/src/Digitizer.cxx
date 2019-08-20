@@ -242,7 +242,14 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   if (mContinuous) {
     isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
 
-    if (isnext < 0 || isnext >= MAXWINDOWS - 1) {
+    if (isnext < 0) {
+      LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
+                 << "\n";
+
+      return;
+    }
+
+    if (isnext < 0 || isnext >= MAXWINDOWS) {
 
       lblCurrent = mFutureIevent.size(); // this is the size of mHeaderArray;
       mFutureIevent.push_back(mEventID);
@@ -750,10 +757,10 @@ void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 void Digitizer::checkIfReuseFutureDigits()
 {
   // check if digits stored very far in future match the new readout windows currently available
-  int idigit = mFutureDigits.size()-1;
+  int idigit = mFutureDigits.size() - 1;
 
-  for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit ) {
-    double timestamp = digit->getBC() * 25 + digit->getTDC() * Geo::TDCBIN * 1E-3;          // in ns
+  for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit) {
+    double timestamp = digit->getBC() * 25 + digit->getTDC() * Geo::TDCBIN * 1E-3;        // in ns
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time
     if (isnext < 0)                                                                       // we jump too ahead in future, digit will be not stored
       LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
@@ -782,13 +789,13 @@ void Digitizer::checkIfReuseFutureDigits()
 
       // adjust labels
       for (auto& digit2 : mFutureDigits) {
-        if (digit2.getLabel() > labelremoved){
+        if (digit2.getLabel() > labelremoved) {
           digit2.setLabel(digit2.getLabel() - 1);
         }
       }
       // remove also digit from buffer
-//      mFutureDigits.erase(mFutureDigits.begin() + idigit);
+      //      mFutureDigits.erase(mFutureDigits.begin() + idigit);
     }
     idigit--; // go back to the next position in the reverse iterator
-  } // close future digit loop
+  }           // close future digit loop
 }

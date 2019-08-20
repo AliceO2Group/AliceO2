@@ -41,7 +41,6 @@ void ClusterWriter::init(InitContext& ic)
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-cluster-outfile");
   mOutTreeName = ic.options().get<std::string>("treename");
-  
 }
 
 void ClusterWriter::run(ProcessingContext& pc)
@@ -58,7 +57,7 @@ void ClusterWriter::run(ProcessingContext& pc)
   auto indata = pc.inputs().get<std::vector<o2::tof::Cluster>>("tofclusters");
   LOG(INFO) << "RECEIVED CLUSTERS SIZE " << indata.size();
 
-  auto br = getOrMakeBranch(tree, "TOFCluster",&indata);
+  auto br = getOrMakeBranch(tree, "TOFCluster", &indata);
   br->Fill();
 
   if (mUseMC) {
@@ -66,7 +65,7 @@ void ClusterWriter::run(ProcessingContext& pc)
     LOG(INFO) << "TOF GOT " << labeldata->getNElements() << " LABELS ";
     auto labeldataraw = labeldata.get();
     // connect this to a particular branch
-    
+
     auto labelbr = getOrMakeBranch(tree, "TOFClusterMCTruth", &labeldataraw);
     labelbr->Fill();
   }
@@ -94,5 +93,5 @@ DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
       {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
     }};
 }
-} // namespace globaltracking
+} // namespace tof
 } // namespace o2

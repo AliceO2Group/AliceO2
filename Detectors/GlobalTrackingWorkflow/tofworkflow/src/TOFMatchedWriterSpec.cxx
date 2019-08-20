@@ -47,7 +47,6 @@ void TOFMatchedWriter::init(InitContext& ic)
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-matched-outfile");
   mOutTreeName = ic.options().get<std::string>("treename");
-  
 }
 
 void TOFMatchedWriter::run(ProcessingContext& pc)
@@ -75,7 +74,7 @@ void TOFMatchedWriter::run(ProcessingContext& pc)
     LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
     LOG(INFO) << "TPC LABELS GOT " << labeltpc.size() << " LABELS ";
     LOG(INFO) << "ITS LABELS GOT " << labelits.size() << " LABELS ";
-    // connect this to particular branches    
+    // connect this to particular branches
     auto labeltofbr = getOrMakeBranch(tree, "MatchTOFMCTruth", &labeltof);
     auto labeltpcbr = getOrMakeBranch(tree, "MatchTPCMCTruth", &labeltpc);
     auto labelitsbr = getOrMakeBranch(tree, "MatchITSMCTruth", &labelits);
@@ -92,7 +91,7 @@ void TOFMatchedWriter::run(ProcessingContext& pc)
 
 DataProcessorSpec getTOFMatchedWriterSpec(bool useMC)
 {
- std::vector<InputSpec> inputs;
+  std::vector<InputSpec> inputs;
   inputs.emplace_back("tofmatching", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
     inputs.emplace_back("matchtoflabels", "TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);

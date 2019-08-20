@@ -12,6 +12,7 @@
 #define ALICEO2_TOF_GEO_H
 
 #include "Rtypes.h"
+#include "CommonConstants/LHCConstants.h"
 
 namespace o2
 {
@@ -54,10 +55,11 @@ class Geo
     kNCh = 8      // Number of channels per Tdc
   };
 
-  static constexpr Float_t BC_TIME = 25;                         // bunch crossing in ns
-  static constexpr Float_t BC_TIME_INV = 1. / BC_TIME;           // inv bunch crossing in ns
-  static constexpr Float_t BC_TIME_INPS = BC_TIME * 1000;        // bunch crossing in ps
-  static constexpr Float_t BC_TIME_INPS_INV = 1. / BC_TIME_INPS; // inv bunch crossing in ps
+  static constexpr Float_t BC_TIME = o2::constants::lhc::LHCBunchSpacingNS; // bunch crossing in ns
+  static constexpr Float_t BC_TIME_INV = 1. / BC_TIME;                      // inv bunch crossing in ns
+  static constexpr Float_t BC_TIME_INPS = BC_TIME * 1000;                   // bunch crossing in ps
+  static constexpr Float_t BC_TIME_INPS_INV = 1. / BC_TIME_INPS;            // inv bunch crossing in ps
+  static constexpr int BC_IN_ORBIT = o2::constants::lhc::LHCMaxBunches;     // N. bunch crossing in 1 orbit
 
   static constexpr Int_t NPADX = 48;
   static constexpr Int_t NPADZ = 2;
@@ -74,7 +76,7 @@ class Geo
   static constexpr Int_t NPLATES = 5;
 
   static constexpr int NCHANNELS = NSTRIPS * NPADS;
-  static constexpr int N_ELECTRONIC_CHANNELS = 72<<12;
+  static constexpr int N_ELECTRONIC_CHANNELS = 72 << 12;
 
   static constexpr Float_t MAXHZTOF = 370.6;      // Max half z-size of TOF (cm)
   static constexpr Float_t ZLENA = MAXHZTOF * 2.; // length (cm) of the A module
@@ -97,9 +99,9 @@ class Geo
 
   static constexpr Float_t PHISEC = 20; // sector Phi width (deg)
 
-  static constexpr Float_t TDCBIN = 24.4;                    ///< TDC bin width [ps]
+  static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
-  static constexpr Float_t TOTBIN = 48.8;                    // time-over-threshold bin width [ps]
+  static constexpr Float_t TOTBIN = TDCBIN * 2;              // time-over-threshold bin width [ps]
   static constexpr Float_t NTOTBIN_PER_NS = 1000. / TOTBIN;  // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 
@@ -109,8 +111,9 @@ class Geo
   static constexpr Float_t DEADTIME = 25E+03;               // Single channel dead time (ps)
   static constexpr Float_t DEADTIMETDC = DEADTIME / TDCBIN; ///< Single channel TDC dead time (ps)
   static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192;  // Matching window  (ps) 2^13=8192
-  //  static constexpr Float_t READOUTWINDOW = 1000;           // Readout window (ns)
-  static constexpr Float_t READOUTWINDOW = 29e3;                    // Readout window (ns)
+  static constexpr int NWINDOW_IN_ORBIT = 3;                //< Number of tof window in 1 orbit
+  static constexpr Float_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns)
+  static constexpr int BC_IN_WINDOW = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                         // N. bunch crossing in 1 tof window
   static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
@@ -249,16 +252,16 @@ class Geo
   static Float_t getPropagationDelay() { return CABLEPROPAGATIONDELAY; };
   static Int_t getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc); // return TOF channel index
 
-  static Int_t getCrateFromECH(int ech) {return ech >> 12;}
-  static Int_t getTRMFromECH(int ech) {return (ech%4096) >> 8;}
-  static Int_t getChainFromECH(int ech) {return (ech%256) >> 7;}
-  static Int_t getTDCFromECH(int ech) {return (ech%128) >>3;}
-  static Int_t getTDCChFromECH(int ech) {return (ech%8);}
-  static Int_t getECHFromElIndexes(int crate, int trm, int chain, int tdc, int chan) {return (crate >> 12) + (trm >> 8) + (chain >> 7) + (tdc >> 3) + chan;}
-  static Int_t getECHFromCH(int chan) {return CHAN_TO_ELCHAN[chan];} 
-  static Int_t getCHFromECH(int echan) {return ELCHAN_TO_CHAN[echan];}
+  static Int_t getCrateFromECH(int ech) { return ech >> 12; }
+  static Int_t getTRMFromECH(int ech) { return ((ech % 4096) >> 8) + 3; }
+  static Int_t getChainFromECH(int ech) { return (ech % 256) >> 7; }
+  static Int_t getTDCFromECH(int ech) { return (ech % 128) >> 3; }
+  static Int_t getTDCChFromECH(int ech) { return (ech % 8); }
+  static Int_t getECHFromElIndexes(int crate, int trm, int chain, int tdc, int chan) { return (crate >> 12) + (trm >> 8) + (chain >> 7) + (tdc >> 3) + chan; }
+  static Int_t getECHFromCH(int chan) { return CHAN_TO_ELCHAN[chan]; }
+  static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
+  static Int_t getECHFromIndexes(int iddl, int itrm, int ichain, int itdc, int ich) { return iddl * 4096 + (itrm - 3) * 256 + ichain * 128 + itdc * 8 + ich; }
 
- 
  private:
   static void Init();
 
@@ -280,7 +283,6 @@ class Geo
   static const Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3]; // not constexpr as we initialize it in CableLength.cxx at run time
   static const Int_t CHAN_TO_ELCHAN[NCHANNELS];
   static const Int_t ELCHAN_TO_CHAN[N_ELECTRONIC_CHANNELS];
-
 
   ClassDefNV(Geo, 1);
 };

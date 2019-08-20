@@ -47,7 +47,6 @@ void TOFCalibWriter::init(InitContext& ic)
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-calib-outfile");
   mOutTreeName = ic.options().get<std::string>("treename");
-  
 }
 
 void TOFCalibWriter::run(ProcessingContext& pc)
@@ -82,12 +81,11 @@ DataProcessorSpec getTOFCalibWriterSpec()
     "TOFCalibWriter",
     inputs,
     {}, // no output
-      AlgorithmSpec{adaptFromTask<TOFCalibWriter>()},
+    AlgorithmSpec{adaptFromTask<TOFCalibWriter>()},
     Options{
       {"tof-calib-outfile", VariantType::String, "o2calib_tof.root", {"Name of the input file"}},
       {"treename", VariantType::String, "calibTOF", {"Name of top-level TTree"}},
     }};
-
 }
 } // namespace tof
 } // namespace o2
