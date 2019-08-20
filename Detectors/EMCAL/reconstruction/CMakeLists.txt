@@ -14,6 +14,7 @@ o2_add_library(EMCALReconstruction
                        src/RawBuffer.cxx
                        src/RAWDataHeader.cxx
                        src/AltroDecoder.cxx
+                       src/Mapper.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
                                      AliceO2::InfoLogger
                                      O2::EMCALBase)
@@ -21,9 +22,12 @@ o2_add_library(EMCALReconstruction
 o2_target_root_dictionary(
                           EMCALReconstruction
                           HEADERS include/EMCALReconstruction/RawReaderFile.h
-                                  include/EMCALReconstruction/AltroDecoder.h)
+                                  include/EMCALReconstruction/AltroDecoder.h
+                                  include/EMCALReconstruction/Mapper.h)
 
 o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
                   PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
                   SOURCES run/rawReaderFile.cxx)
+
+o2_data_file(COPY files DESTINATION Detectors/EMCAL)
