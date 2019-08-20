@@ -30,7 +30,6 @@ class Digit : public DigitBase
   using Label = o2::MCCompLabel;
 
  public:
-  static constexpr int kMaxLabels = 3; // Maximal number of MC labels associated with digit
   static constexpr int kTimeGate = 25; // Time in ns between digits to be added as one signal.
                                        // Should it be readout time (6000 ns???): to be tested
 
@@ -39,12 +38,12 @@ class Digit : public DigitBase
   /// \brief Main Digit constructor
   /// \param cell absId of a cell, amplitude energy deposited in a cell, time time measured in cell, label label of a
   /// particle in case of MC \return constructed Digit
-  Digit(int cell, double amplitude, double time, int label);
+  Digit(int cell, float amplitude, float time, int label);
 
   /// \brief Digit constructor from Hit
   /// \param CPV Hit
   /// \return constructed Digit
-  Digit(Hit hit);
+  Digit(Hit hit, int label);
 
   ~Digit() = default; // override
 
@@ -75,41 +74,21 @@ class Digit : public DigitBase
   void setAbsId(int cellId) { mAbsId = cellId; }
 
   /// \brief Energy deposited in a cell
-  double getAmplitude() const { return mAmplitude; }
-  void setAmplitude(double amplitude) { mAmplitude = amplitude; }
+  float getAmplitude() const { return mAmplitude; }
+  void setAmplitude(float amplitude) { mAmplitude = amplitude; }
 
-  Label getLabel(int idx) const
-  {
-    if (idx < kMaxLabels) {
-      return mLabels[idx];
-    } else {
-      return -1;
-    }
-  }
-  /// \brief Proportion of charge deposited by particle idx
-  /// \param idx index in a list of a particles, max length kMaxLabels
-  /// \return Proportion of energy from this particle.
-  Label getLabelEProp(int idx) const
-  {
-    if (idx < kMaxLabels) {
-      return mEProp[idx];
-    } else {
-      return 0.;
-    }
-  }
-  /// \brief Number of particles assosiated with this digit
-  int getNLabels() const { return mNlabels; }
+  /// \brief index of entry in MCLabels array
+  /// \return ndex of entry in MCLabels array
+  int getLabel() const { return mLabel; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   // friend class boost::serialization::access;
 
-  int mAbsId;                ///< pad index (absolute pad ID)
-  double mAmplitude;         ///< Amplitude
-  int mNlabels;              ///< Number of actual labels in this digit
-  Label mLabels[kMaxLabels]; ///< Particle labels associated to this digit
-  double mEProp[kMaxLabels]; ///< Proportion of total energy deposited by given primary
+  int mAbsId = 0;       ///< pad index (absolute pad ID)
+  int mLabel = -1;      ///< Index of the corresponding entry/entries in the MC label array
+  float mAmplitude = 0; ///< Amplitude
 
   ClassDefNV(Digit, 1);
 };
