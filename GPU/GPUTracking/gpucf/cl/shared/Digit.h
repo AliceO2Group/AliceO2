@@ -6,7 +6,7 @@
 
 typedef struct PackedDigit_s
 {
-    SHARED_FLOAT charge;
+    float charge;
     timestamp time;
     pad_t pad;
     row_t row;
