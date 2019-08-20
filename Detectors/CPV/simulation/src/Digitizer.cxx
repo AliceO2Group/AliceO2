@@ -10,6 +10,7 @@
 
 #include "CPVSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "CPVSimulation/CPVSimParams.h"
 
 #include <TRandom.h>
 #include "FairLogger.h" // for LOG
@@ -28,15 +29,12 @@ void Digitizer::init() { mGeometry = Geometry::GetInstance(); }
 void Digitizer::finish() {}
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits)
+void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
 {
   // Convert list of hits to digits:
   // Add hits with ampl deposition in same pad and same time
   // Add ampl corrections
   // Apply time smearing
-
-  // Sort Hits: moved to Detector::FinishEvent
-  // Add duplicates if any and remove them
 
   Int_t hitIndex = 0;
   Int_t hitAbsId = 0;
@@ -52,15 +50,28 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 
     // If signal exist in this pad, add noise to it, otherwise just create noise digit
     if (absId == hitAbsId) {
-      Digit digit(hit);
+      int labelIndex = labels.getIndexedSize();
+      //Add primary info: create new MCLabels entry
+      o2::MCCompLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, true);
+      labels.addElement(labelIndex, label);
+
+      Digit digit(hit, labelIndex);
+
       hitIndex++;
       if (hitIndex < nHits) {
-        Digit digitNext(hits.at(hitIndex));
+        Hit hitNext = hits.at(hitIndex);
+        Digit digitNext(hitNext, -1); //Do not create MCTruth entry so far
         while ((hitIndex < nHits) && digit.canAdd(digitNext)) {
           digit += digitNext;
+
+          //add MCLabel to list (add energy if same primary or add another label)
+          o2::MCCompLabel label(hitNext.GetTrackID(), mCurrEvID, mCurrSrcID, true);
+          labels.addElementRandomAccess(labelIndex, label);
+
           hitIndex++;
           if (hitIndex < nHits) {
-            digitNext.FillFromHit(hits.at(hitIndex));
+            hitNext = hits.at(hitIndex);
+            digitNext.FillFromHit(hitNext);
           }
         }
         if (hitIndex < nHits) {
@@ -72,13 +83,17 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       } else {
         hitAbsId = 99999; // out of CPV
       }
+      //      //Current digit finished, sort MCLabels according to eDeposited
+      //      auto lbls = labels.getLabels(labelIndex);
+      //      std::sort(lbls.begin(), lbls.end(),
+      //                [](o2::MCCompLabel a, o2::MCCompLabel b) { return a.getEdep() > b.getEdep(); });
 
       // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
       Double_t ampl = digit.getAmplitude();
       // Simulate electronic noise
       ampl += SimulateNoise();
 
-      if (mApplyDigitization) {
+      if (o2::cpv::CPVSimParams::Instance().mApplyDigitization) {
         ampl = DigitizeAmpl(ampl);
       }
       digit.setAmplitude(ampl);
@@ -89,8 +104,8 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       }
       // Simulate noise
       Double_t ampl = SimulateNoise();
-      if (ampl > mZSthreshold) {
-        if (mApplyDigitization) {
+      if (ampl > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+        if (o2::cpv::CPVSimParams::Instance().mApplyDigitization) {
           ampl = DigitizeAmpl(ampl);
         }
         Digit noiseDigit(absId, ampl, mEventTime, -1); // current AbsId, ampl, random time, no primary
@@ -100,15 +115,15 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
   }
 }
 
-Double_t Digitizer::SimulateNoise() { return gRandom->Gaus(0., mNoise); }
+Double_t Digitizer::SimulateNoise() { return gRandom->Gaus(0., o2::cpv::CPVSimParams::Instance().mNoise); }
 
-Double_t Digitizer::DigitizeAmpl(double a) { return mADCWidth * TMath::Ceil(a / mADCWidth); }
+Double_t Digitizer::DigitizeAmpl(double a) { return o2::cpv::CPVSimParams::Instance().mADCWidth * TMath::Ceil(a / o2::cpv::CPVSimParams::Instance().mADCWidth); }
 
 void Digitizer::setEventTime(double t)
 {
   // assign event time, it should be in a strictly increasing order
   // convert to ns
-  t *= mCoeffToNanoSecond;
+  t *= o2::cpv::CPVSimParams::Instance().mCoeffToNanoSecond;
 
   if (t < mEventTime && mContinuous) {
     LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
