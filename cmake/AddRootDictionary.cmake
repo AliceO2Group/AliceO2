@@ -109,10 +109,8 @@ function(add_root_dictionary target)
   set(pcmFile ${lib_output_dir}/${pcmBase})
   set(rootmapFile ${lib_output_dir}/lib${basename}.rootmap)
 
-  # get the list of compile_definitions and split it into -Dxxx pieces but only
-  # if non empty
-  set(prop "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
-  set(defs $<$<BOOL:${prop}>:-D$<JOIN:${prop}, -D>>)
+  # get the list of compile_definitions 
+  set(prop $<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>)
 
   # Build the LD_LIBRARY_PATH required to get rootcling running fine
   #
@@ -124,27 +122,27 @@ function(add_root_dictionary target)
     set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:$ENV{GCC_TOOLCHAIN_ROOT}/lib64")
   endif()
 
+  set(includeDirs $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
+
+  set(prop "")
+
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off
   add_custom_command(
-          OUTPUT ${dictionaryFile} ${pcmFile} ${rootmapFile}
+    OUTPUT ${dictionaryFile} ${pcmFile} ${rootmapFile}
     VERBATIM
     COMMAND
-    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ${ROOT_rootcling_CMD}
-      -f
-      ${dictionaryFile}
-      -inlineInputHeader
-      -rmf ${rootmapFile}
-      -rml $<TARGET_FILE_NAME:${target}>
-      $<GENEX_EVAL:-I$<JOIN:$<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>,\;-I>>
-      # the generator expression above gets the list of all include 
-      # directories that might be required using the transitive dependencies 
-      # of the target ${target} and prepend each item of that list with -I 
-      "${defs}"
-      ${incdirs} ${headers}
+    ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh
+      --rootmap_file ${rootmapFile}
+      --dictionary_file ${dictionaryFile}
+      --ld_library_path ${LD_LIBRARY_PATH}
+      --rootmap_library_name $<TARGET_FILE_NAME:${target}>
+      --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
+      $<$<BOOL:${prop}>:--compile_defs>
+      $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
+      --headers "${headers}"
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
-    COMMAND_EXPAND_LISTS
     DEPENDS ${headers})
   # cmake-format: on
 

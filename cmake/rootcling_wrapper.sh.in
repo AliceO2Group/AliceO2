@@ -1,0 +1,93 @@
+#!/bin/bash -e
+
+# rootcling_wrapper.sh -- wrap call to rootcling to trap some warnings
+# we want to treat as errors :
+#
+# Warning: Unused class rule
+#
+#
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --rootmap_library_name)
+    ROOTMAP_LIBRARY_NAME="$2"
+    shift 2
+    ;;
+  --include_dirs)
+    INCLUDE_DIRS="$2"
+    shift 2
+    ;;
+  --compile_defs)
+    COMPILE_DEFINITIONS="$2"
+    shift 2
+    ;;
+  --headers)
+    HEADERS="$2"
+    shift 2
+    ;;
+  --ld_library_path)
+    LD_LIBRARY_PATH="$2"
+    shift 2
+    ;;
+  --dictionary_file)
+    DICTIONARY_FILE="$2"
+    shift 2
+    ;;
+  --rootmap_file)
+    ROOTMAP_FILE="$2"
+    shift 2
+    ;;
+  *)
+    if [[ -z "$1" ]]; then
+      shift
+    else
+      echo "Parameter unknown: $1" >&2
+      exit 1
+    fi
+    ;;
+  esac
+done
+
+if [[ ! $ROOTMAP_LIBRARY_NAME ]]; then
+  echo "--rootmap_library_name option is mandatory but was not given" >&2
+  exit 1
+fi
+
+if [[ ! $INCLUDE_DIRS ]]; then
+  echo "--include_dirs option is mandatory but was not given" >&2
+  exit 1
+fi
+
+if [[ ! $DICTIONARY_FILE ]]; then
+  echo "--dictionary_file option is mandatory but was not given" >&2
+  exit 1
+fi
+
+if [[ ! $ROOTMAP_FILE ]]; then
+  echo "--rootmap_file option is mandatory but was not given" >&2
+  exit 1
+fi
+
+LOGFILE=${DICTIONARY_FILE}.log
+
+@CMAKE_COMMAND@ -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} @ROOT_rootcling_CMD@ \
+  -f $DICTIONARY_FILE \
+  -inlineInputHeader \
+  -rmf ${ROOTMAP_FILE} \
+  -rml ${ROOTMAP_LIBRARY_NAME} \
+  ${INCLUDE_DIRS//;/ } \
+  ${COMPILE_DEFINITIONS//;/ } \
+  ${HEADERS//;/ } >${LOGFILE} 2>&1
+
+MSG="Warning: Unused class rule"
+if [[ -s ${LOGFILE} ]]; then
+  WARNINGS=$(grep -c "${MSG}" ${LOGFILE})
+  if [[ ! $WARNINGS == 0 ]]; then
+    echo "ERROR: please fix the warnings below about unused class rule" >&2
+    grep "$MSG" ${LOGFILE} >&2
+    rm $DICTIONARY_FILE
+    exit 1
+  fi
+fi
+
+exit 0
