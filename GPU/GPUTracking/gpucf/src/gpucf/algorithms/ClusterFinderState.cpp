@@ -31,14 +31,7 @@ ClusterFinderState::ClusterFinderState(
 
     const size_t mapEntries = TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED; 
 
-    if (cfg.halfs)
-    {
-        chargeMap = makeBuffer<cl_half>(mapEntries, Memory::ReadWrite, context);
-    } 
-    else 
-    {
-        chargeMap = makeBuffer<cl_float>(mapEntries, Memory::ReadWrite, context);
-    }
+    chargeMap = makeBuffer<cl_ushort>(mapEntries, Memory::ReadWrite, context);
 
     peakMap = makeBuffer<cl_uchar>(mapEntries, Memory::ReadWrite, context);
 
@@ -57,14 +50,7 @@ ClusterFinderState::ClusterFinderState(
 
     cl::CommandQueue init(context, device);
 
-    if (cfg.halfs)
-    {
-        fill<cl_half>(chargeMap, 0.f, mapEntries, init);
-    } 
-    else 
-    {
-        fill<cl_float>(chargeMap, 0.f, mapEntries, init);
-    }
+    fill<cl_ushort>(chargeMap, 0, mapEntries, init);
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
     fill<cl_char>(peakCountMap, 1, mapEntries, init);
     fill<cl_uint>(clusterInRow, 0, numOfRows, init);
