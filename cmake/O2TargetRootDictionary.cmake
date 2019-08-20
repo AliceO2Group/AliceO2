@@ -10,6 +10,9 @@
 
 include_guard()
 
+configure_file(${CMAKE_SOURCE_DIR}/cmake/rootcling_wrapper.sh.in
+               ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh @ONLY)
+
 include(AddRootDictionary)
 
 #
