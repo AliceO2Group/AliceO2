@@ -45,11 +45,12 @@ Digit::Digit(const RawDigit &r)
 
 Digit::Digit(float _charge, int _row, int _pad, int _time)
 {
-    charge = _charge;
+    charge = static_cast<unsigned short>(_charge * 16.f) / 16.f;
     row = _row;
     pad = _pad;
     time = _time;
 }
+
 
 Object Digit::serialize() const
 {

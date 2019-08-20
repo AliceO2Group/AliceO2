@@ -33,14 +33,14 @@ bool PeakCountTest::run(
     size_t pads = getWidthPad(charges);
     size_t elems = TPC_NUM_OF_PADS * (timebins + PADDING);
 
-    std::vector<float> chargeMapBuf(elems);
-    gpucpy<float>(
+    std::vector<unsigned short> chargeMapBuf(elems);
+    gpucpy<unsigned short>(
             state.chargeMap,
             chargeMapBuf,
             chargeMapBuf.size(),
             queue, 
             true);
-    Map<float> chargeMap = mapify<float>(chargeMapBuf, 0, pads, timebins);
+    Map<unsigned short> chargeMap = mapify<unsigned short>(chargeMapBuf, 0, pads, timebins);
 
     std::vector<unsigned char> isPeakBuf(elems);
     gpucpy<unsigned char>(state.peakMap, isPeakBuf, isPeakBuf.size(), queue, true);
@@ -58,6 +58,14 @@ bool PeakCountTest::run(
     log::Debug() << "chargeMap\n" << print(chargeMap, pads, timebins);
     log::Debug() << "isPeakMap\n" << print(isPeak, pads, timebins);
     log::Debug() << "peakCountMap\n" << print(peakCount, pads, timebins);
+
+    log::Debug() << "isPeak:";
+    std::vector<unsigned char> isPeakPred(digits.size());
+    gpucpy<unsigned char>(state.isPeak, isPeakPred, isPeakPred.size(), queue, true);
+    for (size_t i = 0; i < digits.size(); i++)
+    {
+        log::Debug() << digits[i] << " " << int(isPeakPred[i]);
+    }
 
     resetMaps.call(state, queue);
 

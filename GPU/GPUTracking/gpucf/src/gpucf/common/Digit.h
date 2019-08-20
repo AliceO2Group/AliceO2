@@ -30,10 +30,13 @@ public:
     Object serialize() const;
     void deserialize(const Object &);
 
+    float getCharge() const;
+
     int localRow() const;
     int cru() const;
 
     bool operator==(const Digit &) const;
+
 };
 
 std::ostream &operator<<(std::ostream &, const Digit &);

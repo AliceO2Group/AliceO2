@@ -19,7 +19,6 @@ void Testbench::setupFlags(args::Group &required, args::Group &optional)
 int Testbench::mainImpl()
 {
     ClusterFinderConfig config;
-    config.clusterbuilder = ClusterBuilder::ScratchPad;
     config.dbg = true;
     ClEnv env(*envFlags, config);
     PeakCountTest pctest(config, env);
@@ -77,12 +76,30 @@ int Testbench::mainImpl()
     /*          {} */
     /* ); */
 
+    /* pctest.run( */
+    /*         {{0}, */
+    /*          {0}, */
+    /*          {0, 56, 518, 79, 3}, */
+    /*          {0, 0, 36, 2, 0, 0, 0, 0, 1}, */
+    /*          {0, 28, 23, 1, 0, 0, 1} */
+    /*         }, */
+    /*         {}, */
+    /*         {} */
+    /* ); */
+    /* pctest.run( */
+    /*         {{0}, */
+    /*          {0, 0, 518}, */
+    /*          {0, 56, 518, 79, 3}, */
+    /*          {0, 0, 36, 2, 0, 0, 0, 0, 1}, */
+    /*          {0, 28, 23, 1, 0, 0, 1} */
+    /*         }, */
+    /*         {}, */
+    /*         {} */
+    /* ); */
     pctest.run(
-            {{0},
-             {0},
-             {0, 56, 518, 79, 3},
-             {0, 0, 36, 2, 0, 0, 0, 0, 1},
-             {0, 28, 23, 1, 0, 0, 1}
+            {{233, 958, 445},
+             {957, 958, 115},
+             {957, 427, 13},
             },
             {},
             {}
