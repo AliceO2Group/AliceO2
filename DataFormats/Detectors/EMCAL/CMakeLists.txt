@@ -10,6 +10,7 @@
 
 o2_add_library(DataFormatsEMCAL
                SOURCES src/EMCALBlockHeader.cxx 
+                       src/Constants.cxx
                        src/Cluster.cxx
                        src/Cell.cxx 
                        src/Digit.cxx

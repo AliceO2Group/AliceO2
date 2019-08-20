@@ -17,5 +17,6 @@
 #pragma link C++ class o2::emcal::RAWDataHeader + ;
 #pragma link C++ class o2::emcal::RawReaderFile + ;
 #pragma link C++ class o2::emcal::AltroDecoder + ;
+#pragma link C++ class o2::emcal::Mapper + ;
 
 #endif
