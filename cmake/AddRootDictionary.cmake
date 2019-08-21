@@ -10,6 +10,9 @@
 
 include_guard()
 
+configure_file(${CMAKE_CURRENT_LIST_DIR}/rootcling_wrapper.sh.in
+               ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh @ONLY)
+
 #
 # add_root_dictionary generates one dictionary to be added to a target.
 #
