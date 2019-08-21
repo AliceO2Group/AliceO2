@@ -1,0 +1,15 @@
+input = [
+    { file = "in/timemajor_vega20.json", label = "naive (time major) - time" }
+    { file = "in/scratchpad4x4_vega20.json", label = "scratchpad 4x4 - time" }
+    { file = "in/timemajor_vega20_pad.json", label = "naive (time major) - pad" }
+    { file = "in/scratchpad4x4_vega20_pad.json", label = "scratchpad 4x4 - pad" }
+    { file = "in/timemajor_vega20_rand.json", label = "naive (time major) - random" }
+    { file = "in/scratchpad4x4_vega20_rand.json", label = "scratchpad 4x4 - random" }
+    { file = "in/timemajor_vega20_full.json", label = "naive (time major) - full" }
+    { file = "in/scratchpad4x4_vega20_full.json", label = "scratchpad 4x4 - full" }
+]
+
+type   = "bar"
+out    = "out/digitOrder.pdf"
+ylabel = "time [ms]"
+showLegend = true

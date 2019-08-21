@@ -25,6 +25,7 @@ private:
     OptStringFlag digitFile;
     OptIntFlag iterations;
     OptStringFlag outFile;
+    OptStringFlag sorting;
 
 
     filesystem::path baseDir;
@@ -36,6 +37,8 @@ private:
     void registerExperiments();
 
     void runExperiments();
+
+    void shuffle(nonstd::span<Digit>);
 };
 
 } // namespace gpucf

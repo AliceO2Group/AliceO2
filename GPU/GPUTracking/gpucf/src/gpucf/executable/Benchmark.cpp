@@ -6,6 +6,8 @@
 #include <gpucf/errors/FileErrors.h>
 #include <gpucf/experiments/TimeCf.h>
 
+#include <cstdlib>
+
 
 using namespace gpucf;
 namespace fs = filesystem;
@@ -42,6 +44,14 @@ void Benchmark::setupFlags(args::Group &required, args::Group &optional)
             "How often each algorithm is run (default=10)",
             {'i', "iter"},
             10);
+
+    sorting = INIT_FLAG(
+            StringFlag,
+            optional,
+            "ORDER",
+            "Order of sorted digits (time, pad, full, random) (default=time)",
+            {'c', "comp"},
+            "time");
 }
 
 int Benchmark::mainImpl()
@@ -52,6 +62,49 @@ int Benchmark::mainImpl()
 
     log::Debug() << "Timebins = " << digits.back().time;
 
+    std::string sort = args::get(*sorting);
+
+    if (sort == "time")
+    {
+        // digits are already time sorted
+    }
+    else if (sort == "pad")
+    {
+        shuffle(digits);         
+        std::sort(digits.begin(), digits.end(),
+                [] (const Digit &d1, const Digit &d2) {
+                    if (d1.row < d2.row) return true;
+                    if (d1.row > d2.row) return false;
+                    if (d1.pad < d2.pad) return true;
+                    return false;
+                }
+        );
+    }
+    else if (sort == "full")
+    {
+        shuffle(digits);         
+        std::sort(digits.begin(), digits.end(),
+                [] (const Digit &d1, const Digit &d2) {
+                    if (d1.time < d2.time) return true;
+                    if (d1.time > d2.time) return false;
+                    if (d1.row < d2.row) return true;
+                    if (d1.row > d2.row) return false;
+                    if (d1.pad < d2.pad) return true;
+                    return false;
+                }
+        );
+
+    }
+    else if (sort == "random")
+    {
+        shuffle(digits);         
+    }
+    else
+    {
+        log::Error() << "Unknown sorting order " << sort;
+        showHelpAndExit();
+    }
+
     ClusterFinderConfig config = cfflags->asConfig();
 
     ClEnv env(*envFlags, config);
@@ -59,6 +112,16 @@ int Benchmark::mainImpl()
     exp.run(env);
 
     return 0;
+}
+
+void Benchmark::shuffle(nonstd::span<Digit> digits)
+{
+    ASSERT(digits.size() < RAND_MAX);
+    for (size_t i = digits.size()-1; i > 0; i--)
+    {
+        size_t j = rand() % i;
+        std::swap(digits[i], digits[j]);
+    }
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
