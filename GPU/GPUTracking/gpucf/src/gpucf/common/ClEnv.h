@@ -32,7 +32,7 @@ public:
                     {'s', "src"}) 
             , gpuId(optional, "gpuid", "Id of the gpu device.", 
                     {'g', "gpu"}, 0)
-            , useCpu(optional, "", "Use cpu as openCl device.", {'c', "clcpu"})
+            , useCpu(optional, "", "Use cpu as openCl device.", {"clcpu"})
         {
         }
 
