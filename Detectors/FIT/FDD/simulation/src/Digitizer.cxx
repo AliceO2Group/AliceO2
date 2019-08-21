@@ -42,6 +42,8 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
   Int_t parent = -10;
   Float_t integral = mPMResponse->Integral(-parameters.mPMTransitTime, 2. * parameters.mPMTransitTime);
   Float_t meansPhE = mSinglePhESpectrum->Mean(0, 20);
+  for (Int_t i = 0; i < parameters.mNchannels; i++)
+    std::fill(mTime[i].begin(), mTime[i].end(), 0);
 
   assert(digit->GetChannelData().size() == parameters.mNchannels);
   //Conversion of hits to the analogue pulse shape
@@ -53,7 +55,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
     Float_t t = dt_scintillator + hit.GetTime();
 
     //LOG(INFO) << "Nphot = "<<hit.GetNphot()<<FairLogger::endl;
-    //LOG(INFO) << "NphE = "<<nPhE<<FairLogger::endl;
+    //LOG(INFO) << "NphE = " << nPhE << FairLogger::endl;
     Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / integral;
     for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
       Float_t tPhE = t + mSignalShape->GetRandom(0, mBinSize * Float_t(mNBins));
@@ -81,17 +83,18 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
     channel_data[ipmt].mTime = SimulateTimeCFD(ipmt);
     for (Int_t iBin = 0; iBin < mNBins; ++iBin)
       channel_data[ipmt].mChargeADC += mTime[ipmt][iBin] / parameters.mChargePerADC;
-    //LOG(INFO) <<"ADC "<<channel_data[ipmt].mChargeADC<<" Time "<<channel_data[ipmt].mTime<<FairLogger::endl;
+    //LOG(INFO) << "ADC " << channel_data[ipmt].mChargeADC << " Time " << channel_data[ipmt].mTime << FairLogger::endl;
   }
 }
 //_____________________________________________________________________________
 Float_t Digitizer::SimulateTimeCFD(Int_t channel)
 {
 
+  std::fill(mTimeCFD.begin(), mTimeCFD.end(), 0);
   Float_t timeCFD = -1024;
   Int_t binShift = TMath::Nint(parameters.mTimeShiftCFD / mBinSize);
   for (Int_t iBin = 0; iBin < mNBins; ++iBin) {
-    //if(mTime[channel][iBin]!=0)LOG(INFO) <<iBin<<"  "<<mTime[channel][iBin]/parameters.mChargePerADC<<FairLogger::endl;
+    //if (mTime[channel][iBin] != 0) std::cout << mTime[channel][iBin] / parameters.mChargePerADC << ", ";
     if (iBin >= binShift)
       mTimeCFD[iBin] = 5.0 * mTime[channel][iBin - binShift] - mTime[channel][iBin];
     else
@@ -146,7 +149,7 @@ void Digitizer::init()
 
   mNBins = 2000;           //Will be computed using detector set-up from CDB
   mBinSize = 25.0 / 256.0; //Will be set-up from CDB
-  for (Int_t i = 0; i < 16; i++)
+  for (Int_t i = 0; i < parameters.mNchannels; i++)
     mTime[i].resize(mNBins);
   mTimeCFD.resize(mNBins);
 
