@@ -88,9 +88,9 @@ void GainCalibrationFactors_CCDBApiTest(const std::string_view ccdbserver = "emc
   ccdbhandler.store(new o2::TObjectWrapper<o2::emcal::GainCalibrationFactors>(gcf), "EMC/GainCalibFactors", metadata, rangestart, rangeend);
 
   // Read gain calibration factors from CCDB, check whether they are the same
-  auto rangetest = create_timestamp(2018, 11, 3, 13, 51, 41); //LHC18q
-  //auto rangetest = create_timestamp(2015, 11, 19, 15, 55, 58); //LHC15
-  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+  auto rangetest = create_timestamp(2018, 11, 16, 20, 55, 3); //LHC18q run 296273
+  //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
+  std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::GainCalibrationFactors* read(nullptr);
   auto res = ccdbhandler.retrieve("EMC/GainCalibFactors", metadata, rangetest);
   if (!res) {
