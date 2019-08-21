@@ -14,10 +14,6 @@
 #define ALICEO2_FDD_RECPOINT_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "CommonDataFormat/TimeStamp.h"
-#include <array>
-#include "Rtypes.h"
-#include <TObject.h>
 #include <DataFormatsFDD/Digit.h>
 
 namespace o2

@@ -131,13 +131,6 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
     return 0;
   return (TMath::Poisson(y, parameters.mPMNbOfSecElec) + parameters.mPMTransparency * TMath::Poisson(y, 1.0));
 }
-//____________________________________________________________________________
-Double_t Digitizer::SignalShape(Double_t* x, Double_t*)
-{
-
-  const Double_t xx = x[0];
-  return TMath::Exp(-0.5 * TMath::Power(TMath::Log((xx + parameters.mShapeOffset) / parameters.mShapeTau) / parameters.mShapeSigma, 2));
-}
 //_____________________________________________________________________________
 void Digitizer::SetTriggers(o2::fdd::Digit* digit)
 {
@@ -158,11 +151,13 @@ void Digitizer::init()
   mTimeCFD.resize(mNBins);
 
   if (!mPMResponse)
-    mPMResponse = std::make_unique<o2::base::CachingTF1>("PMResponse", this, &Digitizer::PMResponse, -parameters.mPMTransitTime, 2. * parameters.mPMTransitTime, 0);
+    mPMResponse = std::make_unique<o2::base::CachingTF1>("mPMResponse", this, &Digitizer::PMResponse, -parameters.mPMTransitTime, 2. * parameters.mPMTransitTime, 0);
   if (!mSinglePhESpectrum)
-    mSinglePhESpectrum = std::make_unique<o2::base::CachingTF1>("SinglePhESpectrum", this, &Digitizer::SinglePhESpectrum, 0, 20, 0);
-  if (!mSignalShape)
-    mSignalShape = std::make_unique<o2::base::CachingTF1>("SignalShape", this, &Digitizer::SignalShape, 0, 300, 0);
+    mSinglePhESpectrum = std::make_unique<o2::base::CachingTF1>("mSinglePhESpectrum", this, &Digitizer::SinglePhESpectrum, 0, 20, 0);
+  if (!mSignalShape) {
+    mSignalShape = std::make_unique<o2::base::CachingTF1>("mSignalShape", "crystalball", 0, 300);
+    mSignalShape->SetParameters(1, parameters.mShapeSigma, parameters.mShapeSigma, parameters.mShapeAlpha, parameters.mShapeN);
+  }
 }
 //_______________________________________________________________________
 void Digitizer::finish() {}

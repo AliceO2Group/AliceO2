@@ -24,9 +24,9 @@ struct DigitizationParameters {
   const Float_t mPMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
   const Float_t mPMTransparency = 0.25; // Transparency of the first dynode of the PM
   const Float_t mPMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
-  const Float_t mShapeOffset = 6;
-  const Float_t mShapeTau = 20;
-  const Float_t mShapeSigma = 0.45;
+  const Float_t mShapeAlpha = -0.445;
+  const Float_t mShapeN = 2.65;
+  const Float_t mShapeSigma = 3.25;
   //const Float_t mPedestal = 0;
   const Float_t mTimeShiftCFD = 1.42;
 };

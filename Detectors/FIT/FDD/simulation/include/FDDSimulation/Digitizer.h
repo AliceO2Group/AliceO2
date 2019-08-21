@@ -52,7 +52,6 @@ class Digitizer
   Float_t SimulateTimeCFD(Int_t channel);
   Double_t PMResponse(Double_t* x, Double_t* par);
   Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
-  Double_t SignalShape(Double_t* x, Double_t* par);
 
   void init();
   void finish();
