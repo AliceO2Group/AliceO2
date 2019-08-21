@@ -24,7 +24,6 @@ public:
         kernel.setArg(2, state.digits);
         kernel.setArg(3, static_cast<cl_uint>(state.digitnum));
         kernel.setArg(4, state.isPeak);
-        kernel.setArg(5, state.peakCountMap);
 
         Kernel1D::call(0, workitems, 64, queue);
     }
