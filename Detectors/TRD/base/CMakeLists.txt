@@ -30,7 +30,9 @@ o2_add_library(TRDBase
                                      O2::SimulationDataFormat)
 
 o2_target_root_dictionary(TRDBase
-                          HEADERS include/TRDBase/TRDPadPlane.h
+                          HEADERS include/TRDBase/TRDCalPadStatus.h
+                                  include/TRDBase/TRDCalSingleChamberStatus.h
+                                  include/TRDBase/TRDPadPlane.h
                                   include/TRDBase/TRDGeometryBase.h
                                   include/TRDBase/TRDGeometry.h
                                   include/TRDBase/TRDGeometryFlat.h
