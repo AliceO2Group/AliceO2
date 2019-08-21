@@ -174,10 +174,8 @@ size_t safeIdx(global_pad_t gpad, timestamp time)
 #if defined(CHARGEMAP_TILING_LAYOUT)
 /* #if 0 */
 # define IS_PEAK(map, gpad, time) ACCESS_2D(map, idxTiling8x8, gpad, time)
-# define PEAK_COUNT(map, gpad, time) ACCESS_2D(map, idxTiling8x8, gpad, time)
 #else
 # define IS_PEAK(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
-# define PEAK_COUNT(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
 #endif
 
 #endif //!defined(CONFIG_H)

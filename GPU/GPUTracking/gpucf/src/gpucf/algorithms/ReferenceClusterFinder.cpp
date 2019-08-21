@@ -102,7 +102,10 @@ Cluster ReferenceClusterFinder::clusterize(
         const Delta &inner = p.first; 
 
         PeakCount pc = PCMASK_PEAK_COUNT & peakcount[{d, inner.pad, inner.time}];
+
         float q = chargemap[{d, inner.pad, inner.time}] / pc;
+        q = static_cast<unsigned short>(q * 16.f) / 16.f;
+
         update(c, q, inner.pad, inner.time);
 
         if (q <= CHARGE_THRESHOLD)
@@ -120,6 +123,8 @@ Cluster ReferenceClusterFinder::clusterize(
 
             pc = PCMASK_PEAK_COUNT & pc;
             float q = chargemap[{d, outer.pad, outer.time}] / pc;
+            q = static_cast<unsigned short>(q * 16.f) / 16.f;
+
             update(c, q, outer.pad, outer.time); 
         }
     }
