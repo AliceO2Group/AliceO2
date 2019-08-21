@@ -96,10 +96,10 @@ void TimeCalibrationParams_CalibDBTest(const std::string_view ccdbserver = "emcc
   ccdbhandler.storeTimeCalibParam(tcp, metadata, rangestart, rangeend);
 
   // Read time calibration coefficients from CCDB, check whether they are the same
-  auto rangetest = create_timestamp(2018, 4, 18, 23, 58, 48); //LHC18b
-  //auto rangetest = create_timestamp(2017, 5, 28, 9, 6, 42); //LHC17g
+  auto rangetest = create_timestamp(2018, 4, 21, 23, 18, 54); //LHC18b run 285165
+  //auto rangetest = create_timestamp(2017, 6, 5, 5, 25, 28); //LHC17g run 271381
 
-  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+  std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::TimeCalibrationParams* read(nullptr);
   try {
     read = ccdbhandler.readTimeCalibParam(rangetest, metadata);
