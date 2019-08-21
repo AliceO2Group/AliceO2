@@ -35,6 +35,7 @@ install(FILES CheckClusters_mft.C
               run_clus_mftSA.C
               run_clus_tof.C
               run_clus_tpc.C
+              run_clus_emcal.C
               run_collect_calib_tof.C
               run_digi.C
               run_digi2raw_its.C
@@ -215,6 +216,11 @@ o2_add_test_root_macro(run_clus_tof.C
 o2_add_test_root_macro(run_clus_tpc.C
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                        LABELS tpc)
+
+# FIXME: move to subsystem dir
+o2_add_test_root_macro(run_clus_emcal.C
+                       PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+                       LABELS emcal)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_collect_calib_tof.C
