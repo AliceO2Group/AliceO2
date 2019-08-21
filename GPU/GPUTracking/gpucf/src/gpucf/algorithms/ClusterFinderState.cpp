@@ -35,8 +35,6 @@ ClusterFinderState::ClusterFinderState(
 
     peakMap = makeBuffer<cl_uchar>(mapEntries, Memory::ReadWrite, context);
 
-    peakCountMap = makeBuffer<cl_char>(mapEntries, Memory::ReadWrite, context);
-
 
     maxClusterPerRow = 0.01f * digitnum;
 
@@ -52,7 +50,6 @@ ClusterFinderState::ClusterFinderState(
 
     fill<cl_ushort>(chargeMap, 0, mapEntries, init);
     fill<cl_uchar>(peakMap, 0, mapEntries, init);
-    fill<cl_char>(peakCountMap, 1, mapEntries, init);
     fill<cl_uint>(clusterInRow, 0, numOfRows, init);
 
     init.finish();

@@ -46,18 +46,8 @@ bool PeakCountTest::run(
     gpucpy<unsigned char>(state.peakMap, isPeakBuf, isPeakBuf.size(), queue, true);
     Map<unsigned char> isPeak = mapify<unsigned char>(isPeakBuf, 0, pads, timebins);
 
-    std::vector<char> peakCountBuf(elems);
-    gpucpy<char>(
-            state.peakCountMap, 
-            peakCountBuf,
-            peakCountBuf.size(), 
-            queue,
-            true);
-    Map<char> peakCount = mapify<char>(peakCountBuf, 1, pads, timebins);
-
     log::Debug() << "chargeMap\n" << print(chargeMap, pads, timebins);
     log::Debug() << "isPeakMap\n" << print(isPeak, pads, timebins);
-    log::Debug() << "peakCountMap\n" << print(peakCount, pads, timebins);
 
     log::Debug() << "isPeak:";
     std::vector<unsigned char> isPeakPred(digits.size());
