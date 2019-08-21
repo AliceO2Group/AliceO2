@@ -23,7 +23,6 @@ struct ClusterFinderState
 
     cl::Buffer chargeMap;
     cl::Buffer peakMap;
-    cl::Buffer peakCountMap;
     
     size_t maxClusterPerRow;
     cl::Buffer clusterInRow;
