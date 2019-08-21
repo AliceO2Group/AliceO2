@@ -73,11 +73,17 @@ class Track
 
   void tagRemovableClusters(uint8_t requestedStationMask);
 
+  /// set the flag telling if this track shares cluster(s) with another
+  void connected(bool connected = true) { mConnected = connected; }
+  /// return the flag telling if this track shares cluster(s) with another
+  bool isConnected() const { return mConnected; }
+
   void print() const;
 
  private:
   TrackParam mParamAtVertex{};              ///< track parameters at vertex
   std::list<TrackParam> mParamAtClusters{}; ///< list of track parameters at each cluster
+  bool mConnected = false;                  ///< flag telling if this track shares cluster(s) with another
 };
 
 } // namespace mch

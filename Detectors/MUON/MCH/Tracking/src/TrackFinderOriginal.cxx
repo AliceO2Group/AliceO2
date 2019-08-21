@@ -530,29 +530,26 @@ void TrackFinderOriginal::removeConnectedTracks(int stMin, int stMax)
 
   print("Remove connected tracks in stations [", stMin, ", ", stMax, "]");
 
-  for (auto itTrack1 = mTracks.begin(); itTrack1 != mTracks.end();) {
-
-    bool track1Removed(false);
-
-    for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.end();) {
-
+  // first loop to tag the tracks to remove...
+  for (auto itTrack1 = mTracks.begin(); itTrack1 != mTracks.end(); ++itTrack1) {
+    for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.end(); ++itTrack2) {
       if (itTrack2->getNClustersInCommon(*itTrack1, stMin, stMax) > 0) {
         if (itTrack2->isBetter(*itTrack1)) {
-          print("Removing candidate at position #", getTrackIndex(itTrack1));
-          itTrack1 = mTracks.erase(itTrack1);
-          track1Removed = true;
-          break;
+          itTrack1->connected();
         } else {
-          print("Removing candidate at position #", getTrackIndex(itTrack2));
-          itTrack2 = mTracks.erase(itTrack2);
+          itTrack2->connected();
         }
-      } else {
-        ++itTrack2;
       }
     }
+  }
 
-    if (!track1Removed) {
-      ++itTrack1;
+  // ...then remove them. That way all combinations are tested.
+  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+    if (itTrack->isConnected()) {
+      print("Removing candidate at position #", getTrackIndex(itTrack));
+      itTrack = mTracks.erase(itTrack);
+    } else {
+      ++itTrack;
     }
   }
 
