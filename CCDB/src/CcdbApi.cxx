@@ -31,6 +31,8 @@
 #include <TError.h>
 #include <TClass.h>
 #include <CCDB/CCDBTimeStampUtils.h>
+#include <algorithm>
+#include <boost/filesystem.hpp>
 
 namespace o2
 {
@@ -168,6 +170,7 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
   // Prepare Buffer
   void* buffer = malloc(memFile.GetSize());
   memFile.CopyTo(buffer, memFile.GetSize());
+  LOG(INFO) << "WRITING " << memFile.GetSize() << " BYTES \n";
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
@@ -324,6 +327,11 @@ string CcdbApi::getFullUrlForStorage(const string& path, const map<string, strin
 // todo make a single method of the one above and below
 string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, string>& metadata, long timestamp) const
 {
+  if (mInSnapshotMode) {
+    string snapshotPath = mSnapShotTopPath + "/" + path + "/snapshot.root";
+    return snapshotPath;
+  }
+
   // Prepare timestamps
   string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
   // Build URL
@@ -368,6 +376,21 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
   mem->memory[mem->size] = 0;
 
   return realsize;
+}
+
+/**
+ * Callback used by CURL to store the data received from the CCDB
+ * directly into a binary file
+ * @param contents
+ * @param size
+ * @param nmemb
+ * @param userp a MemoryStruct where data is stored.
+ * @return the size of the data we received and stored at userp.
+ */
+static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+  size_t written = fwrite(ptr, size, nmemb, stream);
+  return written;
 }
 
 TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -530,6 +553,94 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   return result;
 }
 
+void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const
+{
+  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+
+  // we setup the target path for this blob
+  std::string fulltargetdir = targetdir + '/' + path;
+
+  std::cout << "fulltargetdir " << fulltargetdir << "\n";
+  if (!boost::filesystem::exists(fulltargetdir)) {
+    if (!boost::filesystem::create_directories(fulltargetdir)) {
+      std::cerr << "Could not create target directory " << fulltargetdir << "\n";
+    }
+  }
+
+  std::string targetpath = fulltargetdir + "/snapshot.root";
+  FILE* fp = fopen(targetpath.c_str(), "w");
+  if (!fp) {
+    std::cerr << " Could not open/create target file " << targetpath << "\n";
+    return;
+  }
+
+  // Prepare CURL
+  CURL* curl_handle;
+  CURLcode res;
+
+  /* init the curl session */
+  curl_handle = curl_easy_init();
+
+  /* specify URL to get */
+  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
+
+  /* send all data to this function  */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
+
+  /* we pass our file handle to the callback function */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
+
+  /* some servers don't like requests that are made without a user-agent
+         field, so we provide one */
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+  /* if redirected , we tell libcurl to follow redirection */
+  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  /* get it! */
+  res = curl_easy_perform(curl_handle);
+
+  void* result = nullptr;
+  if (res == CURLE_OK) {
+    long response_code;
+    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+    if ((res == CURLE_OK) && (response_code != 404)) {
+    } else {
+      LOG(ERROR) << "Invalid URL : " << fullUrl;
+    }
+  } else {
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+  }
+
+  if (fp) {
+    fclose(fp);
+  }
+  curl_easy_cleanup(curl_handle);
+}
+
+void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const
+{
+  // query all subpaths to ccdbrootpath
+  const auto allfolders = getAllFolders(ccdbrootpath);
+  std::map<string, string> metadata;
+  for (auto& folder : allfolders) {
+    retrieveBlob(folder, localDir, metadata, timestamp);
+  }
+}
+
+void* CcdbApi::extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* tcl) const
+{
+  if (!boost::filesystem::exists(filename)) {
+    LOG(INFO) << "Local snapshot " << filename << " not found \n";
+    return nullptr;
+  }
+  TFile f(filename.c_str(), "READ");
+  auto* object = f.GetObjectChecked(objname.c_str(), tcl);
+  // do some other stuff like copying if necessary
+
+  return object;
+}
+
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
                                  std::map<std::string, std::string> const& metadata, long timestamp) const
 {
@@ -546,6 +657,11 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // Thus it does not comply to our coding guidelines as it is a copy paste.
 
   string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+
+  // if we are in snapshot mode we can simply open the file; extract the object and return
+  if (mInSnapshotMode) {
+    return extractFromLocalFile(fullUrl, objectName, tcl);
+  }
 
   // Prepare CURL
   CURL* curl_handle;
@@ -662,7 +778,6 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
   }
-
   return result;
 }
 
@@ -738,6 +853,59 @@ bool CcdbApi::isHostReachable() const
     curl_easy_cleanup(curl);
   }
   return result;
+}
+
+std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) const
+{
+  // this needs some text filtering
+  // go through reply line by line until we see "SubFolders:"
+  std::stringstream ss(reply.c_str());
+  std::string line;
+  std::vector<std::string> folders;
+
+  size_t numberoflines = std::count(reply.begin(), reply.end(), '\n');
+  bool inSubFolderSection = false;
+
+  int counter = 0;
+  for (int linenumber = 0; linenumber < numberoflines; ++linenumber) {
+    std::getline(ss, line);
+    if (inSubFolderSection && line.size() > 0) {
+      // remove all white space
+      folders.push_back(sanitizeObjectName(line));
+    }
+
+    if (line.compare("Subfolders:") == 0) {
+      inSubFolderSection = true;
+    }
+  }
+  return folders;
+}
+
+namespace
+{
+void traverseAndFillFolders(CcdbApi const& api, std::string const& top, std::vector<std::string>& folders)
+{
+  // LOG(INFO) << "Querying " << top;
+  auto reply = api.list(top);
+  folders.emplace_back(top);
+  // LOG(INFO) << reply;
+  auto subfolders = api.parseSubFolders(reply);
+  if (subfolders.size() > 0) {
+    // LOG(INFO) << subfolders.size() << " folders in " << top;
+    for (auto& sub : subfolders) {
+      traverseAndFillFolders(api, sub, folders);
+    }
+  } else {
+    // LOG(INFO) << "NO subfolders in " << top;
+  }
+}
+} // namespace
+
+std::vector<std::string> CcdbApi::getAllFolders(std::string const& top) const
+{
+  std::vector<std::string> folders;
+  traverseAndFillFolders(*this, top, folders);
+  return folders;
 }
 
 } // namespace ccdb

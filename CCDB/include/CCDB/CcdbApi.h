@@ -53,6 +53,17 @@ class CcdbApi //: public DatabaseInterface
   void init(std::string const& host);
 
   /**
+   * Initialize in local mode; Objects will be retrieved from snapshot
+   *
+   * @param snapshotpath (e.g. "/path/CCDBSnapshot/")
+   */
+  void initInSnapShotMode(std::string const& snapshotpath)
+  {
+    mSnapShotTopPath = snapshotpath;
+    mInSnapshotMode = true;
+  }
+
+  /**
    * Stores an object in the CCDB as a streamed object, not a TFile.
    *
    * @param rootObject Raw pointer to the object to store.
@@ -158,6 +169,12 @@ class CcdbApi //: public DatabaseInterface
   std::string list(std::string const& path = "", bool latestOnly = false, std::string const& returnFormat = "text/plain") const;
 
   /**
+   * Make a local snapshot of all valid objects, given a timestamp, of the CCDB under a given local path.
+   * This is doing a recursive list and fetching the files locally.
+   */
+  void snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const;
+
+  /**
    * Check whether the url is reachable.
    * @param url The url to test.
    * @return a bool indicating whether the url is reachable or not.
@@ -195,6 +212,25 @@ class CcdbApi //: public DatabaseInterface
   std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1) const;
 
+ public:
+  /**
+   * Helper function to extract the list of sub-folders from a list reply into a vector container.
+   * Can be used to achieve full recursive traversal/listing of the CCDB.
+   *
+   * @param reply The reply that we got from a GET/browse sort of request.
+   * @return The vector of sub-folders.
+   */
+  std::vector<std::string> parseSubFolders(std::string const& reply) const;
+
+  /**
+   * Function returning the complete list of (recursive) paths below a given top path
+   *
+   * @param top The top folder from which to search
+   * @return The vector of all possible CCDB folders
+   */
+  std::vector<std::string> getAllFolders(std::string const& top) const;
+
+ private:
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
    */
@@ -208,12 +244,29 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1) const;
 
   /**
+   *
+   * @param filename
+   * @param objname
+   * @return
+   */
+  void* extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const*) const;
+
+ public:
+  /**
+  *  Simple function to retrieve the blob corresponding to some path and save it locally to a binary file
+  */
+  void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
+
+ private:
+  /**
    * Initialization of CURL
    */
   void curlInit();
 
   /// Base URL of the CCDB (with port)
   std::string mUrl{};
+  std::string mSnapShotTopPath{};
+  bool mInSnapshotMode = false;
 
   ClassDefNV(CcdbApi, 1);
 };

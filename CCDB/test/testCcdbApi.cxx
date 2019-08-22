@@ -43,6 +43,7 @@ namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
 static string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+//static string ccdbUrl = "http://emcccdb-test.cern.ch:8080";
 bool hostReachable = false;
 
 /**
