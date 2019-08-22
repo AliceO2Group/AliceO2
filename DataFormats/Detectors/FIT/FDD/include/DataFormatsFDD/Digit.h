@@ -24,9 +24,18 @@ namespace fdd
 struct ChannelData {
   Int_t mPMNumber;    // PhotoMultiplier number (0 to 16)
   Float_t mTime;      // Time of Flight
-  Float_t mWidth;     // Width of the time distribution
   Short_t mChargeADC; // ADC sample as present in raw data
-  ClassDefNV(ChannelData, 1);
+  //Bit information from FEE
+  Bool_t mIntegrator;
+  Bool_t mDoubleEvent;
+  Bool_t mEvent1TimeLost;
+  Bool_t mEvent2TimeLost;
+  Bool_t mAdcInGate;
+  Bool_t mTimeTooLate;
+  Bool_t mAmpTooHigh;
+  Bool_t mEventInTrigger;
+  Bool_t mTimeLost;
+  ClassDefNV(ChannelData, 2);
 };
 
 using DigitBase = o2::dataformats::TimeStamp<double>;
