@@ -49,6 +49,7 @@ class Digitizer
 
   void SetTriggers(o2::fdd::Digit* digit);
   Int_t SimulateLightYield(Int_t pmt, Int_t nPhot);
+  Float_t SimulateTimeCFD(Int_t channel);
   Double_t PMResponse(Double_t* x, Double_t* par);
   Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
 
@@ -68,12 +69,14 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* mMCLabels = nullptr;
 
   std::vector<std::vector<Float_t>> mTime;                  // Charge time series aka analogue signal pulse from PM
+  std::vector<Float_t> mTimeCFD;                            // Time series for CFD measurement
   UInt_t mNBins;                                            // Number of bins in pulse series
   Float_t mBinSize;                                         // Time width of the pulse bin - HPTDC resolution
   std::unique_ptr<o2::base::CachingTF1> mPMResponse;        // function which describes the PM time response
   std::unique_ptr<o2::base::CachingTF1> mSinglePhESpectrum; // function which describes the single ph.e. PM response
+  std::unique_ptr<o2::base::CachingTF1> mSignalShape;
 
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(Digitizer, 2);
 };
 } // namespace fdd
 } // namespace o2
