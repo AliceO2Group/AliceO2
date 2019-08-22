@@ -43,7 +43,7 @@
 /Detectors/GlobalTrackingWorkflow
 /Detectors/HMPID
 /Detectors/ITSMFT
-/Detectors/MUON
+/Detectors/MUON @aphecetche
 /Detectors/PHOS
 /Detectors/Passive
 /Detectors/TOF
