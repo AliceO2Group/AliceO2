@@ -212,70 +212,60 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
   // printf("AliEMCALGeometry::GetInstanceFromRunNumber() - run %d, geoName <<%s>> \n",runNumber,geoName.Data());
 
-  bool showInfo = !(getenv("HLT_ONLINE_MODE") && strcmp(getenv("HLT_ONLINE_MODE"), "on") == 0);
-
   if (runNumber >= 104064 && runNumber < 140000) {
     // 2009-2010 runs
     // First year geometry, 4 SM.
 
-    if (showInfo) {
-      if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year";
-      } else {
-        LOG(INFO)
-          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
-      }
+    if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year";
+    } else {
+      LOG(INFO)
+        << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
     }
 
     return Geometry::GetInstance("EMCAL_FIRSTYEARV1", mcname, mctitle);
   } else if (runNumber >= 140000 && runNumber <= 170593) {
     // Almost complete EMCAL geometry, 10 SM. Year 2011 configuration
 
-    if (showInfo) {
-      if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETEV1>>, check run number and year";
-      } else {
-        LOG(INFO)
-          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
-      }
+    if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETEV1>>, check run number and year";
+    } else {
+      LOG(INFO)
+        << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETEV1", mcname, mctitle);
   } else if (runNumber > 176000 && runNumber <= 197692) {
     // Complete EMCAL geometry, 12 SM. Year 2012 and on
     // The last 2 SM were not active, anyway they were there.
 
-    if (showInfo) {
-      if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year";
-      } else {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
-                     "<<EMCAL_COMPLETE12SMV1>>";
-      }
+    if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year";
+    } else {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+                   "<<EMCAL_COMPLETE12SMV1>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1", mcname, mctitle);
   } else // Run 2
   {
     // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
 
-    if (showInfo) {
-      if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
-      } else {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
-                     "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
-      }
+    if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
+    } else {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+                   "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", mcname, mctitle);
   }
