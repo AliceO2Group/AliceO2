@@ -37,22 +37,22 @@
 
 /Detectors/Base                    @AliceO2Group/core @AliceO2Group/framework-admins
 /Detectors/Geometry                @AliceO2Group/core @AliceO2Group/framework-admins
-/Detectors/CPV
-/Detectors/EMCAL
-/Detectors/FIT
+/Detectors/CPV                     @peressounko @AliceO2Group/core
+/Detectors/EMCAL                   @mfasDa @AliceO2Group/core
+/Detectors/FIT                     @AllaMaevskaya @mslupeck @AliceO2Group/core
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
-/Detectors/HMPID
-/Detectors/ITSMFT
+/Detectors/HMPID                   @gvolpe79 @AliceO2Group/core
+/Detectors/ITSMFT                  @iouribelikov @bovulpes @AliceO2Group/core
 /Detectors/MUON                    @aphecetche @AliceO2Group/core 
-/Detectors/PHOS
-/Detectors/Passive
-/Detectors/TOF
+/Detectors/PHOS                    @peressounko @AliceO2Group/core 
+/Detectors/Passive                 @swenzel
+/Detectors/TOF                     @noferini @AliceO2Group/core 
 /Detectors/TPC                     @davidrohr @wiechula @shahor02 
-/Detectors/TRD
-/Detectors/ZDC
+/Detectors/TRD                     @jolopezl @AliceO2Group/core 
+/Detectors/ZDC                     @coppedis @AliceO2Group/core 
 
-/EventVisualisation  @AliceO2Group/core @AliceO2Group/framework-admins
+/EventVisualisation  @jmyrcha @AliceO2Group/core @AliceO2Group/framework-admins
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -87,7 +87,7 @@
 /GPU/TPCFastTransformation    @davidrohr @sgorbuno
 /GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
 
-/Generators
+/Generators  @swenzel
 
 /Steer  @AliceO2Group/core @AliceO2Group/framework-admins
 
