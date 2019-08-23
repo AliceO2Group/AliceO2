@@ -72,6 +72,6 @@ fi
 
 # ===| command building and execution |=========================================
 
-cmd="root.exe $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+'(\"$fileInfo\",\"$pedestalFile\",$timeBins,$verbosity,$debugLevel)'"
+cmd="root.exe $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\",\"$pedestalFile\",$timeBins,$verbosity,$debugLevel)'"
 echo "running: $cmd"
 eval $cmd
