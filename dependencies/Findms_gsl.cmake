@@ -13,7 +13,7 @@ find_path(MS_GSL_INCLUDE_DIR gsl/gsl PATH_SUFFIXES ms_gsl/include include
 
 if(NOT MS_GSL_INCLUDE_DIR)
   set(MS_GSL_FOUND FALSE)
-  message(FATAL_ERROR "MS_GSL not found")
+  message(WARNING "MS_GSL not found")
   return()
 endif()
 
