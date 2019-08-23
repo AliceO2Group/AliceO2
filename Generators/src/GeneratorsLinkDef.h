@@ -28,9 +28,11 @@
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
 #pragma link C++ class o2::eventgen::Pythia6Generator + ;
+#ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::Pythia8Generator + ;
-#pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
+#endif
+#pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
