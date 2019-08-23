@@ -17,6 +17,8 @@
 #include "TF1.h"
 #include "TStopwatch.h"
 #include "TGFrame.h"
+#include "TGTextEntry.h"
+#include "TGLabel.h"
 #include "TFile.h"
 #include "TLegend.h"
 #include "TSystem.h"
@@ -70,6 +72,7 @@ TH1F* mHNcls = nullptr;
 TH1* mHFFTO = nullptr;
 TH1* mHFFTI = nullptr;
 TGCheckButton* mCheckFFT = nullptr;
+TGTextEntry* mEventNumber = nullptr;
 
 Double_t mElePosMax = 0.;
 Double_t mElePosTot = 0.;
@@ -90,9 +93,13 @@ void ToggleFFT();
 void MonitorGui()
 {
   Float_t xsize = 145;
-  Float_t ysize = 30;
+  Float_t ysize = 25;
+  Float_t yoffset = 10;
+  Float_t ysize_dist = 2;
   Float_t mainx = 170;
   Float_t mainy = 170;
+  int ycount = 0;
+
   TGMainFrame* mFrameMain = new TGMainFrame(gClient->GetRoot(), 200, 200, kMainFrame | kVerticalFrame);
   mFrameMain->SetLayoutBroken(kTRUE);
 
@@ -106,7 +113,9 @@ void MonitorGui()
   mFrameNextEvent->SetCommand("Next(-1)");
   mFrameNextEvent->SetTextColor(200);
   mFrameNextEvent->SetToolTipText("Go to next event");
-  mFrameNextEvent->MoveResize(10, 10, xsize, (UInt_t)ysize);
+  //mFrameNextEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  mFrameNextEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  ++ycount;
 
   //---------------------------
   TGTextButton* mFramePreviousEvent = new TGTextButton(mContRight, "&Previous Event");
@@ -114,8 +123,33 @@ void MonitorGui()
 
   mFramePreviousEvent->SetCommand("Next(-2)");
   mFramePreviousEvent->SetTextColor(200);
-  mFramePreviousEvent->SetToolTipText("Go to next event");
-  mFramePreviousEvent->MoveResize(10, 10 + ysize, xsize, (UInt_t)ysize);
+  mFramePreviousEvent->SetToolTipText("Go to previous event");
+  mFramePreviousEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  ++ycount;
+
+  //---------------------------
+
+  //TGCompositeFrame* mContGoToEvent = new TGCompositeFrame(mContRight, 155, ysize, kHorizontalFrame | kFitWidth | kFixedHeight);
+  //mContRight->AddFrame(mContGoToEvent, new TGLayoutHints(kLHintsExpandX));
+  //mContGoToEvent->Move(10, yoffset + ycount * (ysize_dist + ysize));
+
+  TGTextButton* mGoToEvent = new TGTextButton(mContRight, "&Go to event");
+  //mContGoToEvent->AddFrame(mGoToEvent, new TGLayoutHints(kLHintsExpandX));
+  mContRight->AddFrame(mGoToEvent, new TGLayoutHints(kLHintsNormal));
+
+  mGoToEvent->SetTextColor(200);
+  mGoToEvent->SetToolTipText("Go to event");
+  mGoToEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), 0.65 * xsize, (UInt_t)ysize);
+  mGoToEvent->SetCommand("CallEventNumber()");
+
+  //
+  auto* ftbuf = new TGTextBuffer(10);
+  ftbuf->AddText(0, "0");
+  mEventNumber = new TGTextEntry(mContRight, ftbuf);
+  mContRight->AddFrame(mEventNumber, new TGLayoutHints(kFitHeight));
+  mEventNumber->MoveResize(0.7 * xsize, yoffset + ycount * (ysize_dist + ysize), 0.3 * xsize, (UInt_t)ysize);
+  mEventNumber->SetAlignment(kTextRight);
+  ++ycount;
 
   //---------------------------
   //TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
@@ -132,7 +166,7 @@ void MonitorGui()
   mCheckFFT->SetCommand("ToggleFFT()");
   mCheckFFT->SetTextColor(200);
   mCheckFFT->SetToolTipText("Switch on FFT calculation");
-  mCheckFFT->MoveResize(10, 10 + ysize * 2, xsize, (UInt_t)ysize);
+  mCheckFFT->MoveResize(10, 10 + ysize * 4, xsize, (UInt_t)ysize);
   mCheckFFT->SetDown(1);
   ToggleFFT();
 
@@ -143,7 +177,7 @@ void MonitorGui()
   mFrameExit->SetCommand("ExitRoot()");
   mFrameExit->SetTextColor(200);
   mFrameExit->SetToolTipText("Exit the ROOT process");
-  mFrameExit->MoveResize(10, 10 + ysize * 4, xsize, (UInt_t)ysize);
+  mFrameExit->MoveResize(10, 10 + ysize * 5, xsize, (UInt_t)ysize);
 
   //---------------------------
   mFrameMain->MapSubwindows();
@@ -332,6 +366,7 @@ void FillMaxHists(Int_t type = 0)
   const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
   //const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
   const int eventNumber = mEvDisp.getPresentEventNumber();
+  const bool eventComplete = mEvDisp.isPresentEventComplete();
   for (Int_t iROC = 0; iROC < 72; iROC++) {
     // TODO: remove again at some point
     if (iROC % 36 != 0) {
@@ -344,10 +379,11 @@ void FillMaxHists(Int_t type = 0)
     if (iROC % 36 < 18)
       hSide = mHMaxA;
     if (iROC % 36 == mSelectedSector % 36) {
-      TString title = Form("Max Values %cROC %c%02d (%02d)", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC);
+      TString title = Form("Max Values %cROC %c%02d (%02d) Event %s%d%s", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC, eventComplete ? "" : "(", eventNumber, eventComplete ? "" : ")");
       //TString title = Form("Max Values Run %d Event %d", runNumber, eventNumber);
-      if (hROC)
+      if (hROC) {
         hROC->SetTitle(title.Data());
+      }
     }
     auto& calRoc = pad->getCalArray(iROC);
     const int nRows = mMapper.getNumberOfRowsROC(iROC);
@@ -485,6 +521,7 @@ void InitGUI()
   c = new TCanvas("MaxValsI", "MaxValsI", 1 * w, 0 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigI\")");
   mHMaxIROC = new TH2F("hMaxValsIROC", "Max Values IROC;row;pad", 63, 0, 63, 108, -54, 54);
+  mHMaxIROC->SetDirectory(nullptr);
   //mHMaxIROC->GetYaxis()->SetRangeUser(-20,15);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
@@ -492,7 +529,9 @@ void InitGUI()
   //histograms and canvases for max values OROC
   c = new TCanvas("MaxValsO", "MaxValsO", 1 * w, 1 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigO\")");
-  mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 96, 0, 96, 140, -70, 70);
+  //mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 96, 0, 96, 140, -70, 70);
+  mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 89, 0, 89, 140, -70, 70);
+  mHMaxOROC->SetDirectory(nullptr);
   mHMaxOROC->SetStats(kFALSE);
   mHMaxOROC->Draw("colz");
 
@@ -504,12 +543,16 @@ void InitGUI()
 //__________________________________________________________________________
 void Next(int eventNumber = -1)
 {
+  printf("Calling event number %d\n", eventNumber);
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
   using Status = CalibRawBase::ProcessStatus;
   Status status = mEvDisp.processEvent(eventNumber);
   //const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
   const Int_t timeBins = mEvDisp.getNumberOfProcessedTimeBins();
+
+  const int presentEventNumber = mEvDisp.getPresentEventNumber();
+  mEventNumber->SetText(Form("%d", presentEventNumber));
 
   switch (status) {
     case Status::Ok: {
@@ -542,6 +585,13 @@ void Next(int eventNumber = -1)
 }
 
 //__________________________________________________________________________
+void CallEventNumber()
+{
+  const int event = TString(mEventNumber->GetText()).Atoi();
+  Next(event);
+}
+
+//__________________________________________________________________________
 void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0)
 {
   FairLogger* logger = FairLogger::GetLogger();
@@ -564,6 +614,8 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nT
   //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
   MonitorGui();
   //   SelectSector(15);
+  // select first event
+  Next(0);
 }
 
 //__________________________________________________________________________

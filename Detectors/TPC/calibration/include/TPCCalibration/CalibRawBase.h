@@ -1,4 +1,5 @@
 // Copyright CERN and copyright holders of ALICE O2. This software is
+// setEventInfo = true;
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -14,6 +15,7 @@
 /// \file   CalibRawBase.h
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <limits>
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -47,14 +49,15 @@ class CalibRawBase
 {
  public:
   enum class ProcessStatus : char {
-    Ok,         ///< Processing ok
-    Truncated,  ///< Read fewer time bins than mTimeBinsPerCall
-    NoMoreData, ///< No data read
-    LastEvent,  ///< Last event
-    NoReaders   ///< No raw reader configures
+    Ok,             ///< Processing ok
+    Truncated,      ///< Read fewer time bins than mTimeBinsPerCall
+    NoMoreData,     ///< No data read
+    LastEvent,      ///< Last event
+    NoReaders,      ///< No raw reader configures
+    IncompleteEvent ///< Read data is incomplete
   };
 
-  CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mDebugLevel(0), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset), mGBTFrameContainers(), mRawReaders() { ; }
+  CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mDebugLevel(0), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(std::numeric_limits<size_t>::max()), mPadSubset(padSubset), mGBTFrameContainers(), mRawReaders() { ; }
 
   virtual ~CalibRawBase() = default;
 
@@ -119,6 +122,9 @@ class CalibRawBase
   /// get present event number
   size_t getPresentEventNumber() const { return mPresentEventNumber; }
 
+  /// check if present event is complete
+  bool isPresentEventComplete() const { return mRawReaderCRUManager.isEventComplete(mPresentEventNumber); }
+
   /// number of processed time bins in last event
   size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }
 
@@ -136,9 +142,9 @@ class CalibRawBase
   size_t mPresentEventNumber; //!< present event number
 
   PadSubset mPadSubset;                                                //!< pad subset type used
-  std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //! raw reader pointer
-  std::vector<std::unique_ptr<RawReader>> mRawReaders;                 //! raw reader pointer
-  std::vector<std::unique_ptr<RawReaderCRU>> mRawReadersCRU;           //! cru type raw readers
+  std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //!< raw reader pointer
+  std::vector<std::unique_ptr<RawReader>> mRawReaders;                 //!< raw reader pointer
+  RawReaderCRUManager mRawReaderCRUManager{};                          //!< cru type raw readers
 
   virtual void resetEvent() = 0;
   virtual void endEvent() = 0;
@@ -151,7 +157,7 @@ class CalibRawBase
   ProcessStatus processEventRawReader(int eventNumber = -1);
 
   /// Process one event using RawReaderCRU
-  ProcessStatus processEventRawReaderCRU(int startTimeBin = -1, int endTimeBin = 500);
+  ProcessStatus processEventRawReaderCRU(int eventNumber = -1);
 };
 
 //----------------------------------------------------------------
@@ -163,8 +169,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
     return processEventGBT();
   } else if (mRawReaders.size()) {
     return processEventRawReader(eventNumber);
-  } else if (mRawReadersCRU.size()) {
-    return processEventRawReaderCRU();
+  } else if (mRawReaderCRUManager.getNumberOfReaders()) {
+    return processEventRawReaderCRU(eventNumber);
   } else {
     return ProcessStatus::NoReaders;
   }
@@ -354,11 +360,13 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
 }
 
 //______________________________________________________________________________
-inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int startTimeBin, int endTimeBin)
+inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int eventNumber)
 {
-  if (!mRawReadersCRU.size())
+  if (!mRawReaderCRUManager.getNumberOfReaders())
     return ProcessStatus::NoReaders;
   resetEvent();
+
+  mRawReaderCRUManager.init();
 
   const int nRowIROC = mMapper.getNumberOfRowsROC(0);
 
@@ -368,11 +376,31 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
   size_t processedReaders = 0;
   bool hasData = false;
 
-  int64_t lastEvent = 0;
-  for (auto& reader_ptr : mRawReadersCRU) {
+  int64_t lastEvent = mRawReaderCRUManager.getNumberOfEvents() - 1;
+  for (auto& reader_ptr : mRawReaderCRUManager.getReaders()) {
     auto reader = reader_ptr.get();
 
-    LOG(INFO) << "Processing event " << mNevents << " - RawReader#: " << processedReaders << " ptr: " << reader;
+    LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ") - RawReader#: " << processedReaders << " ptr: " << reader;
+
+    if (eventNumber >= 0) {
+      reader->setEventNumber(eventNumber);
+      mPresentEventNumber = eventNumber;
+    } else if (eventNumber == -1) {
+      if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+        mPresentEventNumber = 0;
+      } else {
+        mPresentEventNumber = (reader->getEventNumber() + 1) % reader->getNumberOfEvents();
+      }
+    } else if (eventNumber == -2) {
+      auto readerNumber = reader->getEventNumber();
+      if (readerNumber > 0) {
+        mPresentEventNumber = readerNumber - 1;
+      } else {
+        mPresentEventNumber = reader->getNumberOfEvents() - 1;
+      }
+    }
+    reader->setEventNumber(mPresentEventNumber);
+
     // process data
     reader->processLinks();
 
@@ -439,8 +467,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
-  } else if (processedReaders < mRawReadersCRU.size()) {
+  } else if (processedReaders < mRawReaderCRUManager.getNumberOfReaders()) {
     status = ProcessStatus::Truncated;
+  } else if (!isPresentEventComplete()) {
+    status = ProcessStatus::IncompleteEvent;
   } else if (mPresentEventNumber == size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }

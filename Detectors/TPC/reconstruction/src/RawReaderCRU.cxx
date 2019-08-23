@@ -12,8 +12,11 @@
 /// \author Jens Wiechula (Jens.Wiechula@ikf.uni-frankfurt.de)
 /// \author Torsten Alt (Torsten.Alt@cern.ch)
 
+#include <fmt/format.h>
+
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCBase/Mapper.h"
+#include "Framework/Logger.h"
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 using RDH = o2::header::RAWDataHeader;
@@ -22,6 +25,104 @@ using namespace o2::tpc;
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
 std::istream& operator>>(std::istream& input, RDH& rdh);
 
+/*
+// putting this here instead of inside the header trigger unreasonably large compliation times for some reason
+RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t heartbeatOrbit, int cru, uint8_t globalLinkID)
+{
+  // check if event is already registered. If not create a new one.
+  auto& event = createEvent(heartbeatOrbit);
+  return event.CRUInfoArray[cru].LinkInformation[globalLinkID];
+}
+*/
+
+void RawReaderCRUEventSync::analyse()
+{
+  //expected number of packets in one HBorbit
+  const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
+
+  for (auto& event : mEventInformation) {
+    event.IsComplete = true;
+    for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
+      const auto& cruInfo = event.CRUInfoArray[iCRU];
+      if (!cruInfo.isPresent()) {
+        continue;
+      }
+      if (!cruInfo.isComplete()) {
+        event.IsComplete = false;
+        break;
+      }
+    }
+  }
+}
+
+void RawReaderCRUEventSync::streamTo(std::ostream& output) const
+{
+  const std::string redBG("\033[41m");
+  const std::string red("\033[31m");
+  const std::string green("\033[32m");
+  const std::string bold("\033[1m");
+  const std::string clear("\033[0m");
+
+  std::cout << "Event info\n";
+  std::cout << "    Number of all events: " << getNumberOfEvents() << "\n";
+  std::cout << "    Number of complete events: " << getNumberOfCompleteEvents() << "\n\n";
+  // event loop
+  for (int i = 0; i < mEventInformation.size(); ++i) {
+    const auto& event = mEventInformation[i];
+    const bool isComplete = event.IsComplete;
+    if (!isComplete) {
+      std::cout << redBG;
+    } else {
+      std::cout << green;
+    }
+    std::cout << "Event " << i << "                                \n"
+              << clear << "    heartbeatOrbit: " << event.HeartbeatOrbit << "\n"
+              << "    Is complete: " << isComplete << "\n";
+
+    // cru loop
+    for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
+      const auto& cruInfo = event.CRUInfoArray[iCRU];
+      if (!cruInfo.isPresent()) {
+        continue;
+      }
+      std::cout << "        ";
+      if (!cruInfo.isComplete()) {
+        std::cout << bold + red;
+      }
+      std::cout << "CRU " << iCRU << clear << "\n";
+      const auto& cruLinks = cruInfo.LinkInformation;
+
+      // link loop
+      for (size_t iLink = 0; iLink < cruLinks.size(); ++iLink) {
+        const auto& linkInfo = event.CRUInfoArray[iCRU].LinkInformation[iLink];
+        if (!linkInfo.IsPresent) {
+          continue;
+        }
+        std::cout << "        ";
+        if (!linkInfo.isComplete()) {
+          std::cout << red;
+        }
+        std::cout << "Link " << iLink << clear << "\n";
+        if (!linkInfo.HBEndSeen) {
+          std::cout << red;
+        }
+        std::cout << "            HBEndSeen: " << linkInfo.HBEndSeen << clear << "\n";
+        if (linkInfo.PacketPositions.size() != ExpectedNumberOfPacketsPerHBFrame) {
+          std::cout << red;
+        }
+        std::cout << "            Number of Packets: " << linkInfo.PacketPositions.size() << " (" << ExpectedNumberOfPacketsPerHBFrame << ")" << clear << "\n"
+                  << "            Packets: ";
+        for (const auto& packet : linkInfo.PacketPositions) {
+          std::cout << packet << " ";
+        }
+        std::cout << "\n";
+      }
+      std::cout << "\n\n";
+    }
+  }
+}
+
+//==============================================================================
 int RawReaderCRU::scanFile()
 {
   if (mFileIsScanned)
@@ -29,7 +130,8 @@ int RawReaderCRU::scanFile()
 
   // std::vector<PacketDescriptor> mPacketDescriptorMap;
   //const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
-  const uint64_t RDH_HEADERWORD0 = 0x00004003;
+  //const uint64_t RDH_HEADERWORD0 = 0x00004003;
+  const uint64_t RDH_HEADERWORD0 = 0x00004004;
 
   std::ifstream file;
   file.open(mInputFileName, std::ifstream::binary);
@@ -50,6 +152,7 @@ int RawReaderCRU::scanFile()
   // read in the RDH, then jump to the next RDH position
   RDH rdh;
   uint32_t currentPacket = 0;
+
   while (currentPacket < numPackets) {
     const uint32_t currentPos = file.tellg();
 
@@ -71,6 +174,8 @@ int RawReaderCRU::scanFile()
     //return (subword3 >> 16) & 0x0FFF;
     //};
 
+    const auto heartbeatOrbit = rdh.heartbeatOrbit;
+
     auto getDataWrapperID = [rdh]() {
       auto subword3 = rdh.word1 >> 32;
       return (subword3 >> 28) & 0x01;
@@ -84,15 +189,37 @@ int RawReaderCRU::scanFile()
       mCRU = rdh.cruID;
     }
 
+    // find evnet info or create a new one
+    RawReaderCRUEventSync::LinkInfo* linkInfo = nullptr;
+    if (mEventSync) {
+      linkInfo = &mEventSync->getLinkInfo(heartbeatOrbit, mCRU, globalLinkID);
+    }
     const auto blockLength = rdh.blockLength;
     //std::cout << "block length: " << blockLength << '\n';
 
     // check Header for Header ID and create the packet descriptor and set the mLinkPresent flag
     if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
-      mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, blockLength);
-      mLinkPresent[globalLinkID] = true;
-      mPacketsPerLink[globalLinkID]++;
+      // non 0 stop bit means data with payload
+      if (rdh.stop == 0) {
+        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, blockLength);
+        mLinkPresent[globalLinkID] = true;
+        mPacketsPerLink[globalLinkID]++;
+        if (linkInfo) {
+          linkInfo->PacketPositions.emplace_back(mPacketsPerLink[globalLinkID] - 1);
+          linkInfo->IsPresent = true;
+        }
+      } else if (rdh.stop == 1) {
+        // stop bit 1 means we hit the HB end frame without payload.
+        // This marks the end of an "event" in HB scaling mode.
+        if (linkInfo) {
+          linkInfo->HBEndSeen = true;
+        }
+      } else {
+        O2ERROR("Unknown stop code: %lu", rdh.stop);
+      }
       //std::cout << dataWrapperID << "." << linkID << " (" << globalLinkID << ")\n";
+    } else {
+      O2ERROR("Found header word %x and required header word %x don't match", rdh.word0, RDH_HEADERWORD0);
     };
 
     // debug output
@@ -112,7 +239,7 @@ int RawReaderCRU::scanFile()
   if (mVerbosity) {
     // show the mLinkPresent map
     std::cout << "Links present" << std::endl;
-    for (int i = 0; i < mNumberLinks; i++) {
+    for (int i = 0; i < MaxNumberOfLinks; i++) {
       mLinkPresent[i] == true ? std::cout << "1 " : std::cout << "0 ";
     };
     std::cout << '\n';
@@ -125,7 +252,7 @@ int RawReaderCRU::scanFile()
 
     if (mVerbosity > 1) {
       // ===| display packet statistics |===
-      for (int i = 0; i < mNumberLinks; i++) {
+      for (int i = 0; i < MaxNumberOfLinks; i++) {
         if (mLinkPresent[i]) {
           std::cout << "Packets for link " << i << ": " << mPacketsPerLink[i] << "\n";
           //
@@ -151,10 +278,10 @@ void RawReaderCRU::findSyncPositions()
   if (!file.good())
     throw std::runtime_error("Unable to open or access file " + mInputFileName);
 
-  // loop over the mNumberLinks potential links in the data
+  // loop over the MaxNumberOfLinks potential links in the data
   // only if data from the link is present and selected
   // for decoding it will be decoded.
-  for (int link = 0; link < mNumberLinks; link++) {
+  for (int link = 0; link < MaxNumberOfLinks; link++) {
     // all links have been selected
     if (!checkLinkPresent(link)) {
       continue;
@@ -170,7 +297,7 @@ void RawReaderCRU::findSyncPositions()
 
     // loop over the packets for each link and process them
     for (auto packet : mPacketDescriptorMaps[link]) {
-      gFrame.setPacketID(packetID);
+      gFrame.setPacketNumber(packetID);
 
       file.seekg(packet.getPayloadOffset(), file.beg);
 
@@ -233,8 +360,9 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
 
     gFrame.getAdcValues(rawData);
     gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
-    if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16))
+    if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
+    }
   };
   return 0;
 }
@@ -244,7 +372,6 @@ int RawReaderCRU::processData()
   GBTFrame gFrame;
   //gFrame.setSyncPositions(mSyncPositions[mLink]);
 
-  uint32_t packetID = 0;
   ADCRawData rawData;
 
   if (mVerbosity) {
@@ -258,15 +385,20 @@ int RawReaderCRU::processData()
 
   const auto& mapper = Mapper::instance();
 
+  const auto& linkInfoArray = mEventSync->getLinkInfoArrayForEvent(mEventNumber, mCRU);
+
   // loop over the packets for each link and process them
-  for (auto packet : mPacketDescriptorMaps[link]) {
+  //for (const auto& packet : mPacketDescriptorMaps[link]) {
+  for (auto packetNumber : linkInfoArray[link].PacketPositions) {
+    const auto& packet = mPacketDescriptorMaps[link][packetNumber];
+
     cru = packet.getCRUID();
     // std::cout << "Packet : " << packetID << std::endl;
-    gFrame.setPacketID(packetID);
+    gFrame.setPacketNumber(packetNumber);
     int retCode = processPacket(gFrame, packet.getPayloadOffset(), packet.getPayloadSize(), rawData);
-    if (retCode)
+    if (retCode) {
       break;
-    packetID++;
+    }
 
     //if (rawData.getNumTimebins() >= mNumTimeBins * 16)
     //break;
@@ -305,8 +437,9 @@ int RawReaderCRU::processData()
     std::string fileName;
     for (int s = 0; s < 5; s++) {
       if (mStream == 0x0 or ((mStream >> s) & 0x1) == 0x1) {
-        if (gFrame.mSyncFound(s) == false)
+        if (gFrame.mSyncFound(s) == false) {
           std::cout << "No sync found" << std::endl;
+        }
         // debug output
         rawData.setOutputStream(s);
         rawData.setNumTimebins(mNumTimeBins);
@@ -332,17 +465,29 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
     // and the mLinkPresent map.
     scanFile();
 
-    // loop over the mNumberLinks potential links in the data
+    // check if selected event is valid
+    if (mEventSync && mEventNumber >= mEventSync->getNumberOfEvents()) {
+      O2ERROR("Selected event number %u is larger then the events in the file %lu", mEventNumber, mEventSync->getNumberOfEvents());
+      return;
+    }
+
+    // loop over the MaxNumberOfLinks potential links in the data
     // only if data from the link is present and selected
     // for decoding it will be decoded.
-    for (int lnk = 0; lnk < mNumberLinks; lnk++) {
+    for (int lnk = 0; lnk < MaxNumberOfLinks; lnk++) {
       // all links have been selected
       if (linkMask == 0 && checkLinkPresent(lnk) == true) {
         // set the active link variable and process the data
+        if (mDebugLevel) {
+          fmt::print("Processing link {}\n", lnk);
+        }
         setLink(lnk);
         processData();
       } else if (((linkMask >> lnk) & 0x1) == 0x1 && checkLinkPresent(lnk) == true) {
         // set the active link variable and process the data
+        if (mDebugLevel) {
+          fmt::print("Processing link {}\n", lnk);
+        }
         setLink(lnk);
         processData();
       };
@@ -503,6 +648,26 @@ std::istream& operator>>(std::istream& input, RDH& rdh)
   return input;
 }
 
+//==============================================================================
+void RawReaderCRUManager::init()
+{
+  if (mIsInitialized)
+    return;
+
+  for (auto& reader : mRawReadersCRU) {
+    reader->setEventSync(&mEventSync);
+    reader->scanFile();
+  }
+
+  mEventSync.sortEvents();
+  mEventSync.analyse();
+
+  if (mDebugLevel) {
+    std::cout << mEventSync;
+  }
+
+  mIsInitialized = true;
+}
 //std::istream& operator>>(std::istream& input, RDH& rdh)
 //{
 //const int wordSize = sizeof(rdh.word0);

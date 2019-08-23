@@ -11,7 +11,11 @@
 /// \file   CalibPedestal.cxx
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <fmt/format.h>
+
+#include "TH2F.h"
 #include "TFile.h"
+
 #include "TPCBase/ROC.h"
 #include "MathUtils/MathBase.h"
 #include "TPCCalibration/CalibPedestal.h"
@@ -139,4 +143,23 @@ void CalibPedestal::dumpToFile(const std::string filename)
   f->WriteObject(&mPedestal, "Pedestals");
   f->WriteObject(&mNoise, "Noise");
   f->Close();
+}
+
+//______________________________________________________________________________
+TH2* CalibPedestal::createControlHistogram(ROC roc)
+{
+  auto* data = mADCdata[roc.getRoc()]->data();
+
+  const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
+  TH2F* h2 = new TH2F(fmt::format("hADCValues_ROC{:02}", roc.getRoc()).data(), fmt::format("ADC values of ROC {:02}", roc.getRoc()).data(), numberOfPads, 0, numberOfPads, mNumberOfADCs, mADCMin, mADCMax);
+  h2->SetDirectory(nullptr);
+  for (int ichannel = 0; ichannel < numberOfPads; ++ichannel) {
+    size_t offset = ichannel * mNumberOfADCs;
+
+    for (int iADC = 0; iADC < mNumberOfADCs; ++iADC) {
+      h2->Fill(ichannel, mADCMin + iADC, (data + offset)[iADC]);
+    }
+  }
+
+  return h2;
 }

@@ -45,7 +45,7 @@ adcMin=0
 adcMax=1100
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,timeBins:,nevents:,adcMax:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:n:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,timeBins:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:n:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit

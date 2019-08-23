@@ -24,6 +24,8 @@
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
 
+class TH2;
+
 namespace o2
 {
 namespace tpc
@@ -107,6 +109,9 @@ class CalibPedestal : public CalibRawBase
 
   /// Dummy end event
   void endEvent() final{};
+
+  /// generate a control histogram
+  TH2* createControlHistogram(ROC roc);
 
  private:
   int mFirstTimeBin;              ///< first time bin used in analysis
