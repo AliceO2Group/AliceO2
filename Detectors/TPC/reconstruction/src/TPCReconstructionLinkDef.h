@@ -13,17 +13,20 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link C++ nestedclasses;
 
-#pragma link C++ class o2::tpc::AdcClockMonitor;
-#pragma link C++ class o2::tpc::GBTFrame;
-#pragma link C++ class o2::tpc::GBTFrameContainer;
-#pragma link C++ class o2::tpc::HalfSAMPAData;
-#pragma link C++ class o2::tpc::RawReader;
-#pragma link C++ class o2::tpc::RawReaderCRU;
-#pragma link C++ class o2::tpc::RawReaderEventSync;
-#pragma link C++ class o2::tpc::SyncPatternMonitor;
-#pragma link C++ class o2::tpc::GPUCATracking;
-#pragma link C++ class o2::tpc::HardwareClusterDecoder;
+#pragma link C++ class o2::tpc::AdcClockMonitor+;
+#pragma link C++ class o2::tpc::GBTFrame+;
+#pragma link C++ class o2::tpc::GBTFrameContainer+;
+#pragma link C++ class o2::tpc::HalfSAMPAData+;
+#pragma link C++ class o2::tpc::RawReader+;
+#pragma link C++ class o2::tpc::RawReaderCRU+;
+#pragma link C++ class o2::tpc::RawReaderCRUEventSync+;
+#pragma link C++ class o2::tpc::RawReaderCRUManager+;
+#pragma link C++ class o2::tpc::RawReaderEventSync+;
+#pragma link C++ class o2::tpc::SyncPatternMonitor+;
+#pragma link C++ class o2::tpc::GPUCATracking+;
+#pragma link C++ class o2::tpc::HardwareClusterDecoder+;
 
 #pragma link C++ class o2::tpc::Clusterer + ;
 #pragma link C++ class o2::tpc::ClustererTask + ;
