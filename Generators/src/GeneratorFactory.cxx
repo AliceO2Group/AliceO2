@@ -17,7 +17,9 @@
 #include <FairLogger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
+#ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/Pythia8Generator.h>
+#endif
 #include <Generators/BoxGunParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
@@ -115,6 +117,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+#ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("pythia8") == 0) {
     // pythia8 pp
     // configures pythia for min.bias pp collisions at 14 TeV
@@ -156,6 +159,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
     py8Gen->SetParameters("ParticleDecays:limitTau0 on");
     primGen->AddGenerator(py8Gen);
+#endif
   } else if (genconfig.compare("extgen") == 0) {
     // external generator via configuration macro
     auto extgen_filename = conf.getExtGeneratorFileName();

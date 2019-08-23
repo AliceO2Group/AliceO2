@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 if(pythia_FOUND)
-  set(pythiaTarget pythia FairRoot::Gen)
+  set(pythiaTarget pythia)
 endif()
 
 o2_add_library(Generators
@@ -21,10 +21,11 @@ o2_add_library(Generators
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
                        src/BoxGunParam.cxx
+                       src/GeneratorFactory.cxx
                        $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
-                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorFactory.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
                                      O2::SimulationDataFormat ${pythiaTarget}
+                                     FairRoot::Gen
                TARGETVARNAME targetName)
 
 if(pythia_FOUND)
