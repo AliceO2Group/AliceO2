@@ -127,8 +127,6 @@ function(add_root_dictionary target)
 
   set(includeDirs $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
 
-  set(prop "")
-
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off
   add_custom_command(
