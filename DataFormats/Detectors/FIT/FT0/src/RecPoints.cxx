@@ -34,13 +34,9 @@ void RecPoints::fillFromDigits(const o2::ft0::Digit& digit)
 
   mIntRecord = digit.getInteractionRecord();
   mEventTime = o2::InteractionRecord::bc2ns(mIntRecord.bc, mIntRecord.orbit);
-
-  Float_t BCEventTime = 12.5;
-
   mTimeAmp = digit.getChDgData();
   for (auto& d : mTimeAmp) {
-    d.CFDTime -= mEventTime /*- BCEventTime*/;
-    if (std::fabs(d.CFDTime - BCEventTime) < 2) {
+    if (std::fabs(d.CFDTime) < 2) {
       if (d.ChId < nMCPsA) {
         sideAtime += d.CFDTime;
         ndigitsA++;

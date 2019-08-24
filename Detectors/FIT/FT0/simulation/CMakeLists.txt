@@ -9,9 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(FT0Simulation
-               SOURCES src/Detector.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FT0Base
-                                     O2::DataFormatsFT0)
+  SOURCES src/Detector.cxx
+  SOURCES src/Digits2Raw.cxx
 
   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::FT0Base
   O2::DataFormatsFT0
@@ -22,5 +21,3 @@ o2_target_root_dictionary(FT0Simulation HEADERS
   include/FT0Simulation/Digits2Raw.h
   
    )
-
-
