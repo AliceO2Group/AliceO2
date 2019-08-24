@@ -1,0 +1,86 @@
+#ifndef ALICEO2_FT0_LOOKUPTABLE_H_
+#define ALICEO2_FT0_LOOKUPTABLE_H_
+////////////////////////////////////////////////
+// Look Up Table FT0
+//////////////////////////////////////////////
+
+#include <Rtypes.h>
+#include <cassert>
+#include <iostream>
+#include <tuple>
+namespace o2
+{
+namespace ft0
+{
+struct Topo {
+  int mPM = 0;
+  int mMCP = 0;
+};
+
+inline bool operator<(Topo const& a, Topo const& b)
+{
+  return std::tie(a.mPM, a.mMCP) < std::tie(b.mPM, a.mMCP);
+}
+
+inline std::size_t hash(Topo const& x)
+{
+  return x.mPM * 12 + x.mMCP;
+}
+
+class LookUpTable
+{
+ public:
+  ///
+  /// Default constructor.
+  /// It must be kept public for root persistency purposes,
+  /// but should never be called by the outside world
+  LookUpTable() = default;
+  explicit LookUpTable(std::vector<Topo> const& topoVector)
+    : mTopoVector(topoVector), mInvTopo(topoVector.size())
+  {
+    for (int channel = 0; channel < mTopoVector.size(); ++channel)
+      mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) = channel;
+  }
+  ~LookUpTable() = default;
+  void printFullMap() const
+  {
+    for (int channel = 0; channel < mTopoVector.size(); ++channel)
+      std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM << " MCP \t" << mTopoVector[channel].mMCP << std::endl;
+    for (int idx = 0; idx < mInvTopo.size(); ++idx)
+      std::cout << "PM \t" << getLinkFromIdx(mInvTopo[idx]) << " MCP \t" << getQuadrantFromIdx(mInvTopo[idx]) << std::endl;
+  }
+
+  int getChannel(int link, int quadrant) const
+  {
+    return mInvTopo[getIdx(link, quadrant)];
+  }
+
+  int getLink(int channel) const { return mTopoVector[channel].mPM; }
+  int getQuadrant(int channel) const { return mTopoVector[channel].mMCP; }
+
+  static constexpr int number_of_quadrants = 12;
+
+ private:
+  std::vector<Topo> mTopoVector;
+  std::vector<int> mInvTopo;
+
+  static int getIdx(int link, int quadrant)
+  {
+    assert(quadrant < number_of_quadrants);
+    return link * number_of_quadrants + quadrant;
+  }
+  static int getLinkFromIdx(int idx)
+  {
+    return idx / number_of_quadrants;
+  }
+  static int getQuadrantFromIdx(int idx)
+  {
+    return idx % number_of_quadrants;
+  }
+
+  ClassDefNV(LookUpTable, 1);
+};
+
+} // namespace ft0
+} // namespace o2
+#endif
