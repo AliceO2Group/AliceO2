@@ -16,8 +16,8 @@ namespace o2::fit
 struct DigitizationParameters {
   int NCellsA;        // number of radiatiors on A side
   int NCellsC;        // number of radiatiors on C side
-  float ZdetA;        // number of radiatiors on A side
-  float ZdetC;        // number of radiatiors on C side
+  float ZdetA;        // Z position A side
+  float ZdetC;        // Z position on C side
   float ChannelWidth; // channel width in ps
 
   Float_t mBC_clk_center; // clk center

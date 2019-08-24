@@ -68,10 +68,10 @@ void readHitsDigits()
       Double_t evtime = digit.getTime();
       for (const auto& d : digit.getChDgData()) {
         Int_t mcp = d.ChId;
-        cfd[mcp] = d.CFDTime - evtime - 12.5;
+        cfd[mcp] = d.CFDTime /*- evtime - 12.5*/;
         amp[mcp] = d.QTCAmpl;
         part[mcp] = d.numberOfParticles;
-        //     cout << iev << " " << mcp << " " << cfd[mcp] << " " << amp[mcp] << " " << part[mcp] << endl;
+        cout << iev << " " << mcp << " " << cfd[mcp] << " " << amp[mcp] << " " << part[mcp] << endl;
         hMultDig->Fill(Float_t(mcp), amp[mcp]);
         hTimeDig->Fill(Float_t(mcp), cfd[mcp]);
       }
