@@ -139,8 +139,8 @@ In order to define the datatype you need to use `DEFINE_SOA_COLUMN` and `DEFINE_
 namespace o2::aod {
 
 namespace etaphi {
-DEFINE_SOA_COLUMNS(Eta, eta, float, "fEta");
-DEFINE_SOA_COLUMNS(Phi, phi, float, "fPhi");
+DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
+DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
 }
 }
 ```
@@ -149,8 +149,8 @@ and then you put them together in a table:
 
 ```cpp
 namespace o2::aod {
-DEFINE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
-                 etaphi:Eta, etaphi::Phi);
+DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
+                  etaphi::Eta, etaphi::Phi);
 }
 ```
 
