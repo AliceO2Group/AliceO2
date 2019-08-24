@@ -27,6 +27,7 @@ namespace o2
 {
 namespace ft0
 {
+
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 18;
@@ -75,6 +76,7 @@ struct EventData {
 class RawEventData
 {
  public:
+
   RawEventData() = default;
   //virtual ~RawEventData();
   void GenerateHeader(int nChannels);
@@ -95,6 +97,7 @@ class RawEventData
                        kIsEventInTVDC,
                        kIsTimeInfoLost };
   const static int gStartDescriptor = 0x0000000f;
+
 
   int size() const
   {
@@ -161,6 +164,7 @@ class RawEventData
   EventHeader mEventHeader;
   EventData mEventData[Nchannels_PM];
   bool mIsPadded = true;
+
   /////////////////////////////////////////////////
   ClassDefNV(RawEventData, 1);
 };
