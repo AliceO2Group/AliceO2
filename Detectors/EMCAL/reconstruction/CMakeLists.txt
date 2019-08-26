@@ -17,6 +17,7 @@ o2_add_library(EMCALReconstruction
                        src/Mapper.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
                                      AliceO2::InfoLogger
+                                     O2::DataFormatsEMCAL
                                      O2::EMCALBase)
 
 o2_target_root_dictionary(
@@ -31,3 +32,9 @@ o2_add_executable(rawreader-file
                   SOURCES run/rawReaderFile.cxx)
 
 o2_data_file(COPY files DESTINATION Detectors/EMCAL)
+
+o2_add_test(Mapper
+            SOURCES test/testMapper.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+            COMPONENT_NAME emcal
+            LABELS emcal)
