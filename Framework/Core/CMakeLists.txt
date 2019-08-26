@@ -16,6 +16,14 @@ else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
 
+# Use the external DebugGUI package, if found
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+else()
+  message(WARNING "Old version of DebugGUI. Please update alidist")
+  set(DEBUGGUI_TARGET O2::DebugGUI)
+endif()
+
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        ${GUI_SOURCES}
@@ -105,7 +113,7 @@ o2_add_library(Framework
                                      arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
-                                     O2::DebugGUI
+                                     ${DEBUGGUI_TARGET}
                                      O2::FrameworkLogger
                                      Boost::serialization)
 
@@ -113,6 +121,10 @@ o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h
                           LINKDEF test/FrameworkCoreTestLinkDef.h)
 
+# We build the OpenGL tests only if we use the old, internal, to be removed
+# O2::DebugGUI target These tests have been moved to the
+# AliceO2Group/DebugGUI package.
+if (NOT TARGET AliceO2::DebugGUI)
 if(GLFW_FOUND)
   foreach(t DebugGUISokol DebugGUIGL GUITests)
     o2_add_test(${t}
@@ -126,6 +138,7 @@ if(GLFW_FOUND)
                PROPERTY DISABLED True)
   set_property(TEST Framework/Core/test/test_DebugGUIGL.cxx
                PROPERTY DISABLED True)
+endif()
 endif()
 
 foreach(t
