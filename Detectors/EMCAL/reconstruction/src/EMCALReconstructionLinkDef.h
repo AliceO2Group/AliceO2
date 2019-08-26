@@ -14,16 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
-
-#pragma link C++ class o2::mch::Mapping + ;
-#pragma link C++ class o2::mch::DigitBlock + ;
-#pragma link C++ class o2::mch::PreClusterBlock + ;
-#pragma link C++ class o2::mch::ClusterBlock + ;
-#pragma link C++ class o2::mch::TrackBlock + ;
-
-#pragma link C++ class o2::mch::Digit + ;
-#pragma link C++ class std::vector < o2::mch::Digit> + ;
+#pragma link C++ class o2::emcal::RAWDataHeader + ;
+#pragma link C++ class o2::emcal::RawReaderFile + ;
+#pragma link C++ class o2::emcal::AltroDecoder + ;
 
 #endif

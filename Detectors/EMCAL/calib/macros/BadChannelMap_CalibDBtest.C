@@ -64,10 +64,10 @@ void BadChannelMap_CalibDBtest(const std::string_view ccdbserver = "emcccdb-test
   // Read bad channel map from CCDB, check whether they are the same
   // using test timestamp from next run (290223)
   auto rangetest = create_timestamp(2018, 7, 30, 12, 13, 20);
-  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+  std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::BadChannelMap* read(nullptr);
   try {
-    read = ccdbhandler.readBadChannelMap(rangestart, metadata);
+    read = ccdbhandler.readBadChannelMap(rangetest, metadata);
   } catch (o2::emcal::CalibDB::ObjectNotFoundException& oe) {
     std::cerr << "CCDB error: " << oe.what() << std::endl;
     return;

@@ -28,6 +28,7 @@ o2_add_library(DetectorsBase
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
+                                  include/DetectorsBase/DCAFitter.h
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/Propagator.h

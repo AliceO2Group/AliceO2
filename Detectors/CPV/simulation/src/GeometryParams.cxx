@@ -72,6 +72,7 @@ GeometryParams::GeometryParams(const std::string_view name)
   double r = mIPtoCPVSurface + mCPVBoxSize[1];
   for (Int_t iModule = 0; iModule < mNModules; iModule++) {
     double angle = moduleAngle * (iModule - 2); //Module 3 just below IP
+    mCPVAngle[iModule] = -angle;
     mModuleCenter[iModule][0] = r * TMath::Sin(-angle / kRADDEG);
     mModuleCenter[iModule][1] = -r * TMath::Cos(-angle / kRADDEG);
     mModuleCenter[iModule][2] = 0.;

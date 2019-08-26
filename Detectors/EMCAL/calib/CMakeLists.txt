@@ -11,7 +11,9 @@
 o2_add_library(EMCALCalib
                SOURCES src/BadChannelMap.cxx
                        src/TimeCalibrationParams.cxx
+                       src/TimeCalibParamL1Phase.cxx
                        src/TempCalibrationParams.cxx
+                       src/TempCalibParamSM.cxx
                        src/GainCalibrationFactors.cxx
                        src/CalibDB.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase)
@@ -19,7 +21,9 @@ o2_add_library(EMCALCalib
 o2_target_root_dictionary(EMCALCalib
                           HEADERS include/EMCALCalib/BadChannelMap.h
                                   include/EMCALCalib/TimeCalibrationParams.h
+                                  include/EMCALCalib/TimeCalibParamL1Phase.h
                                   include/EMCALCalib/TempCalibrationParams.h
+                                  include/EMCALCalib/TempCalibParamSM.h
                                   include/EMCALCalib/GainCalibrationFactors.h
                                   include/EMCALCalib/CalibDB.h
                           LINKDEF src/EMCALCalibLinkDef.h)
@@ -36,8 +40,20 @@ o2_add_test(TimeCalibrationParams
             COMPONENT_NAME emcal
             LABELS emcal)
 
+o2_add_test(TimeCalibParamL1Phase
+            SOURCES test/testTimeL1PhaseCalib.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            COMPONENT_NAME emcal
+            LABELS emcal)
+
 o2_add_test(TempCalibrationParams
             SOURCES test/testTempCalibration.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            COMPONENT_NAME emcal
+            LABELS emcal)
+
+o2_add_test(TempCalibParamSM
+            SOURCES test/testTempCalibrationSM.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
             LABELS emcal)
@@ -64,11 +80,27 @@ o2_add_test_root_macro(macros/TimeCalibrationParams_CalibDBTest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
 
+o2_add_test_root_macro(macros/TimeCalibParamsL1Phase_CCDBApiTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TimeCalibParamsL1Phase_CalibDBTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
 o2_add_test_root_macro(macros/TempCalibrationParams_CCDBApiTest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
 
 o2_add_test_root_macro(macros/TempCalibrationParams_CalibDBTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TempCalibParamSM_CCDBApiTest.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+            LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/TempCalibParamSM_CalibDBTest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
 

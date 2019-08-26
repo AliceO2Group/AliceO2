@@ -122,6 +122,11 @@ class Detector : public o2::base::DetImpl<Detector>
   void EndOfEvent() final;
 
   ///
+  /// Specifies CPV modules as alignable volumes
+  ///
+  void addAlignableVolumes() const override;
+
+  ///
   /// Get the CPV geometry desciption
   /// Will be created the first time the function is called
   /// \return Access to the CPV Geometry description

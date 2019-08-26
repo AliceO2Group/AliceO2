@@ -96,11 +96,11 @@ void TempCalibrationParams_CCDBApiTest(const std::string_view ccdbserver = "emcc
   ccdbhandler.store(new o2::TObjectWrapper<o2::emcal::TempCalibrationParams>(tcp), "EMC/TempCalibParams", metadata, rangestart, rangeend);
 
   // Read temperature calibration coefficients from CCDB, check whether they are the same
-  auto rangetest = create_timestamp(2018, 4, 18, 23, 58, 48); //LHC18
-  //auto rangetest = create_timestamp(2017, 5, 23, 23, 7, 44); //LHC17
-  //auto rangetest = create_timestamp(2016, 4, 23, 0, 58, 40); //LHC16
-  //auto rangetest = create_timestamp(2015, 9, 12, 5, 7, 8); //LHC15
-  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+  auto rangetest = create_timestamp(2018, 4, 27, 1, 5, 52); //LHC18 run 285396
+  //auto rangetest = create_timestamp(2017, 6, 12, 22, 39, 50); //LHC17 run 271777
+  //auto rangetest = create_timestamp(2016, 7, 9, 2, 0, 8); //LHC16 run 257735
+  //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
+  std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::TempCalibrationParams* read(nullptr);
   auto res = ccdbhandler.retrieve("EMC/TempCalibParams", metadata, rangetest);
   if (!res) {

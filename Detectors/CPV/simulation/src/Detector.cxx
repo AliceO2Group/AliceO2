@@ -15,6 +15,7 @@
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 #include "TVirtualMC.h"
+#include "TGeoPhysicalNode.h"
 
 #include "FairGeoNode.h"
 #include "FairRootManager.h"
@@ -24,7 +25,9 @@
 #include "CPVBase/Hit.h"
 #include "CPVSimulation/Detector.h"
 #include "CPVSimulation/GeometryParams.h"
+#include "CPVSimulation/CPVSimParams.h"
 
+#include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -124,24 +127,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // ported from AliRoot 2019
   // ------------------------------------------------------------------------
 
-  const int knCellZ = 128;
-  const int knCellX = 60;
-  const float kPadSizeZ = 1.13;                      // overall size of CPV active size
-  const float kPadSizeX = 2.1093;                    // in phi and z directions
-  const float kCPVActiveSizeZ = kPadSizeZ * knCellZ; // overall size of CPV active size
-  const float kCPVActiveSizeX = kPadSizeX * knCellX; // in phi and z directions
-  const float kCelWr = kPadSizeX / 2.;               // Distance between wires (2 wires above 1 pad)
-  const float kDetR = 0.1;                           // Relative energy fluctuation in track for 100 e-
-  const float kdEdx = 4.0;                           // Average energy loss in CPV;
-  const int kNgamz = 5;                              // Ionization size in Z
-  const int kNgamx = 9;                              // Ionization size in Phi
-  const float kNoise = 0.03;                         // charge noise in one pad
-  const float kCPVGasThickness = 1.3;                // width of ArC02 gas gap
-
-  // NO need to check
-  //  int idPCPQ = fMC->VolId("CPVQ");
-  //  if( fMC->CurrentVolID(copy) != idPCPQ) return ;
-
   //analyze only charged
   if (fMC->TrackCharge() == 0) {
     fMC->SetMaxStep(1.e10);
@@ -176,6 +161,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // axis X goes across the beam in the module plane
   // axis Y is a normal to the module plane showing from the IP
 
+  auto& cpvparam = o2::cpv::CPVSimParams::Instance();
   // Digitize the current CPV hit:
   // find pad response
   float hitX = xyzd[0]; //hit coordinate in daugter frame
@@ -183,43 +169,43 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   float pX = pd[0];
   float pZ = pd[2];
   float pNorm = -pd[1];
-  float dZY = pZ / pNorm * kCPVGasThickness;
-  float dXY = pX / pNorm * kCPVGasThickness;
+  float dZY = pZ / pNorm * cpvparam.mCPVGasThickness;
+  float dXY = pX / pNorm * cpvparam.mCPVGasThickness;
   float rnor1 = 0., rnor2 = 0.;
   gRandom->Rannor(rnor1, rnor2);
-  float eloss = kdEdx * (1 + kDetR * rnor1) *
-                TMath::Sqrt((1. + (pow(dZY, 2) + pow(dXY, 2)) / pow(kCPVGasThickness, 2)));
-  float zhit1 = hitZ + kCPVActiveSizeZ / 2 - dZY / 2;
-  float xhit1 = hitX + kCPVActiveSizeX / 2 - dXY / 2;
+  float eloss = cpvparam.mdEdx * (1 + cpvparam.mDetR * rnor1) *
+                TMath::Sqrt((1. + (pow(dZY, 2) + pow(dXY, 2)) / pow(cpvparam.mCPVGasThickness, 2)));
+  float zhit1 = hitZ + cpvparam.mPadSizeZ * cpvparam.mnCellZ / 2 - dZY / 2;
+  float xhit1 = hitX + cpvparam.mPadSizeX * cpvparam.mnCellX / 2 - dXY / 2;
   float zhit2 = zhit1 + dZY;
   float xhit2 = xhit1 + dXY;
 
-  int iwht1 = (int)(xhit1 / kCelWr); // wire (x) coordinate "in"
-  int iwht2 = (int)(xhit2 / kCelWr); // wire (x) coordinate "out"
+  int iwht1 = (int)(xhit1 / cpvparam.CellWr()); // wire (x) coordinate "in"
+  int iwht2 = (int)(xhit2 / cpvparam.CellWr()); // wire (x) coordinate "out"
 
   int nIter;
   float zxe[3][5];
   if (iwht1 == iwht2) { // incline 1-wire hit
     nIter = 2;
     zxe[0][0] = (zhit1 + zhit2 - dZY * 0.57735) / 2;
-    zxe[1][0] = (iwht1 + 0.5) * kCelWr;
+    zxe[1][0] = (iwht1 + 0.5) * cpvparam.CellWr();
     zxe[2][0] = eloss / 2;
     zxe[0][1] = (zhit1 + zhit2 + dZY * 0.57735) / 2;
-    zxe[1][1] = (iwht1 + 0.5) * kCelWr;
+    zxe[1][1] = (iwht1 + 0.5) * cpvparam.CellWr();
     zxe[2][1] = eloss / 2;
   } else if (TMath::Abs(iwht1 - iwht2) != 1) { // incline 3-wire hit
     nIter = 3;
     int iwht3 = (iwht1 + iwht2) / 2;
-    float xwht1 = (iwht1 + 0.5) * kCelWr; // wire 1
-    float xwht2 = (iwht2 + 0.5) * kCelWr; // wire 2
-    float xwht3 = (iwht3 + 0.5) * kCelWr; // wire 3
-    float xwr13 = (xwht1 + xwht3) / 2;    // center 13
-    float xwr23 = (xwht2 + xwht3) / 2;    // center 23
+    float xwht1 = (iwht1 + 0.5) * cpvparam.CellWr(); // wire 1
+    float xwht2 = (iwht2 + 0.5) * cpvparam.CellWr(); // wire 2
+    float xwht3 = (iwht3 + 0.5) * cpvparam.CellWr(); // wire 3
+    float xwr13 = (xwht1 + xwht3) / 2;               // center 13
+    float xwr23 = (xwht2 + xwht3) / 2;               // center 23
     float dxw1 = xhit1 - xwr13;
     float dxw2 = xhit2 - xwr23;
-    float egm1 = TMath::Abs(dxw1) / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + kCelWr);
-    float egm2 = TMath::Abs(dxw2) / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + kCelWr);
-    float egm3 = kCelWr / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + kCelWr);
+    float egm1 = TMath::Abs(dxw1) / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + cpvparam.CellWr());
+    float egm2 = TMath::Abs(dxw2) / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + cpvparam.CellWr());
+    float egm3 = cpvparam.CellWr() / (TMath::Abs(dxw1) + TMath::Abs(dxw2) + cpvparam.CellWr());
     zxe[0][0] = (dXY * (xwr13 - xwht1) / dXY + zhit1 + zhit1) / 2;
     zxe[1][0] = xwht1;
     zxe[2][0] = eloss * egm1;
@@ -231,8 +217,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     zxe[2][2] = eloss * egm3;
   } else { // incline 2-wire hit
     nIter = 2;
-    float xwht1 = (iwht1 + 0.5) * kCelWr;
-    float xwht2 = (iwht2 + 0.5) * kCelWr;
+    float xwht1 = (iwht1 + 0.5) * cpvparam.CellWr();
+    float xwht2 = (iwht2 + 0.5) * cpvparam.CellWr();
     float xwr12 = (xwht1 + xwht2) / 2;
     float dxw1 = xhit1 - xwr12;
     float dxw2 = xhit2 - xwr12;
@@ -248,8 +234,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   // Finite size of ionization region
 
-  int nz3 = (kNgamz + 1) / 2;
-  int nx3 = (kNgamx + 1) / 2;
+  int nz3 = (cpvparam.mNgamz + 1) / 2;
+  int nx3 = (cpvparam.mNgamx + 1) / 2;
 
   TVirtualMCStack* stack = fMC->GetStack();
   const Int_t partID = stack->GetCurrentTrackNumber();
@@ -259,32 +245,32 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float zhit = zxe[0][iter];
     float xhit = zxe[1][iter];
     float qhit = zxe[2][iter];
-    float zcell = zhit / kPadSizeZ;
-    float xcell = xhit / kPadSizeX;
+    float zcell = zhit / cpvparam.mPadSizeZ;
+    float xcell = xhit / cpvparam.mPadSizeX;
     if (zcell <= 0 || xcell <= 0 ||
-        zcell >= knCellZ || xcell >= knCellX) {
+        zcell >= cpvparam.mnCellZ || xcell >= cpvparam.mnCellX) {
       return true; //beyond CPV
     }
     int izcell = (int)zcell;
     int ixcell = (int)xcell;
     float zc = zcell - izcell - 0.5;
     float xc = xcell - ixcell - 0.5;
-    for (int iz = 1; iz <= kNgamz; iz++) {
+    for (int iz = 1; iz <= cpvparam.mNgamz; iz++) {
       int kzg = izcell + iz - nz3;
-      if (kzg <= 0 || kzg > knCellZ) {
+      if (kzg <= 0 || kzg > cpvparam.mnCellZ) {
         continue;
       }
       float zg = (float)(iz - nz3) - zc;
-      for (int ix = 1; ix <= kNgamx; ix++) {
+      for (int ix = 1; ix <= cpvparam.mNgamx; ix++) {
         int kxg = ixcell + ix - nx3;
-        if (kxg <= 0 || kxg > knCellX) {
+        if (kxg <= 0 || kxg > cpvparam.mnCellX) {
           continue;
         }
         float xg = (float)(ix - nx3) - xc;
 
         // Now calculate pad response
         float qpad = PadResponseFunction(qhit, zg, xg);
-        qpad += kNoise * rnor2;
+        qpad += cpvparam.mNoise * rnor2;
         if (qpad < 0) {
           continue;
         }
@@ -308,12 +294,11 @@ double Detector::PadResponseFunction(float qhit, float zhit, float xhit)
   // 3 October 2000
   // ------------------------------------------------------------------------
 
-  const float kPadSizeZ = 1.13;   // overall size of CPV active size
-  const float kPadSizeX = 2.1093; // in phi and z directions
-  double dz = kPadSizeZ / 2;
-  double dx = kPadSizeX / 2;
-  double z = zhit * kPadSizeZ;
-  double x = xhit * kPadSizeX;
+  auto& cpvparam = o2::cpv::CPVSimParams::Instance();
+  double dz = cpvparam.mPadSizeZ / 2;
+  double dx = cpvparam.mPadSizeX / 2;
+  double z = zhit * cpvparam.mPadSizeZ;
+  double x = xhit * cpvparam.mPadSizeX;
   double amplitude = qhit *
                      (CPVCumulPadResponse(z + dz, x + dx) - CPVCumulPadResponse(z + dz, x - dx) -
                       CPVCumulPadResponse(z - dz, x + dx) + CPVCumulPadResponse(z - dz, x - dx));
@@ -332,17 +317,15 @@ double Detector::CPVCumulPadResponse(double x, double y)
   // 3 October 2000
   // ------------------------------------------------------------------------
 
-  const double kA = 1.0;
-  const double kB = 0.7;
-
+  auto& cpvparam = o2::cpv::CPVSimParams::Instance();
   double r2 = x * x + y * y;
   double xy = x * y;
   double cumulPRF = 0;
   for (Int_t i = 0; i <= 4; i++) {
-    double b1 = (2 * i + 1) * kB;
+    double b1 = (2 * i + 1) * cpvparam.mB;
     cumulPRF += TMath::Power(-1, i) * TMath::ATan(xy / (b1 * TMath::Sqrt(b1 * b1 + r2)));
   }
-  cumulPRF *= kA / (2 * TMath::Pi());
+  cumulPRF *= cpvparam.mA / (2 * TMath::Pi());
   return cumulPRF;
 }
 
@@ -566,6 +549,65 @@ void Detector::defineSensitiveVolumes()
       AddSensitiveVolume(vsense);
     } else {
       LOG(ERROR) << "CPV Sensitive volume CPVQ not found ... No hit creation!\n";
+    }
+  }
+}
+//-----------------------------------------
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Create entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+
+  cpv::GeometryParams* geom = cpv::GeometryParams::GetInstance();
+
+  // Alignable modules
+  // Volume path /cave_1/CPV_<i> => symbolic name /CPV/Module<i>, <i>=1,2,3,4,5
+
+  o2::detectors::DetID::ID idCPV = o2::detectors::DetID::CPV;
+
+  TString physModulePath = "/cave_1/CPV_";
+
+  TString symbModuleName = "CPV/Module";
+
+  for (Int_t iModule = 1; iModule <= geom->GetNModules(); iModule++) {
+
+    TString volPath(physModulePath);
+    volPath += iModule;
+
+    TString symName(symbModuleName);
+    symName += iModule;
+
+    int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule - 1);
+
+    LOG(DEBUG) << "--------------------------------------------"
+               << "\n";
+    LOG(DEBUG) << "Alignable object" << iModule << "\n";
+    LOG(DEBUG) << "volPath=" << volPath << "\n";
+    LOG(DEBUG) << "symName=" << symName << "\n";
+    LOG(DEBUG) << "--------------------------------------------"
+               << "\n";
+
+    LOG(DEBUG) << "Check for alignable entry: " << symName;
+
+    if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
+      LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+    }
+    LOG(DEBUG) << "Alignable entry " << symName << " set";
+
+    // Create the Tracking to Local transformation matrix for PHOS modules
+    TGeoPNEntry* alignableEntry = gGeoManager->GetAlignableEntryByUID(modUID);
+    LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
+
+    if (alignableEntry) {
+      Float_t angle = geom->GetCPVAngle(iModule);
+      TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
+
+      TGeoHMatrix* matTtoL = new TGeoHMatrix;
+      matTtoL->RotateZ(270. + angle);
+      const TGeoHMatrix& globmatrixi = globMatrix->Inverse();
+      matTtoL->MultiplyLeft(&globmatrixi);
+      alignableEntry->SetMatrix(matTtoL);
     }
   }
 }
