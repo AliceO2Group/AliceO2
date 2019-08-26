@@ -15,7 +15,12 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
+#if __has_include(<DebugGUI/DebugGUI.h>)
+#include "DebugGUI/DebugGUI.h"
+#else
+#pragma message "Old DebugGUI.h included. Update alidist."
 #include "Framework/DebugGUI.h"
+#endif
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
