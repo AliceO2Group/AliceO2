@@ -31,5 +31,6 @@
 #pragma link C++ class o2::ft0::RawEventData + ;
 #pragma link C++ class o2::ft0::EventHeader + ;
 #pragma link C++ class o2::ft0::EventData + ;
+#pragma link C++ class o2::ft0::Topo + ;
 
 #endif

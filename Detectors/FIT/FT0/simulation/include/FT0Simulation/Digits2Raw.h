@@ -36,6 +36,8 @@ class Digits2Raw
   static constexpr int NCHANNELS_FT0 = 208;
   static constexpr int NCHANNELS_PM = 12;
   static constexpr int NPMs = 18;
+  static constexpr float MV_2_NCHANNELS = 2.2857143;     //7 mV ->16channels
+  static constexpr float CFD_NS_2_NCHANNELS = 75.757576; //1000.(ps)/13.2(channel);
 
  public:
   Digits2Raw() = default;
@@ -47,12 +49,12 @@ class Digits2Raw
   void flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
   void setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
   void setRDH(int link, o2::InteractionRecord const& mIntRecord);
+  void setLUT();
   std::ofstream mFileDest;
   //  FILE* mFileDest;
   o2::ft0::EventHeader mEventHeader;
   o2::ft0::EventData mEventData[NCHANNELS_FT0];
   o2::header::RAWDataHeader mRDH;
-
   /////////////////////////////////////////////////
   ClassDefNV(Digits2Raw, 1);
 };

@@ -56,7 +56,7 @@ struct EventData {
 class RawEventData
 {
  public:
-  RawEventData();
+  RawEventData() = default;
   //virtual ~RawEventData();
   void GenerateHeader(int nChannels);
   void GenerateData();
