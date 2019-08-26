@@ -20,10 +20,6 @@ using namespace o2::fdd;
 //_____________________________________________________________________
 void Reconstructor::Process(const Digit& digit, RecPoint& recPoint) const
 {
-<<<<<<< HEAD
-=======
-  LOG(INFO) << "Running reconstruction on new event" << FairLogger::endl;
->>>>>>> 37cfa31e38cecf743f31cb4580e86813818adf5b
   o2::InteractionRecord intRecord = digit.GetInteractionRecord();
   recPoint.SetInteractionRecord(intRecord);
   Double_t eventTime = o2::InteractionRecord::bc2ns(intRecord.bc, intRecord.orbit);
