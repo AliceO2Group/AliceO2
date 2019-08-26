@@ -267,6 +267,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
+        providedRUN2s.emplace_back(output);
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
