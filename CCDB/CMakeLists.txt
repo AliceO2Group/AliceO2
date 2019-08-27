@@ -27,6 +27,7 @@ o2_add_library(CCDB
                        src/CcdbApi.cxx
                        src/ConditionsMQServer.cxx
                        src/ConditionsMQClient.cxx
+                       src/CCDBTimeStampUtils.cxx
                        src/request.proto
                PUBLIC_LINK_LIBRARIES FairMQ::FairMQ
                                      protobuf::libprotobuf
@@ -59,6 +60,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/XmlHandler.h
                                   include/CCDB/TObjectWrapper.h
                                   include/CCDB/CcdbApi.h
+                                  include/CCDB/CCDBTimeStampUtils.h
                                   test/TestClass.h)
 
 o2_add_executable(conditions-server
@@ -80,7 +82,7 @@ o2_data_file(COPY config/conditions-server.json config/conditions-client.json
                   example/fill_local_ocdb.C
              DESTINATION config)
 
-if(NOT APPLE)
+#if(NOT APPLE)
   o2_add_test(WriteReadAny
               SOURCES test/testWriteReadAny.cxx
               COMPONENT_NAME ccdb
@@ -92,4 +94,4 @@ if(NOT APPLE)
               COMPONENT_NAME ccdb
               PUBLIC_LINK_LIBRARIES O2::CCDB
               LABELS ccdb)
-endif()
+#endif()
