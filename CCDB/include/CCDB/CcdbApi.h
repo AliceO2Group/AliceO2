@@ -10,7 +10,7 @@
 
 ///
 /// \file   CcdbApi.h
-/// \author Barthelemy von Haller
+/// \author Barthelemy von Haller, Sandro Wenzel
 ///
 
 #ifndef PROJECT_CCDBAPI_H
@@ -23,6 +23,8 @@
 #include <curl/curl.h>
 #include <TObject.h>
 #include <TMessage.h>
+
+class TFile;
 
 namespace o2
 {
@@ -41,7 +43,7 @@ class CcdbApi //: public DatabaseInterface
 {
  public:
   /// \brief Default constructor
-  CcdbApi();
+  CcdbApi() = default;
   /// \brief Default destructor
   virtual ~CcdbApi();
 
@@ -50,7 +52,18 @@ class CcdbApi //: public DatabaseInterface
    *
    * @param host The URL to the CCDB (e.g. "ccdb-test.cern.ch:8080")
    */
-  void init(std::string host);
+  void init(std::string const& host);
+
+  /**
+   * Initialize in local mode; Objects will be retrieved from snapshot
+   *
+   * @param snapshotpath (e.g. "/path/CCDBSnapshot/")
+   */
+  void initInSnapshotMode(std::string const& snapshotpath)
+  {
+    mSnapshotTopPath = snapshotpath;
+    mInSnapshotMode = true;
+  }
 
   /**
    * Stores an object in the CCDB as a streamed object, not a TFile.
@@ -61,8 +74,8 @@ class CcdbApi //: public DatabaseInterface
    * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
    * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
    */
-  void store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
-             long startValidityTimestamp = -1, long endValidityTimestamp = -1, bool storeStreamerInfo = false);
+  void store(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+             long startValidityTimestamp = -1, long endValidityTimestamp = -1, bool storeStreamerInfo = false) const;
 
   /**
      * Store into the CCDB a TFile containing the ROOT object.
@@ -73,8 +86,21 @@ class CcdbApi //: public DatabaseInterface
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
      */
-  void storeAsTFile(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
-                    long startValidityTimestamp = -1, long endValidityTimestamp = -1);
+  void storeAsTFile(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+
+  /**
+     * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
+     *
+     * @param obj Raw pointer to the object to store.
+     * @param path The path where the object is going to be stored.
+     * @param metadata Key-values representing the metadata for this object.
+     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
+     */
+  template <typename T>
+  void storeAsTFileAny(T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -84,8 +110,8 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @return the object, or nullptr if none were found.
    */
-  TObject* retrieve(std::string path, std::map<std::string, std::string> metadata,
-                    long timestamp = -1);
+  TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
+                    long timestamp = -1) const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -95,8 +121,19 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @return the object, or nullptr if none were found.
    */
-  TObject* retrieveFromTFile(std::string path, std::map<std::string, std::string> metadata,
-                             long timestamp = -1);
+  TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
+                             long timestamp = -1) const;
+
+  /**
+  * Retrieve object at the given path for the given timestamp.
+  *
+  * @param path The path where the object is to be found.
+  * @param metadata Key-values representing the metadata to filter out objects.
+  * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
+  * @return the object, or nullptr if none were found or type does not match serialized type.
+  */
+  template <typename T>
+  T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp = -1) const;
 
   //    std::vector<std::string> getListOfTasksWithPublications();
   //    std::vector<std::string> getPublishedObjectNames(std::string taskName);
@@ -107,7 +144,7 @@ class CcdbApi //: public DatabaseInterface
    * @todo Raise an exception if no such object exist.
    * @param path
    */
-  void truncate(std::string path);
+  void truncate(std::string const& path) const;
 
   /**
    * Delete the matching version of this object.
@@ -116,7 +153,7 @@ class CcdbApi //: public DatabaseInterface
    * @param path Path to the object to delete
    * @param timestamp Timestamp of the object to delete.
    */
-  void deleteObject(std::string path, long timestamp = -1);
+  void deleteObject(std::string const& path, long timestamp = -1) const;
 
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.
@@ -139,36 +176,52 @@ class CcdbApi //: public DatabaseInterface
    * @param returnFormat The format of the returned string -> one of "text/plain (default)", "application/json", "text/xml"
    * @return The listing of folder and/or objects in the format requested
    */
-  std::string list(std::string path = "", bool latestOnly = false, std::string returnFormat = "text/plain");
+  std::string list(std::string const& path = "", bool latestOnly = false, std::string const& returnFormat = "text/plain") const;
+
+  /**
+   * Make a local snapshot of all valid objects, given a timestamp, of the CCDB under a given local path.
+   * This is doing a recursive list and fetching the files locally.
+   */
+  void snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const;
 
   /**
    * Check whether the url is reachable.
    * @param url The url to test.
    * @return a bool indicating whether the url is reachable or not.
    */
-  bool isHostReachable();
+  bool isHostReachable() const;
+
+  /**
+  * Helper function to extract the list of sub-folders from a list reply into a vector container.
+  * Can be used to achieve full recursive traversal/listing of the CCDB.
+  *
+  * @param reply The reply that we got from a GET/browse sort of request.
+  * @return The vector of sub-folders.
+  */
+  std::vector<std::string> parseSubFolders(std::string const& reply) const;
+
+  /**
+   * Function returning the complete list of (recursive) paths below a given top path
+   *
+   * @param top The top folder from which to search
+   * @return The vector of all possible CCDB folders
+   */
+  std::vector<std::string> getAllFolders(std::string const& top) const;
+
+  /**
+  *  Simple function to retrieve the blob corresponding to some path and timestamp.
+  *  Saves the blob locally to a binary file. The final path (including filename) is given by targetdir.
+  */
+  void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
 
  private:
-  /**
-   * Get the current timestamp.
-   *
-   * @return the current timestamp as a long
-   */
-  long getCurrentTimestamp();
   /**
    * Transform and return a string representation of the given timestamp.
    *
    * @param timestamp
    * @return a string representation of the given timestamp.
    */
-  std::string getTimestampString(long timestamp);
-  /**
-   * Compute and return a timestamp X seconds in the future.
-   *
-   * @param secondsInFuture The number of seconds in the future.
-   * @return the future timestamp
-   */
-  long getFutureTimestamp(int secondsInFuture);
+  std::string getTimestampString(long timestamp) const;
 
   /**
    * Build the full url to store an object.
@@ -180,7 +233,7 @@ class CcdbApi //: public DatabaseInterface
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
   std::string getFullUrlForStorage(const std::string& path, const std::map<std::string, std::string>& metadata,
-                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1);
+                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
   /**
    * Build the full url to store an object.
@@ -190,7 +243,37 @@ class CcdbApi //: public DatabaseInterface
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
   std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
-                                     long timestamp = -1);
+                                     long timestamp = -1) const;
+
+  /**
+   * A generic helper implementation to store an obj whose type is given by a std::type_info
+   */
+  void storeAsTFile_impl(void* obj, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
+                         long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+
+  /**
+   * A generic helper implementation to query obj whose type is given by a std::type_info
+   */
+  void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
+                          long timestamp = -1) const;
+
+  /**
+   * A helper function to extract object from a local ROOT file
+   * @param filename name of ROOT file
+   * @param objname name of serialized object
+   * @param cl The TClass object describing the serialized type
+   * @return raw pointer to created object
+   */
+  void* extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* cl) const;
+
+  /**
+   * A helper function to extract an object from an existing in-memory TFile
+   * @param file a TFile instance
+   * @param objname name of serialized object
+   * @param cl The TClass object describing the serialized type
+   * @return raw pointer to created object
+   */
+  void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl) const;
 
   /**
    * Initialization of CURL
@@ -198,10 +281,28 @@ class CcdbApi //: public DatabaseInterface
   void curlInit();
 
   /// Base URL of the CCDB (with port)
-  std::string mUrl;
+  std::string mUrl{};
+  std::string mSnapshotTopPath{};
+  bool mInSnapshotMode = false;
 
   ClassDefNV(CcdbApi, 1);
 };
+
+template <typename T>
+inline void CcdbApi::storeAsTFileAny(T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                                     long startValidityTimestamp, long endValidityTimestamp) const
+{
+  // get the type_info and dispatch to generic (untyped) implementation
+  storeAsTFile_impl(reinterpret_cast<void*>(obj), typeid(T), path, metadata,
+                    startValidityTimestamp, endValidityTimestamp);
+}
+
+template <typename T>
+T* CcdbApi::retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+{
+  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp));
+}
+
 } // namespace ccdb
 } // namespace o2
 
