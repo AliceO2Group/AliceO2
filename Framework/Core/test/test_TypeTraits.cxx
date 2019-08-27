@@ -131,3 +131,13 @@ BOOST_AUTO_TEST_CASE(TestHasRootStreamer)
   BOOST_REQUIRE_EQUAL(has_root_dictionary<decltype(f)>::value, true);
   BOOST_REQUIRE_EQUAL(has_root_dictionary<decltype(g)>::value, false);
 }
+
+BOOST_AUTO_TEST_CASE(TestIsSpan)
+{
+  gsl::span<int> a;
+  int b;
+  std::vector<char> c;
+  BOOST_REQUIRE_EQUAL(is_span<decltype(a)>::value, true);
+  BOOST_REQUIRE_EQUAL(is_span<decltype(b)>::value, false);
+  BOOST_REQUIRE_EQUAL(is_span<decltype(c)>::value, false);
+}
