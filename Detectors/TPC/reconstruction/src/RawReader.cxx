@@ -426,11 +426,11 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
       bool adcCheckErr2 = adcClockMon[2].addSequence(frame.getAdcClock(2));
 
       if (mSyncPos[0] >= 0)
-        adcClockFound[0] = adcClockFound[0] | !adcCheckErr0;
+        adcClockFound[0] = adcClockFound[0] | (!adcCheckErr0);
       if (mSyncPos[2] >= 0)
-        adcClockFound[1] = adcClockFound[1] | !adcCheckErr1;
+        adcClockFound[1] = adcClockFound[1] | (!adcCheckErr1);
       if (mSyncPos[4] >= 0)
-        adcClockFound[2] = adcClockFound[2] | !adcCheckErr2;
+        adcClockFound[2] = adcClockFound[2] | (!adcCheckErr2);
       if (adcClockFound[0] & adcCheckErr0) {
         adcClockFound[0] = false;
         LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 3 : 0) << " in frame [" << i / indexStep << "]";
