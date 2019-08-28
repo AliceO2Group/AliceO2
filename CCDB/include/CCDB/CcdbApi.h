@@ -50,20 +50,9 @@ class CcdbApi //: public DatabaseInterface
   /**
    * Initialize connection to CCDB
    *
-   * @param host The URL to the CCDB (e.g. "ccdb-test.cern.ch:8080")
+   * @param host The URL to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot")
    */
   void init(std::string const& host);
-
-  /**
-   * Initialize in local mode; Objects will be retrieved from snapshot
-   *
-   * @param snapshotpath (e.g. "/path/CCDBSnapshot/")
-   */
-  void initInSnapshotMode(std::string const& snapshotpath)
-  {
-    mSnapshotTopPath = snapshotpath;
-    mInSnapshotMode = true;
-  }
 
   /**
    * Stores an object in the CCDB as a streamed object, not a TFile.
@@ -215,6 +204,17 @@ class CcdbApi //: public DatabaseInterface
   void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
 
  private:
+  /**
+   * Initialize in local mode; Objects will be retrieved from snapshot
+   *
+   * @param snapshotpath (e.g. "/path/CCDBSnapshot/")
+   */
+  void initInSnapshotMode(std::string const& snapshotpath)
+  {
+    mSnapshotTopPath = snapshotpath;
+    mInSnapshotMode = true;
+  }
+
   /**
    * Transform and return a string representation of the given timestamp.
    *

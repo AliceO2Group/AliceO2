@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
 
   // b) init a new instance from the snapshot and query something from it
   o2::ccdb::CcdbApi snapshot;
-  snapshot.initInSnapshotMode(ph.string());
+  snapshot.init("file://" + ph.string());
 
   // c) query from the snapshot
   BOOST_CHECK(snapshot.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPath", f.metadata) != nullptr);
