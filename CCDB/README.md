@@ -2,10 +2,20 @@
 
 # CCDB
 
-The Conditions and Calibration DataBase provides a REST API which can be used to list, store and retrieve objects. 
+The Conditions and Calibration DataBase provides a REST API which can be used to list, store and retrieve objects.
 
-The CCDB API class (`CcdbApi`) is implemented using libcurl and gives
-access to the CCDB via its REST api.
+The CCDB API class (`CcdbApi`) is implemented using libcurl and gives C++ API
+access to the CCDB via its REST api. The API can be also used to create a snapshot
+of conditions objects on the local disc and retrieve the objects therefrom. This can be useful
+in circumstances of reduced or no network connectivity.
+
+There are currently 3 different kinds of store/retrieve functions, which we expect to unify in the immediate future:
+1. simple `store/retrieve` API serializing a `TObject` as a simple ROOT `TMessage`.
+2. `storeAsTFile/retrieveFromTFile` API serializing a `TObject` in a ROOT `TFile` with the advantage 
+   of keeping the data together with the ROOT streamer info in the same place.
+3. A strongly-typed `storeAsTFileAny<T>/retrieveFromTFileAny<T>` API allowing to handle any type T 
+   having a ROOT dictionary. We encourage to use this API by default.
+
 
 ## Central and local instances of the CCDB
 
@@ -15,8 +25,10 @@ There is a test central CCDB at [http://ccdb-test.cern.ch:8080](http://ccdb-test
 
 If you access the CCDB with a web browser, add `/browse` at the end of the URL to have a user readable interface. Moreover, using `/browse/?report=true` will provide details on the number of files and the size of the folders (e.g. http://ccdb-test.cern.ch:8080/browse/?report=true).
 
-## Example Usage 
-```
+## Example Usage
+
+* storing / retrieving TObjects with TMessage blobs
+```c++
 // init
 CcdbApi api;
 map<string, string> metadata; // can be empty
@@ -27,3 +39,42 @@ api.store(h1, "Test/Detector", metadata);
 // retrieve
 auto h1back = api.retrieve("Test/Detector", metadata);
 ```
+
+* storing / retrieving arbitrary (non TObject) classes
+
+```c++
+// init
+CcdbApi api;
+map<string, string> metadata; // can be empty
+api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+// store abitrary user object in strongly typed manner
+auto deadpixels = new o2::FOO::DeadPixelMap();
+api.storeAsTFileAny(deadpixels, "FOO/DeadPixels", metadata);
+// read like this (you have to specify the type)
+auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
+```
+
+* creating a local snapshot and fetching objects therefrom
+
+```c++
+// init
+CcdbApi api;
+map<string, string> metadata; // can be empty
+api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+// create a local snapshot of everthing in or below the FOO folder valid for timestamp 12345
+api.snapshot("FOO", "/tmp/CCDBSnapshot/", 12345);
+
+// read from snapshot by saying
+CcdbApi snapshotapi;
+snaptshotapi.initInSnapshotMode("/tmp/CCDBSnapshot");
+
+// reading still works just like this (you have to specify the type)
+auto deadpixelsback = snapshotapi.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
+```
+
+# Future ideas:
+
+- [ ] offer API without need to pass metadata object
+- [ ] deprecate TMessage based API
+- [ ] code reduction or delegation between various storeAsTFile APIs
+- [ ] eventually just call the functions store/retrieve once TMessage is disabled
