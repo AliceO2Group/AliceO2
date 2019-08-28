@@ -90,20 +90,20 @@ BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("th1name", "th1name", 100, 0, 99);
-  h1->FillRandom("gaus", 10000);
-  BOOST_CHECK_EQUAL(h1->ClassName(), "TH1F");
-  f.api.storeAsTFile(h1, "Test/th1", f.metadata);
+  TH1F h1("th1name", "th1name", 100, 0, 99);
+  h1.FillRandom("gaus", 10000);
+  BOOST_CHECK_EQUAL(h1.ClassName(), "TH1F");
+  f.api.storeAsTFile(&h1, "Test/th1", f.metadata);
 
-  auto graph = new TGraph(10);
-  graph->SetPoint(0, 2, 3);
-  f.api.storeAsTFile(graph, "Test/graph", f.metadata);
+  TGraph graph(10);
+  graph.SetPoint(0, 2, 3);
+  f.api.storeAsTFile(&graph, "Test/graph", f.metadata);
 
-  auto tree = new TTree("mytree", "mytree");
+  TTree tree("mytree", "mytree");
   int a = 4;
-  tree->Branch("det", &a, "a/I");
-  tree->Fill();
-  f.api.storeAsTFile(tree, "Test/tree", f.metadata);
+  tree.Branch("det", &a, "a/I");
+  tree.Fill();
+  f.api.storeAsTFile(&tree, "Test/tree", f.metadata);
 }
 
 BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(if_reachable()))
@@ -167,6 +167,11 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
     BOOST_CHECK(tree != nullptr);
     BOOST_CHECK(tree != nullptr && std::strcmp(tree->GetName(), "tree123") == 0);
     BOOST_CHECK(tree != nullptr && tree->GetEntries() == 1);
+  }
+
+  // d) cleanup local snapshot
+  if (boost::filesystem::exists(ph)) {
+    boost::filesystem::remove_all(ph);
   }
 }
 
@@ -246,13 +251,13 @@ BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  h1->FillRandom("gaus", 10000);
-  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+  TH1F h1("object1", "object1", 100, 0, 99);
+  h1.FillRandom("gaus", 10000);
+  f.api.store(&h1, "Test/Detector", f.metadata, -1, -1, true);
 
-  auto h2 = new TH1F("object2", "object2", 100, 0, 99);
-  h2->FillRandom("gaus", 10000);
-  f.api.store(h2, "Test/Detector", f.metadata, -1, -1, true);
+  TH1F h2("object2", "object2", 100, 0, 99);
+  h2.FillRandom("gaus", 10000);
+  f.api.store(&h2, "Test/Detector", f.metadata, -1, -1, true);
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
@@ -267,9 +272,9 @@ BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  h1->FillRandom("gaus", 10000);
-  f.api.store(h1, "Test/Detector", f.metadata, -1, -1, true);
+  TH1F h1("object1", "object1", 100, 0, 99);
+  h1.FillRandom("gaus", 10000);
+  f.api.store(&h1, "Test/Detector", f.metadata, -1, -1, true);
 
   auto h2 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
@@ -296,10 +301,10 @@ BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+  TH1F h1("object1", "object1", 100, 0, 99);
   long from = o2::ccdb::getCurrentTimestamp();
   long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
-  f.api.store(h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
+  f.api.store(&h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
   auto h2 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   f.api.deleteObject("Test/Detector");
@@ -357,17 +362,17 @@ BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(countObjects, 0);
 
   // more complex tree
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+  TH1F h1("object1", "object1", 100, 0, 99);
   cout << "storing object 1 in Test" << endl;
-  f.api.store(h1, "Test", f.metadata);
+  f.api.store(&h1, "Test", f.metadata);
   cout << "storing object 2 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.store(&h1, "Test/Detector", f.metadata);
   cout << "storing object 3 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.store(&h1, "Test/Detector", f.metadata);
   cout << "storing object 4 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.store(&h1, "Test/Detector", f.metadata);
   cout << "storing object 5 in Test/Detector/Sub/abc" << endl;
-  f.api.store(h1, "Test/Detector/Sub/abc", f.metadata);
+  f.api.store(&h1, "Test/Detector/Sub/abc", f.metadata);
 
   s = f.api.list("Test/Detector", false, "application/json");
   countItems(s, countObjects, countSubfolders);
