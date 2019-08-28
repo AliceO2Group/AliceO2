@@ -105,23 +105,28 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     producerOutputs(),
     AlgorithmSpec{[subspecs, checkMap, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
       if (*counter < nRolls) {
-        size_t multiplicity = subspecs.size() / nPipelines;
-        if (subspecs.size() % nPipelines) {
-          multiplicity++;
+        size_t pipeline = 0;
+        size_t channels = subspecs.size();
+        std::vector<size_t> multiplicities(nPipelines);
+        for (pipeline = 0; pipeline < nPipelines; pipeline++) {
+          multiplicities[pipeline] = channels / (nPipelines - pipeline) + ((channels % (nPipelines - pipeline)) > 0 ? 1 : 0);
+          channels -= multiplicities[pipeline];
         }
-        size_t instance = 0;
-        size_t inputRank = 0;
-        for (size_t index = 0, end = subspecs.size(); index < end; index++) {
-          ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index], Lifetime::Timeframe}) = instance;
-          (*checkMap)[subspecs[index]] = instance;
-          if (++inputRank == multiplicity) {
-            inputRank = 0;
-            instance++;
-            if (instance < nPipelines && ((subspecs.size() - index - 1) % (nPipelines - instance)) == 0) {
-              multiplicity = subspecs.size() / nPipelines;
-            }
+        ASSERT_ERROR(channels == 0);
+        size_t index = 0;
+        auto end = subspecs.size();
+        for (pipeline = 0; index < end; index++) {
+          if (multiplicities[pipeline] == 0) {
+            continue;
+          }
+          ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index], Lifetime::Timeframe}) = pipeline;
+          (*checkMap)[subspecs[index]] = pipeline;
+          multiplicities[pipeline++]--;
+          if (pipeline >= nPipelines) {
+            pipeline = 0;
           }
         }
+        ASSERT_ERROR(index == subspecs.size());
         (*counter)++;
       }
       if (*counter == nRolls) {
