@@ -66,7 +66,7 @@ api.snapshot("FOO", "/tmp/CCDBSnapshot/", 12345);
 
 // read from snapshot by saying
 CcdbApi snapshotapi;
-snaptshotapi.initInSnapshotMode("/tmp/CCDBSnapshot");
+snaptshotapi.init("file:///tmp/CCDBSnapshot");
 
 // reading still works just like this (you have to specify the type)
 auto deadpixelsback = snapshotapi.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
