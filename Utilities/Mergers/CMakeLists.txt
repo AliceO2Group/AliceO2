@@ -17,13 +17,8 @@ o2_add_library(Mergers
 
 o2_target_root_dictionary(
   Mergers
-  HEADERS include/Mergers/Merger.h
-          include/Mergers/MergerConfig.h
-          include/Mergers/MergeInterface.h
+  HEADERS include/Mergers/MergeInterface.h
           include/Mergers/MergeInterfaceOverrideExample.h
-          include/Mergers/MergerInfrastructureBuilder.h
-          include/Mergers/MergerBuilder.h
-          include/Mergers/MergerCache.h
   LINKDEF include/Mergers/LinkDef.h)
 
 o2_add_executable(topology-example
