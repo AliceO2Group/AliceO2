@@ -25,6 +25,7 @@
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
+#include <CCDB/BasicCCDBManager.h>
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -32,6 +33,18 @@
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
+  // initialize CCDB service
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
+  ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
+  // try to verify connection
+  if (!ccdbmgr.isHostReachable()) {
+    LOG(ERROR) << "Could not setup CCDB connecting";
+  } else {
+    LOG(INFO) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
+    LOG(INFO) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
+  }
+
   // we can read from CCDB (for the moment faking with a TFile)
   // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
@@ -55,6 +68,7 @@ FairRunSim* o2sim_init(bool asservice)
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+  run->SetRunId(confref.getConfigData().mTimestamp);
 
   auto pid = getpid();
   std::stringstream s;

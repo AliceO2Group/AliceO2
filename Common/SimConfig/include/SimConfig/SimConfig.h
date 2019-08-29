@@ -46,6 +46,8 @@ struct SimConfigData {
   int mStartSeed;                            // base for random number seeds
   int mSimWorkers = 1;                       // number of parallel sim workers (when it applies)
   bool mFilterNoHitEvents = false;           // whether to filter out events not leaving any response
+  std::string mCCDBUrl;                      // the URL where to find CCDB
+  long mTimestamp;                           // timestamp to anchor transport simulation to
 
   ClassDefNV(SimConfigData, 2);
 };

@@ -55,6 +55,12 @@ class CcdbApi //: public DatabaseInterface
   void init(std::string const& host);
 
   /**
+   * Query current URL
+   *
+   */
+  std::string const& getURL() const { return mUrl; }
+
+  /**
    * Stores an object in the CCDB as a streamed object, not a TFile.
    *
    * @param rootObject Raw pointer to the object to store.

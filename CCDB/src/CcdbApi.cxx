@@ -57,13 +57,13 @@ void CcdbApi::init(std::string const& host)
   // if host is prefixed with "file://" this is a local snapshot
   // in this case we init the API in snapshot (readonly) mode
   constexpr const char* SNAPSHOTPREFIX = "file://";
+  mUrl = host;
 
   if (host.substr(0, 7).compare(SNAPSHOTPREFIX) == 0) {
     auto path = host.substr(7);
     LOG(INFO) << "Initializing CcdbApi in snapshot readonly mode ... reading snapshot from path " << path;
     initInSnapshotMode(path);
   } else {
-    mUrl = host;
     curlInit();
   }
 }
