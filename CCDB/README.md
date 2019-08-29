@@ -72,9 +72,38 @@ snaptshotapi.init("file:///tmp/CCDBSnapshot");
 auto deadpixelsback = snapshotapi.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
 ```
 
-# Future ideas:
+## Future ideas :
 
 - [ ] offer API without need to pass metadata object
 - [ ] deprecate TMessage based API
 - [ ] code reduction or delegation between various storeAsTFile APIs
 - [ ] eventually just call the functions store/retrieve once TMessage is disabled
+
+
+# BasicCCDBManager
+
+A basic higher level class `BasicCCDBManager` is offered for convenient access to the CCDB from
+user code. This class
+* Encapsulates the timestamp.
+* Offers a more convenient `get` function to retrieve objects.
+* Is a singleton which is initialized once and can be used from any detector code.
+
+The class was written for the use-case of transport MC simulation. Typical usage should be like
+
+```c++
+// setup manager once (at start of processing) 
+auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+mgr.setURL("http://ourccdbserverver.cern.ch");
+mgr.setTimestamp(timestamp_which_we_want_to_anchor_to);
+
+
+// in some FOO detector code (detector initialization)
+auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+// just give the correct path and you will be served the object
+auto alignment = mgr.get<o2::FOO::GeomAlignment>("/FOO/Alignment");
+```
+
+## Future ideas / todo:
+
+- [ ] offer improved error handling / exceptions
+- [ ] do we need a store method?
