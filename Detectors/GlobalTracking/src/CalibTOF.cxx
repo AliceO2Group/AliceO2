@@ -16,6 +16,7 @@
 #include <TFile.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/PID.h"
+#include "CCDB/CcdbApi.h"
 
 #include "GlobalTracking/CalibTOF.h"
 
@@ -25,6 +26,7 @@
 #include "TRandom.h"
 
 using namespace o2::globaltracking;
+using CcdbApi = o2::ccdb::CcdbApi;
 
 ClassImp(CalibTOF);
 
@@ -259,9 +261,23 @@ void CalibTOF::run(int flag, int sector)
 }
 
 //______________________________________________
-void CalibTOF::fillOutput()
+void CalibTOF::fillOutput(int flag)
 {
   mOutputTree->Fill();
+
+  if (mFillCCDB) {
+    CcdbApi api;
+    api.init(mCCDBpath.c_str()); // or http://localhost:8080 for a local installation
+    
+    if (flag & kLHCphase) {
+      std::map<std::string, std::string> metadataLHCphase; // can be empty
+      api.storeAsTFileAny(mLHCphaseObj, "TOF/LHCphase", metadataLHCphase, (ulong)mMinTimestamp*1000, (ulong)mMaxTimestamp*1000); // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
+    }
+    if (flag & kChannelOffset || flag & kChannelTimeSlewing) {
+      std::map<std::string, std::string> metadataChannelCalib; // can be empty
+      api.storeAsTFileAny(mTimeSlewingObj, "TOF/ChannelCalib", metadataChannelCalib, (ulong)mMinTimestamp*1000); // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
+    }
+  }
 }
 
 //______________________________________________
