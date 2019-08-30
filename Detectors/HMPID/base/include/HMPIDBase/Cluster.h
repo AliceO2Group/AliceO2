@@ -25,6 +25,44 @@ namespace hmpid
 /// \brief HMPID cluster implementation
 class Cluster
 {
+ public:
+  Cluster() = default;
+
+  Cluster(Int_t chamber, Int_t size, Int_t NlocMax, Double_t QRaw, Double_t Q, Double_t X,  Double_t Y);
+  ~Cluster() = default;
+
+
+  Int_t getCh() const { return mChamber; }
+  void setCh(Int_t chamber) { mChamber = chamber; }
+
+  Int_t getSize() const { return mSize; }
+  void setSize(Int_t size) { mSize = size; }
+
+  Int_t getQRaw() const { return mQRaw; }
+  void setQRaw(Int_t QRaw) { mQRaw = QRaw; }
+
+  Int_t getQ() const { return mQ; }
+  void setQ(Int_t Q) { mQ = Q; }
+
+  Int_t getX() const { return mX; }
+  void setX(Int_t X) { mX = X; }
+
+  Int_t getY() const { return mY; }
+  void setY(Int_t Y) { mY = Y; }
+
+
+ protected:
+
+  Int_t mChamber;         /// chamber number
+  Int_t mSize;            /// size of the formed cluster from which this cluster deduced
+  Int_t mNlocMax;         /// number of local maxima in formed cluster
+  Double_t mQRaw;         /// QDC value of the raw cluster
+  Double_t mQ;            /// QDC value of the actual cluster
+  Double_t mX;            /// local x postion, [cm]
+  Double_t mY;            /// local y postion, [cm]
+      
+
+  ClassDefNV(Cluster, 1);  
 };
 
 } // namespace hmpid

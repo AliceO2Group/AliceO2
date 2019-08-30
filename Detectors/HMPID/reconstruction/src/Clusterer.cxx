@@ -44,20 +44,3 @@ void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector
   timerProcess.Print();
 }
 
-////__________________________________________________
-//void Clusterer::dig2Clu(std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
-//{
-//  // method to clusterize
-//
-//  // to be implemented
-//
-//}
-////______________________________________________________________________
-//void Clusterer::formClu(Cluster& c, Digit* dig, o2::hmpid::Digit>& digits, MCLabelContainer const* digitMCTruth)
-//{
-//  // method to clusterize
-//
-//  // to be implemented
-//
-//}
-//______________________________________________________________________
