@@ -28,7 +28,7 @@ Digit& Digit::operator+=(const Digit& other)
 
 void Digit::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << ", Energy " << mEnergy;
+  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << ", Energy " << mEnergy << ", type " << mChannelType;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
