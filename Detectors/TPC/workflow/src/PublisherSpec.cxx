@@ -94,14 +94,20 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
           continue;
         }
         o2::header::DataHeader::SubSpecificationType subSpec = *outputId;
+        std::string sectorfile = filename;
+        if (filename.find('%') != std::string::npos) {
+          vector<char> formattedname(filename.length() + 10, 0);
+          snprintf(formattedname.data(), formattedname.size() - 1, filename.c_str(), sector);
+          sectorfile = formattedname.data();
+        }
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
         auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
         auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
         if (propagateMC) {
-          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                             filename.c_str(), // input file name
-                                                             nofEvents,        // number of entries to publish
+          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(),   // tree name
+                                                             sectorfile.c_str(), // input file name
+                                                             nofEvents,          // number of entries to publish
                                                              publishingMode,
                                                              Output{dto.origin, dto.description, subSpec, persistency},
                                                              clusterbranchname.c_str(), // name of cluster branch
@@ -109,9 +115,9 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
                                                              mcbranchname.c_str() // name of mc label branch
           );
         } else {
-          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                             filename.c_str(), // input file name
-                                                             nofEvents,        // number of entries to publish
+          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(),   // tree name
+                                                             sectorfile.c_str(), // input file name
+                                                             nofEvents,          // number of entries to publish
                                                              publishingMode,
                                                              Output{dto.origin, dto.description, subSpec, persistency},
                                                              clusterbranchname.c_str() // name of cluster branch
