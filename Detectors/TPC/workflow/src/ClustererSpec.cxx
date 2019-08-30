@@ -94,7 +94,8 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       auto inDigits = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputKey.c_str());
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
-                  << inMCLabels->getIndexedSize() << " MC label objects";
+                  << inMCLabels->getIndexedSize() << " MC label objects"
+                  << " input MC label size " << DataRefUtils::getPayloadSize(pc.inputs().get(labelKey.c_str()));
       }
       if (!clusterers[sector]) {
         // create the clusterer for this sector, take the same target arrays for all clusterers
@@ -105,7 +106,8 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       auto& clusterer = clusterers[sector];
 
       if (verbosity > 0) {
-        LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector;
+        LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector
+                  << " input size " << DataRefUtils::getPayloadSize(pc.inputs().get(inputKey.c_str()));
       }
       // process the digits and MC labels, the bool parameter controls whether to clear all
       // internal data or not. Have to clear it inside the process method as not only the containers
@@ -118,9 +120,11 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced "
                   << std::accumulate(clusterArray.begin(), clusterArray.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
-                  << " cluster(s)";
+                  << " cluster(s)"
+                  << " for sector " << sectorHeader->sector
+                  << " total size " << sizeof(ClusterHardwareContainer8kb) * clusterArray.size();
         if (!labelKey.empty()) {
-          LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s)";
+          LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s) for sector " << sectorHeader->sector;
         }
       }
       // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
