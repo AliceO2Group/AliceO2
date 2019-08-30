@@ -56,7 +56,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     std::unique_ptr<HardwareClusterDecoder> decoder;
     std::set<o2::header::DataHeader::SubSpecificationType> activeInputs;
     bool readyToQuit = false;
-    bool verbosity = 0;
+    int verbosity = 0;
     bool sendMC = false;
   };
 
@@ -109,6 +109,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // FIXME: better description of the raw page
       size_t nPages = size / 8192;
       std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
+      if (verbosity > 0 && labelKey.empty()) {
+        LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages for sector " << sectorHeader->sector;
+      }
 
       // MC labels are received as one container of labels in the sequence matching clusters
       // in the raw pages
@@ -118,7 +121,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         mcin = std::move(pc.inputs().get<MCLabelContainer*>(labelKey.c_str()));
         mcinCopies.resize(nPages);
         if (verbosity > 0) {
-          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets";
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets for sector " << sectorHeader->sector;
         }
       }
 
@@ -132,7 +135,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       for (size_t page = 0; page < nPages; page++) {
         inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
         const ClusterHardwareContainer& container = *(inputList.back().first);
-        if (verbosity > 0) {
+        if (verbosity > 1) {
           LOG(INFO) << "Decoder input in page " << std::setw(2) << page << ": "     //
                     << "CRU " << std::setw(3) << container.CRU << " "               //
                     << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
