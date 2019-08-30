@@ -40,7 +40,7 @@ class Geometry
   static constexpr int NCellsC = 28;          // number of radiatiors on C side
   static constexpr float ZdetA = 333;         // number of radiatiors on A side
   static constexpr float ZdetC = 82;          // number of radiatiors on C side
-  static constexpr float ChannelWidth = 24.4; // channel width in ps
+  static constexpr float ChannelWidth = 13.02; // channel width in ps
 
   ///
   // Assign operator.

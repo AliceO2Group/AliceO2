@@ -29,15 +29,11 @@ void Digits2Raw::readDigits(const char* fileRaw, const char* fileDigitsName)
 {
   std::cout << "**********Digits2Raw::convertDigits" << std::endl;
 
-  std::vector<o2::ft0::Topo> lut_data(NCHANNELS_PM * NPMs);
-  for (int link = 0; link < NPMs; ++link)
-    for (int mcp = 0; mcp < NCHANNELS_PM; ++mcp)
-      lut_data[link * NCHANNELS_PM + mcp] = o2::ft0::Topo{link, mcp};
-  o2::ft0::LookUpTable lut{lut_data};
-  std::cout << " ##### LookUp set " << std::endl;
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mFileDest.open(fileRaw);
   // mFileDest = fopen(fileRaw, "wb+");
+  o2::ft0::LookUpTable lut{o2::ft0::Digits2Raw::linear()};
+  std::cout << " ##### LookUp set " << std::endl;
 
   TFile* fdig = TFile::Open(fileDigitsName);
   assert(fdig != nullptr);
@@ -73,8 +69,6 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
     mEventData[nchannels].channelID = lut.getMCP(d.ChId);
     mEventData[nchannels].charge = MV_2_NCHANNELS * d.QTCAmpl;   //7 mV ->16channels
     mEventData[nchannels].time = CFD_NS_2_NCHANNELS * d.CFDTime; //1000.(ps)/13.2(channel);
-    //   std::cout << "@@@@ packed GBT "<<nlink<<" channelID   " << mEventData[nchannels].channelID << " charge " << mEventData[nchannels].charge << " time " << mEventData[nchannels].time << std::endl;
-    //   std::cout << "@@@@ digits channelID   " << d.ChId  << " charge " << d.QTCAmpl << " time " << d.CFDTime << std::endl;
     mEventData[nchannels].is1TimeLostEvent = 0;
     mEventData[nchannels].is2TimeLostEvent = 0;
     mEventData[nchannels].isADCinGate = 1;
@@ -85,8 +79,8 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
     mEventData[nchannels].isTimeInfoLost = 0;
     int chain = std::rand() % 2;
     mEventData[nchannels].numberADC = chain ? 1 : 0;
-    //   std::cout << "@@@@ packed GBT "<<nlink<<" channelID   " << mEventData[nchannels].channelID << " charge " << mEventData[nchannels].charge << " time " << mEventData[nchannels].time << std::endl;
-    //   std::cout << "@@@@ digits channelID   " << d.ChId  << " charge " << d.QTCAmpl << " time " << d.CFDTime << std::endl;
+    //    std::cout << "@@@@ packed GBT "<<nlink<<" channelID   " << mEventData[nchannels].channelID << " charge " << mEventData[nchannels].charge << " time " << mEventData[nchannels].time << " chain "<<  mEventData[nchannels].numberADC<<std::endl;
+    //  std::cout << "@@@@ digits channelID   " << d.ChId  << " charge " << d.QTCAmpl << " time " << d.CFDTime << std::endl;
     nchannels++;
   }
   flushEvent(oldlink, mIntRecord, nchannels);

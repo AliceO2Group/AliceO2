@@ -37,19 +37,27 @@ class Digits2Raw
   static constexpr int NCHANNELS_PM = 12;
   static constexpr int NPMs = 18;
   static constexpr float MV_2_NCHANNELS = 2.2857143;     //7 mV ->16channels
-  static constexpr float CFD_NS_2_NCHANNELS = 75.757576; //1000.(ps)/13.2(channel);
+  static constexpr float CFD_NS_2_NCHANNELS = 76.804916; //1000.(ps)/13.02(channel);
 
  public:
   Digits2Raw() = default;
   //Digits2Raw(char * fileRaw, std::string fileDigitsName);
   void readDigits(const char* fileRaw, const char* fileDigitsName);
   void convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
+  static o2::ft0::LookUpTable linear()
+  {
+    std::vector<o2::ft0::Topo> lut_data(NCHANNELS_PM * NPMs);
+    for (int link = 0; link < NPMs; ++link)
+      for (int mcp = 0; mcp < NCHANNELS_PM; ++mcp)
+        lut_data[link * NCHANNELS_PM + mcp] = o2::ft0::Topo{link, mcp};
+
+    return o2::ft0::LookUpTable{lut_data};
+  }
 
  private:
   void flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
   void setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
   void setRDH(int link, o2::InteractionRecord const& mIntRecord);
-  void setLUT();
   std::ofstream mFileDest;
   //  FILE* mFileDest;
   o2::ft0::EventHeader mEventHeader;

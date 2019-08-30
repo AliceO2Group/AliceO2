@@ -14,6 +14,7 @@
 
 namespace o2::ft0
 {
+
 struct DigitizationParameters {
   int NCellsA = Geometry::NCellsA;
   int NCellsC = Geometry::NCellsC;
