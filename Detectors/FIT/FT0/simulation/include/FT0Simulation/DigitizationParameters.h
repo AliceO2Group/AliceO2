@@ -27,7 +27,6 @@ inline o2::fit::DigitizationParameters FT0DigitizationParameters()
   result.mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
   result.mCFD_trsh_mip = 3.;                                  // [mV]
   result.mTime_trg_gate = 4.;                                 // ns
-  result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   result.mIsFT0 = true;
   result.mSignalWidth = 5;
   result.mCfdShift = 1.66;       //ns

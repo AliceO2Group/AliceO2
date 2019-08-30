@@ -31,26 +31,26 @@ constexpr int NPMs = 18;
 constexpr int NBITS_EVENTDATA = 9;
 
 struct EventHeader {
-  unsigned int startDescriptor : 4;
-  unsigned int Nchannels : 4;
-  unsigned int reservedField : 32;
-  unsigned int orbit : 32;
-  unsigned int bc : 12;
+  uint startDescriptor : 4;
+  uint Nchannels : 4;
+  uint reservedField : 32;
+  uint orbit : 32;
+  uint bc : 12;
   ClassDefNV(EventHeader, 1);
 };
 struct EventData {
-  unsigned int time : 12;
-  unsigned int charge : 12;
-  unsigned int numberADC : 1;
-  unsigned int isDoubleEvent : 1;
-  unsigned int is1TimeLostEvent : 1;
-  unsigned int is2TimeLostEvent : 1;
-  unsigned int isADCinGate : 1;
-  unsigned int isTimeInfoLate : 1;
-  unsigned int isAmpHigh : 1;
-  unsigned int isEventInTVDC : 1;
-  unsigned int isTimeInfoLost : 1;
-  unsigned int channelID : 4;
+  int time : 12;
+  int charge : 12;
+  uint numberADC : 1;
+  bool isDoubleEvent : 1;
+  bool is1TimeLostEvent : 1;
+  bool is2TimeLostEvent : 1;
+  bool isADCinGate : 1;
+  bool isTimeInfoLate : 1;
+  bool isAmpHigh : 1;
+  bool isEventInTVDC : 1;
+  bool isTimeInfoLost : 1;
+  uint channelID : 4;
   ClassDefNV(EventData, 1);
 };
 class RawEventData
