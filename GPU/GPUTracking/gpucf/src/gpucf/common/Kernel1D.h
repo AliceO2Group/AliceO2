@@ -24,10 +24,17 @@ public:
         return event;
     }
 
+    template<typename T>
+    void setArg(size_t n, T arg)
+    {
+        kernel.setArg(n, arg);
+    }
+
+    void call(size_t, size_t, size_t, cl::CommandQueue);
+
 protected:
     cl::Kernel kernel;
 
-    void call(size_t, size_t, size_t, cl::CommandQueue);
 
 private:
     std::string name;

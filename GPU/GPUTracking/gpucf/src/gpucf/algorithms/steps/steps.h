@@ -10,6 +10,7 @@
 #include "DigitsToGPU.h"
 #include "FillChargeMap.h"
 #include "FindPeaks.h"
+#include "GPUNoiseSuppression.h"
 #include "ResetMaps.h"
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

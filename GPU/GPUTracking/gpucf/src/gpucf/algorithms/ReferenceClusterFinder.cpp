@@ -39,6 +39,7 @@ const std::unordered_map<Delta, std::vector<Delta>> ReferenceClusterFinder::inne
 
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
     : config(config)
+    , noiseSuppression(2, 3, 0, 10)
 {
 }
 
@@ -74,6 +75,9 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
             peaks.push_back(d);
         }
     }
+
+    Map<bool> peakmap(peaks, true, false);
+    peaks = noiseSuppression.runOnAllRows(peaks, peakmap, chargemap);
 
     Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, chargemap, true);
 

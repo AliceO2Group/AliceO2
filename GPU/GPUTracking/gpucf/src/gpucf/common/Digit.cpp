@@ -10,8 +10,8 @@
 using namespace gpucf;
 
 
-static_assert(sizeof(Digit) == sizeof(PackedDigit));
-static_assert(sizeof(PackedDigit) == PACKED_DIGIT_SIZE);
+static_assert(sizeof(Digit) == sizeof(PackedDigit), "");
+static_assert(sizeof(PackedDigit) == PACKED_DIGIT_SIZE, "");
 
 
 SectorMap<std::vector<Digit>> Digit::bySector(

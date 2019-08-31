@@ -19,5 +19,13 @@ RowMap<std::vector<Digit>> NoiseSuppression::run(
     return filteredPeaks;
 }
 
+std::vector<Digit> NoiseSuppression::runOnAllRows(
+        View<Digit> digits,
+        const Map<bool> &isPeak,
+        const Map<float> &chargeMap)
+{
+    return runImpl(digits, isPeak, chargeMap);
+}
+
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

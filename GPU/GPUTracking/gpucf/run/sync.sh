@@ -12,7 +12,9 @@ rsyncBlacklist="--exclude=$buildDir \
                 --exclude=*.bin \
                 --exclude=*.swp \
                 --exclude=*.BACK \
-                --exclude=tags" 
+                --exclude=tags \
+                --exclude=data/"
+
 
 rsyncFlags="-aPEh $rsyncBlacklist"
 toSync="."
