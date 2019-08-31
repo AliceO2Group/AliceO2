@@ -23,6 +23,6 @@
 #pragma link C++ class std::vector < o2::emcal::Cluster > +;
 
 // For channel type in digits and cells
-#pragma link C++ enum class o2::emcal::ChannelType_t + ;
+#pragma link C++ enum o2::emcal::ChannelType_t + ;
 
 #endif
