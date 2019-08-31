@@ -1,6 +1,7 @@
 #include "float.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 
@@ -8,7 +9,7 @@
 using Bits = uint32_t;
 
 
-static_assert(sizeof(float) == sizeof(Bits));
+static_assert(sizeof(float) == sizeof(Bits), "");
 
 
 static constexpr size_t bitCount = 8 * sizeof(float);
@@ -29,7 +30,7 @@ union FpUnion
     Bits  bits;
 };
 
-static_assert(sizeof(FpUnion) == sizeof(float));
+static_assert(sizeof(FpUnion) == sizeof(float), "");
 
 static Bits signAndMagnitudeToBiased(const Bits &sam) 
 {

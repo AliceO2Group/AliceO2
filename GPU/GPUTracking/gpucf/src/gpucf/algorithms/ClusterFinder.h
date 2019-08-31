@@ -21,14 +21,15 @@ protected:
 
     ClusterFinderState state;
 
-    ClusterToCPU    clusterToCPU;
-    CompactPeaks    compactPeaks;
-    ComputeCluster  computeCluster;
-    CountPeaks      countPeaks;
-    DigitsToGPU     digitsToGPU;
-    FillChargeMap   fillChargeMap;
-    FindPeaks       findPeaks;
-    ResetMaps       resetMaps;
+    ClusterToCPU        clusterToCPU;
+    CompactPeaks        compactPeaks;
+    ComputeCluster      computeCluster;
+    CountPeaks          countPeaks;
+    DigitsToGPU         digitsToGPU;
+    FillChargeMap       fillChargeMap;
+    FindPeaks           findPeaks;
+    GPUNoiseSuppression noiseSuppression;
+    ResetMaps           resetMaps;
 
 };
     

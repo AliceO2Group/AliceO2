@@ -30,7 +30,7 @@ namespace std
     {
         size_t operator()(const gpucf::Delta &d) const
         {
-            static_assert(sizeof(size_t) >= 2*sizeof(int));
+            static_assert(sizeof(size_t) >= 2*sizeof(int), "");
             size_t h = size_t(d.time) | (size_t(d.pad) << sizeof(int));
             return std::hash<size_t>()(h);
         }

@@ -15,6 +15,7 @@ ClusterFinder::ClusterFinder(
     , countPeaks(env.getProgram())
     , fillChargeMap(env.getProgram())
     , findPeaks(env.getProgram())
+    , noiseSuppression(env.getProgram())
     , resetMaps(env.getProgram())
 {
 }

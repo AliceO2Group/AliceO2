@@ -9,7 +9,7 @@
 using namespace gpucf;
 
 
-static_assert(Cluster::Field_all == 0b00111111);
+static_assert(Cluster::Field_all == 0b00111111, "");
 
 
 Cluster::Cluster()

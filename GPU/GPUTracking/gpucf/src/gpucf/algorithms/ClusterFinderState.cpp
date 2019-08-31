@@ -20,8 +20,9 @@ ClusterFinderState::ClusterFinderState(
     : cfg(cfg)
     , digitnum(digitnum)
 {
-    digits = makeBuffer<Digit>(digitnum, Memory::ReadWrite, context);
-    peaks  = makeBuffer<Digit>(digitnum, Memory::ReadWrite, context);
+    digits        = makeBuffer<Digit>(digitnum, Memory::ReadWrite, context);
+    peaks         = makeBuffer<Digit>(digitnum, Memory::ReadWrite, context);
+    filteredPeaks = makeBuffer<Digit>(digitnum, Memory::ReadWrite, context);
 
     isPeak = makeBuffer<cl_uchar>(digitnum, Memory::ReadWrite, context);
 

@@ -21,6 +21,11 @@ public:
             const RowMap<Map<bool>> &,
             const Map<float> &);
 
+    std::vector<Digit> runOnAllRows(
+            View<Digit>,
+            const Map<bool> &,
+            const Map<float> &);
+
     std::string getName() const
     {
         return name;

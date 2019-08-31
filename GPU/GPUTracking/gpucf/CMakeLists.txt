@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
-set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wduplicated-cond")
+# set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wduplicated-cond")
 # set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wduplicated-branches")
 set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wlogical-op")
 set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wold-style-cast")

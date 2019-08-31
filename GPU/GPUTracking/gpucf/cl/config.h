@@ -36,7 +36,7 @@ size_t idxSquareTiling(global_pad_t gpad, timestamp time, size_t N)
 
     /* return N * (time * C + gpad + inTileTime) + inTilePad; */
 
-    time += PADDING;
+    time += PADDING_TIME;
 
     const size_t tileW = N;
     const size_t tileH = N;
@@ -81,7 +81,7 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
   #define TILE_WIDTH 4
   #define TILE_HEIGHT 8
 
-    time += PADDING;
+    time += PADDING_TIME;
 
     const size_t tileW = TILE_WIDTH;
     const size_t tileH = TILE_HEIGHT;
@@ -103,7 +103,7 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
   #define TILE_WIDTH 8
   #define TILE_HEIGHT 4
 
-    time += PADDING;
+    time += PADDING_TIME;
 
     const size_t tileW = TILE_WIDTH;
     const size_t tileH = TILE_HEIGHT;
@@ -123,12 +123,12 @@ inline size_t chargemapIdx(global_pad_t gpad, timestamp time)
 
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 
-    time += PADDING;
+    time += PADDING_TIME;
     return TPC_MAX_TIME_PADDED * gpad + time;
 
 #else // Use row time-major layout
 
-    time += PADDING;
+    time += PADDING_TIME;
     return TPC_NUM_OF_PADS * time + gpad;
 
 #endif

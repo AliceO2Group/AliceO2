@@ -13,18 +13,21 @@ struct ClusterFinderState
 {
     ClusterFinderConfig cfg;
     
-    size_t digitnum;
+    size_t digitnum = 0;
     cl::Buffer digits;
 
     cl::Buffer isPeak;
 
-    size_t peaknum;
+    size_t peaknum = 0;
     cl::Buffer peaks;
+
+    size_t filteredPeakNum = 0;
+    cl::Buffer filteredPeaks;
 
     cl::Buffer chargeMap;
     cl::Buffer peakMap;
     
-    size_t maxClusterPerRow;
+    size_t maxClusterPerRow = 0;
     cl::Buffer clusterInRow;
     cl::Buffer clusterByRow;
 

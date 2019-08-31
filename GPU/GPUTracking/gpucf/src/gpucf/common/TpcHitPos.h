@@ -31,8 +31,8 @@ namespace std
     {
         size_t operator()(const gpucf::TpcHitPos &p) const
         {
-            static_assert(sizeof(p.label.event) == sizeof(short));
-            static_assert(sizeof(p.label.track) == sizeof(short));
+            static_assert(sizeof(p.label.event) == sizeof(short), "");
+            static_assert(sizeof(p.label.track) == sizeof(short), "");
 
             size_t h = (size_t(p.sector)      << (8*3*sizeof(short)))
                      | (size_t(p.row)         << (8*2*sizeof(short)))

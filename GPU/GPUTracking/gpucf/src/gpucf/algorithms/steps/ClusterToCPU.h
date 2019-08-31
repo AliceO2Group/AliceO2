@@ -18,8 +18,8 @@ public:
             ClusterFinderState &state, 
             cl::CommandQueue queue)
     {
-        static_assert(sizeof(row_t) == sizeof(unsigned char));
-        static_assert(sizeof(cl_uint) == sizeof(unsigned int));
+        static_assert(sizeof(row_t) == sizeof(unsigned char), "");
+        static_assert(sizeof(cl_uint) == sizeof(unsigned int), "");
 
         std::vector<unsigned int> clusterInRow(RowInfo::instance().numOfRows());
 

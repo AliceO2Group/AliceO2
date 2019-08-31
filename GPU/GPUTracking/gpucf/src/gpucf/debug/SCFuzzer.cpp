@@ -11,7 +11,7 @@
 using namespace gpucf;
 
 
-static_assert(sizeof(cl_int) == sizeof(int));
+static_assert(sizeof(cl_int) == sizeof(int), "");
 
 
 SCFuzzer::SCFuzzer(ClEnv &env)
@@ -71,7 +71,7 @@ bool SCFuzzer::runTest(size_t N)
 {
     streamCompaction.setDigitNum(N, 1);
 
-    static_assert(sizeof(cl_uchar) == sizeof(unsigned char));
+    static_assert(sizeof(cl_uchar) == sizeof(unsigned char), "");
     size_t insize = N - 10;
     std::vector<unsigned char> predicate(insize);
     std::fill(predicate.begin(), predicate.end(), 1);

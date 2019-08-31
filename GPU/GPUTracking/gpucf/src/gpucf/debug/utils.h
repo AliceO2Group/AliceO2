@@ -46,7 +46,7 @@ namespace gpucf
         {
             for (size_t pad = 0; pad < widthPads; pad++)
             {
-                size_t idx = TPC_NUM_OF_PADS * (time + PADDING) 
+                size_t idx = TPC_NUM_OF_PADS * (time + PADDING_TIME) 
                     + tpcGlobalPadIdx(0, pad);
 
                 if (data[idx] != fallback)

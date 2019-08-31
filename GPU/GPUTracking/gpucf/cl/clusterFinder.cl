@@ -161,6 +161,88 @@ constant uchar OUTER_TO_INNER_INV[16] =
 };
 
 
+#define NOISE_SUPPRESSION_NEIGHBOR_NUM 34
+constant delta2_t NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
+{
+    (delta2_t)(-2, -3), 
+    (delta2_t)(-2, -2), 
+    (delta2_t)(-2, -1), 
+    (delta2_t)(-2, 0), 
+    (delta2_t)(-2, 1), 
+    (delta2_t)(-2, 2), 
+
+    (delta2_t)(-1, -3), 
+    (delta2_t)(-1, -2), 
+    (delta2_t)(-1, -1), 
+    (delta2_t)(-1, 0), 
+    (delta2_t)(-1, 1), 
+    (delta2_t)(-1, 2), 
+    (delta2_t)(-1, 3),
+
+    (delta2_t)(0, -3), 
+    (delta2_t)(0, -2), 
+    (delta2_t)(0, -1),              
+    (delta2_t)(0, 1), 
+    (delta2_t)(0, 2), 
+    (delta2_t)(0, 3),
+
+    (delta2_t)(1, -3), 
+    (delta2_t)(1, -2), 
+    (delta2_t)(1, -1), 
+    (delta2_t)(1, 0), 
+    (delta2_t)(1, 1), 
+    (delta2_t)(1, 2), 
+    (delta2_t)(1, 3),
+             
+    (delta2_t)(2, -2), 
+    (delta2_t)(2, -1), 
+    (delta2_t)(2, 0), 
+    (delta2_t)(2, 1), 
+    (delta2_t)(2, 2), 
+    (delta2_t)(2, 3),
+    (delta2_t)(2, -3), 
+    (delta2_t)(-2, 3)
+};
+
+constant uint NOISE_SUPPRESSION_MINIMA[NOISE_SUPPRESSION_NEIGHBOR_NUM] = 
+{
+    (1 << 7) | (1 << 8),
+    (1 << 8),
+    (1 << 8),
+    (1 << 9),
+    (1 << 10),
+    (1 << 10),
+    (1 << 7) | (1 << 8),
+    (1 << 8),
+    0,
+    0,
+    0,
+    (1 << 10),
+    (1 << 10) | (1 << 11),
+    (1 << 14) | (1 << 15),
+    (1 << 15),
+    0,
+    0,
+    (1 << 16),
+    (1 << 17) | (1 << 18),
+    (1 << 20) | (1 << 21),
+    (1 << 21),
+    0,
+    0,
+    0,
+    (1 << 23),
+    (1 << 23) | (1 << 24),
+    (1 << 21),
+    (1 << 21),
+    (1 << 22),
+    (1 << 23),
+    (1 << 23),
+    (1 << 23) | (1 << 24),
+    (1 << 10) | (1 << 11),
+    (1 << 20) | (1 << 21)
+};
+
+
 bool isAtEdge(const Digit *d)
 {
     return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW-2);
@@ -849,6 +931,74 @@ void sortIntoBuckets(
 }
 
 
+void noiseSuppressionFindMinima(
+        global const packed_charge_t *chargeMap,
+               const global_pad_t     gpad,
+               const timestamp        time,
+               const float            q,
+               const float            epsilon,
+                     ulong           *minimas,
+                     ulong           *bigger)
+{
+    *minimas = 0;
+    *bigger  = 0;
+
+    for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++)
+    {
+        delta2_t d = NOISE_SUPPRESSION_NEIGHBORS[i];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+
+        packed_charge_t other = CHARGE(chargeMap, gpad+dp, time+dt);
+
+        float r = unpackCharge(other);
+
+        bool isMinima = (q - r > epsilon);
+        *minimas |= (isMinima << i);
+
+        bool lq = (r > q);
+        *bigger |= (lq << i);
+    }
+}
+
+ulong noiseSuppressionFindPeaks(
+        global const uchar        *peakMap,
+               const global_pad_t  gpad,
+               const timestamp     time)
+{
+    ulong peaks = 0;
+    for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++)
+    {
+        delta2_t d = NOISE_SUPPRESSION_NEIGHBORS[i];
+        delta_t dp = d.x;
+        delta_t dt = d.y;
+
+        uchar p = IS_PEAK(peakMap, gpad+dp, time+dt);
+
+        peaks |= (GET_IS_PEAK(p) << i);
+    }
+
+    return peaks;
+}
+
+bool noiseSuppressionKeepPeak(
+        ulong minima,
+        ulong peaks)
+{
+    bool keepMe = true;
+
+    for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++)
+    {
+        bool otherPeak = (peaks & (1 << i));
+        bool minimaBetween = (minima & NOISE_SUPPRESSION_MINIMA[i]);
+
+        keepMe &= (!otherPeak || minimaBetween);
+    }
+
+    return keepMe;
+}
+
+
 kernel
 void fillChargeMap(
         global const Digit           *digits,
@@ -915,6 +1065,62 @@ void findPeaks(
     isPeakPredicate[idx] = peak;
 
     const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    IS_PEAK(peakMap, gpad, myDigit.time) = 
+          ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+}
+
+kernel
+void noiseSuppression(
+        global const packed_charge_t *chargeMap,
+        global const uchar           *peakMap,
+        global const Digit           *peaks,
+               const uint             peaknum,
+        global       uchar           *isPeakPredicate)
+{
+    size_t idx = get_global_linear_id();
+
+    Digit myDigit = peaks[min(idx, (size_t)(peaknum-1) )];
+
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    ulong minimas, bigger;
+    noiseSuppressionFindMinima(
+            chargeMap,
+            gpad,
+            myDigit.time,
+            myDigit.charge,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            &minimas,
+            &bigger);
+
+    ulong peaks = noiseSuppressionFindPeaks(peakMap, gpad, myDigit.time);
+
+    peaks &= bigger;
+
+    bool keepMe = noiseSuppressionKeepPeak(minima, peaks);
+
+    bool iamDummy = (idx >= digitnum);
+    if (iamDummy)
+    {
+        return;
+    }
+
+    isPeakPredicate[idx] = keepMe;
+}
+
+kernel
+void updatePeaks(
+        global const Digit *peaks,
+        global const uchar *isPeak,
+        global       uchar *peakMap)
+{
+    size_t idx = get_global_linear_id();
+
+    Digit myDigit = peaks[idx];
+    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+    uchar peak = isPeak[idx];
 
     IS_PEAK(peakMap, gpad, myDigit.time) = 
           ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;

@@ -42,6 +42,10 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 
     compactPeaks.call(state, queue);
 
+    noiseSuppression.call(state, queue);
+
+    compactPeaks.compactFilteredPeaks(state, queue);
+
     ASSERT(state.peaknum <= state.digitnum);
 
     checkPeaks(res.peaks);
