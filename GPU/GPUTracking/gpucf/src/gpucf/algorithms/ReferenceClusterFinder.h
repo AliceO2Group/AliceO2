@@ -6,6 +6,7 @@
 #include <gpucf/common/Map.h>
 #include <gpucf/common/View.h>
 #include <gpucf/noisesuppression/Delta.h>
+#include <gpucf/noisesuppression/NoiseSuppressionOverArea.h>
 
 #include <vector>
 
@@ -40,7 +41,7 @@ private:
         PCMASK_PEAK_COUNT    = 0x7F,
     };
 
-    static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF);
+    static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF, "");
 
     static const std::unordered_map<Delta, std::vector<Delta>> innerToOuter;
     static const std::unordered_map<Delta, std::vector<Delta>> innerToOuterInv;
@@ -62,6 +63,8 @@ private:
     void finalize(Cluster &, const Digit &);
 
     ClusterFinderConfig config;
+
+    NoiseSuppressionOverArea noiseSuppression;
 };
 
 } // namespace gpucf
