@@ -13,6 +13,7 @@
 #include <Rtypes.h>
 #include <iosfwd>
 #include <exception>
+#include <cstdint>
 
 namespace o2
 {
@@ -28,7 +29,7 @@ enum {
 
 /// \enum ChannelType_t
 /// \brief Type of a raw data channel
-enum class ChannelType_t {
+enum ChannelType_t {
   HIGH_GAIN, ///< High gain channel
   LOW_GAIN,  ///< Low gain channel
   TRU,       ///< TRU channel
