@@ -31,7 +31,7 @@ bool PeakCountTest::run(
 
     size_t timebins = getWidthTime(charges);
     size_t pads = getWidthPad(charges);
-    size_t elems = TPC_NUM_OF_PADS * (timebins + PADDING);
+    size_t elems = TPC_NUM_OF_PADS * (timebins + PADDING_TIME);
 
     std::vector<unsigned short> chargeMapBuf(elems);
     gpucpy<unsigned short>(
