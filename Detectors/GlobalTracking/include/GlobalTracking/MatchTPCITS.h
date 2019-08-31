@@ -17,6 +17,8 @@
 
 #define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
 
+#define _ALLOW_DEBUG_AB_ // fill extra debug info for AB
+
 #include <Rtypes.h>
 #include <array>
 #include <deque>
@@ -126,7 +128,7 @@ struct matchRecord {
   matchRecord(int partID, float chi2match, int nxt) : partnerID(partID), chi2(chi2match), nextRecID(nxt) {}
   matchRecord() = default;
 };
-
+ 
 ///< Link of the AfterBurner track: update at sertain cluster
 ///< original track in the currently loaded TPC reco output
 struct ABTrackLink : public o2::track::TrackParCov {
@@ -137,6 +139,9 @@ struct ABTrackLink : public o2::track::TrackParCov {
   int icCandID = MinusOne; ///< ID of the interaction candidate this track belongs to
   uint8_t nDaughters = 0;  ///< number of daughter links on lower layers
   float chi2 = 0.f;        ///< chi2 after update
+#ifdef _ALLOW_DEBUG_AB_
+  o2::track::TrackParCov seed; // seed before update
+#endif
   ABTrackLink() = default;
   ABTrackLink(const o2::track::TrackParCov& src, int ic, int parid = MinusOne, int clid = MinusOne)
     : o2::track::TrackParCov(src), clID(clid), parentID(parid), icCandID(ic) {}
@@ -154,6 +159,33 @@ struct ABTrackLinksList {
   }
 };
 
+//---------------------------------------------------
+struct ABDebugLink : o2::BaseCluster<float>  {
+#ifdef _ALLOW_DEBUG_AB_
+  // AB link debug version, kinematics BEFORE update is stored
+  o2::track::TrackParCov seed;
+#endif
+  o2::MCCompLabel clLabel;
+  float chi2 = 0.f;
+  uint8_t lr = 0;
+
+  ClassDefNV(ABDebugLink,1);  
+};
+ 
+struct ABDebugTrack {
+  int trackID = 0;
+  int icCand = 0;
+  o2::track::TrackParCov tpcSeed;
+  o2::MCCompLabel tpcLabel;
+  o2::utils::Bracket<float> icTimeBin;
+  std::vector<ABDebugLink> links;
+  float chi2 = 0;
+  uint8_t nClus = 0;
+  uint8_t nClusCorr = 0;
+
+  ClassDefNV(ABDebugTrack,1);
+};
+ 
 ///< Link of the the cluster used by AfterBurner: every used cluster will have 1 link for every update it did on some
 ///< AB seed. The link (index) points not on seed state it is updating but on the end-point of the seed (lowest layer reached)
 struct ABClusterLink {
@@ -220,15 +252,18 @@ class MatchTPCITS
   bool runAfterBurner(int tpcWID, int iCStart, int iCEnd);
   void buildABCluster2TracksLinks();
   float correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const;
-  bool checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist, int& nMissed);
-  ABTrackLinksList& getCreateABTrackLinksList(int tpcWID);
+  int checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist);
+  ABTrackLinksList& createABTrackLinksList(int tpcWID);
+  ABTrackLinksList& getABTrackLinksList(int tpcWID) { return mABTrackLinksList[mTPCWork[tpcWID].matchID]; }
+  void disableABTrackLinksList(int tpcWID);
   int registerABTrackLink(ABTrackLinksList& llist, const o2::track::TrackParCov& src, int ic, int lr, int parentID = -1, int clID = -1);
   void printABTracksTree(const ABTrackLinksList& llist) const;
   void printABClusterUsage() const;
+  void selectBestMatchesAB();
   bool isBetter(const o2::track::TrackParCov& src, const ABTrackLink& lnk) { return true; } // RS TODO
-
+  void dumpABTracksDebugTree(const ABTrackLinksList& llist);
   int prepareInteractionTimes();
-
+  
   ///< perform all initializations
   void init();
 
@@ -528,7 +563,7 @@ class MatchTPCITS
   int compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const;
   float getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const o2::track::TrackParCov& tr2) const;
   bool propagateToRefX(o2::track::TrackParCov& trc);
-  void addTrackCloneForNeighbourSector(const TrackLocITS& src, int sector);
+  void addLastTrackCloneForNeighbourSector(int sector);
 
   ///------------------- manipulations with matches records ----------------------
   bool registerMatchRecordTPC(int iITS, int iTPC, float chi2);
@@ -608,6 +643,8 @@ class MatchTPCITS
 
   int mMaxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
 
+  int mABRequireToReachLayer = 5; ///< AB tracks should reach at least this layer from above
+  
   ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
   float mTPCITSTimeBinSafeMargin = 1.f;
 
@@ -841,18 +878,18 @@ inline int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const 
     //    if (!(label == lblTrc)) {
     //      continue; // tmp
     //    }
-    LOG(INFO) << "cl" << icl << '/' << clID << " " << label
+    LOG(DEBUG) << "cl" << icl << '/' << clID << " " << label
               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
       float clsZ = cls.getZ();
-      LOG(INFO) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      LOG(DEBUG) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
       break;
     } else if (dz < -tolerZ) {
-      LOG(INFO) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
+      LOG(DEBUG) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
       continue;
     }
     if (fabs(trackY - cls.getY()) > tolerY) {
-      LOG(INFO) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
+      LOG(DEBUG) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
       continue;
     }
     clVecOut.push_back(clID);
