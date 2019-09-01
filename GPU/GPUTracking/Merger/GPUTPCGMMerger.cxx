@@ -821,13 +821,8 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
     if (track->TransportToX(x0, mCAParam->ConstBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mOutputTracks[itr].NClusters());
-      for (int i = 0; i < 4; i++) {
-        if (fabsf(b.Cov()[i]) >= 5.0) {
-          b.SetCov(i, 5.0);
-        }
-      }
       if (fabsf(b.Cov()[4]) >= 0.5) {
-        b.SetCov(4, 0.5);
+        b.SetCov(4, 0.5); // TODO: Is this needed and better than the cut in BorderTrack?
       }
       if (track->CSide()) {
         b.SetPar(1, b.Par()[1] - 2 * (cls.z - b.ZOffset()));
