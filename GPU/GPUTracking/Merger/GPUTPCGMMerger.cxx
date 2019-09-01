@@ -859,6 +859,9 @@ void GPUTPCGMMerger::MergeCE()
       }
 
       bool looper = trk[0]->Looper() || trk[1]->Looper() || (trk[0]->GetParam().GetQPt() > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      if (!looper && trk[0]->GetParam().GetPar(3) * trk[1]->GetParam().GetPar(3) < 0) {
+        continue;
+      }
       bool needswap = false;
       if (looper) {
         const float z0max = CAMath::Max(fabsf(mClusters[trk[0]->FirstClusterRef()].z), fabsf(mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z));
@@ -904,6 +907,9 @@ void GPUTPCGMMerger::MergeCE()
       trk[1]->SetFirstClusterRef(newRef);
       trk[1]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
       trk[1]->SetCCE(true);
+      if (looper) {
+        trk[1]->SetLooper(true);
+      }
       trk[0]->SetNClusters(0);
       trk[0]->SetOK(false);
     }
