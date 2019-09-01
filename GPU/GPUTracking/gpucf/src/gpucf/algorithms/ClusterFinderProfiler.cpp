@@ -13,20 +13,21 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
     findPeaks.call(state, queue);
 
     compactPeaks.call(state, queue);
-    
+
+    noiseSuppression.call(state, queue);
+
+    compactPeaks.compactFilteredPeaks(state, queue);
+
     log::Debug() << "Counting Peaks START";
     countPeaks.call(state, queue);
-    queue.finish();
     log::Debug() << "Counting Peaks END";
 
     log::Debug() << "Computing cluster START";
     computeCluster.call(state, queue);
-    queue.finish();
     log::Debug() << "Computing cluster END";
 
     log::Debug() << "Reset maps START";
     resetMaps.call(state, queue);
-    queue.finish();
     log::Debug() << "Reset maps END";
 
     log::Debug() << "Finish queue START";
@@ -38,8 +39,10 @@ std::vector<Step> ClusterFinderProfiler::run(nonstd::span<const Digit> digits)
     std::vector<Step> steps = {
         fillChargeMap,
         findPeaks,
-        countPeaks,
         compactPeaks.step(),
+        noiseSuppression.asStep("noiseSuppression"),
+        compactPeaks.stepFiltered(),
+        countPeaks,
         computeCluster,
         resetMaps
     };
