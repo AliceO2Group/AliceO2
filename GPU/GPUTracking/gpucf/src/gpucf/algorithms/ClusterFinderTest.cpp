@@ -37,25 +37,20 @@ void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 
     log::Debug() << "Look for peaks";
     findPeaks.call(state, queue);
-
     checkIsPeaks(res.isPeak);
 
     compactPeaks.call(state, queue);
+    ASSERT(state.peaknum <= state.digitnum);
+    checkPeaks(res.peaks);
 
     noiseSuppression.call(state, queue);
-
     compactPeaks.compactFilteredPeaks(state, queue);
-
-    ASSERT(state.peaknum <= state.digitnum);
-
-    checkPeaks(res.peaks);
+    checkFilteredPeaks(res.filteredPeaks);
 
     countPeaks.call(state, queue);
 
     computeCluster.call(state, queue);
-
-    checkCluster(res.peaks, res.cluster);
-
+    checkCluster(res.filteredPeaks, res.cluster);
 
     queue.finish();
 }
@@ -146,6 +141,50 @@ void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
     log::Success() << "Peaks: OK (" << correctFraction << " correct)";
 }
 
+void ClusterFinderTest::checkFilteredPeaks(const std::vector<Digit> &filteredPeakGT)
+{
+    std::vector<Digit> peaks(state.filteredPeakNum);
+
+    gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
+
+    Map<bool> peakLookup(filteredPeakGT, true, false);
+    log::Info() << "GT has   " << filteredPeakGT.size() << " filtered peaks.";
+    log::Info() << "Cf found " << peaks.size() << " filtered peaks.";
+
+    size_t correctPeaks = 0;
+    std::vector<size_t> wrongIds;
+    for (size_t i = 0; i < peaks.size(); i++)
+    {
+        bool ok = peakLookup[peaks[i]];
+        correctPeaks += ok;
+
+        if (!ok)
+        {
+            wrongIds.push_back(i);
+        }
+    }
+
+    float correctFraction = float(correctPeaks) / peaks.size();
+
+    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+
+    bool peaksOk = correctFraction >= threshold;
+
+    if (!peaksOk)
+    {
+        DigitDrawer drawer(digits, filteredPeakGT, peaks);
+
+        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
+        {
+            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(peaks[wrongIds[i]], 3);
+        }
+    }
+
+    ASSERT(peaksOk) << "\n" << correctFraction;
+
+    log::Success() << "Filtered Peaks: OK (" << correctFraction << " correct)";
+}
+
 void ClusterFinderTest::checkCluster(
         const std::vector<Digit> &peaksGT, 
         const std::vector<Cluster> &clusterGT)
@@ -164,8 +203,8 @@ void ClusterFinderTest::checkCluster(
             Cluster::Field_all
               ^ (Cluster::Field_timeSigma | Cluster::Field_padSigma));
 
-    std::vector<Digit> peaks(state.peaknum);
-    gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
+    std::vector<Digit> peaks(state.filteredPeakNum);
+    gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
 
     DigitDrawer drawer(digits, peaksGT, peaks);
 
@@ -178,6 +217,8 @@ void ClusterFinderTest::checkCluster(
         if (!posOk && printCluster > 0)
         {
             log::Debug() 
+                << c << "\n"
+                << clpos.findClosest(c) << "\n"
                 << "Print around cluster:\n"
                 << drawer.drawArea(
                     Digit{0, c.globalRow(), int(c.padMean), int(c.timeMean)},
