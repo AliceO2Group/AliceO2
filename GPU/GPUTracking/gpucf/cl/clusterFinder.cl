@@ -270,9 +270,9 @@ void toNative(const ClusterAccumulator *cluster, const Digit *d, ClusterNative *
 
 void collectCharge(
         ClusterAccumulator *cluster,
-        charge_t splitCharge,
-        delta_t dp,
-        delta_t dt)
+        charge_t            splitCharge,
+        delta_t             dp,
+        delta_t             dt)
 {
     cluster->Q         += splitCharge;
     cluster->padMean   += splitCharge*dp;
@@ -284,9 +284,9 @@ void collectCharge(
 
 charge_t updateClusterInner(
         ClusterAccumulator *cluster, 
-        packed_charge_t charge, 
-        delta_t dp, 
-        delta_t dt)
+        packed_charge_t     charge, 
+        delta_t             dp, 
+        delta_t             dt)
 {
     charge_t q = unpackCharge(charge);
 
@@ -301,9 +301,9 @@ charge_t updateClusterInner(
 
 void updateClusterOuter(
         ClusterAccumulator *cluster,
-        packed_charge_t charge,
-        delta_t dp,
-        delta_t dt)
+        packed_charge_t     charge,
+        delta_t             dp,
+        delta_t             dt)
 {
     charge_t q = unpackCharge(charge);
 
@@ -350,7 +350,7 @@ void addCorner(
                      delta_t             dt)
 {
     charge_t q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
-    
+
     if (q > CHARGE_THRESHOLD)
     {
         addOuterCharge(chargeMap, myCluster, gpad, time, 2*dp,   dt);
@@ -419,21 +419,21 @@ ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
             constant       delta2_t  *neighbors, \
             local    const ChargePos *posBcast, \
             local          type      *buf) \
+{ \
+    ushort y = ll / N; \
+    ushort x = ll % N; \
+    delta2_t d = neighbors[x + offset]; \
+    delta_t dp = d.x; \
+    delta_t dt = d.y; \
+    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
     { \
-        ushort y = ll / N; \
-        ushort x = ll % N; \
-        delta2_t d = neighbors[x + offset]; \
-        delta_t dp = d.x; \
-        delta_t dt = d.y; \
-        LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
-        { \
-            ChargePos readFrom = posBcast[i]; \
-            uint writeTo = N * i + x; \
-            buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
-        } \
-        work_group_barrier(CLK_LOCAL_MEM_FENCE); \
+        ChargePos readFrom = posBcast[i]; \
+        uint writeTo = N * i + x; \
+        buf[writeTo] = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
     } \
-    void anonymousFunction()
+    work_group_barrier(CLK_LOCAL_MEM_FENCE); \
+} \
+void anonymousFunction()
 
 DECL_FILL_SCRATCH_PAD(packed_charge_t, CHARGE);
 DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
@@ -522,7 +522,7 @@ void updateClusterScratchpadOuter(
     uchar aboveThreshold = innerAboveThresholdSet[lid];
 
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
-	
+
     LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
     {
         packed_charge_t p = buf[N * lid + i];
@@ -544,13 +544,13 @@ void updateClusterScratchpadOuter(
 
 
 void buildClusterScratchPad(
-            global const packed_charge_t    *chargeMap,
-                         ChargePos           pos,
-                         ushort              N,
-            local        ChargePos          *posBcast,
-            local        packed_charge_t    *buf,
-            local        uchar              *innerAboveThreshold,
-                         ClusterAccumulator *myCluster)
+        global const packed_charge_t    *chargeMap,
+                     ChargePos           pos,
+                     ushort              N,
+        local        ChargePos          *posBcast,
+        local        packed_charge_t    *buf,
+        local        uchar              *innerAboveThreshold,
+                     ClusterAccumulator *myCluster)
 {
     reset(myCluster);
 
@@ -619,6 +619,7 @@ void buildClusterNaive(
                      timestamp           time)
 {
     reset(myCluster);
+
 
     // Add charges in top left corner:
     // O O o o o
@@ -738,7 +739,7 @@ bool isPeakScratchPad(
     {
         charge_t q = unpackCharge(buf[N * partId + i]);
         peak &= (digit->charge > q) 
-             || (INNER_TEST_EQ[i] && digit->charge == q);
+            || (INNER_TEST_EQ[i] && digit->charge == q);
     }
 
     return peak;
@@ -818,7 +819,7 @@ bool isPeak(
 
 void finalize(
               ClusterAccumulator *pc,
-        const Digit          *myDigit)
+        const Digit              *myDigit)
 {
     pc->Q += myDigit->charge;
 
@@ -856,7 +857,7 @@ char countPeaksAroundDigit(
         delta2_t d = INNER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
-        
+
         uchar p = IS_PEAK(peakMap, gpad+dp, time+dt);
         peakCount += GET_IS_PEAK(p);
         aboveThreshold |= GET_IS_ABOVE_THRESHOLD(p) << i;
@@ -1067,7 +1068,7 @@ void findPeaks(
     const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     IS_PEAK(peakMap, gpad, myDigit.time) = 
-          ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+        ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 kernel
@@ -1094,13 +1095,13 @@ void noiseSuppression(
             &minimas,
             &bigger);
 
-    ulong peaks = noiseSuppressionFindPeaks(peakMap, gpad, myDigit.time);
+    ulong peaksAround = noiseSuppressionFindPeaks(peakMap, gpad, myDigit.time);
 
-    peaks &= bigger;
+    peaksAround &= bigger;
 
-    bool keepMe = noiseSuppressionKeepPeak(minima, peaks);
+    bool keepMe = noiseSuppressionKeepPeak(minimas, peaksAround);
 
-    bool iamDummy = (idx >= digitnum);
+    bool iamDummy = (idx >= peaknum);
     if (iamDummy)
     {
         return;
@@ -1123,7 +1124,7 @@ void updatePeaks(
     uchar peak = isPeak[idx];
 
     IS_PEAK(peakMap, gpad, myDigit.time) = 
-          ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+        ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 
@@ -1132,8 +1133,7 @@ void countPeaks(
         global const uchar           *peakMap,
         global       packed_charge_t *chargeMap,
         global const Digit           *digits,
-               const uint             digitnum,
-        global const uchar           *isPeak)
+               const uint             digitnum)
 {
     size_t idx = get_global_linear_id();
 
@@ -1144,7 +1144,7 @@ void countPeaks(
     Digit myDigit = digits[idx];
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-    bool iamPeak  = isPeak[idx];
+    bool iamPeak  = GET_IS_PEAK(IS_PEAK(peakMap, gpad, myDigit.time));
 
     char peakCount = (iamPeak) ? 1 : 0;
 
@@ -1262,14 +1262,14 @@ void computeClusters(
 
     finalize(&pc, &myDigit);
 
+    ClusterNative myCluster;
+    toNative(&pc, &myDigit, &myCluster);
+
     bool iamDummy = (idx >= clusternum);
     if (iamDummy)
     {
         return;
     }
-
-    ClusterNative myCluster;
-    toNative(&pc, &myDigit, &myCluster);
 
 #if defined(CUT_QTOT)
     bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
