@@ -32,8 +32,13 @@ extern "C" int gl3wInit();
 #include <pthread.h>
 
 #ifdef GPUCA_O2_LIB
+#if __has_include("../src/imgui.h")
 #include "../src/imgui.h"
 #include "../src/imgui_impl_glfw_gl3.h"
+#else
+#include "DebugGUI/imgui.h"
+#include "DebugGUI/imgui_impl_glfw_gl3.h"
+#endif
 #include "Framework/DebugGUI.h"
 #endif
 
