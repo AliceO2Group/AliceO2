@@ -115,6 +115,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
       if (crossCE) {
         lastSlice = clusters[ihit].slice;
         noFollowCircle2 = true;
+        if (mC[2] < 0.5f) {
+          mC[2] = 0.5f;
+        }
       }
 
       float xx = clusters[ihit].x;
