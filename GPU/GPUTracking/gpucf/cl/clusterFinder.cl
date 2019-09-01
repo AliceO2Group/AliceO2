@@ -248,6 +248,16 @@ bool isAtEdge(const Digit *d)
     return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW-2);
 }
 
+bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
+{
+    return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
+}
+
+
+bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+{
+    return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
+}
 
 
 void toNative(const ClusterAccumulator *cluster, const Digit *d, ClusterNative *cn)
@@ -435,8 +445,45 @@ ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
 } \
 void anonymousFunction()
 
+#define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
+    void fillScratchPad##nameAppendix##_##type( \
+            global   const type      *chargeMap, \
+                           uint       wgSize, \
+                           ushort     ll, \
+                           uint       offset, \
+                           uint       N, \
+            constant       delta2_t  *neighbors, \
+            local    const ChargePos *posBcast, \
+            local    const uchar     *aboveThreshold, \
+            local          type      *buf) \
+{ \
+    ushort y = ll / N; \
+    ushort x = ll % N; \
+    delta2_t d = neighbors[x + offset]; \
+    delta_t dp = d.x; \
+    delta_t dt = d.y; \
+    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
+    { \
+        ChargePos readFrom = posBcast[i]; \
+        uchar above = aboveThreshold[i]; \
+        uint writeTo = N * i + x; \
+        type v = null; \
+        if (expandFunc(above, x + offset)) \
+        { \
+            v = accessFunc(chargeMap, readFrom.gpad+dp, readFrom.time+dt); \
+        } \
+        buf[writeTo] = v; \
+    } \
+    work_group_barrier(CLK_LOCAL_MEM_FENCE); \
+} \
+void anonymousFunction()
+
 DECL_FILL_SCRATCH_PAD(packed_charge_t, CHARGE);
 DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
+DECL_FILL_SCRATCH_PAD_COND(packed_charge_t, CHARGE, innerAboveThreshold, Cond, 0);
+DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
+DECL_FILL_SCRATCH_PAD_COND(packed_charge_t, CHARGE, innerAboveThresholdInv, CondInv, 0);
+DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
 
 void fillScratchPadNaive(
         global   const uchar     *chargeMap,
@@ -500,16 +547,6 @@ void updateClusterScratchpadInner(
 }
 
 
-bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
-{
-    return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
-}
-
-
-bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
-{
-    return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
-}
 
 void updateClusterScratchpadOuter(
                     ushort              lid,
@@ -530,9 +567,9 @@ void updateClusterScratchpadOuter(
         ushort outerIdx = i + offset;
 
         /* q = (q < 0) ? -q : 0.f; */
-        bool contributes = innerAboveThreshold(aboveThreshold, outerIdx);
+        /* bool contributes = innerAboveThreshold(aboveThreshold, outerIdx); */
 
-        p = (contributes) ? p : 0;
+        /* p = (contributes) ? p : 0; */
 
         delta2_t d = OUTER_NEIGHBORS[outerIdx];
         delta_t dp = d.x;
@@ -576,14 +613,15 @@ void buildClusterScratchPad(
             myCluster, 
             innerAboveThreshold);
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPadCond_packed_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE, 
             ll,
             0, 
             N, 
             OUTER_NEIGHBORS,
-            posBcast, 
+            posBcast,
+            innerAboveThreshold,
             buf);
     updateClusterScratchpadOuter(
             ll, 
@@ -593,7 +631,7 @@ void buildClusterScratchPad(
             innerAboveThreshold, 
             myCluster);
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPadCond_packed_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             ll,
@@ -601,6 +639,7 @@ void buildClusterScratchPad(
             N,
             OUTER_NEIGHBORS,
             posBcast,
+            innerAboveThreshold,
             buf);
     updateClusterScratchpadOuter(
             ll, 
@@ -909,8 +948,8 @@ char countPeaksScratchpadOuter(
     for (uchar i = 0; i < 8; i++)
     {
         uchar p = isPeak[ll * 8 + i];
-        bool extend = innerAboveThresholdInv(aboveThreshold, i + offset);
-        p = (extend) ? p : 0;
+        /* bool extend = innerAboveThresholdInv(aboveThreshold, i + offset); */
+        /* p = (extend) ? p : 0; */
         peaks += GET_IS_PEAK(p);
     }
 
@@ -1155,6 +1194,7 @@ void countPeaks(
     const ushort N = 8;
 
     local ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local uchar     aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     local uchar     buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
 
     ushort in3x3 = 0;
@@ -1185,16 +1225,35 @@ void countPeaks(
     if (partId < in5x5)
     {
         posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+        aboveThresholdBcast[partId] = aboveThreshold;
     }
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
-    fillScratchPad_uchar(peakMap, in5x5, ll, 0, N, OUTER_NEIGHBORS, posBcast1, buf);
+    fillScratchPadCondInv_uchar(
+            peakMap, 
+            in5x5, 
+            ll, 
+            0, 
+            N, 
+            OUTER_NEIGHBORS, 
+            posBcast1, 
+            aboveThresholdBcast, 
+            buf);
     if (partId < in5x5)
     {
         peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, buf);
     }
 
-    fillScratchPad_uchar(peakMap, in5x5, ll, 8, N, OUTER_NEIGHBORS, posBcast1, buf);
+    fillScratchPadCondInv_uchar(
+            peakMap, 
+            in5x5, 
+            ll, 
+            8, 
+            N, 
+            OUTER_NEIGHBORS, 
+            posBcast1, 
+            aboveThresholdBcast, 
+            buf);
     if (partId < in5x5)
     {
         peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, buf);
