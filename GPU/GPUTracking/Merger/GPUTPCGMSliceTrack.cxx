@@ -271,6 +271,9 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   b.SetCov(4, c44);
   b.SetCovD(0, c20ph4c42 + h2c22 + dxBz * (c40 + h2 * c42 + h4c44));
   b.SetCovD(1, n7);
+
+  b.LimitCov();
+
   return 1;
 }
 
@@ -388,6 +391,8 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   b.SetCov(4, c44);
   b.SetCovD(0, c20ph4c42 + h2c22 + dxBz * (c40 + h2 * c42 + h4c44));
   b.SetCovD(1, n7);
+
+  b.LimitCov();
 
   return 1;
 }
