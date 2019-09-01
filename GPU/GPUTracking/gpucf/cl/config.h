@@ -147,7 +147,7 @@ size_t safeIdx(global_pad_t gpad, timestamp time)
         return chargemapIdx(0, 0);
     }
 
-    if (time+PADDING >= TPC_MAX_TIME_PADDED)
+    if (time+PADDING_TIME >= TPC_MAX_TIME_PADDED)
     {
         printf("%lu: time = %hu\n", id, time);
         return chargemapIdx(0, 0);

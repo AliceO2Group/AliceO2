@@ -39,7 +39,7 @@ const std::unordered_map<Delta, std::vector<Delta>> ReferenceClusterFinder::inne
 
 ReferenceClusterFinder::ReferenceClusterFinder(ClusterFinderConfig config)
     : config(config)
-    , noiseSuppression(2, 3, 0, 10)
+    , noiseSuppression(2, 3, 0, config.epsilon)
 {
 }
 
@@ -77,20 +77,20 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
     }
 
     Map<bool> peakmap(peaks, true, false);
-    peaks = noiseSuppression.runOnAllRows(peaks, peakmap, chargemap);
+    std::vector<Digit> filteredPeaks = noiseSuppression.runOnAllRows(peaks, peakmap, chargemap);
 
-    Map<PeakCount> peakcount = makePeakCountMap(digits, peaks, chargemap, true);
+    Map<PeakCount> peakcount = makePeakCountMap(digits, filteredPeaks, chargemap, true);
 
     std::vector<Cluster> clusters;
 
     std::transform(
-            peaks.begin(), 
-            peaks.end(),
+            filteredPeaks.begin(), 
+            filteredPeaks.end(),
             std::back_inserter(clusters),
             [=](const Digit &d) { 
-            return clusterize(d, chargemap, peakcount); });
+                return clusterize(d, chargemap, peakcount); });
 
-    return {clusters, peaks, isPeakPred};
+    return {clusters, peaks, filteredPeaks, isPeakPred};
 }
 
 
@@ -108,7 +108,7 @@ Cluster ReferenceClusterFinder::clusterize(
         PeakCount pc = PCMASK_PEAK_COUNT & peakcount[{d, inner.pad, inner.time}];
 
         float q = chargemap[{d, inner.pad, inner.time}] / pc;
-        q = static_cast<unsigned short>(q * 16.f) / 16.f;
+        /* q = static_cast<unsigned short>(q * 16.f) / 16.f; */
 
         update(c, q, inner.pad, inner.time);
 
@@ -127,7 +127,7 @@ Cluster ReferenceClusterFinder::clusterize(
 
             pc = PCMASK_PEAK_COUNT & pc;
             float q = chargemap[{d, outer.pad, outer.time}] / pc;
-            q = static_cast<unsigned short>(q * 16.f) / 16.f;
+            /* q = static_cast<unsigned short>(q * 16.f) / 16.f; */
 
             update(c, q, outer.pad, outer.time); 
         }
@@ -185,6 +185,12 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
         {
             outerPeaks += peakmap[{d, outer.pad, outer.time}];
         }
+    }
+
+    if (d.row == 0 && d.time == 671 && d.pad == 33)
+    {
+        log::Debug() << ">>>>> q = " << d.charge 
+            << ", innerPeaks = " << innerPeaks;
     }
 
     return (innerPeaks > 0) ? (PCMASK_HAS_3X3_PEAKS | innerPeaks) : outerPeaks;

@@ -23,7 +23,6 @@ public:
         kernel.setArg(1, state.chargeMap);
         kernel.setArg(2, state.digits);
         kernel.setArg(3, static_cast<cl_uint>(state.digitnum));
-        kernel.setArg(4, state.isPeak);
 
         Kernel1D::call(0, workitems, 64, queue);
     }

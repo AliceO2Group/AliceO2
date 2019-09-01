@@ -24,6 +24,8 @@ private:
 
     void checkPeaks(const std::vector<Digit> &);
 
+    void checkFilteredPeaks(const std::vector<Digit> &);
+
     void checkCluster(
             const std::vector<Digit> &, 
             const std::vector<Cluster> &);

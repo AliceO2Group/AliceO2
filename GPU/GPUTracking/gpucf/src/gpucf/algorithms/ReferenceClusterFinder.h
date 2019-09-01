@@ -22,7 +22,8 @@ public:
     {
         std::vector<Cluster> cluster;
         std::vector<Digit>   peaks;    
-        std::vector<unsigned char>    isPeak;
+        std::vector<Digit>   filteredPeaks;    
+        std::vector<unsigned char> isPeak;
     };
 
     ReferenceClusterFinder(ClusterFinderConfig);
