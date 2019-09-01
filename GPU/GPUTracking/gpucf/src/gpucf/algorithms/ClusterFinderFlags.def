@@ -10,6 +10,8 @@ CLUSTER_FINDER_FLAG(unrollLoops, false, "UNROLL_LOOPS",
 #elif defined(CLUSTER_FINDER_PARAM)
 CLUSTER_FINDER_PARAM(qmaxCutoff, 0, "QMAX_CUTOFF", "Remove peaks with charges lower than this cutoff.")
 CLUSTER_FINDER_PARAM(qtotCutoff, 0, "QTOT_CUTOFF", "Remove clusters with qtot lower than this cutoff.")
+CLUSTER_FINDER_PARAM(epsilon, -1024, "NOISE_SUPPRESSION_MINIMA_EPSILON", 
+    "Threshold for minima search.")
 
 #elif defined(MEMORY_LAYOUT)
 
