@@ -21,12 +21,14 @@ if [ $? != 0 ]; then exit 1; fi
     #$COMPILER -cl-std=c++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -c test.cl -o test.o
     #exit
 
+echo
 echo Test2 - Clang OCL
 echo clang-ocl -cl-std=clc++ -mcpu=gfx906 $FLAGS $INCLUDES $DEFINES -o test-clang-ocl.o ../Base/opencl-common/GPUReconstructionOCL.cl
      clang-ocl -cl-std=clc++ -mcpu=gfx906 $FLAGS $INCLUDES $DEFINES -o test-clang-ocl.o ../Base/opencl-common/GPUReconstructionOCL.cl
 rm -f test-clang-ocl.o.*
 if [ $? != 0 ]; then exit 1; fi
 
+echo
 echo Test3 - SPIR-V
 echo $COMPILER -cl-std=clc++ -x cl -emit-llvm --target=spir64-unknown-unknown $FLAGS $INCLUDES $DEFINES -c ../Base/opencl-common/GPUReconstructionOCL.cl -o test.bc
      $COMPILER -cl-std=clc++ -x cl -emit-llvm --target=spir64-unknown-unknown $FLAGS $INCLUDES $DEFINES -c ../Base/opencl-common/GPUReconstructionOCL.cl -o test.bc
@@ -35,6 +37,7 @@ echo $LLVM_SPIRV test.bc
      $LLVM_SPIRV test.bc
 if [ $? != 0 ]; then exit 1; fi
 
+echo
 echo Test4 - amdgcn
 echo $COMPILER -cl-std=clc++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 $FLAGS $INCLUDES $DEFINES -c ../Base/opencl-common/GPUReconstructionOCL.cl -o test.o
      $COMPILER -cl-std=clc++ -x cl --target=amdgcn-amd-amdhsa -mcpu=gfx906 $FLAGS $INCLUDES $DEFINES -c ../Base/opencl-common/GPUReconstructionOCL.cl -o test.o
