@@ -326,6 +326,44 @@ void updateClusterOuter(
     cluster->splitInPad  += (dp != 0 && split && !has3x3);
 }
 
+void mergeCluster(
+                    ushort              ll,
+                    ushort              otherll,
+                    ClusterAccumulator *myCluster,
+              const ClusterAccumulator *otherCluster,
+        local       charge_t           *clusterBcast)
+{
+    clusterBcast[otherll] = otherCluster->Q;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->Q           += clusterBcast[ll];
+
+    clusterBcast[otherll] = otherCluster->padMean;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->padMean     += clusterBcast[ll];
+
+    clusterBcast[otherll] = otherCluster->timeMean;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->timeMean    += clusterBcast[ll];
+
+    clusterBcast[otherll] = otherCluster->padSigma;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->padSigma    += clusterBcast[ll];
+
+    clusterBcast[otherll] = otherCluster->timeSigma;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->timeSigma   += clusterBcast[ll];
+
+    local int *splitBcast = (local void *)clusterBcast;
+
+    splitBcast[otherll] = otherCluster->splitInTime;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->splitInTime += splitBcast[ll];
+
+    splitBcast[otherll] = otherCluster->splitInPad;
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+    myCluster->splitInPad  += splitBcast[ll];
+}
+
 
 void addOuterCharge(
         global const packed_charge_t    *chargeMap,
@@ -423,6 +461,7 @@ ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
     void fillScratchPad_##type( \
             global   const type      *chargeMap, \
                            uint       wgSize, \
+                           uint       elems, \
                            ushort     ll, \
                            uint       offset, \
                            uint       N, \
@@ -430,12 +469,12 @@ ushort partition(ushort ll, bool pred, ushort partSize, ushort *newPartSize)
             local    const ChargePos *posBcast, \
             local          type      *buf) \
 { \
-    ushort y = ll / N; \
     ushort x = ll % N; \
+    ushort y = ll / N; \
     delta2_t d = neighbors[x + offset]; \
     delta_t dp = d.x; \
     delta_t dt = d.y; \
-    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
+    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += (elems / N)) \
     { \
         ChargePos readFrom = posBcast[i]; \
         uint writeTo = N * i + x; \
@@ -449,6 +488,7 @@ void anonymousFunction()
     void fillScratchPad##nameAppendix##_##type( \
             global   const type      *chargeMap, \
                            uint       wgSize, \
+                           uint       elems, \
                            ushort     ll, \
                            uint       offset, \
                            uint       N, \
@@ -462,7 +502,7 @@ void anonymousFunction()
     delta2_t d = neighbors[x + offset]; \
     delta_t dp = d.x; \
     delta_t dt = d.y; \
-    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += N) \
+    LOOP_UNROLL_ATTR for (int i = y; i < wgSize; i += (elems / N)) \
     { \
         ChargePos readFrom = posBcast[i]; \
         uchar above = aboveThreshold[i]; \
@@ -551,27 +591,18 @@ void updateClusterScratchpadInner(
 void updateClusterScratchpadOuter(
                     ushort              lid,
                     ushort              N,
+                    ushort              M,
                     ushort              offset,
         local const packed_charge_t    *buf,
-        local const uchar              *innerAboveThresholdSet,
                     ClusterAccumulator *cluster)
 {
-    uchar aboveThreshold = innerAboveThresholdSet[lid];
-
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 
-    LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
+    LOOP_UNROLL_ATTR for (ushort i = offset; i < M+offset; i++)
     {
         packed_charge_t p = buf[N * lid + i];
 
-        ushort outerIdx = i + offset;
-
-        /* q = (q < 0) ? -q : 0.f; */
-        /* bool contributes = innerAboveThreshold(aboveThreshold, outerIdx); */
-
-        /* p = (contributes) ? p : 0; */
-
-        delta2_t d = OUTER_NEIGHBORS[outerIdx];
+        delta2_t d = OUTER_NEIGHBORS[i];
         delta_t dp = d.x;
         delta_t dt = d.y;
 
@@ -583,7 +614,6 @@ void updateClusterScratchpadOuter(
 void buildClusterScratchPad(
         global const packed_charge_t    *chargeMap,
                      ChargePos           pos,
-                     ushort              N,
         local        ChargePos          *posBcast,
         local        packed_charge_t    *buf,
         local        uchar              *innerAboveThreshold,
@@ -600,54 +630,79 @@ void buildClusterScratchPad(
     fillScratchPad_packed_charge_t(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
             ll,
             0,
-            N,
+            8,
             INNER_NEIGHBORS,
             posBcast,
             buf);
     updateClusterScratchpadInner(
-            ll, 
-            N, 
-            buf, 
-            myCluster, 
-            innerAboveThreshold);
-
-    fillScratchPadCond_packed_charge_t(
-            chargeMap,
-            SCRATCH_PAD_WORK_GROUP_SIZE, 
-            ll,
-            0, 
-            N, 
-            OUTER_NEIGHBORS,
-            posBcast,
-            innerAboveThreshold,
-            buf);
-    updateClusterScratchpadOuter(
-            ll, 
-            N, 
-            0, 
-            buf, 
-            innerAboveThreshold, 
-            myCluster);
-
-    fillScratchPadCond_packed_charge_t(
-            chargeMap,
-            SCRATCH_PAD_WORK_GROUP_SIZE,
             ll,
             8,
-            N,
+            buf,
+            myCluster,
+            innerAboveThreshold);
+
+    ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
+
+    bool inGroup1 = ll < wgSizeHalf;
+
+    ushort llhalf = (inGroup1) ? ll : (ll-wgSizeHalf);
+
+    /* ClusterAccumulator otherCluster; */
+    /* reset(&otherCluster); */
+
+    fillScratchPadCond_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0, 
+            16, 
             OUTER_NEIGHBORS,
             posBcast,
             innerAboveThreshold,
             buf);
-    updateClusterScratchpadOuter(
-            ll, 
-            N, 
-            8, 
-            buf, 
-            innerAboveThreshold, 
-            myCluster);
+    if (inGroup1)
+    {
+        updateClusterScratchpadOuter(
+                llhalf,
+                16,
+                16,
+                0,
+                buf,
+                myCluster);
+    }
+
+    fillScratchPadCond_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0,
+            16,
+            OUTER_NEIGHBORS,
+            posBcast+wgSizeHalf,
+            innerAboveThreshold+wgSizeHalf,
+            buf);
+    if (!inGroup1)
+    {
+        updateClusterScratchpadOuter(
+                llhalf,
+                16,
+                16,
+                0,
+                buf,
+                myCluster);
+    }
+
+    /* mergeCluster( */
+    /*         ll, */
+    /*         (inGroup1) ? ll+wgSizeHalf : llhalf, */
+    /*         myCluster, */
+    /*         &otherCluster, */
+    /*         (local void *)(posBcast)); */
 }
 
 
@@ -761,6 +816,7 @@ bool isPeakScratchPad(
     fillScratchPad_packed_charge_t(
             chargeMap,
             lookForPeaks,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
             ll,
             0,
             N,
@@ -1208,7 +1264,16 @@ void countPeaks(
     }
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
-    fillScratchPad_uchar(peakMap, in3x3, ll, 0, N, INNER_NEIGHBORS, posBcast1, buf);
+    fillScratchPad_uchar(
+            peakMap, 
+            in3x3, 
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll, 
+            0, 
+            N, 
+            INNER_NEIGHBORS, 
+            posBcast1, 
+            buf);
 
     uchar aboveThreshold = 0;
     if (partId < in3x3)
@@ -1232,6 +1297,7 @@ void countPeaks(
     fillScratchPadCondInv_uchar(
             peakMap, 
             in5x5, 
+            SCRATCH_PAD_WORK_GROUP_SIZE,
             ll, 
             0, 
             N, 
@@ -1239,6 +1305,7 @@ void countPeaks(
             posBcast1, 
             aboveThresholdBcast, 
             buf);
+
     if (partId < in5x5)
     {
         peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, buf);
@@ -1247,6 +1314,7 @@ void countPeaks(
     fillScratchPadCondInv_uchar(
             peakMap, 
             in5x5, 
+            SCRATCH_PAD_WORK_GROUP_SIZE,
             ll, 
             8, 
             N, 
@@ -1303,14 +1371,13 @@ void computeClusters(
     ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
     const ushort N = 8;
-    local ChargePos        posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    local packed_charge_t  buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
-    local uchar            innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local ChargePos          posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local packed_charge_t    buf[SCRATCH_PAD_WORK_GROUP_SIZE * N];
+    local uchar              innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 
     buildClusterScratchPad(
             chargeMap,
             (ChargePos){gpad, myDigit.time},
-            N,
             posBcast,
             buf,
             innerAboveThreshold,
