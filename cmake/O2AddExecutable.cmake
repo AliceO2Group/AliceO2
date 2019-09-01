@@ -105,10 +105,6 @@ function(o2_add_executable baseTargetName)
 
   # use its dependencies
   foreach(lib IN LISTS A_PUBLIC_LINK_LIBRARIES)
-    if(NOT TARGET ${lib})
-      message(
-        FATAL_ERROR "Trying to add a dependency on non-existing target ${lib}")
-    endif()
     target_link_libraries(${target} PUBLIC ${lib})
   endforeach()
 

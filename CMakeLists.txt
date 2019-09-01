@@ -57,7 +57,7 @@ include(O2TargetManPage)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common/Constants)
-add_subdirectory(Framework/Logger)
+add_subdirectory(Framework)
 add_subdirectory(GPU/Common)
 add_subdirectory(Common/MathUtils)
 add_subdirectory(DataFormats/Detectors/Common)
@@ -76,14 +76,12 @@ add_subdirectory(Detectors/ITSMFT/common/base)
 add_subdirectory(DataFormats/Detectors)
 add_subdirectory(DataFormats/TimeFrame)
 add_subdirectory(Utilities/PCG)
-add_subdirectory(Framework)
 add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
 add_subdirectory(Detectors/TRD)
 add_subdirectory(Detectors/ITSMFT)
 add_subdirectory(GPU)
 add_subdirectory(Detectors)
-add_subdirectory(Framework/TestWorkflows)
 add_subdirectory(Utilities)
 add_subdirectory(Steer) # consider building this only for simulation ?
 
