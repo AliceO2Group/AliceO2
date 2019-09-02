@@ -1001,9 +1001,9 @@ char countPeaksScratchpadOuter(
         local const uchar  *isPeak)
 {
     char peaks = 0;
-    for (uchar i = 0; i < 8; i++)
+    for (uchar i = 0; i < 16; i++)
     {
-        uchar p = isPeak[ll * 8 + i];
+        uchar p = isPeak[ll * 16 + i];
         /* bool extend = innerAboveThresholdInv(aboveThreshold, i + offset); */
         /* p = (extend) ? p : 0; */
         peaks += GET_IS_PEAK(p);
@@ -1247,7 +1247,7 @@ void countPeaks(
     ushort ll = get_local_linear_id();
     ushort partId = ll;
 
-    const ushort N = 8;
+    const ushort N = 16;
 
     local ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     local uchar     aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
@@ -1270,7 +1270,7 @@ void countPeaks(
             SCRATCH_PAD_WORK_GROUP_SIZE,
             ll, 
             0, 
-            N, 
+            8, 
             INNER_NEIGHBORS, 
             posBcast1, 
             buf);
@@ -1300,7 +1300,7 @@ void countPeaks(
             SCRATCH_PAD_WORK_GROUP_SIZE,
             ll, 
             0, 
-            N, 
+            16, 
             OUTER_NEIGHBORS, 
             posBcast1, 
             aboveThresholdBcast, 
@@ -1309,24 +1309,25 @@ void countPeaks(
     if (partId < in5x5)
     {
         peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, buf);
-    }
-
-    fillScratchPadCondInv_uchar(
-            peakMap, 
-            in5x5, 
-            SCRATCH_PAD_WORK_GROUP_SIZE,
-            ll, 
-            8, 
-            N, 
-            OUTER_NEIGHBORS, 
-            posBcast1, 
-            aboveThresholdBcast, 
-            buf);
-    if (partId < in5x5)
-    {
-        peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, buf);
         peakCount *= -1;
     }
+
+    /* fillScratchPadCondInv_uchar( */
+    /*         peakMap, */ 
+    /*         in5x5, */ 
+    /*         SCRATCH_PAD_WORK_GROUP_SIZE, */
+    /*         ll, */ 
+    /*         8, */ 
+    /*         N, */ 
+    /*         OUTER_NEIGHBORS, */ 
+    /*         posBcast1, */ 
+    /*         aboveThresholdBcast, */ 
+    /*         buf); */
+    /* if (partId < in5x5) */
+    /* { */
+    /*     peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, buf); */
+    /*     peakCount *= -1; */
+    /* } */
 
 #else
     peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
