@@ -170,6 +170,7 @@ constant delta2_t NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     (delta2_t)(-2, 0), 
     (delta2_t)(-2, 1), 
     (delta2_t)(-2, 2), 
+    (delta2_t)(-2, 3),
 
     (delta2_t)(-1, -3), 
     (delta2_t)(-1, -2), 
@@ -182,6 +183,7 @@ constant delta2_t NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     (delta2_t)(0, -3), 
     (delta2_t)(0, -2), 
     (delta2_t)(0, -1),              
+
     (delta2_t)(0, 1), 
     (delta2_t)(0, 2), 
     (delta2_t)(0, 3),
@@ -194,52 +196,51 @@ constant delta2_t NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     (delta2_t)(1, 2), 
     (delta2_t)(1, 3),
              
+    (delta2_t)(2, -3), 
     (delta2_t)(2, -2), 
     (delta2_t)(2, -1), 
     (delta2_t)(2, 0), 
     (delta2_t)(2, 1), 
     (delta2_t)(2, 2), 
     (delta2_t)(2, 3),
-    (delta2_t)(2, -3), 
-    (delta2_t)(-2, 3)
 };
 
 constant uint NOISE_SUPPRESSION_MINIMA[NOISE_SUPPRESSION_NEIGHBOR_NUM] = 
 {
-    (1 << 7) | (1 << 8),
-    (1 << 8),
-    (1 << 8),
+    (1 << 8) | (1 << 9),
+    (1 << 9),
     (1 << 9),
     (1 << 10),
-    (1 << 10),
-    (1 << 7) | (1 << 8),
-    (1 << 8),
+    (1 << 11),
+    (1 << 11),
+    (1 << 11) | (1 << 12),
+    (1 << 8) | (1 << 9),
+    (1 << 9),
     0,
     0,
     0,
-    (1 << 10),
-    (1 << 10) | (1 << 11),
-    (1 << 14) | (1 << 15),
-    (1 << 15),
-    0,
-    0,
+    (1 << 11),
+    (1 << 11) | (1 << 12),
+    (1 << 15) | (1 << 16),
     (1 << 16),
-    (1 << 17) | (1 << 18),
-    (1 << 20) | (1 << 21),
-    (1 << 21),
+    0,
+    0,
+    (1 << 17),
+    (1 << 18) | (1 << 19),
+    (1 << 21) | (1 << 22),
+    (1 << 22),
     0,
     0,
     0,
-    (1 << 23),
-    (1 << 23) | (1 << 24),
-    (1 << 21),
-    (1 << 21),
+    (1 << 24),
+    (1 << 24) | (1 << 25),
+    (1 << 21) | (1 << 22),
+    (1 << 22),
     (1 << 22),
     (1 << 23),
-    (1 << 23),
-    (1 << 23) | (1 << 24),
-    (1 << 10) | (1 << 11),
-    (1 << 20) | (1 << 21)
+    (1 << 24),
+    (1 << 24),
+    (1 << 24) | (1 << 25)
 };
 
 
@@ -1180,7 +1181,13 @@ void noiseSuppression(
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
-    ulong minimas, bigger;
+    ulong minimas, bigger, peaksAround;
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+
+    local ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    local packed_charge_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * 8];
+    
+#else
     noiseSuppressionFindMinima(
             chargeMap,
             gpad,
@@ -1190,7 +1197,8 @@ void noiseSuppression(
             &minimas,
             &bigger);
 
-    ulong peaksAround = noiseSuppressionFindPeaks(peakMap, gpad, myDigit.time);
+    peaksAround = noiseSuppressionFindPeaks(peakMap, gpad, myDigit.time);
+#endif
 
     peaksAround &= bigger;
 
