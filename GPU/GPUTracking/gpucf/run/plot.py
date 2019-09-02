@@ -229,7 +229,7 @@ def bar(cnf):
                 capsize=60/numOfBars)
         barPositions += barWidth
 
-    plt.ylim(ymin=0)
+    plt.ylim(bottom=0)
 
     plt.xticks(indexes + (stepSize - 1) * barWidth / 2, steps, rotation=20)
     plt.margins(0.2)
