@@ -20,6 +20,7 @@
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
   add_subdirectory(Common) # included at top level due to dependency order
 endif()
+add_subdirectory(Common)
 add_subdirectory(TPCFastTransformation)
 add_subdirectory(GPUTracking)
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
