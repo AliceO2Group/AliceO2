@@ -8,6 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+add_subdirectory(Constants)
+add_subdirectory(MathUtils)
 add_subdirectory(Field)
 add_subdirectory(Types)
 add_subdirectory(Utils)

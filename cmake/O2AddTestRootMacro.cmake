@@ -91,13 +91,6 @@ function(o2_add_test_root_macro macro)
 
   # Get all the include dir dependencies
   foreach(t IN LISTS A_PUBLIC_LINK_LIBRARIES)
-    if(NOT TARGET ${t})
-      message(
-        WARNING
-          "Trying to use non-existing target ${t} for ${testName} test so I won't be able to generate that test."
-        )
-      return()
-    endif()
     list(APPEND dependencies ${t})
   endforeach()
 
