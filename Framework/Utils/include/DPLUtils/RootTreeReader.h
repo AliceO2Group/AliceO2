@@ -240,6 +240,7 @@ class GenericRootTreeReader
       spec.second->branch->SetAddress(&data);
       spec.second->branch->GetEntry(mReadEntry);
       if (spec.second->sizebranch == nullptr) {
+        LOG(INFO) << "publishing branch " << spec.second->name;
         snapshot(spec.first, std::move(ROOTSerializedByClass(*data, spec.second->classinfo)));
       } else {
         size_t datasize = 0;
