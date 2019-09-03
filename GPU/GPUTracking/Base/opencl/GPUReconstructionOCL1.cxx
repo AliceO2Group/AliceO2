@@ -81,11 +81,15 @@ bool GPUReconstructionOCL1Backend::CheckPlatform(unsigned int i)
   char platform_version[64], platform_vendor[64];
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
-  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strcmp(platform_version, "OpenCL 2.0 AMD-APP (1800.8)") == 0) {
-    if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUInfo("AMD APP OpenCL Platform found");
+  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strstr(platform_version, "OpenCL 2.0 AMD-APP (") != nullptr) {
+    float ver = 0;
+    sscanf(platform_version, "OpenCL 2.0 AMD-APP (%f)", &ver);
+    if (ver < 2000.f) {
+      if (mDeviceProcessingSettings.debugLevel >= 2) {
+        GPUInfo("AMD APP OpenCL Platform found");
+      }
+      return true;
     }
-    return true;
   }
   return false;
 }

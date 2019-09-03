@@ -93,7 +93,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   }
 
   if (found == false) {
-    GPUError("Did not find AMD OpenCL Platform");
+    GPUError("Did not find compatible OpenCL Platform");
     return (1);
   }
 
@@ -223,62 +223,6 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     GPUError("Could not create OPENCL Device Context!");
     return (1);
   }
-
-  // Workaround to compile CL kernel during tracker initialization
-  /*{
-            char* file = "Base/opencl/GPUReconstructionOCL.cl";
-            GPUInfo("Reading source file %s\n", file);
-            FILE* fp = fopen(file, "rb");
-            if (fp == nullptr)
-            {
-                GPUInfo("Cannot open %s\n", file);
-                return(1);
-            }
-            fseek(fp, 0, SEEK_END);
-            size_t file_size = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
-
-            char* buffer = (char*) malloc(file_size + 1);
-            if (buffer == nullptr)
-            {
-                quit("Memory allocation error");
-            }
-            if (fread(buffer, 1, file_size, fp) != file_size)
-            {
-                quit("Error reading file");
-            }
-            buffer[file_size] = 0;
-            fclose(fp);
-
-            GPUInfo("Creating OpenCL Program Object\n");
-            //Create OpenCL program object
-            mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint) 1, (const char**) &buffer, nullptr, &ocl_error);
-            if (ocl_error != CL_SUCCESS) quit("Error creating program object");
-
-            GPUInfo("Compiling OpenCL Program\n");
-            //Compile program
-            ocl_error = clBuildProgram(mInternals->program, count, mInternals->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IBase -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", nullptr, nullptr);
-            if (ocl_error != CL_SUCCESS)
-            {
-                GPUInfo("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
-
-                for (unsigned int i = 0;i < count;i++)
-                {
-                    cl_build_status status;
-                    clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr);
-                    if (status == CL_BUILD_ERROR)
-                    {
-                        size_t log_size;
-                        clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
-                        char* build_log = (char*) malloc(log_size + 1);
-                        if (build_log == nullptr) quit("Memory allocation error");
-                        clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, nullptr);
-                        GPUInfo("Build Log (device %d):\n\n%s\n\n", i, build_log);
-                        free(build_log);
-                    }
-                }
-            }
-        }*/
 
   if (GetOCLPrograms()) {
     return 1;
