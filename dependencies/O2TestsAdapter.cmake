@@ -30,11 +30,5 @@ if(DEFINED ENV{ALIBUILD_O2_TESTS} AND PROJECT_NAME STREQUAL "O2")
                  tmp-patch-tests-environment.sh)
   install(
     CODE [[ execute_process(COMMAND bash tmp-patch-tests-environment.sh) ]])
-
-    install(CODE
-            [[ execute_process(COMMAND ldd ${ROOT_rootcling_CMD}) ]])
-
-    install(CODE
-            [[ execute_process(COMMAND otool -L ${ROOT_rootcling_CMD}) ]])
 endif()
 
