@@ -24,8 +24,19 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl[];
-extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_size;
+#ifdef OPENCL2_ENABLED_AMD
+extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd[];
+extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size;
+#endif
+#ifdef OPENCL2_ENABLED_SPIRV
+extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv[];
+extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size;
+#endif
+extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src[];
+extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size;
+
+#define MSTR(a) #a
+#define MXSTR(a) MSTR(a)
 
 GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL2(cfg); }
 
@@ -62,11 +73,34 @@ S& GPUReconstructionOCL2Backend::getKernelObject(int num)
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_size};
-  char* program_binaries[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl};
-  cl_int return_status[1];
+  char platform_version[64], platform_vendor[64];
+  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
+  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
+  float ver = 0;
+  sscanf(platform_version, "OpenCL %f", &ver);
+
+  cl_int return_status[1] = {CL_SUCCESS};
   cl_int ocl_error;
-  mInternals->program = clCreateProgramWithBinary(mInternals->context, 1, &mInternals->device, program_sizes, (const unsigned char**)program_binaries, return_status, &ocl_error);
+#ifdef OPENCL2_ENABLED_AMD
+  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
+    size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size};
+    char* program_binaries[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd};
+    mInternals->program = clCreateProgramWithBinary(mInternals->context, 1, &mInternals->device, program_sizes, (const unsigned char**)program_binaries, return_status, &ocl_error);
+  } else
+#endif
+
+#ifdef OPENCL2_ENABLED_SPIRV // clang-format off
+  if (ver >= 2.2) {
+    mInternals->program = clCreateProgramWithIL(mInternals->context, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size, &ocl_error);
+  } else
+#endif // clang-format on
+
+  {
+    size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size};
+    char* programs_sources[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src};
+    mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint)1, (const char**)&programs_sources, program_sizes, &ocl_error);
+  }
+
   if (GPUFailedMsgI(ocl_error)) {
     GPUError("Error creating OpenCL program from binary");
     return 1;
@@ -76,7 +110,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     return 1;
   }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, "", NULL, NULL))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, MXSTR(OCL_FLAGS), NULL, NULL))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;
@@ -96,11 +130,27 @@ bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
   char platform_version[64], platform_vendor[64];
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
-  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && strstr(platform_version, "OpenCL 2.1") != nullptr) {
+  float ver1 = 0;
+  sscanf(platform_version, "OpenCL %f", &ver1);
+  if (ver1 >= 2.2f) {
     if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUInfo("AMD ROCm OpenCL Platform found");
+      GPUInfo("OpenCL 2.2 capable platform found");
     }
     return true;
+  }
+
+  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0 && ver1 >= 2.0f) {
+    float ver2 = 0;
+    const char* pos = strchr(platform_version, '(');
+    if (pos) {
+      sscanf(pos, "(%f)", &ver2);
+    }
+    if ((ver1 >= 2.f && ver2 >= 2000.f) || ver1 >= 2.1f) {
+      if (mDeviceProcessingSettings.debugLevel >= 2) {
+        GPUInfo("AMD ROCm OpenCL Platform found");
+      }
+      return true;
+    }
   }
   return false;
 }

@@ -22,50 +22,127 @@ else()
   set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
 endif()
 set(CL_SRC ${GPUDIR}/Base/opencl-common/GPUReconstructionOCL.cl)
-set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code.bin)
+set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code)
 
-if(NOT DEFINED OCL2_GPUTARGET)
-  execute_process(COMMAND /opt/rocm/bin/rocm_agent_enumerator COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
+set(OCL_FLAGS -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument -cl-std=clc++)
+set(OCL_DEFINCL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
+            "-I$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>"
+            -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
+            -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
+            -I${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
+            -DGPUCA_GPULIBRARY=OCL2
+            -D__OPENCLCPP__
+)
+
+set(SRCS GPUReconstructionOCL2.cxx)
+set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
+
+if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
+  if(NOT DEFINED OCL2_GPUTARGET)
+    execute_process(COMMAND ${ROCM_AGENT_ENUMERATOR} COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
+  endif()
+
+  # executes AMD clang-ocl
+  add_custom_command(
+    OUTPUT ${CL_BIN}.amd
+    COMMAND ${CLANG_OCL}
+            ${OCL_FLAGS}
+            ${OCL_DEFINCL}
+            -mcpu=${OCL2_GPUTARGET}
+            -o ${CL_BIN}.amd ${CL_SRC}
+    MAIN_DEPENDENCY ${CL_SRC}
+    COMMAND_EXPAND_LISTS)
+
+  # cmake-format: off
+  add_custom_command(
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
+      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL2Code.amd/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
+      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+  )
+  # cmake-format: on
+
+  # make cmake compile the assembler file, add proper dependency on included
+  # binary code
+  set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
+    PROPERTIES
+    LANGUAGE
+    CXX
+    OBJECT_DEPENDS
+    "${CL_BIN}.amd;${GPUDIR}/Standalone/makefiles/include.S")
+
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S)
 endif()
 
-# executes OpenCL compiler wrapper to build binary object
-add_custom_command(
-  OUTPUT ${CL_BIN}
-  COMMAND ${CLANG_OCL}
-          -o ${CL_BIN} ${CL_SRC}
-          -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument
-          "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>, -D>"
-          "-I$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>, -I>"
-          -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
-          -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
-          -I${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-          -DGPUCA_GPULIBRARY=OCL2
-          -D__OPENCLCPP__
-          -cl-std=clc++
-          -mcpu=${OCL2_GPUTARGET}
-  MAIN_DEPENDENCY ${CL_SRC})
+if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
+  # executes clang to create llvm IL code
+  add_custom_command(
+      OUTPUT ${CL_BIN}.bc
+      COMMAND clang
+              -emit-llvm --target=spir64-unknown-unknown
+              ${OCL_FLAGS}
+              ${OCL_DEFINCL}
+              -o ${CL_BIN}.bc -c ${CL_SRC}
+      MAIN_DEPENDENCY ${CL_SRC}
+      COMMAND_EXPAND_LISTS)
 
-# cmake-format: off
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL2Code.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
-)
-# cmake-format: on
+  # executes converter to create spirv IL code
+  add_custom_command(
+      OUTPUT ${CL_BIN}.spirv
+      COMMAND ${LLVM_SPIRV} ${CL_BIN}.bc -o=${CL_BIN}.spirv
+      MAIN_DEPENDENCY ${CL_BIN}.bc)
 
-# make cmake compile the assembler file, add proper dependency on included
-# binary code
-set_source_files_properties(
-  ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-  PROPERTIES
-  LANGUAGE
-  CXX
-  OBJECT_DEPENDS
-  "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
+  # cmake-format: off
+  add_custom_command(
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
+      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL2Code.spirv/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
+      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+  )
+  # cmake-format: on
 
-set(SRCS GPUReconstructionOCL2.cxx
-         ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S)
-set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
+  # make cmake compile the assembler file, add proper dependency on included
+  # binary code
+  set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
+    PROPERTIES
+    LANGUAGE
+    CXX
+    OBJECT_DEPENDS
+    "${CL_BIN}.spirv;${GPUDIR}/Standalone/makefiles/include.S")
+
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S)
+endif()
+
+if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
+  # executes clang to create llvm IL code
+  add_custom_command(
+      OUTPUT ${CL_BIN}.src
+      COMMAND clang
+              ${OCL_DEFINCL}
+              -E ${CL_SRC} > ${CL_BIN}.src
+      MAIN_DEPENDENCY ${CL_SRC}
+      COMMAND_EXPAND_LISTS)
+
+  # cmake-format: off
+  add_custom_command(
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
+      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL2Code.src/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
+      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+  )
+  # cmake-format: on
+
+  # make cmake compile the assembler file, add proper dependency on included
+  # binary code
+  set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
+    PROPERTIES
+    LANGUAGE
+    CXX
+    OBJECT_DEPENDS
+    "${CL_BIN}.src;${GPUDIR}/Standalone/makefiles/include.S")
+
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S)
+endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -101,6 +178,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
+  set(targetName Ali${MODULE})
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -108,4 +186,13 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} GPUTrackingOpenCLCommon)
   install(TARGETS ${MODULE})
+  set(targetName ${MODULE})
 endif()
+
+if(OPENCL2_ENABLED_AMD)
+  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_AMD)
+endif()
+if(OPENCL2_ENABLED_SPIRV)
+  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_SPIRV)
+endif()
+target_compile_definitions(${targetName} PRIVATE OCL_FLAGS=$<JOIN:${OCL_FLAGS},\ >)
