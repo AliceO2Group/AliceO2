@@ -13,6 +13,7 @@
 
 #include <bitset>
 #include "Rtypes.h"
+#include "DataFormatsEMCAL/Constants.h"
 
 // Structure:
 // Bits 38-39: Cell type: 00=Low Gain, 01=High Gain, 10=LED mon, 11=TRU
