@@ -1082,13 +1082,13 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 
 void Detector::Print(std::ostream* os) const
 {
-// Standard output format for this class.
-// Inputs:
-//   ostream *os   The output stream
-// Outputs:
-//   none.
-// Return:
-//   none.
+  // Standard output format for this class.
+  // Inputs:
+  //   ostream *os   The output stream
+  // Outputs:
+  //   none.
+  // Return:
+  //   none.
 
 #if defined __GNUC__
 #if __GNUC__ > 2
