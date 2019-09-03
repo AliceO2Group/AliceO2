@@ -1028,6 +1028,58 @@ void sortIntoBuckets(
 }
 
 
+void checkForMinima(
+        float            q,
+        float            epsilon,
+        packed_charge_t  other,
+        int              pos,
+        ulong           *minimas,
+        ulong           *bigger)
+{
+    float r = unpackCharge(other);
+
+    bool isMinima = (q - r > epsilon);
+    *minimas |= (isMinima << pos);
+
+    bool lq = (r > q);
+    *bigger |= (lq << pos);
+}
+
+
+void noiseSuppressionFindMinimaScratchPad(
+        local const packed_charge_t *buf,
+              const ushort           ll,
+              const int              N,
+                    int              pos,
+              const float            q,
+              const float            epsilon,
+                    ulong           *minimas,
+                    ulong           *bigger)
+{
+    for (int i = 0; i < N; i++, pos++)
+    {
+        packed_charge_t other = buf[N * ll + i];
+        
+        checkForMinima(q, epsilon, other, pos, minimas, bigger);
+    }
+}
+
+void noiseSuppressionFindPeaksScratchPad(
+        local const uchar  *buf,
+              const ushort  ll,
+              const int     N,
+                    int     pos,
+                    ulong  *peaks)
+{
+    for (int i = 0; i < N; i++, pos++)
+    {
+        uchar p = GET_IS_PEAK(buf[N * ll + i]);
+
+        *peaks |= (p << pos);
+    }
+}
+
+
 void noiseSuppressionFindMinima(
         global const packed_charge_t *chargeMap,
                const global_pad_t     gpad,
@@ -1048,13 +1100,7 @@ void noiseSuppressionFindMinima(
 
         packed_charge_t other = CHARGE(chargeMap, gpad+dp, time+dt);
 
-        float r = unpackCharge(other);
-
-        bool isMinima = (q - r > epsilon);
-        *minimas |= (isMinima << i);
-
-        bool lq = (r > q);
-        *bigger |= (lq << i);
+        checkForMinima(q, epsilon, other, i, minimas, bigger);
     }
 }
 
@@ -1094,6 +1140,199 @@ bool noiseSuppressionKeepPeak(
 
     return keepMe;
 }
+
+void noiseSuppressionFindMinmasAndPeaksScratchpad(
+        global const packed_charge_t *chargeMap,
+        global const uchar           *peakMap,
+                     float            q,
+                     global_pad_t     gpad,
+                     timestamp        time,
+        local        ChargePos       *posBcast,
+        local        packed_charge_t *buf,
+                     ulong           *minimas,
+                     ulong           *bigger,
+                     ulong           *peaks)
+{
+    ushort ll = get_local_linear_id();
+
+    posBcast[ll] = (ChargePos){gpad, time};
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
+    bool inGroup1 = ll < wgSizeHalf;
+    ushort llhalf = (inGroup1) ? ll : (ll-wgSizeHalf);
+
+    *minimas = 0;
+    *bigger  = 0;
+    *peaks   = 0;
+
+
+    /**************************************
+     * Look for minima
+     **************************************/
+
+    fillScratchPad_packed_charge_t(
+            chargeMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0,
+            2,
+            NOISE_SUPPRESSION_NEIGHBORS+16,
+            posBcast,
+            buf);
+
+    noiseSuppressionFindMinimaScratchPad(
+            buf,
+            ll,
+            2,
+            16,
+            q,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            minimas,
+            bigger);
+
+
+    fillScratchPad_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast,
+            buf);
+
+    if (inGroup1)
+    {
+        noiseSuppressionFindMinimaScratchPad(
+            buf,
+            llhalf,
+            16,
+            0,
+            q,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            minimas,
+            bigger);
+    }
+
+    fillScratchPad_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            18,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast,
+            buf);
+
+    if (inGroup1)
+    {
+        noiseSuppressionFindMinimaScratchPad(
+            buf,
+            llhalf,
+            16,
+            18,
+            q,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            minimas,
+            bigger);
+    }
+
+    fillScratchPad_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast+wgSizeHalf,
+            buf);
+
+    if (!inGroup1)
+    {
+        noiseSuppressionFindMinimaScratchPad(
+            buf,
+            llhalf,
+            16,
+            0,
+            q,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            minimas,
+            bigger);
+    }
+
+    fillScratchPad_packed_charge_t(
+            chargeMap,
+            wgSizeHalf,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            18,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast+wgSizeHalf,
+            buf);
+
+    if (!inGroup1)
+    {
+        noiseSuppressionFindMinimaScratchPad(
+            buf,
+            llhalf,
+            16,
+            18,
+            q,
+            NOISE_SUPPRESSION_MINIMA_EPSILON,
+            minimas,
+            bigger);
+    }
+
+
+    local uchar *bufp = (local void *) buf;
+
+    /**************************************
+     * Look for peaks
+     **************************************/
+
+    fillScratchPad_uchar(
+            peakMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            0,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast,
+            bufp);
+
+    noiseSuppressionFindPeaksScratchPad(
+            bufp,
+            ll,
+            16,
+            0,
+            peaks);
+
+    fillScratchPad_uchar(
+            peakMap,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            SCRATCH_PAD_WORK_GROUP_SIZE,
+            ll,
+            18,
+            16,
+            NOISE_SUPPRESSION_NEIGHBORS,
+            posBcast,
+            bufp);
+
+    noiseSuppressionFindPeaksScratchPad(
+            bufp,
+            ll,
+            16,
+            18,
+            peaks);
+}
+
 
 
 kernel
@@ -1182,11 +1421,22 @@ void noiseSuppression(
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     ulong minimas, bigger, peaksAround;
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
 
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
     local ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     local packed_charge_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * 8];
-    
+
+    noiseSuppressionFindMinmasAndPeaksScratchpad(
+            chargeMap,
+            peakMap,
+            myDigit.charge,
+            gpad,
+            myDigit.time,
+            posBcast,
+            buf,
+            &minimas,
+            &bigger,
+            &peaksAround);
 #else
     noiseSuppressionFindMinima(
             chargeMap,
