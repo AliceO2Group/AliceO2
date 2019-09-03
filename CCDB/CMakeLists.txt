@@ -84,7 +84,7 @@ o2_data_file(COPY config/conditions-server.json config/conditions-client.json
                   example/fill_local_ocdb.C
              DESTINATION config)
 
-#if(NOT APPLE)
+if(NOT APPLE)
   o2_add_test(WriteReadAny
               SOURCES test/testWriteReadAny.cxx
               COMPONENT_NAME ccdb
@@ -96,4 +96,4 @@ o2_data_file(COPY config/conditions-server.json config/conditions-client.json
               COMPONENT_NAME ccdb
               PUBLIC_LINK_LIBRARIES O2::CCDB
               LABELS ccdb)
-#endif()
+endif()
