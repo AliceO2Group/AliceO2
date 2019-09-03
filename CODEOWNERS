@@ -11,13 +11,13 @@
 
 /Algorithm  @matthiasrichter
 
-/CCDB  @costing @AliceO2Group/core @AliceO2Group/framework-admins
+/CCDB  @costing @Barthelemy @AliceO2Group/core @AliceO2Group/framework-admins
 
 /Common              @AliceO2Group/core @AliceO2Group/framework-admins
 /Common/Constants    @shahor02
 /Common/Field        @shahor02
 /Common/MathUtils    @shahor02
-/Common/SimConfig    @swenzel
+/Common/SimConfig    @sawenzel
 #/Common/Topologies
 #/Common/Types
 #/Common/Utils
@@ -33,7 +33,7 @@
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
-/DataFormats/simulation        @swenzel
+/DataFormats/simulation        @sawenzel
 
 /Detectors/Base                    @AliceO2Group/core @AliceO2Group/framework-admins
 /Detectors/Geometry                @AliceO2Group/core @AliceO2Group/framework-admins
@@ -46,9 +46,9 @@
 /Detectors/ITSMFT                  @iouribelikov @bovulpes @AliceO2Group/core
 /Detectors/MUON                    @aphecetche @AliceO2Group/core
 /Detectors/PHOS                    @peressounko @kharlov @AliceO2Group/core
-/Detectors/Passive                 @swenzel
+/Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini @AliceO2Group/core
-/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/Detectors/TPC                     @davidrohr @wiechula @shahor02 @AliceO2Group/core
 /Detectors/TRD                     @jolopezl @bazinski @AliceO2Group/core
 /Detectors/ZDC                     @coppedis @AliceO2Group/core
 
@@ -87,7 +87,7 @@
 /GPU/TPCFastTransformation    @davidrohr @sgorbuno
 /GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
 
-/Generators  @swenzel
+/Generators  @sawenzel
 
 /Steer  @AliceO2Group/core @AliceO2Group/framework-admins
 
