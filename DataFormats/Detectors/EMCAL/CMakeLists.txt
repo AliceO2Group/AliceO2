@@ -27,3 +27,9 @@ o2_target_root_dictionary(DataFormatsEMCAL
                                   include/DataFormatsEMCAL/Cell.h
                                   include/DataFormatsEMCAL/Digit.h
                                   include/DataFormatsEMCAL/Cluster.h)
+
+o2_add_test(Cell
+            SOURCES test/testCell.cxx
+            COMPONENT_NAME DataFormats-EMCAL
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsEMCAL
+            LABELS emcal dataformats)
