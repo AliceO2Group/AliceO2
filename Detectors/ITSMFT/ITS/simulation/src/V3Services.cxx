@@ -42,7 +42,8 @@ using namespace TMath;
 using namespace o2::its;
 
 // Parameters
-const Double_t V3Services::sIBWheelACZdist = 308.0 * sMm;
+//const Double_t V3Services::sIBWheelACZdist = 308.0 * sMm;
+const Double_t V3Services::sIBWheelACZdist = 306.0 * sMm;
 
 ClassImp(V3Services);
 
@@ -54,6 +55,33 @@ V3Services::V3Services()
 }
 
 V3Services::~V3Services() = default;
+
+TGeoVolume* V3Services::createIBEndWheelsSideA(const TGeoManager* mgr)
+{
+  //
+  // Creates the Inner Barrel End Wheels on Side A
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         a TGeoVolume(Assembly) with all the wheels
+  //
+  // Created:      19 Jun 2019  Mario Sitta
+  //               (partially based on P.Namwongsa implementation in AliRoot)
+  //
+
+  TGeoVolume* endWheelsVol = new TGeoVolumeAssembly("EndWheelsSideA");
+  endWheelsVol->SetVisibility(kTRUE);
+
+  for (Int_t jLay = 0; jLay < sNumberInnerLayers; jLay++)
+    ibEndWheelSideA(jLay, endWheelsVol, mgr);
+
+  // Return the wheels
+  return endWheelsVol;
+}
 
 TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
 {
@@ -82,6 +110,259 @@ TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
   return endWheelsVol;
 }
 
+void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
+{
+  //
+  // Creates the single End Wheel on Side A
+  // for a given layer of the Inner Barrel
+  // (Layer 0: ALIITSSUP0183+ALIITSUP0127)
+  // (Layer 1: ALIITSSUP0173+ALIITSUP0124)
+  // (Layer 2: ALIITSSUP0139+ALIITSUP0125)
+  //
+  // Input:
+  //         iLay : the layer number
+  //         endWheel : the whole end wheel volume
+  //                    where to place the current created wheel
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      19 Jun 2019  Mario Sitta
+  //               (partially based on P.Namwongsa implementation in AliRoot)
+  //
+
+  // The Basis Cone A Side and the Reinforcement C Side are physically two
+  // different pieces put together. For sake of simplicity here they are
+  // made out of the same TGeoPcon volume. Moreover they are two halves,
+  // so here they are made as a single cone.
+  static const Double_t sConeATotalLength[3] = {191.0 * sMm, 184.0 * sMm, 177 * sMm};
+  static const Double_t sConeAIntSectZlen1[3] = {40.35 * sMm, 39.0 * sMm, 36.0 * sMm};
+  static const Double_t sConeAIntSectZlen2[3] = {47.0 * sMm, 44.0 * sMm, 41.0 * sMm};
+  static const Double_t sConeAIntSectDmin[3] = {55.8 * sMm, 71.8 * sMm, 87.8 * sMm};
+  static const Double_t sConeAIntSectDmax[3] = {57.0 * sMm, 73.0 * sMm, 89.0 * sMm};
+  static const Double_t sConeAExtSectZlen1[3] = {60.0 * sMm, 47.0 * sMm, 44.0 * sMm};
+  static const Double_t sConeAExtSectZlen2[3] = {66.0 * sMm, 52.0 * sMm, 50.0 * sMm};
+  static const Double_t sConeAExtSectDmin[3] = {114.0 * sMm, 174.0 * sMm, 234.0 * sMm};
+  static const Double_t sConeAExtSectDmax[3] = {116.0 * sMm, 176.0 * sMm, 236.0 * sMm};
+  static const Double_t sConeASectThicker = 0.8 * sMm;
+  static const Double_t sConeAOpeningAngle[3] = {20.0, 30.0, 40.2}; // Deg
+
+  static const Int_t sConeAWallNHoles[3] = {6, 8, 10};
+  static const Double_t sConeAWallHoleD = 4.5 * sMm;
+  static const Double_t sConeAWallHoleZpos = 4.0 * sMm;
+
+  static const Double_t sConeACentralHole1D = 3.0 * sMm;
+  static const Double_t sConeACentralHole2D = 3.4 * sMm;
+  static const Double_t sConeACentralHole3D = 3.0 * sMm;
+  static const Double_t sConeACentralHole1Z = 20.0 * sMm;
+  static const Double_t sConeACentralHole2Z = 30.0 * sMm;
+  static const Double_t sConeACentralHole3Z[3] = {177.0 * sMm, 170.0 * sMm, 163.0 * sMm};
+
+  // The Cone Reinforcement
+  static const Double_t sConeARenfDmin[3] = {54.3 * sMm, 69.85 * sMm, 85.0 * sMm};
+  static const Double_t sConeARenfZlen = 2.5 * sMm;
+  static const Double_t sConeARenfZpos = 14.5 * sMm;
+
+  // The Middle Ring
+  static const Double_t sConeAMidRingDmin[3] = {56.0 * sMm, 116.0 * sMm, 176.0 * sMm};
+  static const Double_t sConeAMidRingDmax[3] = {58.0 * sMm, 118.0 * sMm, 178.0 * sMm};
+  static const Double_t sConeAMidRingZlen = 42.0 * sMm;
+
+  static const Double_t sConeAMidRingZpos[3] = {5.0 * sMm, 0.0 * sMm, 0.0 * sMm};
+
+  // The Ribs
+  static const Int_t sConeANRibs[3] = {6, 8, 10};
+  static const Double_t sConeARibsZpos = 17.0 * sMm;
+
+  // The End Wheel Steps
+  static const Double_t sConeAStepXdispl[3] = {4.0 * sMm, 6.5 * sMm, 8.5 * sMm};
+  static const Double_t sConeAStepYdispl[3] = {24.4 * sMm, 32.1 * sMm, 39.6 * sMm};
+  static const Double_t sConeAStepR[3] = {27.8 * sMm, 35.8 * sMm, 43.8 * sMm};
+
+  static const Double_t sConeAStepZlen = 14.0 * sMm;
+
+  static const Double_t sConeAStepHoleXpos = 3.0 * sMm;
+  static const Double_t sConeAStepHoleZpos = 4.0 * sMm;
+  static const Double_t sConeAStepHoleZdist = 4.0 * sMm;
+
+  static const Double_t sConeAStepHolePhi[3] = {30.0, 22.5, 18.0};   // Deg
+  static const Double_t sConeAStepHolePhi0[3] = {0.7, -16.2, -10.5}; // Deg
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t rmin, rmax, thick, phimin, dphi;
+  Double_t xpos, ypos, zpos, zref;
+
+  // Create the whole cone (Basic + Reinforcement) as a CompositeShape
+  // (a single Pcon minus the holes)
+  TGeoPcon* coneabasis = new TGeoPcon(Form("coneabasis%d", iLay), 0, 360, 15);
+
+  rmin = sConeAIntSectDmin[iLay] / 2;
+  rmax = sConeAIntSectDmax[iLay] / 2;
+  coneabasis->DefineSection(0, 0., rmin, rmax);
+  zpos = sConeARenfZpos;
+  coneabasis->DefineSection(1, zpos, rmin, rmax);
+  rmin = sConeARenfDmin[iLay] / 2;
+  coneabasis->DefineSection(2, zpos, rmin, rmax);
+  zpos += sConeARenfZlen;
+  coneabasis->DefineSection(3, zpos, rmin, rmax);
+  rmin = coneabasis->GetRmin(0);
+  coneabasis->DefineSection(4, zpos, rmin, rmax);
+  coneabasis->DefineSection(5, sConeAIntSectZlen1[iLay], rmin, rmax);
+  rmax += sConeASectThicker;
+  coneabasis->DefineSection(6, sConeAIntSectZlen1[iLay], rmin, rmax);
+  coneabasis->DefineSection(7, sConeAIntSectZlen2[iLay], rmin, rmax);
+  rmin = coneabasis->GetRmax(1);
+  coneabasis->DefineSection(8, sConeAIntSectZlen2[iLay], rmin, rmax);
+  rmin = sConeAExtSectDmin[iLay] / 2 - sConeASectThicker;
+  rmax = sConeAExtSectDmin[iLay] / 2;
+  zlen = sConeAIntSectZlen2[iLay] + (rmin - coneabasis->GetRmin(4)) / TMath::Tan(sConeAOpeningAngle[iLay] * TMath::DegToRad());
+  coneabasis->DefineSection(9, zlen, rmin, rmax);
+  zlen = sConeATotalLength[iLay] - sConeAExtSectZlen2[iLay];
+  coneabasis->DefineSection(10, zlen, rmin, rmax);
+  rmax = sConeAExtSectDmax[iLay] / 2;
+  coneabasis->DefineSection(11, zlen, rmin, rmax);
+  zlen = sConeATotalLength[iLay] - sConeAExtSectZlen1[iLay];
+  coneabasis->DefineSection(12, zlen, rmin, rmax);
+  rmin = sConeAExtSectDmin[iLay] / 2;
+  coneabasis->DefineSection(13, zlen, rmin, rmax);
+  coneabasis->DefineSection(14, sConeATotalLength[iLay], rmin, rmax);
+
+  TString coneAComposite = Form("coneabasis%d", iLay);
+
+  // The holes in the vertical wall
+  thick = coneabasis->GetRmax(0) - coneabasis->GetRmin(0);
+  TGeoTube* coneawallhole = new TGeoTube(Form("coneawallhole%d", iLay), 0, sConeAWallHoleD / 2, 4 * thick);
+
+  rmin = sConeAIntSectDmax[iLay] / 2 - thick / 2;
+  zpos = sConeAWallHoleZpos;
+  dphi = 180. / sConeAWallNHoles[iLay];
+  phimin = dphi / 2.;
+  for (Int_t ihole = 0; ihole < 2 * sConeAWallNHoles[iLay]; ihole++) {
+    Double_t phi = phimin + ihole * dphi;
+    xpos = rmin * TMath::Sin(phi * TMath::DegToRad());
+    ypos = rmin * TMath::Cos(phi * TMath::DegToRad());
+    TGeoCombiTrans* coneawhmat = new TGeoCombiTrans(Form("coneawhmat%dl%d", ihole, iLay), xpos, ypos, zpos, new TGeoRotation("", -phi, 90, 0));
+    coneawhmat->RegisterYourself();
+    coneAComposite += Form("-coneawallhole%d:coneawhmat%dl%d", iLay, ihole, iLay);
+  }
+
+  // The central holes
+  TGeoTube* coneacenthole1 = new TGeoTube(Form("coneacenthole1l%d", iLay), 0, sConeACentralHole1D / 2, 4 * thick);
+
+  TGeoCombiTrans* coneach1mat1 = new TGeoCombiTrans(Form("coneach1mat1l%d", iLay), 0, rmin, sConeACentralHole1Z, new TGeoRotation("", 0, 90, 0));
+  coneach1mat1->RegisterYourself();
+  TGeoCombiTrans* coneach1mat2 = new TGeoCombiTrans(Form("coneach1mat2l%d", iLay), 0, -rmin, sConeACentralHole1Z, new TGeoRotation("", 0, 90, 0));
+  coneach1mat2->RegisterYourself();
+
+  coneAComposite += Form("-coneacenthole1l%d:coneach1mat1l%d-coneacenthole1l%d:coneach1mat2l%d", iLay, iLay, iLay, iLay);
+
+  TGeoTube* coneacenthole2 = new TGeoTube(Form("coneacenthole2l%d", iLay), 0, sConeACentralHole2D / 2, 4 * thick);
+
+  TGeoCombiTrans* coneach2mat1 = new TGeoCombiTrans(Form("coneach2mat1l%d", iLay), 0, rmin, sConeACentralHole2Z, new TGeoRotation("", 0, 90, 0));
+  coneach2mat1->RegisterYourself();
+  TGeoCombiTrans* coneach2mat2 = new TGeoCombiTrans(Form("coneach2mat2l%d", iLay), 0, -rmin, sConeACentralHole2Z, new TGeoRotation("", 0, 90, 0));
+  coneach2mat2->RegisterYourself();
+
+  coneAComposite += Form("-coneacenthole2l%d:coneach2mat1l%d-coneacenthole2l%d:coneach2mat2l%d", iLay, iLay, iLay, iLay);
+
+  TGeoTube* coneacenthole3 = new TGeoTube(Form("coneacenthole3l%d", iLay), 0, sConeACentralHole3D / 2, 4 * thick);
+
+  rmin = sConeAExtSectDmax[iLay] / 2 - thick / 2;
+  TGeoCombiTrans* coneach3mat1 = new TGeoCombiTrans(Form("coneach3mat1l%d", iLay), 0, rmin, sConeACentralHole3Z[iLay], new TGeoRotation("", 0, 90, 0));
+  coneach3mat1->RegisterYourself();
+  TGeoCombiTrans* coneach3mat2 = new TGeoCombiTrans(Form("coneach3mat2l%d", iLay), 0, -rmin, sConeACentralHole3Z[iLay], new TGeoRotation("", 0, 90, 0));
+  coneach3mat2->RegisterYourself();
+
+  coneAComposite += Form("-coneacenthole3l%d:coneach3mat1l%d-coneacenthole3l%d:coneach3mat2l%d", iLay, iLay, iLay, iLay);
+
+  TGeoCompositeShape* coneABasisSh = new TGeoCompositeShape(coneAComposite.Data());
+
+  // The Middle Ring (a Tube)
+  rmin = sConeAMidRingDmin[iLay] / 2;
+  rmax = sConeAMidRingDmax[iLay] / 2;
+  zlen = sConeAMidRingZlen / 2;
+  TGeoTube* midRingSh = new TGeoTube(Form("midRingSh%d", iLay), rmin, rmax, zlen);
+
+  // A Rib (a TGeoXtru)
+  TGeoXtru* coneARibSh = ibEndWheelARibShape(iLay);
+
+  // Now the Step as a Composite Shape (subtraction of a Pcon from a BBox)
+  // (cutting volume should be slightly larger than desired region)
+  rmin = sConeAStepR[iLay];
+
+  xlen = TMath::Sqrt(rmin * rmin - sConeAStepYdispl[iLay] * sConeAStepYdispl[iLay]) - sConeAStepXdispl[iLay];
+  ylen = TMath::Sqrt(rmin * rmin - sConeAStepXdispl[iLay] * sConeAStepXdispl[iLay]) - sConeAStepYdispl[iLay];
+  TGeoBBox* stepBoxSh = new TGeoBBox(Form("stepBoxASh%d", iLay), xlen / 2, ylen / 2, sConeAStepZlen / 2);
+
+  xpos = sConeAStepXdispl[iLay] + stepBoxSh->GetDX();
+  ypos = sConeAStepYdispl[iLay] + stepBoxSh->GetDY();
+  TGeoTranslation* stepBoxTr = new TGeoTranslation(Form("stepBoxATr%d", iLay), xpos, ypos, 0);
+  stepBoxTr->RegisterYourself();
+
+  phimin = 90. - TMath::ACos(sConeAStepYdispl[iLay] / rmin) * TMath::RadToDeg() - 5;
+  dphi = 90. - TMath::ASin(sConeAStepXdispl[iLay] / rmin) * TMath::RadToDeg() - phimin + 10;
+  rmax = rmin + 2 * stepBoxSh->GetDY();
+
+  TGeoPcon* stepPconSh = new TGeoPcon(Form("stepPconASh%d", iLay), phimin, dphi, 2);
+  stepPconSh->DefineSection(0, -1.05 * sConeAStepZlen / 2, rmin, rmax);
+  stepPconSh->DefineSection(1, 1.05 * sConeAStepZlen / 2, rmin, rmax);
+
+  TGeoCompositeShape* stepASh = new TGeoCompositeShape(Form("stepBoxASh%d:stepBoxATr%d-stepPconASh%d", iLay, iLay, iLay));
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+
+  TGeoVolume* coneABasisVol = new TGeoVolume(Form("ConeABasis%d", iLay), coneABasisSh, medCarbon);
+  coneABasisVol->SetFillColor(kBlue);
+  coneABasisVol->SetLineColor(kBlue);
+
+  TGeoVolume* midRingVol = new TGeoVolume(Form("ConeAMidRing%d", iLay), midRingSh, medCarbon);
+  coneABasisVol->SetFillColor(kBlue);
+  coneABasisVol->SetLineColor(kBlue);
+
+  TGeoVolume* coneARibVol = new TGeoVolume(Form("ConeARibVol%d", iLay), coneARibSh, medCarbon);
+  coneARibVol->SetFillColor(kBlue);
+  coneARibVol->SetLineColor(kBlue);
+
+  TGeoVolume* stepAVol = new TGeoVolume(Form("ConeAStep%d", iLay), stepASh, medPEEK);
+  stepAVol->SetFillColor(kBlue);
+  stepAVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  // (origin of local coordinates is at smaller end of Cone Basis)
+  zref = sIBWheelACZdist / 2 - (sConeAStepHoleZpos + sConeAStepHoleZdist);
+
+  zpos = zref;
+  endWheel->AddNode(coneABasisVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  zpos = zref + sConeATotalLength[iLay] - sConeAMidRingZpos[iLay] - midRingSh->GetDz();
+  endWheel->AddNode(midRingVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  rmin = sConeAExtSectDmin[iLay] / 2 - 0.035;
+  zpos = zref + sConeATotalLength[iLay] - sConeARibsZpos;
+  dphi = 180. / sConeANRibs[iLay];
+  for (Int_t irib = 0; irib < 2 * sConeANRibs[iLay]; irib++) {
+    Double_t phi = irib * dphi;
+    xpos = rmin * TMath::Sin(phi * TMath::DegToRad());
+    ypos = rmin * TMath::Cos(phi * TMath::DegToRad());
+    endWheel->AddNode(coneARibVol, 1, new TGeoCombiTrans(xpos, -ypos, zpos, new TGeoRotation("", 90 + phi, 90, -90)));
+  }
+
+  // The position of the Steps is given wrt the holes (see eg. ALIITSUP0187)
+  dphi = 180. - sConeAStepHolePhi0[iLay];
+
+  Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(iLay);
+  zpos = zref + (static_cast<TGeoBBox*>(stepAVol->GetShape()))->GetDZ();
+  for (Int_t j = 0; j < numberOfStaves; j++) {
+    Double_t phi = dphi + j * sConeAStepHolePhi[iLay];
+    endWheel->AddNode(stepAVol, j + 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 180, -90 - phi)));
+  }
+}
+
 void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
 {
   //
@@ -92,7 +373,7 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   // (Layer 2: ALIITSSUP0143+ALIITSUP0121)
   //
   // Input:
-  //         lay : the layer number
+  //         iLay : the layer number
   //         endWheel : the whole end wheel volume
   //                    where to place the current created wheel
   //         mgr : the GeoManager (used only to get the proper material)
@@ -243,22 +524,22 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
 
   xlen = TMath::Sqrt(rmin * rmin - sEndWCStepYdispl[iLay] * sEndWCStepYdispl[iLay]) - sEndWCStepXdispl[iLay];
   ylen = TMath::Sqrt(rmin * rmin - sEndWCStepXdispl[iLay] * sEndWCStepXdispl[iLay]) - sEndWCStepYdispl[iLay];
-  TGeoBBox* stepBoxSh = new TGeoBBox(Form("stepBoxSh%d", iLay), xlen / 2, ylen / 2, sEndWCStepZlen / 2);
+  TGeoBBox* stepBoxSh = new TGeoBBox(Form("stepBoxCSh%d", iLay), xlen / 2, ylen / 2, sEndWCStepZlen / 2);
 
   xpos = sEndWCStepXdispl[iLay] + stepBoxSh->GetDX();
   ypos = sEndWCStepYdispl[iLay] + stepBoxSh->GetDY();
-  TGeoTranslation* stepBoxTr = new TGeoTranslation(Form("stepBoxTr%d", iLay), xpos, ypos, 0);
+  TGeoTranslation* stepBoxTr = new TGeoTranslation(Form("stepBoxCTr%d", iLay), xpos, ypos, 0);
   stepBoxTr->RegisterYourself();
 
   phimin = 90. - TMath::ACos(sEndWCStepYdispl[iLay] / rmin) * TMath::RadToDeg() - 5;
   dphi = 90. - TMath::ASin(sEndWCStepXdispl[iLay] / rmin) * TMath::RadToDeg() - phimin + 10;
   rmax = rmin + 2 * stepBoxSh->GetDY();
 
-  TGeoPcon* stepPconSh = new TGeoPcon(Form("stepPconSh%d", iLay), phimin, dphi, 2);
+  TGeoPcon* stepPconSh = new TGeoPcon(Form("stepPconCSh%d", iLay), phimin, dphi, 2);
   stepPconSh->DefineSection(0, -1.05 * sEndWCStepZlen / 2, rmin, rmax);
   stepPconSh->DefineSection(1, 1.05 * sEndWCStepZlen / 2, rmin, rmax);
 
-  TGeoCompositeShape* stepCSh = new TGeoCompositeShape(Form("stepBoxSh%d:stepBoxTr%d-stepPconSh%d", iLay, iLay, iLay));
+  TGeoCompositeShape* stepCSh = new TGeoCompositeShape(Form("stepBoxCSh%d:stepBoxCTr%d-stepPconCSh%d", iLay, iLay, iLay));
 
   // We have all shapes: now create the real volumes
   TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
@@ -267,10 +548,6 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   TGeoVolume* endWheelCVol = new TGeoVolume(Form("EndWheelCBasis%d", iLay), endWheelCSh, medCarbon);
   endWheelCVol->SetFillColor(kBlue);
   endWheelCVol->SetLineColor(kBlue);
-
-  TGeoVolume* endWFakeVol = new TGeoVolume(Form("EndWheelCFake%d", iLay), endwcwalhol, medCarbon);
-  endWFakeVol->SetFillColor(kBlue);
-  endWFakeVol->SetLineColor(kBlue);
 
   TGeoVolume* stepCVol = new TGeoVolume(Form("EndWheelCStep%d", iLay), stepCSh, medPEEK);
   stepCVol->SetFillColor(kBlue);
@@ -281,13 +558,7 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   endWheel->AddNode(endWheelCVol, 1, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 0, 180, 0)));
 
   // The position of the Steps is given wrt the holes (see eg. ALIITSUP0187)
-  if (iLay == 0) { // For Layer 0 we have the linear displacement
-    Double_t cathetus = sEndWCStepYlow - sEndWCStepHoleXpos + (static_cast<TGeoBBox*>(stepCVol->GetShape()))->GetDX();
-    Double_t radius = TMath::Sqrt(sEndWCStepYdispl[iLay] * sEndWCStepYdispl[iLay] + cathetus * cathetus);
-    dphi = TMath::ASin(cathetus / radius) * TMath::RadToDeg();
-  } else { // For Layers 1 & 2 we have a displacement angle
-    dphi = sEndWCStepHolePhi0[iLay - 1];
-  }
+  dphi = sEndWCStepHolePhi0[iLay];
 
   Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(iLay);
   zpos += (static_cast<TGeoBBox*>(stepCVol->GetShape()))->GetDZ();
@@ -295,19 +566,72 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
     Double_t phi = dphi + j * sEndWCStepHolePhi[iLay];
     endWheel->AddNode(stepCVol, j + 1, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 180, -90 - phi)));
   }
-  /*
-  // TEST TEST TEST
-  if(iLay == 1) {
-  rmin = sEndWheelCDmax[iLay] / 2 - sEndWheelCThick / 2;
-  zpos = sEndWCWallHoleZpos;
-  dphi = 180. / sEndWCWallNHoles[iLay];
-  phimin = dphi / 2.;
-  for(Int_t ihole = 0; ihole < 2 * sEndWCWallNHoles[iLay]; ihole++) {
-    Double_t phi = phimin + ihole * dphi;
-    xpos = rmin*TMath::Sin(phi * TMath::DegToRad());
-    ypos = rmin*TMath::Cos(phi * TMath::DegToRad());
-    endWheel->AddNode(endWFakeVol, 1+ihole, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", -phi, 90, 0)));
+}
+
+TGeoXtru* V3Services::ibEndWheelARibShape(const Int_t iLay)
+{
+  //
+  // Creates the shape of a Rib on Side A cone
+  // (Layer 0: ALIITSSUP0182)
+  // (Layer 1: ALIITSSUP0172)
+  // (Layer 2: ALIITSSUP0136)
+  //
+  // Input:
+  //         iLay : the layer number
+  //
+  // Output:
+  //
+  // Return:
+  //        the Rib shape as a TGeoXtru
+  //
+  // Created:      23 Aug 2019  Mario Sitta
+  //
+
+  static const Int_t sConeARibNVert = 8;
+
+  static const Double_t sConeARibWidth = 27.3 * sMm;
+  static const Double_t sConeARibTotalLen[3] = {98.03 * sMm, 104.65 * sMm, 101.43 * sMm};
+  static const Double_t sConeARibIntLen[3] = {50.0 * sMm, 40.0 * sMm, 28.5 * sMm};
+  static const Double_t sConeARibStep[3] = {1.0 * sMm, 1.1 * sMm, 1.0 * sMm};
+  static const Double_t sConeARibLenToStep[3] = {42.0 * sMm, 29.0 * sMm, 26.0 * sMm};
+  static const Double_t sConeARibLenAfterStep[3] = {50.5 * sMm, 37.0 * sMm, 33.5 * sMm};
+  static const Double_t sConeARibVertexPos[3] = {9.0 * sMm, 40.0 * sMm, 58.0 * sMm};
+  static const Double_t sConeARibIntAngle = 45.0;               // Deg
+  static const Double_t sConeARibVertexAngle[2] = {20.0, 30.0}; // Deg
+
+  static const Double_t sConeARibThick = 0.9 * sMm;
+
+  // Local variables
+  Double_t xtru[sConeARibNVert], ytru[sConeARibNVert];
+
+  // Rib shapes for Layer 0 and Layers 1,2 are different
+  xtru[0] = 0.;
+  ytru[0] = 0.;
+  xtru[1] = sConeARibLenToStep[iLay];
+  ytru[1] = 0.;
+  xtru[2] = xtru[1];
+  ytru[2] = sConeARibStep[iLay];
+  xtru[3] = sConeARibLenAfterStep[iLay];
+  ytru[3] = ytru[2];
+  xtru[4] = sConeARibTotalLen[iLay];
+  if (iLay == 0) {
+    ytru[4] = sConeARibWidth - sConeARibVertexPos[iLay];
+    xtru[5] = sConeARibIntLen[iLay] + sConeARibVertexPos[iLay] / TMath::Tan(sConeARibIntAngle * TMath::DegToRad());
+  } else {
+    ytru[4] = sConeARibVertexPos[iLay];
+    xtru[5] = sConeARibIntLen[iLay] + (sConeARibVertexPos[iLay] - sConeARibWidth) / TMath::Tan(sConeARibVertexAngle[iLay - 1] * TMath::DegToRad());
   }
-  }
-*/
+  ytru[5] = ytru[4];
+  xtru[6] = sConeARibIntLen[iLay];
+  ytru[6] = sConeARibWidth;
+  xtru[7] = 0.;
+  ytru[7] = ytru[6];
+
+  // The actual Xtru
+  TGeoXtru* ribShape = new TGeoXtru(2);
+  ribShape->DefinePolygon(sConeARibNVert, xtru, ytru);
+  ribShape->DefineSection(0, -sConeARibThick / 2);
+  ribShape->DefineSection(1, sConeARibThick / 2);
+
+  return ribShape;
 }
