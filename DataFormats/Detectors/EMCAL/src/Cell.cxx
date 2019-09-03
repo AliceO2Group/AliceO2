@@ -86,22 +86,17 @@ Short_t Cell::getEnergyBits() const
 
 void Cell::setEnergy(Double_t energy)
 {
-  ULong_t a = 0;
-  if (energy > 0x3fff * (constants::EMCAL_ADCENERGY / 16.0))
-    a = 0x3fff;
-  else if (energy < 0)
-    a = 0;
-  else
-    a = (ULong_t)((energy / (constants::EMCAL_ADCENERGY)*16.0) + 0.5);
+  ULong_t a = static_cast<ULong_t>(energy / 0.0153);
+  a = a & 0x3FFF;
 
   a <<= 24;
-  ULong_t b = getLong() & 0xc00ffffff; // 1100000000000000111111111111111111111111
+  ULong_t b = getLong() & 0xc000ffffff; // 1100000000000000111111111111111111111111
   mBits = b + a;
 }
 
 Double_t Cell::getEnergy() const
 {
-  return getEnergyBits() * (constants::EMCAL_ADCENERGY) / 16.0;
+  return double(getEnergyBits() * 0.0153);
 }
 
 void Cell::setType(ChannelType_t ctype)
