@@ -42,6 +42,7 @@ class TimeStampWithError : public TimeStamp<T>
   TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
   E getTimeStampError() const { return mTimeStampError; }
   void setTimeStampError(E te) { mTimeStampError = te; }
+
  private:
   E mTimeStampError = 0;
   ClassDefNV(TimeStampWithError, 1);
@@ -64,7 +65,7 @@ std::ostream& operator<<(std::ostream& os, const TimeStampWithError<T, E>& t)
   return os;
 }
 #endif
-}
-}
+} // namespace dataformats
+} // namespace o2
 
 #endif /* ALICEO2_COMMON_TIMESTAMP_H */

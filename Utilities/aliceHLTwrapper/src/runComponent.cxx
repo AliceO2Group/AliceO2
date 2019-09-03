@@ -101,9 +101,11 @@ int main(int argc, char** argv)
   if ((iResult = component.process(blockData)) < 0) {
     cerr << "error: init failed with " << iResult << endl;
   }
-  if (inputBuffer) delete[] inputBuffer;
+  if (inputBuffer)
+    delete[] inputBuffer;
   inputBuffer = nullptr;
-  if (iResult < 0) return -iResult;
+  if (iResult < 0)
+    return -iResult;
 
   // for now, only the first buffer is written
   if (blockData.size() > 0) {

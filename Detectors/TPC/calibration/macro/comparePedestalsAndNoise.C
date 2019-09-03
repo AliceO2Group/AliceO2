@@ -61,7 +61,7 @@ std::tuple<TH1*, TH1*, TH1*, TH1*> getNoiseAndPedestalHistogram(const TString pe
       hNoise->Fill(val);
   }
 
-  return { hPedestal2D, hNoise2D, hPedestal, hNoise };
+  return {hPedestal2D, hNoise2D, hPedestal, hNoise};
 }
 
 void comparePedestalsAndNoise(const TString file1, const TString file2, int roc = 0)

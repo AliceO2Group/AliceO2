@@ -12,9 +12,9 @@
 
 #include "FITWorkflow/RecoWorkflow.h"
 
-#include "FITWorkflow/T0DigitReaderSpec.h"
-#include "FITWorkflow/T0RecPointWriterSpec.h"
-#include "FITWorkflow/T0ReconstructorSpec.h"
+#include "FITWorkflow/FT0DigitReaderSpec.h"
+#include "FITWorkflow/FT0RecPointWriterSpec.h"
+#include "FITWorkflow/FT0ReconstructorSpec.h"
 
 namespace o2
 {
@@ -25,9 +25,9 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::t0::getT0RecPointWriterSpec(useMC));
-  specs.emplace_back(o2::t0::getT0ReconstructorSpec(useMC));
-  specs.emplace_back(o2::t0::getT0DigitReaderSpec(useMC));
+  specs.emplace_back(o2::ft0::getFT0RecPointWriterSpec(useMC));
+  specs.emplace_back(o2::ft0::getFT0ReconstructorSpec(useMC));
+  specs.emplace_back(o2::ft0::getFT0DigitReaderSpec(useMC));
 
   return specs;
 }

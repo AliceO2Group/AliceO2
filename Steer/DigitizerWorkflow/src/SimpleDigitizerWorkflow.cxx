@@ -40,6 +40,10 @@
 #include "FITDigitizerSpec.h"
 #include "FITDigitWriterSpec.h"
 
+// for FDD
+#include "FDDDigitizerSpec.h"
+#include "FDDDigitWriterSpec.h"
+
 // for EMCal
 #include "EMCALDigitizerSpec.h"
 #include "EMCALDigitWriterSpec.h"
@@ -59,6 +63,10 @@
 // for MID
 #include "MIDDigitizerSpec.h"
 #include "MIDDigitWriterSpec.h"
+
+// for PHOS
+#include "PHOSDigitizerSpec.h"
+#include "PHOSDigitWriterSpec.h"
 
 // for ZDC
 #include "ZDCDigitizerSpec.h"
@@ -97,7 +105,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
     return CompletionPolicy::CompletionOp::Consume;
   };
 
-  policies.push_back({ CompletionPolicy{ "process-any", matcher, policy } });
+  policies.push_back({CompletionPolicy{"process-any", matcher, policy}});
 }
 
 // ------------------------------------------------------------------
@@ -109,32 +117,32 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   int defaultlanes = std::max(1u, std::thread::hardware_concurrency() / 2);
   std::string laneshelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
+    ConfigParamSpec{"tpc-lanes", VariantType::Int, defaultlanes, {laneshelp}});
 
   std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
   std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-sectors", VariantType::String, sectorDefault.c_str(), { sectorshelp } });
+    ConfigParamSpec{"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}});
 
   std::string onlyhelp("Comma separated list of detectors to accept. Takes precedence over the skipDet option. (Default is none)");
   workflowOptions.push_back(
-    ConfigParamSpec{ "onlyDet", VariantType::String, "none", { onlyhelp } });
+    ConfigParamSpec{"onlyDet", VariantType::String, "none", {onlyhelp}});
 
   std::string skiphelp("Comma separate list of detectors to skip/ignore. (Default is none)");
   workflowOptions.push_back(
-    ConfigParamSpec{ "skipDet", VariantType::String, "none", { skiphelp } });
+    ConfigParamSpec{"skipDet", VariantType::String, "none", {skiphelp}});
 
   // we support only output type 'tracks' for the moment
   std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'tracks'");
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-reco-type", VariantType::String, "", { tpcrthelp } });
+    ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
   // option allowing to set parameters
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
   workflowOptions.push_back(
-    ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   workflowOptions.push_back(
-    ConfigParamSpec{ "configFile", VariantType::String, "", { "configuration file for configurable parameters" } });
+    ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
 }
 
 // ------------------------------------------------------------------
@@ -314,8 +322,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // onlyDet takes precedence on skipDet
   DetFilterer filterers[2] = {
     whitelister(configcontext.options().get<std::string>("onlyDet"), "none", ','),
-    blacklister(configcontext.options().get<std::string>("skipDet"), "none", ',')
-  };
+    blacklister(configcontext.options().get<std::string>("skipDet"), "none", ',')};
 
   auto accept = [&configcontext, &filterers](o2::detectors::DetID id) {
     for (auto& f : filterers) {
@@ -402,13 +409,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
   }
 
-  // the FIT T0 part
-  if (isEnabled(o2::detectors::DetID::T0)) {
-    detList.emplace_back(o2::detectors::DetID::T0);
+  // the FT0 part
+  if (isEnabled(o2::detectors::DetID::FT0)) {
+    detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFITT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fit::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getT0DigitWriterSpec());
+    specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
   }
 
   // the EMCal part
@@ -463,6 +470,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++));
     // connect the MID digit writer
     specs.emplace_back(o2::mid::getMIDDigitWriterSpec());
+  }
+  // add FDD
+  if (isEnabled(o2::detectors::DetID::FDD)) {
+    detList.emplace_back(o2::detectors::DetID::FDD);
+    // connect the FDD digitization
+    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++));
+    // connect the FDD digit writer
+    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
+  }
+
+  // the PHOS part
+  if (isEnabled(o2::detectors::DetID::PHS)) {
+    detList.emplace_back(o2::detectors::DetID::PHS);
+    // connect the PHOS digitization
+    specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++));
+    // add TOF PHOS writer
+    specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

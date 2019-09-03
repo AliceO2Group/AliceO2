@@ -18,7 +18,7 @@ CommentPragmas:  '^ IWYU pragma:'
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
-Cpp11BracedListStyle: false
+Cpp11BracedListStyle: true
 DerivePointerBinding: false
 ExperimentalAutoDetectBinPacking: false
 IndentCaseLabels: true

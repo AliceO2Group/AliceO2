@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
   using namespace o2::framework;
   TableBuilder builder;
-  auto rowWriter = builder.persist<int, int>({ "x", "y" });
+  auto rowWriter = builder.persist<int, int>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 1, 1);
   rowWriter(0, 2, 2);
@@ -56,9 +56,9 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
 {
   using namespace o2::framework;
   TableBuilder builder;
-  auto bulkWriter = builder.bulkPersist<int, int>({ "x", "y" }, 10);
-  int x[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-  int y[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+  auto bulkWriter = builder.bulkPersist<int, int>({"x", "y"}, 10);
+  int x[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  int y[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
   bulkWriter(0, 8, x, y);
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
 {
   using namespace o2::framework;
   TableBuilder builder;
-  auto rowWriter = builder.persist<int, float, std::string, bool>({ "x", "y", "s", "b" });
+  auto rowWriter = builder.persist<int, float, std::string, bool>({"x", "y", "s", "b"});
   rowWriter(0, 0, 0., "foo", true);
   rowWriter(0, 1, 1., "bar", false);
   rowWriter(0, 2, 2., "fbr", false);
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(TestRDataFrame)
   auto t = rdf.Define("x", "1")
              .Define("y", "2")
              .Define("z", "x+y");
-  t.ForeachSlot(builder.persist<int, int>({ "x", "z" }), { "x", "z" });
+  t.ForeachSlot(builder.persist<int, int>({"x", "z"}), {"x", "z"});
 
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_rows(), 100);
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(TestRDataFrame)
   BOOST_REQUIRE_EQUAL(inTable->num_rows(), 100);
 
   auto source = std::make_unique<ROOT::RDF::RArrowDS>(inTable, std::vector<std::string>{});
-  ROOT::RDataFrame finalDF{ std::move(source) };
+  ROOT::RDataFrame finalDF{std::move(source)};
   BOOST_REQUIRE_EQUAL(*finalDF.Count(), 100);
 }
 
@@ -149,14 +149,14 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
 {
   using namespace o2::framework;
   TableBuilder builder1;
-  auto rowWriter1 = builder1.persist<int, int, int>({ "x", "y", "event" });
+  auto rowWriter1 = builder1.persist<int, int, int>({"x", "y", "event"});
   for (size_t i = 0; i < 8; ++i) {
     rowWriter1(0, i, i, i / 4);
   }
   auto table1 = builder1.finalize();
 
   TableBuilder builder2;
-  auto rowWriter2 = builder2.persist<int, int>({ "x", "y" });
+  auto rowWriter2 = builder2.persist<int, int>({"x", "y"});
   for (size_t i = 0; i < 8; ++i) {
     rowWriter2(0, i, i);
   }
@@ -181,10 +181,10 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   auto source8 = std::make_unique<ROOT::RDF::RArrowDS>(table1, std::vector<std::string>{}); // Notice the table needs to be the same
   auto blockDS = ROOT::RDF::MakeBlockAntiDataFrame(std::move(source7), std::move(source8), "event");
 
-  ROOT::RDataFrame finalDF{ std::move(cross) };
-  ROOT::RDataFrame indexedDF{ std::move(indexed) };
-  ROOT::RDataFrame unionDF{ std::move(unionDS) };
-  ROOT::RDataFrame blockDF{ std::move(blockDS) };
+  ROOT::RDataFrame finalDF{std::move(cross)};
+  ROOT::RDataFrame indexedDF{std::move(indexed)};
+  ROOT::RDataFrame unionDF{std::move(unionDS)};
+  ROOT::RDataFrame blockDF{std::move(blockDS)};
 
   BOOST_CHECK_EQUAL(*finalDF.Count(), 64);  // Full cross product of 8x8 rows, 64 entries
   BOOST_CHECK_EQUAL(*indexedDF.Count(), 8); // Indexing the left table using a column of the right table
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
   rowWriter(0, 40, 4);
   rowWriter(0, 50, 5);
   auto table = builder.finalize();
-  auto readBack = TestTable{ table };
+  auto readBack = TestTable{table};
 
   size_t i = 0;
   for (auto& row : readBack) {
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
   ContextRegistry* contextes = nullptr;
   std::vector<OutputRoute> routes;
   DataAllocator allocator(timingInfo, contextes, routes);
-  const Output output{ "TST", "DUMMY", 0, Lifetime::Timeframe };
+  const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require reference to object owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);
 }

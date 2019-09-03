@@ -25,7 +25,7 @@ namespace o2
 namespace framework
 {
 
-// Structure to hold information which was derived 
+// Structure to hold information which was derived
 // for output channels.
 struct LogicalOutputInfo {
   size_t specIndex;
@@ -71,7 +71,6 @@ struct DeviceConnectionEdge {
   enum ConnectionKind kind;
 };
 
-
 // Unique identifier for a connection
 struct DeviceConnectionId {
   size_t producer;
@@ -80,7 +79,8 @@ struct DeviceConnectionId {
   size_t producerTimeIndex;
   size_t port;
 
-  bool operator<(const DeviceConnectionId &rhs) const {
+  bool operator<(const DeviceConnectionId& rhs) const
+  {
     return std::tie(producer, consumer, timeIndex, producerTimeIndex) <
            std::tie(rhs.producer, rhs.consumer, rhs.timeIndex, rhs.producerTimeIndex);
   }
@@ -93,7 +93,8 @@ struct DeviceId {
   size_t timeslice;
   size_t deviceIndex;
 
-  bool operator<(const DeviceId &rhs) const {
+  bool operator<(const DeviceId& rhs) const
+  {
     return std::tie(processorIndex, timeslice) <
            std::tie(rhs.processorIndex, rhs.timeslice);
   }
@@ -140,32 +141,31 @@ struct WorkflowHelpers {
 
   // Helper method to verify that a given workflow is actually valid e.g. that
   // it contains no empty labels.
-  static void verifyWorkflow(const WorkflowSpec &workflow);
+  static void verifyWorkflow(const WorkflowSpec& workflow);
 
   // Depending on the workflow and the dangling inputs inside it, inject "fake"
   // devices to mark the fact we might need some extra action to make sure
   // dangling inputs are satisfied.
   static void injectServiceDevices(WorkflowSpec& workflow);
 
-  static void constructGraph(const WorkflowSpec &workflow,
-                             std::vector<DeviceConnectionEdge> &logicalEdges,
-                             std::vector<OutputSpec> &outputs,
-                             std::vector<LogicalForwardInfo> &availableForwardsInfo);
+  static void constructGraph(const WorkflowSpec& workflow,
+                             std::vector<DeviceConnectionEdge>& logicalEdges,
+                             std::vector<OutputSpec>& outputs,
+                             std::vector<LogicalForwardInfo>& availableForwardsInfo);
 
-  // FIXME: this is an implementation detail for compute edge action, 
+  // FIXME: this is an implementation detail for compute edge action,
   //        actually. It should be moved to the cxx. Comes handy for testing things though..
-  static void sortEdges(std::vector<size_t> &inEdgeIndex,
-                        std::vector<size_t> &outEdgeIndex,
-                        const std::vector<DeviceConnectionEdge> &edges);
-
+  static void sortEdges(std::vector<size_t>& inEdgeIndex,
+                        std::vector<size_t>& outEdgeIndex,
+                        const std::vector<DeviceConnectionEdge>& edges);
 
   static std::vector<EdgeAction> computeOutEdgeActions(
-                                 const std::vector<DeviceConnectionEdge> &edges,
-                                 const std::vector<size_t> &index);
+    const std::vector<DeviceConnectionEdge>& edges,
+    const std::vector<size_t>& index);
 
   static std::vector<EdgeAction> computeInEdgeActions(
-                                 const std::vector<DeviceConnectionEdge> &edges,
-                                 const std::vector<size_t> &index);
+    const std::vector<DeviceConnectionEdge>& edges,
+    const std::vector<size_t>& index);
 
   /// Given @a workflow it finds the OutputSpec in every module which do not have
   /// a corresponding InputSpec. I.e. they are dangling.
@@ -173,7 +173,7 @@ struct WorkflowHelpers {
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_WORKFLOWHELPERS_H

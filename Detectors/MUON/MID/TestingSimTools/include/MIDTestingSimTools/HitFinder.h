@@ -17,6 +17,7 @@
 #define O2_MID_HITFINDER_H
 
 #include "MathUtils/Cartesian3D.h"
+#include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
 
@@ -31,12 +32,13 @@ class HitFinder
   HitFinder(const GeometryTransformer& geoTrans);
 
   std::vector<int> getFiredDE(const Track& track, int chamber) const;
-  std::vector<std::pair<int, Point3D<float>>> getLocalPositions(const Track& track, int chamber) const;
+  std::vector<Cluster2D> getLocalPositions(const Track& track, int chamber, bool withUncertainty = false) const;
 
  private:
   Point3D<double> getIntersectInDefaultPlane(const Track& track, int chamber) const;
-  Point3D<float> getIntersect(const Track& track, int deId) const;
+  Cluster2D getIntersect(const Track& track, int deId) const;
   int guessRPC(double yPos, int chamber) const;
+  void addUncertainty(Cluster2D& cl, Track track) const;
 
   GeometryTransformer mGeometryTransformer; ///< Geometry transformer
   const double mTanTheta;                   ///< Tangent of the angle between y and z

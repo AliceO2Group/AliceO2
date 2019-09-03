@@ -32,7 +32,7 @@ namespace o2
 namespace framework
 {
 
-/// Concrete description of the device which will actually run 
+/// Concrete description of the device which will actually run
 /// a DataProcessor.
 struct DeviceSpec {
   std::string name;
@@ -47,7 +47,7 @@ struct DeviceSpec {
   std::vector<InputRoute> inputs;
   std::vector<OutputRoute> outputs;
   std::vector<ForwardRoute> forwards;
-  size_t rank; // Id of a parallel processing I am part of
+  size_t rank;   // Id of a parallel processing I am part of
   size_t nSlots; // Total number of parallel units I am part of
   size_t inputTimesliceId;
   /// The completion policy to use for this device.

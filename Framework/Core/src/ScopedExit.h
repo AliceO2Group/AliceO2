@@ -19,7 +19,7 @@ class ScopedExit
 {
  public:
   ScopedExit(std::function<void(void)> callback)
-    : mCallback{ callback }
+    : mCallback{callback}
   {
   }
 

@@ -16,7 +16,7 @@
 
 #include "FairLogger.h"
 
-namespace o2 {
-
+namespace o2
+{
 
 }

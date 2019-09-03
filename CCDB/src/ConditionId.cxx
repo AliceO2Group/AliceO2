@@ -9,21 +9,21 @@
 // or submit itself to any jurisdiction.
 
 #include "CCDB/ConditionId.h"
-#include <TObjArray.h>    // for TObjArray
-#include <TObjString.h>   // for TObjString
+#include <TObjArray.h>  // for TObjArray
+#include <TObjString.h> // for TObjString
 #include <Riostream.h>
 // using std::endl;
 // using std::cout;
 using namespace o2::ccdb;
 
-ClassImp(ConditionId)
+ClassImp(ConditionId);
 
 ConditionId::ConditionId() : mPath(), mIdRunRange(-1, -1), mVersion(-1), mSubVersion(-1), mLastStorage("new")
 {
   // constructor
 }
 
-ConditionId::ConditionId(const ConditionId &other)
+ConditionId::ConditionId(const ConditionId& other)
   : TObject(),
     mPath(other.mPath),
     mIdRunRange(other.mIdRunRange),
@@ -34,30 +34,30 @@ ConditionId::ConditionId(const ConditionId &other)
   // constructor
 }
 
-ConditionId::ConditionId(const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion)
+ConditionId::ConditionId(const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion)
   : mPath(path), mIdRunRange(firstRun, lastRun), mVersion(version), mSubVersion(subVersion), mLastStorage("new")
 {
   // constructor
 }
 
-ConditionId::ConditionId(const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion)
+ConditionId::ConditionId(const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion)
   : mPath(path), mIdRunRange(runRange), mVersion(version), mSubVersion(subVersion), mLastStorage("new")
 {
   // constructor
 }
 
-ConditionId *ConditionId::makeFromString(const TString &idString)
+ConditionId* ConditionId::makeFromString(const TString& idString)
 {
   // constructor from string
   // string has the format as the output of ConditionId::ToString:
   // path: "TRD/Calib/PIDLQ"; run range: [0,999999999]; version: v0_s0
 
-  ConditionId *id = new ConditionId("a/b/c", -1, -1, -1, -1);
+  ConditionId* id = new ConditionId("a/b/c", -1, -1, -1, -1);
 
-  TObjArray *arr1 = idString.Tokenize(';');
+  TObjArray* arr1 = idString.Tokenize(';');
   TIter iter1(arr1);
-  TObjString *objStr1 = nullptr;
-  while ((objStr1 = dynamic_cast<TObjString *>(iter1.Next()))) {
+  TObjString* objStr1 = nullptr;
+  while ((objStr1 = dynamic_cast<TObjString*>(iter1.Next()))) {
     TString buff(objStr1->GetName());
 
     if (buff.Contains("path:")) {
@@ -101,7 +101,7 @@ Bool_t ConditionId::isValid() const
   return !(!hasVersion() && hasSubVersion());
 }
 
-Bool_t ConditionId::isEqual(const TObject *obj) const
+Bool_t ConditionId::isEqual(const TObject* obj) const
 {
   // check if this id is equal to other id (compares path, run range, versions)
 
@@ -112,7 +112,7 @@ Bool_t ConditionId::isEqual(const TObject *obj) const
   if (ConditionId::Class() != obj->IsA()) {
     return kFALSE;
   }
-  ConditionId *other = (ConditionId *) obj;
+  ConditionId* other = (ConditionId*)obj;
   return mPath.getPathString() == other->getPathString() && mIdRunRange.isEqual(&other->getIdRunRange()) &&
          mVersion == other->getVersion() && mSubVersion == other->getSubVersion();
 }
@@ -132,18 +132,18 @@ TString ConditionId::ToString() const
   return result;
 }
 
-void ConditionId::print(Option_t * /*option*/) const
+void ConditionId::print(Option_t* /*option*/) const
 {
   // Prints ToString()
 
   std::cout << ToString().Data() << std::endl;
 }
 
-Int_t ConditionId::Compare(const TObject *obj) const
+Int_t ConditionId::Compare(const TObject* obj) const
 {
   //
   // compare according y
-  ConditionId *o2 = (ConditionId *) obj;
+  ConditionId* o2 = (ConditionId*)obj;
   return TString(this->getPathString()).CompareTo((o2->getPathString()));
 }
 

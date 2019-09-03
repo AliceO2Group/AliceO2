@@ -123,6 +123,6 @@ class Cluster : public o2::BaseCluster<float>
 };
 
 std::ostream& operator<<(std::ostream& os, Cluster& c);
-} // namespace TOF
+} // namespace tof
 } // namespace o2
 #endif

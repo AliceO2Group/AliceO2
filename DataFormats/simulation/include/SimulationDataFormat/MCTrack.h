@@ -257,7 +257,7 @@ inline void MCTrackT<T>::Print(Int_t trackId) const
 {
   // LOG(DEBUG) << "Track " << trackId << ", mother : " << mMotherTrackId << ", Type " << mPdgCode << ", momentum ("
   //           << mStartVertexMomentumX << ", " << mStartVertexMomentumY << ", " << mStartVertexMomentumZ << ") GeV"
-  //           << FairLogger::endl;
+  //          ;
 }
 
 template <typename T>

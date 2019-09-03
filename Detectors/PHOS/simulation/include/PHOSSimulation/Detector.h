@@ -136,6 +136,11 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   Geometry* GetGeometry();
 
+  ///
+  /// Specifies PHOS modules as alignable volumes
+  ///
+  void addAlignableVolumes() const override;
+
  protected:
   ///
   /// Creating detector materials for the PHOS detector and space frame
@@ -191,10 +196,10 @@ class Detector : public o2::base::DetImpl<Detector>
 
   template <typename Det>
   friend class o2::base::DetImpl;
-  ClassDefOverride(Detector, 1)
+  ClassDefOverride(Detector, 1);
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #ifdef USESHM
 namespace o2

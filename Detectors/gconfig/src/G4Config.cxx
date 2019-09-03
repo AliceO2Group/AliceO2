@@ -41,7 +41,7 @@ namespace g4config
 
 void G4Config()
 {
-  LOG(INFO) << "Setting up G4 sim from library code" << FairLogger::endl;
+  LOG(INFO) << "Setting up G4 sim from library code";
   Config();
   SetCuts();
 }

@@ -105,15 +105,14 @@ DataProcessorSpec getTOFDigitWriterSpec()
 
   return DataProcessorSpec{
     "TOFDigitWriter",
-    Inputs{ InputSpec{ "tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe },
-            InputSpec{ "tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+    Inputs{InputSpec{"tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}},
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tof-digit-outfile", VariantType::String, "tofdigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {"tof-digit-outfile", VariantType::String, "tofdigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace tof
 } // end namespace o2

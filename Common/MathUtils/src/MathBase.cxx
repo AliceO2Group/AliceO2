@@ -14,5 +14,3 @@
 #include "MathUtils/MathBase.h"
 
 using namespace o2::math_utils::math_base;
-
-

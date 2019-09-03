@@ -33,9 +33,9 @@ class Shil : public FairModule
   Shil& operator=(const Shil&);
   void createMaterials();
 
-  ClassDefOverride(o2::passive::Shil, 1)
+  ClassDefOverride(o2::passive::Shil, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif

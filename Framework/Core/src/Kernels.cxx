@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Kernels.h"
 #include "Framework/TableBuilder.h"
+#include "ArrowDebugHelpers.h"
 
 #include <arrow/builder.h>
 #include <arrow/status.h>
@@ -26,7 +27,7 @@ namespace framework
 {
 
 HashByColumnKernel::HashByColumnKernel(HashByColumnOptions options)
-  : mOptions{ options }
+  : mOptions{options}
 {
 }
 
@@ -51,7 +52,7 @@ template <typename T, typename ARRAY>
 Status doGrouping(std::shared_ptr<ChunkedArray> chunkedArray, Datum* outputRanges)
 {
   TableBuilder builder;
-  auto writer = builder.persist<uint64_t, uint64_t>({ "start", "count" });
+  auto writer = builder.persist<uint64_t, uint64_t>({"start", "count"});
   T currentIndex = std::static_pointer_cast<ARRAY>(chunkedArray->chunk(0))->raw_values()[0];
   T currentCount = 0;
   for (size_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
@@ -103,7 +104,7 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
 
   // build all the ranges on the fly.
   Datum outRanges;
-  SortedGroupByKernel groupBy({ GroupByOptions{ key } });
+  SortedGroupByKernel groupBy({GroupByOptions{key}});
   ARROW_RETURN_NOT_OK(groupBy.Call(context, inputTable, &outRanges));
   auto ranges = util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   outputSlices->reserve(ranges->num_rows());
@@ -127,7 +128,6 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
     }
     outputSlices->emplace_back(Datum(arrow::Table::Make(table->schema(), slicedColumns)));
   }
-  Datum out;
   return arrow::Status::OK();
 }
 

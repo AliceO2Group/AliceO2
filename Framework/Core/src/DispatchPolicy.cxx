@@ -22,7 +22,7 @@ namespace framework
 /// after computation
 std::vector<DispatchPolicy> DispatchPolicy::createDefaultPolicies()
 {
-  return { DispatchPolicy{ "dispatch-all-after-computation", [](DeviceSpec const&) { return true; }, DispatchPolicy::DispatchOp::AfterComputation } };
+  return {DispatchPolicy{"dispatch-all-after-computation", [](DeviceSpec const&) { return true; }, DispatchPolicy::DispatchOp::AfterComputation}};
 }
 
 std::ostream& operator<<(std::ostream& oss, DispatchPolicy::DispatchOp const& val)

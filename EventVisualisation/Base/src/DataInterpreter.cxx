@@ -18,22 +18,20 @@
 
 using namespace std;
 
-namespace o2  {
-namespace event_visualisation {
-  
+namespace o2
+{
+namespace event_visualisation
+{
+
+DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
 DataInterpreter::DataInterpreter() = default;
 
-DataInterpreter::~DataInterpreter()
+TEveElement* DataInterpreter::interpretDataForType(TObject* /*data*/, EVisualisationDataType /*type*/)
 {
-  cout<<"Virtual destructor of the DataInterpreter -- should be implemented in deriving class!!"<<endl;
-}
-  
-TEveElement* DataInterpreter::interpretDataForType(EDataType type)
-{
-  cout<<"Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!"<<endl;
-  
+  cout << "Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!" << endl;
+
   return nullptr;
 }
-  
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2

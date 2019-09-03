@@ -142,5 +142,5 @@ BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
   BOOST_CHECK_CLOSE(lostElectrons / nEvents,
                     gasParam.AttCoeff * gasParam.OxygenCont * driftTime, 0.5);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

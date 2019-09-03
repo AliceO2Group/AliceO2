@@ -33,30 +33,25 @@ struct ConfigParamSpec {
   using ParamType = VariantType;
 
   struct HelpString {
-    const char* c_str() const {return str.c_str();}
+    const char* c_str() const { return str.c_str(); }
     std::string str;
   };
-  template<typename T>
+  template <typename T>
   ConfigParamSpec(std::string, ParamType, Variant, T)
-    : type(VariantType::Unknown) {
+    : type(VariantType::Unknown)
+  {
     static_assert(std::is_same<T, HelpString>::value,
-		  R"(help string must be brace-enclosed, e.g. '{"help"}')");
+                  R"(help string must be brace-enclosed, e.g. '{"help"}')");
   }
 
   ConfigParamSpec(std::string _name, ParamType _type,
                   Variant _defaultValue, HelpString _help)
-    : name(_name)
-    , type(_type)
-    , defaultValue(_defaultValue)
-    , help(_help) {}
+    : name(_name), type(_type), defaultValue(_defaultValue), help(_help) {}
 
   /// config spec without default value, explicitely marked as 'empty'
   /// and will be ignored at other places
   ConfigParamSpec(std::string _name, ParamType _type, HelpString _help)
-    : name(_name)
-    , type(_type)
-    , defaultValue(VariantType::Empty)
-    , help(_help) {}
+    : name(_name), type(_type), defaultValue(VariantType::Empty), help(_help) {}
 
   std::string name;
   ParamType type;

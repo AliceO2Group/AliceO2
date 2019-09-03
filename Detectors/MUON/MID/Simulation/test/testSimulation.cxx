@@ -83,7 +83,7 @@ struct SimClustering {
   {
     correlation.clear();
     preClusterizer.init();
-    clusterizer.init([&](size_t baseIndex, size_t relatedIndex) { correlation.push_back({ baseIndex, relatedIndex }); });
+    clusterizer.init([&](size_t baseIndex, size_t relatedIndex) { correlation.push_back({baseIndex, relatedIndex}); });
   }
 };
 
@@ -106,7 +106,7 @@ static SimTracking simTracking;
 struct GenTrack {
   Track track;
   std::vector<Hit> hits;
-  int nFiredChambers{ 0 };
+  int nFiredChambers{0};
   bool isReconstructible() { return nFiredChambers > 2; }
 };
 
@@ -138,15 +138,15 @@ std::vector<GenTrack> generateTracks(int nTracks)
     GenTrack genTrack;
     genTrack.track = track;
     for (int ich = 0; ich < 4; ++ich) {
-      auto pairs = simTracking.hitFinder.getLocalPositions(track, ich);
+      auto clusters = simTracking.hitFinder.getLocalPositions(track, ich);
       bool isFired = false;
-      for (auto pair : pairs) {
-        stripIndex = simBase.mapping.stripByPosition(pair.second.x(), pair.second.y(), 0, pair.first, false);
+      for (auto& cl : clusters) {
+        stripIndex = simBase.mapping.stripByPosition(cl.xCoor, cl.yCoor, 0, cl.deId, false);
         if (!stripIndex.isValid()) {
           continue;
         }
-        auto pos = simBase.geoTrans.localToGlobal(pair.first, pair.second.x(), pair.second.y());
-        genTrack.hits.emplace_back(trackId, pair.first, pos, pos);
+        auto pos = simBase.geoTrans.localToGlobal(cl.deId, cl.xCoor, cl.yCoor);
+        genTrack.hits.emplace_back(trackId, cl.deId, pos, pos);
         isFired = true;
       }
       if (isFired) {
@@ -284,7 +284,7 @@ std::vector<int> getDEList()
   // (2,6 are long, 3, 5 have a cut geometry and 4 is shorter w.r.t.
   // the others in the same chamber plane)
   // in the 4 different chamber planes (different dimensions)
-  std::vector<int> deList = { 2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 47, 48, 49, 50, 51, 65, 66, 67, 68, 69 };
+  std::vector<int> deList = {2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 47, 48, 49, 50, 51, 65, 66, 67, 68, 69};
   return deList;
 }
 
@@ -490,7 +490,7 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
   }
 }
 
-BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({ 1, 2, 3, 4, 5, 6, 7, 8, 9 }), nTracks)
+BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5, 6, 7, 8, 9}), nTracks)
 {
   // In this test, we generate tracks and we reconstruct them.
   // It is worth noting that in this case we do not use the default digitizer

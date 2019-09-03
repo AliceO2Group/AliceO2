@@ -145,7 +145,7 @@ class ConfigurableParam
 
   static std::string toString(EParamProvenance p)
   {
-    static std::array<std::string, 3> names = { "CODE", "CCDB", "RT" };
+    static std::array<std::string, 3> names = {"CODE", "CCDB", "RT"};
     return names[(int)p];
   }
 

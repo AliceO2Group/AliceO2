@@ -47,6 +47,15 @@ o2_add_test_root_macro(CheckTopologies.C
                                              O2::SimulationDataFormat
                        LABELS its)
 
+o2_add_test_root_macro(CheckCOG.C
+                       PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                             O2::ITSBase
+                                             O2::ITSMFTReconstruction
+                                             O2::ITSMFTSimulation
+                                             O2::DataFormatsITSMFT
+                                             O2::SimulationDataFormat
+                       LABELS its)
+
 o2_add_test_root_macro(CheckTracks.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DataFormatsITS

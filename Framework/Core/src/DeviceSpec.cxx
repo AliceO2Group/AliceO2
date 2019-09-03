@@ -30,30 +30,32 @@ using LogicalChannelsMap = std::map<LogicalChannelRange, size_t>;
 // https://en.wikipedia.org/wiki/Levenshtein_distance
 //
 // For the full description
-size_t levenshteinDistance(const char *s, int len_s, const char *t, int len_t)
+size_t levenshteinDistance(const char* s, int len_s, const char* t, int len_t)
 {
   size_t cost;
 
   /* base case: empty strings */
-  if (len_s == 0) return len_t;
-    if (len_t == 0) return len_s;
+  if (len_s == 0)
+    return len_t;
+  if (len_t == 0)
+    return len_s;
 
   /* test if last characters of the strings match */
-  if (s[len_s-1] == t[len_t-1])
+  if (s[len_s - 1] == t[len_t - 1])
     cost = 0;
   else
     cost = 1;
 
-  return std::min(std::min(levenshteinDistance(s, len_s - 1, t, len_t    ) + 1,
-                           levenshteinDistance(s, len_s    , t, len_t - 1) + 1),
-                           levenshteinDistance(s, len_s - 1, t, len_t - 1) + cost);
+  return std::min(std::min(levenshteinDistance(s, len_s - 1, t, len_t) + 1,
+                           levenshteinDistance(s, len_s, t, len_t - 1) + 1),
+                  levenshteinDistance(s, len_s - 1, t, len_t - 1) + cost);
 }
 
-std::string findBestCandidate(const std::string &candidate, const LogicalChannelsMap &map)
+std::string findBestCandidate(const std::string& candidate, const LogicalChannelsMap& map)
 {
   std::string result;
   size_t score = -1;
-  for (const auto &pair : map) {
+  for (const auto& pair : map) {
     auto newScore = levenshteinDistance(candidate.c_str(), candidate.size(),
                                         pair.first.name.c_str(), pair.first.name.size());
     if (newScore < score) {
@@ -62,7 +64,6 @@ std::string findBestCandidate(const std::string &candidate, const LogicalChannel
   }
   return result;
 }
-
 
 } // namespace framework
 } // namespace o2

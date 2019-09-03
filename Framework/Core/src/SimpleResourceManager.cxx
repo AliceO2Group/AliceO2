@@ -20,20 +20,20 @@ namespace framework
 /// The simplest implementation of this allocates mMaxPorts ports starting from
 /// the mInitialPort. For now we still consider everything running on a single
 /// machine.
-std::vector<ComputingResource> SimpleResourceManager::getAvailableResources() {
+std::vector<ComputingResource> SimpleResourceManager::getAvailableResources()
+{
   std::vector<ComputingResource> result;
   if ((mInitialPort < 1025) || ((mInitialPort + mMaxPorts) > 65535)) {
     throw std::runtime_error("Invalid port number. Valid port range is 1025-65535");
   }
-  // We insert them backwards for compatibility with the previous 
+  // We insert them backwards for compatibility with the previous
   // way of assigning them.
   for (size_t i = mInitialPort + mMaxPorts - 1; i >= mInitialPort; --i) {
     result.push_back(ComputingResource{
       1.0,
       1.0,
       "localhost",
-      static_cast<unsigned short>(i)
-    });
+      static_cast<unsigned short>(i)});
   };
   return result;
 }

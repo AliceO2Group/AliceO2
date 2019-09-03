@@ -11,10 +11,10 @@
 #ifndef ALI_META_DATA_H
 #define ALI_META_DATA_H
 
-#include <TMap.h>     // for TMap
-#include <TObject.h>  // for TObject
-#include "Rtypes.h"   // for UInt_t, ConditionMetaData::Class, Bool_t, etc
-#include "TString.h"  // for TString
+#include <TMap.h>    // for TMap
+#include <TObject.h> // for TObject
+#include "Rtypes.h"  // for UInt_t, ConditionMetaData::Class, Bool_t, etc
+#include "TString.h" // for TString
 
 namespace o2
 {
@@ -104,8 +104,8 @@ class ConditionMetaData : public TObject
 
   TMap mProperties; // list of object specific properties
 
-  ClassDefOverride(ConditionMetaData, 1)
+  ClassDefOverride(ConditionMetaData, 1);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

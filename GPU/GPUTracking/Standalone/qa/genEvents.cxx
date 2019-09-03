@@ -96,7 +96,7 @@ double genEvents::GetGaus(double sigma)
 
 void genEvents::InitEventGenerator()
 {
-  const char* rows[3] = { "0-63", "128-159", "64-127" };
+  const char* rows[3] = {"0-63", "128-159", "64-127"};
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 2; j++) {
       char name[1024], title[1024];
@@ -359,7 +359,7 @@ void genEvents::RunEventGenerator(GPUChainTracking* rec)
   gen->InitEventGenerator();
 
   for (int i = 0; i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents); i++) {
-    printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
+    GPUInfo("Generating event %d/%d", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
     snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
     gen->GenerateEvent(rec->GetParam(), dirname);
   }

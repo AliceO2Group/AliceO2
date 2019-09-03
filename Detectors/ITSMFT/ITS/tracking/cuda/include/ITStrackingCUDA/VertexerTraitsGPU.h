@@ -10,7 +10,7 @@
 ///
 /// \file VertexerTraitsGPU.h
 /// \brief
-///
+/// \author matteo.concas@cern.ch
 
 #ifndef O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_
 #define O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_
@@ -38,7 +38,7 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   virtual ~VertexerTraitsGPU();
-  void computeTracklets(const bool useMCLabel = false) override;
+  void computeTracklets() override;
   GPU_DEVICE static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
 
  protected:
@@ -65,10 +65,10 @@ class VertexerTraitsGPU : public VertexerTraits
 inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
-  const int phiBinMin{ index_table_utils::getPhiBinIndex(
-    math_utils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut)) };
-  const int phiBinSpan{ static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize)) };
-  return int2{ phiBinMin, phiBinSpan };
+  const int phiBinMin{index_table_utils::getPhiBinIndex(
+    math_utils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut))};
+  const int phiBinSpan{static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize))};
+  return int2{phiBinMin, phiBinSpan};
 }
 
 extern "C" VertexerTraits* createVertexerTraitsGPU();

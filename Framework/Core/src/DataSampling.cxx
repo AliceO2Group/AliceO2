@@ -62,11 +62,11 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     }
 
     for (const auto& path : policy->getPathMap()) {
-      dispatcher.registerPath({ path.first, path.second });
+      dispatcher.registerPath({path.first, path.second});
     }
 
     if (!policy->getFairMQOutputChannel().empty()) {
-      options.push_back({ "channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), { "Out-of-band channel config" } });
+      options.push_back({"channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), {"Out-of-band channel config"}});
       LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
@@ -78,7 +78,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     spec.outputs = dispatcher.getOutputSpecs();
     spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
     spec.maxInputTimeslices = threads;
-    spec.labels = { { "DataSampling" }, { "Dispatcher" } };
+    spec.labels = {{"DataSampling"}, {"Dispatcher"}};
     spec.options = options;
 
     workflow.emplace_back(std::move(spec));

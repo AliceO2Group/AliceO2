@@ -13,11 +13,12 @@
 
 #include <vector>
 
-namespace o2 {
-namespace data_flow {
-
-struct SubframeMetadata
+namespace o2
 {
+namespace data_flow
+{
+
+struct SubframeMetadata {
   // TODO: replace with timestamp struct
   // IDEA: not timeframeID because can be calculcated with helper function
   // QUESTION: isn't the duration set to ~22ms?
@@ -27,15 +28,16 @@ struct SubframeMetadata
   //further meta data to be added
 
   // putting data specific to FLP origin
-  int      flpIndex;
+  int flpIndex;
 };
 
 // Helper function to derive the timeframe id from the actual timestamp.
 // Timestamp is in nanoseconds. Each Timeframe is ~22ms i.e. 2^17 nanoseconds,
-// so we can get a unique id by dividing by the timeframe period and masking 
+// so we can get a unique id by dividing by the timeframe period and masking
 // the lower 16 bits. Overlaps will only happen every ~ 22 minutes.
 constexpr uint16_t
-timeframeIdFromTimestamp(uint64_t timestamp, uint64_t timeFrameDuration) {
+  timeframeIdFromTimestamp(uint64_t timestamp, uint64_t timeFrameDuration)
+{
   return (timestamp / timeFrameDuration) & 0xffff;
 }
 
@@ -59,9 +61,7 @@ struct ITSRawData {
   uint64_t timeStamp;
 };
 
-
 } // namespace data_flow
-} // end namespace AliceO2
-
+} // namespace o2
 
 #endif

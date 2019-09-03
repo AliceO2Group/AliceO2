@@ -34,6 +34,9 @@ DigitizerTask::~DigitizerTask()
   if (mDigitsArray) {
     delete mDigitsArray;
   }
+  if (mLabels) {
+    delete mLabels;
+  }
 }
 
 /// \brief Init function
@@ -43,18 +46,22 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Hit>*>("PHSHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "PHOS hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "PHOS hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
-  // Register output container
-  mgr->RegisterAny("PHSDigit", mDigitsArray, kTRUE);
+  // Register MC Truth container
+  mLabels = new o2::dataformats::MCTruthContainer<o2::phos::MCLabel>();
+
+  // Register output containers
+  mgr->RegisterAny("PHOSDigit", mDigitsArray, kTRUE);
+  mgr->RegisterAny("PHOSDigitMCTruth", mLabels, kTRUE);
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
@@ -70,13 +77,16 @@ void DigitizerTask::Exec(Option_t* option)
 
   if (mDigitsArray)
     mDigitsArray->clear();
+  if (mLabels)
+    mLabels->clear();
+
   mDigitizer.setEventTime(mgr->GetEventTime());
 
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 
-  mDigitizer.process(*mHitsArray, *mDigitsArray);
+  mDigitizer.process(*mHitsArray, *mDigitsArray, *mLabels);
 
   mEventID++;
 }
@@ -90,6 +100,8 @@ void DigitizerTask::FinishTask()
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   if (mDigitsArray)
     mDigitsArray->clear();
+  if (mLabels)
+    mLabels->clear();
   // mDigitizer.fillOutputContainer(mDigitsArray);
   mDigitizer.finish();
 }

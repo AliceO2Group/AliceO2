@@ -121,7 +121,7 @@ inline std::array<GPU::Vector<Cell>, constants::its::CellsPerRoad - 1>& PrimaryV
 
 inline void PrimaryVertexContextNV::updateDeviceContext()
 {
-  mGPUContextDevicePointer = GPU::UniquePointer<GPU::DeviceStoreNV>{ mGPUContext };
+  mGPUContextDevicePointer = GPU::UniquePointer<GPU::DeviceStoreNV>{mGPUContext};
 }
 
 inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,

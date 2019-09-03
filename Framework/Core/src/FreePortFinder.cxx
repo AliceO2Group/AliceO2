@@ -21,10 +21,10 @@ namespace framework
 {
 
 FreePortFinder::FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
-  : mInitialPort{ initialPort },
-    mFinalPort{ finalPort },
-    mStep{ step },
-    mSocket{ socket(AF_INET, SOCK_STREAM, 0) }
+  : mInitialPort{initialPort},
+    mFinalPort{finalPort},
+    mStep{step},
+    mSocket{socket(AF_INET, SOCK_STREAM, 0)}
 {
 }
 

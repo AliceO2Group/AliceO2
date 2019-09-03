@@ -16,7 +16,7 @@
 
 #pragma link C++ class o2::fdd::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::fdd::Detector> + ;
-#pragma link C++ class o2::fdd::Hit + ;
-#pragma link C++ class vector < o2::fdd::Hit> + ;
+#pragma link C++ class o2::fdd::Digitizer + ;
+#pragma link C++ class o2::fdd::DigitizationParameters + ;
 
 #endif

@@ -40,9 +40,9 @@ class Stepper
   void resetStep();
 
  private:
-  float mTrackEloss{ 0.0 };
-  float mTrackLength{ 0.0 };
-  std::vector<o2::mch::Hit>* mHits{ nullptr };
+  float mTrackEloss{0.0};
+  float mTrackLength{0.0};
+  std::vector<o2::mch::Hit>* mHits{nullptr};
   Point3D<float> mEntrancePoint;
 };
 

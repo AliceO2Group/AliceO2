@@ -77,14 +77,13 @@ bool Detector::ProcessHits(FairVolume* v)
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
       GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
       stack->addHit(GetDetId());
-    }                                                     //photon hit PC and DE >0
+    } //photon hit PC and DE >0
     return kTRUE;
   } //photon hit PC
 
   //Treat charged particles
   static Float_t eloss; //need to store mip parameters between different steps
   static Double_t in[3];
-
 
   if (fMC->IsTrackEntering() && fMC->TrackCharge() && volname.Contains("Hpad")) {
     //Trackref stored when entering in the pad volume
@@ -253,17 +252,17 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
   // Arguments:   ene - photon energy [GeV],
   //              PDOTI=COS(INC.ANG.), PDOTR=COS(POL.PLANE ROT.ANG.)
   //   Returns:
-  Float_t en[36] = { 5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0, 6.1, 6.2,
-                     6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7,
-                     7.8, 7.9, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 };
-  Float_t csin[36] = { 2.14, 2.21, 2.33, 2.48, 2.76, 2.97, 2.99, 2.59, 2.81, 3.05,
-                       2.86, 2.53, 2.55, 2.66, 2.79, 2.96, 3.18, 3.05, 2.84, 2.81, 2.38, 2.11,
-                       2.01, 2.13, 2.39, 2.73, 3.08, 3.15, 2.95, 2.73, 2.56, 2.41, 2.12, 1.95,
-                       1.72, 1.53 };
-  Float_t csik[36] = { 0., 0., 0., 0., 0., 0.196, 0.408, 0.208, 0.118, 0.49, 0.784, 0.543,
-                       0.424, 0.404, 0.371, 0.514, 0.922, 1.102, 1.139, 1.376, 1.461, 1.253, 0.878,
-                       0.69, 0.612, 0.649, 0.824, 1.347, 1.571, 1.678, 1.763, 1.857, 1.824, 1.824,
-                       1.714, 1.498 };
+  Float_t en[36] = {5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0, 6.1, 6.2,
+                    6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7,
+                    7.8, 7.9, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5};
+  Float_t csin[36] = {2.14, 2.21, 2.33, 2.48, 2.76, 2.97, 2.99, 2.59, 2.81, 3.05,
+                      2.86, 2.53, 2.55, 2.66, 2.79, 2.96, 3.18, 3.05, 2.84, 2.81, 2.38, 2.11,
+                      2.01, 2.13, 2.39, 2.73, 3.08, 3.15, 2.95, 2.73, 2.56, 2.41, 2.12, 1.95,
+                      1.72, 1.53};
+  Float_t csik[36] = {0., 0., 0., 0., 0., 0.196, 0.408, 0.208, 0.118, 0.49, 0.784, 0.543,
+                      0.424, 0.404, 0.371, 0.514, 0.922, 1.102, 1.139, 1.376, 1.461, 1.253, 0.878,
+                      0.69, 0.612, 0.649, 0.824, 1.347, 1.571, 1.678, 1.763, 1.857, 1.824, 1.824,
+                      1.714, 1.498};
   Float_t xe = ene;
   Int_t j = Int_t(xe * 10) - 49;
   Float_t cn = csin[j] + ((csin[j + 1] - csin[j]) / 0.1) * (xe - en[j]);
@@ -318,12 +317,12 @@ void Detector::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position 
   // Construct ideal position matrix for a given chamber
   // Arguments: iCh- chamber ID; pMatrix- pointer to precreated unity matrix where to store the results
   //   Returns: none
-  const double kAngHor = 19.5;            //  horizontal angle between chambers  19.5 grad
-  const double kAngVer = 20;              //  vertical angle between chambers    20   grad
-  const double kAngCom = 30;              //  common HMPID rotation with respect to x axis  30   grad
-  const double kTrans[3] = { 490, 0, 0 }; //  center of the chamber is on window-gap surface
-  pMatrix->RotateY(90);                   //  rotate around y since initial position is in XY plane -> now in YZ plane
-  pMatrix->SetTranslation(kTrans);        //  now plane in YZ is shifted along x
+  const double kAngHor = 19.5;          //  horizontal angle between chambers  19.5 grad
+  const double kAngVer = 20;            //  vertical angle between chambers    20   grad
+  const double kAngCom = 30;            //  common HMPID rotation with respect to x axis  30   grad
+  const double kTrans[3] = {490, 0, 0}; //  center of the chamber is on window-gap surface
+  pMatrix->RotateY(90);                 //  rotate around y since initial position is in XY plane -> now in YZ plane
+  pMatrix->SetTranslation(kTrans);      //  now plane in YZ is shifted along x
   switch (iCh) {
     case 0:
       pMatrix->RotateY(kAngHor);
@@ -356,12 +355,12 @@ void Detector::IdealPositionCradle(Int_t iCh, TGeoHMatrix* pMatrix) // ideal pos
   // Construct ideal position matrix for a given module cradle
   // Arguments: iCh- chamber ID; pMatrix- pointer to precreated unity matrix where to store the results
   //   Returns: none
-  const double kAngHor = 19.5;                   //  horizontal angle between chambers  19.5 grad
-  const double kAngVer = 20;                     //  vertical angle between chambers    20   grad
-  const double kAngCom = 30;                     //  common HMPID rotation with respect to x axis  30   grad
-  const double kTrans[3] = { 423. + 29, 0, 67 }; //  z-center of the cradle module
-  pMatrix->RotateY(90);                          //  rotate around y since initial position is in XY plane -> now in YZ plane
-  pMatrix->SetTranslation(kTrans);               //  now plane in YZ is shifted along x
+  const double kAngHor = 19.5;                 //  horizontal angle between chambers  19.5 grad
+  const double kAngVer = 20;                   //  vertical angle between chambers    20   grad
+  const double kAngCom = 30;                   //  common HMPID rotation with respect to x axis  30   grad
+  const double kTrans[3] = {423. + 29, 0, 67}; //  z-center of the cradle module
+  pMatrix->RotateY(90);                        //  rotate around y since initial position is in XY plane -> now in YZ plane
+  pMatrix->SetTranslation(kTrans);             //  now plane in YZ is shifted along x
   switch (iCh) {
     case 0:
       pMatrix->RotateY(kAngHor);
@@ -402,14 +401,14 @@ void Detector::createMaterials()
   // Ported to O2 (24.4.2018) -- taken from AliRoot AliHMPIDv3
 
   // data from PDG booklet 2002     density [gr/cm^3] rad len [cm] abs len [cm]
-  float aAir[4] = { 12, 14, 16, 36 }, zAir[4] = { 6, 7, 8, 18 }, wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 },
+  float aAir[4] = {12, 14, 16, 36}, zAir[4] = {6, 7, 8, 18}, wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827},
         dAir = 0.00120479;
   int nAir = 4; // mixture 0.9999999
-  float aC6F14[2] = { 12.01, 18.99 }, zC6F14[2] = { 6, 9 }, wC6F14[2] = { 6, 14 }, dC6F14 = 1.68;
+  float aC6F14[2] = {12.01, 18.99}, zC6F14[2] = {6, 9}, wC6F14[2] = {6, 14}, dC6F14 = 1.68;
   int nC6F14 = -2;
-  float aSiO2[2] = { 28.09, 15.99 }, zSiO2[2] = { 14, 8 }, wSiO2[2] = { 1, 2 }, dSiO2 = 2.64;
+  float aSiO2[2] = {28.09, 15.99}, zSiO2[2] = {14, 8}, wSiO2[2] = {1, 2}, dSiO2 = 2.64;
   int nSiO2 = -2;
-  float aCH4[2] = { 12.01, 1.01 }, zCH4[2] = { 6, 1 }, wCH4[2] = { 1, 4 }, dCH4 = 7.17e-4;
+  float aCH4[2] = {12.01, 1.01}, zCH4[2] = {6, 1}, wCH4[2] = {1, 4}, dCH4 = 7.17e-4;
   int nCH4 = -2;
 
   float aRoha = 12.01, zRoha = 6, dRoha = 0.10, radRoha = 18.80,
@@ -435,9 +434,9 @@ void Detector::createMaterials()
   // So what is called CsI has the optical properties of CsI, but the composition of G-10 (for delta elec, etc
   // production...)
 
-  float aG10[4] = { 28.09, 12.01, 1.01, 16.00 };
-  float zG10[4] = { 14., 6., 1., 8. };
-  float wG10[4] = { 0.129060, 0.515016, 0.061873, 0.294050 };
+  float aG10[4] = {28.09, 12.01, 1.01, 16.00};
+  float zG10[4] = {14., 6., 1., 8.};
+  float wG10[4] = {0.129060, 0.515016, 0.061873, 0.294050};
   float dG10 = 1.7;
   int nG10 = 4;
 
@@ -715,9 +714,7 @@ TGeoVolume* Detector::createChamber(int number)
                                                                                 // definition the ch4 volume must be
                                                                                 // inserted around the collecting wires
   hmp->AddNode(proxgap2, 0,
-               new TGeoTranslation(0., 0., (9 + 7.5 + 34) * mm +
-                                             (81.7 - 6.2 - 34. - 9. - 7.5) * mm /
-                                               2.)); // tot height(81.7) - Hsec - proxygap2 - top edge fr4 at(9+7.5) mm
+               new TGeoTranslation(0., 0., (9 + 7.5 + 34) * mm + (81.7 - 6.2 - 34. - 9. - 7.5) * mm / 2.)); // tot height(81.7) - Hsec - proxygap2 - top edge fr4 at(9+7.5) mm
 
   // ^ Y  single cell                                                5.5mm CH4 = 1*mm CsI + 4.45*mm CsI x cath +0.05*mm
   // safety margin
@@ -792,20 +789,18 @@ TGeoVolume* Detector::CreateCradle()
 
   Double_t mm = 0.1;
 
-  Double_t params[10] = { 0.5, 10., 24., -1, 5.2, 1.5, 3.5, 8.5, 3.8, 0. };
+  Double_t params[10] = {0.5, 10., 24., -1, 5.2, 1.5, 3.5, 8.5, 3.8, 0.};
   TGeoMedium* med = gGeoManager->GetMedium("HMP_Al");
   TGeoVolume* cradle = new TGeoVolumeAssembly("Hcradle");
 
   // Double_t baselong[7]={6037*mm-2*60*mm, 6037*mm-2*60*mm,60*mm,0.,100*mm,10*mm,10*mm};//2CRE2112P3
   Double_t baselong[7] = {
-    6037 * mm - 2 * 100 * mm, 6037 * mm - 2 * 100 * mm, 60 * mm, 0., 100 * mm, 10 * mm, 10 * mm
-  }; // 2CRE2112P3
+    6037 * mm - 2 * 100 * mm, 6037 * mm - 2 * 100 * mm, 60 * mm, 0., 100 * mm, 10 * mm, 10 * mm}; // 2CRE2112P3
   TGeoVolume* lbase = CradleBaseVolume(med, baselong, "cradleLbase");
   lbase->SetLineColor(kGray);
 
   Double_t baseshort[7] = {
-    1288. * mm + 2 * 100 * mm, 1288. * mm + 2 * 100 * mm, 60 * mm, 0., 100 * mm, 10 * mm, 10 * mm
-  }; // 2CRE2112P3
+    1288. * mm + 2 * 100 * mm, 1288. * mm + 2 * 100 * mm, 60 * mm, 0., 100 * mm, 10 * mm, 10 * mm}; // 2CRE2112P3
   TGeoVolume* sbase = CradleBaseVolume(med, baseshort, "cradleSbase");
   sbase->SetLineColor(kGray);
 
@@ -817,64 +812,62 @@ TGeoVolume* Detector::CreateCradle()
   Double_t zred = 5. * mm;
   Double_t oneshift = tubeh / TMath::Tan(TMath::DegToRad() * 20.) + (1458. - 35) * mm / 2 - (1607 - 35) * mm / 2;
   Double_t linclined[7] = {
-    1458. * mm - params[6] - 0.5, 1607. * mm - params[6] - 0.5, tubeh, oneshift, height, heightred, zred
-  }; // 3.5 is for not correct measurements in 2CRE2112P3<=> 597!=inclined*sin(20)
+    1458. * mm - params[6] - 0.5, 1607. * mm - params[6] - 0.5, tubeh, oneshift, height, heightred, zred}; // 3.5 is for not correct measurements in 2CRE2112P3<=> 597!=inclined*sin(20)
   TGeoVolume* inclin = CradleBaseVolume(med, linclined, "inclinedbar");
   inclin->SetLineColor(kGray);
   Double_t lhorizontal[7] = {
-    1641.36 * mm + params[7], 1659. * mm + params[7], tubeh, 0, height, heightred, zred
-  };
+    1641.36 * mm + params[7], 1659. * mm + params[7], tubeh, 0, height, heightred, zred};
   TGeoVolume* horiz = CradleBaseVolume(med, lhorizontal, "horizontalbar");
   horiz->SetLineColor(kGray);
 
   // inner bars, they are named as the numbering in 2CRE2112P3
   Double_t fourshift = tubeh / TMath::Tan(TMath::DegToRad() * 55.);
-  Double_t lfour[7] = { 592 * mm, 592 * mm, tubeh, fourshift, height, heightred, zred };
+  Double_t lfour[7] = {592 * mm, 592 * mm, tubeh, fourshift, height, heightred, zred};
   TGeoVolume* four = CradleBaseVolume(med, lfour, "bar4");
   four->SetLineColor(kGray);
 
   Double_t fiveshift = tubeh / TMath::Tan(TMath::DegToRad() * 75);
-  Double_t lfive[7] = { 500. * mm, 500. * mm, tubeh, fiveshift, height, heightred, zred };
+  Double_t lfive[7] = {500. * mm, 500. * mm, tubeh, fiveshift, height, heightred, zred};
   TGeoVolume* five = CradleBaseVolume(med, lfive, "bar5");
   five->SetLineColor(kGray);
 
   Double_t sixshift = tubeh / TMath::Tan(TMath::DegToRad() * 55) + 459 * mm / 2 - 480 * mm / 2;
-  Double_t lsix[7] = { 456 * mm, 477 * mm, tubeh, sixshift, height, heightred, zred };
+  Double_t lsix[7] = {456 * mm, 477 * mm, tubeh, sixshift, height, heightred, zred};
   TGeoVolume* six = CradleBaseVolume(med, lsix, "bar6");
   six->SetLineColor(kGray);
 
   Double_t sevenshift = tubeh / TMath::Tan(TMath::DegToRad() * 50) + 472 * mm / 2 - 429. * mm / 2;
-  Double_t lseven[7] = { 429 * mm, 472 * mm, tubeh, sevenshift, height, heightred, zred };
+  Double_t lseven[7] = {429 * mm, 472 * mm, tubeh, sevenshift, height, heightred, zred};
   TGeoVolume* seven = CradleBaseVolume(med, lseven, "bar7");
   seven->SetLineColor(kGray);
 
   Double_t eightshift = tubeh / TMath::Tan(TMath::DegToRad() * 30) + 244. * mm / 2 - 200. * mm / 2 - 3;
-  Double_t leight[7] = { 200. * mm, 244. * mm, tubeh, eightshift, height, heightred, zred };
+  Double_t leight[7] = {200. * mm, 244. * mm, tubeh, eightshift, height, heightred, zred};
   TGeoVolume* eight = CradleBaseVolume(med, leight, "bar8");
   eight->SetLineColor(kGray);
 
   Double_t nineshift = -tubeh / TMath::Tan(TMath::DegToRad() * 71) + 83. * mm / 2 - 66. * mm / 2;
-  Double_t lnine[7] = { 59.5 * mm, 76.5 * mm, tubeh, nineshift, height, heightred, zred };
+  Double_t lnine[7] = {59.5 * mm, 76.5 * mm, tubeh, nineshift, height, heightred, zred};
   TGeoVolume* nine = CradleBaseVolume(med, lnine, "bar9");
   nine->SetLineColor(kGray);
 
   Double_t tenshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 60) - 221. * mm / 2 + 195. * mm / 2);
-  Double_t lten[7] = { 195. * mm, 221. * mm, tubeh, tenshift, height, heightred, zred };
+  Double_t lten[7] = {195. * mm, 221. * mm, tubeh, tenshift, height, heightred, zred};
   TGeoVolume* ten = CradleBaseVolume(med, lten, "bar10");
   ten->SetLineColor(kGray);
 
   Double_t elevenshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 70) - 338. * mm / 2 + 315. * mm / 2);
-  Double_t leleven[7] = { 308. * mm, 331. * mm, tubeh, elevenshift, height, heightred, zred };
+  Double_t leleven[7] = {308. * mm, 331. * mm, tubeh, elevenshift, height, heightred, zred};
   TGeoVolume* eleven = CradleBaseVolume(med, leleven, "bar11");
   eleven->SetLineColor(kGray);
 
   Double_t twelveshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 60) - 538. * mm / 2 + 508. * mm / 2);
-  Double_t ltwelve[7] = { 507. * mm, 537. * mm, tubeh, twelveshift, height, heightred, zred };
+  Double_t ltwelve[7] = {507. * mm, 537. * mm, tubeh, twelveshift, height, heightred, zred};
   TGeoVolume* twelve = CradleBaseVolume(med, ltwelve, "bar12");
   twelve->SetLineColor(kGray);
 
   Double_t thirteenshift = tubeh / TMath::Tan(TMath::DegToRad() * 43);
-  Double_t lthirteen[7] = { 708. * mm, 708. * mm, tubeh, thirteenshift, height, heightred, zred };
+  Double_t lthirteen[7] = {708. * mm, 708. * mm, tubeh, thirteenshift, height, heightred, zred};
   TGeoVolume* thirteen = CradleBaseVolume(med, lthirteen, "bar13");
   thirteen->SetLineColor(kGray);
 
@@ -887,24 +880,24 @@ TGeoVolume* Detector::CreateCradle()
   vboxlast->SetLineColor(kViolet);
 
   Double_t barheight = 100. * mm;
-  Double_t lAfourteen[7] = { 1488. * mm, 1488. * mm, barheight, 0, width, heightred, zred };
+  Double_t lAfourteen[7] = {1488. * mm, 1488. * mm, barheight, 0, width, heightred, zred};
   TGeoVolume* afourteen = CradleBaseVolume(med, lAfourteen, "bar14top");
   afourteen->SetLineColor(kGray);
 
-  Double_t lBfourteen[7] = { 387 * mm, 387. * mm, barheight, 0, width, heightred, zred };
+  Double_t lBfourteen[7] = {387 * mm, 387. * mm, barheight, 0, width, heightred, zred};
   TGeoVolume* bfourteen = CradleBaseVolume(med, lBfourteen, "bar14vert");
   bfourteen->SetLineColor(kGray);
 
-  Double_t lCfourteen[7] = { 1288. * mm, 1288. * mm, barheight, 0, width, heightred, zred };
+  Double_t lCfourteen[7] = {1288. * mm, 1288. * mm, barheight, 0, width, heightred, zred};
   TGeoVolume* cfourteen = CradleBaseVolume(med, lCfourteen, "bar14bot");
   cfourteen->SetLineColor(kGray);
 
   Double_t oblshift = 50. * mm / TMath::Tan(TMath::DegToRad() * 35);
-  Double_t lDfourteen[7] = { 603. * mm, 603. * mm, 50. * mm, oblshift, width, heightred, zred };
+  Double_t lDfourteen[7] = {603. * mm, 603. * mm, 50. * mm, oblshift, width, heightred, zred};
   TGeoVolume* dfourteen = CradleBaseVolume(med, lDfourteen, "bar14incl");
   dfourteen->SetLineColor(kGray);
 
-  Double_t lDfourteenlast[7] = { 667. * mm, 667. * mm, 50. * mm, oblshift, width, heightred, zred };
+  Double_t lDfourteenlast[7] = {667. * mm, 667. * mm, 50. * mm, oblshift, width, heightred, zred};
   TGeoVolume* dfourteenlast = CradleBaseVolume(med, lDfourteenlast, "bar14incllast");
   dfourteenlast->SetLineColor(kGray);
 
@@ -979,15 +972,9 @@ TGeoVolume* Detector::CreateCradle()
   TGeoRotation* rot4a = new TGeoRotation("4arot");
   rot4a->RotateX(-90);
   rot4a->RotateY(-55);
-  cradle->AddNode(four, 1, new TGeoCombiTrans(origtrastruct -
-                                                (39 + (597 - 50 - 60) / tan1) * mm -
-                                                tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)),
-                                              -729 * mm, params[3], rot4));
+  cradle->AddNode(four, 1, new TGeoCombiTrans(origtrastruct - (39 + (597 - 50 - 60) / tan1) * mm - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)), -729 * mm, params[3], rot4));
 
-  cradle->AddNode(four, 2, new TGeoCombiTrans(origtrastruct +
-                                                (39 + (597 - 50 - 60) / tan1) * mm +
-                                                tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)),
-                                              -729 * mm, params[3], rot4a));
+  cradle->AddNode(four, 2, new TGeoCombiTrans(origtrastruct + (39 + (597 - 50 - 60) / tan1) * mm + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)), -729 * mm, params[3], rot4a));
 
   TGeoRotation* rot5 = new TGeoRotation("5rot");
   rot5->RotateX(-90);
@@ -1024,13 +1011,9 @@ TGeoVolume* Detector::CreateCradle()
   rot7a->RotateY(130);
 
   cradle->AddNode(
-    seven, 1, new TGeoCombiTrans(origtrastruct + 1478 * mm - (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) +
-                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)),
-                                 -729 * mm, -params[8], rot7));
+    seven, 1, new TGeoCombiTrans(origtrastruct + 1478 * mm - (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)), -729 * mm, -params[8], rot7));
   cradle->AddNode(
-    seven, 2, new TGeoCombiTrans(origtrastruct - 1478 * mm + (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) -
-                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)),
-                                 -729 * mm, -params[8], rot7a));
+    seven, 2, new TGeoCombiTrans(origtrastruct - 1478 * mm + (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)), -729 * mm, -params[8], rot7a));
   TGeoRotation* rot8 = new TGeoRotation("8rot");
   rot8->RotateX(-90);
   rot8->RotateY(-25);
@@ -1039,13 +1022,9 @@ TGeoVolume* Detector::CreateCradle()
   rot8a->RotateY(-25);
   rot8a->RotateZ(180);
   cradle->AddNode(
-    eight, 1, new TGeoCombiTrans(origtrastruct + 1640 * mm + (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) +
-                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)),
-                                 -729 * mm, -20.5, rot8));
+    eight, 1, new TGeoCombiTrans(origtrastruct + 1640 * mm + (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)), -729 * mm, -20.5, rot8));
   cradle->AddNode(
-    eight, 2, new TGeoCombiTrans(origtrastruct - 1640 * mm - (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) -
-                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)),
-                                 -729 * mm, -20.5, rot8a));
+    eight, 2, new TGeoCombiTrans(origtrastruct - 1640 * mm - (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)), -729 * mm, -20.5, rot8a));
   TGeoRotation* rot9 = new TGeoRotation("9rot");
   rot9->RotateX(-90);
   rot9->RotateY(-90);
@@ -1065,11 +1044,9 @@ TGeoVolume* Detector::CreateCradle()
   rot10a->RotateZ(180);
 
   cradle->AddNode(
-    ten, 1, new TGeoCombiTrans(origtrastruct + 1738 * mm + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 2,
-                               +729. * mm, -13., rot10));
+    ten, 1, new TGeoCombiTrans(origtrastruct + 1738 * mm + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 2, +729. * mm, -13., rot10));
   cradle->AddNode(
-    ten, 2, new TGeoCombiTrans(origtrastruct - 1738 * mm - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 2,
-                               +729. * mm, -13., rot10a));
+    ten, 2, new TGeoCombiTrans(origtrastruct - 1738 * mm - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 2, +729. * mm, -13., rot10a));
 
   TGeoRotation* rot11 = new TGeoRotation("11rot");
   rot11->RotateX(-90);
@@ -1078,12 +1055,8 @@ TGeoVolume* Detector::CreateCradle()
   rot11a->RotateX(-90);
   rot11a->RotateY(50);
   rot11a->RotateZ(180);
-  cradle->AddNode(eleven, 1, new TGeoCombiTrans(origtrastruct - 1738 * mm -
-                                                  tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 352. * mm,
-                                                +729. * mm, -12.7, rot11));
-  cradle->AddNode(eleven, 2, new TGeoCombiTrans(origtrastruct + 1738 * mm +
-                                                  tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 352. * mm,
-                                                +729. * mm, -12.7, rot11a));
+  cradle->AddNode(eleven, 1, new TGeoCombiTrans(origtrastruct - 1738 * mm - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 352. * mm, +729. * mm, -12.7, rot11));
+  cradle->AddNode(eleven, 2, new TGeoCombiTrans(origtrastruct + 1738 * mm + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 352. * mm, +729. * mm, -12.7, rot11a));
 
   TGeoRotation* rot12 = new TGeoRotation("12rot");
   rot12->RotateX(-90);
@@ -1113,19 +1086,16 @@ TGeoVolume* Detector::CreateCradle()
                                                   vrot)); // vertial box on the short cradle base
 
   cradle->AddNode(vbox, 2, new TGeoCombiTrans(-6037 * mm / 2 + 50. * mm / 2 + 990. * mm, 0., 0.5, vrot));
-  cradle->AddNode(cfourteen, 2, new TGeoCombiTrans(-6037 * mm / 2 + 50. * mm / 2 + 990. * mm, 0.,
-                                                   -477. * mm / 2 - 20. * mm / 2, vrot));
+  cradle->AddNode(cfourteen, 2, new TGeoCombiTrans(-6037 * mm / 2 + 50. * mm / 2 + 990. * mm, 0., -477. * mm / 2 - 20. * mm / 2, vrot));
 
   cradle->AddNode(
-    vbox, 3, new TGeoCombiTrans(origtrastruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0.,
-                                0.5, vrot));
+    vbox, 3, new TGeoCombiTrans(origtrastruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0., 0.5, vrot));
   cradle->AddNode(cfourteen, 3,
                   new TGeoCombiTrans(origtrastruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0.,
                                      -477. * mm / 2 - 20. * mm / 2, vrot));
 
   cradle->AddNode(
-    vbox, 4, new TGeoCombiTrans(origtrastruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0.,
-                                0.5, vrot));
+    vbox, 4, new TGeoCombiTrans(origtrastruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0., 0.5, vrot));
   cradle->AddNode(cfourteen, 4,
                   new TGeoCombiTrans(origtrastruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0.,
                                      -477. * mm / 2 - 20. * mm / 2, vrot));

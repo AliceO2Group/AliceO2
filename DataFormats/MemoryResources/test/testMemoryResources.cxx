@@ -25,21 +25,21 @@ auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
 auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
 
 struct testData {
-  int i{ 1 };
+  int i{1};
   static int nconstructions;
   testData()
   {
     ++nconstructions;
   }
-  testData(const testData& in) : i{ in.i }
+  testData(const testData& in) : i{in.i}
   {
     ++nconstructions;
   }
-  testData(const testData&& in) : i{ in.i }
+  testData(const testData&& in) : i{in.i}
   {
     ++nconstructions;
   }
-  testData(int in) : i{ in }
+  testData(int in) : i{in}
   {
     ++nconstructions;
   }
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
   testData::nconstructions = 0;
 
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
+    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
     v.reserve(3);
     BOOST_CHECK(v.capacity() == 3);
     BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
 
   testData::nconstructions = 0;
   {
-    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocZMQ });
+    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{allocZMQ});
     v.reserve(3);
     BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
     v.emplace_back(1);
@@ -92,13 +92,13 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 {
   testData::nconstructions = 0;
 
-  FairMQMessagePtr message{ nullptr };
+  FairMQMessagePtr message{nullptr};
 
-  int* messageArray{ nullptr };
+  int* messageArray{nullptr};
 
   // test message creation on the same channel it was allocated with
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
+    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
     v.emplace_back(1);
     v.emplace_back(2);
     v.emplace_back(3);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
   // test message creation on a different channel than it was allocated with
   {
-    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
+    std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{allocZMQ});
     v.emplace_back(4);
     v.emplace_back(5);
     v.emplace_back(6);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   BOOST_CHECK(messageArray[0] == 4 && messageArray[1] == 5 && messageArray[2] == 6);
 
   {
-    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocSHM });
+    std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{allocSHM});
   }
 }
 
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   //Create a bogus message
   auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
   auto messageAddr = message.get();
-  testData tmpBuf[3] = { 3, 2, 1 };
+  testData tmpBuf[3] = {3, 2, 1};
   std::memcpy(message->GetData(), tmpBuf, 3 * sizeof(testData));
 
   auto adoptedOwner = adoptVector<testData>(3, std::move(message));
@@ -159,5 +159,5 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   BOOST_CHECK(modifiedMessage != nullptr);
   BOOST_CHECK(modifiedMessage.get() != messageAddr);
 }
-};
-};
+}; // namespace pmr
+}; // namespace o2

@@ -21,31 +21,30 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest) {
+BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
+{
   using namespace o2::framework;
   namespace bpo = boost::program_options;
 
   auto specs = std::vector<ConfigParamSpec>{
     {"someInt", VariantType::Int, 2, {"some int option"}},
-    {"someBool", VariantType::Bool, false,{"some bool option"}},
+    {"someBool", VariantType::Bool, false, {"some bool option"}},
     {"someFloat", VariantType::Float, 2.0f, {"some float option"}},
     {"someDouble", VariantType::Double, 2.0, {"some double option"}},
-    {"someString", VariantType::String, strdup("barfoo"), {"some string option"}}
-  };
+    {"someString", VariantType::String, strdup("barfoo"), {"some string option"}}};
   const char* args[] = {
     "test",
     "--someBool",
     "--someInt", "1",
     "--someFloat", "0.5",
     "--someDouble", "0.5",
-    "--someString", "foobar"
-  };
+    "--someString", "foobar"};
   bpo::variables_map vm;
   bpo::options_description opts;
 
   ConfigParamsHelper::populateBoostProgramOptions(opts, specs);
 
-  bpo::store(parse_command_line(sizeof(args)/sizeof(char*), args, opts), vm);
+  bpo::store(parse_command_line(sizeof(args) / sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
   BOOST_CHECK(vm["someBool"].as<bool>() == true);

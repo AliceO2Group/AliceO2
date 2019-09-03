@@ -49,15 +49,27 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// MC labels are received as MCLabelContainers
 DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 {
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using DataDescription = o2::header::DataDescription;
   std::string processorName = "tpc-cluster-decoder";
+  struct ProcessAttributes {
+    std::unique_ptr<HardwareClusterDecoder> decoder;
+    std::set<o2::header::DataHeader::SubSpecificationType> activeInputs;
+    bool readyToQuit = false;
+    bool verbosity = 0;
+    bool sendMC = false;
+  };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // there is nothing to init at the moment
-    auto verbosity = 0;
-    auto decoder = std::make_shared<HardwareClusterDecoder>();
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->decoder = std::make_unique<HardwareClusterDecoder>();
+    processAttributes->sendMC = sendMC;
 
-    auto processSectorFunction = [verbosity, decoder](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+    auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+      auto& decoder = processAttributes->decoder;
+      auto& verbosity = processAttributes->verbosity;
+      auto& activeInputs = processAttributes->activeInputs;
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get(inputKey.c_str());
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -73,19 +85,19 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       if (!labelKey.empty()) {
         sectorHeaderMC = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(labelKey.c_str()));
         if (sectorHeaderMC) {
-          o2::header::Stack actual{ *sectorHeaderMC };
+          o2::header::Stack actual{*sectorHeaderMC};
           std::swap(mcHeaderStack, actual);
           if (sectorHeaderMC->sector < 0) {
-            pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack) }, fanSpec);
+            pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, fanSpec);
           }
         }
       }
       auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputKey.c_str()));
       if (sectorHeader) {
-        o2::header::Stack actual{ *sectorHeader };
+        o2::header::Stack actual{*sectorHeader};
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector < 0) {
-          pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, fanSpec);
           return (sectorHeader->sector == -1);
         }
       }
@@ -147,7 +159,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       char* outputBuffer = nullptr;
       auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
-        outputBuffer = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, size).data();
+        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
         return outputBuffer;
       };
       std::vector<MCLabelContainer> mcoutList;
@@ -167,14 +179,13 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack) }, mcoutList);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcoutList);
       }
       return false;
     };
 
-    auto processingFct = [verbosity, decoder, processSectorFunction](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
+    auto processingFct = [processAttributes, processSectorFunction](ProcessingContext& pc) {
+      if (processAttributes->readyToQuit) {
         return;
       }
 
@@ -184,6 +195,10 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
+          // this input slot is empty
+          continue;
+        }
         // loop over all inputs and associate data and mc channels by the subspecification. DPL makes sure that
         // each origin/description/subspecification identifier is only once in the inputs, no other overwrite
         // protection in the list of keys.
@@ -195,16 +210,26 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
         }
       }
+      if (processAttributes->sendMC) {
+        // need to check whether data-MC pairs are complete
+        for (auto const& input : inputs) {
+          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
+            // we wait for the data set to be complete next time
+            return;
+          }
+        }
+      }
       // will stay true if all inputs signal finished
       // this implies that all inputs are always processed together, when changing this policy the
       // status of each input needs to be kept individually
-      finished = true;
+      bool finished = true;
       for (auto const& input : inputs) {
         finished = finished & processSectorFunction(pc, input.second.inputKey, input.second.labelKey);
       }
       if (finished) {
         // got EOD on all inputs
         pc.services().get<ControlService>().readyToQuit(false);
+        processAttributes->readyToQuit = true;
       }
     };
 
@@ -215,22 +240,22 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 
   auto createInputSpecs = [](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      InputSpec{{"rawin"}, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+      inputSpecs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
     }
     return std::move(inputSpecs);
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
+      OutputSpec{{"clusterout"}, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
-      OutputLabel label{ "mclblout" };
+      OutputLabel label{"mclblout"};
       // have to use a new data description, routing is only based on origin and decsription
       constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
@@ -238,10 +263,10 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ processorName,
-                            { createInputSpecs(sendMC) },
-                            { createOutputSpecs(sendMC) },
-                            AlgorithmSpec(initFunction) };
+  return DataProcessorSpec{processorName,
+                           {createInputSpecs(sendMC)},
+                           {createOutputSpecs(sendMC)},
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc

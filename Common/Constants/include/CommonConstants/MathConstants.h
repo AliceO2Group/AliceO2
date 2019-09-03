@@ -37,7 +37,7 @@ constexpr float SectorSpanRad = SectorSpanDeg * Deg2Rad;
 
 // conversion from B(kGaus) to curvature for 1GeV pt
 constexpr float B2C = -0.299792458e-3;
-}
-}
-}
+} // namespace math
+} // namespace constants
+} // namespace o2
 #endif

@@ -55,7 +55,7 @@ using namespace GPUCA_NAMESPACE::gpu;
     (cmd);                                                                                    \
     GLenum err = glGetError();                                                                \
     while (err != GL_NO_ERROR) {                                                              \
-      printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__); \
+      GPUError("OpenGL Error %d: %s (%s: %d)", err, gluErrorString(err), __FILE__, __LINE__); \
       throw std::runtime_error("OpenGL Failure");                                             \
     }                                                                                         \
   } while (false)
@@ -452,7 +452,7 @@ void GPUDisplay::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
 
   GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
   if (status != GL_FRAMEBUFFER_COMPLETE) {
-    printf("Error creating framebuffer (tex %d) - incomplete (%d)\n", (int)tex, status);
+    GPUError("Error creating framebuffer (tex %d) - incomplete (%d)", (int)tex, status);
     exit(1);
   }
   CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
@@ -579,11 +579,11 @@ int GPUDisplay::InitGL(bool initFailure)
 
 int GPUDisplay::InitGL_internal()
 {
-  int glVersion[2] = { 0, 0 };
+  int glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
   if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 5)) {
-    printf("Unsupported OpenGL runtime %d.%d < 4.5\n", glVersion[0], glVersion[1]);
+    GPUError("Unsupported OpenGL runtime %d.%d < 4.5", glVersion[0], glVersion[1]);
     return (1);
   }
 
@@ -1180,7 +1180,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
 
         float xx = vals[4] * vals[4], xy = vals[4] * vals[5], xz = vals[4] * vals[6], xw = vals[4] * vals[7], yy = vals[5] * vals[5], yz = vals[5] * vals[6], yw = vals[5] * vals[7], zz = vals[6] * vals[6], zw = vals[6] * vals[7];
-        float mat[16] = { 1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1 };
+        float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
         glMultMatrixf(mat);
       }
     }
@@ -1393,7 +1393,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         const auto& cl = ioptrs().clusterData[iSlice][i];
         const int cid = cl.id;
         if (cid >= mNMaxClusters) {
-          printf("Cluster Buffer Size exceeded (id %d max %d)\n", cid, mNMaxClusters);
+          GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
           return (1);
         }
         float4* ptr = &mGlobalPos[cid];
@@ -1896,7 +1896,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
             mRPhiTheta[2] * 180 / M_PI, mAngle[1] * 180 / M_PI, mAngle[0] * 180 / M_PI, mAngle[2] * 180 / M_PI);
     if (fpstime > 1.) {
       if (mPrintInfoText & 2) {
-        printf("%s\n", info);
+        GPUInfo("%s", info);
       }
       if (mFPSScaleadjust++) {
         mFPSScale = 60 / fps;

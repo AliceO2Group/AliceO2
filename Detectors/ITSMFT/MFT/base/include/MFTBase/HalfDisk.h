@@ -26,21 +26,21 @@ namespace mft
 {
 class HalfDiskSegmentation;
 }
-}
+} // namespace o2
 namespace o2
 {
 namespace mft
 {
 class Support;
 }
-}
+} // namespace o2
 namespace o2
 {
 namespace mft
 {
 class HeatExchanger;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -70,7 +70,7 @@ class HalfDisk : public TNamed
 
   ClassDefOverride(HalfDisk, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

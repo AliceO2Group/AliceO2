@@ -14,9 +14,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::zdc::Hit+;
-#pragma link C++ class o2::zdc::Detector+;
-#pragma link C++ class o2::base::DetImpl<o2::zdc::Detector>+;
+#pragma link C++ class o2::zdc::Hit + ;
+#pragma link C++ class o2::zdc::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::zdc::Detector> + ;
 
 #pragma link C++ class o2::zdc::ChannelBCData + ;
 #pragma link C++ class o2::zdc::ChannelData + ;

@@ -43,9 +43,9 @@ class TrackMFT : public o2::track::TrackParCov
   ~TrackMFT() = default;
 
  private:
-  ClassDefNV(TrackMFT, 1)
+  ClassDefNV(TrackMFT, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

@@ -23,26 +23,26 @@ using namespace o2::framework;
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineSimplePipelining()
 {
-  auto result = WorkflowSpec{ {
-                                "A",
-                                Inputs{},
-                                {
-                                  OutputSpec{ "TST", "A" },
-                                },
-                              },
-                              timePipeline(
-                                {
-                                  "B",
-                                  Inputs{ InputSpec{ "a", "TST", "A" } },
-                                  Outputs{
-                                    OutputSpec{ "TST", "B" },
-                                  },
-                                },
-                                2),
-                              {
-                                "C",
-                                { InputSpec{ "b", "TST", "B" } },
-                              } };
+  auto result = WorkflowSpec{{
+                               "A",
+                               Inputs{},
+                               {
+                                 OutputSpec{"TST", "A"},
+                               },
+                             },
+                             timePipeline(
+                               {
+                                 "B",
+                                 Inputs{InputSpec{"a", "TST", "A"}},
+                                 Outputs{
+                                   OutputSpec{"TST", "B"},
+                                 },
+                               },
+                               2),
+                             {
+                               "C",
+                               {InputSpec{"b", "TST", "B"}},
+                             }};
 
   return result;
 }
@@ -75,27 +75,26 @@ WorkflowSpec defineDataProcessing()
       "A",
       Inputs{},
       {
-        OutputSpec{ "TST", "A" },
+        OutputSpec{"TST", "A"},
       },
     },
     timePipeline(
       {
         "B",
-        Inputs{ InputSpec{ "a", "TST", "A" } },
-        Outputs{ OutputSpec{ "TST", "B1" }, OutputSpec{ "TST", "B2" } },
+        Inputs{InputSpec{"a", "TST", "A"}},
+        Outputs{OutputSpec{"TST", "B1"}, OutputSpec{"TST", "B2"}},
       },
       2),
-    timePipeline({ "C",
-                   { InputSpec{ "b", "TST", "B1" } },
-                   { OutputSpec{ "TST", "C" } } },
+    timePipeline({"C",
+                  {InputSpec{"b", "TST", "B1"}},
+                  {OutputSpec{"TST", "C"}}},
                  3),
     timePipeline(
       {
         "D",
-        { InputSpec{ "c", "TST", "C" }, InputSpec{ "d", "TST", "B2" } },
+        {InputSpec{"c", "TST", "C"}, InputSpec{"d", "TST", "B2"}},
       },
-      1)
-  };
+      1)};
 
   return result;
 }

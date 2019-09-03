@@ -142,14 +142,14 @@ void TestDataReader::run(ProcessingContext& pc)
   if (mDiffFolderName.size() == 0) {
     cout << "No New Run -- No Need to Reset" << endl;
     mResetCommand = 0;
-    pc.outputs().snapshot(Output{ "ITS", "TEST", 0, Lifetime::Timeframe }, mResetCommand);
+    pc.outputs().snapshot(Output{"ITS", "TEST", 0, Lifetime::Timeframe}, mResetCommand);
   }
 
   // New folders found, send the reset signal and reload configuration
   if (mDiffFolderName.size() > 0) {
     cout << "New Run Started -- Reset All Histograms" << endl;
     mResetCommand = 1;
-    pc.outputs().snapshot(Output{ "ITS", "TEST", 0, Lifetime::Timeframe }, mResetCommand);
+    pc.outputs().snapshot(Output{"ITS", "TEST", 0, Lifetime::Timeframe}, mResetCommand);
     for (int i = 0; i < sNError; i++) {
       mErrors[i] = 0;
     }
@@ -265,11 +265,11 @@ void TestDataReader::run(ProcessingContext& pc)
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
         mFileInfo = mFileDone + mFileRemain * 10;
-        pc.outputs().snapshot(Output{ "ITS", "Run", 0, Lifetime::Timeframe }, mRunNumber);
-        pc.outputs().snapshot(Output{ "ITS", "File", 0, Lifetime::Timeframe }, mFileID);
-        pc.outputs().snapshot(Output{ "ITS", "Error", 0, Lifetime::Timeframe }, mErrorsVecTest[0]);
-        pc.outputs().snapshot(Output{ "ITS", "Finish", 0, Lifetime::Timeframe }, mFileInfo);
-        pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mMultiDigitsTest);
+        pc.outputs().snapshot(Output{"ITS", "Run", 0, Lifetime::Timeframe}, mRunNumber);
+        pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
+        pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVecTest[0]);
+        pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
+        pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigitsTest);
         mNewFileInj = 0;
         mErrorsVecTest.clear();
         mDigitsTest.clear();
@@ -415,10 +415,10 @@ void TestDataReader::run(ProcessingContext& pc)
 
     cout << "RunIDS = " << mRunNumber << "   FileIDS = " << mFileID << endl;
 
-    pc.outputs().snapshot(Output{ "ITS", "Run", 0, Lifetime::Timeframe }, mRunNumber);
-    pc.outputs().snapshot(Output{ "ITS", "File", 0, Lifetime::Timeframe }, mFileID);
+    pc.outputs().snapshot(Output{"ITS", "Run", 0, Lifetime::Timeframe}, mRunNumber);
+    pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
 
-    pc.outputs().snapshot(Output{ "ITS", "Error", 0, Lifetime::Timeframe }, mErrorsVec[j]);
+    pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVec[j]);
     mIndexPushEx = mIndexPush + mNDigits[j];
     LOG(DEBUG) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
     if (mIndexPushEx > mDigits.size() - 5)
@@ -428,11 +428,11 @@ void TestDataReader::run(ProcessingContext& pc)
 
     mFileInfo = mFileDone + mFileRemain * 10;
 
-    pc.outputs().snapshot(Output{ "ITS", "Finish", 0, Lifetime::Timeframe }, mFileInfo);
+    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
 
     LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 
-    pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mMultiDigits);
+    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigits);
 
     mMultiDigits.clear();
     mIndexPush = mIndexPush + mNDigits[j];
@@ -474,7 +474,7 @@ void TestDataReader::run(ProcessingContext& pc)
     j = 0;
     mNDigits.clear();
     mFileDone = 1;
-    pc.outputs().snapshot(Output{ "TST", "Finish", 0, Lifetime::Timeframe }, mFileDone);
+    pc.outputs().snapshot(Output{"TST", "Finish", 0, Lifetime::Timeframe}, mFileDone);
     PercentDone = 0;
     mErrorsVec.clear();
   }
@@ -531,12 +531,12 @@ DataProcessorSpec getTestDataReaderSpec()
     "Raw-Pixel-Reader",
     Inputs{},
     Outputs{
-      OutputSpec{ "ITS", "DIGITS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "TEST", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "Error", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "Run", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "File", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "Finish", 0, Lifetime::Timeframe },
+      OutputSpec{"ITS", "DIGITS", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "TEST", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "Error", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "Run", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "File", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "Finish", 0, Lifetime::Timeframe},
       /*
 						   OutputSpec{ "TST", "Error0", 0, Lifetime::Timeframe },
 						   OutputSpec{ "TST", "Error1", 0, Lifetime::Timeframe },
@@ -551,7 +551,7 @@ DataProcessorSpec getTestDataReaderSpec()
 						   */
       //		OutputSpec{ "TST", "TEST3", 0, Lifetime::Timeframe },
     },
-    AlgorithmSpec{ adaptFromTask<TestDataReader>() },
+    AlgorithmSpec{adaptFromTask<TestDataReader>()},
   };
 }
 

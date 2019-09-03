@@ -37,7 +37,6 @@ void FLPSenderDevice::InitTask()
   mOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
 }
 
-
 void FLPSenderDevice::Run()
 {
   // base buffer, to be copied from for every timeframe body (zero-copy)
@@ -82,7 +81,7 @@ void FLPSenderDevice::Run()
 
 inline void FLPSenderDevice::sendFrontData()
 {
-  SubframeMetadata *sfm = static_cast<SubframeMetadata*>(mSTFBuffer.front().At(1)->GetData());
+  SubframeMetadata* sfm = static_cast<SubframeMetadata*>(mSTFBuffer.front().At(1)->GetData());
   uint16_t currentTimeframeId = o2::data_flow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
   if (mLastTimeframeId != -1) {
     if (currentTimeframeId == mLastTimeframeId) {

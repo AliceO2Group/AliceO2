@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TOF_DATAFORMAT_H
 #define ALICEO2_TOF_DATAFORMAT_H
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace o2
 {
@@ -36,6 +36,10 @@ struct CrateHeader_t {
   uint32_t eventCounter : 12;
   uint32_t drmID : 7;
   uint32_t mustBeOne : 1;
+};
+
+struct CrateOrbit_t {
+  uint32_t orbitID : 32;
 };
 
 struct FrameHeader_t {
@@ -75,6 +79,7 @@ union Union_t {
   uint32_t data;
   Word_t word;
   CrateHeader_t crateHeader;
+  CrateOrbit_t crateOrbit;
   FrameHeader_t frameHeader;
   PackedHit_t packedHit;
   CrateTrailer_t crateTrailer;

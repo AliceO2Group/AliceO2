@@ -114,30 +114,30 @@ void Detector::SetSpecialPhysicsCuts()
     //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
     // \todo discussion needed!!
     // cut settings for DriftGas2
-    SpecialCuts(kDriftGas2, { { ECut::kCUTGAM, cut1 },
-                              { ECut::kCUTELE, cut1 },
-                              { ECut::kCUTNEU, cut1 },
-                              { ECut::kCUTHAD, cut1 },
-                              { ECut::kCUTMUO, cut1 },
-                              { ECut::kBCUTE, cut1 },
-                              { ECut::kBCUTM, cut1 },
-                              { ECut::kDCUTE, cut1 },
-                              { ECut::kDCUTM, cut1 },
-                              { ECut::kPPCUTM, cut1 },
-                              { ECut::kTOFMAX, cutTofmax } });
+    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cut1},
+                             {ECut::kCUTELE, cut1},
+                             {ECut::kCUTNEU, cut1},
+                             {ECut::kCUTHAD, cut1},
+                             {ECut::kCUTMUO, cut1},
+                             {ECut::kBCUTE, cut1},
+                             {ECut::kBCUTM, cut1},
+                             {ECut::kDCUTE, cut1},
+                             {ECut::kDCUTM, cut1},
+                             {ECut::kPPCUTM, cut1},
+                             {ECut::kTOFMAX, cutTofmax}});
     // process settings for DriftGas2
-    SpecialProcesses(kDriftGas2, { { EProc::kPAIR, 1 },
-                                   { EProc::kCOMP, 1 },
-                                   { EProc::kPHOT, 1 },
-                                   { EProc::kPFIS, 0 },
-                                   { EProc::kDRAY, 1 },
-                                   { EProc::kANNI, 1 },
-                                   { EProc::kBREM, 1 },
-                                   { EProc::kHADR, 1 },
-                                   { EProc::kMUNU, 1 },
-                                   { EProc::kDCAY, 1 },
-                                   { EProc::kLOSS, 1 },
-                                   { EProc::kMULS, 1 } });
+    SpecialProcesses(kDriftGas2, {{EProc::kPAIR, 1},
+                                  {EProc::kCOMP, 1},
+                                  {EProc::kPHOT, 1},
+                                  {EProc::kPFIS, 0},
+                                  {EProc::kDRAY, 1},
+                                  {EProc::kANNI, 1},
+                                  {EProc::kBREM, 1},
+                                  {EProc::kHADR, 1},
+                                  {EProc::kMUNU, 1},
+                                  {EProc::kDCAY, 1},
+                                  {EProc::kLOSS, 1},
+                                  {EProc::kMULS, 1}});
   }
 }
 
@@ -147,7 +147,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "tpc::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -241,7 +241,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
-  //<< numberOfElectrons << FairLogger::endl;
+  //<< numberOfElectrons;
 
   if (numberOfElectrons <= 0) // Could maybe be smaller than 0 due to the Gamma function
     return kFALSE;
@@ -276,7 +276,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
   //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
-  // numberOfElectrons << FairLogger::endl;
+  // numberOfElectrons;
   // I.H. - the code above does not compile if uncommented
 
   // Increment number of Detector det points in TParticle
@@ -395,12 +395,12 @@ void Detector::CreateMaterials()
   //--------------------------------------------------------------
   //  predefined gases, composition taken from param file
   //--------------------------------------------------------------
-  TString names[6] = { "Ne", "Ar", "CO2", "N", "CF4", "CH4" };
+  TString names[6] = {"Ne", "Ar", "CO2", "N", "CF4", "CH4"};
   TString gname;
 
   /// @todo: Gas mixture is hard coded here, this should be moved to some kind of parameter
   //       container in the future
-  Float_t comp[6] = { 90. / 105., 0., 10. / 105., 5. / 105., 0., 0. };
+  Float_t comp[6] = {90. / 105., 0., 10. / 105., 5. / 105., 0., 0.};
   // indices:
   // 0-Ne, 1-Ar, 2-CO2, 3-N, 4-CF4, 5-CH4
   //
@@ -449,7 +449,7 @@ void Detector::CreateMaterials()
   //
   // densities (NTP)
   //
-  Float_t dens[6] = { 0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3 };
+  Float_t dens[6] = {0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3};
   //
   density = 0.;
   for (Int_t i = 0; i < 6; i++) {
@@ -944,7 +944,7 @@ void Detector::ConstructTPCGeometry()
   //
 
   //   if (!mParam) {
-  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry" << FairLogger::endl;
+  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry";
   //     return;
   //   }
 
@@ -1604,7 +1604,7 @@ void Detector::ConstructTPCGeometry()
   ifstream in;
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
@@ -1748,7 +1748,7 @@ void Detector::ConstructTPCGeometry()
   fileName += "/Detectors/Geometry/TPC/conn_oroc.dat";
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 232; i++) {
     Double_t x, z, ang;
@@ -2242,7 +2242,7 @@ void Detector::ConstructTPCGeometry()
   // rod left head with holders - inner
   //
   // first element - support for inner holder  TPC_IHS
-  Double_t shift1[3] = { 0.0, -0.175, 0.0 };
+  Double_t shift1[3] = {0.0, -0.175, 0.0};
 
   new TGeoBBox("tpcihs1", 4.7, 0.66, 2.35);
   new TGeoBBox("tpcihs2", 4.7, 0.485, 1.0, shift1);
@@ -3025,23 +3025,23 @@ void Detector::LoadGeometryFromFile()
 {
   // ===| Read the TPC geometry from file |=====================================
   if (mGeoFileName.IsNull()) {
-    LOG(FATAL) << "TPC geometry file name not set" << FairLogger::endl;
+    LOG(FATAL) << "TPC geometry file name not set";
     return;
   }
 
   TFile* fGeoFile = TFile::Open(mGeoFileName);
   if (!fGeoFile || !fGeoFile->IsOpen() || fGeoFile->IsZombie()) {
-    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'";
     return;
   }
 
   TGeoVolume* tpcVolume = dynamic_cast<TGeoVolume*>(fGeoFile->Get("TPC_M"));
   if (!tpcVolume) {
-    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'";
     return;
   }
 
-  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
   TGeoVolume* alice = gGeoManager->GetVolume("cave");
   alice->AddNode(tpcVolume, 1);
 }
@@ -3054,14 +3054,14 @@ void Detector::defineSensitiveVolumes()
   // const Int_t nSensitive=2;
   // const char* volumeNames[nSensitive]={"TPC_Drift","TPC_Strip"};
   const Int_t nSensitive = 1;
-  const char* volumeNames[nSensitive] = { "TPC_Drift" };
+  const char* volumeNames[nSensitive] = {"TPC_Drift"};
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t ivol = 0; ivol < nSensitive; ++ivol) {
     TString volumeName = volumeNames[ivol];
     v = geoManager->GetVolume(volumeName.Data());
     if (!v) {
-      LOG(ERROR) << "Could not find volume '" << volumeName << "'" << FairLogger::endl;
+      LOG(ERROR) << "Could not find volume '" << volumeName << "'";
       continue;
     }
 
@@ -3116,4 +3116,4 @@ std::string Detector::getHitBranchNames(int probe) const
   return std::string();
 }
 
-ClassImp(o2::tpc::Detector)
+ClassImp(o2::tpc::Detector);

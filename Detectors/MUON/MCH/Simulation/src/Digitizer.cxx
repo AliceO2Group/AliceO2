@@ -27,7 +27,7 @@ namespace
 std::map<int, int> createDEMap()
 {
   std::map<int, int> m;
-  int i{ 0 };
+  int i{0};
   o2::mch::mapping::forEachDetectionElement([&m, &i](int deid) {
     m[deid] = i++;
   });
@@ -62,7 +62,7 @@ bool isStation1(int detID)
 
 Response& response(bool isStation1)
 {
-  static std::array<Response, 2> resp = { Response(Station::Type1), Response(Station::Type2345) };
+  static std::array<Response, 2> resp = {Response(Station::Type1), Response(Station::Type2345)};
   return resp[isStation1];
 }
 
@@ -194,7 +194,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
     while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID()) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())))) {
       j++;
     }
-    float adc{ 0 };
+    float adc{0};
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
@@ -260,7 +260,7 @@ void Digitizer::setSrcID(int v)
 {
   //set current MC source ID
   if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID() << FairLogger::endl;
+    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
   }
   mSrcID = v;
 }
@@ -269,7 +269,7 @@ void Digitizer::setEventID(int v)
 {
   // set current MC event ID
   if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storabel in the label " << MCCompLabel::maxEventID() << FairLogger::endl;
+    LOG(FATAL) << "MC event id " << v << " exceeds max storabel in the label " << MCCompLabel::maxEventID();
   }
   mEventID = v;
 }

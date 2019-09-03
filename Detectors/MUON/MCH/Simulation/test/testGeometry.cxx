@@ -38,11 +38,11 @@ struct GEOMETRY {
   }
 };
 
-const std::array<std::string, 8> quadrantChamberNames{ "SC01I", "SC01O", "SC02I", "SC02O", "SC03I", "SC03O",
-                                                       "SC04I", "SC04O" };
+const std::array<std::string, 8> quadrantChamberNames{"SC01I", "SC01O", "SC02I", "SC02O", "SC03I", "SC03O",
+                                                      "SC04I", "SC04O"};
 
-const std::array<std::string, 12> slatChamberNames{ "SC05I", "SC05O", "SC06I", "SC06O", "SC07I", "SC07O",
-                                                    "SC08I", "SC08O", "SC09I", "SC09O", "SC10I", "SC10O" };
+const std::array<std::string, 12> slatChamberNames{"SC05I", "SC05O", "SC06I", "SC06O", "SC07I", "SC07O",
+                                                   "SC08I", "SC08O", "SC09I", "SC09O", "SC10I", "SC10O"};
 
 BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
@@ -50,7 +50,7 @@ BOOST_FIXTURE_TEST_SUITE(geometrytransformer, GEOMETRY)
 
 BOOST_AUTO_TEST_CASE(CanGetAllChambers)
 {
-  std::vector<std::string> chamberNames{ quadrantChamberNames.begin(), quadrantChamberNames.end() };
+  std::vector<std::string> chamberNames{quadrantChamberNames.begin(), quadrantChamberNames.end()};
 
   chamberNames.insert(chamberNames.end(), slatChamberNames.begin(), slatChamberNames.end());
 
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(GetDetElemVolumePath, *boost::unit_test::disabled() * boost
     std::cout << node->GetName() << "\n";
     TIter next2(node->GetNodes());
     while ((n2 = static_cast<TGeoNode*>(next2()))) {
-      std::string n2name{ n2->GetName() };
+      std::string n2name{n2->GetName()};
       auto index = n2name.find_last_of('_');
       int detElemId = std::atoi(n2name.substr(index + 1).c_str());
       if (detElemId >= 100) {

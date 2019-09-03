@@ -56,9 +56,9 @@ void Geometry::buildGeometry()
   const Double_t kZbegFrontBar = 1949.1; // Begining of Front Bar
 
   //Medium for FDA
-  TGeoMedium* medFDASci = gGeoManager->GetMedium("FDD_BC404");
+  TGeoMedium* medFDASci = gGeoManager->GetMedium("FDD_BC420");
   //Medium for FDC
-  TGeoMedium* medFDCSci = gGeoManager->GetMedium("FDD_BC404");
+  TGeoMedium* medFDCSci = gGeoManager->GetMedium("FDD_BC420");
 
   // FDA Scintillator Pad
   const Double_t kFDACellSideY = 21.6;

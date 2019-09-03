@@ -112,8 +112,8 @@ GPU_HOST_DEVICE inline Array<Vector<int>, constants::its::CellsPerRoad - 1>&
 {
   return mCellsPerTrackletTable;
 }
-}
-}
-}
+} // namespace GPU
+} // namespace its
+} // namespace o2
 
 #endif

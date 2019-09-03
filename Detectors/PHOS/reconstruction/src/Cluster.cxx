@@ -326,26 +326,13 @@ void Cluster::EvalPrimaries(const std::vector<Digit>* digits)
       continue;
     }
 
-    for (int iPrim = 0; iPrim < (*foundIt).getNLabels(); iPrim++) {
-      Label lab = (*foundIt).getLabel(iPrim);
-      double eProp = (*foundIt).getLabelEProp(iPrim);
-      // look through list of primaries, add proportion of energy if already there, else create new entry
-      int primListSize = mLabels.size();
-      bool found = false;
-      for (int inPrimList = 0; inPrimList < primListSize; inPrimList++) {
-        if (lab == mLabels[inPrimList]) { // already exist, increase proportin of energy
-          mLabelsEProp[inPrimList] += eProp * foundIt->getAmplitude() / mFullEnergy;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        mLabelsEProp.push_back(lab);
-        mLabelsEProp.push_back(eProp * ((*foundIt).getAmplitude()) / mFullEnergy);
-      }
-    }
+    //int lab = (*foundIt).getLabel();  //index of entry in MCLabels array
+    //Add Labels to list of primaries
+    //....
+    //TODO!!!!
   }
   // Vectors will not be modified any more.
+  //TODO: sort and add labels
   mLabels.shrink_to_fit();
   mLabelsEProp.shrink_to_fit();
 }

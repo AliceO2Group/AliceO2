@@ -22,7 +22,7 @@ namespace units
 typedef float AngleRad_t; ///< angle in radian
 typedef float AngleDeg_t; ///< angle in degrees
 typedef float Current_t;  ///< current in Amper
-}
-}
+} // namespace units
+} // namespace o2
 
 #endif

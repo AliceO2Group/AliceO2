@@ -37,7 +37,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   O2ParamDef(DPLAlpideParam, getParamName().data());
 
  private:
-  static constexpr std::string_view ParamName[2] = { "ITSAlpideParam", "MFTAlpideParam" };
+  static constexpr std::string_view ParamName[2] = {"ITSAlpideParam", "MFTAlpideParam"};
 };
 
 template <int N>

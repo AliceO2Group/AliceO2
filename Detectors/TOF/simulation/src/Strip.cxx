@@ -49,7 +49,7 @@ void Strip::clear() { clearHits(); }
 Int_t Strip::getStripIndex(const HitType* hit)
 {
   // finds the strip index given the hit
-  Float_t pos[3] = { hit->GetX(), hit->GetY(), hit->GetZ() };
+  Float_t pos[3] = {hit->GetX(), hit->GetY(), hit->GetZ()};
   Int_t detInd[5];
   Geo::getDetID(pos, detInd);
   Int_t channelID = Geo::getIndex(detInd);
@@ -65,8 +65,8 @@ Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
   auto key = Digit::getOrderingKey(channel, bc, tdc); // the digits are ordered first per channel, then inside the channel per BC, then per time
   auto dig = findDigit(key);
   if (dig) {
-    lbl = dig->getLabel();      // getting the label from the already existing digit
-    dig->merge(tdc, tot);       // merging to the existing digit
+    lbl = dig->getLabel(); // getting the label from the already existing digit
+    dig->merge(tdc, tot);  // merging to the existing digit
   } else {
     auto digIter = mDigits.emplace(std::make_pair(key, Digit(channel, tdc, tot, bc, lbl)));
   }

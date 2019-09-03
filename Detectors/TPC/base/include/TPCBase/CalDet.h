@@ -43,7 +43,7 @@ class CalDet
   CalDet() = default;
   ~CalDet() = default;
 
-  CalDet(PadSubset padSusbset) : mName{ "PadCalibrationObject" }, mData{}, mPadSubset{ padSusbset } { initData(); }
+  CalDet(PadSubset padSusbset) : mName{"PadCalibrationObject"}, mData{}, mPadSubset{padSusbset} { initData(); }
 
   CalDet(const std::string_view name, const PadSubset padSusbset = PadSubset::ROC) : mName(name), mData(), mPadSubset(padSusbset) { initData(); }
 
@@ -181,7 +181,7 @@ inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -198,7 +198,7 @@ inline const CalDet<T>& CalDet<T>::operator-=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -215,7 +215,7 @@ inline const CalDet<T>& CalDet<T>::operator*=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -232,7 +232,7 @@ inline const CalDet<T>& CalDet<T>::operator/=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -316,7 +316,7 @@ void CalDet<T>::initData()
 }
 
 using CalPad = CalDet<float>;
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

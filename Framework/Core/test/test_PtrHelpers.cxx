@@ -24,11 +24,11 @@ struct Base {
   int v;
 };
 struct A : public Base {
-  A(int v_, int va_) : Base{ v_ }, va{ va_ } {}
+  A(int v_, int va_) : Base{v_}, va{va_} {}
   int va;
 };
 struct B : public Base {
-  B(int v_, int vb_) : Base{ v_ }, vb{ vb_ } {}
+  B(int v_, int vb_) : Base{v_}, vb{vb_} {}
   int vb;
 };
 

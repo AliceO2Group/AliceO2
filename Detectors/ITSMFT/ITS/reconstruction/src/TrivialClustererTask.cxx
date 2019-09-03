@@ -22,9 +22,9 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::its::TrivialClustererTask)
+ClassImp(o2::its::TrivialClustererTask);
 
-  using namespace o2::its;
+using namespace o2::its;
 using namespace o2::base;
 using namespace o2::utils;
 
@@ -55,13 +55,13 @@ InitStatus TrivialClustererTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mDigitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Digit>*>("ITSDigit");
   if (!mDigitsArray) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -88,7 +88,7 @@ void TrivialClustererTask::Exec(Option_t* option)
     mClustersArray->clear();
   if (mClsLabels)
     mClsLabels->clear();
-  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event";
 
   mTrivialClusterer.process(mDigitsArray, mClustersArray);
 }

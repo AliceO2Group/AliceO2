@@ -157,7 +157,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisa
   float exi = 1.f / ex;
   float ex1i = 1.f / ex1;
 
-  float d[5] = { 0, 0, GetPar(2) - t0.SinPhi(), GetPar(3) - t0.DzDs(), GetPar(4) - t0.QPt() };
+  float d[5] = {0, 0, GetPar(2) - t0.SinPhi(), GetPar(3) - t0.DzDs(), GetPar(4) - t0.QPt()};
 
   // float H0[5] = { 1,0, h2,  0, h4 };
   // float H1[5] = { 0, 1, 0, dS,  0 };
@@ -601,7 +601,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Rotate(float alpha, GPUTPCTrackLinearisati
 
   float j0 = cP / cosPhi;
   float j2 = cosPhi / cP;
-  float d[2] = { Y() - y0, SinPhi() - sP };
+  float d[2] = {Y() - y0, SinPhi() - sP};
 
   SetX(x0 * cA + y0 * sA);
   SetY(-x0 * sA + y0 * cA + j0 * d[0]);

@@ -76,7 +76,9 @@ enum struct DriverState {
 /// These are the possible actions we can do
 /// when a workflow is deemed complete (e.g. when we are done
 /// reading from file).
-enum struct TerminationPolicy { QUIT, WAIT, RESTART };
+enum struct TerminationPolicy { QUIT,
+                                WAIT,
+                                RESTART };
 
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )

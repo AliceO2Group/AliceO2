@@ -25,13 +25,11 @@ namespace framework
 
 using options_description = boost::program_options::options_description;
 
-struct ConfigParamsHelper
-{
+struct ConfigParamsHelper {
   static void populateBoostProgramOptions(
-      options_description &options,
-      const std::vector<ConfigParamSpec> &specs,
-      options_description vetos = options_description()
-    );
+    options_description& options,
+    const std::vector<ConfigParamSpec>& specs,
+    options_description vetos = options_description());
 
   /// populate boost program options making all options of type string
   /// this is used for filtering the command line argument
@@ -58,7 +56,7 @@ struct ConfigParamsHelper
       specOptionsDescription += " (full info with '--help full')";
     }
     options_description specOptions(specOptionsDescription);
-    for (const auto & spec : workflow) {
+    for (const auto& spec : workflow) {
       std::string name = "Data processor options: " + spec.name;
       boost::program_options::options_description processorOptions(name);
       if (dpl2BoostOptions(spec.options, processorOptions, vetos)) {
@@ -97,12 +95,12 @@ struct ConfigParamsHelper
     return toplevel;
   }
 
-  template<VariantType V>
-  static void addConfigSpecOption(const ConfigParamSpec & spec,
+  template <VariantType V>
+  static void addConfigSpecOption(const ConfigParamSpec& spec,
                                   boost::program_options::options_description& options)
   {
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
     using Type = typename variant_type<V>::type;
     using BoostType = typename std::conditional<V == VariantType::String, std::string, Type>::type;
     auto value = boost::program_options::value<BoostType>();

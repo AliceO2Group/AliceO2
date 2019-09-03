@@ -14,13 +14,13 @@
 #ifndef ALICEO2_CDB_ENTRY_H_
 #define ALICEO2_CDB_ENTRY_H_
 
-#include "CCDB/ConditionId.h"        // for ConditionId
-#include "CCDB/ConditionMetaData.h"  // for ConditionMetaData
-#include "CCDB/IdPath.h"             // for IdPath
+#include "CCDB/ConditionId.h"       // for ConditionId
+#include "CCDB/ConditionMetaData.h" // for ConditionMetaData
+#include "CCDB/IdPath.h"            // for IdPath
 #include <CCDB/TObjectWrapper.h>
-#include "Rtypes.h"             // for Int_t, kFALSE, Bool_t, etc
-#include "TObject.h"            // for TObject
-#include "TString.h"            // for TString
+#include "Rtypes.h"  // for Int_t, kFALSE, Bool_t, etc
+#include "TObject.h" // for TObject
+#include "TString.h" // for TString
 
 namespace o2
 {
@@ -28,7 +28,7 @@ namespace ccdb
 {
 class IdRunRange;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -202,8 +202,8 @@ class Condition : public TObject
   ConditionMetaData* mConditionMetaData; ///< metaData
   Bool_t mOwner;                         ///< Ownership flag
 
-  ClassDefOverride(Condition, 1)
+  ClassDefOverride(Condition, 1);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

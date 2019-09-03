@@ -54,7 +54,7 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
   ///-------> output
   if (outName.empty()) {
     outName = "raw" + digBranchName + ".raw";
-    LOG(INFO) << "Output file name is not provided, set to " << outName << FairLogger::endl;
+    LOG(INFO) << "Output file name is not provided, set to " << outName;
   }
   auto outFl = fopen(outName.c_str(), "wb");
   if (!outFl) {

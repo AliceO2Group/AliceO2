@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(GetSegmentationMustNotThrowIfDetElemIdIsValid)
   // do not use the SegCache here as we want to test the object
   // construction (which is used also by the SegCache...)
   forOneDetectionElementOfEachSegmentationType([](int detElemId) {
-    BOOST_CHECK_NO_THROW(Segmentation{ detElemId });
+    BOOST_CHECK_NO_THROW(Segmentation{detElemId});
   });
 }
 
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(CheckNofPads)
 
 BOOST_AUTO_TEST_CASE(TotalNofFECInSegTypesIs2265)
 {
-  int n{ 0 };
+  int n{0};
   forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
     n += SegCache(detElemId).nofDualSampas();
   });
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(CheckNofBendingFEC)
 
 BOOST_AUTO_TEST_CASE(PadCountInSegmentationTypesMustBe143469)
 {
-  int n{ 0 };
+  int n{0};
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     n += SegCache(detElemId).nofPads();
   });
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(PadCountInSegmentationTypesMustBe143469)
 
 BOOST_AUTO_TEST_CASE(PadCountInAllSegmentationsMustBe1064008)
 {
-  int n{ 0 };
+  int n{0};
   forEachDetectionElement([&n](int detElemId) {
     n += SegCache(detElemId).nofPads();
   });
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(PadCountInAllSegmentationsMustBe1064008)
 
 BOOST_AUTO_TEST_CASE(NumberOfSegmentationsMustBe21)
 {
-  int n{ 0 };
+  int n{0};
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     n++;
   });
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(NumberOfSegmentationsMustBe21)
 BOOST_AUTO_TEST_CASE(CheckPadOffsetsAfterCopy)
 {
   forEachDetectionElement([](int detElemId) {
-    bool ok{ true };
+    bool ok{true};
     auto s = SegCache(detElemId);
     auto seg = s;
     for (auto padid = 0; padid < seg.bending().nofPads(); padid++) {
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(CheckPadOffsetsAfterCopy)
 }
 
 struct SEG {
-  Segmentation seg{ 100 };
+  Segmentation seg{100};
 };
 
 BOOST_AUTO_TEST_CASE(TestForEachPadAndPadIndexRange)
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(TestForEachPadAndPadIndexRange)
     int n = 0;
     int pmin = std::numeric_limits<int>::max();
     int pmax = 0;
-    Segmentation seg{ detElemId };
+    Segmentation seg{detElemId};
     seg.forEachPad([&n, &pmin, &pmax, &npads](int dePadIndex) {
       npads++;
       n++;
@@ -320,26 +320,24 @@ BOOST_AUTO_TEST_CASE(CheckOnePadNeighbours)
   // PAD      19583 FEC 1119 CH 29 X  23.940 Y  23.520 SX   0.630 SY   0.420
 
   std::vector<PadInfo> bendingNeighbours{
-    { 95, 0, 23.625, 23.730, 0.630, 0.420 },
-    { 95, 3, 23.625, 24.150, 0.630, 0.420 },
-    { 95, 4, 23.625, 24.570, 0.630, 0.420 },
-    { 95, 42, 24.255, 24.570, 0.630, 0.420 },
-    { 95, 43, 24.885, 24.570, 0.630, 0.420 },
-    { 95, 2, 24.885, 24.150, 0.630, 0.420 },
-    { 95, 46, 24.885, 23.730, 0.630, 0.420 },
-    { 95, 31, 24.255, 23.730, 0.630, 0.420 }
-  };
+    {95, 0, 23.625, 23.730, 0.630, 0.420},
+    {95, 3, 23.625, 24.150, 0.630, 0.420},
+    {95, 4, 23.625, 24.570, 0.630, 0.420},
+    {95, 42, 24.255, 24.570, 0.630, 0.420},
+    {95, 43, 24.885, 24.570, 0.630, 0.420},
+    {95, 2, 24.885, 24.150, 0.630, 0.420},
+    {95, 46, 24.885, 23.730, 0.630, 0.420},
+    {95, 31, 24.255, 23.730, 0.630, 0.420}};
 
   std::vector<PadInfo> nonBendingNeighbours{
-    { 1119, 48, 23.310, 23.520, 0.630, 0.420 },
-    { 1119, 46, 23.310, 23.940, 0.630, 0.420 },
-    { 1119, 0, 23.310, 24.360, 0.630, 0.420 },
-    { 1119, 42, 23.940, 24.360, 0.630, 0.420 },
-    { 1119, 1, 24.570, 24.360, 0.630, 0.420 },
-    { 1119, 44, 24.570, 23.940, 0.630, 0.420 },
-    { 1119, 30, 24.570, 23.520, 0.630, 0.420 },
-    { 1119, 29, 23.940, 23.520, 0.630, 0.420 }
-  };
+    {1119, 48, 23.310, 23.520, 0.630, 0.420},
+    {1119, 46, 23.310, 23.940, 0.630, 0.420},
+    {1119, 0, 23.310, 24.360, 0.630, 0.420},
+    {1119, 42, 23.940, 24.360, 0.630, 0.420},
+    {1119, 1, 24.570, 24.360, 0.630, 0.420},
+    {1119, 44, 24.570, 23.940, 0.630, 0.420},
+    {1119, 30, 24.570, 23.520, 0.630, 0.420},
+    {1119, 29, 23.940, 23.520, 0.630, 0.420}};
 
   int pb, pnb;
   bool ok = seg.findPadPairByPosition(24.0, 24.0, pb, pnb);
@@ -351,8 +349,8 @@ BOOST_AUTO_TEST_CASE(CheckOnePadNeighbours)
 BOOST_AUTO_TEST_CASE(CircularTest)
 {
   std::vector<std::pair<int, int>> tp{
-    { 95, 45 },
-    { 1119, 45 } // both pads @pos 24.0, 24.0cm
+    {95, 45},
+    {1119, 45} // both pads @pos 24.0, 24.0cm
   };
 
   for (auto p : tp) {
@@ -397,14 +395,14 @@ BOOST_AUTO_TEST_CASE(CheckOnePadPositionPresentOnOnlyBendingPlane)
 
 BOOST_AUTO_TEST_CASE(CheckCopy)
 {
-  Segmentation copy{ seg };
+  Segmentation copy{seg};
   BOOST_TEST((copy == seg));
   BOOST_TEST(copy.nofPads() == seg.nofPads());
 }
 
 BOOST_AUTO_TEST_CASE(CheckAssignment)
 {
-  Segmentation copy{ 200 };
+  Segmentation copy{200};
   copy = seg;
   BOOST_TEST((copy == seg));
   BOOST_TEST(copy.nofPads() == seg.nofPads());

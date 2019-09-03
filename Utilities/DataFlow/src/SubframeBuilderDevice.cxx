@@ -34,8 +34,7 @@ o2::data_flow::SubframeBuilderDevice::SubframeBuilderDevice()
 {
 }
 
-o2::data_flow::SubframeBuilderDevice::~SubframeBuilderDevice()
-= default;
+o2::data_flow::SubframeBuilderDevice::~SubframeBuilderDevice() = default;
 
 void o2::data_flow::SubframeBuilderDevice::InitTask()
 {
@@ -43,25 +42,25 @@ void o2::data_flow::SubframeBuilderDevice::InitTask()
   mOrbitsPerTimeframe = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitsPerTimeframe);
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
-  mFLPId= GetConfig()->GetValue<size_t>(OptionKeyFLPId);
-  mStripHBF= GetConfig()->GetValue<bool>(OptionKeyStripHBF);
+  mFLPId = GetConfig()->GetValue<size_t>(OptionKeyFLPId);
+  mStripHBF = GetConfig()->GetValue<bool>(OptionKeyStripHBF);
 
   LOG(INFO) << "Obtaining data from DataPublisher\n";
-  // Now that we have all the information lets create the policies to do the 
+  // Now that we have all the information lets create the policies to do the
   // payload extraction and merging and create the actual PayloadMerger.
 
   // We extract the timeframeId from the number of orbits.
   // FIXME: handle multiple socket ids
-  Merger::IdExtractor makeId = [this](std::unique_ptr<FairMQMessage> &msg) -> SubframeId {
-    HeartbeatHeader *hbh = reinterpret_cast<HeartbeatHeader*>(msg->GetData());
+  Merger::IdExtractor makeId = [this](std::unique_ptr<FairMQMessage>& msg) -> SubframeId {
+    HeartbeatHeader* hbh = reinterpret_cast<HeartbeatHeader*>(msg->GetData());
     SubframeId id = {.timeframeId = hbh->orbit / this->mOrbitsPerTimeframe,
-                     .socketId = 0 };
+                     .socketId = 0};
     return id;
   };
 
   // We extract the payload differently depending on wether we want to strip
   // the header or not.
-  Merger::PayloadExtractor payloadExtractor = [this](char **out, char *in, size_t inSize) -> size_t {
+  Merger::PayloadExtractor payloadExtractor = [this](char** out, char* in, size_t inSize) -> size_t {
     if (!this->mStripHBF) {
       return Merger::fullPayloadExtractor(out, in, inSize);
     }
@@ -71,19 +70,19 @@ void o2::data_flow::SubframeBuilderDevice::InitTask()
   // Whether a given timeframe is complete depends on how many orbits per
   // timeframe we want.
   Merger::MergeCompletionCheker checkIfComplete =
-    [this](Merger::MergeableId id, Merger::MessageMap &map) {
+    [this](Merger::MergeableId id, Merger::MessageMap& map) {
       return map.count(id) < this->mOrbitsPerTimeframe;
-  };
+    };
 
   mMerger.reset(new Merger(makeId, checkIfComplete, payloadExtractor));
   OnData(mInputChannelName.c_str(), &o2::data_flow::SubframeBuilderDevice::HandleData);
 }
 
-bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
+bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts& inParts)
 {
   auto id = mMerger->aggregate(inParts.At(1));
 
-  char **outBuffer;
+  char** outBuffer;
   size_t outSize = mMerger->finalise(outBuffer, id);
   // In this case we do not have enough subtimeframes for id,
   // so we simply return.
@@ -108,9 +107,9 @@ bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inPart
   SubframeMetadata md;
   // id is really the first orbit in the timeframe.
   md.startTime = id.timeframeId * mOrbitsPerTimeframe * static_cast<uint64_t>(mOrbitDuration);
-  md.duration = mOrbitDuration*mOrbitsPerTimeframe;
+  md.duration = mOrbitDuration * mOrbitsPerTimeframe;
   LOG(INFO) << "Start time for subframe (" << md.startTime << ", "
-                                           << md.duration
+            << md.duration
             << ")";
 
   // Add the metadata about the merged subtimeframes
@@ -120,8 +119,9 @@ bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inPart
 
   // Add the actual merged payload.
   o2::base::addDataBlock(outgoing, payloadheader,
-                         NewMessage(*outBuffer, outSize,
-                                    [](void* data, void* hint) { delete[] reinterpret_cast<char*>(hint); }, *outBuffer));
+                         NewMessage(
+                           *outBuffer, outSize,
+                           [](void* data, void* hint) { delete[] reinterpret_cast<char*>(hint); }, *outBuffer));
   // send message
   Send(outgoing, mOutputChannelName.c_str());
   // FIXME: do we actually need this? outgoing should go out of scope

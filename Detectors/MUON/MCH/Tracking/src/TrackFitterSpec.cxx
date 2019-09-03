@@ -65,7 +65,7 @@ class TrackFitterTask
     int sizeLeft = msgIn.size();
 
     // create the output message
-    auto msgOut = pc.outputs().make<char>(Output{ "MCH", "REFITTRACKS", 0, Lifetime::Timeframe }, sizeLeft);
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "REFITTRACKS", 0, Lifetime::Timeframe}, sizeLeft);
     auto bufferPtrOut = msgOut.data();
 
     // copy header info
@@ -215,12 +215,11 @@ o2::framework::DataProcessorSpec getTrackFitterSpec()
 {
   return DataProcessorSpec{
     "TrackFitter",
-    Inputs{ InputSpec{ "tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "MCH", "REFITTRACKS", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<TrackFitterTask>() },
-    Options{ { "l3Current", VariantType::Float, -30000.0f, { "L3 current" } },
-             { "dipoleCurrent", VariantType::Float, -6000.0f, { "Dipole current" } } }
-  };
+    Inputs{InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "REFITTRACKS", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<TrackFitterTask>()},
+    Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
+            {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}}}};
 }
 
 } // namespace mch

@@ -13,13 +13,13 @@
 /// \author ruben.shahoyan@cern.ch 09/09/2006
 
 #include "MathUtils/Chebyshev3DCalc.h"
-#include <TSystem.h>  // for TSystem, gSystem
-#include "TNamed.h"   // for TNamed
-#include "TString.h"  // for TString, TString::EStripType::kBoth
+#include <TSystem.h> // for TSystem, gSystem
+#include "TNamed.h"  // for TNamed
+#include "TString.h" // for TString, TString::EStripType::kBoth
 
 using namespace o2::math_utils;
 
-ClassImp(Chebyshev3DCalc)
+ClassImp(Chebyshev3DCalc);
 
 Chebyshev3DCalc::Chebyshev3DCalc()
   : mNumberOfCoefficients(0),
@@ -37,7 +37,7 @@ Chebyshev3DCalc::Chebyshev3DCalc()
 {
 }
 
-Chebyshev3DCalc::Chebyshev3DCalc(const Chebyshev3DCalc &src)
+Chebyshev3DCalc::Chebyshev3DCalc(const Chebyshev3DCalc& src)
   : TNamed(src),
     mNumberOfCoefficients(src.mNumberOfCoefficients),
     mNumberOfRows(src.mNumberOfRows),
@@ -90,7 +90,7 @@ Chebyshev3DCalc::Chebyshev3DCalc(const Chebyshev3DCalc &src)
   }
 }
 
-Chebyshev3DCalc::Chebyshev3DCalc(FILE *stream)
+Chebyshev3DCalc::Chebyshev3DCalc(FILE* stream)
   : mNumberOfCoefficients(0),
     mNumberOfRows(0),
     mNumberOfColumns(0),
@@ -107,7 +107,7 @@ Chebyshev3DCalc::Chebyshev3DCalc(FILE *stream)
   loadData(stream);
 }
 
-Chebyshev3DCalc &Chebyshev3DCalc::operator=(const Chebyshev3DCalc &rhs)
+Chebyshev3DCalc& Chebyshev3DCalc::operator=(const Chebyshev3DCalc& rhs)
 {
   if (this != &rhs) {
     Clear();
@@ -157,7 +157,7 @@ Chebyshev3DCalc &Chebyshev3DCalc::operator=(const Chebyshev3DCalc &rhs)
   return *this;
 }
 
-void Chebyshev3DCalc::Clear(const Option_t *)
+void Chebyshev3DCalc::Clear(const Option_t*)
 {
   if (mTemporaryCoefficients2D) {
     delete[] mTemporaryCoefficients2D;
@@ -189,7 +189,7 @@ void Chebyshev3DCalc::Clear(const Option_t *)
   }
 }
 
-void Chebyshev3DCalc::Print(const Option_t *) const
+void Chebyshev3DCalc::Print(const Option_t*) const
 {
   printf("Chebyshev parameterization data %s for 3D->1 function, precision: %e\n",
          GetName(), mPrecision);
@@ -202,7 +202,7 @@ void Chebyshev3DCalc::Print(const Option_t *) const
   printf("%d coefficients in %dx%dx%d matrix\n", mNumberOfCoefficients, mNumberOfRows, mNumberOfColumns, nmax3d);
 }
 
-Float_t Chebyshev3DCalc::evaluateDerivative(int dim, const Float_t *par) const
+Float_t Chebyshev3DCalc::evaluateDerivative(int dim, const Float_t* par) const
 {
   int ncfRC;
   for (int id0 = mNumberOfRows; id0--;) {
@@ -236,7 +236,7 @@ Float_t Chebyshev3DCalc::evaluateDerivative(int dim, const Float_t *par) const
                     : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
 }
 
-Float_t Chebyshev3DCalc::evaluateDerivative2(int dim1, int dim2, const Float_t *par) const
+Float_t Chebyshev3DCalc::evaluateDerivative2(int dim1, int dim2, const Float_t* par) const
 {
   Bool_t same = dim1 == dim2;
   int ncfRC;
@@ -269,9 +269,9 @@ Float_t Chebyshev3DCalc::evaluateDerivative2(int dim1, int dim2, const Float_t *
     }
   }
   return (dim1 == 0 || dim2 == 0)
-         ? (same ? chebyshevEvaluation1Derivative2(par[0], mTemporaryCoefficients1D, mNumberOfRows)
-                 : chebyshevEvaluation1Derivative(par[0], mTemporaryCoefficients1D, mNumberOfRows))
-         : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
+           ? (same ? chebyshevEvaluation1Derivative2(par[0], mTemporaryCoefficients1D, mNumberOfRows)
+                   : chebyshevEvaluation1Derivative(par[0], mTemporaryCoefficients1D, mNumberOfRows))
+           : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
 }
 
 #ifdef _INC_CREATION_Chebyshev3D_
@@ -305,14 +305,14 @@ void Chebyshev3DCalc::saveData(FILE* stream) const
   for (int i = 0; i < mNumberOfCoefficients; i++) {
     fprintf(stream, "%+.8e\n", mCoefficients[i]);
   }
-  fprintf(stream,"# Precision\n");
-  fprintf(stream,"%+.8e\n",mPrecision);
+  fprintf(stream, "# Precision\n");
+  fprintf(stream, "%+.8e\n", mPrecision);
   //
   fprintf(stream, "END %s\n", GetName());
 }
 #endif
 
-void Chebyshev3DCalc::loadData(FILE *stream)
+void Chebyshev3DCalc::loadData(FILE* stream)
 {
   if (!stream) {
     Error("LoadData", "No stream provided.\nStop");
@@ -381,7 +381,7 @@ void Chebyshev3DCalc::loadData(FILE *stream)
   }
 }
 
-void Chebyshev3DCalc::readLine(TString &str, FILE *stream)
+void Chebyshev3DCalc::readLine(TString& str, FILE* stream)
 {
   while (str.Gets(stream)) {
     str = str.Strip(TString::kBoth, ' ');
@@ -426,7 +426,9 @@ void Chebyshev3DCalc::initializeColumns(int nc)
     delete[] mTemporaryCoefficients2D;
     mTemporaryCoefficients2D = nullptr;
   }
-  if (mNumberOfColumns) { mTemporaryCoefficients2D = new Float_t[mNumberOfColumns]; }
+  if (mNumberOfColumns) {
+    mTemporaryCoefficients2D = new Float_t[mNumberOfColumns];
+  }
 }
 
 void Chebyshev3DCalc::initializeElementBound2D(int ne)
@@ -464,7 +466,7 @@ void Chebyshev3DCalc::initializeCoefficients(int nc)
   }
 }
 
-Float_t Chebyshev3DCalc::chebyshevEvaluation1Derivative(Float_t x, const Float_t *array, int ncf)
+Float_t Chebyshev3DCalc::chebyshevEvaluation1Derivative(Float_t x, const Float_t* array, int ncf)
 {
   if (--ncf < 1) {
     return 0;
@@ -490,7 +492,7 @@ Float_t Chebyshev3DCalc::chebyshevEvaluation1Derivative(Float_t x, const Float_t
   return b0 - x * b1 - dcf0 / 2;
 }
 
-Float_t Chebyshev3DCalc::chebyshevEvaluation1Derivative2(Float_t x, const Float_t *array, int ncf)
+Float_t Chebyshev3DCalc::chebyshevEvaluation1Derivative2(Float_t x, const Float_t* array, int ncf)
 {
   if (--ncf < 2) {
     return 0;

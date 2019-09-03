@@ -27,27 +27,27 @@ namespace workflows
 // This is a possible implementation of a DPL compliant and generic gatherer
 o2f::DataProcessorSpec defineGatherer(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput)
 {
-  return { devName,                   // Device name from user
-           usrInputs,                 // User defined input as a vector of one InputSpec
-           o2f::Outputs{ usrOutput }, // user defined outputs as a vector of OutputSpecs
+  return {devName,                 // Device name from user
+          usrInputs,               // User defined input as a vector of one InputSpec
+          o2f::Outputs{usrOutput}, // user defined outputs as a vector of OutputSpecs
 
-           o2f::AlgorithmSpec{ [usrOutput](o2f::InitContext&) {
-             // Creating shared ptrs to useful parameters
-             auto outputPtr = std::make_shared<o2f::Output>(getOutput(usrOutput));
+          o2f::AlgorithmSpec{[usrOutput](o2f::InitContext&) {
+            // Creating shared ptrs to useful parameters
+            auto outputPtr = std::make_shared<o2f::Output>(getOutput(usrOutput));
 
-             // Defining the ProcessCallback as returned object of InitCallback
-             return [outputPtr](o2f::ProcessingContext& ctx) {
-               // Iterating over the Inputs to forward them on the same Output
-               for (const auto& itInputs : ctx.inputs()) {
-                 // Retrieving message size from API
-                 auto msgSize = (o2::header::get<o2::header::DataHeader*>(itInputs.header))->payloadSize;
-                 // Allocating new chunk
-                 auto& fwdMsg = ctx.outputs().newChunk((*outputPtr), msgSize);
-                 // Moving the input to the output chunk
-                 std::memmove(fwdMsg.data(), itInputs.payload, msgSize);
-               }
-             };
-           } } };
+            // Defining the ProcessCallback as returned object of InitCallback
+            return [outputPtr](o2f::ProcessingContext& ctx) {
+              // Iterating over the Inputs to forward them on the same Output
+              for (const auto& itInputs : ctx.inputs()) {
+                // Retrieving message size from API
+                auto msgSize = (o2::header::get<o2::header::DataHeader*>(itInputs.header))->payloadSize;
+                // Allocating new chunk
+                auto& fwdMsg = ctx.outputs().newChunk((*outputPtr), msgSize);
+                // Moving the input to the output chunk
+                std::memmove(fwdMsg.data(), itInputs.payload, msgSize);
+              }
+            };
+          }}};
 }
 
 } // namespace workflows

@@ -41,11 +41,13 @@ install(FILES CheckClusters_mft.C
               run_digi2raw_mft.C
               run_digi_mft.C
               run_digi_tof.C
+              run_digi2raw_tof.C
               run_match_TPCITS.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
+              run_rawdecoding_tof.C
               run_sim.C
               run_sim_emcal.C
               run_sim_mft.C
@@ -82,8 +84,8 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::TOFSimulation
                                              O2::EMCALBase
                                              O2::TRDSimulation
-                                             O2::T0Simulation
-                                             O2::DataFormatsFITV0
+                                             O2::FT0Simulation
+                                             O2::DataFormatsFV0
                                              O2::HMPIDBase
                                              O2::TPCSimulation
                                              O2::PHOSBase
@@ -100,8 +102,8 @@ o2_add_test_root_macro(build_geometry.C
                                              O2::EMCALSimulation
                                              O2::TOFSimulation
                                              O2::TRDSimulation
-                                             O2::T0Simulation
-                                             O2::V0Simulation
+                                             O2::FT0Simulation
+                                             O2::FV0Simulation
                                              O2::FDDSimulation
                                              O2::HMPIDSimulation
                                              O2::PHOSSimulation
@@ -138,8 +140,8 @@ o2_add_test_root_macro(o2sim.C
                                              O2::EMCALSimulation
                                              O2::TOFSimulation
                                              O2::TRDSimulation
-                                             O2::T0Simulation
-                                             O2::V0Simulation
+                                             O2::FT0Simulation
+                                             O2::FV0Simulation
                                              O2::FDDSimulation
                                              O2::HMPIDSimulation
                                              O2::PHOSSimulation
@@ -248,6 +250,11 @@ o2_add_test_root_macro(run_digi_tof.C
                        PUBLIC_LINK_LIBRARIES O2::TOFSimulation
                        LABELS tof)
 
+o2_add_test_root_macro(run_digi2raw_tof.C
+                       PUBLIC_LINK_LIBRARIES O2::TOFSimulation
+                                             O2::TOFReconstruction
+                       LABELS tof)
+
 o2_add_test_root_macro(run_match_TPCITS.C
                        PUBLIC_LINK_LIBRARIES O2::Field
                                              O2::DataFormatsParameters
@@ -286,6 +293,12 @@ o2_add_test_root_macro(run_rawdecoding_mft.C
                                              O2::DataFormatsITSMFT
                                              O2::CommonDataFormat
                        LABELS mft)
+
+# FIXME: move to subsystem dir
+o2_add_test_root_macro(run_rawdecoding_tof.C
+                      PUBLIC_LINK_LIBRARIES O2::TOFSimulation
+                                            O2::TOFReconstruction
+                       LABELS tof)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats

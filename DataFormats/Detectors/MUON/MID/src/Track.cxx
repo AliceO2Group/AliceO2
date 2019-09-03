@@ -39,14 +39,14 @@ void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, 
 void Track::setDirection(float xDir, float yDir, float zDir)
 {
   /// Sets the track direction parameters
-  mDirection = { xDir, yDir, zDir };
+  mDirection = {xDir, yDir, zDir};
 }
 
 //______________________________________________________________________________
 void Track::setPosition(float xPos, float yPos, float zPos)
 {
   /// Sets the track starting position
-  mPosition = { xPos, yPos, zPos };
+  mPosition = {xPos, yPos, zPos};
 }
 
 //______________________________________________________________________________
@@ -146,9 +146,9 @@ bool Track::isCompatible(const Track& track, float chi2Cut) const
 
   // method 2: apply the cut on each parameter
   // This method avoids the issue of method 1
-  double p1[4] = { mPosition[0], mPosition[1], mDirection[0], mDirection[1] };
-  double p2[4] = { track.mPosition[0], track.mPosition[1], track.mDirection[0],
-                   track.mDirection[1] };
+  double p1[4] = {mPosition[0], mPosition[1], mDirection[0], mDirection[1]};
+  double p2[4] = {track.mPosition[0], track.mPosition[1], track.mDirection[0],
+                  track.mDirection[1]};
   for (int ipar = 0; ipar < 4; ++ipar) {
     double diff = p1[ipar] - p2[ipar];
     if (diff * diff / (mCovarianceParameters[ipar] + track.mCovarianceParameters[ipar]) > chi2Cut) {

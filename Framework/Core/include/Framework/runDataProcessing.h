@@ -40,14 +40,14 @@ using Options = std::vector<ConfigParamSpec>;
 } // namespace o2
 
 /// To be implemented by the user to specify one or more DataProcessorSpec.
-/// 
+///
 /// Use the ConfigContext @a context in input to get the value of global configuration
 /// properties like command line options, number of available CPUs or whatever
 /// can affect the creation of the actual workflow.
 ///
 /// @returns a std::vector of DataProcessorSpec which represents the actual workflow
 ///         to be executed
-o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&context);
+o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& context);
 
 // This template magic allow users to customize the behavior of the process
 // by (optionally) implementing a `configure` method which modifies one of the
@@ -67,8 +67,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 // a "match all" policy which uses pub / sub
 // FIXME: add a debug statement saying that the default policy was used?
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
-void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec> &globalWorkflowOptions) {}
-void defaultConfiguration(std::vector<o2::framework::CompletionPolicy> &completionPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions) {}
+void defaultConfiguration(std::vector<o2::framework::CompletionPolicy>& completionPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
 void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
 {
@@ -126,9 +126,9 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
-    std::unique_ptr<ParamRetriever> retriever{ new BoostOptionsRetriever(workflowOptions, true, argc, argv) };
+    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
     ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
-    ConfigContext configContext{ workflowOptionsRegistry };
+    ConfigContext configContext{workflowOptionsRegistry};
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (std::exception const& error) {

@@ -18,40 +18,39 @@
 
 using namespace std;
 
-namespace o2  {
-namespace event_visualisation {
+namespace o2
+{
+namespace event_visualisation
+{
 
 /// Ctor -- set the minimalistic event up
-MinimalisticEvent::MinimalisticEvent( int eventNumber,
-                                      int runNumber,
-                                      double energy,
-                                      int multiplicity,
-                                      string collidingSystem,
-                                      time_t timeStamp
-                                     ) :
-mEventNumber(eventNumber),
-mRunNumber(runNumber),
-mEnergy(energy),
-mMultiplicity(multiplicity),
-mCollidingSystem(collidingSystem),
-mTimeStamp(timeStamp)
+MinimalisticEvent::MinimalisticEvent(int eventNumber,
+                                     int runNumber,
+                                     double energy,
+                                     int multiplicity,
+                                     string collidingSystem,
+                                     time_t timeStamp) : mEventNumber(eventNumber),
+                                                         mRunNumber(runNumber),
+                                                         mEnergy(energy),
+                                                         mMultiplicity(multiplicity),
+                                                         mCollidingSystem(collidingSystem),
+                                                         mTimeStamp(timeStamp)
 {
-  
 }
 
 void MinimalisticEvent::fillWithRandomTracks()
 {
-  for(int i=0;i<mMultiplicity;i++){
+  for (int i = 0; i < mMultiplicity; i++) {
     MinimalisticTrack track = MinimalisticTrack();
     track.fillWithRandomData();
     mTracks.push_back(track);
   }
 }
- 
+
 MinimalisticTrack* MinimalisticEvent::getTrack(int i)
 {
   return &mTracks[i];
 }
-  
-}
-}
+
+} // namespace event_visualisation
+} // namespace o2

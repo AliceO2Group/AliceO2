@@ -71,7 +71,7 @@ void Geo::Init()
   }
 
   Double_t rotationAngles[6] =
-    { 90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/ };
+    {90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/};
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
@@ -227,72 +227,67 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
   det[4] = getPadX(posLocal);
 }
 
-void Geo::getVolumeIndices(Int_t index, Int_t *detId)
+void Geo::getVolumeIndices(Int_t index, Int_t* detId)
 {
   //
-  // Retrieve volume indices from the calibration channel index 
+  // Retrieve volume indices from the calibration channel index
   //
-  Int_t npadxstrip = NPADX*NPADZ;
+  Int_t npadxstrip = NPADX * NPADZ;
 
-  detId[0] = index/npadxstrip/NSTRIPXSECTOR;
+  detId[0] = index / npadxstrip / NSTRIPXSECTOR;
 
-  Int_t dummyStripPerModule = 
-    ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) / npadxstrip;
-  if (dummyStripPerModule<NSTRIPC) {
+  Int_t dummyStripPerModule =
+    (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) / npadxstrip;
+  if (dummyStripPerModule < NSTRIPC) {
     detId[1] = 0;
     detId[2] = dummyStripPerModule;
-  }
-  else if (dummyStripPerModule>=NSTRIPC && dummyStripPerModule<NSTRIPC+NSTRIPB) {
+  } else if (dummyStripPerModule >= NSTRIPC && dummyStripPerModule < NSTRIPC + NSTRIPB) {
     detId[1] = 1;
-    detId[2] = dummyStripPerModule-NSTRIPC;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA) {
+    detId[2] = dummyStripPerModule - NSTRIPC;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA) {
     detId[1] = 2;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB) {
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
     detId[1] = 3;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB && dummyStripPerModule<NSTRIPXSECTOR) {
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && dummyStripPerModule < NSTRIPXSECTOR) {
     detId[1] = 4;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA-NSTRIPB;
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
   }
 
-  Int_t padPerStrip = ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) - dummyStripPerModule*npadxstrip;
+  Int_t padPerStrip = (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) - dummyStripPerModule * npadxstrip;
 
-  detId[3] = padPerStrip / NPADX; // padZ
-  detId[4] = padPerStrip - detId[3]*NPADX; // padX
-
+  detId[3] = padPerStrip / NPADX;            // padZ
+  detId[4] = padPerStrip - detId[3] * NPADX; // padX
 }
 
-Int_t Geo::getIndex(const Int_t * detId)
+Int_t Geo::getIndex(const Int_t* detId)
 {
-  //Retrieve calibration channel index 
+  //Retrieve calibration channel index
   Int_t isector = detId[0];
-  if (isector >= NSECTORS){
-    printf("Wrong sector number in TOF (%d) !\n",isector);
+  if (isector >= NSECTORS) {
+    printf("Wrong sector number in TOF (%d) !\n", isector);
     return -1;
   }
   Int_t iplate = detId[1];
-  if (iplate >= NPLATES){
-    printf("Wrong plate number in TOF (%d) !\n",iplate);
+  if (iplate >= NPLATES) {
+    printf("Wrong plate number in TOF (%d) !\n", iplate);
     return -1;
   }
   Int_t istrip = detId[2];
-  Int_t stripOffset = getStripNumberPerSM(iplate,istrip);
-  if (stripOffset==-1) {
-    printf("Wrong strip number per SM in TOF (%d) !\n",stripOffset);
+  Int_t stripOffset = getStripNumberPerSM(iplate, istrip);
+  if (stripOffset == -1) {
+    printf("Wrong strip number per SM in TOF (%d) !\n", stripOffset);
     return -1;
   }
 
   Int_t ipadz = detId[3];
   Int_t ipadx = detId[4];
 
-  Int_t idet = ((2*(NSTRIPC+NSTRIPB)+NSTRIPA)*NPADZ*NPADX)*isector +
-               (stripOffset*NPADZ*NPADX)+
-               (NPADX)*ipadz+
-                ipadx;
+  Int_t idet = ((2 * (NSTRIPC + NSTRIPB) + NSTRIPA) * NPADZ * NPADX) * isector +
+               (stripOffset * NPADZ * NPADX) +
+               (NPADX)*ipadz +
+               ipadx;
   return idet;
 }
 
@@ -306,49 +301,43 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 
   Int_t index = -1;
 
-  Bool_t check = (
-                  (iplate<0 || iplate>=NPLATES)
-                  ||
-                  (
-                   (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
-                   ||
-                   (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
-                   )
-                  );
+  Bool_t check = ((iplate < 0 || iplate >= NPLATES) ||
+                  ((iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
+                   (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
-  if (iplate<0 || iplate>=NPLATES)
-    LOG(ERROR) << "getStripNumberPerSM : " << "Wrong plate number in TOF (" << iplate << ")!\n";
+  if (iplate < 0 || iplate >= NPLATES)
+    LOG(ERROR) << "getStripNumberPerSM : "
+               << "Wrong plate number in TOF (" << iplate << ")!\n";
 
   if (
-      (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
-      ||
-      (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
-      )
-    LOG(ERROR) << "getStripNumberPerSM : " << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+    (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
+    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC)))
+    LOG(ERROR) << "getStripNumberPerSM : "
+               << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
 
   Int_t stripOffset = 0;
   switch (iplate) {
-  case 0:
-    stripOffset = 0;
-    break;
-  case 1:
-    stripOffset = NSTRIPC;
-    break;
-  case 2:
-    stripOffset = NSTRIPC+NSTRIPB;
-    break;
-  case 3:
-    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA;
-    break;
-  case 4:
-    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB;
-    break;
+    case 0:
+      stripOffset = 0;
+      break;
+    case 1:
+      stripOffset = NSTRIPC;
+      break;
+    case 2:
+      stripOffset = NSTRIPC + NSTRIPB;
+      break;
+    case 3:
+      stripOffset = NSTRIPC + NSTRIPB + NSTRIPA;
+      break;
+    case 4:
+      stripOffset = NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB;
+      break;
   };
 
-  if (!check) index = stripOffset + istrip;
+  if (!check)
+    index = stripOffset + istrip;
 
   return index;
-
 }
 
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
@@ -361,7 +350,7 @@ void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
   // ALICE reference frame -> B071/B074/B075 = BTO1/2/3 reference frame
   rotateToSector(pos, isector);
 
-  Float_t step[3] = { 0., 0., static_cast<Float_t>((RMAX + RMIN) * 0.5) };
+  Float_t step[3] = {0., 0., static_cast<Float_t>((RMAX + RMIN) * 0.5)};
   translate(pos, step);
 
   // B071/B074/B075 = BTO1/2/3 reference frame -> FTOA = FLTA reference frame
@@ -389,14 +378,14 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       break;
   }
 
-  constexpr Float_t HGLFY = HFILIY + 2 * HGLASSY; // heigth of GLASS+FISHLINE  Layer
+  constexpr Float_t HGLFY = HFILIY + 2 * HGLASSY;                                         // heigth of GLASS+FISHLINE  Layer
   constexpr Float_t HSTRIPY = 2. * HHONY + 2. * HPCBY + 4. * HRGLY + 2. * HGLFY + HCPCBY; // 3.11
 
   Float_t step[3];
 
   // FTOA/B/C = FLTA/B/C reference frame -> FSTR reference frame
   for (Int_t istrip = 0; istrip < nstrips; istrip++) {
-    Float_t posLoc2[3] = { pos[0], pos[1], pos[2] };
+    Float_t posLoc2[3] = {pos[0], pos[1], pos[2]};
 
     step[0] = 0.;
     step[1] = getHeights(iplate, istrip);
@@ -445,34 +434,34 @@ Int_t Geo::getSector(const Float_t* pos)
   return iSect;
 }
 
-void Geo::getPadDxDyDz(const Float_t * pos,Int_t * det, Float_t * DeltaPos) 
-{  
-  //  
-  // Returns the x coordinate in the Pad reference frame  
-  //  
-  if (mToBeIntit) 
-    Init();     
-  
-  for (Int_t ii = 0; ii < 3; ii++)  
-    DeltaPos[ii] = pos[ii]; 
-  
-  det[0] = getSector(DeltaPos);  
-  fromGlobalToSector(DeltaPos, det[0]);  
-  det[1] = getPlate(DeltaPos);  
-  det[2] = fromPlateToStrip(DeltaPos, det[1]); 
-  det[3] = getPadZ(DeltaPos);  
-  det[4] = getPadX(DeltaPos);  
-  // translate to the pad center 
-  
-  Float_t step[3]; 
-  
-  step[0] = (det[4]+0.5)*XPAD; 
-  
-  step[1] = 0.; 
- 
-  step[2] = (det[3]+0.5)*ZPAD;
-  translate(DeltaPos,step); 
-} 
+void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
+{
+  //
+  // Returns the x coordinate in the Pad reference frame
+  //
+  if (mToBeIntit)
+    Init();
+
+  for (Int_t ii = 0; ii < 3; ii++)
+    DeltaPos[ii] = pos[ii];
+
+  det[0] = getSector(DeltaPos);
+  fromGlobalToSector(DeltaPos, det[0]);
+  det[1] = getPlate(DeltaPos);
+  det[2] = fromPlateToStrip(DeltaPos, det[1]);
+  det[3] = getPadZ(DeltaPos);
+  det[4] = getPadX(DeltaPos);
+  // translate to the pad center
+
+  Float_t step[3];
+
+  step[0] = (det[4] + 0.5) * XPAD;
+
+  step[1] = 0.;
+
+  step[2] = (det[3] + 0.5) * ZPAD;
+  translate(DeltaPos, step);
+}
 
 Int_t Geo::getPlate(const Float_t* pos)
 {
@@ -582,7 +571,7 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
   if (mToBeIntit)
     Init();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * mRotationMatrixSector[isector][ii][0] + xyz[1] * mRotationMatrixSector[isector][ii][1] +
@@ -597,7 +586,7 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 
 void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
 {
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * mRotationMatrixPlateStrip[iplate][istrip][ii][0] +
@@ -626,7 +615,7 @@ void Geo::rotate(Float_t* xyz, Double_t rotationAngles[6])
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]) +
@@ -649,7 +638,7 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   xyzDummy[0] = xyz[0] * TMath::Sin(rotationAngles[0]) * TMath::Cos(rotationAngles[1]) +
                 xyz[1] * TMath::Sin(rotationAngles[2]) * TMath::Cos(rotationAngles[3]) +

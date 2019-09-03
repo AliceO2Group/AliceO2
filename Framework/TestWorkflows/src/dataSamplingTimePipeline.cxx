@@ -53,31 +53,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     "dataProducer",
     Inputs{},
     {
-      OutputSpec{ "TPC", "CLUSTERS" },
+      OutputSpec{"TPC", "CLUSTERS"},
     },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}};
 
   auto processingStage = timePipeline(
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS" } },
+        {"dataTPC", "TPC", "CLUSTERS"}},
       Outputs{
-        { "TPC", "CLUSTERS_P" } },
+        {"TPC", "CLUSTERS_P"}},
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
+        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
     parallelSize);
 
   DataProcessorSpec sink{
     "sink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0 } },
+      {"dataTPC-proc", "TPC", "CLUSTERS_P", 0}},
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
 
   // clang-format off
   DataProcessorSpec simpleQcTask{
@@ -132,7 +130,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
   auto tpcClusters = ctx.outputs().make<FakeCluster>(
-    Output{ "TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index) }, collectionChunkSize);
+    Output{"TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -152,7 +150,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
   auto processedTpcClusters = ctx.outputs().make<FakeCluster>(
-    Output{ "TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index) },
+    Output{"TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)},
     collectionChunkSize);
 
   int i = 0;

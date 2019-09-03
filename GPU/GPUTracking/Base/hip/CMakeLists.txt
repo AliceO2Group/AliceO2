@@ -13,7 +13,10 @@ set(MODULE GPUTrackingHIP)
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-message(STATUS "Building GPUTracking with HIP support")
+if(DEFINED HIP_AMDGPUTARGET)
+  set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
+endif()
+message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionHIP.hip.cxx)
 set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h)
@@ -22,7 +25,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
     SOURCES ${SRCS}
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking hip::host hip::device
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking hip::host hip::device hip::hipcub rocthrust
     PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
                                ${CMAKE_SOURCE_DIR}/Detectors/Base/src
     TARGETVARNAME targetName)

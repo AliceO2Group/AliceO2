@@ -30,9 +30,9 @@
 
 #include "FairLogger.h"
 
-ClassImp(o2::tpc::Digitizer)
+ClassImp(o2::tpc::Digitizer);
 
-  using namespace o2::tpc;
+using namespace o2::tpc;
 
 bool o2::tpc::Digitizer::mIsContinuous = true;
 

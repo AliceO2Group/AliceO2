@@ -260,7 +260,7 @@ void GPUQA::ChangePadTitleSize(TPad* p, float size)
   p->Update();
   TPaveText* pt = (TPaveText*)(p->GetPrimitive("title"));
   if (pt == nullptr) {
-    printf("Error changing title\n");
+    GPUError("Error changing title");
   } else {
     pt->SetTextSize(size);
     p->Modified();
@@ -411,7 +411,7 @@ int GPUQA::InitQA()
   std::vector<o2::MCTrack>* tracksX;
   std::vector<o2::TrackReference>* trackRefsX;
   if (treeSim == nullptr) {
-    printf("Error reading o2sim tree\n");
+    GPUError("Error reading o2sim tree");
     exit(1);
   }
   treeSim->SetBranchAddress("MCTrack", &tracksX);
@@ -497,7 +497,7 @@ int GPUQA::InitQA()
       labelsBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcLabelBuffer");
       effBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcEffBuffer");
       if (labelsBuffer[i] == nullptr || effBuffer[i] == nullptr) {
-        printf("Error opening / reading from labels file %u/%s: 0x%p 0x%p\n", i, mConfig.matchMCLabels[i], labelsBuffer[i], effBuffer[i]);
+        GPUError("Error opening / reading from labels file %u/%s: 0x%p 0x%p", i, mConfig.matchMCLabels[i], (void*)labelsBuffer[i], (void*)effBuffer[i]);
         exit(1);
       }
     }
@@ -570,7 +570,7 @@ void GPUQA::RunQA(bool matchOnly)
   bool mcAvail = mcPresent();
 
   if (mcAvail && mTracking->GetParam().rec.NonConsecutiveIDs) {
-    printf("QA incompatible to non-consecutive MC labels\n");
+    GPUError("QA incompatible to non-consecutive MC labels");
     return;
   }
 
@@ -595,19 +595,19 @@ void GPUQA::RunQA(bool matchOnly)
         nClusters++;
         unsigned int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
         if (hitId >= GetNMCLabels()) {
-          printf("Invalid hit id %u > %d\n", hitId, GetNMCLabels());
+          GPUError("Invalid hit id %u > %d", hitId, GetNMCLabels());
           ompError = true;
           break;
         }
         for (int j = 0; j < GetMCLabelNID(hitId); j++) {
           if (GetMCLabelID(hitId, j) >= (int)GetNMCTracks(GetMCLabelCol(hitId, j))) {
-            printf("Invalid label %d > %d\n", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)));
+            GPUError("Invalid label %d > %d", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)));
             ompError = true;
             break;
           }
           if (GetMCLabelID(hitId, j) >= 0) {
             if (QA_DEBUG >= 3 && track.OK()) {
-              printf("Track %d Cluster %u Label %d: %d (%f)\n", i, k, j, GetMCLabelID(hitId, j), GetMCLabelWeight(hitId, j));
+              GPUInfo("Track %d Cluster %u Label %d: %d (%f)", i, k, j, GetMCLabelID(hitId, j), GetMCLabelWeight(hitId, j));
             }
             labels.push_back(GetMCLabel(hitId, j));
           }
@@ -634,7 +634,7 @@ void GPUQA::RunQA(bool matchOnly)
       int curcount = 1, maxcount = 0;
       if (QA_DEBUG >= 2 && track.OK()) {
         for (unsigned int k = 0; k < labels.size(); k++) {
-          printf("\t%d %f\n", GetMCLabelID(labels[k]), GetMCLabelWeight(labels[k]));
+          GPUInfo("\t%d %f", GetMCLabelID(labels[k]), GetMCLabelWeight(labels[k]));
         }
       }
       for (unsigned int k = 1; k <= labels.size(); k++) {
@@ -662,8 +662,8 @@ void GPUQA::RunQA(bool matchOnly)
       mTrackMCLabels[i] = maxLabel;
       if (QA_DEBUG && track.OK() && GetNMCTracks(maxLabel.getEventID()) > maxLabel.getTrackID()) {
         const mcInfo_t& mc = GetMCTrack(maxLabel);
-        printf("Track %d label %d (fake %d) weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.getTrackID(), (int)(maxLabel.isFake()), maxweight, nClusters, track.NClustersFitted(), 100.f * maxweight / sumweight, 100.f * (float)maxcount / (float)nClusters,
-               std::sqrt(mc.pX * mc.pX + mc.pY * mc.pY));
+        GPUInfo("Track %d label %d (fake %d) weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f", i, maxLabel.getTrackID(), (int)(maxLabel.isFake()), maxweight, nClusters, track.NClustersFitted(), 100.f * maxweight / sumweight, 100.f * (float)maxcount / (float)nClusters,
+                std::sqrt(mc.pX * mc.pX + mc.pY * mc.pY));
       }
     }
     if (ompError) {
@@ -724,7 +724,7 @@ void GPUQA::RunQA(bool matchOnly)
           mcLabelI_t trackL = mTrackMCLabels[track];
           bool fake = true;
           for (int j = 0; j < GetMCLabelNID(i); j++) {
-            // printf("Attach %x Track %d / %d:%d\n", attach, track, j, GetMCLabelID(i, j));
+            // GPUInfo("Attach %x Track %d / %d:%d", attach, track, j, GetMCLabelID(i, j));
             if (trackL == GetMCLabel(i, j)) {
               fake = false;
               break;
@@ -784,7 +784,7 @@ void GPUQA::RunQA(bool matchOnly)
     }
 
     if (QA_TIMING) {
-      printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+      GPUInfo("QA Time: Assign Track Labels:\t\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
     }
     timer.ResetStart();
 
@@ -808,7 +808,7 @@ void GPUQA::RunQA(bool matchOnly)
       }
     }
     if (QA_TIMING) {
-      printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+      GPUInfo("QA Time: Compute cluster label weights:\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
     }
     timer.ResetStart();
 
@@ -911,7 +911,7 @@ void GPUQA::RunQA(bool matchOnly)
       }
     }
     if (QA_TIMING) {
-      printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+      GPUInfo("QA Time: Fill efficiency histograms:\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
     }
     timer.ResetStart();
 
@@ -1018,9 +1018,9 @@ void GPUQA::RunQA(bool matchOnly)
       float deltaPtNative = (param.GetQPt() - charge / mc2.pt) * charge;
       float deltaPt = (fabsf(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
 
-      float paramval[5] = { mclocal[1], mc1.z, mc2.phi, mc2.eta, mc2.pt };
-      float resval[5] = { deltaY, deltaZ, mConfig.nativeFitResolutions ? deltaPhiNative : deltaPhi, mConfig.nativeFitResolutions ? deltaLambdaNative : deltaLambda, mConfig.nativeFitResolutions ? deltaPtNative : deltaPt };
-      float pullval[5] = { deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt()) };
+      float paramval[5] = {mclocal[1], mc1.z, mc2.phi, mc2.eta, mc2.pt};
+      float resval[5] = {deltaY, deltaZ, mConfig.nativeFitResolutions ? deltaPhiNative : deltaPhi, mConfig.nativeFitResolutions ? deltaLambdaNative : deltaLambda, mConfig.nativeFitResolutions ? deltaPtNative : deltaPt};
+      float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt())};
 
       for (int j = 0; j < 5; j++) {
         for (int k = 0; k < 5; k++) {
@@ -1036,7 +1036,7 @@ void GPUQA::RunQA(bool matchOnly)
       }
     }
     if (QA_TIMING) {
-      printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+      GPUInfo("QA Time: Fill resolution histograms:\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
     }
     timer.ResetStart();
 
@@ -1262,11 +1262,11 @@ void GPUQA::RunQA(bool matchOnly)
     }
 
     if (QA_TIMING) {
-      printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+      GPUInfo("QA Time: Fill cluster histograms:\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
     }
     timer.ResetStart();
   } else if (!mConfig.inputHistogramsOnly) {
-    printf("No MC information available, cannot run QA!\n");
+    GPUWarning("No MC information available, cannot run QA!");
   }
 
   // Fill other histograms
@@ -1340,7 +1340,7 @@ void GPUQA::RunQA(bool matchOnly)
   }
 
   if (QA_TIMING) {
-    printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+    GPUInfo("QA Time: Others:\t%6.0f us", timer.GetCurrentElapsedTime() * 1e6);
   }
 
   // Create CSV DumpTrackHits
@@ -1448,7 +1448,7 @@ void GPUQA::RunQA(bool matchOnly)
       }
       fclose(fp);
     }
-    printf("Wrote %s,%d clusters in total, %d left, %d to be removed\n", fname, dumpClTot, dumpClLeft, dumpClRem);
+    GPUInfo("Wrote %s,%d clusters in total, %d left, %d to be removed", fname, dumpClTot, dumpClLeft, dumpClRem);
   }
 }
 
@@ -1477,7 +1477,7 @@ T* GPUQA::GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput)
 {
   T* e = ee;
   if ((mConfig.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == nullptr) {
-    printf("Missing histogram in input %s: %s\n", mConfig.compareInputs[k - nNewInput], ee->GetName());
+    GPUWarning("Missing histogram in input %s: %s", mConfig.compareInputs[k - nNewInput], ee->GetName());
     return (nullptr);
   }
   ee = e;
@@ -1642,10 +1642,10 @@ int GPUQA::DrawQAHistograms()
   }
 
   if (!mConfig.inputHistogramsOnly) {
-    printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
-           mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
-           (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
-           (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
+    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
+            mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
+            (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
+            (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
   }
 
   // Process / Draw Efficiency Histograms
@@ -2058,7 +2058,7 @@ int GPUQA::DrawQAHistograms()
       }
     }
 
-    float tmpMax[2] = { 0, 0 }, tmpMin[2] = { 0, 0 };
+    float tmpMax[2] = {0, 0}, tmpMin[2] = {0, 0};
     for (int l = 0; l <= CLUST_HIST_INT_SUM; l++) {
       for (int k = 0; k < ConfigNumInputs; k++) {
         TH1* e = mClusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];

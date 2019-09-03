@@ -32,8 +32,7 @@ BOOST_AUTO_TEST_CASE(TestCreation)
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
-    }
-  };
+  }};
 }
 
 // Check a few invariants for Resize and Reserve operations
@@ -42,8 +41,7 @@ BOOST_AUTO_TEST_CASE(TestInvariants)
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
-    }
-  };
+  }};
 
   BOOST_REQUIRE_EQUAL(buffer.size(), 0);
   BOOST_REQUIRE(buffer.size() <= buffer.capacity());
@@ -87,8 +85,7 @@ BOOST_AUTO_TEST_CASE(TestContents)
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
-    }
-  };
+  }};
 
   BOOST_REQUIRE_EQUAL(buffer.size(), 0);
   BOOST_REQUIRE(buffer.size() <= buffer.capacity());
@@ -99,14 +96,13 @@ BOOST_AUTO_TEST_CASE(TestContents)
   BOOST_REQUIRE_EQUAL(buffer.size(), 10);
   auto old_ptr = buffer.data();
 
-  strcpy((char *) buffer.mutable_data(), "foo");
+  strcpy((char*)buffer.mutable_data(), "foo");
 
   status = buffer.Resize(9000, false);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(buffer.capacity(), 9000);
   BOOST_REQUIRE_EQUAL(buffer.size(), 9000);
-  BOOST_REQUIRE(strncmp((const char *)buffer.data(), "foo", 3) == 0);
-
+  BOOST_REQUIRE(strncmp((const char*)buffer.data(), "foo", 3) == 0);
 
   status = buffer.Resize(4000, false);
   BOOST_REQUIRE(status.ok());
@@ -118,8 +114,7 @@ BOOST_AUTO_TEST_CASE(TestContents)
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(buffer.capacity(), 40);
   BOOST_REQUIRE_EQUAL(buffer.size(), 40);
-  BOOST_REQUIRE(strncmp((const char *)buffer.data(), "foo", 3) == 0);
-
+  BOOST_REQUIRE(strncmp((const char*)buffer.data(), "foo", 3) == 0);
 }
 
 BOOST_AUTO_TEST_CASE(TestStreaming)
@@ -131,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
   auto t = rdf.Define("x", "1")
              .Define("y", "2")
              .Define("z", "x+y");
-  t.ForeachSlot(builder.persist<int, int>({ "x", "z" }), { "x", "z" });
+  t.ForeachSlot(builder.persist<int, int>({"x", "z"}), {"x", "z"});
 
   auto table = builder.finalize();
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");

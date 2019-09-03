@@ -27,7 +27,7 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   std::cout << " Open hits file " << inputfile << std::endl;
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::cpv::Digit>* mDigitsArray = nullptr;
-  hitTree->SetBranchAddress("CPVHit", &mDigitsArray);
+  hitTree->SetBranchAddress("CPVDigit", &mDigitsArray);
 
   if (!mDigitsArray) {
     cout << "CPV digits not found in the file. Exiting ..." << endl;
@@ -35,7 +35,7 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   }
   hitTree->GetEvent(ievent);
 
-  TH2D* vMod[5][100] = { 0 };
+  TH2D* vMod[5][100] = {0};
   int primLabels[5][100];
   for (int mod = 1; mod < 5; mod++)
     for (int j = 0; j < 100; j++)
@@ -49,7 +49,7 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   for (it = mDigitsArray->begin(); it != mDigitsArray->end(); it++) {
     int absId = (*it).getAbsId();
     double en = (*it).getAmplitude();
-    int lab = (*it).getLabel(0);
+    int lab = (*it).getLabel(); //TODO
     geom->AbsToRelNumbering(absId, relId);
     // check, if this label already exist
     int j = 0;

@@ -15,16 +15,16 @@
 
 #include "ITSMFTReconstruction/LookUp.h"
 
-ClassImp(o2::itsmft::LookUp)
+ClassImp(o2::itsmft::LookUp);
 
-  using std::array;
+using std::array;
 
 namespace o2
 {
 namespace itsmft
 {
 
-LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{ 0 } {}
+LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{0} {}
 
 LookUp::LookUp(std::string fileName)
 {
@@ -77,5 +77,11 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
     return (mTopologiesOverThreshold + index);
   }
 }
+
+bool LookUp::IsGroup(int id) const
+{
+  return mDictionary.IsGroup(id);
+}
+
 } // namespace itsmft
 } // namespace o2
