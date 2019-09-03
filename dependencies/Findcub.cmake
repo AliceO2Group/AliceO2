@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${CUB_ROOT} $ENV{CUB_ROOT} ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${cub_ROOT} $ENV{CUB_ROOT} ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 if(NOT CUB_INCLUDE_DIR)
   set(CUB_FOUND FALSE)
