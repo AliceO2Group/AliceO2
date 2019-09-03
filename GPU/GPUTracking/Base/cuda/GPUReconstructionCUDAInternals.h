@@ -11,10 +11,13 @@
 /// \file GPUReconstructionCUDAInternals.h
 /// \author David Rohr
 
+// All CUDA-header related stuff goes here, so we can run CING over GPUReconstructionCUDA
+
 #ifndef GPURECONSTRUCTIONCUDAINTERNALS_H
 #define GPURECONSTRUCTIONCUDAINTERNALS_H
 
 #include <cuda.h>
+#include "GPULogging.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -34,7 +37,7 @@ static int GPUFailedMsgAI(const long long int error, const char* file, int line)
   if (error == cudaSuccess) {
     return (0);
   }
-  printf("CUDA Error: %lld / %s (%s:%d)\n", error, cudaGetErrorString((cudaError_t)error), file, line);
+  GPUError("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
   return 1;
 }
 

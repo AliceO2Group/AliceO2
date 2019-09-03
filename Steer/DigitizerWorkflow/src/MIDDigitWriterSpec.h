@@ -35,8 +35,8 @@ o2::framework::DataProcessorSpec getMIDDigitWriterSpec()
                                 "middigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::mid::ColumnDataMC>>{ InputSpec{ "middigits", "MID", "DIGITS" }, "MIDDigit" },
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCLabel>>{ InputSpec{ "middigitlabels", "MID", "DIGITSMC" }, "MIDDigitMCLabels" }
+                                BranchDefinition<std::vector<o2::mid::ColumnDataMC>>{InputSpec{"middigits", "MID", "DIGITS"}, "MIDDigit"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCLabel>>{InputSpec{"middigitlabels", "MID", "DIGITSMC"}, "MIDDigitMCLabels"}
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }

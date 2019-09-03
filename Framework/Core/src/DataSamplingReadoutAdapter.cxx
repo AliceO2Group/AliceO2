@@ -31,12 +31,12 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       dh.dataOrigin = dataType.origin;
       dh.dataDescription = dataType.description;
-      dh.subSpecification = dbh->linkId;
+      dh.subSpecification = DataSpecUtils::getOptionalSubSpec(spec).value_or(dbh->linkId);
       dh.payloadSize = dbh->dataSize;
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
-      DataProcessingHeader dph{ dbh->id, 0 };
-      o2::header::Stack headerStack{ dh, dph };
+      DataProcessingHeader dph{dbh->blockId, 0};
+      o2::header::Stack headerStack{dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(2 * i + 1)), index);
     }
   };

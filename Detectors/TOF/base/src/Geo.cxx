@@ -27,13 +27,51 @@ constexpr Float_t Geo::ROOF2PARAMETERS[3];
 Bool_t Geo::mToBeIntit = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
 Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
 
 void Geo::Init()
 {
   LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
 
+  if (!gGeoManager) {
+    LOG(WARNING) << " no TGeo! Loading it";
+    o2::base::GeometryManager::loadGeometry();
+  }
+
+  int det[5];
+  Char_t path[200];
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    det[0] = isector;
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      det[1] = iplate;
+
+      if (iplate == 2 && (isector == 13 || isector == 14 || isector == 15))
+        continue; // PHOS HOLES
+
+      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) { // maximum number of strip is 19 for plate B and C
+        det[2] = istrip;
+        if (!(iplate == 2 && istrip >= NSTRIPA)) { // the middle plate (A) has only 15 strips
+          for (Int_t ipadz = 0; ipadz < NPADZ; ipadz++) {
+            det[3] = ipadz;
+            for (Int_t ipadx = 0; ipadx < NPADX; ipadx++) {
+              det[4] = ipadx;
+              getVolumePath(det, path);
+              gGeoManager->cd(path);
+              TGeoHMatrix global;
+              global = *gGeoManager->GetCurrentMatrix();
+              const Double_t* tr = global.GetTranslation();
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][0] = tr[0];
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][1] = tr[1];
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][2] = tr[2];
+            }
+          }
+        }
+      }
+    }
+  }
+
   Double_t rotationAngles[6] =
-    { 90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/ };
+    {90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/};
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
@@ -153,25 +191,15 @@ void Geo::getPos(Int_t* det, Float_t* pos)
 {
   //
   // Returns space point coor (x,y,z) (cm)  for Detector
-  // Indices  (iSect,iPlate,iStrip,iPadX,iPadZ)
+  // Indices  (iSect,iPlate,iStrip,iPadZ,iPadX)
   //
-  Char_t path[200];
-  getVolumePath(det, path);
-  if (!gGeoManager) {
-    LOG(WARNING) << " no TGeo! Loading it";
-    o2::base::GeometryManager::loadGeometry();
-  }
-  FILE* fOutTXT = fopen("TOF_geo.txt", "w");
-  fprintf(fOutTXT, "path = %s, gGeoManager = %p", path, gGeoManager);
-  fclose(fOutTXT);
-  gGeoManager->cd(path);
-  TGeoHMatrix global;
-  global = *gGeoManager->GetCurrentMatrix();
-  const Double_t* tr = global.GetTranslation();
+  if (mToBeIntit)
+    Init();
 
-  pos[0] = tr[0];
-  pos[1] = tr[1];
-  pos[2] = tr[2];
+  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
+  pos[0] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0];
+  pos[1] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1];
+  pos[2] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2];
 }
 
 void Geo::getDetID(Float_t* pos, Int_t* det)
@@ -199,72 +227,67 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
   det[4] = getPadX(posLocal);
 }
 
-void Geo::getVolumeIndices(Int_t index, Int_t *detId)
+void Geo::getVolumeIndices(Int_t index, Int_t* detId)
 {
   //
-  // Retrieve volume indices from the calibration channel index 
+  // Retrieve volume indices from the calibration channel index
   //
-  Int_t npadxstrip = NPADX*NPADZ;
+  Int_t npadxstrip = NPADX * NPADZ;
 
-  detId[0] = index/npadxstrip/NSTRIPXSECTOR;
+  detId[0] = index / npadxstrip / NSTRIPXSECTOR;
 
-  Int_t dummyStripPerModule = 
-    ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) / npadxstrip;
-  if (dummyStripPerModule<NSTRIPC) {
+  Int_t dummyStripPerModule =
+    (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) / npadxstrip;
+  if (dummyStripPerModule < NSTRIPC) {
     detId[1] = 0;
     detId[2] = dummyStripPerModule;
-  }
-  else if (dummyStripPerModule>=NSTRIPC && dummyStripPerModule<NSTRIPC+NSTRIPB) {
+  } else if (dummyStripPerModule >= NSTRIPC && dummyStripPerModule < NSTRIPC + NSTRIPB) {
     detId[1] = 1;
-    detId[2] = dummyStripPerModule-NSTRIPC;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA) {
+    detId[2] = dummyStripPerModule - NSTRIPC;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA) {
     detId[1] = 2;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB) {
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
     detId[1] = 3;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA;
-  }
-  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB && dummyStripPerModule<NSTRIPXSECTOR) {
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA;
+  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && dummyStripPerModule < NSTRIPXSECTOR) {
     detId[1] = 4;
-    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA-NSTRIPB;
+    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
   }
 
-  Int_t padPerStrip = ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) - dummyStripPerModule*npadxstrip;
+  Int_t padPerStrip = (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) - dummyStripPerModule * npadxstrip;
 
-  detId[3] = padPerStrip / NPADX; // padZ
-  detId[4] = padPerStrip - detId[3]*NPADX; // padX
-
+  detId[3] = padPerStrip / NPADX;            // padZ
+  detId[4] = padPerStrip - detId[3] * NPADX; // padX
 }
 
-Int_t Geo::getIndex(const Int_t * detId)
+Int_t Geo::getIndex(const Int_t* detId)
 {
-  //Retrieve calibration channel index 
+  //Retrieve calibration channel index
   Int_t isector = detId[0];
-  if (isector >= NSECTORS){
-    printf("Wrong sector number in TOF (%d) !\n",isector);
+  if (isector >= NSECTORS) {
+    printf("Wrong sector number in TOF (%d) !\n", isector);
     return -1;
   }
   Int_t iplate = detId[1];
-  if (iplate >= NPLATES){
-    printf("Wrong plate number in TOF (%d) !\n",iplate);
+  if (iplate >= NPLATES) {
+    printf("Wrong plate number in TOF (%d) !\n", iplate);
     return -1;
   }
   Int_t istrip = detId[2];
-  Int_t stripOffset = getStripNumberPerSM(iplate,istrip);
-  if (stripOffset==-1) {
-    printf("Wrong strip number per SM in TOF (%d) !\n",stripOffset);
+  Int_t stripOffset = getStripNumberPerSM(iplate, istrip);
+  if (stripOffset == -1) {
+    printf("Wrong strip number per SM in TOF (%d) !\n", stripOffset);
     return -1;
   }
 
   Int_t ipadz = detId[3];
   Int_t ipadx = detId[4];
 
-  Int_t idet = ((2*(NSTRIPC+NSTRIPB)+NSTRIPA)*NPADZ*NPADX)*isector +
-               (stripOffset*NPADZ*NPADX)+
-               (NPADX)*ipadz+
-                ipadx;
+  Int_t idet = ((2 * (NSTRIPC + NSTRIPB) + NSTRIPA) * NPADZ * NPADX) * isector +
+               (stripOffset * NPADZ * NPADX) +
+               (NPADX)*ipadz +
+               ipadx;
   return idet;
 }
 
@@ -278,49 +301,43 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 
   Int_t index = -1;
 
-  Bool_t check = (
-                  (iplate<0 || iplate>=NPLATES)
-                  ||
-                  (
-                   (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
-                   ||
-                   (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
-                   )
-                  );
+  Bool_t check = ((iplate < 0 || iplate >= NPLATES) ||
+                  ((iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
+                   (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
-  if (iplate<0 || iplate>=NPLATES)
-    LOG(ERROR) << "getStripNumberPerSM : " << "Wrong plate number in TOF (" << iplate << ")!\n";
+  if (iplate < 0 || iplate >= NPLATES)
+    LOG(ERROR) << "getStripNumberPerSM : "
+               << "Wrong plate number in TOF (" << iplate << ")!\n";
 
   if (
-      (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
-      ||
-      (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
-      )
-    LOG(ERROR) << "getStripNumberPerSM : " << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+    (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
+    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC)))
+    LOG(ERROR) << "getStripNumberPerSM : "
+               << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
 
   Int_t stripOffset = 0;
   switch (iplate) {
-  case 0:
-    stripOffset = 0;
-    break;
-  case 1:
-    stripOffset = NSTRIPC;
-    break;
-  case 2:
-    stripOffset = NSTRIPC+NSTRIPB;
-    break;
-  case 3:
-    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA;
-    break;
-  case 4:
-    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB;
-    break;
+    case 0:
+      stripOffset = 0;
+      break;
+    case 1:
+      stripOffset = NSTRIPC;
+      break;
+    case 2:
+      stripOffset = NSTRIPC + NSTRIPB;
+      break;
+    case 3:
+      stripOffset = NSTRIPC + NSTRIPB + NSTRIPA;
+      break;
+    case 4:
+      stripOffset = NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB;
+      break;
   };
 
-  if (!check) index = stripOffset + istrip;
+  if (!check)
+    index = stripOffset + istrip;
 
   return index;
-
 }
 
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
@@ -333,7 +350,7 @@ void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
   // ALICE reference frame -> B071/B074/B075 = BTO1/2/3 reference frame
   rotateToSector(pos, isector);
 
-  Float_t step[3] = { 0., 0., static_cast<Float_t>((RMAX + RMIN) * 0.5) };
+  Float_t step[3] = {0., 0., static_cast<Float_t>((RMAX + RMIN) * 0.5)};
   translate(pos, step);
 
   // B071/B074/B075 = BTO1/2/3 reference frame -> FTOA = FLTA reference frame
@@ -361,14 +378,14 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       break;
   }
 
-  constexpr Float_t HGLFY = HFILIY + 2 * HGLASSY; // heigth of GLASS+FISHLINE  Layer
+  constexpr Float_t HGLFY = HFILIY + 2 * HGLASSY;                                         // heigth of GLASS+FISHLINE  Layer
   constexpr Float_t HSTRIPY = 2. * HHONY + 2. * HPCBY + 4. * HRGLY + 2. * HGLFY + HCPCBY; // 3.11
 
   Float_t step[3];
 
   // FTOA/B/C = FLTA/B/C reference frame -> FSTR reference frame
   for (Int_t istrip = 0; istrip < nstrips; istrip++) {
-    Float_t posLoc2[3] = { pos[0], pos[1], pos[2] };
+    Float_t posLoc2[3] = {pos[0], pos[1], pos[2]};
 
     step[0] = 0.;
     step[1] = getHeights(iplate, istrip);
@@ -417,34 +434,34 @@ Int_t Geo::getSector(const Float_t* pos)
   return iSect;
 }
 
-void Geo::getPadDxDyDz(const Float_t * pos,Int_t * det, Float_t * DeltaPos) 
-{  
-  //  
-  // Returns the x coordinate in the Pad reference frame  
-  //  
-  if (mToBeIntit) 
-    Init();     
-  
-  for (Int_t ii = 0; ii < 3; ii++)  
-    DeltaPos[ii] = pos[ii]; 
-  
-  det[0] = getSector(DeltaPos);  
-  fromGlobalToSector(DeltaPos, det[0]);  
-  det[1] = getPlate(DeltaPos);  
-  det[2] = fromPlateToStrip(DeltaPos, det[1]); 
-  det[3] = getPadZ(DeltaPos);  
-  det[4] = getPadX(DeltaPos);  
-  // translate to the pad center 
-  
-  Float_t step[3]; 
-  
-  step[0] = (det[4]+0.5)*XPAD; 
-  
-  step[1] = 0.; 
- 
-  step[2] = (det[3]+0.5)*ZPAD;
-  translate(DeltaPos,step); 
-} 
+void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
+{
+  //
+  // Returns the x coordinate in the Pad reference frame
+  //
+  if (mToBeIntit)
+    Init();
+
+  for (Int_t ii = 0; ii < 3; ii++)
+    DeltaPos[ii] = pos[ii];
+
+  det[0] = getSector(DeltaPos);
+  fromGlobalToSector(DeltaPos, det[0]);
+  det[1] = getPlate(DeltaPos);
+  det[2] = fromPlateToStrip(DeltaPos, det[1]);
+  det[3] = getPadZ(DeltaPos);
+  det[4] = getPadX(DeltaPos);
+  // translate to the pad center
+
+  Float_t step[3];
+
+  step[0] = (det[4] + 0.5) * XPAD;
+
+  step[1] = 0.;
+
+  step[2] = (det[3] + 0.5) * ZPAD;
+  translate(DeltaPos, step);
+}
 
 Int_t Geo::getPlate(const Float_t* pos)
 {
@@ -554,7 +571,7 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
   if (mToBeIntit)
     Init();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * mRotationMatrixSector[isector][ii][0] + xyz[1] * mRotationMatrixSector[isector][ii][1] +
@@ -569,7 +586,7 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 
 void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
 {
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * mRotationMatrixPlateStrip[iplate][istrip][ii][0] +
@@ -598,7 +615,7 @@ void Geo::rotate(Float_t* xyz, Double_t rotationAngles[6])
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
     xyzDummy[ii] = xyz[0] * TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]) +
@@ -621,7 +638,7 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
   for (Int_t ii = 0; ii < 6; ii++)
     rotationAngles[ii] *= TMath::DegToRad();
 
-  Float_t xyzDummy[3] = { 0., 0., 0. };
+  Float_t xyzDummy[3] = {0., 0., 0.};
 
   xyzDummy[0] = xyz[0] * TMath::Sin(rotationAngles[0]) * TMath::Cos(rotationAngles[1]) +
                 xyz[1] * TMath::Sin(rotationAngles[2]) * TMath::Cos(rotationAngles[3]) +
@@ -644,943 +661,3 @@ Int_t Geo::getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t 
 {
   return 0; // to be implemented
 }
-
-// cable length map
-Float_t Geo::CABLELENGTH[Geo::kNCrate][10][Geo::kNChain][Geo::kNTdc / 3] = { // Cable Lengths
-  {
-    //crate 0
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 387.5, 400.0 }, { 412.5, 412.5, 425.0, 412.5, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 425.0, 425.0 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 475.0, 475.0, 475.0, 475.0 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 550.0, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 1
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 412.5, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 437.5, 437.5, 437.5 }, { 475.0, 475.0, 462.5, 450.0, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 475.0, 475.0 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 512.5, 512.5 }, { 550.0, 550.0, 550.0, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 2
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 387.5, 400.0 }, { 412.5, 412.5, 425.0, 412.5, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 425.0, 425.0 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 475.0, 475.0, 475.0, 475.0 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 550.0, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 3
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 412.5, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 437.5, 437.5, 437.5 }, { 475.0, 475.0, 462.5, 450.0, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 475.0, 475.0 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 512.5, 512.5 }, { 550.0, 550.0, 550.0, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 4
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 5
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 500.0, 512.5, 512.5, 512.5, 487.5 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 6
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 7
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 500.0, 512.5, 512.5, 512.5, 487.5 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 8
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 9
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 10
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 11
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 12
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 13
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 14
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 15
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 16
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 17
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 18
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 19
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 20
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 21
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 22
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 23
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 24
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 425.0, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 437.5, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 25
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 26
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 425.0, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 437.5, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 27
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 28
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10,chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11,chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12,chain
-  },
-  {
-    //crate 29
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 525.0, 525.0 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 30
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 31
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 512.5, 525.0, 525.0 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 32
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 387.5, 387.5, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 387.5, 400.0 }, { 412.5, 412.5, 425.0, 412.5, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 425.0, 425.0 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 462.5, 462.5, 475.0, 475.0 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 33
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 400.0, 400.0, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 412.5, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 437.5, 437.5, 437.5, 437.5, 437.5 }, { 462.5, 462.5, 462.5, 450.0, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 475.0, 475.0 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.5, 512.5, 512.5, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 34
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 387.5, 387.5, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 387.5, 400.0 }, { 412.5, 412.5, 425.0, 412.5, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 425.0, 425.0 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 462.5, 462.5, 475.0, 475.0 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 35
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 400.0, 400.0, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 412.5, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 437.5, 437.5, 437.5, 437.5, 437.5 }, { 462.5, 462.5, 462.5, 450.0, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 475.0, 475.0 }, { 512.5, 512.5, 512.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 525.5, 512.5, 512.5, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 36
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 512.5, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 37
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 387.5, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 512.5 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 38
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 512.5, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 39
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 387.5, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 512.5 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 40
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 41
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 326.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 387.5 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 42
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 43
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 326.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 387.5 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 44
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 45
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 46
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 487.5, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 47
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 48
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 400.0, 400.0, 412.5, 412.5, 412.5 } }, //slot 9, chain
-    { { 437.5, 437.5, 437.5, 437.5, 437.5 }, { 462.5, 462.5, 462.5, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 49
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 400.0, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 437.5, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 437.5, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 475.0, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 50
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 412.5 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 450.0, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 487.5, 487.5, 487.5, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 500.0, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 51
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 412.5 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 437.5, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 512.5, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 52
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 53
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 54
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 55
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 56
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 462.5, 475.0, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 57
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 462.5, 462.5, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 58
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 462.5, 462.5, 475.0, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 59
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 462.5, 462.5, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 60
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 61
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 62
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 437.5, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 0, 0 }, { 487.5, 487.5, 487.5, 0, 0 } },                 //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 63
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 425.0, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 0, 0, 0, 487.5, 487.5 }, { 0, 0, 0, 512.5, 500.0 } },                         //slot 11, chain
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } }                                          //slot 12, chain
-  },
-  {
-    //crate 64
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 65
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 387.5 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 66
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 400.0, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 400.0, 400.0, 412.5 }, { 412.5, 412.5, 425.0, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 475.0, 450.0, 450.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 475.0, 475.0, 475.0, 487.5, 487.5 }, { 500.0, 500.0, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 67
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 387.5 }, { 412.5, 412.5, 412.5, 400.0, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 437.5 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 450.0, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 68
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 69
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  },
-  {
-    //crate 70
-    { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } },                                         //slot 3, chain
-    { { 175.0, 175.0, 175.0, 187.5, 187.5 }, { 200.0, 200.0, 212.5, 212.5, 212.5 } }, //slot 4, chain
-    { { 212.5, 237.5, 225.0, 237.5, 237.5 }, { 250.0, 262.5, 262.5, 262.5, 262.5 } }, //slot 5, chain
-    { { 262.5, 262.5, 275.0, 275.0, 275.0 }, { 287.5, 287.5, 300.0, 300.0, 300.0 } }, //slot 6, chain
-    { { 312.5, 300.0, 312.5, 312.5, 325.0 }, { 337.5, 325.0, 337.5, 337.5, 350.0 } }, //slot 7, chain
-    { { 350.0, 362.5, 350.0, 362.5, 362.5 }, { 387.5, 387.5, 400.0, 400.0, 400.0 } }, //slot 8, chain
-    { { 387.5, 387.5, 387.5, 400.0, 400.0 }, { 412.5, 412.5, 412.5, 425.0, 425.0 } }, //slot 9, chain
-    { { 425.0, 425.0, 425.0, 437.5, 437.5 }, { 462.5, 450.0, 450.0, 462.5, 450.0 } }, //slot 10, chain
-    { { 475.0, 475.0, 487.5, 487.5, 487.5 }, { 487.5, 487.5, 500.0, 500.0, 500.0 } }, //slot 11, chain
-    { { 500.0, 512.5, 512.5, 512.5, 512.5 }, { 525.0, 537.5, 537.5, 537.5, 550.0 } }  //slot 12, chain
-  },
-  {
-    //crate 71
-    { { 162.5, 0, 0, 0, 0 }, { 175.0, 0, 0, 0, 0 } },                                 //slot 3, chain
-    { { 187.5, 200.0, 200.0, 187.5, 187.5 }, { 212.5, 225.0, 225.0, 212.5, 212.5 } }, //slot 4, chain
-    { { 250.0, 250.0, 237.5, 237.5, 237.5 }, { 275.0, 275.0, 275.0, 262.5, 262.5 } }, //slot 5, chain
-    { { 287.5, 287.5, 287.5, 275.0, 275.0 }, { 312.5, 312.5, 312.5, 300.0, 300.0 } }, //slot 6, chain
-    { { 337.5, 337.5, 325.0, 325.0, 325.0 }, { 362.5, 362.5, 350.0, 350.0, 350.0 } }, //slot 7, chain
-    { { 375.0, 375.0, 375.0, 375.0, 375.0 }, { 412.5, 412.5, 412.5, 412.5, 400.0 } }, //slot 8, chain
-    { { 425.0, 412.5, 412.5, 412.5, 412.5 }, { 437.5, 437.5, 437.5, 437.5, 425.0 } }, //slot 9, chain
-    { { 450.0, 450.0, 450.0, 437.5, 437.5 }, { 475.0, 475.0, 475.0, 462.5, 462.5 } }, //slot 10, chain
-    { { 487.5, 487.5, 487.5, 487.5, 487.5 }, { 512.5, 512.5, 512.5, 512.5, 500.0 } }, //slot 11, chain
-    { { 525.0, 525.0, 525.0, 525.0, 512.5 }, { 550.0, 550.0, 537.5, 537.5, 537.5 } }  //slot 12, chain
-  }
-};

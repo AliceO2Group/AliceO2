@@ -47,6 +47,6 @@ class BackendRiak : public Backend
   Condition* UnPack(std::unique_ptr<FairMQMessage> msg) override;
 #endif
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

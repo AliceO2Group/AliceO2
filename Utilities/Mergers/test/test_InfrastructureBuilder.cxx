@@ -36,10 +36,10 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderUnconfigured)
 
   // partially configured builder
   builder.setInfrastructureName("name");
-  builder.setInputSpecs({ { "one", "TST", "test", 1 } });
+  builder.setInputSpecs({{"one", "TST", "test", 1}});
   BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
 
-  builder.setOutputSpec({ { "main" }, "TST", "test", 0 });
+  builder.setOutputSpec({{"main"}, "TST", "test", 0});
   builder.setInfrastructureName("");
   BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
 
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderUnconfigured)
   BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
 
   // configured builder (no exception)
-  builder.setInputSpecs({ { "one", "TST", "test", 1 } });
+  builder.setInputSpecs({{"one", "TST", "test", 1}});
   BOOST_CHECK_NO_THROW(builder.generateInfrastructure());
 }
 
@@ -56,24 +56,24 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderLayers)
 {
   MergerInfrastructureBuilder builder;
   builder.setInfrastructureName("name");
-  builder.setInputSpecs({ { "one", "TST", "test", 1 },
-                          { "two", "TST", "test", 2 },
-                          { "thr", "TST", "test", 3 },
-                          { "fou", "TST", "test", 4 },
-                          { "fiv", "TST", "test", 5 },
-                          { "six", "TST", "test", 6 },
-                          { "sev", "TST", "test", 7 } });
-  builder.setOutputSpec({ { "main" }, "TST", "test", 0 });
+  builder.setInputSpecs({{"one", "TST", "test", 1},
+                         {"two", "TST", "test", 2},
+                         {"thr", "TST", "test", 3},
+                         {"fou", "TST", "test", 4},
+                         {"fiv", "TST", "test", 5},
+                         {"six", "TST", "test", 6},
+                         {"sev", "TST", "test", 7}});
+  builder.setOutputSpec({{"main"}, "TST", "test", 0});
   MergerConfig config;
 
   {
-    config.topologySize = { TopologySize::NumberOfLayers, 0 };
+    config.topologySize = {TopologySize::NumberOfLayers, 0};
     builder.setConfig(config);
     BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
   }
 
   {
-    config.topologySize = { TopologySize::NumberOfLayers, 1 };
+    config.topologySize = {TopologySize::NumberOfLayers, 1};
     builder.setConfig(config);
     auto mergersTopology = builder.generateInfrastructure();
 
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderLayers)
   }
 
   {
-    config.topologySize = { TopologySize::NumberOfLayers, 2 };
+    config.topologySize = {TopologySize::NumberOfLayers, 2};
     builder.setConfig(config);
     auto mergersTopology = builder.generateInfrastructure();
 
@@ -116,24 +116,24 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderReductionFactor)
 {
   MergerInfrastructureBuilder builder;
   builder.setInfrastructureName("name");
-  builder.setInputSpecs({ { "one", "TST", "test", 1 },
-                          { "two", "TST", "test", 2 },
-                          { "thr", "TST", "test", 3 },
-                          { "fou", "TST", "test", 4 },
-                          { "fiv", "TST", "test", 5 },
-                          { "six", "TST", "test", 6 },
-                          { "sev", "TST", "test", 7 } });
-  builder.setOutputSpec({ { "main" }, "TST", "test", 0 });
+  builder.setInputSpecs({{"one", "TST", "test", 1},
+                         {"two", "TST", "test", 2},
+                         {"thr", "TST", "test", 3},
+                         {"fou", "TST", "test", 4},
+                         {"fiv", "TST", "test", 5},
+                         {"six", "TST", "test", 6},
+                         {"sev", "TST", "test", 7}});
+  builder.setOutputSpec({{"main"}, "TST", "test", 0});
   MergerConfig config;
 
   {
-    config.topologySize = { TopologySize::ReductionFactor, 1 };
+    config.topologySize = {TopologySize::ReductionFactor, 1};
     builder.setConfig(config);
     BOOST_CHECK_THROW(builder.generateInfrastructure(), std::runtime_error);
   }
 
   {
-    config.topologySize = { TopologySize::ReductionFactor, 7 };
+    config.topologySize = {TopologySize::ReductionFactor, 7};
     builder.setConfig(config);
     auto mergersTopology = builder.generateInfrastructure();
 
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderReductionFactor)
   }
 
   {
-    config.topologySize = { TopologySize::ReductionFactor, 3 };
+    config.topologySize = {TopologySize::ReductionFactor, 3};
     builder.setConfig(config);
     auto mergersTopology = builder.generateInfrastructure();
 

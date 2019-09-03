@@ -43,8 +43,8 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <T0Simulation/Detector.h>
-#include <V0Simulation/Detector.h>
+#include <FT0Simulation/Detector.h>
+#include <FV0Simulation/Detector.h>
 #include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
@@ -146,7 +146,7 @@ class O2HitMerger : public FairMQDevice
   V insertAdd(std::map<T, V>& m, T const& key, V value)
   {
     const auto iter = m.find(key);
-    V accum{ 0 };
+    V accum{0};
     if (iter != m.end()) {
       iter->second += value;
       accum = iter->second;
@@ -442,8 +442,8 @@ class O2HitMerger : public FairMQDevice
   TFile* mTmpOutFile; //! temporary IO
   TTree* mOutTree;    //!
 
-  int mEntries = 0; //! counts the number of entries in the branches
-  int mEventChecksum = 0; //! checksum for events
+  int mEntries = 0;         //! counts the number of entries in the branches
+  int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
   TStopwatch mTimer;
 
@@ -501,12 +501,12 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
       counter++;
     }
-    if (i == DetID::T0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::t0::Detector>(true));
+    if (i == DetID::FT0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::ft0::Detector>(true));
       counter++;
     }
-    if (i == DetID::V0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
+    if (i == DetID::FV0) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::fv0::Detector>(true));
       counter++;
     }
     if (i == DetID::FDD) {

@@ -24,12 +24,14 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
     ("event-rate", bpo::value<int>()->default_value(0), "Event rate limit in maximum number of events per second")
     ("max-events", bpo::value<int>()->default_value(0), "Maximum number of events to send (0 - unlimited)")
     ("store-rtt-in-file", bpo::value<int>()->default_value(0), "Store round trip time measurements in a file (1/0)")
     ("ack-chan-name", bpo::value<std::string>()->default_value("ack"), "Name of the acknowledgement channel")
     ("out-chan-name", bpo::value<std::string>()->default_value("stf1"), "Name of the output channel (sub-time frames)");
+  // clang-format on
 }
 
 FairMQDevice* getDevice(const FairMQProgOptions& config)

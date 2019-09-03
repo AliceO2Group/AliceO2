@@ -38,14 +38,15 @@ class DigitizerTask : public FairTask
   double getFairTimeUnitInNS() const { return mFairTimeUnitInNS; }
 
  private:
-  double mFairTimeUnitInNS = 1;                 ///< Fair time unit in ns
-  Int_t mSourceID = 0;                          ///< current source
-  Int_t mEventID = 0;                           ///< current event id from the source
-  Digitizer mDigitizer;                         ///< Digitizer
-  const std::vector<Hit>* mHitsArray = nullptr; ///< Array of MC hits
-  std::vector<Digit>* mDigitsArray = nullptr;   ///< Array of digits
+  double mFairTimeUnitInNS = 1;                                            ///< Fair time unit in ns
+  Int_t mSourceID = 0;                                                     ///< current source
+  Int_t mEventID = 0;                                                      ///< current event id from the source
+  Digitizer mDigitizer;                                                    ///< Digitizer
+  const std::vector<Hit>* mHitsArray = nullptr;                            ///< Array of MC hits
+  std::vector<Digit>* mDigitsArray = nullptr;                              ///< Array of digits
+  o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* mLabels = nullptr; ///< Array of digit labels
 
-  ClassDefOverride(DigitizerTask, 1);
+  ClassDefOverride(DigitizerTask, 2);
 };
 } // namespace phos
 } // namespace o2

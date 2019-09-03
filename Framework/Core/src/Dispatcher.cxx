@@ -64,19 +64,27 @@ void Dispatcher::run(ProcessingContext& ctx)
 {
   for (const auto& input : ctx.inputs()) {
     if (input.header != nullptr && input.spec != nullptr) {
+      const auto* inputHeader = header::get<header::DataHeader*>(input.header);
+      ConcreteDataMatcher inputMatcher{inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification};
 
       for (auto& policy : mPolicies) {
         // todo: consider getting the outputSpec in match to improve performance
         // todo: consider matching (and deciding) in completion policy to save some time
-        if (policy->match(*input.spec) && policy->decide(input)) {
 
-          DataSamplingHeader dsHeader = prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>());
+        if (policy->match(inputMatcher) && policy->decide(input)) {
+
+          // We copy every header which is not DataHeader or DataProcessingHeader,
+          // so that custom data-dependent headers are passed forward,
+          // and we add a DataSamplingHeader.
+          header::Stack headerStack{
+            std::move(extractAdditionalHeaders(input.header)),
+            std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
 
           if (!policy->getFairMQOutputChannel().empty()) {
-            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(dsHeader));
+            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(headerStack));
           } else {
-            Output output = policy->prepareOutput(*input.spec);
-            output.metaHeader = { output.metaHeader, dsHeader };
+            Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
+            output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
             send(ctx.outputs(), input, std::move(output));
           }
         }
@@ -96,8 +104,22 @@ DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolic
     sampleTime,
     policy.getTotalAcceptedMessages(),
     policy.getTotalEvaluatedMessages(),
-    id
-  };
+    id};
+}
+
+header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack) const
+{
+  header::Stack headerStack;
+
+  const auto* first = header::BaseHeader::get(reinterpret_cast<const byte*>(inputHeaderStack));
+  for (const auto* current = first; current != nullptr; current = current->next()) {
+    if (current->description != header::DataHeader::sHeaderType &&
+        current->description != DataProcessingHeader::sHeaderType) {
+      headerStack = std::move(header::Stack{std::move(headerStack), *current});
+    }
+  }
+
+  return headerStack;
 }
 
 void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const
@@ -107,17 +129,18 @@ void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, Ou
 }
 
 // ideally this should be in a separate proxy device or use Lifetime::External
-void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel, DataSamplingHeader&& dsHeader) const
+void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
+                            header::Stack&& stack) const
 {
   const auto* dh = header::get<header::DataHeader*>(inputData.header);
   assert(dh);
   const auto* dph = header::get<DataProcessingHeader*>(inputData.header);
   assert(dph);
 
-  header::DataHeader dhout{ dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize };
+  header::DataHeader dhout{dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize};
   dhout.payloadSerializationMethod = dh->payloadSerializationMethod;
-  DataProcessingHeader dphout{ dph->startTime, dph->duration };
-  o2::header::Stack headerStack{ dhout, dphout, dsHeader };
+  DataProcessingHeader dphout{dph->startTime, dph->duration};
+  o2::header::Stack headerStack{dhout, dphout, stack};
 
   auto channelAlloc = o2::pmr::getTransportAllocator(device->Transport());
   FairMQMessagePtr msgHeaderStack = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
@@ -137,8 +160,7 @@ void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, cons
 void Dispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& path)
 {
   //todo: take care of inputs inclusive in others, when subSpec matchers are supported
-  auto cmp = [a = path.first](const InputSpec b)
-  {
+  auto cmp = [a = path.first](const InputSpec b) {
     return a.matcher == b.matcher && a.lifetime == b.lifetime;
   };
 

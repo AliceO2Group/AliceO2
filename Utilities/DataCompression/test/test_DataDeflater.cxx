@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_DataDeflaterRaw)
     return true;
   };
 
-  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
+  std::array<char, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
 
   const auto bitwidth = 7;
   for (auto c : data) {
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_DataDeflaterCodec)
     return true;
   };
 
-  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
+  std::array<char, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
 
   for (auto c : data) {
     deflater.write(c, writerfct);
@@ -153,6 +153,7 @@ class ParameterModelBitMask
   }
 
   void reset() {}
+
  private:
 };
 
@@ -169,7 +170,7 @@ BOOST_AUTO_TEST_CASE(test_TruncatedPrecisionConverter)
     return true;
   };
 
-  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
+  std::array<char, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
 
   for (auto c : data) {
     deflater.write(c, writerfct);

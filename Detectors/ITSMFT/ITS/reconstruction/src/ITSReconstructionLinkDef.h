@@ -15,7 +15,7 @@
 #pragma link off all functions;
 
 //#pragma link C++ class o2::its::TrivialClustererTask+;
-#pragma link C++ class o2::its::ClustererTask+;
+#pragma link C++ class o2::its::ClustererTask + ;
 #pragma link C++ class o2::its::CookedTracker + ;
 
 #endif

@@ -165,7 +165,7 @@ inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
   static auto cdb = o2::ccdb::Manager::Instance();
   auto condread = cdb->getCondition(path);
-  T* object{ nullptr };
+  T* object{nullptr};
   condread->getObjectAs(object);
   return *object;
 }

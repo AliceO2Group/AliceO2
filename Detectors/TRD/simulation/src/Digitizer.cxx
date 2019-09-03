@@ -231,29 +231,32 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           continue;
         }
       }
+      // scoped diffused coordinates for each electron
+      double locRd{locR}, locCd{locC}, locTd{locT};
+
       // Apply diffusion smearing
       if (mSimParam->DiffusionOn()) {
-        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT)) {
+        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT, locRd, locCd, locTd)) {
           continue;
         }
       }
       // Apply E x B effects
       if (mCommonParam->ExBOn()) {
-        locC = locC + calExBDetValue * driftLength;
+        locCd = locCd + calExBDetValue * driftLength;
       }
       // The electron position after diffusion and ExB in pad coordinates.
-      rowE = padPlane->getPadRowNumberROC(locR);
+      rowE = padPlane->getPadRowNumberROC(locRd);
       if (rowE < 1) {
         continue;
       }
-      rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
+      rowOffset = padPlane->getPadRowOffsetROC(rowE, locRd);
       // The pad column (rphi-direction)
       offsetTilt = padPlane->getTiltOffset(rowOffset);
-      colE = padPlane->getPadColNumber(locC + offsetTilt);
+      colE = padPlane->getPadColNumber(locCd + offsetTilt);
       if (colE < 0) {
         continue;
       }
-      const double colOffset = padPlane->getPadColOffset(colE, locC + offsetTilt);
+      const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
       // Retrieve drift velocity becuase col and row may have changed
       // driftVelocity = calVdriftDetValue* calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
       driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
@@ -271,10 +274,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mCommonParam->TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locT, zz) + hit.GetTime();
+        driftTime = mCommonParam->TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
-        driftTime = abs(locT) / driftVelocity + hit.GetTime();
+        driftTime = abs(locTd) / driftVelocity + hit.GetTime();
       }
 
       // Apply the gas gain including fluctuations
@@ -314,35 +317,41 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
       const int lastTimeBin = TMath::Min(timeBinTruncated + timeBinTRFend, nTimeTotal);
-      for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
-        // Apply the time response
-        double timeResponse = 1;
-        double crossTalk = 0;
-        const double t = (iTimeBin - timeBinTruncated) / samplingRate + timeOffset;
-        if (mSimParam->TRFOn()) {
-          timeResponse = mSimParam->TimeResponse(t);
+
+      // loop over pads first then over timebins for better cache friendliness
+      // and less access to adcMapCont
+      for (int iPad = 0; iPad < kNpad; iPad++) {
+        int colPos = colE + iPad - 1;
+        if (colPos < 0) {
+          continue;
         }
-        if (mSimParam->CTOn()) {
-          crossTalk = mSimParam->CrossTalk(t);
+        if (colPos >= nColMax) {
+          break;
         }
-        signalOld[0] = 0;
-        signalOld[1] = 0;
-        signalOld[2] = 0;
-        for (int iPad = 0; iPad < kNpad; iPad++) {
-          int colPos = colE + iPad - 1;
-          if (colPos < 0) {
-            continue;
+
+        const int key = Digit::calculateKey(det, rowE, colPos);
+        if (key < KEY_MIN || key > KEY_MAX) {
+          LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
+        }
+        // Add the signals
+        // Get the old signal
+        auto& currentSignal = adcMapCont[key];
+        for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
+          // Apply the time response
+          double timeResponse = 1;
+          double crossTalk = 0;
+          const double t = (iTimeBin - timeBinTruncated) / samplingRate + timeOffset;
+          if (mSimParam->TRFOn()) {
+            timeResponse = mSimParam->TimeResponse(t);
           }
-          if (colPos >= nColMax) {
-            break;
+          if (mSimParam->CTOn()) {
+            crossTalk = mSimParam->CrossTalk(t);
           }
-          // Add the signals
-          // Get the old signal
-          const int key = Digit::calculateKey(det, rowE, colPos);
-          if (key < KEY_MIN || key > KEY_MAX) {
-            LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
-          }
-          signalOld[iPad] = adcMapCont[key][iTimeBin];
+          signalOld[0] = 0;
+          signalOld[1] = 0;
+          signalOld[2] = 0;
+
+          signalOld[iPad] = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
             signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
@@ -351,10 +360,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
             signalOld[iPad] += padSignal[iPad] * timeResponse;
           }
           // Update the final signal
-          adcMapCont[key][iTimeBin] = signalOld[iPad];
+          currentSignal[iTimeBin] = signalOld[iPad];
           isDigit = true;
-        } // Loop: pads
-      }   // Loop: time bins
+        } // Loop: time bins
+      }   // Loop: pads
     }     // end of loop over electrons
     mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
   } // end of loop over hits
@@ -470,7 +479,9 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   return true;
 }
 
-bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue, double& lRow, double& lCol, double& lTime)
+bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue,
+                          double lRow0, double lCol0, double lTime0,
+                          double& lRow, double& lCol, double& lTime)
 {
   //
   // Applies the diffusion smearing to the position of a single electron.
@@ -482,13 +493,13 @@ bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue, 
     float driftSqrt = TMath::Sqrt(absdriftlength);
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
-    lRow = gRandom->Gaus(lRow, sigmaT);
+    lRow = gRandom->Gaus(lRow0, sigmaT);
     if (mCommonParam->ExBOn()) {
-      lCol = gRandom->Gaus(lCol, sigmaT * 1.0 / (1.0 + exbvalue * exbvalue));
-      lTime = gRandom->Gaus(lTime, sigmaL * 1.0 / (1.0 + exbvalue * exbvalue));
+      lCol = gRandom->Gaus(lCol0, sigmaT * 1.0 / (1.0 + exbvalue * exbvalue));
+      lTime = gRandom->Gaus(lTime0, sigmaL * 1.0 / (1.0 + exbvalue * exbvalue));
     } else {
-      lCol = gRandom->Gaus(lCol, sigmaT);
-      lTime = gRandom->Gaus(lTime, sigmaL);
+      lCol = gRandom->Gaus(lCol0, sigmaT);
+      lTime = gRandom->Gaus(lTime0, sigmaL);
     }
     return true;
   } else {

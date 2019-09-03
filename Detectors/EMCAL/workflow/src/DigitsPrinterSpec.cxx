@@ -46,8 +46,8 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinter
     return processFunction;
   };
 
-  return o2::framework::DataProcessorSpec{ "EMCALDigitsPrinter",
-                                           { { "digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe } },
-                                           {},
-                                           o2::framework::AlgorithmSpec(initFunction) };
+  return o2::framework::DataProcessorSpec{"EMCALDigitsPrinter",
+                                          {{"digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe}},
+                                          {},
+                                          o2::framework::AlgorithmSpec(initFunction)};
 }

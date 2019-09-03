@@ -36,55 +36,56 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 {
   // define a template workflow with processors to be executed in a pipeline
   std::vector<DataProcessorSpec> workflowSpecs{
-    { "processor1",
-      Inputs{
-        { "input", "TST", "TRIGGER", 0, Lifetime::Timeframe } },
-      Outputs{
-        { { "output" }, "TST", "PREPROC", 0, Lifetime::Timeframe } },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
-        for (auto const& input : ctx.inputs()) {
-          auto const& parallelContext = ctx.services().get<ParallelContext>();
-          LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
-                     << *input.spec << ": " << *((int*)input.payload);
-          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-          //auto data& = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
-          auto& data = ctx.outputs().make<int>(Output{ "TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe });
-          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
-          data = parallelContext.index1D();
-        }
-      } } },
-    { "processor2",
-      Inputs{
-        { "input", "TST", "PREPROC", 0, Lifetime::Timeframe } },
-      Outputs{
-        { { "output" }, "TST", "DATA", 0, Lifetime::Timeframe },
-        { { "metadt" }, "TST", "META", 0, Lifetime::Timeframe } },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
-        for (auto const& input : ctx.inputs()) {
-          auto const& parallelContext = ctx.services().get<ParallelContext>();
-          LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
-                     << *input.spec << ": " << *((int*)input.payload);
-          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
-          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-          // TODO: there is a bug in the API for using OutputRef, returns an rvalue which can not be bound to
-          // lvalue reference
-          //auto& data = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
-          auto& data = ctx.outputs().make<int>(Output{ "TST", "DATA", dataheader->subSpecification, Lifetime::Timeframe });
-          data = ctx.inputs().get<int>(input.spec->binding.c_str());
-          //auto meta& = ctx.outputs().make<int>(OutputRef{"metadt", dataheader->subSpecification});
-          auto& meta = ctx.outputs().make<int>(Output{ "TST", "META", dataheader->subSpecification, Lifetime::Timeframe });
-          meta = dataheader->subSpecification;
-        }
-      } } },
+    {"processor1",
+     Inputs{
+       {"input", "TST", "TRIGGER", 0, Lifetime::Timeframe}},
+     Outputs{
+       {{"output"}, "TST", "PREPROC", 0, Lifetime::Timeframe}},
+     AlgorithmSpec{[](ProcessingContext& ctx) {
+       for (auto const& input : ctx.inputs()) {
+         auto const& parallelContext = ctx.services().get<ParallelContext>();
+         LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+                    << *input.spec << ": " << *((int*)input.payload);
+         auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+         //auto data& = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
+         auto& data = ctx.outputs().make<int>(Output{"TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe});
+         ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
+         data = parallelContext.index1D();
+       }
+     }}},
+    {"processor2",
+     Inputs{
+       {"input", "TST", "PREPROC", 0, Lifetime::Timeframe}},
+     Outputs{
+       {{"output"}, "TST", "DATA", 0, Lifetime::Timeframe},
+       {{"metadt"}, "TST", "META", 0, Lifetime::Timeframe}},
+     AlgorithmSpec{[](ProcessingContext& ctx) {
+       for (auto const& input : ctx.inputs()) {
+         auto const& parallelContext = ctx.services().get<ParallelContext>();
+         LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+                    << *input.spec << ": " << *((int*)input.payload);
+         ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
+         auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+         // TODO: there is a bug in the API for using OutputRef, returns an rvalue which can not be bound to
+         // lvalue reference
+         //auto& data = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
+         auto& data = ctx.outputs().make<int>(Output{"TST", "DATA", dataheader->subSpecification, Lifetime::Timeframe});
+         data = ctx.inputs().get<int>(input.spec->binding.c_str());
+         //auto meta& = ctx.outputs().make<int>(OutputRef{"metadt", dataheader->subSpecification});
+         auto& meta = ctx.outputs().make<int>(Output{"TST", "META", dataheader->subSpecification, Lifetime::Timeframe});
+         meta = dataheader->subSpecification;
+       }
+     }}},
   };
 
   // create parallel pipelines from the template workflow, the number of parallel channel is defined by
   // nParallelChannels and is distributed among the pipelines
   std::vector<o2::header::DataHeader::SubSpecificationType> subspecs(nParallelChannels);
   std::generate(subspecs.begin(), subspecs.end(), [counter = std::make_shared<int>(0)]() { return 0x1 << (*counter)++; });
-  workflowSpecs = parallelPipeline(workflowSpecs, nPipelines,
-                                   [&subspecs]() { return subspecs.size(); },
-                                   [&subspecs](size_t index) { return subspecs[index]; });
+  workflowSpecs = parallelPipeline(
+    workflowSpecs, nPipelines,
+    [&subspecs]() { return subspecs.size(); },
+    [&subspecs](size_t index) { return subspecs[index]; });
 
   // define a producer process with outputs for all subspecs
   auto producerOutputs = [&subspecs]() {
@@ -102,43 +103,48 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     "trigger",
     Inputs{},
     producerOutputs(),
-    AlgorithmSpec{ [subspecs, checkMap, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
+    AlgorithmSpec{[subspecs, checkMap, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
       if (*counter < nRolls) {
-        size_t multiplicity = subspecs.size() / nPipelines;
-        if (subspecs.size() % nPipelines) {
-          multiplicity++;
+        size_t pipeline = 0;
+        size_t channels = subspecs.size();
+        std::vector<size_t> multiplicities(nPipelines);
+        for (pipeline = 0; pipeline < nPipelines; pipeline++) {
+          multiplicities[pipeline] = channels / (nPipelines - pipeline) + ((channels % (nPipelines - pipeline)) > 0 ? 1 : 0);
+          channels -= multiplicities[pipeline];
         }
-        size_t instance = 0;
-        size_t inputRank = 0;
-        for (size_t index = 0, end = subspecs.size(); index < end; index++) {
-          ctx.outputs().make<int>(Output{ "TST", "TRIGGER", subspecs[index], Lifetime::Timeframe }) = instance;
-          (*checkMap)[subspecs[index]] = instance;
-          if (++inputRank == multiplicity) {
-            inputRank = 0;
-            instance++;
-            if (instance < nPipelines && ((subspecs.size() - index - 1) % (nPipelines - instance)) == 0) {
-              multiplicity = subspecs.size() / nPipelines;
-            }
+        ASSERT_ERROR(channels == 0);
+        size_t index = 0;
+        auto end = subspecs.size();
+        for (pipeline = 0; index < end; index++) {
+          if (multiplicities[pipeline] == 0) {
+            continue;
+          }
+          ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index], Lifetime::Timeframe}) = pipeline;
+          (*checkMap)[subspecs[index]] = pipeline;
+          multiplicities[pipeline++]--;
+          if (pipeline >= nPipelines) {
+            pipeline = 0;
           }
         }
+        ASSERT_ERROR(index == subspecs.size());
         (*counter)++;
       }
       if (*counter == nRolls) {
         ctx.services().get<ControlService>().readyToQuit(false);
       }
-    } } });
+    }}});
 
   // the final consumer
   workflowSpecs.emplace_back(DataProcessorSpec{
     "consumer",
-    mergeInputs({ { "datain", "TST", "DATA", 0, Lifetime::Timeframe },
-                  { "metain", "TST", "META", 0, Lifetime::Timeframe } },
+    mergeInputs({{"datain", "TST", "DATA", 0, Lifetime::Timeframe},
+                 {"metain", "TST", "META", 0, Lifetime::Timeframe}},
                 subspecs.size(),
                 [&subspecs](InputSpec& input, size_t index) {
                   DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
                 }),
     Outputs(),
-    AlgorithmSpec{ [checkMap](ProcessingContext& ctx) {
+    AlgorithmSpec{[checkMap](ProcessingContext& ctx) {
       for (auto const& input : ctx.inputs()) {
         LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
         auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
@@ -147,7 +153,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         }
       }
       ctx.services().get<ControlService>().readyToQuit(true);
-    } } });
+    }}});
 
   return workflowSpecs;
 }

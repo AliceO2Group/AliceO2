@@ -45,6 +45,7 @@ class GeneratorFromFile : public FairGenerator
   void SetStartEvent(int start);
 
   void SetSkipNonTrackable(bool b) { mSkipNonTrackable = b; }
+
  private:
   TFile* mEventFile = nullptr; //! the file containing the persistent events
   int mEventCounter = 0;

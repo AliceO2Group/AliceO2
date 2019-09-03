@@ -14,10 +14,15 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::phos::Detector+;
-#pragma link C++ class o2::phos::GeometryParams+;
-#pragma link C++ class o2::base::DetImpl<o2::phos::Detector>+;
-#pragma link C++ class o2::phos::Digitizer+;
-#pragma link C++ class o2::phos::DigitizerTask+;
+#pragma link C++ class o2::phos::Detector + ;
+#pragma link C++ class o2::phos::GeometryParams + ;
+#pragma link C++ class o2::base::DetImpl < o2::phos::Detector> + ;
+#pragma link C++ class o2::phos::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::phos::MCLabel> + ;
+#pragma link C++ class o2::phos::Digitizer + ;
+#pragma link C++ class o2::phos::DigitizerTask + ;
+
+#pragma link C++ class o2::phos::PHOSSimParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::phos::PHOSSimParams> + ;
 
 #endif

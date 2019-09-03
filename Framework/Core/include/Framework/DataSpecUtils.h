@@ -52,7 +52,8 @@ struct DataSpecUtils {
   static bool partialMatch(OutputSpec const& spec, o2::header::DataOrigin const& origin);
 
   template <typename T>
-  static bool match(const T&spec, const o2::header::DataHeader &header) {
+  static bool match(const T& spec, const o2::header::DataHeader& header)
+  {
     return DataSpecUtils::match(spec,
                                 header.dataOrigin,
                                 header.dataDescription,
@@ -105,7 +106,7 @@ struct DataSpecUtils {
   /// or if the query can be uniquely assigned to a ConcreteDataMatcher.
   static ConcreteDataMatcher asConcreteDataMatcher(InputSpec const& input);
 
-  /// If possible extract the ConcreteDataMatcher from an OutputSpec. 
+  /// If possible extract the ConcreteDataMatcher from an OutputSpec.
   /// For the moment this is trivial as the OutputSpec does not allow
   /// for wildcards.
   static ConcreteDataMatcher asConcreteDataMatcher(OutputSpec const& spec);

@@ -34,7 +34,7 @@ class Barrel
   //  TGeoVolumeAssembly* mBarrel;
 
  private:
-  ClassDefNV(Barrel, 1)
+  ClassDefNV(Barrel, 1);
 };
 } // namespace mft
 } // namespace o2

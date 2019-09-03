@@ -34,8 +34,8 @@ o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec()
                                 "hmpiddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::hmpid::Digit>>{ InputSpec{ "digitinput", "HMP", "DIGITS" }, "HMPDigit" },
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{ InputSpec{ "labelinput", "HMP", "DIGITLBL" }, "HMPDigitLabels" })();
+                                BranchDefinition<std::vector<o2::hmpid::Digit>>{InputSpec{"digitinput", "HMP", "DIGITS"}, "HMPDigit"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labelinput", "HMP", "DIGITLBL"}, "HMPDigitLabels"})();
 }
 
 } // end namespace hmpid

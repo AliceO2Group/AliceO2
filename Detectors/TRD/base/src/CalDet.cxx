@@ -323,8 +323,8 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
 
   TRDGeometry* trdGeo = new TRDGeometry();
 
-  float poslocal[3] = { 0, 0, 0 };
-  float posglobal[3] = { 0, 0, 0 };
+  float poslocal[3] = {0, 0, 0};
+  float posglobal[3] = {0, 0, 0};
 
   std::stringstream title;
   title << mTitle.c_str() << " Cal AADet 2D ch " << ch;

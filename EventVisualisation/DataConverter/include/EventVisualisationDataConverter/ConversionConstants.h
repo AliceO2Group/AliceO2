@@ -20,81 +20,79 @@
 #include <string>
 
 enum ETrackType {
-    Standard,
+  Standard,
 
-    KinkMother,
-    KinkDaughter,
+  KinkMother,
+  KinkDaughter,
 
-    V0NegativeDaughter,
-    V0PositiveDaughter,
-    V0Mother,
+  V0NegativeDaughter,
+  V0PositiveDaughter,
+  V0Mother,
 
-    CascadePrimaryMother,
-    CascadePrimaryDaughter,
-    CascadeSecondaryMother,
-    CascadeNegativeDaughter,
-    CascadePositiveDaughter,
+  CascadePrimaryMother,
+  CascadePrimaryDaughter,
+  CascadeSecondaryMother,
+  CascadeNegativeDaughter,
+  CascadePositiveDaughter,
 
-    MuonMatched,
-    MuonNotMatched,
-    MuonGhost
+  MuonMatched,
+  MuonNotMatched,
+  MuonGhost
 };
 
 const int nDetectorTypes = 23;
 
 const std::string gDetectorTypes[nDetectorTypes] = {
-        "Invalid Layer",
-        "First Layer",
+  "Invalid Layer",
+  "First Layer",
 
-        "SPD1",
-        "SPD2",
-        "SDD1",
-        "SDD2",
-        "SSD1",
-        "SSD2",
+  "SPD1",
+  "SPD2",
+  "SDD1",
+  "SDD2",
+  "SSD1",
+  "SSD2",
 
-        "TPC1",
-        "TPC2",
+  "TPC1",
+  "TPC2",
 
-        "TRD1",
-        "TRD2",
-        "TRD3",
-        "TRD4",
-        "TRD5",
-        "TRD6",
+  "TRD1",
+  "TRD2",
+  "TRD3",
+  "TRD4",
+  "TRD5",
+  "TRD6",
 
-        "TOF",
+  "TOF",
 
-        "PHOS1",
-        "PHOS2",
+  "PHOS1",
+  "PHOS2",
 
-        "HMPID",
-        "MUON",
-        "EMCAL",
-        "LastLayer"
-};
+  "HMPID",
+  "MUON",
+  "EMCAL",
+  "LastLayer"};
 
 const int nTrackTypes = 14;
 
 const std::string gTrackTypes[nTrackTypes] = {
-        "standard",
+  "standard",
 
-        "kink_mother",
-        "kink_daughter",
+  "kink_mother",
+  "kink_daughter",
 
-        "V0_negative_daughter",
-        "V0_positive_daughter",
-        "V0_mother",
+  "V0_negative_daughter",
+  "V0_positive_daughter",
+  "V0_mother",
 
-        "cascade_primary_mother",
-        "cascade_primary_daughter",
-        "cascade_secondary_mother",
-        "cascade_negative_daughter",
-        "cascade_positive_daughter",
+  "cascade_primary_mother",
+  "cascade_primary_daughter",
+  "cascade_secondary_mother",
+  "cascade_negative_daughter",
+  "cascade_positive_daughter",
 
-        "muon_matched",
-        "muon_not_matched",
-        "muon_ghost"
-};
+  "muon_matched",
+  "muon_not_matched",
+  "muon_ghost"};
 
 #endif //ALIROOT_CONVERSIONCONSTANTS_H

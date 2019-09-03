@@ -68,8 +68,8 @@ class MergerBuilder
 
  private:
   std::string mName;
-  size_t mId{ 0 };
-  size_t mLayer{ 1 };
+  size_t mId{0};
+  size_t mLayer{1};
   framework::Inputs mInputSpecs;
   framework::OutputSpec mOutputSpec;
   MergerConfig mConfig;

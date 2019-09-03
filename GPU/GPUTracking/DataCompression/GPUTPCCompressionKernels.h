@@ -47,7 +47,7 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
 #endif
 
- protected:
+ public:
   template <int I>
   class GPUTPCCompressionKernels_Compare
   {

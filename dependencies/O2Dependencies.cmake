@@ -11,6 +11,7 @@
 include_guard()
 
 include("${CMAKE_CURRENT_LIST_DIR}/O2RecipeAdapter.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/O2TestsAdapter.cmake")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_MODULE_PATH})
 
@@ -63,7 +64,6 @@ find_package(Boost 1.59
                         log_setup
                         unit_test_framework
                         date_time
-                        signals
                         iostreams)
 set_package_properties(Boost PROPERTIES TYPE REQUIRED)
 

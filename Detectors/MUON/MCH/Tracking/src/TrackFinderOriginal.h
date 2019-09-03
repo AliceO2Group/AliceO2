@@ -85,13 +85,13 @@ class TrackFinderOriginal
   static constexpr double SBendingVertexDispersion = 70.;    ///< vertex dispersion (cm) in bending plane
   static constexpr double SMinBendingMomentum = 0.8;         ///< minimum value (GeV/c) of momentum in bending plane
   /// z position of the chambers
-  static constexpr float SDefaultChamberZ[10] = { -526.16, -545.24, -676.4, -695.4, -967.5,
-                                                  -998.5, -1276.5, -1307.5, -1406.6, -1437.6 };
+  static constexpr float SDefaultChamberZ[10] = {-526.16, -545.24, -676.4, -695.4, -967.5,
+                                                 -998.5, -1276.5, -1307.5, -1406.6, -1437.6};
   /// default chamber thickness in X0 for reconstruction
-  static constexpr double SChamberThicknessInX0[10] = { 0.065, 0.065, 0.075, 0.075, 0.035,
-                                                        0.035, 0.035, 0.035, 0.035, 0.035 };
+  static constexpr double SChamberThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
+                                                       0.035, 0.035, 0.035, 0.035, 0.035};
   ///< if true, at least one cluster in the station is requested to validate the track
-  static constexpr bool SRequestStation[5] = { true, true, true, true, true };
+  static constexpr bool SRequestStation[5] = {true, true, true, true, true};
 
   TrackFitter mTrackFitter{}; /// track fitter
 

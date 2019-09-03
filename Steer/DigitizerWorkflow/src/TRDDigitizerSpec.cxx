@@ -95,6 +95,9 @@ class TRDDPLDigitizerTask
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
 
+    TStopwatch timer;
+    timer.Start();
+
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
@@ -119,12 +122,15 @@ class TRDDPLDigitizerTask
       }
     }
 
+    timer.Stop();
+    LOG(INFO) << "TRD: Digitization took " << timer.CpuTime() << "s";
+
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
-    pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
+    pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
     LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
-    pc.outputs().snapshot(Output{ "TRD", "LABELS", 0, Lifetime::Timeframe }, labelsAccum);
+    pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, labelsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -147,17 +153,16 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "TRDDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "TRD", "LABELS", 0, Lifetime::Timeframe },
-             OutputSpec{ "TRD", "ROMode", 0, Lifetime::Timeframe } },
+    Outputs{OutputSpec{"TRD", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"TRD", "LABELS", 0, Lifetime::Timeframe},
+            OutputSpec{"TRD", "ROMode", 0, Lifetime::Timeframe}},
 
-    AlgorithmSpec{ adaptFromTask<TRDDPLDigitizerTask>() },
+    AlgorithmSpec{adaptFromTask<TRDDPLDigitizerTask>()},
 
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // end namespace trd

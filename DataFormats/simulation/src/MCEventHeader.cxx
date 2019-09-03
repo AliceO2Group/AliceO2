@@ -36,4 +36,4 @@ void MCEventHeader::Reset()
 } /* namespace dataformats */
 } /* namespace o2 */
 
-ClassImp(o2::dataformats::MCEventHeader)
+ClassImp(o2::dataformats::MCEventHeader);

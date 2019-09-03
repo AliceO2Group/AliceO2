@@ -22,16 +22,16 @@
 
 class O2FLPex : public FairMQDevice
 {
-  public:
-    O2FLPex();
+ public:
+  O2FLPex();
 
-    ~O2FLPex() override;
+  ~O2FLPex() override;
 
-  protected:
-    int fNumContent;
+ protected:
+  int fNumContent;
 
-    void InitTask() override;
-    bool ConditionalRun() override;
+  void InitTask() override;
+  bool ConditionalRun() override;
 };
 
 #endif

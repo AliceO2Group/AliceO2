@@ -54,8 +54,8 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   //
   // configure matching cuts, should be eventually read from the CCDB
   mMatching.setCutMatchingChi2(100.);
-  std::array<float, o2::track::kNParams> cutsAbs = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
-  std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };
+  std::array<float, o2::track::kNParams> cutsAbs = {2.f, 2.f, 0.2f, 0.2f, 4.f};
+  std::array<float, o2::track::kNParams> cutsNSig2 = {49.f, 49.f, 49.f, 49.f, 49.f};
   mMatching.setCrudeAbsDiffCut(cutsAbs);
   mMatching.setCrudeNSigma2Cut(cutsNSig2);
   mMatching.setTPCTimeEdgeZSafeMargin(3);
@@ -250,10 +250,10 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  const std::vector<o2::t0::RecPoints>* rpFIT = nullptr;
-  std::unique_ptr<const std::vector<o2::t0::RecPoints>> rpFITU;
+  const std::vector<o2::ft0::RecPoints>* rpFIT = nullptr;
+  std::unique_ptr<const std::vector<o2::ft0::RecPoints>> rpFITU;
   if (mUseFIT) {
-    rpFITU = pc.inputs().get<const std::vector<o2::t0::RecPoints>*>("fitInfo");
+    rpFITU = pc.inputs().get<const std::vector<o2::ft0::RecPoints>*>("fitInfo");
     rpFIT = rpFITU.get();
     mMatching.setFITInfoInp(rpFIT);
   }
@@ -265,10 +265,10 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     secClBuf.clear();
   }
   */
-  pc.outputs().snapshot(Output{ "GLO", "TPCITS", 0, Lifetime::Timeframe }, mMatching.getMatchedTracks());
+  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
   if (mUseMC) {
-    pc.outputs().snapshot(Output{ "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe }, mMatching.getMatchedITSLabels());
-    pc.outputs().snapshot(Output{ "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe }, mMatching.getMatchedTPCLabels());
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mMatching.getMatchedITSLabels());
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(false);
@@ -290,7 +290,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
   }
   if (useFIT) {
-    inputs.emplace_back("fitInfo", "T0", "RECPOINTS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
@@ -307,9 +307,8 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{ adaptFromTask<TPCITSMatchingDPL>(useMC, useFIT, tpcClusLanes) },
-    Options{}
-  };
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC, useFIT, tpcClusLanes)},
+    Options{}};
 }
 
 } // namespace globaltracking

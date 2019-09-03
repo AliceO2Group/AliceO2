@@ -138,6 +138,6 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
   bool fRequireITStrack;               // only TPC tracks with ITS match are used as seeds for tracking
   AliHLTComponentBenchmark fBenchmark; // benchmark
 
-  ClassDef(GPUTRDTrackerComponent, 0)
+  ClassDef(GPUTRDTrackerComponent, 0);
 };
 #endif // GPUTRDTRACKERCOMPONENT_H

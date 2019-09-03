@@ -37,9 +37,9 @@ class SVGWriter
   SVGWriter(o2::mch::contour::BBox<double> viewingBox, int size = 1024)
     : mSVGBuffer{},
       mStyleBuffer{},
-      mWidth{ size },
-      mHeight{ static_cast<int>(std::round(size * viewingBox.height() / viewingBox.width())) },
-      mViewingBox{ viewingBox }
+      mWidth{size},
+      mHeight{static_cast<int>(std::round(size * viewingBox.height() / viewingBox.width()))},
+      mViewingBox{viewingBox}
   {
   }
 
@@ -98,7 +98,8 @@ class SVGWriter
 
   void addStyle(const std::string& style) { mStyleBuffer << style << "\n"; }
 
-  void writeStyle(std::ostream& os) { os << "<style>\n" << mStyleBuffer.str() << "</style>\n"; }
+  void writeStyle(std::ostream& os) { os << "<style>\n"
+                                         << mStyleBuffer.str() << "</style>\n"; }
 
   void writeSVG(std::ostream& os)
   {

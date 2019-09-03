@@ -47,7 +47,8 @@ class FairTMessage : public TMessage
 struct TMessageSerializer {
   using StreamerList = std::vector<TVirtualStreamerInfo*>;
   using CompressionLevel = int;
-  enum class CacheStreamers { yes, no };
+  enum class CacheStreamers { yes,
+                              no };
 
   static void Serialize(FairMQMessage& msg, const TObject* input,
                         CacheStreamers streamers = CacheStreamers::no,
@@ -207,7 +208,7 @@ inline void TMessageSerializer::Deserialize(const FairMQMessage& msg, std::uniqu
 
 inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
 {
-  std::lock_guard<std::mutex> lock{ TMessageSerializer::sStreamersLock };
+  std::lock_guard<std::mutex> lock{TMessageSerializer::sStreamersLock};
   return sStreamers;
 }
 
@@ -215,13 +216,13 @@ inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
 // we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
 inline gsl::span<o2::byte> as_span(const FairMQMessage& msg)
 {
-  return gsl::span<o2::byte>{ static_cast<o2::byte*>(msg.GetData()), gsl::narrow<gsl::span<o2::byte>::index_type>(msg.GetSize()) };
+  return gsl::span<o2::byte>{static_cast<o2::byte*>(msg.GetData()), gsl::narrow<gsl::span<o2::byte>::index_type>(msg.GetSize())};
 }
 
 inline gsl::span<o2::byte> as_span(const FairTMessage& msg)
 {
-  return gsl::span<o2::byte>{ reinterpret_cast<o2::byte*>(msg.Buffer()),
-                              gsl::narrow<gsl::span<o2::byte>::index_type>(msg.BufferSize()) };
+  return gsl::span<o2::byte>{reinterpret_cast<o2::byte*>(msg.Buffer()),
+                             gsl::narrow<gsl::span<o2::byte>::index_type>(msg.BufferSize())};
 }
 
 } // namespace framework

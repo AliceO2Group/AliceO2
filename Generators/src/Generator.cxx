@@ -67,4 +67,4 @@ Bool_t
 } /* namespace eventgen */
 } /* namespace o2 */
 
-ClassImp(o2::eventgen::Generator)
+ClassImp(o2::eventgen::Generator);

@@ -33,22 +33,22 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
 
   FairMQProgOptions* options = new FairMQProgOptions();
   options->AddToCmdLineOptions(testOptions);
-  options->ParseAll({ "cmd", "--aFloat", "1.0",
-                      "--aDouble", "2.0",
-                      "--anInt", "10",
-                      "--aBoolean",
-                      "--aString", "somethingelse",
-                      "--aNested.int", "1",
-                      "--aNested.float", "2" },
+  options->ParseAll({"cmd", "--aFloat", "1.0",
+                     "--aDouble", "2.0",
+                     "--anInt", "10",
+                     "--aBoolean",
+                     "--aString", "somethingelse",
+                     "--aNested.int", "1",
+                     "--aNested.float", "2"},
                     false);
   std::vector<ConfigParamSpec> specs{
-    ConfigParamSpec{ "anInt", VariantType::Int, 1, { "an int option" } },
-    ConfigParamSpec{ "aFloat", VariantType::Float, 2.0f, { "a float option" } },
-    ConfigParamSpec{ "aDouble", VariantType::Double, 3., { "a double option" } },
-    ConfigParamSpec{ "aString", VariantType::String, "foo", { "a string option" } },
-    ConfigParamSpec{ "aBoolean", VariantType::Bool, true, { "a boolean option" } },
-    ConfigParamSpec{ "aNested.int", VariantType::Int, 2, { "an int option, nested in an object" } },
-    ConfigParamSpec{ "aNested.float", VariantType::Float, 3.f, { "a float option, nested in an object" } },
+    ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
+    ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}},
+    ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}},
+    ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}},
+    ConfigParamSpec{"aBoolean", VariantType::Bool, true, {"a boolean option"}},
+    ConfigParamSpec{"aNested.int", VariantType::Int, 2, {"an int option, nested in an object"}},
+    ConfigParamSpec{"aNested.float", VariantType::Float, 3.f, {"a float option, nested in an object"}},
   };
   FairOptionsRetriever retriever(specs, options);
   BOOST_CHECK_EQUAL(retriever.getFloat("aFloat"), 1.0);
@@ -78,15 +78,15 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
 
   FairMQProgOptions* options = new FairMQProgOptions();
   options->AddToCmdLineOptions(testOptions);
-  options->ParseAll({ "cmd" }, false);
+  options->ParseAll({"cmd"}, false);
   std::vector<ConfigParamSpec> specs{
-    ConfigParamSpec{ "anInt", VariantType::Int, 1, { "an int option" } },
-    ConfigParamSpec{ "aFloat", VariantType::Float, 2.0f, { "a float option" } },
-    ConfigParamSpec{ "aDouble", VariantType::Double, 3., { "a double option" } },
-    ConfigParamSpec{ "aString", VariantType::String, "foo", { "a string option" } },
-    ConfigParamSpec{ "aBoolean", VariantType::Bool, true, { "a boolean option" } },
-    ConfigParamSpec{ "aNested.int", VariantType::Int, 2, { "an int option, nested in an object" } },
-    ConfigParamSpec{ "aNested.float", VariantType::Float, 3.f, { "a float option, nested in an object" } },
+    ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
+    ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}},
+    ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}},
+    ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}},
+    ConfigParamSpec{"aBoolean", VariantType::Bool, true, {"a boolean option"}},
+    ConfigParamSpec{"aNested.int", VariantType::Int, 2, {"an int option, nested in an object"}},
+    ConfigParamSpec{"aNested.float", VariantType::Float, 3.f, {"a float option, nested in an object"}},
   };
   FairOptionsRetriever retriever(specs, options);
   BOOST_CHECK_EQUAL(retriever.getFloat("aFloat"), 10.f);

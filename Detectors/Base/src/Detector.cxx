@@ -17,6 +17,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
+#include "TGeoManager.h"
 
 using std::cout;
 using std::endl;
@@ -157,14 +158,37 @@ void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 
 TClonesArray* Detector::GetCollection(int) const
 {
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  LOG(WARNING) << "Use the GetHits function on invidiual detectors" << FairLogger::endl;
+  LOG(WARNING) << "GetCollection interface no longer supported";
+  LOG(WARNING) << "Use the GetHits function on invidiual detectors";
   return nullptr;
 }
 
 void Detector::addAlignableVolumes() const
 {
-  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
+  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName();
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)
+{
+  // register this volume with FairRoot
+  this->FairModule::AddSensitiveVolume(const_cast<TGeoVolume*>(vol));
+  // retrieve the VMC Monte Carlo ID for this volume
+  const int volid = TVirtualMC::GetMC()->VolId(vol->GetName());
+  if (volid <= 0) {
+    LOG(ERROR) << "Could not retrieve VMC volume ID for " << vol->GetName();
+  }
+  return volid;
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(std::string const& name)
+{
+  // we need to fetch the TGeoVolume which is needed for FairRoot
+  auto vol = gGeoManager->GetVolume(name.c_str());
+  if (!vol) {
+    LOG(ERROR) << "Volume " << name << " not found in geometry; Cannot register sensitive volume";
+    return -1;
+  }
+  return registerSensitiveVolumeAndGetVolID(vol);
 }
 
 #include <FairMQMessage.h>
@@ -195,7 +219,7 @@ void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts
   };
 
   auto& instance = o2::utils::ShmManager::Instance();
-  shmcontext info{ instance.getShmID(), hits_ptr, busy_ptr };
+  shmcontext info{instance.getShmID(), hits_ptr, busy_ptr};
   LOG(DEBUG) << "-- SHM SEND --";
   LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
   assert(instance.isPointerOk(info.object_ptr));

@@ -68,11 +68,11 @@ class CalROC
   TH1F* makeHisto1D(float min, float max, int type, float mu = 1.0);
 
  protected:
-  int mPla{ 0 };                     //  Plane number
-  int mCha{ 0 };                     //  Chamber number
-  int mNrows{ 0 };                   //  Number of rows
-  int mNcols{ 0 };                   //  Number of columns
-  int mNchannels{ 0 };               //  Number of channels
+  int mPla{0};                       //  Plane number
+  int mCha{0};                       //  Chamber number
+  int mNrows{0};                     //  Number of rows
+  int mNcols{0};                     //  Number of columns
+  int mNchannels{0};                 //  Number of channels
   std::string mName;                 // for naming spectra, originally inherited from TNamed
   std::string mTitle;                // for prepending to spectra title spectra, originally inherited from TNamed
   std::vector<unsigned short> mData; //[mNchannels] Data

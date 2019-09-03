@@ -33,18 +33,19 @@ using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 
 // This is how you can define your processing in a declarative way
-std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
+{
   DataProcessorSpec timeframeReader{
     "reader",
     Inputs{},
-    { OutputSpec{ { "tpc" }, "TPC", "CLUSTERS" },
-      OutputSpec{ { "its" }, "ITS", "CLUSTERS" } },
+    {OutputSpec{{"tpc"}, "TPC", "CLUSTERS"},
+     OutputSpec{{"its"}, "ITS", "CLUSTERS"}},
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{ "tpc" }, 1000);
+        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
         int i = 0;
 
         for (auto& cluster : tpcClusters) {
@@ -58,7 +59,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
           i++;
         }
 
-        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{ "its" }, 1000);
+        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
         i = 0;
         for (auto& cluster : itsClusters) {
           assert(i < 1000);
@@ -69,50 +70,45 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
           i++;
         }
         //       LOG(INFO) << "Invoked" << std::endl;
-      } }
-  };
+      }}};
 
   DataProcessorSpec tpcClusterSummary{
     "tpc-cluster-summary",
-    { InputSpec{ "clusters", "TPC", "CLUSTERS"} },
-    { OutputSpec{ {"summary"}, "TPC", "SUMMARY"} },
-    AlgorithmSpec{ [](ProcessingContext& ctx) {
+    {InputSpec{"clusters", "TPC", "CLUSTERS"}},
+    {OutputSpec{{"summary"}, "TPC", "SUMMARY"}},
+    AlgorithmSpec{[](ProcessingContext& ctx) {
       auto tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       tpcSummary.at(0).inputCount = ctx.inputs().size();
-    } },
-    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
-    { "CPUTimer" }
-  };
+    }},
+    {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
+    {"CPUTimer"}};
 
   DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
-    { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
+    {InputSpec{"clusters", "ITS", "CLUSTERS"}},
     {
-      OutputSpec{ {"summary"}, "ITS", "SUMMARY" },
+      OutputSpec{{"summary"}, "ITS", "SUMMARY"},
     },
-    AlgorithmSpec{ [](ProcessingContext& ctx) {
+    AlgorithmSpec{[](ProcessingContext& ctx) {
       auto itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       itsSummary.at(0).inputCount = ctx.inputs().size();
-    } },
-    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
-    { "CPUTimer" }
-  };
+    }},
+    {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
+    {"CPUTimer"}};
 
   DataProcessorSpec merger{
     "merger",
-    {
-      InputSpec{"clusters", "TPC", "CLUSTERS"},
-      InputSpec{"summary", "TPC", "SUMMARY"},
-      InputSpec{"other_summary", "ITS", "SUMMARY"}
-    },
+    {InputSpec{"clusters", "TPC", "CLUSTERS"},
+     InputSpec{"summary", "TPC", "SUMMARY"},
+     InputSpec{"other_summary", "ITS", "SUMMARY"}},
     Outputs{},
     AlgorithmSpec{
-      [](ProcessingContext &ctx) {
+      [](ProcessingContext& ctx) {
         // We verify we got inputs in the correct order
         auto h0 = o2::header::get<DataHeader*>(ctx.inputs().get("clusters").header);
         auto h1 = o2::header::get<DataHeader*>(ctx.inputs().get("summary").header);
         auto h2 = o2::header::get<DataHeader*>(ctx.inputs().get("other_summary").header);
-        // This should always be the case, since the 
+        // This should always be the case, since the
         // test for an actual DataHeader should happen in the device itself.
         assert(h0 && h1 && h2);
         if (h0->dataOrigin != o2::header::DataOrigin("TPC")) {
@@ -128,15 +124,13 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
         }
 
         auto& metrics = ctx.services().get<Monitoring>();
-        metrics.send({ 1, "merger/invoked" });
-        metrics.send({ (int)ctx.inputs().size(), "merger/inputs" });
+        metrics.send({1, "merger/invoked"});
+        metrics.send({(int)ctx.inputs().size(), "merger/inputs"});
       },
-    }
-  };
+    }};
   return {
     timeframeReader,
     tpcClusterSummary,
     itsClusterSummary,
-    merger
-  };
+    merger};
 }

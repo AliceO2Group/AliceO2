@@ -109,10 +109,9 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
     "its-track-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<TrackWriter>(useMC) },
+    AlgorithmSpec{adaptFromTask<TrackWriter>(useMC)},
     Options{
-      { "its-track-outfile", VariantType::String, "o2trac_its.root", { "Name of the output file" } } }
-  };
+      {"its-track-outfile", VariantType::String, "o2trac_its.root", {"Name of the output file"}}}};
 }
 
 } // namespace its

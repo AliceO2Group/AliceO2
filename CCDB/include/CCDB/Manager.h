@@ -11,12 +11,12 @@
 #ifndef ALICEO2_CDB_MANAGER_H_
 #define ALICEO2_CDB_MANAGER_H_
 
-#include <TList.h>    // for TList
-#include <TMap.h>     // for TMap
-#include <TObject.h>  // for TObject
+#include <TList.h>   // for TList
+#include <TMap.h>    // for TMap
+#include <TObject.h> // for TObject
 #include <cstddef>   // for NULL
-#include "Rtypes.h"   // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
-#include "TString.h"  // for TString
+#include "Rtypes.h"  // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
+#include "TString.h" // for TString
 #include <CCDB/TObjectWrapper.h>
 
 class TFile;
@@ -318,7 +318,7 @@ class Manager : public TObject
  private:
   ULong64_t mKey; //! Key for locking/unlocking
 
-  ClassDefOverride(Manager, 0)
+  ClassDefOverride(Manager, 0);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -344,7 +344,7 @@ class StorageFactory : public TObject
  protected:
   virtual Storage* createStorage(const StorageParameters* param) = 0;
 
-  ClassDefOverride(StorageFactory, 0)
+  ClassDefOverride(StorageFactory, 0);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -388,9 +388,9 @@ class StorageParameters : public TObject
   TString mType; //! CDB type
   TString mURI;  //! CDB URI
 
-  ClassDefOverride(StorageParameters, 0)
+  ClassDefOverride(StorageParameters, 0);
 };
 
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

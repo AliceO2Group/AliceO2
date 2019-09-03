@@ -15,21 +15,16 @@
 #define GPUCHAINITS_H
 
 #include "GPUChain.h"
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class Cluster;
 class Road;
 class Cell;
 class TrackingFrameInfo;
 class TrackITSExt;
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainITS : public GPUChain
 {
@@ -58,7 +53,6 @@ class GPUChainITS : public GPUChain
 
   unsigned int mMaxTracks;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -22,9 +22,7 @@ class TriviallyCopyable
  public:
   TriviallyCopyable() = default;
   TriviallyCopyable(unsigned x, unsigned y, unsigned secret)
-    : mX(x)
-    , mY(y)
-    , mSecret(secret)
+    : mX(x), mY(y), mSecret(secret)
   {
   }
 

@@ -11,9 +11,10 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
+#define GPUCA_GPUTYPE_PASCAL
+
 #include <cuda.h>
 #include <sm_20_atomic_functions.h>
-#define GPUCA_GPUTYPE_PASCAL
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -47,6 +48,9 @@ namespace o2
 namespace its
 {
 class TrackerTraitsNV : public TrackerTraits
+{
+};
+class VertexerTraitsGPU : public VertexerTraits
 {
 };
 } // namespace its
@@ -86,6 +90,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnl
   } else {
     runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
   }
+  GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->CudaStreams[x.stream]));
   }
@@ -132,9 +137,10 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
+  std::vector<bool> devicesOK(count, false);
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Examining device %d\n", i);
+      GPUInfo("Examining device %d", i);
     }
     size_t free, total;
     cuInit(0);
@@ -147,13 +153,13 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
     cuCtxDestroy(tmpContext);
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Obtained current memory usage for device %d\n", i);
+      GPUInfo("Obtained current memory usage for device %d", i);
     }
     if (GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp, i))) {
       continue;
     }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Obtained device properties for device %d\n", i);
+      GPUInfo("Obtained device properties for device %d", i);
     }
     int deviceOK = true;
     const char* deviceFailure = "";
@@ -175,6 +181,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     if (!deviceOK) {
       continue;
     }
+    devicesOK[i] = true;
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
@@ -191,10 +198,14 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   if (mDeviceProcessingSettings.deviceNum > -1) {
-    if (mDeviceProcessingSettings.deviceNum < (signed)count) {
-      bestDevice = mDeviceProcessingSettings.deviceNum;
+    if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
+      GPUWarning("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
+      return (1);
+    } else if (!devicesOK[mDeviceProcessingSettings.deviceNum]) {
+      GPUWarning("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
+      return (1);
     } else {
-      GPUWarning("Requested device ID %d non existend, falling back to default device id %d", mDeviceProcessingSettings.deviceNum, bestDevice);
+      bestDevice = mDeviceProcessingSettings.deviceNum;
     }
   }
   mDeviceId = bestDevice;
@@ -317,8 +328,8 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   cuCtxPopCurrent(&mInternals->CudaContext);
-  GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %'lld / %'lld bytes host / global memory, Stack frame %'d, Constant memory %'lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
-          (long long int)mDeviceMemorySize, GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+  GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
+          (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
 }
@@ -387,12 +398,12 @@ void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
-      printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+      GPUInfo("Skipped transfer of non-GPU memory resource: %s", res->Name());
     }
     return;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
+    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
   }
   GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

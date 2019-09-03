@@ -13,15 +13,16 @@
 /// @since  2017-09-21
 /// @brief  An allocator for static sequences of object types
 
-namespace o2 {
-namespace algorithm {
+namespace o2
+{
+namespace algorithm
+{
 
 /**
  * Helper struct to define a composite element from a header, some payload
  * and a trailer
  */
-template <typename HeaderT
-          , typename TrailerT = void>
+template <typename HeaderT, typename TrailerT = void>
 struct Composite {
   using HeaderType = HeaderT;
   using TrailerType = TrailerT;
@@ -29,42 +30,42 @@ struct Composite {
   size_t trailerLength = 0;
   size_t dataLength = 0;
 
-  template<size_t N,
-	   typename U = TrailerType>
-  constexpr Composite(const HeaderType h, const char  (&d)[N],
-		      typename std::conditional<!std::is_void<U>::value, const TrailerType, int>::type t,
-		      typename std::enable_if<!std::is_void<U>::value>::type* = nullptr)
-    : header(h)
-    , data(d)
-    , trailer(t)
+  template <size_t N,
+            typename U = TrailerType>
+  constexpr Composite(const HeaderType h, const char (&d)[N],
+                      typename std::conditional<!std::is_void<U>::value, const TrailerType, int>::type t,
+                      typename std::enable_if<!std::is_void<U>::value>::type* = nullptr)
+    : header(h), data(d), trailer(t)
   {
     dataLength = N;
     trailerLength = sizeof(TrailerType);
     compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
   }
 
-  template<size_t N,
-	   typename U = TrailerType>
-  constexpr Composite(const HeaderType& h, const char  (&d)[N],
-		      typename std::enable_if<std::is_void<U>::value>::type* = nullptr)
-    : header(h)
-    , data(d)
+  template <size_t N,
+            typename U = TrailerType>
+  constexpr Composite(const HeaderType& h, const char (&d)[N],
+                      typename std::enable_if<std::is_void<U>::value>::type* = nullptr)
+    : header(h), data(d)
   {
     dataLength = N;
     trailerLength = 0;
     compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
   }
 
-  constexpr size_t getLength() const noexcept {
+  constexpr size_t getLength() const noexcept
+  {
     return compositeLength;
   }
 
-  constexpr size_t getDataLength() const noexcept {
+  constexpr size_t getDataLength() const noexcept
+  {
     return dataLength;
   }
 
-  template<typename BufferT>
-  constexpr size_t insert(BufferT* buffer) const noexcept {
+  template <typename BufferT>
+  constexpr size_t insert(BufferT* buffer) const noexcept
+  {
     static_assert(sizeof(BufferT) == 1, "buffer required to be of byte-type");
     size_t length = 0;
     memcpy(buffer + length, &header, sizeof(HeaderType));
@@ -88,7 +89,8 @@ struct Composite {
 /// sequence. The function is recursively invoked for all arguments of the
 // variable list
 template <typename T, typename... TArgs>
-constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept {
+constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept
+{
   return sequenceLength(first) + sequenceLength(args...);
 }
 
@@ -96,7 +98,8 @@ constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept {
 /// this is also the terminating instance for the last argument of the recursive
 /// invocation of the function template.
 template <typename T>
-constexpr size_t sequenceLength(const T& first) noexcept {
+constexpr size_t sequenceLength(const T& first) noexcept
+{
   return first.getLength();
 }
 
@@ -136,7 +139,7 @@ struct StaticSequenceAllocator {
   BufferType buffer;
   size_t bufferSize;
 
-  size_t size() const {return bufferSize;}
+  size_t size() const { return bufferSize; }
 
   StaticSequenceAllocator() = delete;
 
@@ -148,7 +151,6 @@ struct StaticSequenceAllocator {
     sequenceInsert(buffer.get(), args...);
   }
 };
-
 
 } // namespace algorithm
 } // namespace o2

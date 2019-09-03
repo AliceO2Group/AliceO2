@@ -20,15 +20,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    { "disable-mc", o2::framework::VariantType::Bool, false, { "disable MC propagation even if available" } },
-    { "trackerCA", o2::framework::VariantType::Bool, false, { "use trackerCA (default: trackerCM)" } }
-  };
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}}};
 
   std::swap(workflowOptions, options);
 
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
 
-  workflowOptions.push_back(ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
 
 // ------------------------------------------------------------------

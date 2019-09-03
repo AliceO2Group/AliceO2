@@ -43,9 +43,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
-  using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2GRot;
+  using DetMatrixCache::getMatrixT2L;
   // this method is not advised for ITS: for barrel detectors whose tracking frame is just a rotation
   // it is cheaper to use T2GRot
   using DetMatrixCache::getMatrixT2G;
@@ -70,7 +70,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
                /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
            o2::TransformType::T2G,
            o2::TransformType::L2G)*/
-               );
+  );
 
   /// Default destructor
   ~GeometryTGeo() override = default;
@@ -348,7 +348,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

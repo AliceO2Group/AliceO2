@@ -111,7 +111,7 @@ class PreClusterFinderTask
     // create the output message of the exactly needed buffer size
     auto sizeOut = SSizeOfInt + nDEWithPreClusters * 2 * SSizeOfInt +
                    PreClusterBlock::sizeOfPreClusterBlocks(nDEWithPreClusters, nPreClusters, nUsedDigits);
-    auto msgOut = pc.outputs().make<char>(Output{ "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe }, sizeOut);
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}, sizeOut);
     auto bufferPtrOut = msgOut.data();
     if (msgOut.size() != sizeOut) {
       throw length_error("incorrect message payload");
@@ -222,12 +222,11 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
 {
   return DataProcessorSpec{
     "PreClusterFinder",
-    Inputs{ InputSpec{ "digits", "MCH", "DIGITS", 0, Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<PreClusterFinderTask>() },
-    Options{ { "binmapfile", VariantType::String, "", { "binary mapping file name" } },
-             { "print", VariantType::Bool, false, { "print preclusters" } } }
-  };
+    Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
+    Options{{"binmapfile", VariantType::String, "", {"binary mapping file name"}},
+            {"print", VariantType::Bool, false, {"print preclusters"}}}};
 }
 
 } // end namespace mch

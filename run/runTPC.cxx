@@ -22,7 +22,7 @@
 
 namespace bpo = boost::program_options;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Arguments parsing
   bpo::variables_map vm;
@@ -48,31 +48,46 @@ int main(int argc, char *argv[])
   std::cout << "#### Starting TPC simulation tool for" << std::endl;
   std::cout << "#### " << events << " events and " << engine << " as MC engine" << std::endl;
   std::cout << "####" << std::endl;
-  std::cout << std::endl << std::endl;
-
+  std::cout << std::endl
+            << std::endl;
 
   if (mode == "sim") {
-    run_sim_tpc(events,engine);
+    run_sim_tpc(events, engine);
   } else if (mode == "clus") {
-    run_clus_tpc(events,engine, isContinuous, threads);
+    run_clus_tpc(events, engine, isContinuous, threads);
   } else if (mode == "all") {
     int status;
     pid_t PID = fork();
-    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    if (PID == 0)  { run_sim_tpc(events,engine); return EXIT_SUCCESS;}
-    else waitpid(PID,&status,0);
-
-    PID = fork();
-    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    else waitpid(PID,&status,0);
-
-    PID = fork();
-    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    if (PID == 0)  { run_clus_tpc(events,engine,isContinuous,threads); return EXIT_SUCCESS;}
-    else waitpid(PID,&status,0);
-  } else {
-      std::cout << "Mode was not recognised" << std::endl;
+    if (PID == -1) {
+      std::cout << "ERROR" << std::endl;
       return EXIT_FAILURE;
+    }
+    if (PID == 0) {
+      run_sim_tpc(events, engine);
+      return EXIT_SUCCESS;
+    } else
+      waitpid(PID, &status, 0);
+
+    PID = fork();
+    if (PID == -1) {
+      std::cout << "ERROR" << std::endl;
+      return EXIT_FAILURE;
+    } else
+      waitpid(PID, &status, 0);
+
+    PID = fork();
+    if (PID == -1) {
+      std::cout << "ERROR" << std::endl;
+      return EXIT_FAILURE;
+    }
+    if (PID == 0) {
+      run_clus_tpc(events, engine, isContinuous, threads);
+      return EXIT_SUCCESS;
+    } else
+      waitpid(PID, &status, 0);
+  } else {
+    std::cout << "Mode was not recognised" << std::endl;
+    return EXIT_FAILURE;
   }
 
   return EXIT_SUCCESS;

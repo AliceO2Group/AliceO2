@@ -119,7 +119,7 @@ class GPUTRDTrackletReaderComponent : public AliHLTProcessor
   AliRawReaderMemory* fRawReaderMem; //! TRD raw reader memory instance
   AliTRDrawStream* fRawReaderTrd;    //! TRD raw stream instance
 
-  ClassDef(GPUTRDTrackletReaderComponent, 0)
+  ClassDef(GPUTRDTrackletReaderComponent, 0);
 };
 
 #endif // GPUTRDTRACKLETREADERCOMPONENT_H

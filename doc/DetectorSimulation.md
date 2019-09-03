@@ -20,7 +20,7 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 * **Basic help:** Help on command line options can be obtained with `o2-sim --help`
 * **Typical example:** A typical (exemplary) invocation is of the form 
 
-    ```o2sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
+    ```o2-sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
 
     which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 worker processes.
 * **Generated output**: The simulation creates at least the following files:
@@ -42,7 +42,7 @@ control of verbosity
 ## Help on available generators
 
 ## Control via environment variables
-`o2sim` is sensitive to the following environment variables:
+`o2-sim` is sensitive to the following environment variables:
 
 **ALICE_O2SIM_DUMPLOG**
 **ALICE_O2SIM_USESHM**
@@ -93,7 +93,7 @@ o2-sim --embedIntoFile o2sim.background.root
 
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
 
-#### 5. **How can I obtained detailed stepping information?**
+#### 5. **How can I obtain detailed stepping information?**
 Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
 MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10

@@ -24,10 +24,10 @@ using namespace o2::mft;
 ClassImp(o2::mft::Segmentation);
 
 //_____________________________________________________________________________
-Segmentation::Segmentation() : TNamed(), mHalves(nullptr) {}
+Segmentation::Segmentation() : mHalves(nullptr) {}
 
 //_____________________________________________________________________________
-Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullptr)
+Segmentation::Segmentation(const Char_t* nameGeomFile) : mHalves(nullptr)
 {
 
   // constructor
@@ -44,7 +44,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullp
   delete halfBottom;
   delete halfTop;
 
-  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
+  LOG(DEBUG1) << "MFT segmentation set!";
 }
 
 //_____________________________________________________________________________

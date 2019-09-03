@@ -49,7 +49,7 @@ namespace impl
 // (i.e. excluding general top node)
 std::string getVolumePathName(int detElemId)
 {
-  std::string vp{ "incorrect detElemId" };
+  std::string vp{"incorrect detElemId"};
 
   if (detElemId == 100) {
     return "SC01I_0/Quadrant (chamber 1)_100";
@@ -538,7 +538,7 @@ o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
     throw std::runtime_error("could not get to volPathName=" + volPathName);
   }
 
-  return o2::Transform3D{ *(navig->GetCurrentMatrix()) };
+  return o2::Transform3D{*(navig->GetCurrentMatrix())};
 }
 
 } // namespace mch

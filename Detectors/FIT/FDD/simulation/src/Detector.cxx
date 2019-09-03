@@ -13,7 +13,7 @@
 /// \author michal broz
 /// \date 01/08/2016
 
-#include "FDDSimulation/Hit.h"
+#include "DataFormatsFDD/Hit.h"
 
 #include "FDDBase/Geometry.h"
 
@@ -136,10 +136,11 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // FDA 2  =   8-11
   // FDA 3  =  12-15
 
-  Float_t fFDDLightYield(88.23);
+  Float_t fFDDLightYield(12.8e6);
+  //BC420 yield is 0.64 of antracene which is 20k photons/MeV = 12800/MeV = 12.8e6/GeV
 
   Float_t destep_ad = fMC->Edep();
-  Int_t nPhotonsInStep_ad = Int_t(destep_ad / (fFDDLightYield * 1e-9));
+  Int_t nPhotonsInStep_ad = Int_t(fFDDLightYield * destep_ad);
   nPhotonsInStep_ad = gRandom->Poisson(nPhotonsInStep_ad);
 
   static Float_t eloss_ad = 0.;
@@ -192,25 +193,25 @@ void Detector::CreateMaterials()
   Int_t id;
 
   // PVC (C2H3Cl)n
-  Float_t aPVC[3] = { 12.0107, 1.00794, 35.4527 };
-  Float_t zPVC[3] = { 6., 1., 35. };
-  Float_t wPVC[3] = { 2., 3., 1. };
+  Float_t aPVC[3] = {12.0107, 1.00794, 35.4527};
+  Float_t zPVC[3] = {6., 1., 35.};
+  Float_t wPVC[3] = {2., 3., 1.};
   Float_t dPVC = 1.3;
   o2::base::Detector::Mixture(47, "PVC", aPVC, zPVC, dPVC, -3, wPVC);
 
   // Air
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir1 = 1.20479E-11;
   // Steel
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
   // Cast iron
-  Float_t acasti[4] = { 55.847, 12.011, 28.085, 54.938 };
-  Float_t zcasti[4] = { 26., 6., 14., 25. };
-  Float_t wcasti[4] = { 0.929, 0.035, 0.031, 0.005 };
+  Float_t acasti[4] = {55.847, 12.011, 28.085, 54.938};
+  Float_t zcasti[4] = {26., 6., 14., 25.};
+  Float_t wcasti[4] = {0.929, 0.035, 0.031, 0.005};
 
   o2::base::Detector::Material(9, "ALU", 26.98, 13., 2.7, 8.9, 37.2);
   o2::base::Detector::Material(10, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
@@ -240,7 +241,7 @@ void Detector::CreateMaterials()
   o2::base::Detector::Medium(13, "PB", 13, 0, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
   o2::base::Detector::Medium(19, "ST", 19, 0, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
-  // Parameters  for AD scintillator: BC404
+  // Parameters  for AD scintillator: BC420
   // NE-102, has the following properties :
   //    Density : ca. 1.032 g/cm3
   //    Electrons/cm3: 3.37 x 10^23
@@ -249,8 +250,7 @@ void Detector::CreateMaterials()
   //    Ratio of H to C : 1.100
   //    wavelength of emission : 408 nm.
   //    Decay time : 1.8 ns.
-  //    Luminescent efficiency : typically 18% of NaI(Tl)
-  //    Photons/MeV: ??
+  //    Photons/MeV: 0.64 of antracene which is 20k photons/MeV
   // H                // C
   as[0] = 1.00794;
   as[1] = 12.011;
@@ -260,8 +260,8 @@ void Detector::CreateMaterials()
   ws[1] = 4.74;
   density = 1.032;
   id = 1;
-  o2::base::Detector::Mixture(id, "BC404", as, zs, density, -2, ws);
-  o2::base::Detector::Medium(id, "BC404", id, 1, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(id, "BC420", as, zs, density, -2, ws);
+  o2::base::Detector::Medium(id, "BC420", id, 1, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Parameters for lightGuide:
   // Should be Poly(methyl methacrylate) (PMMA) acrylic

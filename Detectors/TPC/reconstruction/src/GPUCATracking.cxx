@@ -93,7 +93,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   for (char cside = 0; cside < 2; cside++) {
     for (int i = 0; i < nTracks; i++) {
       if (tracks[i].OK() && tracks[i].CSide() == cside)
-        trackSort[tmp++] = { i, (cside == 0 ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset() };
+        trackSort[tmp++] = {i, (cside == 0 ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset()};
     }
     std::sort(trackSort.data() + tmp2, trackSort.data() + tmp,
               [](const auto& a, const auto& b) { return (a.second > b.second); });
@@ -157,13 +157,13 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
 
     oTrack =
       TrackTPC(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
-               { tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(),
-                 tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt() },
-               { tracks[i].GetParam().GetCov(0), tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
-                 tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
-                 tracks[i].GetParam().GetCov(6), tracks[i].GetParam().GetCov(7), tracks[i].GetParam().GetCov(8),
-                 tracks[i].GetParam().GetCov(9), tracks[i].GetParam().GetCov(10), tracks[i].GetParam().GetCov(11),
-                 tracks[i].GetParam().GetCov(12), tracks[i].GetParam().GetCov(13), tracks[i].GetParam().GetCov(14) });
+               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(),
+                tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
+               {tracks[i].GetParam().GetCov(0), tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
+                tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
+                tracks[i].GetParam().GetCov(6), tracks[i].GetParam().GetCov(7), tracks[i].GetParam().GetCov(8),
+                tracks[i].GetParam().GetCov(9), tracks[i].GetParam().GetCov(10), tracks[i].GetParam().GetCov(11),
+                tracks[i].GetParam().GetCov(12), tracks[i].GetParam().GetCov(13), tracks[i].GetParam().GetCov(14)});
     oTrack.setTime0(time0);
     oTrack.setDeltaTBwd(tBwd);
     oTrack.setDeltaTFwd(tFwd);
@@ -181,10 +181,10 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     oTrack.setdEdx(tracks[i].dEdxInfo());
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
-      { outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4] },
-      { outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
-        outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
-        outerPar.C[12], outerPar.C[13], outerPar.C[14] }));
+      {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
+      {outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
+       outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
+       outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
     int nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
       if (!(trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject)) {

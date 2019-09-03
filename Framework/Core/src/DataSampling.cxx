@@ -61,38 +61,12 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       continue;
     }
 
-    // Dispatcher gets connected to any available outputs, which are listed in policies (active or not).
-    // policies partially fulfilled are also taken into account - the user might need data from different FLPs,
-    // but corresponding to the same event.
-    // If there is a strong need, it can be changed to subscribe to every output in the workflow, which would allow to
-    // modify input streams during the runtime.
-
-    LOG(DEBUG) << "Checking if the topology can provide any data for policy '" << policy->getName() << "'.";
-
-    bool dataFound = false;
-    for (const auto& dataProcessor : workflow) {
-      for (const auto& externalOutput : dataProcessor.outputs) {
-        InputSpec candidateInputSpec = DataSpecUtils::matchingInput(externalOutput);
-        candidateInputSpec.binding = "doesnt-matter";
-
-        if (policy->match(candidateInputSpec)) {
-          Output output = policy->prepareOutput(candidateInputSpec);
-
-          OutputSpec outputSpec{
-            output.origin,
-            output.description,
-            output.subSpec,
-            output.lifetime
-          };
-
-          dispatcher.registerPath({ candidateInputSpec, outputSpec });
-          dataFound = true;
-          LOG(DEBUG) << " - found " << externalOutput << ", it will be published in " << outputSpec;
-        }
-      }
+    for (const auto& path : policy->getPathMap()) {
+      dispatcher.registerPath({path.first, path.second});
     }
-    if (dataFound && !policy->getFairMQOutputChannel().empty()) {
-      options.push_back({ "channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), { "Out-of-band channel config" } });
+
+    if (!policy->getFairMQOutputChannel().empty()) {
+      options.push_back({"channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), {"Out-of-band channel config"}});
       LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
@@ -104,7 +78,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     spec.outputs = dispatcher.getOutputSpecs();
     spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
     spec.maxInputTimeslices = threads;
-    spec.labels = { { "DataSampling" }, { "Dispatcher" } };
+    spec.labels = {{"DataSampling"}, {"Dispatcher"}};
     spec.options = options;
 
     workflow.emplace_back(std::move(spec));
@@ -139,10 +113,6 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       DataSamplingPolicy policy(policyConfig.second);
-      if (policy.getSubSpec() == -1) {
-        //fixme: support it, when wildcards are available
-        LOG(WARNING) << "InputSpecsForPolicy does not support subscriptions to all subSpecs yet.";
-      }
       for (const auto& path : policy.getPathMap()) {
         InputSpec input = DataSpecUtils::matchingInput(path.second);
         inputs.push_back(input);

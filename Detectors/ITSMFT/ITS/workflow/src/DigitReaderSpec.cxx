@@ -99,11 +99,11 @@ void DigitReader::run(ProcessingContext& pc)
     LOG(INFO) << "ITSDigitReader pushed " << allDigits.size() << " digits, in "
               << profs->size() << " RO frames";
 
-    pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, allDigits);
-    pc.outputs().snapshot(Output{ "ITS", "ITSDigitROF", 0, Lifetime::Timeframe }, *profs);
+    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
+    pc.outputs().snapshot(Output{"ITS", "ITSDigitROF", 0, Lifetime::Timeframe}, *profs);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe }, allLabels);
-      pc.outputs().snapshot(Output{ "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe }, *pmc2rofs);
+      pc.outputs().snapshot(Output{"ITS", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
+      pc.outputs().snapshot(Output{"ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
     }
   } else {
     LOG(ERROR) << "Cannot read the ITS digits !";
@@ -127,10 +127,9 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     "its-digit-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{ adaptFromTask<DigitReader>(useMC) },
+    AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      { "its-digit-infile", VariantType::String, "itsdigits.root", { "Name of the input file" } } }
-  };
+      {"its-digit-infile", VariantType::String, "itsdigits.root", {"Name of the input file"}}}};
 }
 
 } // namespace its

@@ -133,21 +133,21 @@ class Detector : public o2::base::DetImpl<Detector>
   // current hits per detector and per sector FOR THE CURRENT track first entering a detector
   // (as given by mLastPrincipalTrackEntered)
   // This is given as index where to find in mHits container
-  int mCurrentHitsIndices[NUMDETS][NUMSECS] = { -1 };
+  int mCurrentHitsIndices[NUMDETS][NUMSECS] = {-1};
 
   static constexpr int ZNRADIUSBINS = 18;
   static constexpr int ZPRADIUSBINS = 28;
   static constexpr int ANGLEBINS = 90;
 
-  float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS] = { 1. }; //!
-  float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = { 1. }; //!
+  float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS] = {1.}; //!
+  float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = {1.}; //!
 
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-}
-}
+} // namespace zdc
+} // namespace o2
 
 #ifdef USESHM
 namespace o2

@@ -79,9 +79,9 @@ class DigitsReaderDeviceDPL
     LOG(INFO) << "MIDDigitsReader found " << packedDigits.size() << " unmerged MC digits with same timestamp";
     mDigitsMerger.process(packedDigits, packedMCContainer, data, outMCContainer);
     LOG(INFO) << "MIDDigitsReader pushed " << data.size() << " merged digits";
-    pc.outputs().snapshot(of::Output{ "MID", "DATA", 0, of::Lifetime::Timeframe }, data);
+    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, data);
     LOG(INFO) << "MIDDigitsReader pushed " << outMCContainer.getIndexedSize() << " indexed digits";
-    pc.outputs().snapshot(of::Output{ "MID", "DATALABELS", 0, of::Lifetime::Timeframe }, outMCContainer);
+    pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, outMCContainer);
   }
 
  private:
@@ -120,12 +120,11 @@ framework::DataProcessorSpec getDigitReaderSpec()
   return of::DataProcessorSpec{
     "MIDDigitsReader",
     of::Inputs{},
-    of::Outputs{ of::OutputSpec{ "MID", "DATA" }, of::OutputSpec{ "MID", "DATALABELS" } },
-    of::AlgorithmSpec{ of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>() },
+    of::Outputs{of::OutputSpec{"MID", "DATA"}, of::OutputSpec{"MID", "DATALABELS"}},
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>()},
     of::Options{
-      { "mid-digit-infile", of::VariantType::String, "middigits.root", { "Name of the input file" } },
-      { "mid-digit-timediff", of::VariantType::Int, 0, { "Maximum difference between digits" } } }
-  };
+      {"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}},
+      {"mid-digit-timediff", of::VariantType::Int, 0, {"Maximum difference between digits"}}}};
 }
 } // namespace mid
 } // namespace o2

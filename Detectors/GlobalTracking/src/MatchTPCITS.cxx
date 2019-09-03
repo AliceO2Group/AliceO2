@@ -840,7 +840,7 @@ bool MatchTPCITS::registerMatchRecordTPC(TrackLocITS& tITS, TrackLocTPC& tTPC, f
         nextMatchRec.chi2 = chi2;
         suppressMatchRecordITS(nextMatchRec.matchID, tTPC.matchID); // flag as disabled the overriden ITS match
         registerMatchRecordITS(tITS, tTPC.matchID, chi2);           // register matchCand entry in the ITS records
-        nextMatchRec.matchID = tITS.matchID; // reuse the record of suppressed ITS match to store better one
+        nextMatchRec.matchID = tITS.matchID;                        // reuse the record of suppressed ITS match to store better one
         return true;
       }
     }
@@ -1081,10 +1081,10 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
     return 2. * o2::track::HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0.,
-         diff[o2::track::kNParams - 1] = { tr1.getParam(o2::track::kY) - tr2.getParam(o2::track::kY),
-                                           tr1.getParam(o2::track::kSnp) - tr2.getParam(o2::track::kSnp),
-                                           tr1.getParam(o2::track::kTgl) - tr2.getParam(o2::track::kTgl),
-                                           tr1.getParam(o2::track::kQ2Pt) - tr2.getParam(o2::track::kQ2Pt) };
+         diff[o2::track::kNParams - 1] = {tr1.getParam(o2::track::kY) - tr2.getParam(o2::track::kY),
+                                          tr1.getParam(o2::track::kSnp) - tr2.getParam(o2::track::kSnp),
+                                          tr1.getParam(o2::track::kTgl) - tr2.getParam(o2::track::kTgl),
+                                          tr1.getParam(o2::track::kQ2Pt) - tr2.getParam(o2::track::kQ2Pt)};
   for (int i = o2::track::kNParams - 1; i--;) {
     chi2diag += diff[i] * diff[i] * covMat(i, i);
     for (int j = i; j--;) {
@@ -1317,7 +1317,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
     float clsX;
 
     const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
-    mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+    mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
       LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
@@ -1356,7 +1356,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
         }
       }
       prevrow = row;
-      mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
+      mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
       if (prevsector != sector) {
         prevsector = sector;
         if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {

@@ -19,18 +19,18 @@
 #include "AliTPCSpaceCharge3DCalc.h"
 
 /// \cond CLASSIMP
-ClassImp(AliTPCSpaceCharge3DCalc)
-  /// \endcond
+ClassImp(AliTPCSpaceCharge3DCalc);
+/// \endcond
 
-  /// Construction for AliTPCSpaceCharge3DCalc class
-  /// Default values
-  /// ~~~
-  /// fInterpolationOrder = 5; // interpolation cubic spline with 5 points
-  /// fNRRows = 129;
-  /// fNPhiSlices = 180; // the maximum of phi-slices so far = (8 per sector)
-  /// fNZColumns = 129; // the maximum on column-slices so  ~ 2cm slicing
-  /// ~~~
-  AliTPCSpaceCharge3DCalc::AliTPCSpaceCharge3DCalc()
+/// Construction for AliTPCSpaceCharge3DCalc class
+/// Default values
+/// ~~~
+/// fInterpolationOrder = 5; // interpolation cubic spline with 5 points
+/// fNRRows = 129;
+/// fNPhiSlices = 180; // the maximum of phi-slices so far = (8 per sector)
+/// fNZColumns = 129; // the maximum on column-slices so  ~ 2cm slicing
+/// ~~~
+AliTPCSpaceCharge3DCalc::AliTPCSpaceCharge3DCalc()
 {
   InitAllocateMemory();
 }
@@ -3479,10 +3479,10 @@ Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, co
   Double_t xd = (phi - h3->GetXaxis()->GetBinCenter(ubx)) / xw;
   Double_t yd = (r - h3->GetYaxis()->GetBinCenter(uby)) / yw;
   Double_t zd = (z - h3->GetZaxis()->GetBinCenter(ubz)) / zw;
-  Double_t v[] = { h3->GetBinContent(ubx, uby, ubz), h3->GetBinContent(ubx, uby, obz),
-                   h3->GetBinContent(ubx, oby, ubz), h3->GetBinContent(ubx, oby, obz),
-                   h3->GetBinContent(obx, uby, ubz), h3->GetBinContent(obx, uby, obz),
-                   h3->GetBinContent(obx, oby, ubz), h3->GetBinContent(obx, oby, obz) };
+  Double_t v[] = {h3->GetBinContent(ubx, uby, ubz), h3->GetBinContent(ubx, uby, obz),
+                  h3->GetBinContent(ubx, oby, ubz), h3->GetBinContent(ubx, oby, obz),
+                  h3->GetBinContent(obx, uby, ubz), h3->GetBinContent(obx, uby, obz),
+                  h3->GetBinContent(obx, oby, ubz), h3->GetBinContent(obx, oby, obz)};
   Double_t i1 = v[0] * (1 - zd) + v[1] * zd;
   Double_t i2 = v[2] * (1 - zd) + v[3] * zd;
   Double_t j1 = v[4] * (1 - zd) + v[5] * zd;
@@ -3505,7 +3505,7 @@ Float_t AliTPCSpaceCharge3DCalc::GetSpaceChargeDensity(Float_t r, Float_t phi, F
 
   const Int_t order = 1; //
 
-  const Float_t x[] = { r, phi, z };
+  const Float_t x[] = {r, phi, z};
   Float_t sc = 0;
   if (z > -1e-16) {
     sc = GetChargeCylAC(x, 0);
@@ -3528,7 +3528,7 @@ Float_t AliTPCSpaceCharge3DCalc::GetPotential(Float_t r, Float_t phi, Float_t z)
 
   const Int_t order = 1; //
 
-  const Float_t x[] = { r, phi, z };
+  const Float_t x[] = {r, phi, z};
   Float_t v = 0;
   if (z > -1e-16) {
     v = GetPotentialCylAC(x, 0);

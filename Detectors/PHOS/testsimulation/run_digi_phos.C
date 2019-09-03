@@ -36,12 +36,10 @@ void run_digi_phos(std::string outputfile = "o2dig.root",
   // Setup FairRoot analysis manager
   FairRunAna* fRun = new FairRunAna();
   FairFileSource* fFileSource = new FairFileSource(inputfile);
-  FairRootManager* mgr = FairRootManager::Instance();
-  mgr->SetSource(fFileSource);
   fRun->SetSource(fFileSource);
   fRun->SetOutputFile(outputfile.data());
 
-  // Setup Runtime DB
+  //  // Setup Runtime DB
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
   parInput1->open(paramfile.data());

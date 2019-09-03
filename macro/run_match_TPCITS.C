@@ -22,7 +22,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
                       std::string inputTracksTPC = "tpctracks.root",
                       std::string inputClustersITS = "o2clus_its.root",
                       std::string inputClustersTPC = "tpc-native-clusters.root",
-                      std::string inputFITInfo = "o2reco_t0.root", // optional FIT (T0) info
+                      std::string inputFITInfo = "o2reco_ft0.root", // optional FIT (T0) info
                       std::string inputGeom = "O2geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {
@@ -94,8 +94,8 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   matching.setITSROFrameLengthMUS(alpParams.roFrameLength / 1.e3); // ITS ROFrame duration in \mus
   matching.setCutMatchingChi2(100.);
-  std::array<float, o2::track::kNParams> cutsAbs = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
-  std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };
+  std::array<float, o2::track::kNParams> cutsAbs = {2.f, 2.f, 0.2f, 0.2f, 4.f};
+  std::array<float, o2::track::kNParams> cutsNSig2 = {49.f, 49.f, 49.f, 49.f, 49.f};
   matching.setCrudeAbsDiffCut(cutsAbs);
   matching.setCrudeNSigma2Cut(cutsNSig2);
   matching.setTPCTimeEdgeZSafeMargin(3);

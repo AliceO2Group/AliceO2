@@ -197,11 +197,11 @@ class RawReaderCRU
     };
 
    private:
-    bool mSyncFound{ false };   /// if sync pattern was found
-    uint32_t mPacketNum{ 0 };   /// packet number
-    uint32_t mFrameNum{ 0 };    /// frame number
-    uint32_t mFilePos{ 0 };     /// file position
-    uint32_t mHalfWordPos{ 0 }; /// half word position
+    bool mSyncFound{false};   /// if sync pattern was found
+    uint32_t mPacketNum{0};   /// packet number
+    uint32_t mFrameNum{0};    /// frame number
+    uint32_t mFilePos{0};     /// file position
+    uint32_t mHalfWordPos{0}; /// half word position
   };
 
   using SyncArray = std::array<SyncPosition, 5>;
@@ -251,8 +251,8 @@ class RawReaderCRU
     const DataVector& getDataVector(int stream) { return mADCRaw[stream]; }
 
    private:
-    uint32_t mOutputStream{ 0 };         // variable to set the output stream for the << operator
-    uint32_t mNumTimeBins{ 0 };          // variable to set the number of timebins for the << operator
+    uint32_t mOutputStream{0};           // variable to set the output stream for the << operator
+    uint32_t mNumTimeBins{0};            // variable to set the number of timebins for the << operator
     std::array<DataVector, 5> mADCRaw{}; // array of 5 vectors to hold the raw ADC data for each stream
   };
   friend std::ostream& operator<<(std::ostream& output, const RawReaderCRU::ADCRawData& rawData);
@@ -323,9 +323,9 @@ class RawReaderCRU
     uint32_t mFrameHalfWords[5][4]{};     /// fixed size 2D array to contain the 4 halfwords for the 5 data streams of a link
     uint32_t mPrevFrameHalfWords[5][4]{}; /// previous half word, required for decoding
     uint32_t mSyncCheckRegister[5]{};     /// array of registers to check the SYNC pattern for the 5 data streams
-    uint32_t mFilePos{ 0 };               /// position in the raw data file (for back-tracing)
-    uint32_t mFrameNum{ 0 };              /// current GBT frame number
-    uint32_t mPacketNum{ 0 };             /// packet number
+    uint32_t mFilePos{0};                 /// position in the raw data file (for back-tracing)
+    uint32_t mFrameNum{0};                /// current GBT frame number
+    uint32_t mPacketNum{0};               /// packet number
 
     /// Bit-shift operations helper function operating on the 4 32-bit words of them
     /// GBT frame. Source bit "s" is shifted to target position "t"
@@ -484,7 +484,7 @@ inline void RawReaderCRU::GBTFrame::updateSyncCheck(bool verbose)
 /// extract the 4 5b halfwords for the 5 data streams from one GBT frame
 inline void RawReaderCRU::GBTFrame::getFrameHalfWords()
 {
-  uint32_t P[5][4] = { { 19, 18, 17, 16 }, { 39, 38, 37, 36 }, { 63, 62, 61, 60 }, { 83, 82, 81, 80 }, { 107, 106, 105, 104 } };
+  uint32_t P[5][4] = {{19, 18, 17, 16}, {39, 38, 37, 36}, {63, 62, 61, 60}, {83, 82, 81, 80}, {107, 106, 105, 104}};
   uint32_t res = 0;
   // i = Stream, j = Halfword
   for (int i = 0; i < 5; i++)

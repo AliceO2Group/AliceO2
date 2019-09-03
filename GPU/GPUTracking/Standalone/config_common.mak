@@ -41,6 +41,12 @@ else
 DEFINES						+= GPUCA_NO_VC
 endif
 
+ifeq ($(CONFIG_FMT), 1)
+LIBSUSE						+= -lfmt
+else
+DEFINES						+= GPUCA_NO_FMT
+endif
+
 ifeq ($(LINK_ROOT), 0)
 ifneq ($(CONFIG_O2DIR), )
 $(warning Cannot use O2DIR without ROOT)

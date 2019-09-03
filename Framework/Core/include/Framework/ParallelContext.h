@@ -21,15 +21,16 @@ namespace framework
 /// function with information relevant to the parallel execution,
 /// e.g. how many workers have been created by the above mentioned function
 /// and what's the unique id the caller is associated with.
-/// This context is exposed as a Service and it's therefore available 
+/// This context is exposed as a Service and it's therefore available
 /// to both the init and the processing callbacks via:
 ///
 ///    auto ctx = services.get<ParallelContext>();
 ///
 /// FIXME: should we have convenience methods to address workers using
 ///        different parallel topology (e.g. have a index2D, rather than index1D).
-class ParallelContext {
-public:
+class ParallelContext
+{
+ public:
   // FIXME: find better names... rank1D and rank1DSize?
   ParallelContext(size_t index1D, size_t index1DSize)
     : mIndex1D{index1D},
@@ -38,8 +39,9 @@ public:
   }
 
   size_t index1D() const { return mIndex1D; }
-  size_t index1DSize() const {return mIndex1DSize; };
-private:
+  size_t index1DSize() const { return mIndex1DSize; };
+
+ private:
   size_t mIndex1D;
   size_t mIndex1DSize;
 };

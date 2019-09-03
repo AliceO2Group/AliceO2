@@ -605,7 +605,7 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
                          "+ DCDC_coil_main_shape:tDCDC_coil_straight_No5 + DCDC_coil_main_shape:tDCDC_coil_straight_No6"
                          "+ DCDC_coil_main_shape:tDCDC_coil_straight_No7 + DCDC_coil_main_shape:tDCDC_coil_straight_No8");
   TGeoRotation* rDCDC_coil_torus[7];
-  Double_t DCDC_coil_torus_part_angle[] = { 15, 30, 60, 90, 120, 150, 165 };
+  Double_t DCDC_coil_torus_part_angle[] = {15, 30, 60, 90, 120, 150, 165};
 
   TGeoCompositeShape* rotated_DCDC_coil_main_shape[7];
   for (Int_t i = 0; i < 7; ++i) {

@@ -11,7 +11,7 @@
 #define ALICEO2_BASE_DETMATRIXCACHE_H
 
 //Forward to standard headers with protection for GPU compilation
-#include "GPUCommonFairLogger.h"
+#include "GPUCommonLogger.h"
 #include "GPUCommonRtypes.h"
 
 #include <array>
@@ -59,6 +59,7 @@ class MatrixCache
 
   const T& getMatrix(int sensID) const { return mCache[sensID]; }
   bool isFilled() const { return !mCache.empty(); }
+
  private:
   std::vector<T> mCache;
   ClassDefNV(MatrixCache, 1);
@@ -178,7 +179,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
 
   ClassDefOverride(DetMatrixCacheIndirect, 1);
 };
-}
-}
+} // namespace detectors
+} // namespace o2
 
 #endif

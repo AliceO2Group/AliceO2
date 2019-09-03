@@ -60,23 +60,35 @@ class TimeFrame
   }
 
   // from how many flps we received data
-  int GetNumFlps() const { /* FIXME: implement */ return 0; }
+  int GetNumFlps() const
+  { /* FIXME: implement */
+    return 0;
+  }
   // is this TimeFrame complete
-  bool IsComplete() const { /* FIXME: implement */ return false; }
+  bool IsComplete() const
+  { /* FIXME: implement */
+    return false;
+  }
   // return the number of message parts in this TimeFrame
   size_t GetNumParts() const { return mParts.size(); }
   // access to the raw data
   MessageSizePair& GetPart(size_t i) { return mParts[i]; }
   // Get total payload size in bytes
-  size_t GetPayloadSize() const { /* FIXME: implement */ return 0; }
+  size_t GetPayloadSize() const
+  { /* FIXME: implement */
+    return 0;
+  }
   // Get payload size of part i
-  size_t GetPayloadSize(size_t i) const { /* FIXME: implement */ return 0; }
+  size_t GetPayloadSize(size_t i) const
+  { /* FIXME: implement */
+    return 0;
+  }
 
-private:
+ private:
   // FIXME: enable this when we have a dictionary for TimeStamp etc
   o2::header::TimeStamp mTimeStamp; //! the TimeStamp for this TimeFrame
 
-  size_t mEpnId; // EPN origin of TimeFrame
+  size_t mEpnId;                       // EPN origin of TimeFrame
   std::vector<MessageSizePair> mParts; // the message parts as accumulated by the EPN
 
   // FIXME: add Index data structure
@@ -84,7 +96,7 @@ private:
 
   ClassDefNV(TimeFrame, 1);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 
 #endif // ALICEO2_TIMEFRAME_H

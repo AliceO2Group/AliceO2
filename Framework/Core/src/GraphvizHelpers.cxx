@@ -24,20 +24,19 @@ std::string quote(std::string const& s) { return R"(")" + s + R"(")"; }
 } // namespace
 
 /// Helper to dump a workflow as a graphviz file
-void
-GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcessorSpec> &specs)
+void GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream& out, const std::vector<DataProcessorSpec>& specs)
 {
   out << "digraph structs {\n";
   out << "  node[shape=record]\n";
-  for (auto &spec : specs) {
-    out << R"(  struct [label=")" << spec.name << R"("];)" << "\n";
+  for (auto& spec : specs) {
+    out << R"(  struct [label=")" << spec.name << R"("];)"
+        << "\n";
   }
   out << "}\n";
 }
 
 /// Helper to dump a set of devices as a graphviz file
-void
-GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
+void GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream& out, const std::vector<DeviceSpec>& specs)
 {
   out << R"GRAPHVIZ(digraph structs {
   node[shape=record]
@@ -45,11 +44,11 @@ GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<De
   std::map<std::string, std::string> outputChannel2Device;
   std::map<std::string, unsigned int> outputChannel2Port;
 
-  for (auto &spec : specs) {
+  for (auto& spec : specs) {
     auto id = spec.id;
     out << "  " << quote(id) << R"( [label="{{)";
     bool firstInput = true;
-    for (auto && input : spec.inputChannels) {
+    for (auto&& input : spec.inputChannels) {
       if (firstInput == false) {
         out << "|";
       }
@@ -62,19 +61,20 @@ GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<De
     out << id << "(" << totalChannels << ")";
     out << "|{";
     bool firstOutput = true;
-    for (auto && output : spec.outputChannels) {
+    for (auto&& output : spec.outputChannels) {
       outputChannel2Device.insert(std::make_pair(output.name, id));
       outputChannel2Port.insert(std::make_pair(output.name, output.port));
       if (firstOutput == false) {
         out << "|";
       }
       firstOutput = false;
-      out <<  "<" << output.name << ">" << output.name;
+      out << "<" << output.name << ">" << output.name;
     }
-    out << R"(}}"];)" << "\n";
+    out << R"(}}"];)"
+        << "\n";
   }
-  for (auto &spec : specs) {
-    for (auto &input : spec.inputChannels) {
+  for (auto& spec : specs) {
+    for (auto& input : spec.inputChannels) {
       // input and output name are now the same
       auto outputName = input.name;
       out << "  " << quote(outputChannel2Device[outputName]) << ":" << quote(outputName) << "-> " << quote(spec.id)

@@ -16,7 +16,7 @@
 
 #pragma link C++ class o2::itsmft::SDigit + ;
 #pragma link C++ class o2::itsmft::Digit + ;
-#pragma link C++ class std::vector < o2::itsmft::Digit > +;
+#pragma link C++ class std::vector < o2::itsmft::Digit> + ;
 #pragma link C++ class o2::itsmft::SegmentationAlpide + ;
 
 #pragma link C++ class o2::itsmft::DPLAlpideParam < o2::detectors::DetID::ITS> + ;

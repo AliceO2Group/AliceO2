@@ -39,8 +39,8 @@ class Stream final
  private:
   GPUStream mStream;
 };
-}
-}
-}
+} // namespace GPU
+} // namespace its
+} // namespace o2
 
 #endif /* TRAKINGITSU_INCLUDE_GPU_STREAM_H_ */

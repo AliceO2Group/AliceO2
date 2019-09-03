@@ -36,7 +36,7 @@ class Clusterer
  protected:
   Geometry* mPHOSGeom = nullptr; ///< PHOS geometry
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALCLUSTERER_H */

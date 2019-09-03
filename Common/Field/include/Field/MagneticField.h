@@ -32,7 +32,7 @@ namespace field
 {
 class MagneticWrapperChebyshev;
 }
-} // lines 19-19
+} // namespace o2
 namespace o2
 {
 namespace field
@@ -45,7 +45,9 @@ class MagneticField : public FairField
 {
 
  public:
-  enum PolarityConvention_t { kConvLHC, kConvDCS2008, kConvMap2005 };
+  enum PolarityConvention_t { kConvLHC,
+                              kConvDCS2008,
+                              kConvMap2005 };
   enum { kOverrideGRP = BIT(14) }; // don't recreate from GRP if set
 
   /// Default constructor
@@ -77,7 +79,7 @@ class MagneticField : public FairField
   /// X component, avoid using since slow
   Double_t GetBx(Double_t x, Double_t y, Double_t z) override
   {
-    double xyz[3] = { x, y, z }, b[3];
+    double xyz[3] = {x, y, z}, b[3];
     MagneticField::Field(xyz, b);
     return b[0];
   }
@@ -85,7 +87,7 @@ class MagneticField : public FairField
   /// Y component, avoid using since slow
   Double_t GetBy(Double_t x, Double_t y, Double_t z) override
   {
-    double xyz[3] = { x, y, z }, b[3];
+    double xyz[3] = {x, y, z}, b[3];
     MagneticField::Field(xyz, b);
     return b[1];
   }
@@ -93,7 +95,7 @@ class MagneticField : public FairField
   /// Z component
   Double_t GetBz(Double_t x, Double_t y, Double_t z) override
   {
-    double xyz[3] = { x, y, z };
+    double xyz[3] = {x, y, z};
     return getBz(xyz);
   }
 
@@ -237,7 +239,7 @@ class MagneticField : public FairField
   ClassDefOverride(o2::field::MagneticField,
                    3) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
 };
-}
-}
+} // namespace field
+} // namespace o2
 
 #endif

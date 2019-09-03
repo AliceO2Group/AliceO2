@@ -19,18 +19,20 @@
 #include <functional>
 #include <vector>
 
-namespace o2 {
+namespace o2
+{
 
-namespace algorithm {
+namespace algorithm
+{
 
 /// helper function returning size of type with a specialization for
 /// void returning 0
-template<typename T>
+template <typename T>
 struct typesize {
   static const size_t size = sizeof(T);
 };
 // specialization for void
-template<>
+template <>
 struct typesize<void> {
   static const size_t size = 0;
 };
@@ -91,11 +93,11 @@ struct typesize<void> {
  *                )
  * </pre>
  */
-template<typename HeaderT,
-         typename TrailerT = void
-         >
-class ForwardParser {
-public:
+template <typename HeaderT,
+          typename TrailerT = void>
+class ForwardParser
+{
+ public:
   using HeaderType = HeaderT;
   using TrailerType = TrailerT;
   using PayloadType = unsigned char;
@@ -138,7 +140,7 @@ public:
 
   /// alias for callback to get the complete frame size including header,
   /// trailer and the data
-  using GetFrameSizeFct = std::function<size_t(const HeaderType& )>;
+  using GetFrameSizeFct = std::function<size_t(const HeaderType&)>;
 
   /// function callback to insert/handle one frame into, sequentially called
   /// for all frames if the whole block has a valid format
@@ -147,30 +149,34 @@ public:
   /// Parse buffer of size bufferSize, requires callbacks to check header
   /// trailer, the frame size, and insert callback to handle a FrameInfo
   /// object.
-  template<typename InputType>
+  template <typename InputType>
   int parse(const InputType* buffer, size_t bufferSize,
             CheckHeaderFct checkHeader,
             CheckTrailerFct<TrailerType> checkTrailer,
             GetFrameSizeFct getFrameSize,
-            InsertFct insert) {
+            InsertFct insert)
+  {
     static_assert(sizeof(InputType) == 1,
-                  "ForwardParser currently only supports byte type buffer"
-                  );
-    if (buffer == nullptr || bufferSize == 0) return 0;
+                  "ForwardParser currently only supports byte type buffer");
+    if (buffer == nullptr || bufferSize == 0)
+      return 0;
     size_t position = 0;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
 
       // check the header
-      if (sizeof(HeaderType) + position > bufferSize) break;
+      if (sizeof(HeaderType) + position > bufferSize)
+        break;
       entry.header = reinterpret_cast<const HeaderType*>(buffer + position);
-      if (!checkHeader(*entry.header)) break;
+      if (!checkHeader(*entry.header))
+        break;
 
       // extract frame size from header, this is expected to be the
       // total frome size including header, payload and optional trailer
       auto frameSize = getFrameSize(*entry.header);
-      if (frameSize + position > bufferSize) break;
+      if (frameSize + position > bufferSize)
+        break;
 
       // payload starts right after the header
       entry.payload = reinterpret_cast<typename FrameInfo::PtrT>(entry.header + 1);
@@ -182,7 +188,8 @@ public:
       } else {
         auto trailerStart = buffer + position + frameSize - tailOffset;
         entry.trailer = reinterpret_cast<const TrailerType*>(trailerStart);
-        if (!CheckTrailer(entry, checkTrailer)) break;
+        if (!CheckTrailer(entry, checkTrailer))
+          break;
       }
 
       // store the extracted frame info and continue with remaining buffer
@@ -194,7 +201,8 @@ public:
       // frames found and format consistent, insert entries to target
       // Note: the complete block must be consistent
       for (auto entry : frames) {
-        if (!insert(entry)) break;
+        if (!insert(entry))
+          break;
       }
       return frames.size();
     } else if (frames.size() == 0) {
@@ -211,28 +219,31 @@ public:
   /// check, e.g. when its type is void, or when the integrity of the trailer
   /// is not relevant. Requires callbacks to check header, frame size, and
   /// insert callback to handle a FrameInfo object.
-  template<typename InputType, typename U = TrailerType>
+  template <typename InputType, typename U = TrailerType>
   typename std::enable_if<std::is_void<U>::value, int>::type
-      parse(const InputType* buffer, size_t bufferSize,
-            CheckHeaderFct checkHeader,
-            GetFrameSizeFct getFrameSize,
-            InsertFct insert) {
-    auto checkTrailer = [] () {return true;};
+    parse(const InputType* buffer, size_t bufferSize,
+          CheckHeaderFct checkHeader,
+          GetFrameSizeFct getFrameSize,
+          InsertFct insert)
+  {
+    auto checkTrailer = []() { return true; };
     return parse(buffer, bufferSize, checkHeader, checkTrailer, getFrameSize, insert);
   }
 
-private:
+ private:
   /// internal function to check the trailer, distinguishes void and non-void
   /// trailer type.
   template <typename U = TrailerType>
   typename std::enable_if<!std::is_void<U>::value, bool>::type
-  CheckTrailer(const FrameInfo& entry, CheckTrailerFct<TrailerType>& checkTrailer) const {
+    CheckTrailer(const FrameInfo& entry, CheckTrailerFct<TrailerType>& checkTrailer) const
+  {
     return checkTrailer(*entry.trailer);
   }
 
   template <typename U = TrailerType>
   typename std::enable_if<std::is_void<U>::value, bool>::type
-  CheckTrailer(const FrameInfo&, CheckTrailerFct<TrailerType>&) const {
+    CheckTrailer(const FrameInfo&, CheckTrailerFct<TrailerType>&) const
+  {
     return true;
   }
 };
@@ -273,9 +284,10 @@ private:
  *                )
  * </pre>
  */
-template<typename HeaderT, typename TrailerT>
-class ReverseParser {
-public:
+template <typename HeaderT, typename TrailerT>
+class ReverseParser
+{
+ public:
   using HeaderType = HeaderT;
   using TrailerType = TrailerT;
   using PayloadType = unsigned char;
@@ -311,34 +323,39 @@ public:
   /// Parse buffer of size bufferSize, requires callbacks to check header
   /// trailer, the frame size, and insert callback to handle a FrameInfo
   /// object.
-  template<typename InputType>
+  template <typename InputType>
   int parse(const InputType* buffer, size_t bufferSize,
             CheckHeaderFct checkHeader,
             CheckTrailerFct checkTrailer,
             GetFrameSizeFct getFrameSize,
-            InsertFct insert) {
+            InsertFct insert)
+  {
     static_assert(sizeof(InputType) == 1,
-                  "ReverseParser currently only supports byte type buffer"
-                  );
-    if (buffer == nullptr || bufferSize == 0) return 0;
+                  "ReverseParser currently only supports byte type buffer");
+    if (buffer == nullptr || bufferSize == 0)
+      return 0;
     auto position = bufferSize;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
 
       // start from end, extract and check trailer
-      if (sizeof(TrailerType) > position) break;
+      if (sizeof(TrailerType) > position)
+        break;
       entry.trailer = reinterpret_cast<const TrailerType*>(buffer + position - sizeof(TrailerType));
-      if (!checkTrailer(*entry.trailer)) break;
+      if (!checkTrailer(*entry.trailer))
+        break;
 
       // get the total frame size
       auto frameSize = getFrameSize(*entry.trailer);
-      if (frameSize > position) break;
+      if (frameSize > position)
+        break;
 
       // extract and check header
       auto headerStart = buffer + position - frameSize;
       entry.header = reinterpret_cast<const HeaderType*>(headerStart);
-      if (!checkHeader(*entry.header)) break;
+      if (!checkHeader(*entry.header))
+        break;
 
       // payload immediately after header
       entry.payload = reinterpret_cast<typename FrameInfo::PtrT>(entry.header + 1);
@@ -350,7 +367,8 @@ public:
     if (position == 0) {
       // frames found and format consistent, the complete block must be consistent
       for (auto entry : frames) {
-        if (!insert(entry)) break;
+        if (!insert(entry))
+          break;
       }
       return frames.size();
     } else if (frames.size() == 0) {

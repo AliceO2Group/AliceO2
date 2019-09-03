@@ -1,73 +1,109 @@
 \page refCCDB Module 'CCDB'
 
-## CCDB API
+# CCDB
 
-The CCDB API class (`CcdbApi`) is implemented using libcurl and gives
-access to the CCDB via its REST api.
+The Conditions and Calibration DataBase provides a REST API which can be used to list, store and retrieve objects.
 
-Usage :
-```
+The CCDB API class (`CcdbApi`) is implemented using libcurl and gives C++ API
+access to the CCDB via its REST api. The API can be also used to create a snapshot
+of conditions objects on the local disc and retrieve the objects therefrom. This can be useful
+in circumstances of reduced or no network connectivity.
+
+There are currently 3 different kinds of store/retrieve functions, which we expect to unify in the immediate future:
+1. simple `store/retrieve` API serializing a `TObject` as a simple ROOT `TMessage`.
+2. `storeAsTFile/retrieveFromTFile` API serializing a `TObject` in a ROOT `TFile` with the advantage 
+   of keeping the data together with the ROOT streamer info in the same place.
+3. A strongly-typed `storeAsTFileAny<T>/retrieveFromTFileAny<T>` API allowing to handle any type T 
+   having a ROOT dictionary. We encourage to use this API by default.
+
+
+## Central and local instances of the CCDB
+
+There is a test central CCDB at [http://ccdb-test.cern.ch:8080](http://ccdb-test.cern.ch:8080). Feel free to use it. If you prefer to use a local instance, you can follow the instructions [here](https://docs.google.com/document/d/1_GM6yY7ejVEIRi1y8Ooc9ongrGgZyCiks6Ca0OAEav8).
+
+## Access with a browser
+
+If you access the CCDB with a web browser, add `/browse` at the end of the URL to have a user readable interface. Moreover, using `/browse/?report=true` will provide details on the number of files and the size of the folders (e.g. http://ccdb-test.cern.ch:8080/browse/?report=true).
+
+## Example Usage
+
+* storing / retrieving TObjects with TMessage blobs
+```c++
 // init
 CcdbApi api;
 map<string, string> metadata; // can be empty
-api.init("http://ccdb-test.cern.ch:8080");
+api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
 // store
 auto h1 = new TH1F("object1", "object1", 100, 0, 99);
 api.store(h1, "Test/Detector", metadata);
 // retrieve
 auto h1back = api.retrieve("Test/Detector", metadata);
-
 ```
 
-## Conditions MQ
+* storing / retrieving arbitrary (non TObject) classes
 
-Conditions MQ is a client/server CCDB implementation for O2. Currently the implementation supports two backends, an OCDB and a Riak one.
-
-### OCDB backend
-
-To run the MQ server-client example with the MQ server replying with CDB objects to the client requests, the steps below should be followed:
-
-* Create a local O2CDB instance using the following macro in <installation directory>/bin/config/:
-
-```bash
-root -l fill_local_ocdb.C
+```c++
+// init
+CcdbApi api;
+map<string, string> metadata; // can be empty
+api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+// store abitrary user object in strongly typed manner
+auto deadpixels = new o2::FOO::DeadPixelMap();
+api.storeAsTFileAny(deadpixels, "FOO/DeadPixels", metadata);
+// read like this (you have to specify the type)
+auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
 ```
 
-This will create "DET/Calib/Histo" calibration objects for a hundred runs in the subdirectory O2CDB/ under the current directory.
+* creating a local snapshot and fetching objects therefrom
 
-* In one shell run the server example:
+```c++
+// init
+CcdbApi api;
+map<string, string> metadata; // can be empty
+api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+// create a local snapshot of everthing in or below the FOO folder valid for timestamp 12345
+api.snapshot("FOO", "/tmp/CCDBSnapshot/", 12345);
 
-```bash
-o2-ccdb-conditions-server --id parmq-server --mq-config <installation directory>/bin/config/conditions-server.json --first-input-name local://<installation directory>/bin/config/O2CDB --first-input-type OCDB
+// read from snapshot by saying
+CcdbApi snapshotapi;
+snaptshotapi.init("file:///tmp/CCDBSnapshot");
+
+// reading still works just like this (you have to specify the type)
+auto deadpixelsback = snapshotapi.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
 ```
 
-* In a separate shell run the client example:
+## Future ideas :
 
-```bash
-o2-ccdb-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB --object-path <installation directory>/bin/config/O2CDB
+- [ ] offer API without need to pass metadata object
+- [ ] deprecate TMessage based API
+- [ ] code reduction or delegation between various storeAsTFile APIs
+- [ ] eventually just call the functions store/retrieve once TMessage is disabled
+
+
+# BasicCCDBManager
+
+A basic higher level class `BasicCCDBManager` is offered for convenient access to the CCDB from
+user code. This class
+* Encapsulates the timestamp.
+* Offers a more convenient `get` function to retrieve objects.
+* Is a singleton which is initialized once and can be used from any detector code.
+
+The class was written for the use-case of transport MC simulation. Typical usage should be like
+
+```c++
+// setup manager once (at start of processing) 
+auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+mgr.setURL("http://ourccdbserverver.cern.ch");
+mgr.setTimestamp(timestamp_which_we_want_to_anchor_to);
+
+
+// in some FOO detector code (detector initialization)
+auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+// just give the correct path and you will be served the object
+auto alignment = mgr.get<o2::FOO::GeomAlignment>("/FOO/Alignment");
 ```
 
-* We can also query the running conditions-server using any user code as
-  demonstrated in `standalone-client` which works for an O2CDB
-  generated from the unit test `testWriteReadAny`
+## Future ideas / todo:
 
-### Riak backend
-
-To run the MQ server-client example with the MQ server executing PUT or GET commands to a Riak cluster through an MQ broker, the steps below should be followed:
-
-* In one shell run the server example:
-
-```bash
-conditions-server --id parmq-server --mq-config <installation directory>/bin/config/conditions-server.json
-```
-
-* In a separate shell run the client example:
-
-```bash
-o2-ccdb-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source Riak
-```
-
-List of optional client arguments:
-
-- `operation-type` (default = "GET"): "PUT", "GET". Sets the operation type.
-- `object-path` (default = "./OCDB/"). Sets the directory that holds the condition objects.
+- [ ] offer improved error handling / exceptions
+- [ ] do we need a store method?

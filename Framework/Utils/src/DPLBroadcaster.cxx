@@ -30,28 +30,28 @@ namespace workflows
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs,
                                          std::function<size_t(o2f::DataRef)> const func)
 {
-  return { devName,                 // Device name from user
-           o2f::Inputs{ usrInput }, // User defined input as a vector of one InputSpec
-           usrOutputs,              // user defined outputs as a vector of OutputSpecs
+  return {devName,               // Device name from user
+          o2f::Inputs{usrInput}, // User defined input as a vector of one InputSpec
+          usrOutputs,            // user defined outputs as a vector of OutputSpecs
 
-           o2f::AlgorithmSpec{ [usrOutputs, func](o2f::InitContext&) {
-             // Creating shared ptrs to useful parameters
-             auto outputsPtr = getOutputList(usrOutputs);
-             auto funcPtr = std::make_shared<std::function<size_t(o2f::DataRef)> const>(func);
+          o2f::AlgorithmSpec{[usrOutputs, func](o2f::InitContext&) {
+            // Creating shared ptrs to useful parameters
+            auto outputsPtr = getOutputList(usrOutputs);
+            auto funcPtr = std::make_shared<std::function<size_t(o2f::DataRef)> const>(func);
 
-             // Defining the ProcessCallback as returned object of InitCallback
-             return [outputsPtr, funcPtr](o2f::ProcessingContext& ctx) {
-               // Getting original input message and getting his size using the provided function
-               auto inputMsg = ctx.inputs().getByPos(0);
-               // Getting message size using provided std::function
-               auto msgSize = (*funcPtr)(inputMsg);
-               // Iterating over the OutputSpecs to push the input message to all the output destinations
-               for (const auto& itOutputs : (*outputsPtr)) {
-                 auto& fwdMsg = ctx.outputs().newChunk(itOutputs, msgSize);
-                 std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);
-               }
-             };
-           } } };
+            // Defining the ProcessCallback as returned object of InitCallback
+            return [outputsPtr, funcPtr](o2f::ProcessingContext& ctx) {
+              // Getting original input message and getting his size using the provided function
+              auto inputMsg = ctx.inputs().getByPos(0);
+              // Getting message size using provided std::function
+              auto msgSize = (*funcPtr)(inputMsg);
+              // Iterating over the OutputSpecs to push the input message to all the output destinations
+              for (const auto& itOutputs : (*outputsPtr)) {
+                auto& fwdMsg = ctx.outputs().newChunk(itOutputs, msgSize);
+                std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);
+              }
+            };
+          }}};
 }
 
 // This is a shortcut for messages with fixed user-defined size

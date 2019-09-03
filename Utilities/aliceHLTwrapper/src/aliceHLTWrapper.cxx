@@ -25,7 +25,6 @@
 //  @since  2014-05-07
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
-
 #include "runFairMQDevice.h" // FairMQDevice launcher boiler plate code
 #include "aliceHLTwrapper/WrapperDevice.h"
 

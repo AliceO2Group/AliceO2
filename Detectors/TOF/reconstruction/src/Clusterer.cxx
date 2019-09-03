@@ -16,12 +16,16 @@
 #include "TOFReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <TStopwatch.h>
 
 using namespace o2::tof;
 
 //__________________________________________________
 void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
+  TStopwatch timerProcess;
+  timerProcess.Start();
+
   reader.init();
   int totNumDigits = 0;
 
@@ -34,6 +38,10 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
   }
 
   LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
+  timerProcess.Stop();
+  printf("Timing:\n");
+  printf("Clusterer::process:        ");
+  timerProcess.Print();
 }
 
 //__________________________________________________
@@ -140,7 +148,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   }
 
   c.setMainContributingChannel(mContributingDigit[0]->getChannel());
-  c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN + double(mContributingDigit[0]->getBC() * 25000.)); // time in ps (for now we assume it calibrated)
+  c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN + double(mContributingDigit[0]->getBC() * 25000.));    // time in ps (for now we assume it calibrated)
   c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + double(mContributingDigit[0]->getBC() * 25000.)); // time in ps (for now we assume it calibrated)
 
   c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN * 1E-3); // TOT in ns (for now we assume it calibrated)

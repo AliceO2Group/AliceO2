@@ -51,14 +51,16 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     std::array<std::shared_ptr<o2::tpc::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
     bool finished = false;
+    bool sendMC = false;
   };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // FIXME: the clusterer needs to be initialized with the sector number, so we need one
     // per sector. Taking a closer look to the HwClusterer, the sector number is only used
     // for calculating the CRU id. This could be achieved by passing the current sector as
     // parameter to the clusterer processing function.
     auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->sendMC = sendMC;
 
     auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
       auto& clusterArray = processAttributes->clusterArray;
@@ -78,10 +80,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (sector < 0) {
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
-        o2::tpc::TPCSectorHeader header{ sector };
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+        o2::tpc::TPCSectorHeader header{sector};
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
         if (!labelKey.empty()) {
-          pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
         }
         return (sectorHeader->sector == -1);
       }
@@ -123,10 +125,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       }
       // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
       // block by using move semantics
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, clusterArray.size());
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, clusterArray.size());
       std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
       if (!labelKey.empty()) {
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, mctruthArray);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mctruthArray);
       }
       return false;
     };
@@ -142,12 +144,26 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
+          // this input slot is empty
+          continue;
+        }
         auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
         assert(dataHeader);
         if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITS")) {
           inputs[dataHeader->subSpecification].inputKey = inputRef.spec->binding;
         } else if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITSMCTR")) {
           inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
+        }
+      }
+      if (processAttributes->sendMC) {
+        // need to check whether data-MC pairs are complete
+        // probably not needed as the framework seems to take care of the two messages send in pairs
+        for (auto const& input : inputs) {
+          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
+            // we wait for the data set to be complete next time
+            return;
+          }
         }
       }
       bool finished = true;
@@ -167,7 +183,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
 
   auto createInputSpecs = [](bool makeMcInput, bool makeTriggersInput = false) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ "digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe },
+      InputSpec{"digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
@@ -184,10 +200,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      OutputSpec{{"clusters"}, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
-      OutputLabel label{ "clusterlbl" };
+      OutputLabel label{"clusterlbl"};
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
@@ -195,10 +211,10 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ processorName,
-                            { createInputSpecs(sendMC, haveDigTriggers) },
-                            { createOutputSpecs(sendMC) },
-                            AlgorithmSpec(initFunction) };
+  return DataProcessorSpec{processorName,
+                           {createInputSpecs(sendMC, haveDigTriggers)},
+                           {createOutputSpecs(sendMC)},
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc

@@ -56,9 +56,9 @@ class TrackerTask : public FairTask
   std::vector<TrackMFT>* mTracksArray = nullptr;                            ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr; ///< Track MC labels
 
-  ClassDefOverride(TrackerTask, 1)
+  ClassDefOverride(TrackerTask, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

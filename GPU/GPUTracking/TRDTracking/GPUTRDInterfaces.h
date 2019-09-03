@@ -53,7 +53,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
   trackInterface<AliExternalTrackParam>(const AliExternalTrackParam& param) CON_DELETE;
   trackInterface<AliExternalTrackParam>(const AliHLTExternalTrackParam& param) : AliExternalTrackParam()
   {
-    float paramTmp[5] = { param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt };
+    float paramTmp[5] = {param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt};
     Set(param.fX, param.fAlpha, paramTmp, param.fC);
   }
   trackInterface<AliExternalTrackParam>(const GPUTPCGMMergedTrack& trk) : AliExternalTrackParam()

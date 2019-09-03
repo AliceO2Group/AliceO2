@@ -20,6 +20,9 @@
 #include <boost/lexical_cast.hpp>
 #include <algorithm>
 #include <array>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -28,6 +31,8 @@
 #include "TDataMember.h"
 #include "TDataType.h"
 #include "TFile.h"
+#include "TEnum.h"
+#include "TEnumConstant.h"
 
 namespace o2
 {
@@ -103,13 +108,28 @@ void EnumRegistry::add(const std::string& key, const TDataMember* dm)
   }
 
   EnumLegalValues legalVals;
-
-  auto opts = dm->GetOptions();
-  for (int i = 0; i < opts->GetSize(); ++i) {
-    auto opt = (TOptionListItem*)opts->At(i);
-    std::pair<std::string, int> val(opt->fOptName, (int)opt->fValue);
-    legalVals.vvalues.push_back(val);
+  auto enumtype = TEnum::GetEnum(dm->GetTypeName());
+  assert(enumtype != nullptr);
+  auto constantlist = enumtype->GetConstants();
+  assert(constantlist != nullptr);
+  if (enumtype) {
+    for (int i = 0; i < constantlist->GetEntries(); ++i) {
+      auto e = (TEnumConstant*)(constantlist->At(i));
+      std::pair<std::string, int> val(e->GetName(), (int)e->GetValue());
+      legalVals.vvalues.push_back(val);
+    }
   }
+
+  // The other method of fetching enum constants from TDataMember->GetOptions
+  // stopped working with ROOT6-18-0:
+
+  // auto opts = dm->GetOptions();
+  // for (int i = 0; i < opts->GetEntries(); ++i) {
+  //   auto opt = (TOptionListItem*)opts->At(i);
+  //   std::pair<std::string, int> val(opt->fOptName, (int)opt->fValue);
+  //   legalVals.vvalues.push_back(val);
+  //   LOG(INFO) << "Adding legal value " << val.first << " " << val.second;
+  // }
 
   auto entry = std::pair<std::string, EnumLegalValues>(key, legalVals);
   this->entries.insert(entry);

@@ -13,6 +13,7 @@ set(MODULE GPUTracking)
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+    include(FeatureSummary)
     find_package(O2GPU)
   endif()
 else()
@@ -23,9 +24,12 @@ else()
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
   endif()
-  set(GPUCA_QA ON)
+  if(ROOT_FOUND)
+    set(GPUCA_QA ON)
+  endif()
 endif()
 
+# General sources
 set(SRCS
     SliceTracker/GPUTPCTrack.cxx
     SliceTracker/GPUTPCBaseTrackParam.cxx
@@ -70,7 +74,7 @@ set(SRCS_NO_CINT
     Base/GPUReconstructionConvert.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
-    Standalone/utils/timer.cpp)
+    Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx)
@@ -95,7 +99,6 @@ set(HDRS_INSTALL
     Base/GPUReconstructionIncludes.h
     SliceTracker/GPUTPCDef.h
     SliceTracker/GPUTPCGeometry.h
-    SliceTracker/GPULogging.h
     TRDTracking/GPUTRDGeometry.h
     TRDTracking/GPUTRDTrackerDebug.h
     TRDTracking/GPUTRDInterfaces.h
@@ -108,9 +111,50 @@ set(HDRS_INSTALL
     Base/GPUOutputControl.h
     Base/GPUOutputControl.h
     Base/GPUO2DataTypes.h
+    Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
 )
 
+# Sources only for O2
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx)
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h)
+endif()
+
+# Sources for O2 and for Standalone if requested in config file
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
+    set(SRCS_NO_CINT
+        ${SRCS_NO_CINT}
+        Standalone/display/GPUDisplayBackend.cxx
+        Global/GPUChainITS.cxx
+        ITS/GPUITSFitter.cxx
+        ITS/GPUITSFitterKernels.cxx
+        dEdx/GPUdEdx.cxx
+        TPCConvert/GPUTPCConvert.cxx
+        TPCConvert/GPUTPCConvertKernel.cxx
+        DataCompression/GPUTPCCompression.cxx
+        DataCompression/GPUTPCCompressionTrackModel.cxx
+        DataCompression/GPUTPCCompressionKernels.cxx
+        DataCompression/TPCClusterDecompressor.cxx
+        DataCompression/GPUTPCClusterStatistics.cxx)
+    set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
+                     ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
+else()
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      ITS/GPUITSFitter.h
+      ITS/GPUITSFitterKernels.h
+      ITS/GPUITSTrack.h
+      TPCConvert/GPUTPCConvert.h
+      TPCConvert/GPUTPCConvertKernel.h
+      DataCompression/GPUTPCCompression.h
+      DataCompression/GPUTPCCompressionTrackModel.h
+      DataCompression/GPUTPCCompressionKernels.h
+      DataCompression/TPCClusterDecompressor.h
+      DataCompression/GPUTPCClusterStatistics.h)
+endif()
+
+# Sources only for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(SRCS
       ${SRCS}
@@ -128,56 +172,23 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
                    ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL
-      ${HDRS_INSTALL}
-      SliceTracker/GPUTPCDefinitions.h
-      ITS/GPUITSFitter.h
-      ITS/GPUITSFitterKernels.h
-      ITS/GPUITSTrack.h
-      TPCConvert/GPUTPCConvert.h
-      TPCConvert/GPUTPCConvertKernel.h
-      DataCompression/GPUTPCCompression.h
-      DataCompression/GPUTPCCompressionTrackModel.h
-      DataCompression/GPUTPCCompressionKernels.h
-      DataCompression/TPCClusterDecompressor.h
-      DataCompression/GPUTPCClusterStatistics.h)
-else()
-  set(SRCS_NO_CINT
-      ${SRCS_NO_CINT}
-      Standalone/display/GPUDisplayBackend.cpp
-      Global/GPUChainITS.cxx
-      ITS/GPUITSFitter.cxx
-      ITS/GPUITSFitterKernels.cxx
-      dEdx/GPUdEdx.cxx
-      TPCConvert/GPUTPCConvert.cxx
-      TPCConvert/GPUTPCConvertKernel.cxx
-      DataCompression/GPUTPCCompression.cxx
-      DataCompression/GPUTPCCompressionTrackModel.cxx
-      DataCompression/GPUTPCCompressionKernels.cxx
-      DataCompression/TPCClusterDecompressor.cxx
-      DataCompression/GPUTPCClusterStatistics.cxx)
-  set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
-                   ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h)
-endif()
-
+# Optional sources depending on optional dependencies
 if(GPUCA_EVENT_DISPLAY)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/utils/qsem.cpp
-                   Standalone/display/GPUDisplay.cpp
-                   Standalone/display/GPUDisplayBackendGlfw.cpp)
-  set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cpp
-                Standalone/display/GPUDisplayInterpolation.cpp
-                Standalone/display/GPUDisplayKeys.cpp)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/utils/qsem.cxx
+                   Standalone/display/GPUDisplay.cxx
+                   Standalone/display/GPUDisplayBackendGlfw.cxx)
+  set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
+                Standalone/display/GPUDisplayInterpolation.cxx
+                Standalone/display/GPUDisplayKeys.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()
 
 if(GPUCA_QA)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cpp)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qa/GPUQA.h)
 endif()
@@ -186,11 +197,13 @@ if(GPUCA_EVENT_DISPLAY OR GPUCA_QA)
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qconfigoptions.h)
 endif()
 
+# Update HDR variables with files derrived from SRC variables
 string(REPLACE ".cxx" ".h" HDRS_CINT_ALIROOT "${SRCS}")
 string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
+# Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
@@ -241,7 +254,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
           FILES_MATCHING PATTERN *.h)
 endif()
 
+# Main CMake part for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
+                        Base/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
   include_directories(Standalone/display Standalone/qa)
   include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
@@ -272,7 +288,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl2
                       ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation)
   alice_usevc()
 
@@ -328,6 +346,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   add_library(O2::${MODULE} ALIAS Ali${MODULE})
 endif()
 
+# Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
   set(targetName ${MODULE})
@@ -342,6 +361,7 @@ if(GPUCA_EVENT_DISPLAY)
                                OpenGL::GLU)
 endif()
 
+# Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_QA)
@@ -366,15 +386,22 @@ if(HIP_ENABLED)
   target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()
 
-if(CUDA_ENABLED OR OPENCL1_ENABLED OR HIP_ENABLED)
+# Add CMake recipes for GPU Tracking librararies
+if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     if(CUDA_ENABLED)
       add_subdirectory(Base/cuda)
     endif()
+    if(OPENCL1_ENABLED OR OPENCL2_ENABLED)
+      add_subdirectory(Base/opencl-common)
+    endif()
     if(OPENCL1_ENABLED)
       add_subdirectory(Base/opencl)
+    endif()
+    if(OPENCL2_ENABLED)
+      add_subdirectory(Base/opencl2)
     endif()
     if(HIP_ENABLED)
       add_subdirectory(Base/hip)

@@ -24,7 +24,7 @@ namespace zdc
 {
 
 struct ChannelBCData {
-  std::array<uint16_t, NTimeBinsPerBC> data = { 0 };
+  std::array<uint16_t, NTimeBinsPerBC> data = {0};
 };
 
 struct ChannelData {

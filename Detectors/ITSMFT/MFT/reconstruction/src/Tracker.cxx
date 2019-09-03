@@ -33,13 +33,13 @@ void Tracker::process(const std::vector<Cluster>& clusters, std::vector<TrackMFT
 
   static int entry = 0;
 
-  LOG(INFO) << FairLogger::endl;
-  LOG(INFO) << "Tracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads << FairLogger::endl;
+  LOG(INFO);
+  LOG(INFO) << "Tracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads;
 
   Int_t nClFrame = 0;
   Int_t numOfClustersLeft = clusters.size(); // total number of clusters
   if (numOfClustersLeft == 0) {
-    LOG(WARNING) << "No clusters to process !" << FairLogger::endl;
+    LOG(WARNING) << "No clusters to process !";
     return;
   }
 
@@ -49,14 +49,12 @@ void Tracker::process(const std::vector<Cluster>& clusters, std::vector<TrackMFT
 
     nClFrame = loadClusters(clusters);
     if (!nClFrame) {
-      LOG(FATAL) << "Failed to select any cluster out of " << numOfClustersLeft << " check if cont/trig mode is correct"
-                 << FairLogger::endl;
+      LOG(FATAL) << "Failed to select any cluster out of " << numOfClustersLeft << " check if cont/trig mode is correct";
     }
     numOfClustersLeft -= nClFrame;
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> diff = end - start;
-    LOG(INFO) << "Loading clusters: " << nClFrame << " in single frame " << mROFrame << " : " << diff.count() << " s"
-              << FairLogger::endl;
+    LOG(INFO) << "Loading clusters: " << nClFrame << " in single frame " << mROFrame << " : " << diff.count() << " s";
 
     start = end;
 
@@ -65,7 +63,7 @@ void Tracker::process(const std::vector<Cluster>& clusters, std::vector<TrackMFT
     unloadClusters();
     end = std::chrono::system_clock::now();
     diff = end - start;
-    LOG(INFO) << "Processing time for single frame " << mROFrame << " : " << diff.count() << " s" << FairLogger::endl;
+    LOG(INFO) << "Processing time for single frame " << mROFrame << " : " << diff.count() << " s";
 
     start = end;
     if (mContinuousMode) {
@@ -78,7 +76,7 @@ void Tracker::process(const std::vector<Cluster>& clusters, std::vector<TrackMFT
 void Tracker::processFrame(std::vector<TrackMFT>& tracks)
 {
 
-  LOG(INFO) << "Tracker::process(), number of threads: " << mNumOfThreads << FairLogger::endl;
+  LOG(INFO) << "Tracker::process(), number of threads: " << mNumOfThreads;
 
   std::vector<std::future<std::vector<TrackMFT>>> futures(mNumOfThreads);
   Int_t numOfClusters = sLayers[0].getNumberOfClusters();
@@ -105,8 +103,8 @@ std::vector<TrackMFT> Tracker::trackInThread(Int_t first, Int_t last)
   Layer& layer2 = sLayers[1];
   Int_t nClusters1 = layer1.getNumberOfClusters();
   Int_t nClusters2 = layer2.getNumberOfClusters();
-  LOG(INFO) << "trackInThread first: " << first << " last: " << last << FairLogger::endl;
-  LOG(INFO) << "nCusters 1: " << nClusters1 << " 2: " << nClusters2 << FairLogger::endl;
+  LOG(INFO) << "trackInThread first: " << first << " last: " << last;
+  LOG(INFO) << "nCusters 1: " << nClusters1 << " 2: " << nClusters2;
   // std::this_thread::sleep_for(std::chrono::seconds(10));
 
   return tracks;

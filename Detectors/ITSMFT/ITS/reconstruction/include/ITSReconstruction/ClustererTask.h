@@ -32,8 +32,8 @@ namespace o2
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 
 namespace its
@@ -61,15 +61,15 @@ class ClustererTask
   void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
  private:
-  bool mSelfManagedMode = false;                          ///< manages itself input output
-  bool mRawDataMode = false;                              ///< input from raw data or MC digits
-  bool mUseMCTruth = true;                                ///< flag to use MCtruth if available
-  o2::itsmft::PixelReader* mReader = nullptr;             ///< Pointer on the relevant Pixel reader
+  bool mSelfManagedMode = false;                                                      ///< manages itself input output
+  bool mRawDataMode = false;                                                          ///< input from raw data or MC digits
+  bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
+  o2::itsmft::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
   std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
   std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS>> mReaderRaw; ///< reader for raw data
 
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-  Clusterer mClusterer;                                   ///< Cluster finder
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+  Clusterer mClusterer;                                ///< Cluster finder
 
   std::vector<Cluster> mFullClus;               //!< vector of full clusters
   std::vector<Cluster>* mFullClusPtr = nullptr; //!< vector of full clusters pointer
@@ -80,12 +80,12 @@ class ClustererTask
   std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
   std::vector<o2::itsmft::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
 
-  MCTruth mClsLabels;                                        //! MC labels
-  MCTruth* mClsLabelsPtr = nullptr;                          //! MC labels pointer (optional)
+  MCTruth mClsLabels;               //! MC labels
+  MCTruth* mClsLabelsPtr = nullptr; //! MC labels pointer (optional)
 
   ClassDefNV(ClustererTask, 1);
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* ALICEO2_ITS_CLUSTERERTASK */

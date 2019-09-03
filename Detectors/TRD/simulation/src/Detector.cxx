@@ -173,8 +173,8 @@ bool Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(xp, yp, zp);
     tof = tof * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
-    double pos[3] = { xp, yp, zp };
-    double loc[3] = { -99, -99, -99 };
+    double pos[3] = {xp, yp, zp};
+    double loc[3] = {-99, -99, -99};
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     const float locC = loc[0], locR = loc[1], locT = loc[2];
     addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
@@ -261,8 +261,8 @@ void Detector::createTRhit(int det)
     const int trackID = stack->GetCurrentTrackNumber();
     const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
     // prepare local coordinates
-    double pos[3] = { x, y, z };
-    double loc[3] = { -99, -99, -99 };
+    double pos[3] = {x, y, z};
+    double loc[3] = {-99, -99, -99};
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     const float locC = loc[0], locR = loc[1], locT = loc[2];
     addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
@@ -325,30 +325,30 @@ void Detector::createMaterials()
   Material(7, "Fe", 55.85, 26.0, 7.87, 1.76, 14.8);
 
   // Air
-  float aAir[4] = { 12.011, 14.0, 15.9994, 36.0 };
-  float zAir[4] = { 6.0, 7.0, 8.0, 18.0 };
-  float wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  float aAir[4] = {12.011, 14.0, 15.9994, 36.0};
+  float zAir[4] = {6.0, 7.0, 8.0, 18.0};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479e-03;
   Mixture(51, "Air", aAir, zAir, dAir, 4, wAir);
   // Polyethilene (CH2)
-  float ape[2] = { 12.011, 1.0079 };
-  float zpe[2] = { 6.0, 1.0 };
-  float wpe[2] = { 1.0, 2.0 };
+  float ape[2] = {12.011, 1.0079};
+  float zpe[2] = {6.0, 1.0};
+  float wpe[2] = {1.0, 2.0};
   float dpe = 0.95;
   Mixture(52, "Polyethilene", ape, zpe, dpe, -2, wpe);
   // Gas mixtures
   // Xe/CO2-gas-mixture (85% / 15%)
-  float aXeCO2[3] = { 131.29, 12.0107, 15.9994 };
-  float zXeCO2[3] = { 54.0, 6.0, 8.0 };
-  float wXeCO2[3] = { 8.5, 1.5, 3.0 };
+  float aXeCO2[3] = {131.29, 12.0107, 15.9994};
+  float zXeCO2[3] = {54.0, 6.0, 8.0};
+  float wXeCO2[3] = {8.5, 1.5, 3.0};
   float fxc = 0.85;
   float dxe = 0.00549; // at 20C
   float dco = 0.00186; // at 20C
   float dgmXe = fxc * dxe + (1.0 - fxc) * dco;
   // Ar/CO2-gas-mixture
-  float aArCO2[3] = { 39.948, 12.0107, 15.9994 };
-  float zArCO2[3] = { 18.0, 6.0, 8.0 };
-  float wArCO2[3] = { 8.2, 1.8, 3.6 };
+  float aArCO2[3] = {39.948, 12.0107, 15.9994};
+  float zArCO2[3] = {18.0, 6.0, 8.0};
+  float wArCO2[3] = {8.2, 1.8, 3.6};
   float fac = 0.82;
   float dar = 0.00166; // at 20C
   float dgmAr = fac * dar + (1.0 - fac) * dco;
@@ -362,57 +362,57 @@ void Detector::createMaterials()
     exit(1);
   }
   // G10
-  float aG10[4] = { 1.0079, 12.011, 15.9994, 28.086 };
-  float zG10[4] = { 1.0, 6.0, 8.0, 14.0 };
-  float wG10[4] = { 0.023, 0.194, 0.443, 0.340 };
+  float aG10[4] = {1.0079, 12.011, 15.9994, 28.086};
+  float zG10[4] = {1.0, 6.0, 8.0, 14.0};
+  float wG10[4] = {0.023, 0.194, 0.443, 0.340};
   float dG10 = 2.0;
   Mixture(54, "G10", aG10, zG10, dG10, 4, wG10);
   // Water
-  float awa[2] = { 1.0079, 15.9994 };
-  float zwa[2] = { 1.0, 8.0 };
-  float wwa[2] = { 2.0, 1.0 };
+  float awa[2] = {1.0079, 15.9994};
+  float zwa[2] = {1.0, 8.0};
+  float wwa[2] = {2.0, 1.0};
   float dwa = 1.0;
   Mixture(55, "Water", awa, zwa, dwa, -2, wwa);
   // Rohacell (C5H8O2), X0 = 535.005cm
-  float arh[3] = { 12.011, 1.0079, 15.9994 };
-  float zrh[3] = { 6.0, 1.0, 8.0 };
-  float wrh[3] = { 5.0, 8.0, 2.0 };
+  float arh[3] = {12.011, 1.0079, 15.9994};
+  float zrh[3] = {6.0, 1.0, 8.0};
+  float wrh[3] = {5.0, 8.0, 2.0};
   float drh = 0.075;
   Mixture(56, "Rohacell", arh, zrh, drh, -3, wrh);
   // Epoxy (C18H19O3)
-  float aEpoxy[3] = { 15.9994, 1.0079, 12.011 };
-  float zEpoxy[3] = { 8.0, 1.0, 6.0 };
-  float wEpoxy[3] = { 3.0, 19.0, 18.0 };
+  float aEpoxy[3] = {15.9994, 1.0079, 12.011};
+  float zEpoxy[3] = {8.0, 1.0, 6.0};
+  float wEpoxy[3] = {3.0, 19.0, 18.0};
   float dEpoxy = 1.8;
   Mixture(57, "Epoxy", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
   // Araldite, low density epoxy (C18H19O3)
-  float aAral[3] = { 15.9994, 1.0079, 12.011 };
-  float zAral[3] = { 8.0, 1.0, 6.0 };
-  float wAral[3] = { 3.0, 19.0, 18.0 };
+  float aAral[3] = {15.9994, 1.0079, 12.011};
+  float zAral[3] = {8.0, 1.0, 6.0};
+  float wAral[3] = {3.0, 19.0, 18.0};
   float dAral = 1.12; // Hardener: 1.15, epoxy: 1.1, mixture: 1/2
   Mixture(58, "Araldite", aAral, zAral, dAral, -3, wAral);
   // Mylar
-  float aMy[3] = { 12.011, 1.0, 15.9994 };
-  float zMy[3] = { 6.0, 1.0, 8.0 };
-  float wMy[3] = { 5.0, 4.0, 2.0 };
+  float aMy[3] = {12.011, 1.0, 15.9994};
+  float zMy[3] = {6.0, 1.0, 8.0};
+  float wMy[3] = {5.0, 4.0, 2.0};
   float dMy = 1.39;
   Mixture(59, "Mylar", aMy, zMy, dMy, -3, wMy);
   // Polypropylene (C3H6) for radiator fibers
-  float app[2] = { 12.011, 1.0079 };
-  float zpp[2] = { 6.0, 1.0 };
-  float wpp[2] = { 3.0, 6.0 };
+  float app[2] = {12.011, 1.0079};
+  float zpp[2] = {6.0, 1.0};
+  float wpp[2] = {3.0, 6.0};
   float dpp = 0.068;
   Mixture(60, "Polypropylene", app, zpp, dpp, -2, wpp);
   // Aramide for honeycomb
-  float aAra[4] = { 1.0079, 12.011, 15.9994, 14.0067 };
-  float zAra[4] = { 1.0, 6.0, 8.0, 7.0 };
-  float wAra[4] = { 3.0, 1.0, 1.0, 1.0 };
+  float aAra[4] = {1.0079, 12.011, 15.9994, 14.0067};
+  float zAra[4] = {1.0, 6.0, 8.0, 7.0};
+  float wAra[4] = {3.0, 1.0, 1.0, 1.0};
   float dAra = 0.032;
   Mixture(61, "Aramide", aAra, zAra, dAra, -4, wAra);
   // GFK for Wacosit (Epoxy + Si)
-  float aGFK[4] = { 1.0079, 12.011, 15.9994, 28.086 };
-  float zGFK[4] = { 1.0, 6.0, 8.0, 14.0 };
-  float wGFK[4] = { 0.0445, 0.5031, 0.1118, 0.340 };
+  float aGFK[4] = {1.0079, 12.011, 15.9994, 28.086};
+  float zGFK[4] = {1.0, 6.0, 8.0, 14.0};
+  float wGFK[4] = {0.0445, 0.5031, 0.1118, 0.340};
   float dGFK = 2.0;
   Mixture(62, "GFK", aGFK, zGFK, dGFK, 4, wGFK);
 

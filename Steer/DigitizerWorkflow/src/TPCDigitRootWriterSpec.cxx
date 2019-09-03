@@ -304,12 +304,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
   std::vector<InputSpec> inputs;
   for (int d = 0; d < numberofsourcedevices; ++d) {
-    inputs.emplace_back(InputSpec{ (*digitchannelname.get())[d].c_str(), "TPC", "DIGITS",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe }); // digit input
-    inputs.emplace_back(InputSpec{ (*triggerchannelname.get())[d].c_str(), "TPC", "DIGTRIGGERS",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe }); // groupping in triggers
-    inputs.emplace_back(InputSpec{ (*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe });
+    inputs.emplace_back(InputSpec{(*digitchannelname.get())[d].c_str(), "TPC", "DIGITS",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // digit input
+    inputs.emplace_back(InputSpec{(*triggerchannelname.get())[d].c_str(), "TPC", "DIGTRIGGERS",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // groupping in triggers
+    inputs.emplace_back(InputSpec{(*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe});
   }
 
   return DataProcessorSpec{
@@ -318,10 +318,9 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tpc-digit-outfile", VariantType::String, "tpcdigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of tree for tracks" } },
-    }
-  };
+      {"tpc-digit-outfile", VariantType::String, "tpcdigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of tree for tracks"}},
+    }};
 }
 } // end namespace tpc
 } // end namespace o2

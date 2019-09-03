@@ -68,7 +68,7 @@ std::vector<Polygon<double>> getPadPolygons(const CathodeSegmentation& seg, int 
     double dy = seg.padSizeY(catPadIndex) / 2.0;
 
     pads.emplace_back(Polygon<double>{
-      { x - dx, y - dy }, { x + dx, y - dy }, { x + dx, y + dy }, { x - dx, y + dy }, { x - dx, y - dy } });
+      {x - dx, y - dy}, {x + dx, y - dy}, {x + dx, y + dy}, {x - dx, y + dy}, {x - dx, y - dy}});
   });
   return pads;
 }

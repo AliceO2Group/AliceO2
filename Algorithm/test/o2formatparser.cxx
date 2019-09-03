@@ -19,12 +19,13 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <iomanip>
-#include <cstring> // memcmp
+#include <cstring>              // memcmp
 #include "Headers/DataHeader.h" // hexdump, DataHeader
 #include "../include/Algorithm/O2FormatParser.h"
 
-template<typename... Targs>
-void hexDump(Targs... Fargs) {
+template <typename... Targs>
+void hexDump(Targs... Fargs)
+{
   // a simple redirect to enable/disable the hexdump printout
   o2::header::hexDump(Fargs...);
 }
@@ -33,8 +34,7 @@ BOOST_AUTO_TEST_CASE(test_o2formatparser)
 {
   std::vector<const char*> thedata = {
     "I'm raw data",
-    "reconstructed data"
-  };
+    "reconstructed data"};
   unsigned dataidx = 0;
   std::vector<o2::header::DataHeader> dataheaders;
   dataheaders.emplace_back(o2::header::DataDescription("RAWDATA"),
@@ -55,9 +55,9 @@ BOOST_AUTO_TEST_CASE(test_o2formatparser)
   }
 
   // handler callback for parseO2Format method
-  auto insertFct = [&] (const auto & dataheader,
-                        auto ptr,
-                        auto size) {
+  auto insertFct = [&](const auto& dataheader,
+                       auto ptr,
+                       auto size) {
     hexDump("header", &dataheader, sizeof(dataheader));
     hexDump("data", ptr, size);
     BOOST_CHECK(dataheader == dataheaders[dataidx]);
@@ -66,9 +66,9 @@ BOOST_AUTO_TEST_CASE(test_o2formatparser)
   }; // end handler callback
 
   // handler callback to get the pointer for message
-  auto getPointerFct = [] (auto arg) {return arg.first;};
+  auto getPointerFct = [](auto arg) { return arg.first; };
   // handler callback to get the size for message
-  auto getSizeFct = [] (auto arg) {return arg.second;};
+  auto getSizeFct = [](auto arg) { return arg.second; };
 
   dataidx = 0;
   auto result = o2::algorithm::parseO2Format(messages,

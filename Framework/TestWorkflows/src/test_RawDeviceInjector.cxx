@@ -17,11 +17,11 @@ using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 
-
 // A simple workflow which takes heartbeats from
-// a raw FairMQ device as input and uses them as 
+// a raw FairMQ device as input and uses them as
 // part of the DPL.
-WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
+WorkflowSpec defineDataProcessing(ConfigContext const& specs)
+{
   auto outspec = OutputSpec{o2::header::DataOrigin("SMPL"),
                             o2::header::gDataDescriptionHeartbeatFrame};
   auto inspec = InputSpec{"heatbeat",
@@ -29,19 +29,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
                           o2::header::gDataDescriptionHeartbeatFrame};
   return WorkflowSpec{
     specifyExternalFairMQDeviceProxy("foreign-source",
-                    {outspec},
-                    "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
-                    o2DataModelAdaptor(outspec, 0, 1)
-                   ),
+                                     {outspec},
+                                     "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
+                                     o2DataModelAdaptor(outspec, 0, 1)),
     DataProcessorSpec{
       "foreign-consumer",
       Inputs{inspec},
       {},
       AlgorithmSpec{
-        [](ProcessingContext &ctx) {
+        [](ProcessingContext& ctx) {
           LOG(DEBUG) << ctx.inputs().size();
-        }
-      }
-    }
-  };
+        }}}};
 }

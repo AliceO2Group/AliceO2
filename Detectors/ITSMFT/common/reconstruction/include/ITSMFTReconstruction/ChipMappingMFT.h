@@ -222,38 +222,34 @@ class ChipMappingMFT
   static constexpr Int_t NRUCables = 25;
 
   static constexpr Int_t ZoneLadderIDmin[NZonesPerLayer / 2][NLayers]{
-    { 0, 21, 0, 21, 0, 23, 0, 28, 0, 29 },
-    { 3, 18, 3, 18, 3, 20, 4, 24, 5, 25 },
-    { 6, 15, 6, 15, 6, 17, 8, 20, 9, 21 },
-    { 9, 12, 9, 12, 9, 13, 12, 16, 13, 17 }
-  };
+    {0, 21, 0, 21, 0, 23, 0, 28, 0, 29},
+    {3, 18, 3, 18, 3, 20, 4, 24, 5, 25},
+    {6, 15, 6, 15, 6, 17, 8, 20, 9, 21},
+    {9, 12, 9, 12, 9, 13, 12, 16, 13, 17}};
   static constexpr Int_t ZoneLadderIDmax[NZonesPerLayer / 2][NLayers]{
-    { 2, 23, 2, 23, 2, 25, 3, 31, 4, 33 },
-    { 5, 20, 5, 20, 5, 22, 7, 27, 8, 28 },
-    { 8, 17, 8, 17, 8, 19, 11, 23, 12, 24 },
-    { 11, 14, 11, 14, 12, 16, 15, 19, 16, 20 }
-  };
+    {2, 23, 2, 23, 2, 25, 3, 31, 4, 33},
+    {5, 20, 5, 20, 5, 22, 7, 27, 8, 28},
+    {8, 17, 8, 17, 8, 19, 11, 23, 12, 24},
+    {11, 14, 11, 14, 12, 16, 15, 19, 16, 20}};
 
   static constexpr Int_t ZoneRUType[NZonesPerLayer / 2][NLayers / 2]{
-    { 1, 1, 1, 7, 11 },
-    { 2, 2, 4, 8, 9 },
-    { 2, 2, 3, 8, 10 },
-    { 0, 0, 5, 6, 7 }
-  };
+    {1, 1, 1, 7, 11},
+    {2, 2, 4, 8, 9},
+    {2, 2, 3, 8, 10},
+    {0, 0, 5, 6, 7}};
 
   static constexpr Int_t ChipConnectorCable[NConnectors][NMaxChipsPerLadder]{
-    { 5, 6, 7, 24, 23 },
-    { 0, 1, 2, 3, 4 },
-    { 17, 16, 15, 14, 13 },
-    { 22, 21, 20, 19, 18 },
-    { 12, 11, 10, 9, 8 }
-  };
+    {5, 6, 7, 24, 23},
+    {0, 1, 2, 3, 4},
+    {17, 16, 15, 14, 13},
+    {22, 21, 20, 19, 18},
+    {12, 11, 10, 9, 8}};
 
   static const std::array<MFTChipMappingData, NChips> ChipMappingData;
   static const std::array<MFTModuleMappingData, NModules> ModuleMappingData;
 
   ///< number of chips per zone (RU)
-  static constexpr std::array<int, NRUTypes> NChipsOnRUType{ 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19 };
+  static constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19};
 
   // info on chips info within the zone (RU)
   std::array<ChipOnRUInfo, NChipsInfo> mChipsInfo;
@@ -266,7 +262,7 @@ class ChipMappingMFT
   std::vector<uint8_t> mCableHW2SW[NRUs];       ///< table of cables HW to SW conversion for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NRUs]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
-  ClassDefNV(ChipMappingMFT, 1)
+  ClassDefNV(ChipMappingMFT, 1);
 };
 } // namespace itsmft
 } // namespace o2

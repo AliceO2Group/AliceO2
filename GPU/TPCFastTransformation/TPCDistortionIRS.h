@@ -109,7 +109,6 @@ class TPCDistortionIRS : public FlatObject
   /// Gives pointer to spline data
   GPUd() const float* getSplineData(int slice, int row) const;
 
-
   /// _______________ The main method: cluster distortion  _______________________
   ///
   GPUd() int getDistortion(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
@@ -138,8 +137,8 @@ class TPCDistortionIRS : public FlatObject
 
   /// _______________  Construction control  _______________________________________________
 
-  RowSplineInfo* mConstructionRowSplineInfos = nullptr;  ///< Temporary container of the row infos during construction
-  IrregularSpline2D3D* mConstructionScenarios = nullptr; ///< Temporary container for spline scenarios
+  RowSplineInfo* mConstructionRowSplineInfos = nullptr;  //! (transient!!) Temporary container of the row infos during construction
+  IrregularSpline2D3D* mConstructionScenarios = nullptr; //! (transient!!) Temporary container for spline scenarios
 
   /// _______________  Geometry  _______________________________________________
 
@@ -147,14 +146,14 @@ class TPCDistortionIRS : public FlatObject
 
   int mNumberOfScenarios; ///< Number of approximation spline scenarios
 
-  RowSplineInfo* mRowSplineInfoPtr;  ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
-  IrregularSpline2D3D* mScenarioPtr; ///< Pointer to spline scenarios
+  RowSplineInfo* mRowSplineInfoPtr;  //! (transient!!) pointer to RowInfo array inside the mFlatBufferPtr buffer
+  IrregularSpline2D3D* mScenarioPtr; //! (transient!!) pointer to spline scenarios
 
   /// _______________  Calibration data  _______________________________________________
 
   long int mTimeStamp; ///< time stamp of the current calibration
 
-  char* mSplineData;          ///< pointer to the spline data in the flat buffer
+  char* mSplineData;          //! (transient!!) pointer to the spline data in the flat buffer
   size_t mSliceDataSizeBytes; ///< size of the data for one slice in the flat buffer
 };
 

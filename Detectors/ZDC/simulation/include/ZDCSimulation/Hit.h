@@ -69,7 +69,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   Int_t mNphePMC;
   Int_t mNphePMQ;
 
-  ClassDefNV(Hit, 1)
+  ClassDefNV(Hit, 1);
 };
 
 inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
@@ -86,8 +86,8 @@ inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, In
     mNphePMQ(nphePMQ)
 {
 }
-}
-}
+} // namespace zdc
+} // namespace o2
 
 #ifdef USESHM
 namespace std

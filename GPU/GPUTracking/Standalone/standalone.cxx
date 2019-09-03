@@ -285,6 +285,7 @@ int SetupReconstruction()
     devProc.nThreads = configStandalone.OMPThreads;
   }
   devProc.deviceNum = configStandalone.cudaDevice;
+  devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
@@ -359,6 +360,12 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
+  if (configStandalone.configProc.recoSteps >= 0) {
+    steps.steps &= configStandalone.configProc.recoSteps;
+  }
+  if (configStandalone.configProc.recoStepsGPU >= 0) {
+    steps.stepsGPUMask &= configStandalone.configProc.recoStepsGPU;
+  }
 
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
@@ -538,6 +545,9 @@ int main(int argc, char** argv)
               }
               printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
             }
+          }
+          if (configStandalone.memoryStat) {
+            rec->PrintMemoryStatistics();
           }
           rec->ClearAllocatedMemory();
 

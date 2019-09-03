@@ -21,22 +21,23 @@ namespace framework
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.
-class ProcessingContext {
-public:
-  ProcessingContext(InputRecord &inputs, ServiceRegistry &services, DataAllocator &allocator)
-  :mInputs(inputs),
-   mServices(services),
-   mAllocator(allocator)
+class ProcessingContext
+{
+ public:
+  ProcessingContext(InputRecord& inputs, ServiceRegistry& services, DataAllocator& allocator)
+    : mInputs(inputs),
+      mServices(services),
+      mAllocator(allocator)
   {
   }
 
-  InputRecord & inputs() {return mInputs;}
-  ServiceRegistry & services() {return mServices;}
+  InputRecord& inputs() { return mInputs; }
+  ServiceRegistry& services() { return mServices; }
   DataAllocator& outputs() { return mAllocator; }
 
-  InputRecord &mInputs;
-  ServiceRegistry &mServices;
-  DataAllocator &mAllocator;
+  InputRecord& mInputs;
+  ServiceRegistry& mServices;
+  DataAllocator& mAllocator;
 };
 
 } // namespace framework

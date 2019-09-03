@@ -27,7 +27,6 @@
 /// \brief class for the ALPIDE data decoding/encoding
 /// \author Ruben Shahoyan, ruben.shahoyan@cern.ch
 
-
 //#define _DEBUG_ALPIDE_DECODER_ // uncomment for debug mode
 
 namespace o2
@@ -368,8 +367,7 @@ class AlpideCoder
   ClassDefNV(AlpideCoder, 1);
 };
 
-
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

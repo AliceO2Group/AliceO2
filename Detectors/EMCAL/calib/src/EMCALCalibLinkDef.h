@@ -14,8 +14,18 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::emcal::CalibDB+;
-#pragma link C++ class o2::emcal::BadChannelMap+;
-#pragma link C++ class o2::TObjectWrapper<o2::emcal::BadChannelMap>+;
+#pragma link C++ class o2::emcal::CalibDB + ;
+#pragma link C++ class o2::emcal::BadChannelMap + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::BadChannelMap> + ;
+#pragma link C++ class o2::emcal::TimeCalibrationParams + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::TimeCalibrationParams> + ;
+#pragma link C++ class o2::emcal::TimeCalibParamL1Phase + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::TimeCalibParamL1Phase> + ;
+#pragma link C++ class o2::emcal::TempCalibrationParams + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::TempCalibrationParams> + ;
+#pragma link C++ class o2::emcal::TempCalibParamSM + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::TempCalibParamSM> + ;
+#pragma link C++ class o2::emcal::GainCalibrationFactors + ;
+#pragma link C++ class o2::TObjectWrapper < o2::emcal::GainCalibrationFactors> + ;
 
 #endif

@@ -11,6 +11,10 @@
 #define FRAMEWORK_TEST_HELPERMACROS
 
 // Expand BOOST_CHECK_EQUAL to have an additional message
-#define BOOST_CHECK_EQUAL_MESSAGE(L, R, M)      { BOOST_TEST_INFO(M); BOOST_CHECK_EQUAL(L, R); }
+#define BOOST_CHECK_EQUAL_MESSAGE(L, R, M) \
+  {                                        \
+    BOOST_TEST_INFO(M);                    \
+    BOOST_CHECK_EQUAL(L, R);               \
+  }
 
 #endif // FRAMEWORK_TEST_HELPERMACROS

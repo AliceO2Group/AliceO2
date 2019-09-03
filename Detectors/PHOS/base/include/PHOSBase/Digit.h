@@ -30,7 +30,6 @@ class Digit : public DigitBase
   using Label = o2::MCCompLabel;
 
  public:
-  static constexpr int kMaxLabels = 3; // Maximal number of MC labels associated with digit
   static constexpr int kTimeGate = 25; // Time in ns between digits to be added as one signal.
                                        // Should it be readout time (6000 ns???): to be tested
 
@@ -44,7 +43,7 @@ class Digit : public DigitBase
   /// \brief Digit constructor from Hit
   /// \param PHOS Hit
   /// \return constructed Digit
-  Digit(Hit hit);
+  Digit(Hit hit, int label);
 
   ~Digit() = default; // override
 
@@ -75,57 +74,36 @@ class Digit : public DigitBase
   void setAbsId(Int_t cellId) { mAbsId = cellId; }
 
   /// \brief Energy deposited in a cell
-  Double_t getAmplitude() const { return mAmplitude; }
-  void setAmplitude(Double_t amplitude) { mAmplitude = amplitude; }
+  float getAmplitude() const { return mAmplitude; }
+  void setAmplitude(float amplitude) { mAmplitude = amplitude; }
 
   /// \brief time measured in digit w.r.t. photon to PHOS arrival
-  Double_t getTime() const { return mTime; }
-  void setTime(Double_t time) { mTime = time; }
+  float getTime() const { return mTime; }
+  void setTime(float time) { mTime = time; }
 
   /// \brief Checks if this digit is produced in High Gain or Low Gain channels
-  Double_t isHighGain() const { return mIsHighGain; }
+  bool isHighGain() const { return mIsHighGain; }
   void setHighGain(Bool_t isHG) { mIsHighGain = isHG; }
 
-  /// \brief Label of a particle made energy deposition
-  /// \param idx index in a list of a particles, max length kMaxLabels
-  /// \return lable of a particle. Lables are sorted according to energy deposited by each of them
-  Label getLabel(Int_t idx) const
-  {
-    if (idx < kMaxLabels)
-      return mLabels[idx];
-    else
-      return Label();
-  }
-  /// \brief Proportion of energy deposited by particle idx
-  /// \param idx index in a list of a particles, max length kMaxLabels
-  /// \return Proportion of energy from this particle.
-  double getLabelEProp(Int_t idx) const
-  {
-    if (idx < kMaxLabels)
-      return mEProp[idx];
-    else
-      return 0.;
-  }
-  /// \brief Number of particles assosiated with this digit
-  int getNLabels() const { return mNlabels; }
+  /// \brief index of entry in MCLabels array
+  /// \return ndex of entry in MCLabels array
+  int getLabel() const { return mLabel; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   // friend class boost::serialization::access;
 
-  int mAbsId;                ///< cell index (absolute cell ID)
-  double mAmplitude;         ///< Amplitude
-  double mTime;              ///< Time
-  int mNlabels;              ///< Number of actual labels in this digit
-  Label mLabels[kMaxLabels]; ///< Particle labels associated to this digit
-  double mEProp[kMaxLabels]; ///< Proportion of total energy deposited by given primary
-  bool mIsHighGain;          ///< High Gain or Low Gain channel (for calibration)
+  int mAbsId;       ///< cell index (absolute cell ID)
+  int mLabel;       ///< Index of the corresponding entry/entries in the MC label array
+  float mAmplitude; ///< Amplitude
+  float mTime;      ///< Time
+  bool mIsHighGain; ///< High Gain or Low Gain channel (for calibration)
 
   ClassDefNV(Digit, 1);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
-} // namespace PHOS
+} // namespace phos
 } // namespace o2
 #endif

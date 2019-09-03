@@ -20,25 +20,26 @@
 
 class FairParSet;
 
-namespace o2 {
-  namespace field {
-
+namespace o2
+{
+namespace field
+{
 
 class MagFieldParam;
 
-class  MagFieldContFact : public FairContFact
+class MagFieldContFact : public FairContFact
 {
-  private:
-    void setAllContainers();
+ private:
+  void setAllContainers();
 
-  public:
-    MagFieldContFact();
-    ~MagFieldContFact() override = default;
-    FairParSet* createContainer(FairContainer*) override;
-    
-    ClassDefOverride(MagFieldContFact, 0) // Factory for Magnetic field parameters containers
+ public:
+  MagFieldContFact();
+  ~MagFieldContFact() override = default;
+  FairParSet* createContainer(FairContainer*) override;
+
+  ClassDefOverride(MagFieldContFact, 0); // Factory for Magnetic field parameters containers
 };
 
-}
-}
+} // namespace field
+} // namespace o2
 #endif

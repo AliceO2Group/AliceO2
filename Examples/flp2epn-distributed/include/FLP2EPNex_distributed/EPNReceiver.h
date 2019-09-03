@@ -25,13 +25,14 @@
 
 #include <FairMQDevice.h>
 
-namespace o2 {
-namespace devices {
+namespace o2
+{
+namespace devices
+{
 
 /// Container for (sub-)timeframes
 
-struct TFBuffer
-{
+struct TFBuffer {
   FairMQParts parts;
   std::chrono::steady_clock::time_point start;
   std::chrono::steady_clock::time_point end;
@@ -41,38 +42,38 @@ struct TFBuffer
 
 class EPNReceiver : public FairMQDevice
 {
-  public:
-    /// Default constructor
-    EPNReceiver();
+ public:
+  /// Default constructor
+  EPNReceiver();
 
-    /// Default destructor
-    ~EPNReceiver() override;
+  /// Default destructor
+  ~EPNReceiver() override;
 
-    void InitTask() override;
+  void InitTask() override;
 
-    /// Prints the contents of the timeframe container
-    void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer> &buffer) const;
+  /// Prints the contents of the timeframe container
+  void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer>& buffer) const;
 
-    /// Discared incomplete timeframes after \p fBufferTimeoutInMs.
-    void DiscardIncompleteTimeframes();
+  /// Discared incomplete timeframes after \p fBufferTimeoutInMs.
+  void DiscardIncompleteTimeframes();
 
-  protected:
-    /// Overloads the Run() method of FairMQDevice
-    void Run() override;
+ protected:
+  /// Overloads the Run() method of FairMQDevice
+  void Run() override;
 
-    std::unordered_map<uint16_t, TFBuffer> mTimeframeBuffer; ///< Stores (sub-)timeframes
-    std::unordered_set<uint16_t> mDiscardedSet; ///< Set containing IDs of dropped timeframes
+  std::unordered_map<uint16_t, TFBuffer> mTimeframeBuffer; ///< Stores (sub-)timeframes
+  std::unordered_set<uint16_t> mDiscardedSet;              ///< Set containing IDs of dropped timeframes
 
-    int mNumFLPs; ///< Number of flpSenders
-    int mBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
-    int mTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+  int mNumFLPs;           ///< Number of flpSenders
+  int mBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
+  int mTestMode;          ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
 
-    std::string mInChannelName;
-    std::string mOutChannelName;
-    std::string mAckChannelName;
+  std::string mInChannelName;
+  std::string mOutChannelName;
+  std::string mAckChannelName;
 };
 
 } // namespace devices
-} // namespace AliceO2
+} // namespace o2
 
 #endif

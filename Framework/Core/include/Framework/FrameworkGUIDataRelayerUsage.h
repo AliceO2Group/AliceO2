@@ -21,7 +21,7 @@ namespace gui
 {
 
 /// View of the DataRelayer metrics for a given DeviceInfo
-void displayDataRelayer(DeviceMetricsInfo const& metrics, DeviceInfo const& info, ImVec2 const &size);
+void displayDataRelayer(DeviceMetricsInfo const& metrics, DeviceInfo const& info, ImVec2 const& size);
 
 } // namespace gui
 } // namespace framework

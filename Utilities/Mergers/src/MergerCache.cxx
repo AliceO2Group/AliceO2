@@ -63,9 +63,9 @@ void MergerCache::cacheInputRecord(const framework::InputRecord& inputs) //todo:
 
       if (mOverwrite && !queue.deque.empty()) {
         assert(queue.deque.size() == 1);
-        queue.deque.front() = { std::move(objPtr) };
+        queue.deque.front() = {std::move(objPtr)};
       } else {
-        queue.deque.push_back({ std::move(objPtr) });
+        queue.deque.push_back({std::move(objPtr)});
       }
     }
   }

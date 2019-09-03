@@ -15,7 +15,7 @@
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #ifndef __OPENCL__
 #include <cstdint>
-#include <cstddef>   // for size_t
+#include <cstddef> // for size_t
 #endif
 #include "DataFormatsTPC/Constants.h"
 #include "GPUCommonDef.h"
@@ -28,7 +28,7 @@ namespace dataformats
 template <class T>
 class MCTruthContainer;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -49,8 +49,8 @@ namespace tpc
  */
 struct ClusterNative {
   static constexpr int scaleTimePacked =
-    64; //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
-  static constexpr int scalePadPacked = 64; //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
+    64;                                           //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
+  static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
 
@@ -162,6 +162,6 @@ inline void ClusterNativeAccess::setOffsetPtrs()
   }
   nClustersTotal = offset;
 }
-}
-}
+} // namespace tpc
+} // namespace o2
 #endif

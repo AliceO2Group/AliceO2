@@ -53,15 +53,14 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TPC" },
+    OriginValueMatcher{"TPC"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "CLUSTERS" },
+      DescriptionValueMatcher{"CLUSTERS"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
   DataDescriptorMatcher matcher2 = matcher;
   BOOST_CHECK(matcher.match(header0, context) == true);
   BOOST_CHECK(matcher.match(header1, context) == false);
@@ -79,89 +78,77 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::Just,
-      OriginValueMatcher{ "TPC" }
-    };
+      OriginValueMatcher{"TPC"}};
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
-      OriginValueMatcher{ "TPC" }
-    };
+      OriginValueMatcher{"TPC"}};
     BOOST_CHECK(matcherA == matcherB);
   }
 
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::Just,
-      DescriptionValueMatcher{ "TRACKS" }
-    };
+      DescriptionValueMatcher{"TRACKS"}};
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
-      DescriptionValueMatcher{ "TRACKS" }
-    };
+      DescriptionValueMatcher{"TRACKS"}};
     BOOST_CHECK(matcherA == matcherB);
   }
 
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::Just,
-      SubSpecificationTypeValueMatcher{ 1 }
-    };
+      SubSpecificationTypeValueMatcher{1}};
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
-      SubSpecificationTypeValueMatcher{ 1 }
-    };
+      SubSpecificationTypeValueMatcher{1}};
     BOOST_CHECK(matcherA == matcherB);
   }
 
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::Just,
-      ConstantValueMatcher{ 1 }
-    };
+      ConstantValueMatcher{1}};
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
-      ConstantValueMatcher{ 1 }
-    };
+      ConstantValueMatcher{1}};
     BOOST_CHECK(matcherA == matcherB);
   }
 
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::And,
-      ConstantValueMatcher{ 1 },
-      DescriptionValueMatcher{ "TPC" }
-    };
+      ConstantValueMatcher{1},
+      DescriptionValueMatcher{"TPC"}};
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
-      ConstantValueMatcher{ 1 },
-      DescriptionValueMatcher{ "TPC" }
-    };
+      ConstantValueMatcher{1},
+      DescriptionValueMatcher{"TPC"}};
     BOOST_CHECK(matcherA == matcherB);
   }
 
   {
     DataDescriptorMatcher matcherA{
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{ "TPC" },
+      OriginValueMatcher{"TPC"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{ "CLUSTERS" },
+        DescriptionValueMatcher{"CLUSTERS"},
         std::make_unique<DataDescriptorMatcher>(
           DataDescriptorMatcher::Op::And,
-          SubSpecificationTypeValueMatcher{ 1 },
-          ConstantValueMatcher{ true }))
-    };
+          SubSpecificationTypeValueMatcher{1},
+          ConstantValueMatcher{true}))};
 
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{ "TPC" },
+      OriginValueMatcher{"TPC"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{ "CLUSTERS" },
+        DescriptionValueMatcher{"CLUSTERS"},
         std::make_unique<DataDescriptorMatcher>(
           DataDescriptorMatcher::Op::And,
-          SubSpecificationTypeValueMatcher{ 1 },
-          ConstantValueMatcher{ true }))
-    };
+          SubSpecificationTypeValueMatcher{1},
+          ConstantValueMatcher{true}))};
     BOOST_CHECK(matcherA == matcherB);
   }
 }
@@ -195,15 +182,14 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TPC" },
+    OriginValueMatcher{"TPC"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "CLUSTERS" },
+      DescriptionValueMatcher{"CLUSTERS"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
   BOOST_CHECK(matcher.match(header0, context) == true);
@@ -214,9 +200,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
-    OriginValueMatcher{ "TPC" },
-    OriginValueMatcher{ "ITS" }
-  };
+    OriginValueMatcher{"TPC"},
+    OriginValueMatcher{"ITS"}};
 
   BOOST_CHECK(matcher1.match(header0, context) == true);
   BOOST_CHECK(matcher1.match(header1, context) == true);
@@ -226,8 +211,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
-    DescriptionValueMatcher{ "TRACKLET" }
-  };
+    DescriptionValueMatcher{"TRACKLET"}};
 
   BOOST_CHECK(matcher2.match(header0, context) == false);
   BOOST_CHECK(matcher2.match(header1, context) == true);
@@ -302,15 +286,14 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ ContextRef{ 0 } },
+    OriginValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "CLUSTERS" },
+      DescriptionValueMatcher{"CLUSTERS"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ ContextRef{ 1 } },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{ContextRef{1}},
+        ConstantValueMatcher{true}))};
 
   DataHeader header0;
   header0.dataOrigin = "TPC";
@@ -340,23 +323,22 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
 
 BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 {
-  ConcreteDataMatcher spec0{ "TPC", "CLUSTERS", 1 };
-  ConcreteDataMatcher spec1{ "ITS", "TRACKLET", 2 };
-  ConcreteDataMatcher spec2{ "ITS", "TRACKLET", 1 };
-  ConcreteDataMatcher spec3{ "TPC", "CLUSTERS", 0 };
-  ConcreteDataMatcher spec4{ "TRD", "TRACKLET", 0 };
+  ConcreteDataMatcher spec0{"TPC", "CLUSTERS", 1};
+  ConcreteDataMatcher spec1{"ITS", "TRACKLET", 2};
+  ConcreteDataMatcher spec2{"ITS", "TRACKLET", 1};
+  ConcreteDataMatcher spec3{"TPC", "CLUSTERS", 0};
+  ConcreteDataMatcher spec4{"TRD", "TRACKLET", 0};
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TPC" },
+    OriginValueMatcher{"TPC"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "CLUSTERS" },
+      DescriptionValueMatcher{"CLUSTERS"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
-        ConstantValueMatcher{ true }))
-  };
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
 
   VariableContext context;
 
@@ -368,9 +350,8 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
-    OriginValueMatcher{ "TPC" },
-    OriginValueMatcher{ "ITS" }
-  };
+    OriginValueMatcher{"TPC"},
+    OriginValueMatcher{"ITS"}};
 
   BOOST_CHECK(matcher1.match(spec0, context) == true);
   BOOST_CHECK(matcher1.match(spec1, context) == true);
@@ -380,8 +361,7 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
-    DescriptionValueMatcher{ "TRACKLET" }
-  };
+    DescriptionValueMatcher{"TRACKLET"}};
 
   BOOST_CHECK(matcher2.match(spec0, context) == false);
   BOOST_CHECK(matcher2.match(spec1, context) == true);
@@ -396,8 +376,7 @@ BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::Just,
-    StartTimeValueMatcher{ ContextRef{ 0 } }
-  };
+    StartTimeValueMatcher{ContextRef{0}}};
 
   DataHeader dh;
   dh.dataOrigin = "TPC";
@@ -407,7 +386,7 @@ BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
   DataProcessingHeader dph;
   dph.startTime = 123;
 
-  Stack s{ dh, dph };
+  Stack s{dh, dph};
   auto s2dph = o2::header::get<DataProcessingHeader*>(s.data());
   BOOST_CHECK(s2dph != nullptr);
   BOOST_CHECK_EQUAL(s2dph->startTime, 123);
@@ -425,14 +404,13 @@ BOOST_AUTO_TEST_CASE(TestAtomicUpdatesOfContext)
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ ContextRef{ 0 } },
+    OriginValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "CLUSTERS" },
+      DescriptionValueMatcher{"CLUSTERS"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::Just,
-        SubSpecificationTypeValueMatcher{ ContextRef{ 1 } }))
-  };
+        SubSpecificationTypeValueMatcher{ContextRef{1}}))};
 
   /// This will match TPC, but not TRACKS, so the context should
   /// be left pristine.
@@ -460,8 +438,8 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   // Put some updates, but do not commit them
   // we should still be able to retrieve them
   // (just slower).
-  context.put(ContextUpdate{ 0, "A TEST" });
-  context.put(ContextUpdate{ 10, uint32_t{ 77 } });
+  context.put(ContextUpdate{0, "A TEST"});
+  context.put(ContextUpdate{10, uint32_t{77}});
   auto v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "A TEST");
@@ -482,8 +460,8 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   BOOST_CHECK(*v3 == 77);
 
   // Let's update again. New values should win.
-  context.put(ContextUpdate{ 0, "SOME MORE" });
-  context.put(ContextUpdate{ 10, uint32_t{ 16 } });
+  context.put(ContextUpdate{0, "SOME MORE"});
+  context.put(ContextUpdate{10, uint32_t{16}});
   v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "SOME MORE");
@@ -505,8 +483,8 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   BOOST_CHECK(*v3 == 77);
 
   // Let's update again. New values should win.
-  context.put(ContextUpdate{ 0, "SOME MORE" });
-  context.put(ContextUpdate{ 10, uint32_t{ 16 } });
+  context.put(ContextUpdate{0, "SOME MORE"});
+  context.put(ContextUpdate{10, uint32_t{16}});
   v1 = std::get_if<std::string>(&context.get(0));
   BOOST_REQUIRE(v1 != nullptr);
   BOOST_CHECK(*v1 == "SOME MORE");
@@ -583,16 +561,15 @@ BOOST_AUTO_TEST_CASE(DataQuery)
   BOOST_CHECK_EQUAL(result0.size(), 1);
   DataDescriptorMatcher expectedMatcher00{
     DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{ "TST" },
+    OriginValueMatcher{"TST"},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ "A1" },
+      DescriptionValueMatcher{"A1"},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 77 },
+        SubSpecificationTypeValueMatcher{77},
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
-                                                StartTimeValueMatcher{ ContextRef{ 0 } })))
-  };
+                                                StartTimeValueMatcher{ContextRef{0}})))};
   auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
   BOOST_REQUIRE(matcher != nullptr);
   BOOST_CHECK(expectedMatcher00 == *matcher);

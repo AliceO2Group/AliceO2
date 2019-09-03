@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
 
@@ -13,7 +23,7 @@
 #include "TOFSimulation/DigitizerTask.h"
 #endif
 
-void run_digi_tof(Int_t nEvents = 10, Float_t rate=50.e3)
+void run_digi_tof(Int_t nEvents = 10, Float_t rate = 50.e3)
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -52,8 +62,8 @@ void run_digi_tof(Int_t nEvents = 10, Float_t rate=50.e3)
 
   // Setup digitizer
   o2::tof::DigitizerTask* digi = new o2::tof::DigitizerTask();
-//  digi->setContinuous(rate > 0);
-//  digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
+  //  digi->setContinuous(rate > 0);
+  //  digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
 
   fRun->Init();
@@ -61,7 +71,8 @@ void run_digi_tof(Int_t nEvents = 10, Float_t rate=50.e3)
   timer.Start();
   fRun->Run();
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
 
   // Extract the maximal used memory an add is as Dart measurement
   // This line is filtered by CTest and the value send to CDash
@@ -79,11 +90,14 @@ void run_digi_tof(Int_t nEvents = 10, Float_t rate=50.e3)
   cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
   cout << cpuUsage;
   cout << "</DartMeasurement>" << endl;
-  cout << endl << endl;
+  cout << endl
+       << endl;
   std::cout << "Macro finished succesfully" << std::endl;
 
-  std::cout << endl << std::endl;
+  std::cout << endl
+            << std::endl;
   std::cout << "Output file is " << outputfile.str() << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl
+            << endl;
 }

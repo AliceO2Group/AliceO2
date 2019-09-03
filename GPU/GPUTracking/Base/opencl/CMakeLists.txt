@@ -20,7 +20,7 @@ if(NOT AMDAPPSDKROOT)
     )
 endif()
 
-message(STATUS "Building GPUTracking with OpenCL support")
+message(STATUS "Building GPUTracking with OpenCL 1.2 support")
 
 # convenience variables
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -28,15 +28,15 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 else()
   set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
 endif()
-set(CL_SRC ${GPUDIR}/Base/opencl/GPUReconstructionOCL.cl)
-set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.bin)
+set(CL_SRC ${GPUDIR}/Base/opencl-common/GPUReconstructionOCL.cl)
+set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL1Code.bin)
 
 # build the OpenCL compile wrapper :
 #
 # * checks the correct vendor implementation (AMD)
 # * builds binary code (blob) for the found platform(s)
 add_executable(opencl_compiler
-               ${GPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cpp)
+               ${GPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cxx)
 target_link_libraries(opencl_compiler PUBLIC OpenCL::OpenCL)
 set_property(TARGET opencl_compiler
              PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -50,15 +50,11 @@ add_custom_command(
           ${CL_BIN}
           ${CL_SRC}
           --
-          -I${GPUDIR}/HLTHeaders
-          -I${GPUDIR}/SliceTracker
-          -I${GPUDIR}/Merger
-          -I${GPUDIR}/Base
-          -I${GPUDIR}/TRDTracking
-          -I${GPUDIR}/Merger
-          -I${GPUDIR}/Standalone
-          -I${GPUDIR}/../Common
           "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>, -D>"
+          -I${GPUDIR}/../Common
+          -I${GPUDIR}/Base
+          -I${GPUDIR}/Merger
+          -I${GPUDIR}/SliceTracker
           -DGPUCA_GPULIBRARY=OCL1
           -x
           clc++
@@ -67,7 +63,7 @@ add_custom_command(
 # cmake-format: off
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
+    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL1Code.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
     MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
 )
 # cmake-format: on
@@ -82,14 +78,14 @@ set_source_files_properties(
   OBJECT_DEPENDS
   "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
 
-set(SRCS GPUReconstructionOCL.cxx
+set(SRCS GPUReconstructionOCL1.cxx
          ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S)
-set(HDRS GPUReconstructionOCL.h GPUReconstructionOCLInternals.h)
+set(HDRS GPUReconstructionOCL1.h GPUReconstructionOCL1Internals.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  SOURCES ${SRCS}
-                 PUBLIC_LINK_LIBRARIES OpenCL::OpenCL O2::GPUTracking
+                 PUBLIC_LINK_LIBRARIES O2::GPUTrackingOpenCLCommon
                  TARGETVARNAME targetName)
 
   target_compile_definitions(
@@ -99,7 +95,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   # declared PRIVATE) so we are not leaking them outside of the GPU**
   # directories
 
-  install(FILES ${HDRS} DESTINATION include)
+  install(FILES ${HDRS} DESTINATION include/GPU)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -107,15 +103,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary("Ali${MODULE}" "" "GPUReconstructionOCL.h" "${incdirs} .")
+  generate_dictionary("Ali${MODULE}" "" "GPUReconstructionOCL1.h" "${incdirs} .")
 
   # Generate the ROOT map
   generate_rootmap("Ali${MODULE}" "" "")
 
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
-  # AMD OpenCL run-time and driver
-  target_link_libraries(Ali${MODULE} OpenCL AliGPUTracking)
+  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTrackingOpenCLCommon)
 
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
@@ -126,6 +121,6 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=OCL1)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking)
-  install(TARGETS GPUTrackingOCL)
+  target_link_libraries(${MODULE} GPUTrackingOpenCLCommon)
+  install(TARGETS ${MODULE})
 endif()

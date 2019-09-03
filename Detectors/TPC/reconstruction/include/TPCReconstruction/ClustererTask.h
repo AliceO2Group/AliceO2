@@ -15,8 +15,8 @@
 #ifndef __ALICEO2__ClustererTask__
 #define __ALICEO2__ClustererTask__
 
-#include "FairTask.h"  // for FairTask, InitStatus
-#include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
+#include "FairTask.h" // for FairTask, InitStatus
+#include "Rtypes.h"   // for ClustererTask::Class, ClassDef, etc
 
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
@@ -27,10 +27,13 @@
 #include <vector>
 #include <memory>
 
-namespace o2 {
-namespace tpc{
+namespace o2
+{
+namespace tpc
+{
 
-class ClustererTask : public FairTask{
+class ClustererTask : public FairTask
+{
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using OutputType = ClusterHardwareContainer8kb;
@@ -71,16 +74,15 @@ class ClustererTask : public FairTask{
   std::unique_ptr<std::vector<OutputType>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
-  ClassDefOverride(ClustererTask, 1)
+  ClassDefOverride(ClustererTask, 1);
 };
 
-inline
-void ClustererTask::setContinuousReadout(bool isContinuous)
+inline void ClustererTask::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
 }
 
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

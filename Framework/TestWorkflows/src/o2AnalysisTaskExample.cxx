@@ -17,21 +17,20 @@ using namespace o2;
 using namespace o2::framework;
 
 // This is a stateful task, where we send the state downstream.
-class ATask : public AnalysisTask
-{
- public:
+struct ATask {
   explicit ATask(int state)
-    : mSomeState{ state } {}
+    : mSomeState{state} {}
 
-  void init(InitContext& ic) final
+  void init(InitContext& ic)
   {
     mSomeState += 1;
   }
-  void run(ProcessingContext& pc) final
+
+  void run(ProcessingContext& pc)
   {
   }
 
-  void processTimeframeTracks(aod::Timeframe const&, aod::Tracks const& tracks) override
+  void process(aod::Tracks const& tracks)
   {
     auto hPhi = new TH1F("phi", "Phi", 100, 0, 2 * M_PI);
     auto hEta = new TH1F("eta", "Eta", 100, 0, 2 * M_PI);
@@ -48,13 +47,11 @@ class ATask : public AnalysisTask
     hEta->Write();
   }
 
- private:
   int mSomeState;
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("mySimpleTrackAnalysis", 0)
-  };
+    adaptAnalysisTask<ATask>("mySimpleTrackAnalysis", 0)};
 }

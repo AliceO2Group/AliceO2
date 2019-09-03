@@ -112,6 +112,13 @@ template <typename T>
 struct has_messageable_value_type<T, std::conditional_t<false, typename T::value_type, void>> : is_messageable<typename T::value_type> {
 };
 
+template <typename T, typename _ = void>
+struct is_span : std::false_type {
+};
+template <typename T>
+struct is_span<T, std::conditional_t<false, typename T::value_type, void>> : std::is_same<gsl::span<typename T::value_type>, T> {
+};
+
 // Detect whether a class has a ROOT dictionary
 // This member detector idiom is implemented using SFINAE idiom to look for
 // a 'Class()' method.

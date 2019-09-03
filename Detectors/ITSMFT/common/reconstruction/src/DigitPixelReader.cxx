@@ -91,32 +91,32 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
   std::string detName = det.getName();
 
   if (!(mInputTree = o2::utils::RootChain::load("o2sim", inpName))) {
-    LOG(FATAL) << "Failed to load Digits tree from " << inpName << FairLogger::endl;
+    LOG(FATAL) << "Failed to load Digits tree from " << inpName;
   }
   mInputTree->SetBranchAddress((detName + "Digit").c_str(), &mDigitsSelf);
   if (!mDigitsSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "Digit").c_str() << " branch in the " << mInputTree->GetName()
-               << " from file " << inpName << FairLogger::endl;
+               << " from file " << inpName;
   }
   setDigits(mDigitsSelf);
 
   if (!(mInputTreeROF = o2::utils::RootChain::load((detName + "DigitROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load ROF records tree from " << inpName << FairLogger::endl;
+    LOG(FATAL) << "Failed to load ROF records tree from " << inpName;
   }
   mInputTreeROF->SetBranchAddress((detName + "DigitROF").c_str(), &mROFRecVecSelf);
   if (!mROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitROF").c_str() << " branch in the " << mInputTree->GetName()
-               << " from file " << inpName << FairLogger::endl;
+               << " from file " << inpName;
   }
   setROFRecords(mROFRecVecSelf);
 
   if (!(mInputTreeMC2ROF = o2::utils::RootChain::load((detName + "DigitMC2ROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load MC2ROF records tree from " << inpName << FairLogger::endl;
+    LOG(FATAL) << "Failed to load MC2ROF records tree from " << inpName;
   }
   mInputTreeMC2ROF->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
   if (!mMC2ROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitMC2ROF").c_str() << " branch in the " << mInputTree->GetName()
-               << " from file " << inpName << FairLogger::endl;
+               << " from file " << inpName;
   }
   setMC2ROFRecords(mMC2ROFRecVecSelf);
 

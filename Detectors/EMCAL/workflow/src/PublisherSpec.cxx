@@ -55,9 +55,9 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
                                                                                     filename.c_str(), // input file name
                                                                                     nofEvents,        // number of entries to publish
                                                                                     publishingMode,
-                                                                                    o2::framework::Output{ dto.origin, dto.description, subSpec, persistency },
+                                                                                    o2::framework::Output{dto.origin, dto.description, subSpec, persistency},
                                                                                     dtbrName.c_str(), // name of cluster branch
-                                                                                    o2::framework::Output{ mco.origin, mco.description, subSpec, persistency },
+                                                                                    o2::framework::Output{mco.origin, mco.description, subSpec, persistency},
                                                                                     mcbrName.c_str() // name of mc label branch
         );
       } else {
@@ -65,7 +65,7 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
                                                                                     filename.c_str(), // input file name
                                                                                     nofEvents,        // number of entries to publish
                                                                                     publishingMode,
-                                                                                    o2::framework::Output{ dto.origin, dto.description, subSpec, persistency },
+                                                                                    o2::framework::Output{dto.origin, dto.description, subSpec, persistency},
                                                                                     dtbrName.c_str() // name of cluster branch
         );
       }
@@ -92,9 +92,9 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
         active = false;
         // Send dummy header with no payload option
         o2::emcal::EMCALBlockHeader dummyheader(false);
-        pc.outputs().snapshot(o2::framework::OutputRef{ "output", 0, { dummyheader } }, 0);
+        pc.outputs().snapshot(o2::framework::OutputRef{"output", 0, {dummyheader}}, 0);
         if (propagateMC) {
-          pc.outputs().snapshot(o2::framework::OutputRef{ "outputMC", 0, { dummyheader } }, 0);
+          pc.outputs().snapshot(o2::framework::OutputRef{"outputMC", 0, {dummyheader}}, 0);
         }
       }
       if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
@@ -109,8 +109,8 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
     std::vector<o2::framework::OutputSpec> outputSpecs;
     auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
     auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
-    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "output" }, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe });
-    outputSpecs.emplace_back(o2::framework::OutputSpec{ { "outputMC" }, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe });
+    outputSpecs.emplace_back(o2::framework::OutputSpec{{"output"}, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe});
+    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
     return std::move(outputSpecs);
   };
 
@@ -119,17 +119,16 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
   return o2::framework::DataProcessorSpec{
     config.processName.c_str(),
     o2::framework::Inputs{}, // no inputs
-    { createOutputSpecs() },
+    {createOutputSpecs()},
     o2::framework::AlgorithmSpec(initFunction),
     o2::framework::Options{
-      { "infile", o2::framework::VariantType::String, "", { "Name of the input file" } },
-      { "treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), { "Name of input tree" } },
-      { dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), { dtb.help.c_str() } },
-      { mcb.option.c_str(), o2::framework::VariantType::String, mcb.defval.c_str(), { mcb.help.c_str() } },
-      { "nevents", o2::framework::VariantType::Int, -1, { "number of events to run" } },
-      { "terminate-on-eod", o2::framework::VariantType::Bool, true, { "terminate on end-of-data" } },
-    }
-  };
+      {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
+      {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
+      {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
+      {mcb.option.c_str(), o2::framework::VariantType::String, mcb.defval.c_str(), {mcb.help.c_str()}},
+      {"nevents", o2::framework::VariantType::Int, -1, {"number of events to run"}},
+      {"terminate-on-eod", o2::framework::VariantType::Bool, true, {"terminate on end-of-data"}},
+    }};
 }
 
 } // namespace emcal

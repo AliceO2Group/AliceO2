@@ -39,10 +39,13 @@ const char* TOPNAME = "cave";
 #define kRaddeg TMath::RadToDeg()
 #define kDegrad TMath::DegToRad()
 
-FrameStructure::FrameStructure(const char* name, const char* Title) : FairModule(name, Title) {}
+FrameStructure::FrameStructure(const char* name, const char* Title) : FairModule(name, Title)
+{
+}
 
 FrameStructure::FrameStructure(const FrameStructure& rhs) : FairModule(rhs)
-{}
+{
+}
 
 FairModule* FrameStructure::CloneModule() const
 {
@@ -232,26 +235,26 @@ void FrameStructure::createMaterials()
   tmaxfd = -20.;  // Maximum angle due to field deflection
   deemax = -.3;   // Maximum fractional energy loss, DLS
   stmin = -.8;
-  int isxfld = 2; // field uniformity value as defined by Geant3
+  int isxfld = 2;     // field uniformity value as defined by Geant3
   float sxmgmx = 10.; // max field
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
-  float asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  float zsteel[4] = { 26., 24., 28., 14. };
-  float wsteel[4] = { .715, .18, .1, .005 };
+  float asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  float zsteel[4] = {26., 24., 28., 14.};
+  float wsteel[4] = {.715, .18, .1, .005};
 
   // Air
 
-  float aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  float zAir[4] = { 6., 7., 8., 18. };
-  float wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  float zAir[4] = {6., 7., 8., 18.};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
 
   // G10
   // G10 60% SiO2 40% epoxy
-  float ag10[4] = { 12.01, 1., 15.994, 28.086 };
-  float zg10[4] = { 6., 1., 8., 14. };
-  float wg10[4] = { 0.194, 0.023, 0.443, 0.340 };
+  float ag10[4] = {12.01, 1., 15.994, 28.086};
+  float zg10[4] = {6., 1., 8., 14.};
+  float wg10[4] = {0.194, 0.023, 0.443, 0.340};
 
   matmgr.Mixture("FRAME", 22, "G10", ag10, zg10, 1.7, 4, wg10);
   matmgr.Mixture("FRAME", 65, "STEEL$", asteel, zsteel, 7.88, 4, wsteel);
@@ -390,14 +393,14 @@ void FrameStructure::ConstructGeometry()
   const float dHz = 113. / cos10 - 0.3; // 114.74 (114.5 on drawing)
   // Positions of ring bars (ALIP2A_0008)
   // outer
-  const float dymodU[3] = { 71.5, 228.5, 339.5 };
+  const float dymodU[3] = {71.5, 228.5, 339.5};
   // inner
-  const float dymodL[3] = { 50.0, 175.0, 297.5 };
+  const float dymodL[3] = {50.0, 175.0, 297.5};
   //
   // orientation of web frame elements
-  const float dymodO[5] = { 10., -40., 20., -27.1, 18.4 };
+  const float dymodO[5] = {10., -40., 20., -27.1, 18.4};
   // Position of web frame elements
-  float dymodW[5] = { 70., 73.6, 224.5, 231.4, 340.2 };
+  float dymodW[5] = {70., 73.6, 224.5, 231.4, 340.2};
   for (int ii = 0; ii < 5; ii++) {
     dymodW[ii] = dymodW[ii] - 3. * TMath::Tan(dymodO[ii] * kdeg2rad);
   }
@@ -1008,7 +1011,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("BTRDR_14", "BOX", kG10, lbox, 3);
   dz = -iFrH0 / 2. + longH / 2. + dext;
   float zpos = 80.;
-  int isec_1[11] = { 0, 1, 2, 3, 4, 5, 13, 14, 15, 16, 17 };
+  int isec_1[11] = {0, 1, 2, 3, 4, 5, 13, 14, 15, 16, 17};
 
   for (int index = 0; index < 11; index++) {
     jmod = isec_1[index];
@@ -1050,7 +1053,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("BTRDR_21", "BOX", kG10, lbox, 3);
   vmc->Gspos("BTRDR_21", 1, "BTRDR_2", -0.4, 0.0, 0.0, 0, "ONLY");
 
-  int isec_2a[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17 };
+  int isec_2a[16] = {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17};
   for (int index = 0; index < 16; index++) {
     jmod = isec_2a[index];
     dx0 = (hR + dz0) * tan10 + 10. * sin10 - (longW / 4. + 0.5) / cos10;
@@ -1061,7 +1064,7 @@ void FrameStructure::ConstructGeometry()
     }
   }
 
-  int isec_2b[6] = { 6, 7, 8, 10, 11, 12 };
+  int isec_2b[6] = {6, 7, 8, 10, 11, 12};
   for (int index = 0; index < 6; index++) {
     jmod = isec_2b[index];
     dx0 = (hR + dz0 + zpos - 3.) * tan10 - (longW / 4. + 0.5) / cos10;
@@ -1085,7 +1088,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("BTRDR_31", "BOX", kG10, lbox, 3);
   vmc->Gspos("BTRDR_31", 1, "BTRDR_3", 0, 0.0, 0.6, 0, "ONLY");
 
-  int isec_3[9] = { 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+  int isec_3[9] = {5, 6, 7, 8, 9, 10, 11, 12, 13};
 
   for (int index = 0; index < 9; index++) {
     jmod = isec_3[index];
@@ -1689,7 +1692,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("BFRR", "BOX ", kAir, bpar, 3);
   vmc->Gspos("BFRR", 1, "BFRB", 0., 0., 0., 0, "ONLY");
 
-  int iphi[10] = { 0, 1, 3, 6, 8, 9, 10, 12, 15, 17 };
+  int iphi[10] = {0, 1, 3, 6, 8, 9, 10, 12, 15, 17};
 
   for (i = 0; i < 10; i++) {
     float rb = (kBFMRin + kBFMRou) / 2.;
@@ -1892,5 +1895,5 @@ void FrameStructure::ConstructGeometry()
 
   vmc->Gspos("BBMO", 1, TOPNAME, 0., 0., +376. + kBBMdz / 2. + 0.5, 0, "ONLY");
 }
-}
-}
+} // namespace passive
+} // namespace o2
