@@ -107,6 +107,9 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
         MC2ROFRecTree->GetEntry(ent);
         for (int imc = mc2rofVec.size(); imc--;) {
           const auto& mc2rof = mc2rofVec[imc];
+          if (mc2rof.rofRecordID < 0) {
+            continue; // this MC event did not contribute to any ROF
+          }
           for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
             int irof = mc2rof.rofRecordID + irfd;
             if (mcEvMin[irof] > imc) {
@@ -164,9 +167,9 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
         float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
         if (clusLabArr) {
           const auto& lab = (clusLabArr->getLabels(clEntry))[0]; // we neglect effect of cluster contributed by multiple hits
-          auto trID = lab.getTrackID();
           auto srcID = lab.getSourceID();
-          if (srcID != QEDSourceID && trID != -1) { // use MC truth info only for non-QED and non-noise clusters
+          if (!lab.isNoise() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
+            auto trID = lab.getTrackID();
             const auto& mc2hit = mc2hitVec[lab.getEventID()];
             const auto* hitArray = hitVecPool[lab.getEventID()];
             int chipID = cluster.getSensorID();
