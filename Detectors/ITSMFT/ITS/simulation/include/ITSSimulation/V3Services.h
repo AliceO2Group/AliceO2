@@ -49,15 +49,30 @@ class V3Services : public V11Geometry
   /// Default destructor
   ~V3Services() override;
 
+  /// Creates the Inner Barrel End Wheels on Side A
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createIBEndWheelsSideA(const TGeoManager* mgr = gGeoManager);
+
   /// Creates the Inner Barrel End Wheels on Side C
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createIBEndWheelsSideC(const TGeoManager* mgr = gGeoManager);
+
+ private:
+  /// Creates a single Inner Barrel End Wheel on Side A
+  /// \param iLay  the layer number
+  /// \param endWheel  the End Wheel volume assembly
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr = gGeoManager);
 
   /// Creates a single Inner Barrel End Wheel on Side C
   /// \param iLay  the layer number
   /// \param endWheel  the End Wheel volume assembly
   /// \param mgr  The GeoManager (used only to get the proper material)
   void ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the shape of a Rib on Side A
+  /// \param iLay  the layer number
+  TGeoXtru* ibEndWheelARibShape(const Int_t iLay);
 
   // Parameters
   static constexpr Int_t sNumberInnerLayers = 3; ///< Number of inner layers in ITSU

@@ -1023,7 +1023,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // The connectors' containers
   zlen = sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut;
-  TGeoBBox* connAside = new TGeoBBox("connAsideIB", sIBConnectorXWidth / 2, sIBConnectorYTot / 2, zlen / 2);
+  TGeoBBox* connAside = new TGeoBBox("connAsideIB", sIBConnectorXWidth / 2, sIBConnBodyYHeight / 2, zlen / 2);
 
   zlen = sIBConnectBlockZLen - sIBConnTailZLen;
   TGeoBBox* connCside = new TGeoBBox("connCsideIB", sIBConnectorXWidth / 2, sIBConnBodyYHeight / 2, zlen / 2);
@@ -1283,6 +1283,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   // Created:      22 Apr 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
   // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      19 Jun 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
   // Local variables
@@ -1438,12 +1439,16 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   // Now create the container: cannot be a simple box
   // to avoid fake overlaps with stave elements
   xlen = sIBConnectorXWidth;
-  ylen = sIBConnectorYTot;
+  ylen = sIBConnBodyYHeight;
   zlen = sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut;
 
   TGeoBBox* connBox = new TGeoBBox("connBoxA", xlen / 2, ylen / 2, zlen / 2);
 
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBox->GetDY();
+  TGeoTranslation* transBodyA = new TGeoTranslation("transBodyA", 0, ypos, 0);
+  transBodyA->RegisterYourself();
+
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   TGeoTranslation* transTailA = new TGeoTranslation("transTailA", 0, ypos, zpos);
   transTailA->RegisterYourself();
@@ -1451,7 +1456,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   TGeoTube* connTubeHollow = new TGeoTube("tubeHollowA", 0, sIBConnTubeHole1D / 2, sIBConnTubeHole1ZLen / 2);
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = -connBox->GetDZ() - connTail->GetZ(1) + sIBConnTubeHole1ZLen / 2;
   TGeoTranslation* connTubeHollTrans1 = new TGeoTranslation("tubeHollTrans1A", -xpos, ypos, zpos);
   connTubeHollTrans1->RegisterYourself();
@@ -1465,23 +1470,23 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   connTubes2Trans2Body->RegisterYourself();
 
   TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
+    "connBoxA:transBodyA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
     "tubeHollowA:tubeHollTrans2A");
 
   TGeoVolume* connBoxASide = new TGeoVolume("IBConnectorASide", connBoxSh, medAir);
 
   // Finally build up the connector
   // (NB: the origin is in the connBox, i.e. w/o the tail in Z)
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   connBoxASide->AddNode(connBlockTail, 1, new TGeoTranslation(0, ypos, zpos));
 
-  ypos = -connBox->GetDY() + connBody->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBody->GetDY();
   zpos = -connBox->GetDZ() + connBody->GetDZ();
   connBoxASide->AddNode(connBlockBody, 1, new TGeoTranslation(0, ypos, zpos));
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = connBox->GetDZ() - connFitSh->GetDz();
   connBoxASide->AddNode(connFit, 1, new TGeoTranslation(xpos, ypos, zpos));
   connBoxASide->AddNode(connFit, 2, new TGeoTranslation(-xpos, ypos, zpos));
@@ -1495,6 +1500,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   // Created:      05 May 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
   // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      15 May 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
   // Local variables
