@@ -8,20 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# use the the config provided by the Geant3 installation but amend the target
-# geant321 with the include directories
+# Simply provide a namespaced alias for the existing target 
 
-find_package(Geant3 NO_MODULE)
-if(NOT Geant3_FOUND)
+find_package(GLFW NAMES glfw3 CONFIG)
+if(NOT GLFW_FOUND)
   return()
 endif()
 
-set_target_properties(geant321
-                      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                 "${Geant3_INCLUDE_DIRS}")
-
 # Promote the imported target to global visibility
 # (so we can alias it)
-set_target_properties(geant321 PROPERTIES IMPORTED_GLOBAL TRUE)
+set_target_properties(glfw PROPERTIES IMPORTED_GLOBAL TRUE)
 
-add_library(MC::Geant3 ALIAS geant321)
+add_library(glfw::glfw ALIAS glfw)

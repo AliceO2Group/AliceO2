@@ -11,5 +11,5 @@
 o2_add_test(01
             SOURCES test/test_Arrow01.cxx
             COMPONENT_NAME arrow
-            PUBLIC_LINK_LIBRARIES arrow_shared
+            PUBLIC_LINK_LIBRARIES arrow::arrow_shared
             LABELS arrow)

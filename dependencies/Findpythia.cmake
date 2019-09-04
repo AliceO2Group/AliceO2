@@ -16,8 +16,9 @@ find_path(${PKGNAME}_INCLUDE_DIR
           PATH_SUFFIXES Pythia8
           PATHS $ENV{${PKGENVNAME}_ROOT}/include)
 
-find_library(${PKGNAME}_LIBRARY_SHARED NAMES libpythia8.so libpythia8.dylib
-          PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
+find_library(${PKGNAME}_LIBRARY_SHARED
+             NAMES libpythia8.so libpythia8.dylib
+             PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
 
 find_path(${PKGNAME}_DATA
           NAMES MainProgramSettings.xml
@@ -31,6 +32,9 @@ if(${PKGNAME}_INCLUDE_DIR AND ${PKGNAME}_LIBRARY_SHARED AND ${PKGNAME}_DATA)
                         PROPERTIES IMPORTED_LOCATION
                                    ${${PKGNAME}_LIBRARY_SHARED}
                                    INTERFACE_INCLUDE_DIRECTORIES ${incdir})
+  # Promote the imported target to global visibility (so we can alias it)
+  set_target_properties(pythia PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(MC::Pythia ALIAS pythia)
 endif()
 
 include(FindPackageHandleStandardArgs)

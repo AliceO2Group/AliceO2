@@ -110,7 +110,7 @@ o2_add_library(Framework
                                      O2::MemoryResources
                                      O2::PCG
                                      RapidJSON::RapidJSON
-                                     arrow_shared
+                                     arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
                                      ${DEBUGGUI_TARGET}
@@ -271,25 +271,20 @@ foreach(w
               COMMAND_LINE_ARGS --run)
 endforeach()
 
-# TODO: DanglingInput test not working for the moment
-#    [ERROR] Unable to relay part.
-#    [WARN] Incoming data is already obsolete, not relaying.
-set_property(TEST test_Framework_test_DanglingInputs
-             PROPERTY DISABLED TRUE)
+# TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
+# part. [WARN] Incoming data is already obsolete, not relaying.
+set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem with the two unit tests, maybe setup of the CI environment
-# assertion fired
-#     X11: The DISPLAY environment variable is missing
-#     glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window != ((void *)0)' failed.
-set_property(TEST test_Framework_test_CustomGUIGL
-             PROPERTY DISABLED TRUE)
-set_property(TEST test_Framework_test_CustomGUISokol
-             PROPERTY DISABLED TRUE)
+# TODO: investigate the problem with the two unit tests, maybe setup of the CI
+# environment assertion fired X11: The DISPLAY environment variable is missing
+# glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
+# ((void *)0)' failed.
+set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
+set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
              PROPERTY DISABLED TRUE)
-
 
 # specific tests which needs command line options
 o2_add_test(

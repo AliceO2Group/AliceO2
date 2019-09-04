@@ -36,7 +36,7 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(arrow CONFIG)
+find_package(arrow MODULE)
 set_package_properties(arrow PROPERTIES TYPE REQUIRED)
 
 find_package(Vc)
@@ -116,7 +116,7 @@ find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)
 set_package_properties(OpenMP PROPERTIES TYPE OPTIONAL)
-find_package(GLFW NAMES glfw3 CONFIG)
+find_package(GLFW MODULE)
 set_package_properties(GLFW PROPERTIES TYPE RECOMMENDED)
 find_package(DebugGUI CONFIG)
 set_package_properties(DebugGUI PROPERTIES TYPE RECOMMENDED)
