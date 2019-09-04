@@ -86,7 +86,7 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection);
 
-  //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
+  GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
   GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool rejectChi2, bool refit);
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z);
@@ -132,6 +132,7 @@ class GPUTPCGMPropagator
 
  private:
   GPUd() static float ApproximateBetheBloch(float beta2);
+  GPUd() int FollowLinearization(const GPUTPCGMPhysicalTrackModel& t0e, float Bz, float dLp, bool inFlyDirection);
 
   const GPUTPCGMPolynomialField* mField = nullptr;
   FieldRegion mFieldRegion = TPC;
