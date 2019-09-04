@@ -72,7 +72,6 @@ function(o2_add_test_root_macro macro)
 
   get_filename_component(macroFileName ${macro} ABSOLUTE)
 
-
   if(NOT EXISTS ${macroFileName})
     message(
       FATAL_ERROR
@@ -91,6 +90,14 @@ function(o2_add_test_root_macro macro)
 
   # Get all the include dir dependencies
   foreach(t IN LISTS A_PUBLIC_LINK_LIBRARIES)
+    string(FIND ${t} "::" NS)
+    if(${NS} EQUAL -1)
+      message(
+        WARNING
+          "Trying to use a non-namespaced target ${t} for ${testName} test so I won't be able to generate that test."
+        )
+      return()
+    endif()
     list(APPEND dependencies ${t})
   endforeach()
 
