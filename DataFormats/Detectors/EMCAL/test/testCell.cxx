@@ -49,13 +49,13 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   }
 
   c.setTimeStamp(0);
-  std::vector<double> energies = {0.5, 1, 2, 5, 10, 20};
+  std::vector<double> energies = {0.5, 1, 2, 5, 10, 20, 40, 60, 100, 150, 200};
 
   for (auto e : energies) {
     c.setEnergy(e);
     BOOST_CHECK_EQUAL(c.getTower(), 0);
     BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
-    BOOST_CHECK_SMALL(e - c.getEnergy(), 0.1);
+    BOOST_CHECK_SMALL(e - c.getEnergy(), 0.02); // Require 20 MeV resolution
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
 
