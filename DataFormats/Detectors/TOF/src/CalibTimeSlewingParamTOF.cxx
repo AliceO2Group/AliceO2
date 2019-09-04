@@ -70,7 +70,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   if (n >= nstop)
     return 0.; // something went wrong!
 
-  while (n < nstop && tot < (*(mTimeSlewing[sector]))[n].first)
+  while (n < nstop && tot > (*(mTimeSlewing[sector]))[n].first)
     n++;
   n--;
 

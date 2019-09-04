@@ -45,7 +45,7 @@ class CalibTimeSlewingParamTOF
 
   int getSize(int sector) const { return (*(mTimeSlewing[sector])).size(); }
 
-  int getStartTimeStamp(int sector, int channel) const { return mChannelStart[sector][channel]; }
+  int getStartIndexForChannel(int sector, int channel) const { return mChannelStart[sector][channel]; }
   float getFractionUnderPeak(int sector, int channel) const { return mFractionUnderPeak[sector][channel]; }
   float getSigmaPeak(int sector, int channel) const { return mSigmaPeak[sector][channel]; }
 
