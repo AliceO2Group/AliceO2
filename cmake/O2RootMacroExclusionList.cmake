@@ -38,6 +38,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             GPU/TPCFastTransformation/macro/initTPCcalibration.C # Needs AliTPCCalibDB
             GPU/TPCFastTransformation/macro/loadlibs.C # Special macro
             GPU/TPCFastTransformation/macro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
+	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
 	    Generators/share/external/QEDepem.C
             macro/SetIncludePath.C
