@@ -206,6 +206,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
   Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
+
   Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
   step *= nStepsInv; // position increment at each step
@@ -268,8 +269,11 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
 
   const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
-  // take into account that the AlpideSimResponse has min/max thickness non-symmetric around 0
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthShift());
+  // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
+  // although the max should coincide with the surface of the epitaxial layer, which in the chip
+  // local coordinates has Y = +SensorLayerThicknessEff/2
+
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThicknessEff / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
