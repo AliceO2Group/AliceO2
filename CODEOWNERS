@@ -9,49 +9,50 @@
 # the repo. Unless a later match takes precedence
 * @AliceO2Group/core
 
-/Algorithm
+/Algorithm  @matthiasrichter
 
-/CCDB @AliceO2Group/framework-admins
+/CCDB  @costing @Barthelemy @AliceO2Group/core @AliceO2Group/framework-admins
 
-/Common @AliceO2Group/framework-admins
-#/Common/Constants
-#/Common/Field
-#/Common/MathUtils
-#/Common/SimConfig
+/Common              @AliceO2Group/core @AliceO2Group/framework-admins
+/Common/Constants    @shahor02
+/Common/Field        @shahor02
+/Common/MathUtils    @shahor02
+/Common/SimConfig    @sawenzel
 #/Common/Topologies
 #/Common/Types
 #/Common/Utils
 #/Common/maps
 
-/DataFormats @AliceO2Group/framework-admins
+/DataFormats                   @AliceO2Group/core @AliceO2Group/framework-admins
 #/DataFormats/Detectors
+/DataFormats/Detectors/TPC     @davidrohr
 #/DataFormats/Headers
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
-#/DataFormats/Parameters
-#/DataFormats/Reconstruction
+/DataFormats/Parameters        @shahor02
+/DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
-#/DataFormats/common
-#/DataFormats/simulation
+/DataFormats/common            @shahor02
+/DataFormats/simulation        @sawenzel
 
-/Detectors/Base @AliceO2Group/framework-admins
-/Detectors/Geometry @AliceO2Group/framework-admins
-/Detectors/CPV
-/Detectors/EMCAL
-/Detectors/FIT
-/Detectors/GlobalTracking
-/Detectors/GlobalTrackingWorkflow
-/Detectors/HMPID
-/Detectors/ITSMFT
-/Detectors/MUON
-/Detectors/PHOS
-/Detectors/Passive
-/Detectors/TOF
-/Detectors/TPC
-/Detectors/TRD
-/Detectors/ZDC
+/Detectors/Base                    @AliceO2Group/core @AliceO2Group/framework-admins
+/Detectors/Geometry                @AliceO2Group/core @AliceO2Group/framework-admins
+/Detectors/CPV                     @peressounko @kharlov @AliceO2Group/core
+/Detectors/EMCAL                   @mfasDa @AliceO2Group/core
+/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck @AliceO2Group/core
+/Detectors/GlobalTracking          @shahor02
+/Detectors/GlobalTrackingWorkflow  @shahor02
+/Detectors/HMPID                   @gvolpe79 @AliceO2Group/core
+/Detectors/ITSMFT                  @iouribelikov @bovulpes @AliceO2Group/core
+/Detectors/MUON                    @aphecetche @AliceO2Group/core
+/Detectors/PHOS                    @peressounko @kharlov @AliceO2Group/core
+/Detectors/Passive                 @sawenzel
+/Detectors/TOF                     @noferini @AliceO2Group/core
+/Detectors/TPC                     @davidrohr @wiechula @shahor02 @AliceO2Group/core
+/Detectors/TRD                     @jolopezl @bazinski @AliceO2Group/core
+/Detectors/ZDC                     @coppedis @AliceO2Group/core
 
-/EventVisualisation @AliceO2Group/framework-admins
+/EventVisualisation  @jmyrcha @AliceO2Group/core @AliceO2Group/framework-admins
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -67,8 +68,7 @@
 #/Examples/flp2epn
 #/Examples/flp2epn-distributed
 
-
-/Framework @AliceO2Group/framework-admins
+/Framework  @AliceO2Group/core @AliceO2Group/framework-admins
 #/Framework/AnalysisTutorial
 #/Framework/ArrowTests
 #/Framework/CMakeLists.txt
@@ -80,20 +80,21 @@
 #/Framework/TestWorkflows
 #/Framework/Utils
 
-/GPU @AliceO2Group/framework-admins
+/GPU                          @davidrohr @AliceO2Group/framework-admins
 #/GPU/Common
 #/GPU/GPUTracking
-#/GPU/TPCFastTransformation
-#/GPU/TPCSpaceChargeBase
+/GPU/GPUTracking/TRDTracking  @davidrohr @martenole
+/GPU/TPCFastTransformation    @davidrohr @sgorbuno
+/GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
 
-/Generators
+/Generators  @sawenzel
 
-/Steer @AliceO2Group/framework-admins
+/Steer  @AliceO2Group/core @AliceO2Group/framework-admins
 
 /Testing
 
-/Utilities @AliceO2Group/framework-admins
-#/Utilities/DataCompression 
+/Utilities  @AliceO2Group/core @AliceO2Group/framework-admins
+#/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
 #/Utilities/Mergers
