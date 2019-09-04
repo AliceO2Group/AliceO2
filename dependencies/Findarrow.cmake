@@ -8,21 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# use the HepMCConfig.cmake provided by the HepMC3 installation to create a
-# single target HepMC with the include directories and libraries we need
+# Simply provide a namespaced alias for the existing target
 
-find_package(HepMC NO_MODULE)
-if(NOT HepMC_FOUND)
-        return()
+find_package(arrow CONFIG)
+if(NOT arrow_FOUND)
+  return()
 endif()
 
-add_library(HepMC IMPORTED INTERFACE)
-
-set_target_properties(HepMC
-        PROPERTIES
-        INTERFACE_LINK_LIBRARIES "${HEPMC_LIBRARIES}"
-        INTERFACE_INCLUDE_DIRECTORIES "${HEPMC_INCLUDE_DIR}")
-
 # Promote the imported target to global visibility (so we can alias it)
-set_target_properties(HepMC PROPERTIES IMPORTED_GLOBAL TRUE)
-add_library(MC::HepMC ALIAS HepMC)
+set_target_properties(arrow_shared PROPERTIES IMPORTED_GLOBAL TRUE)
+
+add_library(arrow::arrow_shared ALIAS arrow_shared)
