@@ -105,17 +105,6 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @return the object, or nullptr if none were found.
    */
-  TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
-                    long timestamp = -1) const;
-
-  /**
-   * Retrieve object at the given path for the given timestamp.
-   *
-   * @param path The path where the object is to be found.
-   * @param metadata Key-values representing the metadata to filter out objects.
-   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
-   * @return the object, or nullptr if none were found.
-   */
   TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
                              long timestamp = -1) const;
 
@@ -129,9 +118,6 @@ class CcdbApi //: public DatabaseInterface
   */
   template <typename T>
   T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp = -1) const;
-
-  //    std::vector<std::string> getListOfTasksWithPublications();
-  //    std::vector<std::string> getPublishedObjectNames(std::string taskName);
 
   /**
    * Delete all versions of the object at this path.
