@@ -23,20 +23,20 @@ namespace o2::aod
 {
 namespace track
 {
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
+DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
 } // namespace track
-DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI", track::Eta, track::Phi);
+DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR", track::Foo, track::Bar);
 } // namespace o2::aod
 
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct ATask {
-  Produces<aod::EtaPhis> phis;
+  Produces<aod::FooBars> foobars;
 
   void process(o2::aod::Track const& track)
   {
-    phis(0.01102005, 0.27092016); // dummy value for phi for now...
+    foobars(0.01102005, 0.27092016); // dummy value for phi for now...
   }
 };
 
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task1.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
   BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("Tracks"));
-  BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("EtaPhis"));
+  BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>("test2");
   BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
