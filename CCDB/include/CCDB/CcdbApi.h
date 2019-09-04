@@ -61,18 +61,6 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
-   * Stores an object in the CCDB as a streamed object, not a TFile.
-   *
-   * @param rootObject Raw pointer to the object to store.
-   * @param path The path where the object is going to be stored.
-   * @param metadata Key-values representing the metadata for this object.
-   * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-   * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
-   */
-  void store(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-             long startValidityTimestamp = -1, long endValidityTimestamp = -1, bool storeStreamerInfo = false) const;
-
-  /**
      * Store into the CCDB a TFile containing the ROOT object.
      *
      * @param rootObject Raw pointer to the object to store.
