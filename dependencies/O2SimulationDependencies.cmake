@@ -61,8 +61,11 @@ find_package(Geant4VMC MODULE)
 set_package_properties(Geant4VMC PROPERTIES TYPE ${mcPackageRequirement})
 find_package(VGM CONFIG)
 set_package_properties(VGM PROPERTIES TYPE ${mcPackageRequirement})
-find_package(HepMC CONFIG)
-set_package_properties(HepMC PROPERTIES TYPE ${mcPackageRequirement})
+find_package(HepMC MODULE)
+set_package_properties(HepMC
+		       PROPERTIES
+		       TYPE ${mcPackageRequirement} DESCRIPTION
+		       	    "the HepMC3 event record package")
 
 set(doBuildSimulation OFF)
 
