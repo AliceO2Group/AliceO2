@@ -151,12 +151,10 @@ void run_trac_ca_its(bool useITSVertex = false,
   o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
   o2::its::Vertexer vertexer(traits);
 
-  int roFrameCounter{ 0 };
-
+  int roFrameCounter{0};
 
   std::vector<double> ncls;
   std::vector<double> time;
-
 
   std::vector<TrackingParameters> trackParams(3);
   trackParams[0].TrackletMaxDeltaPhi = 0.05f;
@@ -167,7 +165,7 @@ void run_trac_ca_its(bool useITSVertex = false,
   std::vector<MemoryParameters> memParams(3);
 
   tracker.setParameters(memParams, trackParams);
-  
+
   int currentEvent = -1;
   for (auto& rof : *rofs) {
 
@@ -205,7 +203,7 @@ void run_trac_ca_its(bool useITSVertex = false,
     tracker.clustersToTracks(event);
 
     auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> diff_t{ end - start };
+    std::chrono::duration<double, std::milli> diff_t{end - start};
 
     ncls.push_back(event.getTotalClusters());
     time.push_back(diff_t.count());
@@ -229,10 +227,9 @@ void run_trac_ca_its(bool useITSVertex = false,
   outTree.Write();
   outFile.Close();
 
-  TGraph* graph = new TGraph(ncls.size(),ncls.data(),time.data());
+  TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
   graph->SetMarkerStyle(20);
   graph->Draw("AP");
-
 }
 
 #endif

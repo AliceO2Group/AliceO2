@@ -76,7 +76,7 @@ void Cluster::Init(const int layerIndex, const float3& primaryVertex, const Clus
   rCoordinate = calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y);
   clusterId = other.clusterId;
   indexTableBinIndex = index_table_utils::getBinIndex(index_table_utils::getZBinIndex(layerIndex, zCoordinate),
-                                                     index_table_utils::getPhiBinIndex(phiCoordinate));
+                                                      index_table_utils::getPhiBinIndex(phiCoordinate));
 }
 
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
