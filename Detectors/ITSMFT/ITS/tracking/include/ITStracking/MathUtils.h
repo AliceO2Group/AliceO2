@@ -20,6 +20,7 @@
 #include <cmath>
 #endif
 
+#include "MathUtils/Utils.h"
 #include "ITStracking/Constants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
@@ -40,15 +41,13 @@ GPUhdni() constexpr float3 crossProduct(const float3&, const float3&);
 GPUhdni() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
 GPUhdni() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
 GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
-GPUhdni() float fastATan2(float y, float x);
-GPUhdni() float fastATanP(float x);
 
 } // namespace math_utils
 
 GPUhdi() float math_utils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
   //return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
-  return fastATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
+  return utils::FastATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
 }
 
 GPUhdi() float math_utils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)
@@ -91,41 +90,6 @@ GPUhdi() float math_utils::computeCurvatureCentreX(float x1, float y1, float x2,
 GPUhdi() float math_utils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
 {
   return (z1 - z2) / o2::gpu::CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-}
-
-GPUhdi() float math_utils::fastATan2(float y, float x)
-{
-  constexpr float pi05 = 0.5 * constants::math::Pi;
-
-  float sign = 1.f;
-
-  if (y < 0.f) {
-    y = -y;
-    sign = -1.f;
-  }
-
-  // y >= 0
-
-  float add = 0.f;
-  if (x < 0.f) {
-    add = pi05;
-    float tmp = y;
-    y = -x;
-    x = tmp;
-  }
-
-  // x>=0, y>=0
-  // use atan(t)+atan(1/t)=pi/2 for t>0
-  float atanp = (x > y) ? fastATanP(y / x) : pi05 - fastATanP(x / y);
-  return sign * (atanp + add);
-}
-
-GPUhdi() float math_utils::fastATanP(float x)
-{
-  // x >= 0
-  const float kThresh = 0.315f; // parametrization switch here
-  constexpr float kC0 = 7.85398163397448279e-01f;
-  return x > kThresh ? x * (kC0 + 0.273f * (1.f - x)) : x / (1.f + x * x * 0.2815f);
 }
 
 } // namespace its

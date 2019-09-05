@@ -68,9 +68,9 @@ GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
   constexpr auto zSize = its::LayersZCoordinate();
   constexpr double s = 1.; // safety margin
-  return GPUArray<float, its::LayersNumber>{ { 0.5 * ZBins / (zSize[0] + s), 0.5 * ZBins / (zSize[1] + s), 0.5 * ZBins / (zSize[2] + s),
-                                               0.5 * ZBins / (zSize[3] + s), 0.5 * ZBins / (zSize[4] + s), 0.5 * ZBins / (zSize[5] + s),
-                                               0.5 * ZBins / (zSize[6] + s) } };
+  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / (zSize[0] + s), 0.5 * ZBins / (zSize[1] + s), 0.5 * ZBins / (zSize[2] + s),
+                                             0.5 * ZBins / (zSize[3] + s), 0.5 * ZBins / (zSize[4] + s), 0.5 * ZBins / (zSize[5] + s),
+                                             0.5 * ZBins / (zSize[6] + s)}};
 }
 } // namespace index_table
 
