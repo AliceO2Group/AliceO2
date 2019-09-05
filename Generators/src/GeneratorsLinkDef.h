@@ -27,6 +27,9 @@
 
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
+#ifdef GENERATORS_WITH_HEPMC3
+#pragma link C++ class o2::eventgen::GeneratorHepMC + ;
+#endif
 #pragma link C++ class o2::eventgen::Pythia6Generator + ;
 #ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::Pythia8Generator + ;

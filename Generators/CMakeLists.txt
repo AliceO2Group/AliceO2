@@ -12,6 +12,10 @@ if(pythia_FOUND)
   set(pythiaTarget pythia)
 endif()
 
+if(HepMC_FOUND)
+  set(hepmcTarget HepMC)
+endif()
+
 o2_add_library(Generators
                SOURCES src/Generator.cxx
                        src/GeneratorTGenerator.cxx
@@ -23,13 +27,18 @@ o2_add_library(Generators
                        src/BoxGunParam.cxx
                        src/GeneratorFactory.cxx
                        $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
+                       $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
-                                     O2::SimulationDataFormat ${pythiaTarget}
+                                     O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
                TARGETVARNAME targetName)
 
 if(pythia_FOUND)
   target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_PYTHIA8)
+endif()
+
+if(HepMC_FOUND)
+  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_HEPMC3)
 endif()
 
 set(headers
@@ -45,6 +54,10 @@ set(headers
 if(pythia_FOUND)
   list(APPEND headers include/Generators/Pythia8Generator.h
               include/Generators/GeneratorFactory.h)
+endif()
+
+if(HepMC_FOUND)
+  list(APPEND headers include/Generators/GeneratorHepMC.h)
 endif()
 
 o2_target_root_dictionary(Generators HEADERS ${headers})

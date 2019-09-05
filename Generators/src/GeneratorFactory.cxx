@@ -20,6 +20,10 @@
 #ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/Pythia8Generator.h>
 #endif
+#include <Generators/GeneratorTGenerator.h>
+#ifdef GENERATORS_WITH_HEPMC3
+#include <Generators/GeneratorHepMC.h>
+#endif
 #include <Generators/BoxGunParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
@@ -117,6 +121,14 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+#ifdef GENERATORS_WITH_HEPMC3
+  } else if (genconfig.compare("hepmc") == 0) {
+    // external HepMC file
+    auto hepmcGen = new o2::eventgen::GeneratorHepMC();
+    hepmcGen->setFileName(conf.getHepMCFileName());
+    hepmcGen->setVersion(2);
+    primGen->AddGenerator(hepmcGen);
+#endif
 #ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("pythia8") == 0) {
     // pythia8 pp
