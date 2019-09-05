@@ -281,6 +281,34 @@ def expandedTimeline(cnf):
     plt.tight_layout()
 
 
+def speedup(cnf):
+
+    measurements = Measurements(cnf.expand(cnf.input[0].file))
+    steps = measurements.steps()
+
+    times, labels = [], []
+
+    for i in cnf.input:
+
+        measurements = Measurements(cnf.expand(i.file))
+
+        durations = np.array([
+                measurements.durations(lambda s: s.lane == 0 and s.name == step)
+                        for step in steps])
+        
+        _, _, medians = split(durations)
+
+        times.append(sum(medians))
+        labels.append(i.label)
+
+    for t1, l1 in zip(times, labels):
+        for t2, l2 in zip(times, labels):
+            if l1 == l2:
+                continue
+            print("{} / {}: {:.2f} / {:.2f} = {:.2f}".format(
+                l1, l2, t1, t2, t1 / t2))
+
+
 def finalize(cnf):
     if cnf.ylabel is not None:
         plt.ylabel(cnf.ylabel)
@@ -298,6 +326,7 @@ PLOTS = {
         "bar"      : bar,
         "timeline" : timeline,
         "expandedTimeline": expandedTimeline,
+        "speedup": speedup,
 }
 
 
@@ -318,7 +347,8 @@ def main():
 
     PLOTS[config.type](config)
 
-    finalize(config)
+    if config.type != "speedup":
+        finalize(config)
 
 
 if __name__ == '__main__':
