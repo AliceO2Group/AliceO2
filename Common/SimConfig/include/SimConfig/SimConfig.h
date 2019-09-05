@@ -26,6 +26,7 @@ struct SimConfigData {
   std::string mGenerator;                    // chosen VMC generator
   unsigned int mNEvents;                     // number of events to be simulated
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
+  std::string mHepMCFileName;                // file name of HepMC file
   std::string mExtGenFileName;               // file name containing the external generator configuration
   std::string mExtGenFuncName;               // function call to retrieve the external generator configuration
   std::string mEmbedIntoFileName;            // filename containing the reference events to be used for the embedding
@@ -95,6 +96,7 @@ class SimConfig
   unsigned int getNEvents() const { return mConfigData.mNEvents; }
 
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
+  std::string getHepMCFileName() const { return mConfigData.mHepMCFileName; }
   std::string getExtGeneratorFileName() const { return mConfigData.mExtGenFileName; }
   std::string getExtGeneratorFuncName() const { return mConfigData.mExtGenFuncName; }
   std::string getEmbedIntoFileName() const { return mConfigData.mEmbedIntoFileName; }
