@@ -21,7 +21,9 @@
 #include <stdexcept>
 #include <gsl/gsl> // for guideline support library; array_view
 #include <type_traits>
-#include "MemoryResources/MemoryResources.h"
+#include <cstring> // memmove, memcpy
+#include <memory>
+#include <vector>
 // type traits are needed for the compile time consistency check
 // maybe to be moved out of Framework first
 //#include "Framework/TypeTraits.h"
@@ -30,8 +32,9 @@ namespace o2
 {
 namespace dataformats
 {
-// a simple struct having information about truth elements for particular indices:
-// how many associations we have and where they start in the storage
+/// @struct MCTruthHeaderElement
+/// @brief Simple struct having information about truth elements for particular indices:
+/// how many associations we have and where they start in the storage
 struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
@@ -45,35 +48,55 @@ struct MCTruthHeaderElement {
 ///
 /// The actual MCtruth type is a generic template type and can be supplied by the user
 /// It is meant to manage associations from one "dataobject" identified by an index into an array
-/// to multiple TruthElements
+/// to multiple TruthElements. Each "dataobject" is identified by a sequential index. Truth elements
+/// belonging to one object are always in contingous sequence in the truth element storage. Since
+/// multiple truth elements can be associated with one object, the header array stores the start
+/// of the associated truth element sequence.
 ///
+/// Since the class contains two subsequent vectors, it is not POD even if the TruthElement is
+/// POD. ROOT serialization is rather inefficient and in addition has a large memory footprint
+/// if the container has lots of (>1000000) elements. between 3 and 4x more than the actual
+/// size is allocated. If the two vectors are flattend to a raw vector before streaming, the
+/// serialization works without memory overhead. The deflate/inflate methods are called from
+/// a custom streamer, storing the vectors in the raw buffer and vice versa, each of the methods
+/// emptying the source data.
+///
+/// TODO:
+/// - add move assignment from a source vector, by that passing an object which has access to
+///   different underlying memory resources, until that, the pmr::MemoryResource has been
+///   removed again
+/// - add interface to access header and truth elements directly from the raw buffer, by that
+///   inflation can be postponed until new elements are added, with the effect that inflation
+///   can be avoided in most cases
+///
+/// Note:
+/// The two original vector members could be transient, however reading serialized version 1
+/// objects does not work correctly. In a different approach, the two vectors have been removed
+/// completely with an efficient interface to the binary buffer, but the read pragma was not able
+/// to access the member offset from the StreamerInfo.
 template <typename TruthElement>
 class MCTruthContainer
 {
  private:
-  /// The allocator to be used with the internal vectors is by default o2::pmr::polymorphic_allocator
-  /// we might change this to be a template parameter
-  /// template <typename TruthElement, template <typename ...> class Allocator = o2::pmr::polymorphic_allocator>
-  template <typename T>
-  using Allocator = o2::pmr::polymorphic_allocator<T>;
-
   // for the moment we require the truth element to be messageable in order to simply flatten the object
   // if it turnes out that other types are required this needs to be extended and method flatten nees to
   // be conditionally added
   // TODO: activate this check
   //static_assert(o2::framework::is_messageable<TruthElement>::value, "truth element type must be messageable");
 
-  // the header structure array serves as an index into the actual storage
-  std::vector<MCTruthHeaderElement, Allocator<MCTruthHeaderElement>> mHeaderArray;
-  // the buffer containing the actual truth information
-  std::vector<TruthElement, Allocator<TruthElement>> mTruthArray;
+  std::vector<MCTruthHeaderElement> mHeaderArray; // the header structure array serves as an index into the actual storage
+  std::vector<TruthElement> mTruthArray;          // the buffer containing the actual truth information
+  /// buffer used only for streaming the to above vectors in a flat structure
+  /// TODO: use polymorphic allocator so that it can work on an underlying custom memory resource,
+  /// e.g. directly on the memory of the incoming message.
+  std::vector<char> mStreamerData; // buffer used for streaming a flat raw buffer
 
   size_t getSize(uint dataindex) const
   {
     // calculate size / number of labels from a difference in pointed indices
-    const auto size = (dataindex < mHeaderArray.size() - 1)
-                        ? mHeaderArray[dataindex + 1].index - mHeaderArray[dataindex].index
-                        : mTruthArray.size() - mHeaderArray[dataindex].index;
+    const auto size = (dataindex < getIndexedSize() - 1)
+                        ? getMCTruthHeader(dataindex + 1).index - getMCTruthHeader(dataindex).index
+                        : getNElements() - getMCTruthHeader(dataindex).index;
     return size;
   }
 
@@ -91,6 +114,7 @@ class MCTruthContainer
   // move assignment operator
   MCTruthContainer& operator=(MCTruthContainer&& other) = default;
 
+  using self_type = MCTruthContainer<TruthElement>;
   struct FlatHeader {
     uint8_t version = 1;
     uint8_t sizeofHeaderElement = sizeof(MCTruthHeaderElement);
@@ -101,7 +125,7 @@ class MCTruthContainer
   };
 
   // access
-  MCTruthHeaderElement getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
+  MCTruthHeaderElement const& getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
   // access the element directly (can be encapsulated better away)... needs proper element index
   // which can be obtained from the MCTruthHeader startposition and size
   TruthElement const& getElement(uint elementindex) const { return mTruthArray[elementindex]; }
@@ -117,7 +141,7 @@ class MCTruthContainer
     if (dataindex >= getIndexedSize()) {
       return gsl::span<TruthElement>();
     }
-    return gsl::span<TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
+    return gsl::span<TruthElement>(&mTruthArray[getMCTruthHeader(dataindex).index], getSize(dataindex));
   }
 
   // get individual const "view" container for a given data index
@@ -127,7 +151,7 @@ class MCTruthContainer
     if (dataindex >= getIndexedSize()) {
       return gsl::span<const TruthElement>();
     }
-    return gsl::span<const TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
+    return gsl::span<const TruthElement>(&mTruthArray[getMCTruthHeader(dataindex).index], getSize(dataindex));
   }
 
   void clear()
@@ -248,17 +272,10 @@ class MCTruthContainer
     }
   }
 
-  // TODO: find appropriate name for 'flatten'
-  template <typename MemoryResource>
-  std::vector<char, Allocator<char>> flatten(MemoryResource* resource)
-  {
-    std::vector<char, Allocator<char>> buffer{ resource };
-    [[maybe_unused]] auto size = flatten_to(buffer);
-    assert(size == buffer.size());
-    return buffer;
-  }
-
-  // TODO: find appropriate name for 'flatten'
+  /// Flatten the internal arrays to the provided container
+  /// Copies the content of the two vectors of PODs to a contiguous container.
+  /// The flattened data starts with a specific header @ref FlatHeader describing
+  /// size and content of the two vectors within the raw buffer.
   template <typename ContainerType>
   size_t flatten_to(ContainerType& container)
   {
@@ -281,6 +298,9 @@ class MCTruthContainer
     return bufferSize;
   }
 
+  /// Resore internal vectors from a raw buffer
+  /// The two vectors are resized according to the information in the \a FlatHeader
+  /// struct at the beginning of the buffer. Data is copied to the vectors.
   void restore_from(const char* buffer, size_t bufferSize)
   {
     if (buffer == nullptr || bufferSize < sizeof(FlatHeader)) {
@@ -311,7 +331,45 @@ class MCTruthContainer
     memcpy(mTruthArray.data(), source, copySize);
   }
 
-  ClassDefNV(MCTruthContainer, 1);
+  /// Print some info
+  template <typename Stream>
+  void print(Stream& stream)
+  {
+    stream << "MCTruthContainer index = " << getIndexedSize() << " for " << getNElements() << " elements(s), flat buffer size " << mStreamerData.size() << std::endl;
+  }
+
+  /// Inflate the object from the internal buffer
+  /// The class has a specific member to store flattened data. Due to some limitations in ROOT
+  /// it is more efficient to first flatten the objects to a raw buffer and empty the two vectors
+  /// before serialization. This function restores the vectors from the internal raw buffer.
+  /// Called from the custom streamer.
+  void inflate()
+  {
+    if (mHeaderArray.size() > 0) {
+      mStreamerData.clear();
+      return;
+    }
+    restore_from(mStreamerData.data(), mStreamerData.size());
+    mStreamerData.clear();
+  }
+
+  /// Deflate the object to the internal buffer
+  /// The class has a specific member to store flattened data. Due to some limitations in ROOT
+  /// it is more efficient to first flatten the objects to a raw buffer and empty the two vectors
+  /// before serialization. This function stores the vectors to the internal raw buffer.
+  /// Called from the custom streamer.
+  void deflate()
+  {
+    if (mStreamerData.size() > 0) {
+      clear();
+      return;
+    }
+    mStreamerData.clear();
+    flatten_to(mStreamerData);
+    clear();
+  }
+
+  ClassDefNV(MCTruthContainer, 2);
 }; // end class
 
 } // namespace dataformats
