@@ -32,16 +32,16 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     int ind;
   };
 
-  mPrimaryVertex = { pVtx[0], pVtx[1], pVtx[2] };
+  mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
   if (iteration == 0) {
 
     std::vector<ClusterHelper> cHelper;
 
-    for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
 
-      const auto& currentLayer{ cl[iLayer] };
-      const int clustersNum{ static_cast<int>(currentLayer.size()) };
+      const auto& currentLayer{cl[iLayer]};
+      const int clustersNum{static_cast<int>(currentLayer.size())};
 
       mClusters[iLayer].clear();
       mClusters[iLayer].resize(clustersNum);
@@ -57,7 +57,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       cHelper.clear();
       cHelper.resize(clustersNum);
 
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
         const Cluster& c = currentLayer[iCluster];
         ClusterHelper& h = cHelper[iCluster];
         float x = c.xCoordinate - mPrimaryVertex.x;
@@ -77,7 +77,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
       }
 
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
         ClusterHelper& h = cHelper[iCluster];
         Cluster& c = mClusters[iLayer][lutPerBin[h.bin] + h.ind];
         c = currentLayer[iCluster];
@@ -87,10 +87,10 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
 
       if (iLayer > 0) {
-        for (int iB{ 0 }; iB < _size; ++iB) {
+        for (int iB{0}; iB < _size; ++iB) {
           mIndexTables[iLayer - 1][iB] = lutPerBin[iB];
         }
-        for (int iB{ _size }; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
+        for (int iB{_size}; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
           mIndexTables[iLayer - 1][iB] = clustersNum;
         }
       }
@@ -99,7 +99,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
     if (iLayer < constants::its::CellsPerRoad) {
       mCells[iLayer].clear();
       float cellsMemorySize =
@@ -125,7 +125,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     }
   }
 
-  for (int iLayer{ 0 }; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
     if (iLayer < constants::its::TrackletsPerRoad) {
       mTracklets[iLayer].clear();
       float trackletsMemorySize =

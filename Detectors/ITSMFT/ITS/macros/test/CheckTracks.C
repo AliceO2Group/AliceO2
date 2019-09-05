@@ -372,12 +372,12 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     Float_t rat = statFak / Float_t(statGen);
     Float_t clonerat = statClone / Float_t(statGen);
     std::cout << "Good found tracks/event: " << statGoo / nDataEvents << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
-    }
+  }
 
   // "recPt>0" means "found tracks only"
   // "label>0" means "found good tracks only"
 
-    /*
+  /*
   new TCanvas;
   nt->Draw("ipD", "recPt>0 && label>0");
   new TCanvas;
@@ -391,18 +391,18 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   new TCanvas;
   nt->Draw("mcThetaOut-recThetaOut", "recPt>0 && label>0");
   */
-    TCanvas* c1 = new TCanvas;
-    c1->SetLogx();
-    c1->SetGridx();
-    c1->SetGridy();
-    num->Divide(num, den, 1, 1, "b");
-    num->Draw("histe");
-    fak->Divide(fak, den, 1, 1, "b");
-    fak->SetLineColor(2);
-    fak->Draw("histesame");
-    clone->Divide(clone, den, 1, 1, "b");
-    clone->SetLineColor(3);
-    clone->Draw("histesame");
-    f->Write();
-    f->Close();
+  TCanvas* c1 = new TCanvas;
+  c1->SetLogx();
+  c1->SetGridx();
+  c1->SetGridy();
+  num->Divide(num, den, 1, 1, "b");
+  num->Draw("histe");
+  fak->Divide(fak, den, 1, 1, "b");
+  fak->SetLineColor(2);
+  fak->Draw("histesame");
+  clone->Divide(clone, den, 1, 1, "b");
+  clone->SetLineColor(3);
+  clone->Draw("histesame");
+  f->Write();
+  f->Close();
 }
