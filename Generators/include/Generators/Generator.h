@@ -17,25 +17,41 @@
 #include <vector>
 #include <array>
 
+class TClonesArray;
+
 namespace o2
 {
 namespace eventgen
 {
+
+class Trigger;
+
+/*****************************************************************/
+/*****************************************************************/
+
 // this class implements a generic FairGenerator extension
 // that provides a base class for the ALICEo2 simulation needs
 // such that different interfaces to the event generators
 // (i.e. TGenerator, HEPdata reader) can be implemented
 // according to a common protocol
+
 class Generator : public FairGenerator
 {
 
  public:
+  enum ETriggerMode_t { kTriggerOFF,
+                        kTriggerOR,
+                        kTriggerAND };
+
   /** default constructor **/
   Generator();
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override = default;
+  ~Generator() override;
+
+  /** Initialize the generator if needed **/
+  Bool_t Init() override;
 
   /** Abstract method ReadEvent must be implemented by any derived class.
 	It has to handle the generation of input tracks (reading from input
@@ -52,6 +68,8 @@ class Generator : public FairGenerator
   void setPositionUnit(double val) { mPositionUnit = val; };
   void setTimeUnit(double val) { mTimeUnit = val; };
   void setBoost(Double_t val) { mBoost = val; };
+  void setTriggerMode(ETriggerMode_t val) { mTriggerMode = val; };
+  void addTrigger(Trigger* trigger) { mTriggers.push_back(trigger); };
 
  protected:
   /** copy constructor **/
@@ -61,14 +79,25 @@ class Generator : public FairGenerator
 
   /** methods to override **/
   virtual Bool_t generateEvent() = 0;
-  virtual Bool_t boostEvent(Double_t boost) = 0;
-  virtual Bool_t addTracks(FairPrimaryGenerator* primGen) const = 0;
+  virtual Bool_t importParticles() = 0;
+
+  /** internal methods **/
+  Bool_t addTracks(FairPrimaryGenerator* primGen);
+  Bool_t boostEvent();
+  Bool_t triggerEvent();
+
+  /** trigger data members **/
+  ETriggerMode_t mTriggerMode = kTriggerOFF;
+  std::vector<Trigger*> mTriggers;
 
   /** conversion data members **/
   double mMomentumUnit = 1.;        // [GeV/c]
   double mEnergyUnit = 1.;          // [GeV/c]
   double mPositionUnit = 0.1;       // [cm]
   double mTimeUnit = 3.3356410e-12; // [s]
+
+  /** particle array **/
+  TClonesArray* mParticles; //!
 
   /** lorentz boost data members **/
   Double_t mBoost;

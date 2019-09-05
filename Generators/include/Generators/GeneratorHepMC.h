@@ -57,8 +57,7 @@ class GeneratorHepMC : public Generator
 
   /** methods to override **/
   Bool_t generateEvent() override;
-  Bool_t boostEvent(Double_t boost) override;
-  Bool_t addTracks(FairPrimaryGenerator* primGen) const override;
+  Bool_t importParticles() override;
 
   /** methods **/
   const HepMC::FourVector getBoostedVector(const HepMC::FourVector& vector, Double_t boost);

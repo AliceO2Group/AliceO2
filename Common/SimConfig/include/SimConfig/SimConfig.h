@@ -24,11 +24,14 @@ struct SimConfigData {
   std::vector<std::string> mActiveDetectors; // list of active detectors
   std::string mMCEngine;                     // chosen VMC engine
   std::string mGenerator;                    // chosen VMC generator
+  std::string mTrigger;                      // chosen VMC generator trigger
   unsigned int mNEvents;                     // number of events to be simulated
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
   std::string mHepMCFileName;                // file name of HepMC file
   std::string mExtGenFileName;               // file name containing the external generator configuration
   std::string mExtGenFuncName;               // function call to retrieve the external generator configuration
+  std::string mExtTrgFileName;               // file name containing the external trigger configuration
+  std::string mExtTrgFuncName;               // function call to retrieve the external trigger configuration
   std::string mEmbedIntoFileName;            // filename containing the reference events to be used for the embedding
   unsigned int mStartEvent;                  // index of first event to be taken
   float mBMax;                               // maximum for impact parameter sampling
@@ -94,12 +97,15 @@ class SimConfig
   std::vector<std::string> const& getActiveDetectors() const { return mConfigData.mActiveDetectors; }
   // get selected generator (to be used to select a genconfig)
   std::string getGenerator() const { return mConfigData.mGenerator; }
+  std::string getTrigger() const { return mConfigData.mTrigger; }
   unsigned int getNEvents() const { return mConfigData.mNEvents; }
 
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
   std::string getHepMCFileName() const { return mConfigData.mHepMCFileName; }
   std::string getExtGeneratorFileName() const { return mConfigData.mExtGenFileName; }
   std::string getExtGeneratorFuncName() const { return mConfigData.mExtGenFuncName; }
+  std::string getExtTriggerFileName() const { return mConfigData.mExtTrgFileName; }
+  std::string getExtTriggerFuncName() const { return mConfigData.mExtTrgFuncName; }
   std::string getEmbedIntoFileName() const { return mConfigData.mEmbedIntoFileName; }
   unsigned int getStartEvent() const { return mConfigData.mStartEvent; }
   float getBMax() const { return mConfigData.mBMax; }

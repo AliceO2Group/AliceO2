@@ -25,6 +25,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
+    "trigger,t", bpo::value<std::string>()->default_value(""), "Event generator trigger to be used.")(
     "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of detectors")(
     "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of detectors to skip (precendence over -m")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
@@ -36,6 +37,10 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "name of .C file with definition of external event generator")(
     "extGenFunc", bpo::value<std::string>()->default_value(""),
     "function call to load the definition of external event generator")(
+    "extTrgFile", bpo::value<std::string>()->default_value("exttrg.C"),
+    "name of .C file with definition of external event generator trigger")(
+    "extTrgFunc", bpo::value<std::string>()->default_value(""),
+    "function call to load the definition of external event generator trigger")(
     "embedIntoFile", bpo::value<std::string>()->default_value(""),
     "filename containing the reference events to be used for the embedding")(
     "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
@@ -86,11 +91,14 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
+  mConfigData.mTrigger = vm["trigger"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
   mConfigData.mHepMCFileName = vm["HepMCFile"].as<std::string>();
   mConfigData.mExtGenFileName = vm["extGenFile"].as<std::string>();
   mConfigData.mExtGenFuncName = vm["extGenFunc"].as<std::string>();
+  mConfigData.mExtTrgFileName = vm["extTrgFile"].as<std::string>();
+  mConfigData.mExtTrgFuncName = vm["extTrgFunc"].as<std::string>();
   mConfigData.mEmbedIntoFileName = vm["embedIntoFile"].as<std::string>();
   mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
   mConfigData.mBMax = vm["bMax"].as<float>();
