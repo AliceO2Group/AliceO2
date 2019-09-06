@@ -8,11 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(calibration)
-if(BUILD_TESTING)
-  add_subdirectory(prototyping)
-endif()
-add_subdirectory(workflow)
+o2_add_library(TOFCalibration
+               SOURCES src/CalibTOFapi.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF 
+                                     O2::CCDB)
+
+o2_target_root_dictionary(TOFCalibration
+                          HEADERS include/TOFCalibration/CalibTOFapi.h)

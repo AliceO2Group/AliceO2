@@ -52,6 +52,12 @@ class CalibTimeSlewingParamTOF
   void setFractionUnderPeak(int sector, int channel, float value) { mFractionUnderPeak[sector][channel] = value; }
   void setSigmaPeak(int sector, int channel, float value) { mSigmaPeak[sector][channel] = value; }
 
+  bool isProblematic(int channel) {
+    int sector = channel/NCHANNELXSECTOR;
+    int channelInSector = channel%NCHANNELXSECTOR;
+    return (getFractionUnderPeak(sector, channelInSector) < 0);
+  }
+
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
 
  private:
