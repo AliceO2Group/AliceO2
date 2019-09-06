@@ -30,7 +30,7 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TGraphErrors.h"
-#include "CCDB/CcdbApi.h"
+#include "TOFCalibration/CalibTOFapi.h"
 
 class TTree;
 
@@ -42,6 +42,7 @@ namespace globaltracking
 class CalibTOF
 {
   using Geo = o2::tof::Geo;
+  using CalibTOFapi = o2::tof::CalibTOFapi;
 
  public:
   static constexpr int NSTRIPSPERSTEP = 13; // we chose this number because we process per sector, and
@@ -164,6 +165,8 @@ class CalibTOF
 
   int mMaxTimestamp = 1; ///< maximum timestamp over the hits that we collect; we need it to
                          ///< book the histogram for the LHCPhase calibration
+
+  CalibTOFapi mCalibTOFapi; ///< API to handle TOF calibration objects
 
   //  ClassDefNV(CalibTOF, 1);
 };

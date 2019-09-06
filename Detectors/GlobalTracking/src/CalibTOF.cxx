@@ -16,7 +16,6 @@
 #include <TFile.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "CCDB/CcdbApi.h"
 
 #include "GlobalTracking/CalibTOF.h"
 
@@ -26,7 +25,6 @@
 #include "TRandom.h"
 
 using namespace o2::globaltracking;
-using CcdbApi = o2::ccdb::CcdbApi;
 
 ClassImp(CalibTOF);
 
@@ -113,6 +111,9 @@ void CalibTOF::init()
   if (nbinsLHCphase < 1000)
     mMaxTimestamp = mMinTimestamp + nbinsLHCphase * 300; // we want that the last bin of the histogram is also large 300s; this we need to do only when we have less than 1000 bins, because in this case we will integrate over intervals that are larger than 300s anyway
   mHistoLHCphase = new TH2F("hLHCphase", ";clock offset (ps); timestamp (s)", 1000, -24400, 24400, nbinsLHCphase, mMinTimestamp, mMaxTimestamp);
+
+  // setting CCDB for output
+  mCalibTOFapi.setURL(mCCDBpath.c_str());
 
   mInitDone = true;
 
@@ -266,16 +267,13 @@ void CalibTOF::fillOutput(int flag)
   mOutputTree->Fill();
 
   if (mFillCCDB) {
-    CcdbApi api;
-    api.init(mCCDBpath.c_str()); // or http://localhost:8080 for a local installation
-    
     if (flag & kLHCphase) {
       std::map<std::string, std::string> metadataLHCphase; // can be empty
-      api.storeAsTFileAny(mLHCphaseObj, "TOF/LHCphase", metadataLHCphase, (ulong)mMinTimestamp*1000, (ulong)mMaxTimestamp*1000); // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
+      mCalibTOFapi.writeLHCphase(mLHCphaseObj, metadataLHCphase, (ulong)mMinTimestamp*1000, (ulong)mMaxTimestamp*1000); // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
     }
     if (flag & kChannelOffset || flag & kChannelTimeSlewing) {
       std::map<std::string, std::string> metadataChannelCalib; // can be empty
-      api.storeAsTFileAny(mTimeSlewingObj, "TOF/ChannelCalib", metadataChannelCalib, (ulong)mMinTimestamp*1000); // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
+      mCalibTOFapi.writeTimeSlewingParam(mTimeSlewingObj, metadataChannelCalib, (ulong)mMinTimestamp*1000); // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
     }
   }
 }
