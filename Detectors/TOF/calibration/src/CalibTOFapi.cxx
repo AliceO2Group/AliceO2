@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFCalibration/CalibTOFapi.h"
+#include "FairLogger.h" // for LOG
 
 using namespace o2::tof;
 
@@ -92,7 +93,10 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot) {
   // time calibration to correct measured TOF times
 
   float corr = 0;
-
+  if (!mLHCphase || !mSlewParam) {
+    LOG(WARNING) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    return corr;
+  }
   // LHCphase
   corr += mLHCphase->getLHCphase(int(mTimeStamp/1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
   

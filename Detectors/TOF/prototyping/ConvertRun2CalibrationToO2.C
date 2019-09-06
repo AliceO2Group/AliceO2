@@ -11,7 +11,16 @@
 #include "TH1C.h"
 #include "AliTOFGeometry.h"
 
+// macro to be run in *** AliRoot *** to convert the TOF OCDB entries in CCDB entries
+// How to run (see below for futher instructions):
+// gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+")
+// .x ConvertRun2CalibrationToO2.C+
+
+
 class MyFineTimeSlewing : public AliTOFCalibFineSlewing
+
+// class needed to access some data members of the AliTOFCalibFineSlewing class that are protected
+
 {
 public:
 
@@ -33,17 +42,34 @@ public:
 
 void ConvertRun2CalibrationToO2() {
 
+  // Remember: Use AliRoot!!
+  
+  // actually you need to call this outside the macro, or it won't work
+
   gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+");
 
+  // so you should first:
+  // - copy
+  //      - DataFormats/Detectors/TOF/src/CalibTimeSlewingParamTOF.cxx
+  //   and
+  //      - DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibTimeSlewingParamTOF.h
+  //   in the local working directory, substituting:
+  //      - #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
+  //   with
+  //      - #include "CalibTimeSlewingParamTOF.h"
+  // - then call:
+  //      - gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+")
+  //   from the prompt
+  
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
  
-  TFile* ffineSlewing = new TFile("OCDB/TOF/Calib/FineSlewing/Run0_999999999_v2_s0.root");
+  TFile* ffineSlewing = new TFile("TOF/Calib/FineSlewing/Run0_999999999_v2_s0.root");
   AliCDBEntry* efineSlewing = (AliCDBEntry*)ffineSlewing->Get("AliCDBEntry");
   AliTOFCalibFineSlewing* fs = (AliTOFCalibFineSlewing*)efineSlewing->GetObject();
-  TFile* foffset  = new TFile("OCDB/TOF/Calib/ParOffline/Run297624_999999999_v4_s0.root");
+  TFile* foffset  = new TFile("TOF/Calib/ParOffline/Run297624_999999999_v4_s0.root");
   AliCDBEntry* eoffset = (AliCDBEntry*)foffset->Get("AliCDBEntry");
   TObjArray* foff = (TObjArray*)eoffset->GetObject();
-  TFile *fproblematic = new TFile("OCDB/TOF/Calib/Problematic/Run296631_999999999_v3_s0.root");
+  TFile *fproblematic = new TFile("TOF/Calib/Problematic/Run296631_999999999_v3_s0.root");
   AliCDBEntry* eproblematic = (AliCDBEntry*)fproblematic->Get("AliCDBEntry");
   TH1C* hProb = (TH1C*)eproblematic->GetObject();
 

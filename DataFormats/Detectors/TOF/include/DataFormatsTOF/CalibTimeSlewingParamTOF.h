@@ -15,6 +15,7 @@
 #define ALICEO2_CALIBTIMESLEWINGPARAMTOF_H
 
 #include <vector>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -87,7 +88,7 @@ class CalibTimeSlewingParamTOF
   float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
   float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
 
-  //  ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
+  ClassDefNV(CalibTimeSlewingParamTOF, 1); // class for TOF time slewing params
 };
 } // namespace dataformats
 } // namespace o2
