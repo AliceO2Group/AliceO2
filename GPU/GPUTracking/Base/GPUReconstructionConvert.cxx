@@ -90,3 +90,18 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
   }
 #endif
 }
+
+int GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& native)
+{
+  float retVal = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (unsigned int k = 0; k < native.nClusters[i][j]; k++) {
+        if (native.clusters[i][j][k].getTime() > retVal) {
+          retVal = native.clusters[i][j][k].getTime();
+        }
+      }
+    }
+  }
+  return ceil(retVal);
+}

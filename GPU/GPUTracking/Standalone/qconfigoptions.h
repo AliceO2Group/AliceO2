@@ -140,6 +140,7 @@ AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", 
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
 AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
 AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
+AddOption(overrideMaxTimebin, bool, false, "overrideMaxTimebin", 0, "Override max time bin setting for continuous data with max time bin in time frame")
 AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
 AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")
