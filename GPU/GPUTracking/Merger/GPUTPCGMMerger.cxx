@@ -809,7 +809,6 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
   if (cls.row < GPUCA_MERGER_CE_ROWLIMIT || cls.row >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) {
     return;
   }
-
 #endif
   if (!mCAParam->ContinuousTracking && fabsf(cls.z) > 10) {
     return;

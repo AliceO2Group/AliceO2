@@ -465,6 +465,7 @@ int main(int argc, char** argv)
 
     for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
       if (configStandalone.configQA.inputHistogramsOnly) {
+        chainTracking->ForceInitQA();
         break;
       }
       if (configStandalone.runs2 > 1) {

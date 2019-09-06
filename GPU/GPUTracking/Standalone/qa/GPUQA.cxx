@@ -298,6 +298,9 @@ int GPUQA::GetMCTrackLabel(unsigned int trackId) const { return (trackId >= mTra
 
 int GPUQA::InitQA()
 {
+  if (mQAInitialized) {
+    return 1;
+  }
   char name[2048], fname[1024];
 
   mColorNums = new Color_t[COLORCOUNT];

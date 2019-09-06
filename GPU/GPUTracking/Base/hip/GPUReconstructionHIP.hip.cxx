@@ -12,7 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_HIP
-#include "hip/hip_runtime.h"
+#include <hip/hip_runtime.h>
 
 #ifdef __CUDACC__
 #define __HIPCC_CUDA__

@@ -52,7 +52,7 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate",
   "[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)",
   "[MOUSE 1]                     Look around",
-  "[MOUSE 2]                     Shift c3amera",
+  "[MOUSE 2]                     Shift camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
