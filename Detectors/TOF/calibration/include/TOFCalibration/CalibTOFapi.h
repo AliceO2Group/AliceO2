@@ -35,6 +35,7 @@ using CcdbApi = o2::ccdb::CcdbApi;
 public:
   CalibTOFapi() = default;
   CalibTOFapi(const std::string url);
+  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) {}
   ~CalibTOFapi() = default;
   void setTimeStamp(long t) {
     mTimeStamp = t;
