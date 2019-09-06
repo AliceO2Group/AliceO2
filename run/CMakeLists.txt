@@ -169,3 +169,26 @@ o2_add_test_wrapper(
 
 set_tests_properties(o2sim_checksimkinematics_G3
                      PROPERTIES FIXTURES_REQUIRED G3)
+
+o2_add_test_wrapper(NAME o2sim_hepmc
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    DONT_FAIL_ON_TIMEOUT
+                    MAX_ATTEMPTS 2
+                    TIMEOUT 400
+                    COMMAND $<TARGET_FILE:${o2simExecutable}>
+                    COMMAND_LINE_ARGS -n
+                                      2
+                                      -j
+                                      2
+				      -g
+				      hepmc
+				      --HepMCFile
+				      ${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc
+                                      -o
+                                      o2simhepmc
+                    LABELS long sim hepmc3
+                    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
+set_tests_properties(o2sim_hepmc
+                     PROPERTIES PASS_REGULAR_EXPRESSION
+                                "SIMULATION RETURNED SUCCESFULLY")
