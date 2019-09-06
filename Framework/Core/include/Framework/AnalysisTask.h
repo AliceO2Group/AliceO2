@@ -44,22 +44,45 @@ namespace framework
 //        because we cannot inherit from it due to a C++17 bug
 //        in GCC 7.3. We need to move to 7.4+
 template <typename T>
+struct WritingCursor {
+  static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
+};
+
+template <typename T>
 struct Produces {
   static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
 };
 
-/// This helper class allow you to declare things which will be crated by a
-/// give analysis task and which
-template <typename... C>
-struct Produces<soa::Table<C...>> {
-  using table_t = soa::Table<C...>;
-  using cursor_t = decltype(std::declval<TableBuilder>().cursor<table_t>());
-  using metadata = typename aod::MetadataTrait<table_t>::metadata;
+/// Helper class actually implementing the cursor which can write to
+/// a table. The provided template arguments are if type Column and
+/// therefore refer only to the persisted columns.
+template <typename... PC>
+struct WritingCursor<soa::Table<PC...>> {
+  using persistent_table_t = soa::Table<PC...>;
+  using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
-  void operator()(typename C::type... args)
+  void operator()(typename PC::type... args)
   {
     cursor(0, args...);
   }
+
+  bool resetCursor(TableBuilder& builder)
+  {
+    cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
+    return true;
+  }
+
+  decltype(FFL(std::declval<cursor_t>())) cursor;
+};
+
+/// This helper class allow you to declare things which will be crated by a
+/// give analysis task. Notice how the actual cursor is implemented by the
+/// means of the WritingCursor helper class, from which produces actually
+/// derives.
+template <typename... C>
+struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistentColumns<soa::Table<C...>>::persistent_table_t> {
+  using table_t = soa::Table<C...>;
+  using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
   // @return the associated OutputSpec
   OutputSpec const spec()
@@ -71,14 +94,6 @@ struct Produces<soa::Table<C...>> {
   {
     return OutputRef{metadata::label(), 0};
   }
-
-  bool resetCursor(TableBuilder& builder)
-  {
-    cursor = std::move(FFL(builder.cursor<table_t>()));
-    return true;
-  }
-
-  decltype(FFL(std::declval<cursor_t>())) cursor;
 };
 
 struct AnalysisTask {

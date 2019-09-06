@@ -25,8 +25,11 @@ namespace track
 {
 DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
 DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
+DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace track
-DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR", track::Foo, track::Bar);
+DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR",
+                  track::Foo, track::Bar,
+                  track::Sum<track::Foo, track::Bar>);
 } // namespace o2::aod
 
 // FIXME: for the moment we do not derive from AnalysisTask as
@@ -64,6 +67,15 @@ struct DTask {
   }
 };
 
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct ETask {
+  void process(o2::aod::FooBars::iterator const& foobar)
+  {
+    foobar.sum();
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -85,4 +97,8 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task4 = adaptAnalysisTask<DTask>("test4");
   BOOST_CHECK_EQUAL(task4.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task4.inputs[0].binding, "Tracks");
+
+  auto task5 = adaptAnalysisTask<ETask>("test5");
+  BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
 }
