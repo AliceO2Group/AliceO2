@@ -82,6 +82,9 @@ class GPUTPCGMBorderTrack
   GPUd() bool CheckChi2QPt(const GPUTPCGMBorderTrack& t, float chi2cut) const
   {
     float d = mP[4] - t.mP[4];
+    if (CAMath::Abs(d) > 0.3f && CAMath::Abs(d) > 0.5f * CAMath::Min(CAMath::Abs(mP[4]), CAMath::Abs(t.mP[4]))) {
+      return false; // Crude cut to avoid some bogus matches, TODO: recheck
+    }
     return (d * d < chi2cut * (mC[4] + t.mC[4]));
   }
 
