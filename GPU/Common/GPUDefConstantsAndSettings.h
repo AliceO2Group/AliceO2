@@ -34,13 +34,13 @@
 #define GPUCA_GLOBAL_TRACKING_RANGE 45                // Number of rows from the upped/lower limit to search for global track candidates in for
 #define GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER 0.85      // Inner portion of y-range in slice that is not used in searching for global track candidates
 #define GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER 0.85
-#define GPUCA_GLOBAL_TRACKING_MIN_ROWS 10 // Min num of rows an additional global track must span over
-#define GPUCA_GLOBAL_TRACKING_MIN_HITS 8  // Min num of hits for an additional global track
+#define GPUCA_GLOBAL_TRACKING_MIN_ROWS 10             // Min num of rows an additional global track must span over
+#define GPUCA_GLOBAL_TRACKING_MIN_HITS 8              // Min num of hits for an additional global track
 
-//#define GPUCA_MERGER_CE_ROWLIMIT 15              //Distance from first / last row in order to attempt merging accross CE
+#define GPUCA_MERGER_CE_ROWLIMIT 5                    //Distance from first / last row in order to attempt merging accross CE
 
-#define GPUCA_MERGER_LOOPER_QPT_LIMIT 4            // Min Q/Pt to run special looper merging procedure
-#define GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT 2 // Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found
+#define GPUCA_MERGER_LOOPER_QPT_LIMIT 4               // Min Q/Pt to run special looper merging procedure
+#define GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT 2    // Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found
 
 #define GPUCA_Y_FACTOR 4                              // Weight of y residual vs z residual in tracklet constructor
 #define GPUCA_MAXN 40                                 // Maximum number of neighbor hits to consider in one row in neightbors finder
@@ -50,11 +50,11 @@
 #define GPUCA_MERGER_COV_LIMIT 1000                   // Abort fit when y/z cov exceed the limit
 #define GPUCA_MIN_TRACK_PT_DEFAULT 0.010              // Default setting for minimum track Pt at some places
 
-#define GPUCA_MAX_SLICE_NTRACK (2 << 24) // Maximum number of tracks per slice (limited by track id format)
+#define GPUCA_MAX_SLICE_NTRACK (2 << 24)              // Maximum number of tracks per slice (limited by track id format)
 
 #define GPUCA_TIMING_SUM 1
 
-#define GPUCA_MAX_SIN_PHI_LOW 0.99f // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
+#define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define GPUCA_MAX_SIN_PHI 0.999f
 
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
@@ -75,10 +75,10 @@
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define GPUCA_REPRODUCIBLE_CLUSTER_SORTING
 
-//#define GPUCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.
-//#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME							//Propagate Pad, Row, Time cluster information to GM
-//#define GPUCA_GM_USE_FULL_FIELD						//Use offline magnetic field during GMPropagator prolongation
-//#define GPUCA_TPC_USE_STAT_ERROR								//Use statistical errors from offline in track fit
+//#define GPUCA_FULL_CLUSTERDATA                      //Store all cluster information in the cluster data, also those not needed for tracking.
+//#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME        //Propagate Pad, Row, Time cluster information to GM
+//#define GPUCA_GM_USE_FULL_FIELD                     //Use offline magnetic field during GMPropagator prolongation
+//#define GPUCA_TPC_USE_STAT_ERROR                    //Use statistical errors from offline in track fit
 
 // clang-format on
 

@@ -321,7 +321,7 @@ void GPUTPCGMMerger::UnpackSlices()
   mSliceTrackInfoIndex[2 * NSLICES] = nTracksCurrent;
 }
 
-void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool fromOrig)
+void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool useOrigTrackParam)
 {
   //* prepare slice tracks for merging with next/previous/same sector
   //* each track transported to the border line
@@ -358,7 +358,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
     if (track->PrevSegmentNeighbour() >= 0 && track->Slice() == mSliceTrackInfos[track->PrevSegmentNeighbour()].Slice()) {
       continue;
     }
-    if (fromOrig) {
+    if (useOrigTrackParam) {
       if (fabsf(track->QPt()) < GPUCA_MERGER_LOOPER_QPT_LIMIT) {
         continue;
       }
@@ -400,14 +400,14 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
   }
 }
 
-void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int crossCE)
+void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int mergeMode)
 {
   //* merge two sets of tracks
   if (N1 == 0 || N2 == 0) {
     return;
   }
 
-  CADEBUG(GPUInfo("\nMERGING Slices %d %d NTracks %d %d CROSS %d", iSlice1, iSlice2, N1, N2, crossCE));
+  CADEBUG(GPUInfo("\nMERGING Slices %d %d NTracks %d %d CROSS %d", iSlice1, iSlice2, N1, N2, mergeMode));
   int statAll = 0, statMerged = 0;
   float factor2ys = 1.5; // 1.5;//SG!!!
   float factor2zt = 1.5; // 1.5;//SG!!!
@@ -502,8 +502,14 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
         if (b2.NClusters() < lBest2) {
           CADEBUG2(continue, printf("!NCl1\n"));
         }
-        if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {
-          CADEBUG2(continue, printf("!ROW\n"));
+        if (mergeMode > 0) {
+          int maxRowDiff = mergeMode == 2 ? 1 : 3; // TODO: check cut
+          if (CAMath::Abs(b1.Row() - b2.Row()) > maxRowDiff) {
+            CADEBUG2(continue, printf("!ROW\n"));
+          }
+          if (CAMath::Abs(b1.Par()[2] - b2.Par()[2]) > 0.5 || CAMath::Abs(b1.Par()[3] - b2.Par()[3]) > 0.5) {
+            CADEBUG2(continue, printf("!CE SinPhi/Tgl\n")); // Crude cut to avoid totally wrong matches, TODO: check cut
+          }
         }
         if (!b1.CheckChi2Y(b2, factor2ys)) {
           CADEBUG2(continue, printf("!Y\n"));
@@ -579,18 +585,18 @@ void GPUTPCGMMerger::MergeSlices()
   MergeSlicesStep(0, 1, true);
 }
 
-void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool fromOrig)
+void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrackParam)
 {
   ClearTrackLinks(SliceTrackInfoLocalTotal());
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     int jSlice = mNextSliceInd[iSlice];
     GPUTPCGMBorderTrack *bCurr = mBorder[iSlice], *bNext = mBorder[jSlice];
     int nCurr = 0, nNext = 0;
-    MakeBorderTracks(iSlice, border0, bCurr, nCurr, fromOrig);
-    MakeBorderTracks(jSlice, border1, bNext, nNext, fromOrig);
-    MergeBorderTracks(iSlice, bCurr, nCurr, jSlice, bNext, nNext, fromOrig ? -1 : 0);
+    MakeBorderTracks(iSlice, border0, bCurr, nCurr, useOrigTrackParam);
+    MakeBorderTracks(jSlice, border1, bNext, nNext, useOrigTrackParam);
+    MergeBorderTracks(iSlice, bCurr, nCurr, jSlice, bNext, nNext, useOrigTrackParam ? -1 : 0);
   }
-  ResolveMergeSlices(fromOrig, false);
+  ResolveMergeSlices(useOrigTrackParam, false);
 }
 
 void GPUTPCGMMerger::PrintMergeGraph(GPUTPCGMSliceTrack* trk)
@@ -625,37 +631,36 @@ void GPUTPCGMMerger::PrintMergeGraph(GPUTPCGMSliceTrack* trk)
   }
 }
 
-void GPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
+void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
 {
   if (!mergeAll) {
-    /*int neighborType = fromOrig ? 1 : 0;
+    /*int neighborType = useOrigTrackParam ? 1 : 0;
+    int old1 = newTrack2.PrevNeighbour(0);
+    int old2 = newTrack1.NextNeighbour(0);
+    if (old1 < 0 && old2 < 0) neighborType = 0;
+    if (old1 == itr) continue;
+    if (neighborType) old1 = newTrack2.PrevNeighbour(1);
+    if ( old1 >= 0 )
+    {
+        GPUTPCGMSliceTrack &oldTrack1 = mSliceTrackInfos[old1];
+        if ( oldTrack1.NClusters() < newTrack1.NClusters() ) {
+            newTrack2.SetPrevNeighbour( -1, neighborType );
+            oldTrack1.SetNextNeighbour( -1, neighborType );
+        } else continue;
+    }
 
-                int old1 = newTrack2.PrevNeighbour(0);
-                int old2 = newTrack1.NextNeighbour(0);
-                if (old1 < 0 && old2 < 0) neighborType = 0;
-                if (old1 == itr) continue;
-                if (neighborType) old1 = newTrack2.PrevNeighbour(1);
-                if ( old1 >= 0 )
-                {
-                    GPUTPCGMSliceTrack &oldTrack1 = mSliceTrackInfos[old1];
-                    if ( oldTrack1.NClusters() < newTrack1.NClusters() ) {
-                        newTrack2.SetPrevNeighbour( -1, neighborType );
-                        oldTrack1.SetNextNeighbour( -1, neighborType );
-                    } else continue;
-                }
-
-                if (old2 == itr2) continue;
-                if (neighborType) old2 = newTrack1.NextNeighbour(1);
-                if ( old2 >= 0 )
-                {
-                    GPUTPCGMSliceTrack &oldTrack2 = mSliceTrackInfos[old2];
-                    if ( oldTrack2.NClusters() < newTrack2.NClusters() )
-                    {
-                    oldTrack2.SetPrevNeighbour( -1, neighborType );
-                    } else continue;
-                }
-                newTrack1.SetNextNeighbour( itr2, neighborType );
-                newTrack2.SetPrevNeighbour( itr, neighborType );*/
+    if (old2 == itr2) continue;
+    if (neighborType) old2 = newTrack1.NextNeighbour(1);
+    if ( old2 >= 0 )
+    {
+        GPUTPCGMSliceTrack &oldTrack2 = mSliceTrackInfos[old2];
+        if ( oldTrack2.NClusters() < newTrack2.NClusters() )
+        {
+        oldTrack2.SetPrevNeighbour( -1, neighborType );
+        } else continue;
+    }
+    newTrack1.SetNextNeighbour( itr2, neighborType );
+    newTrack2.SetPrevNeighbour( itr, neighborType );*/
   }
 
   for (int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++) {
@@ -806,7 +811,7 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
   }
 
 #ifdef GPUCA_MERGER_CE_ROWLIMIT
-  if (cls.row < GPUCA_MERGER_CE_ROWLIMIT || cls.row >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) {
+  if (CAMath::Abs(track->QPt()) < 0.3 && (cls.row < GPUCA_MERGER_CE_ROWLIMIT || cls.row >= GPUCA_ROW_COUNT - GPUCA_MERGER_CE_ROWLIMIT)) {
     return;
   }
 #endif
@@ -827,9 +832,7 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
         b.SetPar(1, b.Par()[1] - 2 * (cls.z - b.ZOffset()));
         b.SetZOffset(-b.ZOffset());
       }
-      if (attempt) {
-        b.SetRow(cls.row);
-      }
+      b.SetRow(cls.row);
       mBorderCETracks[attempt][slice]++;
       break;
     }
@@ -1216,13 +1219,13 @@ void GPUTPCGMMerger::CollectMergedTracks()
     // if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", mNOutputTracks, p1.QPt(), nParts, nHits);
 
     /*if (GPUQA::QAAvailable() && mRec->GetQA() && mRec->GetQA()->SuppressTrack(mNOutputTracks))
-                {
-                    mergedTrack.SetOK(0);
-                    mergedTrack.SetNClusters(0);
-                }*/
-
-    bool CEside = (mergedTrack.CSide() != 0) ^ (cl[0].z > cl[nHits - 1].z);
-    if (mergedTrack.NClusters() && mergedTrack.OK()) {
+    {
+      mergedTrack.SetOK(0);
+      mergedTrack.SetNClusters(0);
+    }
+    if (mergedTrack.NClusters() && mergedTrack.OK()) */
+    {
+      bool CEside = (mergedTrack.CSide() != 0) ^ (cl[0].z > cl[nHits - 1].z);
       MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], mNOutputTracks);
     }
     mNOutputTracks++;
