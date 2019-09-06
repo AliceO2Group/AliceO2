@@ -41,6 +41,7 @@ class GPUReconstructionConvert
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
   static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
   static void ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<o2::tpc::ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, unsigned int* nRawClusters);
+  static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
