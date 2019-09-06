@@ -120,12 +120,12 @@ class GPUTPCGMMerger : public GPUProcessor
   void Finalize();
 
  private:
-  void MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool fromOrig = false);
-  void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int crossCE = 0);
+  void MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool useOrigTrackParam = false);
+  void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int mergeMode = 0);
 
   void MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, int itr);
-  void ResolveMergeSlices(bool fromOrig, bool mergeAll);
-  void MergeSlicesStep(int border0, int border1, bool fromOrig);
+  void ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll);
+  void MergeSlicesStep(int border0, int border1, bool useOrigTrackParam);
   void ClearTrackLinks(int n);
 
   void PrintMergeGraph(GPUTPCGMSliceTrack* trk);
