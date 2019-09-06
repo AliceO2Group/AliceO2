@@ -283,9 +283,14 @@ int GPUChainTracking::PrepareEvent()
   return 0;
 }
 
+int GPUChainTracking::ForceInitQA()
+{
+  return mQA->InitQA();
+}
+
 int GPUChainTracking::Finalize()
 {
-  if (GetDeviceProcessingSettings().runQA && mQAInitialized) {
+  if (GetDeviceProcessingSettings().runQA && mQA->IsInitialized()) {
     mQA->DrawQAHistograms();
   }
   if (GetDeviceProcessingSettings().debugLevel >= 4) {
@@ -1337,7 +1342,7 @@ int GPUChainTracking::RunTRDTracking()
   Tracker.SetMaxData();
   if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     AllocateRegisteredMemory(Tracker.MemoryTracks());
-    AllocateRegisteredMemory(Tracker.MemoryTracklets());
+    AllocateRegisteredMemory(Tracker.MemoryTracklets()); // TODO: Is this needed?
   }
 
   for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
@@ -1394,11 +1399,10 @@ int GPUChainTracking::RunChain()
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
   const bool needQA = GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || (GetDeviceProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
-  if (needQA && mQAInitialized == false) {
+  if (needQA && mQA->IsInitialized() == false) {
     if (mQA->InitQA()) {
       return 1;
     }
-    mQAInitialized = true;
   }
   static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression;
   static int nCount = 0;
