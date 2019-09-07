@@ -1,12 +1,22 @@
 input = [
-    { file = "in/padmajor_vega20.json", label = "naive (pad major)" }
-    { file = "in/timemajor_vega20.json", label = "naive (time major)" }
-    { file = "in/tiling4x4_vega20.json", label = "naive (4x4 tiling)" }
-    { file = "in/scratchpadTime_vega20.json", label = "scratchpad time" }
-    { file = "in/scratchpad4x4_vega20.json", label = "scratchpad 4x4" }
+    { file = "in/padmajor_vega20.json", label = "Ohne LDS (pad major)" }
+    { file = "in/timemajor_vega20.json", label = "Ohne LDS (time major)" }
+    { file = "in/tiling4x4_vega20.json", label = "Ohne LDS (tiling)" }
+    { file = "in/scratchpadTime_vega20.json", label = "Mit LDS (time major)" }
+    { file = "in/scratchpad4x4_vega20.json", label = "Mit LDS (tiling)" }
 ]
 
 type   = "bar"
 out    = "out/scratchpad.pdf"
-ylabel = "time [ms]"
+ylabel = "Zeit [ms]"
 showLegend = true
+
+[stepPrettyNames]
+    fillChargeMap        = "Fülle Buffer"
+    findPeaks            = "Finde Peaks"
+    compactPeaks         = "Kompaktierung I"
+    noiseSuppression     = "Rauschunterdrückung"
+    compactFilteredPeaks = "Kompaktierung II"
+    countPeaks           = "Teile Ladungen"
+    computeClusters      = "Bestimme Cluster"
+    resetMaps            = "Reset Buffer"
