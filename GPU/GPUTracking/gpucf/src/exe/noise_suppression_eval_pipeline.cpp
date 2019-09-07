@@ -26,7 +26,7 @@ class QmaxCutoff : public NoiseSuppression
 public:
 
     QmaxCutoff(int cutoff) 
-        : NoiseSuppression("qmaxCutoff{" + std::to_string(cutoff) + "}")
+        : NoiseSuppression("Filtere qmax < " + std::to_string(cutoff))
         , cutoff(cutoff)
     {
     }
@@ -229,20 +229,21 @@ int main(int argc, const char *argv[])
         std::exit(1);
     }
 
+    float epsilon = 10;
 
     std::vector<std::unique_ptr<NoiseSuppression>> noiseSuppressionAlgos;
     noiseSuppressionAlgos.emplace_back(new NoNoiseSuppression);
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(2)); */
     noiseSuppressionAlgos.emplace_back(new QmaxCutoff(3));
     /* noiseSuppressionAlgos.emplace_back(new QmaxCutoff(9)); */
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025));
-    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025));
-    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 10)); */
-    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 10)); */
-    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 10)); */
-    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 10)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, 1025)); */
+    /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, 1025)); */
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 2, 3, epsilon));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 3, 3, epsilon));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 3, 3, epsilon));
+    noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(3, 4, 3, epsilon));
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(2, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(1, 4, 3)); */
     /* noiseSuppressionAlgos.emplace_back(new NoiseSuppressionOverArea(0, 4, 3)); */
@@ -326,7 +327,8 @@ int main(int argc, const char *argv[])
     PlotConfig cnf;
     /* cnf.logYAxis = true; */
     cnf.logXAxis = true;
-    plot(names, peaknumToTracknum, "peaknumToHits.pdf", "# peaks", "# hits", cnf);
+    plot(names, peaknumToTracknum, "peaknumToHits_" + std::to_string(epsilon) + ".pdf", 
+            "# peaks", "# hits", cnf);
 
     countLostHits(
             labels,
