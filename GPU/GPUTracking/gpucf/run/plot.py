@@ -45,6 +45,7 @@ class Config:
         "xlabel",
         "showLegend",
         "stepBlacklist",
+        "stepPrettyNames",
     ]
 
     def __init__(self, confDict, baseDir):
@@ -189,7 +190,6 @@ def bar(cnf):
 
     measurements = Measurements(cnf.expand(cnf.input[0].file))
 
-    print(cnf.__dict__)
     steps = measurements.steps(cnf.stepBlacklist)
 
     stepSize = len(cnf.input)
@@ -230,6 +230,11 @@ def bar(cnf):
         barPositions += barWidth
 
     plt.ylim(bottom=0)
+
+    print(steps)
+    print(cnf.stepPrettyNames)
+    if cnf.stepPrettyNames is not None:
+        steps = [cnf.stepPrettyNames.get(step, step) for step in steps]
 
     plt.xticks(indexes + (stepSize - 1) * barWidth / 2, steps, rotation=20)
     plt.margins(0.2)

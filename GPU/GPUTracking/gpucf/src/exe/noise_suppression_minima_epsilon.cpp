@@ -199,12 +199,18 @@ int main(int argc, const char *argv[])
             sortHitsByPeaks(filteredPeaks, peaks, labels);
 
     std::vector<std::string> names = {
-        "no peaks",
-        "1 peak",
-        "2 peaks (overlap)",
-        "2 peaks (no overlap)",
-        "3 - 10 peaks",
-        "> 10 peaks"
+        /* "no peaks", */
+        /* "1 peak", */
+        /* "2 peaks (overlap)", */
+        /* "2 peaks (no overlap)", */
+        /* "3 - 10 peaks", */
+        /* "> 10 peaks" */
+        "Keine Peaks",
+        "1 Peak",
+        "2 Peaks (mit Ueberlapp)",
+        "2 Peaks (ohne Ueberlapp)",
+        "3 - 10 Peaks",
+        "> 10 Peaks",
     };
 
     std::vector<std::vector<int>> data(names.size());
@@ -218,7 +224,7 @@ int main(int argc, const char *argv[])
         data[5].push_back(hitnumPerPeaks.moreThanTenPeaks);
     }
 
-    plot(names, data, "epsilonToHits.pdf", "epsilon", "# hits");
+    plot(names, data, "epsilonToHits.pdf", "epsilon", "# Hits");
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

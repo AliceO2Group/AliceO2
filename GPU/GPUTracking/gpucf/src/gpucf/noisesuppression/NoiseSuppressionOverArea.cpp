@@ -9,9 +9,8 @@ NoiseSuppressionOverArea::NoiseSuppressionOverArea(
         int radTime, 
         int cutoff, 
         int epsilon)
-    : NoiseSuppression("noiseSuppression{" + std::to_string(radPad*2+1) 
-        + "x" + std::to_string(radTime*2+1) 
-        + ", eps=" + std::to_string(epsilon) + "}")
+    : NoiseSuppression("Bereich " + std::to_string(radPad*2+1) 
+        + "x" + std::to_string(radTime*2+1) )
     , radPad(radPad)
     , radTime(radTime)
     , cutoff(cutoff)
