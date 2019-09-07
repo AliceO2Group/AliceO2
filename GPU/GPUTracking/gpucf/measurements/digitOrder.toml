@@ -1,15 +1,25 @@
 input = [
-    { file = "in/timemajor_vega20.json", label = "naive (time major) - time" }
-    { file = "in/scratchpad4x4_vega20.json", label = "scratchpad 4x4 - time" }
-    { file = "in/timemajor_vega20_pad.json", label = "naive (time major) - pad" }
-    { file = "in/scratchpad4x4_vega20_pad.json", label = "scratchpad 4x4 - pad" }
-    { file = "in/timemajor_vega20_rand.json", label = "naive (time major) - random" }
-    { file = "in/scratchpad4x4_vega20_rand.json", label = "scratchpad 4x4 - random" }
-    { file = "in/timemajor_vega20_full.json", label = "naive (time major) - full" }
-    { file = "in/scratchpad4x4_vega20_full.json", label = "scratchpad 4x4 - full" }
+    { file = "in/timemajor_vega20.json", label = "Ohne LDS - Zeitsort." }
+    { file = "in/scratchpad4x4_vega20.json", label = "Mit LDS - Zeitsort." }
+    { file = "in/timemajor_vega20_pad.json", label = "Ohne LDS - Padsort." }
+    { file = "in/scratchpad4x4_vega20_pad.json", label = "Mit LDS - Padsort." }
+    { file = "in/timemajor_vega20_rand.json", label = "Ohne LDS - Nicht sort." }
+    { file = "in/scratchpad4x4_vega20_rand.json", label = "Mit LDS - Nicht sort." }
+    { file = "in/timemajor_vega20_full.json", label = "Ohne LDS - Vollst. sort." }
+    { file = "in/scratchpad4x4_vega20_full.json", label = "Mit LDS - Vollst. sort." }
 ]
 
 type   = "bar"
 out    = "out/digitOrder.pdf"
-ylabel = "time [ms]"
+ylabel = "Zeit [ms]"
 showLegend = true
+
+[stepPrettyNames]
+    fillChargeMap        = "Fülle Buffer"
+    findPeaks            = "Finde Peaks"
+    compactPeaks         = "Kompaktierung I"
+    noiseSuppression     = "Rauschunterdrückung"
+    compactFilteredPeaks = "Kompaktierung II"
+    countPeaks           = "Teile Ladungen"
+    computeClusters      = "Bestimme Cluster"
+    resetMaps            = "Reset Buffer"

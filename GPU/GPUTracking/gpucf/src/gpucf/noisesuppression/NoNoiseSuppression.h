@@ -11,7 +11,7 @@ class NoNoiseSuppression : public NoiseSuppression
 
 public:
 
-    NoNoiseSuppression() : NoiseSuppression("unfiltered")
+    NoNoiseSuppression() : NoiseSuppression("Ohne Filter")
     {
     }
 

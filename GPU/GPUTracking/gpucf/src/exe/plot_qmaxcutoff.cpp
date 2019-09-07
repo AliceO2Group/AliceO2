@@ -8,6 +8,7 @@
 
 #include <args/args.hxx>
 
+#include <TAxis.h>
 #include <TCanvas.h>
 #include <TGraph.h>
 #include <TMultiGraph.h>
@@ -151,13 +152,13 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     TGraph *g0 = new TGraph(n, x.data(), pc0.data());
     g0->SetLineColor(1);
     g0->SetMarkerColor(1);
-    g0->SetTitle("# Hits ohne Peak");
+    g0->SetTitle("Hits ohne Peak");
     mg->Add(g0);
 
     TGraph *g1 = new TGraph(n, x.data(), pc1.data());
     g1->SetLineColor(3);
     g1->SetMarkerColor(3);
-    g1->SetTitle("# Hits mit einem Peak");
+    g1->SetTitle("Hits mit einem Peak");
     mg->Add(g1);
 
     /* TGraph *g2 = new TGraph(n, x.data(), pc2.data()); */
@@ -175,10 +176,12 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     TGraph *gX = new TGraph(n, x.data(), pcX.data());
     gX->SetLineColor(2);
     gX->SetMarkerColor(2);
-    gX->SetTitle("# Hits mit >1 Peaks");
+    gX->SetTitle("Hits mit >1 Peaks");
     mg->Add(gX);
 
     mg->Draw("AL");
+    mg->GetXaxis()->SetTitle("qmax");
+    mg->GetYaxis()->SetTitle("# Hits");
     c->BuildLegend();
     c->SaveAs(file.c_str());
 }
