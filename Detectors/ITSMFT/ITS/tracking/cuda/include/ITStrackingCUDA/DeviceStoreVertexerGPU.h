@@ -18,6 +18,7 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Tracklet.h"
+#include "ITStracking/ClusterLines.h"
 #include "ITStrackingCUDA/Array.h"
 #include "ITStrackingCUDA/UniquePointer.h"
 #include "ITStrackingCUDA/Vector.h"
@@ -28,17 +29,28 @@ namespace its
 {
 namespace GPU
 {
+
+struct VertexerConfigurationGPU {
+  int dupletsVectorCapacity = 40e6;
+  int processedTrackletsCapacity = 40e6;
+  int clustersPerLayerCapacity = 20e3;
+};
+
 class DeviceStoreVertexerGPU final
 {
  public:
-  DeviceStoreVertexerGPU() = default;
-  UniquePointer<DeviceStoreVertexerGPU> initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumber>&);
+  DeviceStoreVertexerGPU();
+  ~DeviceStoreVertexerGPU() = default;
+  void initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&);
 
  private:
-  Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClsuters;
-  Vector<Tracklet> mComb01;
-  Vector<Tracklet> mConb12;
-}
+  VertexerConfigurationGPU mGPUConf;
+  Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
+  Vector<Tracklet> mDuplets01;
+  Vector<Tracklet> mDuplets12;
+  Vector<Line> mTracklets;
+  Array<Vector<int>, 2> mIndexTables;
+};
 } // namespace GPU
 } // namespace its
 } // namespace o2
