@@ -88,6 +88,11 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue; // go to the next chamber
     }
 
+    // O2-790
+    if (adcMapCont.size() == 0) {
+      continue; // go to the next chamber
+    }
+
     if (!convertSignalsToDigits(det, adcMapCont)) {
       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
       continue; // go to the next chamber
