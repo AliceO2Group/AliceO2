@@ -40,29 +40,18 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   virtual ~VertexerTraitsGPU();
+  void initialise(ROframe*) override;
   void computeTracklets() override;
   GPU_DEVICE static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
 
  protected:
-  GPU::UniquePointer<DeviceStoreVertexerGPU> mStoreVertexerGPU;
-  Cluster* mGPUclusters0;
-  Cluster* mGPUclusters1;
-  Cluster* mGPUclusters2;
-
-  int* mGPUMClabels0;
-  int* mGPUMClabels1;
-  int* mGPUMClabels2;
-
-  Tracklet* mGPURefTracklet01;
-  Tracklet* mGPURefTracklet12;
-
-  Line* mGPUtracklets;
-
-  int* mGPUusedClusterSize0;
-  int* mGPUusedClusterSize2;
-
-  int* mGPUindexTable0;
-  int* mGPUindexTable2;
+  GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
+// 
+//   int* mGPUusedClusterSize0;
+//   int* mGPUusedClusterSize2;
+// 
+//   int* mGPUindexTable0;
+//   int* mGPUindexTable2;
 };
 
 inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)

@@ -49,25 +49,18 @@ using math_utils::getNormalizedPhiCoordinate;
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
-
-  // cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable0), mIndexTables[0].size() * sizeof(int));
-  // cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable2), mIndexTables[2].size() * sizeof(int));
-// 
-  // cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet01), static_cast<int>(80e6) * sizeof(Tracklet));
-  // cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet12), static_cast<int>(80e6) * sizeof(Tracklet));
-// 
-  // cudaMalloc(reinterpret_cast<void**>(&mGPUtracklets), static_cast<int>(80e6) * sizeof(Line));
 }
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
-  cudaFree(mGPUindexTable0);
-  cudaFree(mGPUindexTable2);
+}
 
-  cudaFree(mGPURefTracklet01);
-  cudaFree(mGPURefTracklet12);
-
-  cudaFree(mGPUtracklets);
+void VertexerTraitsGPU::initialise(ROframe* event)
+{
+  reset();
+  arrangeClusters(event);
+  // GPU memory is not being reset at the moment
+  mStoreVertexerGPU.initialise(mClusters);
 }
 
 namespace GPU
@@ -212,25 +205,25 @@ void VertexerTraitsGPU::computeTracklets()
   int* numTracks12;
 
   // DEBUG
-  int* debugArray;
-  cudaMalloc(reinterpret_cast<void**>(&debugArray), 2 * sizeof(int));
-  cudaMemset(debugArray, 0, 2 * sizeof(int));
-
-  cudaMalloc(reinterpret_cast<void**>(&numTracks01), clusterSize1 * sizeof(int));
-  cudaMalloc(reinterpret_cast<void**>(&numTracks12), clusterSize1 * sizeof(int));
-  cudaMemset(numTracks01, 0, clusterSize1 * sizeof(int));
-  cudaMemset(numTracks12, 0, clusterSize1 * sizeof(int));
-
-  cudaMalloc(reinterpret_cast<void**>(&mGPUclusters0), clusterSize0 * sizeof(Cluster));
-  cudaMalloc(reinterpret_cast<void**>(&mGPUclusters1), clusterSize1 * sizeof(Cluster));
-  cudaMalloc(reinterpret_cast<void**>(&mGPUclusters2), clusterSize2 * sizeof(Cluster));
-
-  cudaMemcpy(mGPUindexTable0, mIndexTables[0].data(), mIndexTables[0].size() * sizeof(int), cudaMemcpyHostToDevice);
-  cudaMemcpy(mGPUindexTable2, mIndexTables[2].data(), mIndexTables[2].size() * sizeof(int), cudaMemcpyHostToDevice);
-
-  cudaMemcpy(mGPUclusters0, mClusters[0].data(), mClusters[0].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
-  cudaMemcpy(mGPUclusters1, mClusters[1].data(), mClusters[1].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
-  cudaMemcpy(mGPUclusters2, mClusters[2].data(), mClusters[2].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
+  // int* debugArray;
+  // cudaMalloc(reinterpret_cast<void**>(&debugArray), 2 * sizeof(int));
+  // cudaMemset(debugArray, 0, 2 * sizeof(int));
+  //
+  // cudaMalloc(reinterpret_cast<void**>(&numTracks01), clusterSize1 * sizeof(int));
+  // cudaMalloc(reinterpret_cast<void**>(&numTracks12), clusterSize1 * sizeof(int));
+  // cudaMemset(numTracks01, 0, clusterSize1 * sizeof(int));
+  // cudaMemset(numTracks12, 0, clusterSize1 * sizeof(int));
+  //
+  // // cudaMalloc(reinterpret_cast<void**>(&mGPUclusters0), clusterSize0 * sizeof(Cluster));
+  // // cudaMalloc(reinterpret_cast<void**>(&mGPUclusters1), clusterSize1 * sizeof(Cluster));
+  // // cudaMalloc(reinterpret_cast<void**>(&mGPUclusters2), clusterSize2 * sizeof(Cluster));
+  //
+  // cudaMemcpy(mGPUindexTable0, mIndexTables[0].data(), mIndexTables[0].size() * sizeof(int), cudaMemcpyHostToDevice);
+  // cudaMemcpy(mGPUindexTable2, mIndexTables[2].data(), mIndexTables[2].size() * sizeof(int), cudaMemcpyHostToDevice);
+  //
+  // cudaMemcpy(mGPUclusters0, mClusters[0].data(), mClusters[0].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
+  // cudaMemcpy(mGPUclusters1, mClusters[1].data(), mClusters[1].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
+  // cudaMemcpy(mGPUclusters2, mClusters[2].data(), mClusters[2].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
 
   // if (useMCLabel) {
 
@@ -245,128 +238,128 @@ void VertexerTraitsGPU::computeTracklets()
 
   // std::cout << "clusters on L0: " << clusterSize0 << " clusters on L1: " << clusterSize1 << " clusters on L2: " << clusterSize2 << std::endl;
 
-  GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
-    mGPUclusters0,
-    mGPUclusters1,
-    mClusters[0].size(),
-    mClusters[1].size(),
-    mGPUindexTable0,
-    LAYER0_TO_LAYER1,
-    mVrtParams.phiCut,
-    mGPURefTracklet01,
-    numTracks01,
-    debugArray,
-    useMCLabel,
-    mGPUMClabels0,
-    mGPUMClabels1);
-
-  GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
-    mGPUclusters2,
-    mGPUclusters1,
-    mClusters[2].size(),
-    mClusters[1].size(),
-    mGPUindexTable2,
-    LAYER1_TO_LAYER2,
-    mVrtParams.phiCut,
-    mGPURefTracklet12,
-    numTracks12,
-    debugArray,
-    useMCLabel,
-    mGPUMClabels2,
-    mGPUMClabels1);
-
-  GPU::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-    mGPUclusters0,
-    mGPUclusters1,
-    mGPURefTracklet01,
-    mGPURefTracklet12,
-    mClusters[1].size(),
-    numTracks01,
-    numTracks12,
-    mGPUtracklets);
-
-  cudaError_t error = cudaGetLastError();
-
-  if (error != cudaSuccess) {
-    std::ostringstream errorString{};
-    errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
-    throw std::runtime_error{errorString.str()};
-  }
-
-  // DEBUG section
-  Line* lines = new Line[static_cast<int>(80e6)];
-  Tracklet* comb01 = new Tracklet[static_cast<int>(80e6)];
-  Tracklet* comb12 = new Tracklet[static_cast<int>(80e6)];
-  int* foundTracklets01_h = new int[clusterSize1];
-  int* foundTracklets12_h = new int[clusterSize1];
-  int* cartellino = new int[2];
-
-  cudaMemcpy(comb01, mGPURefTracklet01, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
-  cudaMemcpy(comb12, mGPURefTracklet12, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
-  cudaMemcpy(foundTracklets01_h, numTracks01, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(foundTracklets12_h, numTracks12, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(lines, mGPUtracklets, static_cast<int>(80e6) * sizeof(Line), cudaMemcpyDeviceToHost);
-  cudaMemcpy(cartellino, debugArray, sizeof(int) * 2, cudaMemcpyDeviceToHost);
-  cudaDeviceSynchronize();
-
-  // Dump for debug
-  for (int i{0}; i < clusterSize1; ++i) {
-    const int stride{i * static_cast<int>(2e3)};
-    for (int j{0}; j < foundTracklets01_h[i]; ++j) {
-      mComb01.push_back(comb01[stride + j]);
-    }
-  }
-
-  for (int i{0}; i < clusterSize1; ++i) {
-    const int stride{i * static_cast<int>(2e3)};
-    for (int j{0}; j < foundTracklets12_h[i]; ++j) {
-      mComb12.push_back(comb12[stride + j]);
-    }
-  }
-
-  for (int i{0}; i < clusterSize1; ++i) {
-    const int stride{i * static_cast<int>(2e3)};
-    for (int j{0}; j < foundTracklets12_h[i]; ++j) {
-      for (int k{0}; k < foundTracklets01_h[i]; ++k) {
-        assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
-        const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
-      }
-    }
-  }
-
-  for (int i{0}; i < clusterSize1; ++i) {
-    const int stride{i * static_cast<int>(2e3)};
-    int counter{0};
-    while (!lines[stride + counter].isEmpty) {
-      if (counter == static_cast<int>(2e3))
-        break;
-      mTracklets.push_back(lines[stride + counter]);
-      ++counter;
-    }
-  }
-
-  delete[] lines;
-  delete[] comb01;
-  delete[] comb12;
-  delete[] foundTracklets01_h;
-  delete[] foundTracklets12_h;
-  delete[] cartellino;
-
-  // \DEBUG section
-
-  cudaFree(debugArray);
-  cudaFree(numTracks01);
-  cudaFree(numTracks12);
-
-  cudaFree(mGPUclusters0);
-  cudaFree(mGPUclusters1);
-  cudaFree(mGPUclusters2);
-
-  if (useMCLabel) {
-    cudaFree(mGPUMClabels0);
-    cudaFree(mGPUMClabels1);
-    cudaFree(mGPUMClabels2);
-  }
+  // GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
+  //   mGPUclusters0,
+  //   mGPUclusters1,
+  //   mClusters[0].size(),
+  //   mClusters[1].size(),
+  //   mGPUindexTable0,
+  //   LAYER0_TO_LAYER1,
+  //   mVrtParams.phiCut,
+  //   mGPURefTracklet01,
+  //   numTracks01,
+  //   debugArray,
+  //   useMCLabel,
+  //   mGPUMClabels0,
+  //   mGPUMClabels1);
+  //
+  // GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
+  //   mGPUclusters2,
+  //   mGPUclusters1,
+  //   mClusters[2].size(),
+  //   mClusters[1].size(),
+  //   mGPUindexTable2,
+  //   LAYER1_TO_LAYER2,
+  //   mVrtParams.phiCut,
+  //   mGPURefTracklet12,
+  //   numTracks12,
+  //   debugArray,
+  //   useMCLabel,
+  //   mGPUMClabels2,
+  //   mGPUMClabels1);
+  //
+  // GPU::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
+  //   mGPUclusters0,
+  //   mGPUclusters1,
+  //   mGPURefTracklet01,
+  //   mGPURefTracklet12,
+  //   mClusters[1].size(),
+  //   numTracks01,
+  //   numTracks12,
+  //   mGPUtracklets);
+  //
+  // cudaError_t error = cudaGetLastError();
+  //
+  // if (error != cudaSuccess) {
+  //   std::ostringstream errorString{};
+  //   errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
+  //   throw std::runtime_error{errorString.str()};
+  // }
+  //
+  // // DEBUG section
+  // Line* lines = new Line[static_cast<int>(80e6)];
+  // Tracklet* comb01 = new Tracklet[static_cast<int>(80e6)];
+  // Tracklet* comb12 = new Tracklet[static_cast<int>(80e6)];
+  // int* foundTracklets01_h = new int[clusterSize1];
+  // int* foundTracklets12_h = new int[clusterSize1];
+  // int* cartellino = new int[2];
+  //
+  // cudaMemcpy(comb01, mGPURefTracklet01, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(comb12, mGPURefTracklet12, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(foundTracklets01_h, numTracks01, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(foundTracklets12_h, numTracks12, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(lines, mGPUtracklets, static_cast<int>(80e6) * sizeof(Line), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(cartellino, debugArray, sizeof(int) * 2, cudaMemcpyDeviceToHost);
+  // cudaDeviceSynchronize();
+  //
+  // // Dump for debug
+  // for (int i{0}; i < clusterSize1; ++i) {
+  //   const int stride{i * static_cast<int>(2e3)};
+  //   for (int j{0}; j < foundTracklets01_h[i]; ++j) {
+  //     mComb01.push_back(comb01[stride + j]);
+  //   }
+  // }
+  //
+  // for (int i{0}; i < clusterSize1; ++i) {
+  //   const int stride{i * static_cast<int>(2e3)};
+  //   for (int j{0}; j < foundTracklets12_h[i]; ++j) {
+  //     mComb12.push_back(comb12[stride + j]);
+  //   }
+  // }
+  //
+  // for (int i{0}; i < clusterSize1; ++i) {
+  //   const int stride{i * static_cast<int>(2e3)};
+  //   for (int j{0}; j < foundTracklets12_h[i]; ++j) {
+  //     for (int k{0}; k < foundTracklets01_h[i]; ++k) {
+  //       assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
+  //       const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
+  //     }
+  //   }
+  // }
+  //
+  // for (int i{0}; i < clusterSize1; ++i) {
+  //   const int stride{i * static_cast<int>(2e3)};
+  //   int counter{0};
+  //   while (!lines[stride + counter].isEmpty) {
+  //     if (counter == static_cast<int>(2e3))
+  //       break;
+  //     mTracklets.push_back(lines[stride + counter]);
+  //     ++counter;
+  //   }
+  // }
+  //
+  // delete[] lines;
+  // delete[] comb01;
+  // delete[] comb12;
+  // delete[] foundTracklets01_h;
+  // delete[] foundTracklets12_h;
+  // delete[] cartellino;
+  //
+  // // \DEBUG section
+  //
+  // cudaFree(debugArray);
+  // cudaFree(numTracks01);
+  // cudaFree(numTracks12);
+  //
+  // cudaFree(mGPUclusters0);
+  // cudaFree(mGPUclusters1);
+  // cudaFree(mGPUclusters2);
+  //
+  // if (useMCLabel) {
+  //   cudaFree(mGPUMClabels0);
+  //   cudaFree(mGPUMClabels1);
+  //   cudaFree(mGPUMClabels2);
+  // }
 }
 
 VertexerTraits* createVertexerTraitsGPU()
