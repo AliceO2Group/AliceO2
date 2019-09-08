@@ -16,15 +16,13 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
+#include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
-#define __VERTEXER_ITS_GPU
-#if defined(__VERTEXER_ITS_GPU)
-// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainTracking.h"
-#include "GPUChainITS.h"
-#endif
+// #include "GPUO2Interface.h"
+// #define GPUCA_O2_LIB // Temporary Rohr's workaround (Aug 13, 2019)
+// #include "GPUReconstruction.h"
+// #include "GPUChainITS.h"
+// #undef GPUCA_O2_LIB
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
@@ -39,11 +37,15 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
-  gSystem->Load("libO2ITStracking.so");
-  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
-  auto* chainITS = rec->AddChain<GPUChainITS>();
-  rec->Init();
-  o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
+  R__LOAD_LIBRARY(O2ITStrackingCUDA)
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
+  // auto* chainITS = rec->AddChain<GPUChainITS>();
+  // rec->Init();
+  // o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
+  std::unique_ptr<o2::its::VertexerTraitsGPU> traits;
+  o2::its::VertexerTraitsGPU mannaggia;
+  traits.reset(&mannaggia);
+  o2::its::Vertexer vertexer(traits.get());
   std::string outfile;
 
   if (useGPU) {
@@ -144,30 +146,30 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
-    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
-  //   total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
-  //   if (useMCcheck) {
-  //     vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
-  //   }
-  //   total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
-  //   total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
-// 
-  //   std::vector<Vertex> vertITS = vertexer.exportVertices();
-  //   const size_t numVert = vertITS.size();
-  //   foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
-  //   verticesITS->swap(vertITS);
-  //   // TODO: get vertexer postion form MC truth
-// 
-  //   timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
-  //   outTree.Fill();
+    // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
+    //   total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
+    //   if (useMCcheck) {
+    //     vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
+    //   }
+    //   total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+    //   total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
+    //
+    //   std::vector<Vertex> vertITS = vertexer.exportVertices();
+    //   const size_t numVert = vertITS.size();
+    //   foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
+    //   verticesITS->swap(vertITS);
+    //   // TODO: get vertexer postion form MC truth
+    //
+    //   timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
+    //   outTree.Fill();
   }
 
   outputfile->cd();
   outTree.Write();
   foundVerticesBenchmark.Write();
   timeBenchmark.Write();
-
   outputfile->Close();
+  traits.release();
   return 0;
 }
 #endif
