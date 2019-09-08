@@ -17,7 +17,9 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 
+#define __VERTEXER_ITS_GPU
 #if defined(__VERTEXER_ITS_GPU)
+// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
@@ -37,6 +39,11 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
+  gSystem->Load("libO2ITStracking.so");
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
+  auto* chainITS = rec->AddChain<GPUChainITS>();
+  rec->Init();
+  o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
   std::string outfile;
 
   if (useGPU) {
@@ -108,27 +115,15 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
   std::uint32_t roFrame = 0;
 
-  //Settings
+  // Settings
   o2::its::VertexingParameters parameters;
+  parameters.phiCut = 0.05f;
   // e.g. parameters.clusterContributorsCut = 5;
-  //\Settings
+  // \Settings
 
   const int stopAt = (inspEvt == -1) ? rofs->size() : inspEvt + numEvents;
   const int startAt = (inspEvt == -1) ? 0 : inspEvt;
 
-  std::unique_ptr<o2::its::VertexerTraits> traits;
-
-#if defined(__VERTEXER_ITS_GPU)
-  if (useGPU) {
-    traits = o2::its::createVertexerTraitsGPU();
-  }
-#else
-  if (!useGPU) {
-    traits = std::make_unique<o2::its::VertexerTraits>();
-  }
-#endif
-
-  o2::its::Vertexer vertexer(traits.get());
   vertexer.setParameters(parameters);
   itsClusters.GetEntry(0);
   mcHeaderTree.GetEntry(0);
@@ -149,24 +144,24 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
-    // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
-    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
-    if (useMCcheck) {
-      vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
-    }
-    total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
-    total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
-
-    std::vector<Vertex> vertITS = vertexer.exportVertices();
-    const size_t numVert = vertITS.size();
-    foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
-    verticesITS->swap(vertITS);
-    // TODO: get vertexer postion form MC truth
-
-    timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
-    outTree.Fill();
+    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
+  //   total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
+  //   if (useMCcheck) {
+  //     vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
+  //   }
+  //   total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+  //   total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
+// 
+  //   std::vector<Vertex> vertITS = vertexer.exportVertices();
+  //   const size_t numVert = vertITS.size();
+  //   foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
+  //   verticesITS->swap(vertITS);
+  //   // TODO: get vertexer postion form MC truth
+// 
+  //   timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
+  //   outTree.Fill();
   }
-  traits.reset();
+
   outputfile->cd();
   outTree.Write();
   foundVerticesBenchmark.Write();

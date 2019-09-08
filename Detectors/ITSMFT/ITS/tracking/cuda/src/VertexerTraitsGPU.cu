@@ -23,8 +23,8 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
-#include "ITStrackingCUDA/Utils.h"
 
+#include "ITStrackingCUDA/Utils.h"
 #include "ITStrackingCUDA/Context.h"
 #include "ITStrackingCUDA/Stream.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
@@ -50,13 +50,13 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
 
-  cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable0), mIndexTables[0].size() * sizeof(int));
-  cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable2), mIndexTables[2].size() * sizeof(int));
-
-  cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet01), static_cast<int>(80e6) * sizeof(Tracklet));
-  cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet12), static_cast<int>(80e6) * sizeof(Tracklet));
-
-  cudaMalloc(reinterpret_cast<void**>(&mGPUtracklets), static_cast<int>(80e6) * sizeof(Line));
+  // cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable0), mIndexTables[0].size() * sizeof(int));
+  // cudaMalloc(reinterpret_cast<void**>(&mGPUindexTable2), mIndexTables[2].size() * sizeof(int));
+// 
+  // cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet01), static_cast<int>(80e6) * sizeof(Tracklet));
+  // cudaMalloc(reinterpret_cast<void**>(&mGPURefTracklet12), static_cast<int>(80e6) * sizeof(Tracklet));
+// 
+  // cudaMalloc(reinterpret_cast<void**>(&mGPUtracklets), static_cast<int>(80e6) * sizeof(Line));
 }
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
@@ -232,18 +232,18 @@ void VertexerTraitsGPU::computeTracklets()
   cudaMemcpy(mGPUclusters1, mClusters[1].data(), mClusters[1].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
   cudaMemcpy(mGPUclusters2, mClusters[2].data(), mClusters[2].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
 
-  if (useMCLabel) {
+  // if (useMCLabel) {
 
-    cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels0), clusterSize0 * sizeof(int));
-    cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels1), clusterSize1 * sizeof(int));
-    cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels2), clusterSize2 * sizeof(int));
+  //   cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels0), clusterSize0 * sizeof(int));
+  //   cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels1), clusterSize1 * sizeof(int));
+  //   cudaMalloc(reinterpret_cast<void**>(&mGPUMClabels2), clusterSize2 * sizeof(int));
 
-    cudaMemcpy(mGPUMClabels0, getMClabelsLayer(0).data(), clusterSize0 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(mGPUMClabels1, getMClabelsLayer(1).data(), clusterSize1 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(mGPUMClabels2, getMClabelsLayer(2).data(), clusterSize2 * sizeof(int), cudaMemcpyHostToDevice);
-  }
+  //   // cudaMemcpy(mGPUMClabels0, getMClabelsLayer(0).data(), clusterSize0 * sizeof(int), cudaMemcpyHostToDevice);
+  //   // cudaMemcpy(mGPUMClabels1, getMClabelsLayer(1).data(), clusterSize1 * sizeof(int), cudaMemcpyHostToDevice);
+  //   // cudaMemcpy(mGPUMClabels2, getMClabelsLayer(2).data(), clusterSize2 * sizeof(int), cudaMemcpyHostToDevice);
+  // }
 
-  std::cout << "clusters on L0: " << clusterSize0 << " clusters on L1: " << clusterSize1 << " clusters on L2: " << clusterSize2 << std::endl;
+  // std::cout << "clusters on L0: " << clusterSize0 << " clusters on L1: " << clusterSize1 << " clusters on L2: " << clusterSize2 << std::endl;
 
   GPU::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     mGPUclusters0,
@@ -330,12 +330,6 @@ void VertexerTraitsGPU::computeTracklets()
       for (int k{0}; k < foundTracklets01_h[i]; ++k) {
         assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
         const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
-        // mTrackletInfo.push_back(std::array<float, 9>{deltaTanLambda,
-        //                                              mClusters[0][comb01[stride + k].firstClusterIndex].zCoordinate, mClusters[0][comb01[stride + k].firstClusterIndex].rCoordinate,
-        //                                              mClusters[1][comb01[stride + k].secondClusterIndex].zCoordinate, mClusters[1][comb01[stride + k].secondClusterIndex].rCoordinate,
-        //                                              mClusters[2][comb12[stride + j].secondClusterIndex].zCoordinate, mClusters[2][comb12[stride + j].secondClusterIndex].rCoordinate,
-        //                                              42.f, /* dummy */
-        //                                              true /* dummy */});
       }
     }
   }
