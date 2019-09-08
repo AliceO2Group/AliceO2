@@ -124,7 +124,7 @@ constexpr int bit2Mask(T first, Args... args)
 }
 //--------------------------------------<<<
 
-GPUdi() float FastATan2(float y, float x)
+GPUhdi() float FastATan2(float y, float x)
 {
   // Fast atan2(y,x) for any angle [-Pi,Pi]
   // Average inaccuracy: 0.00048
