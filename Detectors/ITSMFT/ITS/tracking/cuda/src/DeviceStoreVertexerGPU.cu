@@ -13,6 +13,7 @@
 /// \author matteo.concas@cern.ch
 
 #include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
+#include "ITStracking/Configuration.h"
 
 namespace o2
 {
@@ -20,13 +21,28 @@ namespace its
 {
 namespace GPU
 {
-DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumber>& clusters)
+
+DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
 {
+  mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsVectorCapacity};
+  mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsVectorCapacity};
+  mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity};
+
+  for (int iTable{0}; iTable < 2; ++iTable) {
+    mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1};
+  }
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
-    this->mClusters[iLayer] =
-      Vector<Cluster>{&clusters[iLayer][0], static_cast<int>(clusters[iLayer].size())};
+    mClusters[iLayer] = Vector<Cluster>{mGPUConf.clustersPerLayerCapacity};
   }
 }
+
+void DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters)
+{
+  for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
+    mClusters[iLayer].reset(clusters[iLayer].data(), static_cast<int>(clusters[iLayer].size()));
+  }
+}
+
 } // namespace GPU
 } // namespace its
 } // namespace o2

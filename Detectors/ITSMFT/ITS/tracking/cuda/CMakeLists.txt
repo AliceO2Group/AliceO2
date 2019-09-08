@@ -13,6 +13,7 @@ message(STATUS "Building ITS CUDA tracker")
 o2_add_library(ITStrackingCUDA
                SOURCES src/Context.cu
                        src/DeviceStoreNV.cu
+                       src/DeviceStoreVertexerGPU.cu
                        src/Stream.cu
                        src/TrackerTraitsNV.cu
                        src/VertexerTraitsGPU.cu
