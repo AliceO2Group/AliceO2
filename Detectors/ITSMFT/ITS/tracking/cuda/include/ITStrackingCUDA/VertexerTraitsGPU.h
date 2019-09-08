@@ -19,11 +19,13 @@
 #include <array>
 
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
-#include "ITStracking/Cluster.h"
+#include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
+#include "ITStrackingCUDA/UniquePointer.h"
 
 namespace o2
 {
@@ -42,6 +44,7 @@ class VertexerTraitsGPU : public VertexerTraits
   GPU_DEVICE static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
 
  protected:
+  GPU::UniquePointer<DeviceStoreVertexerGPU> mStoreVertexerGPU;
   Cluster* mGPUclusters0;
   Cluster* mGPUclusters1;
   Cluster* mGPUclusters2;
