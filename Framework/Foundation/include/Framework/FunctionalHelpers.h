@@ -26,9 +26,43 @@ struct memfun_type {
 
 /// Type helper to hold a parameter pack.  This is different from a tuple
 /// as there is no data associated to it.
-template <typename... Args>
+template <typename...>
 struct pack {
 };
+
+/// Templates for manipulating type lists in pack
+/// (see https://codereview.stackexchange.com/questions/201209/filter-template-meta-function/201222#201222)
+/// Example of use:
+///     template<typename T>
+///         struct is_not_double: std::true_type{};
+///     template<>
+///         struct is_not_double<double>: std::false_type{};
+/// The following will return a pack, excluding double
+///  <filtered_pack<is_not_double, double, int, char, float*, double, char*, double>>()
+///
+template <typename... Args1, typename... Args2>
+constexpr auto concatenate_pack(pack<Args1...>, pack<Args2...>)
+{
+  return pack<Args1..., Args2...>{};
+}
+
+template <template <typename> typename Condition, typename Result>
+constexpr auto filter_pack(Result result, pack<>)
+{
+  return result;
+}
+
+template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
+constexpr auto filter_pack(Result result, pack<T, Ts...>)
+{
+  if constexpr (Condition<T>{})
+    return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  else
+    return filter_pack<Condition>(result, pack<Ts...>{});
+}
+
+template <template <typename> typename Condition, typename... Types>
+using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
 /// Type helper to hold metadata about a lambda or a class
 /// method.
