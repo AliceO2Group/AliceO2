@@ -37,6 +37,24 @@ constexpr std::size_t pack_size(pack<Ts...>&& p)
   return sizeof...(Ts);
 }
 
+template <std::size_t I, typename T>
+struct pack_element;
+
+// recursive case
+template <std::size_t I, typename Head, typename... Tail>
+struct pack_element<I, pack<Head, Tail...>>
+  : pack_element<I - 1, pack<Tail...>> {
+};
+
+// base case
+template <typename Head, typename... Tail>
+struct pack_element<0, pack<Head, Tail...>> {
+  typedef Head type;
+};
+
+template <std::size_t I, typename T>
+using pack_element_t = typename pack_element<I, T>::type;
+
 /// Templates for manipulating type lists in pack
 /// (see https://codereview.stackexchange.com/questions/201209/filter-template-meta-function/201222#201222)
 /// Example of use:
@@ -45,7 +63,7 @@ constexpr std::size_t pack_size(pack<Ts...>&& p)
 ///     template<>
 ///         struct is_not_double<double>: std::false_type{};
 /// The following will return a pack, excluding double
-///  <filtered_pack<is_not_double, double, int, char, float*, double, char*, double>>()
+///  filtered_pack<is_not_double, double, int, char, float*, double, char*, double>()
 ///
 template <typename... Args1, typename... Args2>
 constexpr auto concatenate_pack(pack<Args1...>, pack<Args2...>)
@@ -62,7 +80,7 @@ constexpr auto filter_pack(Result result, pack<>)
 template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
 constexpr auto filter_pack(Result result, pack<T, Ts...>)
 {
-  if constexpr (Condition<T>{})
+  if constexpr (Condition<T>())
     return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
   else
     return filter_pack<Condition>(result, pack<Ts...>{});
