@@ -3,17 +3,17 @@
 // Version 3), copied verbatim in the file "COPYING".
 //
 // See http://alice-o2.web.cern.ch/license for full licensing information.
-// In applying this license CERN does not waive the privileges and immunities                                                                                         // granted to it by virtue of its status as an Intergovernmental Organization                                                                                         // or submit itself to any jurisdiction.
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #include "MCHSimulation/RawEncoder.h"
-
-
 #include "MCHMappingInterface/Segmentation.h"
 
-using namespace o2::mch:
+using namespace o2::mch;
 
 
-void RawEncoder::RawEncoder(int) {}
+RawEncoder::RawEncoder(int) {}
 
 void RawEncoder::init()
 {
@@ -37,21 +37,46 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   int detID = digit.getDetID(); //
   int padid = digit.getPadID();
   double adc = digit.getADC();
-
+  double time = digit.getTimeStamp();
+  
   //todo
   //fill header
   
   char header = 0;
+  //header format:
+  // 6 bits Hamming
+  // 1 bit Parity (odd) of header
+  //write one char for Hamming and parity (one bit wasted)
+  //3 bit Packet type coding (PKT),
+  //PKT encodes if data/no data if Num words
+  //trigger too early, heartbeat, data truncated
+  //or sync packet or trigger too early and data truncated
+  //one char for PKT?
+  // 10 bits number of 10 bit words in data payload
+  //two char for this 10 bit numbers
+  // 4 bits Hardware address of chip
+  //1 char for this
+  // 5 bits channel address
+  //1 char for channel address
+  // 20 bits BX count
+  // 1 bit parity (odd) of data payload
+  //easiest to do a model for the actual data
+  //construct everything else afterwards
+  //i.e. construct Hardware address of chip
+  // chnnel address
+  // BX counts
+  //and payload
 
+  
   raw.emplace_back(header);
   
   //fill
   //payload:
   int timebins = timeBins();//todo generate from a distribution
   int adcsum = (int) adc;//conversion according to total number
-  for (int i=0; i< timbins; ++i)
+  for (int i=0; i< timebins; ++i)
     {
-      adcbin = intSignal(adcsum, timebins, i); //to be done with function
+      int adcbin = intSignal(adcsum, timebins, i); //to be done with function
       //dummy stuff
       raw.emplace_back(adcbin);
     }
