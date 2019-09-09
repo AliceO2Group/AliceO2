@@ -77,6 +77,7 @@ struct GPUParam;
 namespace globaltracking
 {
 
+constexpr int Zero = 0;
 constexpr int MinusOne = -1;
 constexpr int MinusTen = -10;
 constexpr int Validated = -2;
@@ -128,7 +129,7 @@ struct matchRecord {
   matchRecord(int partID, float chi2match, int nxt) : partnerID(partID), chi2(chi2match), nextRecID(nxt) {}
   matchRecord() = default;
 };
- 
+
 ///< Link of the AfterBurner track: update at sertain cluster
 ///< original track in the currently loaded TPC reco output
 struct ABTrackLink : public o2::track::TrackParCov {
@@ -151,16 +152,22 @@ struct ABTrackLink : public o2::track::TrackParCov {
 };
 
 struct ABTrackLinksList {
-  int trackID = MinusOne; ///< TPC work track id
+  int trackID = MinusOne;                                     ///< TPC work track id
+  int8_t lowestLayer = o2::its::RecoGeomHelper::getNLayers(); // lowest layer reached
+  int8_t status = MinusOne;                                   ///< status (RS TODO)
   std::array<int, o2::its::RecoGeomHelper::getNLayers() + 1> firstInLr;
   ABTrackLinksList(int id = MinusOne) : trackID(id)
   {
     firstInLr.fill(MinusOne);
   }
+  bool isDisabled() const { return status == MinusTen; } // RS is this strict enough
+  void disable() { status = MinusTen; }
+  bool isValidated() const { return status == Validated; }
+  void validate() { status = Validated; }
 };
 
 //---------------------------------------------------
-struct ABDebugLink : o2::BaseCluster<float>  {
+struct ABDebugLink : o2::BaseCluster<float> {
 #ifdef _ALLOW_DEBUG_AB_
   // AB link debug version, kinematics BEFORE update is stored
   o2::track::TrackParCov seed;
@@ -169,9 +176,9 @@ struct ABDebugLink : o2::BaseCluster<float>  {
   float chi2 = 0.f;
   uint8_t lr = 0;
 
-  ClassDefNV(ABDebugLink,1);  
+  ClassDefNV(ABDebugLink, 1);
 };
- 
+
 struct ABDebugTrack {
   int trackID = 0;
   int icCand = 0;
@@ -183,9 +190,9 @@ struct ABDebugTrack {
   uint8_t nClus = 0;
   uint8_t nClusCorr = 0;
 
-  ClassDefNV(ABDebugTrack,1);
+  ClassDefNV(ABDebugTrack, 1);
 };
- 
+
 ///< Link of the the cluster used by AfterBurner: every used cluster will have 1 link for every update it did on some
 ///< AB seed. The link (index) points not on seed state it is updating but on the end-point of the seed (lowest layer reached)
 struct ABClusterLink {
@@ -260,10 +267,11 @@ class MatchTPCITS
   void printABTracksTree(const ABTrackLinksList& llist) const;
   void printABClusterUsage() const;
   void selectBestMatchesAB();
+  bool validateABMatch(int ilink);
   bool isBetter(const o2::track::TrackParCov& src, const ABTrackLink& lnk) { return true; } // RS TODO
   void dumpABTracksDebugTree(const ABTrackLinksList& llist);
   int prepareInteractionTimes();
-  
+
   ///< perform all initializations
   void init();
 
@@ -644,7 +652,7 @@ class MatchTPCITS
   int mMaxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
 
   int mABRequireToReachLayer = 5; ///< AB tracks should reach at least this layer from above
-  
+
   ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
   float mTPCITSTimeBinSafeMargin = 1.f;
 
@@ -879,7 +887,7 @@ inline int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const 
     //      continue; // tmp
     //    }
     LOG(DEBUG) << "cl" << icl << '/' << clID << " " << label
-              << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
+               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
       float clsZ = cls.getZ();
       LOG(DEBUG) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
