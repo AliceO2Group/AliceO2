@@ -30,6 +30,13 @@ template <typename...>
 struct pack {
 };
 
+/// template function to determine number of types in a pack
+template <typename... Ts>
+constexpr std::size_t pack_size(pack<Ts...>&& p)
+{
+  return sizeof...(Ts);
+}
+
 /// Templates for manipulating type lists in pack
 /// (see https://codereview.stackexchange.com/questions/201209/filter-template-meta-function/201222#201222)
 /// Example of use:
