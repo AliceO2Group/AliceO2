@@ -105,9 +105,9 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   // 10 bits number of 10 bit words in data payload
   //two char for this 10 bit numbers
   // 4 bits Hardware address of chip
-  //1 char for this
+  //one char for this
   // 5 bits channel address
-  //1 char for channel address
+  //one char for channel address
   // 20 bits BX count
   // 1 bit parity (odd) of data payload
   //easiest to do a model for the actual data
@@ -116,7 +116,9 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   // chnnel address
   // BX counts
   //and payload
-
+  // in total 50 bits in header 
+  //
+  
   raw.emplace_back(hammingparitybit);
   
   //fill
@@ -134,7 +136,6 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   //header
   //
   //to do: functional shape for a given sum of adc
-
   // need to sample first from a function the distribution of
   //time duration of a signal, for the first trial, just one signal
 
