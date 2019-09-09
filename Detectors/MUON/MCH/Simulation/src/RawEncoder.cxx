@@ -10,9 +10,8 @@
 #include "MCHSimulation/RawEncoder.h"
 
 #include "MCHMappingInterface/Segmentation.h"
-#include "MCHSimulation/Response.h"
 
-
+#include <boost/interprocess/allocators/allocator.hpp>
 
 using namespace o2::mch;
 
