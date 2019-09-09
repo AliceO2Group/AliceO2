@@ -276,7 +276,6 @@ void GPUTRDTracker::PrintSettings() const
   //--------------------------------------------------------------------
   GPUInfo("##############################################################");
   GPUInfo("Current settings for GPU TRD tracker:");
-  GPUInfo("Debugging: %i at %x", GetIsDebugOutputOn(), mDebug);
   GPUInfo(" mMaxChi2(%.2f), mChi2Penalty(%.2f), nCandidates(%i), maxMissingLayers(%i)", mMaxChi2, mChi2Penalty, mNCandidates, mMaxMissingLy);
   GPUInfo(" ptCut = %.2f GeV, abs(eta) < %.2f", mMinPt, mMaxEta);
   GPUInfo("##############################################################");
@@ -356,7 +355,7 @@ GPUd() void GPUTRDTracker::CheckTrackRefs(const int trackID, bool* findableMC) c
     nHitsTrd++;
     float xLoc = trackReference->LocalX();
     if (!((trackReference->TestBits(0x1 << 18)) || (trackReference->TestBits(0x1 << 17)))) {
-    //if (!trackReference->TestBits(0x1 << 18)) {
+      //if (!trackReference->TestBits(0x1 << 18)) {
       // bit 17 - entering; bit 18 - exiting
       continue;
     }
@@ -658,7 +657,7 @@ GPUd() bool GPUTRDTracker::FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrac
             RecalcTrkltCov(tilt, mCandidates[2 * iCandidate + currIdx].getSnp(), pad->GetRowSize(mTracklets[trkltIdx].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             // GPUInfo("layer %i: chi2 = %f", iLayer, chi2);
-            if (chi2 < mMaxChi2  && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, mCandidates[2 * iCandidate + currIdx].getSnp())) < 4) {
+            if (chi2 < mMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, mCandidates[2 * iCandidate + currIdx].getSnp())) < 4) {
               Hypothesis hypo(mCandidates[2 * iCandidate + currIdx].GetNlayers(), iCandidate, trkltIdx, mCandidates[2 * iCandidate + currIdx].GetChi2() + chi2);
               InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
             } // end tracklet chi2 < mMaxChi2

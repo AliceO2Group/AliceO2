@@ -126,7 +126,7 @@ class GPUTRDTracker : public GPUProcessor
       mTracks[mNTracks - 1].SetLabel(label);
     }
     if (nTrkltsOffline) {
-      for (int i=0; i<4; ++i) {
+      for (int i = 0; i < 4; ++i) {
         mTracks[mNTracks - 1].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
       }
     }

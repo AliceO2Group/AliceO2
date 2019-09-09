@@ -33,7 +33,11 @@ class GPUTRDTrackerDebug
   GPUTRDTrackerDebug() : fStreamer(0x0) {}
   ~GPUTRDTrackerDebug() { delete fStreamer; }
 
-  void CreateStreamer() { printf("Creating streamer for debugging\n"); fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
+  void CreateStreamer()
+  {
+    GPUInfo("Creating streamer for debugging");
+    fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate");
+  }
 
   int GetSector(float alpha)
   {

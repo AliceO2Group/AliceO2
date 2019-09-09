@@ -292,7 +292,6 @@ Double_t GetPullAngle(Int_t layer)
   return -999;
 }
 
-
 // angular residuals in given layer
 Double_t GetDeltaAngle(Int_t layer)
 {
@@ -652,14 +651,14 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
     Double_t pt = trackPtTPC;
     hAll->Fill(pt);
     if (nTracklets >= 2) {
-    //if (nMatching + nRelated >= 2) {
+      //if (nMatching + nRelated >= 2) {
       h2Trklts->Fill(pt);
       if (nFake == 0) {
         h2TrkltsNoFakes->Fill(pt);
       }
     }
     if (nTrackletsOffline >= 2) {
-    //if (nMatchingOffline + nRelatedOffline >= 2) {
+      //if (nMatchingOffline + nRelatedOffline >= 2) {
       h2TrkltsRef->Fill(pt);
       if (nFakeOffline == 0) {
         h2TrkltsNoFakesRef->Fill(pt);
