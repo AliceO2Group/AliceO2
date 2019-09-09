@@ -37,6 +37,8 @@ TFile* f = 0x0;    // input file (TRDhlt.root)
 TTree* tree = 0x0; // input tree (tracksFinal)
 TFile* fOut = 0x0; // output file with results
 
+static const Float_t xDrift = 3.f; // drift length in TRD
+
 // branches
 Int_t event = 0x0;
 Int_t nTPCtracks = 0x0;
@@ -60,6 +62,7 @@ TVectorF* trackY = 0x0;
 TVectorF* trackYerr = 0x0;
 TVectorF* trackPhi = 0x0;
 TVectorF* trackLambda = 0x0;
+TVectorF* trackQPt = 0x0;
 TVectorF* trackPt = 0x0;
 TVectorF* trackZ = 0x0;
 TVectorF* trackZerr = 0x0;
@@ -116,7 +119,7 @@ void GetFakeRate(TH1F* hFakeRate);
 void Reset();
 
 TF1* fitRMSAngle = new TF1("fitRMSAngle", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1);       // RMS of angular residuals as function of track phi
-TF1* fitRMSDelta012 = new TF1("fitRMSdelta012", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1); //  RMS of r-phi residuals (using interpolation from surrounding layers) as function of track phi
+TF1* fitRMSDelta012 = new TF1("fitRMSdelta012", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1); // RMS of r-phi residuals (using interpolation from surrounding layers) as function of track phi
 TF1* fitTrackletDy = new TF1("fitTrackletDy", "pol2");                                    // tracklet deflection as function of track phi
 TF1* fitDAngleCorr = new TF1("fitDAngleCorr", "pol1");                                    //
 
@@ -151,6 +154,7 @@ void InitBranches()
   tree->SetBranchAddress("trackYerr.", &trackYerr);
   tree->SetBranchAddress("trackPhi.", &trackPhi);
   tree->SetBranchAddress("trackLambda.", &trackLambda);
+  tree->SetBranchAddress("trackQPt.", &trackQPt);
   tree->SetBranchAddress("trackPt.", &trackPt);
   tree->SetBranchAddress("trackZ.", &trackZ);
   tree->SetBranchAddress("trackZerr.", &trackZerr);
@@ -261,18 +265,23 @@ Int_t LoadBranches(Int_t entry)
   return 1;
 }
 
+// convert azimuthal track angle (sin(phi) = param[3]) to dy of tracklet
 Double_t AngleToDy(Double_t tanPhi) { return fitTrackletDy->Eval(tanPhi); }
-
-Double_t DyToSnp(Double_t dy) { return ((dy / 3) / TMath::Sqrt(1 + TMath::Power((dy / 3), 2))); }
-
-Double_t SnpToDy(Double_t snp) { return (3. * snp / TMath::Sqrt(1 - TMath::Power(snp, 2))); }
-
+// convert dy of tracklet to track azimuthal angle sin(phi)
+Double_t DyToSnp(Double_t dy) { return ((dy / xDrift) / TMath::Sqrt(1 + TMath::Power((dy / xDrift), 2))); }
+// convert sin(phi) to dy
+Double_t SnpToDy(Double_t snp) { return (xDrift * snp / TMath::Sqrt(1 - TMath::Power(snp, 2))); }
+// TRD angular resolution at given angle (best resolution at lorentz angle)
 Double_t GetAngularResolution(Double_t tanPhi) { return fitRMSAngle->Eval(tanPhi); }
 
+// angular pull for tracklet in given layer
 Double_t GetPullAngle(Int_t layer)
 {
   if (layer < 0 || layer > 5) {
     return -999;
+  }
+  if ((*update)[layer] < 1) {
+    return -666;
   }
   Double_t trackletDyLayer = (*trackletDy)[layer];
   Double_t trackletDyFit = AngleToDy((*trackPhi)[layer]);
@@ -283,6 +292,7 @@ Double_t GetPullAngle(Int_t layer)
   return -999;
 }
 
+// angular residuals in given layer
 Double_t GetDeltaAngle(Int_t layer)
 {
   if (layer < 0 || layer > 5) {
@@ -296,6 +306,8 @@ Double_t GetDeltaAngle(Int_t layer)
   return (trackletDyLayer - trackletDyF);
 }
 
+// tracklet residual in rphi, either based on interpolated tracklet position from the surrounding layers
+// or only on the tracklet position in given layer
 Double_t GetDeltaRPhi(Int_t layer, Bool_t interpolation = kFALSE, Bool_t rawTrkltPosition = kFALSE)
 {
   if ((layer < 0) || (layer > 5) || ((*update)[layer] < 0.5)) {
@@ -638,15 +650,15 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
     }
     Double_t pt = trackPtTPC;
     hAll->Fill(pt);
-    // if (nTracklets >= 2) {
-    if (nMatching + nRelated >= 2) {
+    if (nTracklets >= 2) {
+      //if (nMatching + nRelated >= 2) {
       h2Trklts->Fill(pt);
       if (nFake == 0) {
         h2TrkltsNoFakes->Fill(pt);
       }
     }
-    // if (nTrackletsOffline >= 2) {
-    if (nMatchingOffline + nRelatedOffline >= 2) {
+    if (nTrackletsOffline >= 2) {
+      //if (nMatchingOffline + nRelatedOffline >= 2) {
       h2TrkltsRef->Fill(pt);
       if (nFakeOffline == 0) {
         h2TrkltsNoFakesRef->Fill(pt);
@@ -658,26 +670,6 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   h2TrkltsNoFakesEff->Divide(h2TrkltsNoFakes, h2Trklts, 1, 1, "B");
   h2TrkltsEffRef->Divide(h2TrkltsRef, hAll, 1, 1, "B");
   h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsRef, 1, 1, "B");
-  /*
-        TCanvas *cAll = new TCanvas("cAll", "cAll");
-        hAll->Draw();
-        TCanvas *c2Trklts = new TCanvas("c2Trklts", "c2Trklts");
-        h2Trklts->Draw();
-        TCanvas *c2TrkltsNoFakes = new TCanvas("c2TrkltsNoFakes", "c2TrkltsNoFakes");
-        h2TrkltsNoFakes->Draw();
-        TCanvas *c2TrkltsEff = new TCanvas("c2TrkltsEff", "c2TrkltsEff");
-        //h2TrkltsEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-        h2TrkltsEff->SetMarkerStyle(21);
-        h2TrkltsEff->Draw("e0");
-        c2TrkltsEff->SetGridx();
-        c2TrkltsEff->SetGridy();
-        TCanvas *c2TrkltsNoFakesEff = new TCanvas("c2TrkltsNoFakesEff", "c2TrkltsNoFakesEff");
-        //h2TrkltsNoFakesEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-        h2TrkltsNoFakesEff->SetMarkerStyle(21);
-        h2TrkltsNoFakesEff->Draw("e0");
-        c2TrkltsNoFakesEff->SetGridx();
-        c2TrkltsNoFakesEff->SetGridy();
-   */
 
   fOut->cd();
   h2TrkltsEff->Write();
@@ -693,88 +685,7 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   fOut = 0x0;
 }
 
-void OfflineOnlineComparison()
-{
-  if (!tree) {
-    printf("Initialize first! Exiting\n");
-    return;
-  }
-  fOut = new TFile("results.root", "recreate");
-  TH1F* hAll = new TH1F("all", "p_{T} spectrum for all tracks;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsOn = new TH1F("h2trkltsOn", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (online);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsOff = new TH1F("h2trkltsOff", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (offline);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakes = new TH1F("h2trkltsNoFakes", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesRef = new TH1F("h2trkltsNoFakesRef", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes (ref);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsEffOn = new TH1F("h2TrkltsEffOn", "fraction with at least two online tracklets;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsEffOff = new TH1F("h2TrkltsEffOff", "fraction with at least two offline tracklets;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesEff = new TH1F("h2TrkltsNoFakesEff", "fraction of two tracklet tracks w/o fakes;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesEffRef = new TH1F("h2TrkltsNoFakesEffRef", "fraction of two tracklet tracks w/o fakes (ref);track pT (GeV); counts", 10, 0, 10);
 
-  hAll->Sumw2();
-  h2TrkltsOn->Sumw2();
-  h2TrkltsOff->Sumw2();
-  h2TrkltsNoFakes->Sumw2();
-  h2TrkltsNoFakesRef->Sumw2();
-
-  Float_t xMin = 0.25, xMax = 6;
-  MakeLogScale(hAll, xMin, xMax);
-  MakeLogScale(h2TrkltsOn, xMin, xMax);
-  MakeLogScale(h2TrkltsOff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakes, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesRef, xMin, xMax);
-  MakeLogScale(h2TrkltsEffOn, xMin, xMax);
-  MakeLogScale(h2TrkltsEffOff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesEff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesEffRef, xMin, xMax);
-
-  Int_t nEntries = tree->GetEntriesFast();
-
-  for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
-    tree->GetEntry(iEntry);
-    if (trackID < 0) {
-      continue;
-    }
-    if (findable->Sum() < 1) {
-      continue;
-    }
-    Double_t pt = trackPtTPC;
-    hAll->Fill(pt);
-    if (nTracklets >= 2) {
-      h2TrkltsOn->Fill(pt);
-      if (nFake == 0) {
-        h2TrkltsNoFakes->Fill(pt);
-      }
-    }
-    if (nTrackletsOffline >= 2) {
-      h2TrkltsOff->Fill(pt);
-      if (TMath::Abs(trackIDref) == trackID) {
-        h2TrkltsNoFakesRef->Fill(pt);
-      }
-    }
-  }
-  gStyle->SetOptStat(0);
-  h2TrkltsEffOn->Divide(h2TrkltsOn, hAll, 1, 1, "B");
-  h2TrkltsEffOff->Divide(h2TrkltsOff, hAll, 1, 1, "B");
-  h2TrkltsNoFakesEff->Divide(h2TrkltsNoFakes, h2TrkltsOn, 1, 1, "B");
-  h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsOff, 1, 1, "B");
-  h2TrkltsEffOn->SetMarkerStyle(21);
-  h2TrkltsEffOff->SetMarkerStyle(22);
-  h2TrkltsNoFakesEff->SetMarkerStyle(21);
-  h2TrkltsNoFakesEffRef->SetMarkerStyle(21);
-
-  fOut->cd();
-  h2TrkltsEffOn->Write();
-  delete h2TrkltsEffOn;
-  h2TrkltsEffOff->Write();
-  delete h2TrkltsEffOff;
-  h2TrkltsNoFakesEff->Write();
-  delete h2TrkltsNoFakesEff;
-  h2TrkltsNoFakesEffRef->Write();
-  delete h2TrkltsNoFakesEffRef;
-  fOut->Close();
-  delete fOut;
-  fOut = 0x0;
-}
 
 void PlotTRDEfficiency(Int_t nEntries = -1, Bool_t writeToFile = kTRUE)
 {
@@ -945,6 +856,52 @@ void PlotOnlineTrackletEfficiency(Int_t nEntries = -1)
   hEff->SetMarkerColor(kBlue);
   hEff->GetYaxis()->SetRangeUser(0.4, 1.);
   hEff->Draw("ep");
+}
+
+void MultipleHypothesisCheck(Float_t minPt = 0.7, Int_t nEntries = -1)
+{
+  if (!tree) {
+    printf("Initialize first!\n");
+    return;
+  }
+  if (nEntries < 0) {
+    nEntries = tree->GetEntriesFast();
+  }
+  TH1F* hChi2 = new TH1F("chi2", "chi2 for correct update;chi2;counts", 100, 0, 100);
+  Int_t nPossibleSaves = 0;
+  Int_t nTracksTotal = 0;
+  for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
+    tree->GetEntry(iEntry);
+    if (trackID < 0) {
+      continue;
+    }
+    if (trackPtTPC < minPt) {
+      continue;
+    }
+    if (nTracklets < 0) {
+      continue;
+    }
+    ++nTracksTotal;
+    for (Int_t iLy = 0; iLy < 5; ++iLy) {
+      if ((*update)[iLy] > 6) {
+        // fake tracklet attached in this layer
+        if ((*update)[iLy + 1] > 6 || (*update)[iLy + 1] < 1) {
+          // no tracklet or fake tracklet in the next
+          if ((*nMatchingTracklets)[iLy + 1] > 0) {
+            // but match would have been available
+            ++nPossibleSaves;
+            hChi2->Fill((*chi2Real)[iLy + 1]);
+            //hChi2->Fill((*chi2Update)[iLy+1]-(*chi2Real)[iLy+1]);
+            break;
+          }
+        }
+      }
+    }
+  }
+  printf("Out of %i tracks, %i additional updates could have possibly been done\n", nTracksTotal, nPossibleSaves);
+  TCanvas* c1 = new TCanvas("c1", "c1");
+  hChi2->SetLineWidth(2);
+  hChi2->Draw();
 }
 
 void LoopFakes(Int_t nEntries = -1)
@@ -1250,6 +1207,8 @@ void LoopCheckHitsMC(Int_t nEntries = -1)
 {
   // only makes sense if related tracklets were not
   // counted as matches
+  // Loops over all tracks and looks for layers where a matching tracklet was available for the track, but
+  // no hits are availabel at the entrance / exit of the TRD chamber
   if (nEntries < 0) {
     nEntries = tree->GetEntriesFast();
   }
@@ -1384,13 +1343,13 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
     }
     for (Int_t iLy = 0; iLy < 6; ++iLy) {
       if ((*findable)[iLy] < 1 || (*findableMC)[iLy] < 1) {
-        // track is in acceptance and MC hits are available
         continue;
       }
+      // track is in acceptance and MC hits are available
       hIsFindablePhi->Fill((*trackPhi)[iLy]);
       hIsFindablePt->Fill((*trackPt)[iLy]);
-      Double_t trkQpt = 0;
-      Double_t trkY = 0;
+      Double_t trkQpt = (*trackQPt)[iLy];
+      Double_t trkY = (*trackY)[iLy];
       hIsFindableQptY->Fill(trkY, trkQpt);
       if ((*nMatchingTracklets)[iLy] > 0) {
         hIsFoundPhi->Fill((*trackPhi)[iLy]);
@@ -1509,24 +1468,5 @@ void checkDbgOutput()
    // what about tracklet errors? in z different for different pad widths, in y constant. should not make a difference, or?
    //tree->Draw("chi2Real.fElements-chi2Update.fElements", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))&&abs(GetDeltaYmatch(layer))<abs(GetDeltaY(layer))" );
    //tree->Draw("update.fElements", "isPresent&&LoadBranches(Entry$)" );
-   Int_t isSectorCrossing(Int_t layer)
-   {
-   // invalid layer
-   if (layer < 0 || layer > 4) {
-    return 0;
-   }
-   if ((*trackSecReal)[layer] < 1 || (*trackSecReal)[layer+1] < 1) {
-    return 0;
-   }
 
-   if ((*trackSecReal)[layer] < (*trackSecReal)[layer+1]) {
-    return -1;
-   }
-   else if ((*trackSecReal)[layer] > (*trackSecReal)[layer+1]) {
-    return 1;
-   }
-   else if (TMath::Abs((*trackSecReal)[layer] - (*trackSecReal)[layer+1]) < 0.5) {
-    return 0;
-   }
-   }
  */
