@@ -82,7 +82,17 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   int padDualSampaId =  seg.padDualSampaId(padid);
   int padDualSampaChannel = seg.padDualSampaChannel(padid);
   
-  char header = 0;
+  char hammingparitybit = 0;
+  char pkt = 0;
+  char datalength1=0;
+  char datalength2=0;
+  char addressChip =0; //is this padDualSampaChannel?
+  char addressChannel =0;
+  char bx1 =0;
+  char bx2 =0;
+  char bx3=0;
+  char pbitpay =0;
+  
   //header format:
   // 6 bits Hamming
   // 1 bit Parity (odd) of header
@@ -107,8 +117,7 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   // BX counts
   //and payload
 
-  
-  raw.emplace_back(header);
+  raw.emplace_back(hammingparitybit);
   
   //fill
   //payload:
