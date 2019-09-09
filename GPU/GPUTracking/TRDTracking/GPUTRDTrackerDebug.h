@@ -30,8 +30,14 @@ namespace gpu
 class GPUTRDTrackerDebug
 {
  public:
-  GPUTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
+  GPUTRDTrackerDebug() : fStreamer(0x0) {}
   ~GPUTRDTrackerDebug() { delete fStreamer; }
+
+  void CreateStreamer()
+  {
+    GPUInfo("Creating streamer for debugging");
+    fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate");
+  }
 
   int GetSector(float alpha)
   {
@@ -49,6 +55,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.ResizeTo(6);
     fTrackLambda.ResizeTo(6);
     fTrackPt.ResizeTo(6);
+    fTrackQPt.ResizeTo(6);
     fTrackSector.ResizeTo(6);
     fTrackYerr.ResizeTo(6);
     fTrackZerr.ResizeTo(6);
@@ -102,6 +109,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.Zero();
     fTrackLambda.Zero();
     fTrackPt.Zero();
+    fTrackQPt.Zero();
     fTrackSector.Zero();
     fTrackYerr.Zero();
     fTrackZerr.Zero();
@@ -192,6 +200,7 @@ class GPUTRDTrackerDebug
     fTrackPhi(ly) = trk.getSnp();
     fTrackLambda(ly) = trk.getTgl();
     fTrackPt(ly) = trk.getPt();
+    fTrackQPt(ly) = trk.getQ2Pt();
     fTrackSector(ly) = GetSector(trk.getAlpha());
     fTrackYerr(ly) = trk.getSigmaY2();
     fTrackZerr(ly) = trk.getSigmaZ2();
@@ -233,13 +242,13 @@ class GPUTRDTrackerDebug
   }
 
   // tracklet parameters
-  void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly)
+  void SetRawTrackletPosition(const float fX, const float* fYZ, int ly)
   {
     fTrackletX(ly) = fX;
     fTrackletY(ly) = fYZ[0];
     fTrackletZ(ly) = fYZ[1];
   }
-  void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly)
+  void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly)
   {
     fTrackletYcorr(ly) = fYZ[0];
     fTrackletZcorr(ly) = fYZ[1];
@@ -316,6 +325,7 @@ class GPUTRDTrackerDebug
       "trackZ.=" << &fTrackZ <<                            // z-pos of track (layerwise)
       "trackPhi.=" << &fTrackPhi <<                        // phi angle of track (track.fP[2])
       "trackLambda.=" << &fTrackLambda <<                  // lambda angle of track (track.fP[3])
+      "trackQPt.=" << &fTrackQPt <<                        // track q/pT (track.fP[4])
       "trackPt.=" << &fTrackPt <<                          // track pT (layerwise)
       "trackYerr.=" << &fTrackYerr <<                      // sigma_y^2 for track
       "trackZerr.=" << &fTrackZerr <<                      // sigma_z^2 for track
@@ -400,6 +410,7 @@ class GPUTRDTrackerDebug
   TVectorF fTrackPhi;
   TVectorF fTrackLambda;
   TVectorF fTrackPt;
+  TVectorF fTrackQPt;
   TVectorF fTrackSector;
   TVectorF fTrackYerr;
   TVectorF fTrackZerr;
@@ -460,6 +471,7 @@ namespace gpu
 class GPUTRDTrackerDebug
 {
  public:
+  GPUd() void CreateStreamer() {}
   GPUd() void ExpandVectors() {}
   GPUd() void Reset() {}
 
@@ -474,8 +486,8 @@ class GPUTRDTrackerDebug
   GPUd() void SetTrack(const GPUTRDTrack& trk) {}
 
   // tracklet parameters
-  GPUd() void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
-  GPUd() void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) {}
+  GPUd() void SetRawTrackletPosition(const float fX, const float* fYZ, int ly) {}
+  GPUd() void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly) {}
   GPUd() void SetTrackletCovariance(const My_Float* fCov, int ly) {}
   GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
   GPUd() void SetRawTrackletPositionReal(float fX, float* fYZ, int ly) {}
