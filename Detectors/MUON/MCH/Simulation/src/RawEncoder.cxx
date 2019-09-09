@@ -8,10 +8,49 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/RawEncoder.h"
+
 #include "MCHMappingInterface/Segmentation.h"
+#include "MCHSimulation/Response.h"
+
+
 
 using namespace o2::mch;
 
+namespace
+{
+
+  std::map<int, int> createDEMap()
+{
+  std::map<int, int> m;
+  int i{0};
+  o2::mch::mapping::forEachDetectionElement([&m, &i](int deid) {
+    m[deid] = i++;
+  });
+  return m;
+}
+
+int deId2deIndex(int detElemId)
+{
+  static std::map<int, int> m = createDEMap();
+  return m[detElemId];
+}
+
+std::vector<o2::mch::mapping::Segmentation> createSegmentations()
+{
+  std::vector<o2::mch::mapping::Segmentation> segs;
+  o2::mch::mapping::forEachDetectionElement([&segs](int deid) {
+    segs.emplace_back(deid);
+  });
+  return segs;
+}
+  
+const o2::mch::mapping::Segmentation& segmentation(int detElemId)
+{
+  static auto segs = createSegmentations();
+  return segs[deId2deIndex(detElemId)];
+  }
+
+} // namespace
 
 RawEncoder::RawEncoder(int) {}
 
@@ -34,13 +73,15 @@ void RawEncoder::process(const std::vector<Digit> digits, std::vector<char>& raw
 int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
 
   //time: check TimStamp class
-  int detID = digit.getDetID(); //
+  int detID = digit.getDetID();
   int padid = digit.getPadID();
   double adc = digit.getADC();
-  double time = digit.getTimeStamp();
-  
-  //todo
-  //fill header
+  double time = digit.getTimeStamp();//dataformat T: double cast ok?
+
+  auto& seg = segmentation(detID);
+
+  int padDualSampaId =  seg.padDualSampaId(padid);
+  int padDualSampaChannel = seg.padDualSampaChannel(padid);
   
   char header = 0;
   //header format:
