@@ -51,7 +51,7 @@ class SpatialPhotonResponse
   bool hasSignal() const { return mPhotonSum > 0; }
   int getPhotonSum() const { return mPhotonSum; }
 
-	std::vector<std::vector<int> > const& getImageData() const { return mImageData; }
+  std::vector<std::vector<int> > const& getImageData() const { return mImageData; }
 
  private:
   double mLxOfCell = 1.; // x length of cell corresponding to one pixel
