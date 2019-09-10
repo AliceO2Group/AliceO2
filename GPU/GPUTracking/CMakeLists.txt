@@ -32,9 +32,7 @@ endif()
 # General sources
 set(SRCS
     SliceTracker/GPUTPCTrack.cxx
-    SliceTracker/GPUTPCBaseTrackParam.cxx
     SliceTracker/GPUTPCTrackParam.cxx
-    SliceTracker/GPUTPCTracklet.cxx
     SliceTracker/GPUTPCStartHitsFinder.cxx
     SliceTracker/GPUTPCStartHitsSorter.cxx
     SliceTracker/GPUTPCNeighboursCleaner.cxx
@@ -46,7 +44,6 @@ set(SRCS
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
     SliceTracker/GPUTPCHitArea.cxx
-    SliceTracker/GPUTPCClusterData.cxx
     SliceTracker/GPUTPCRow.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
@@ -83,6 +80,9 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
     SliceTracker/GPUTPCHit.h
     SliceTracker/GPUTPCHitId.h
+    SliceTracker/GPUTPCClusterData.h
+    SliceTracker/GPUTPCBaseTrackParam.h
+    SliceTracker/GPUTPCTracklet.h
     SliceTracker/GPUTPCSliceOutCluster.h
     SliceTracker/GPUTPCSliceOutTrack.h
     SliceTracker/GPUTPCTrackLinearisation.h
