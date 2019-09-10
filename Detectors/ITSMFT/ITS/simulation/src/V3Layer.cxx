@@ -226,6 +226,27 @@ const Double_t V3Layer::sOBSFrameULegHeight1 = 2.7 * sMm;
 const Double_t V3Layer::sOBSFrameULegHeight2 = 5.0 * sMm;
 const Double_t V3Layer::sOBSFrameULegThick = 0.3 * sMm;
 const Double_t V3Layer::sOBSFrameULegXPos = 12.9 * sMm;
+const Double_t V3Layer::sOBSFrameConnWidth = 42.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTotLen = 29.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTotHei = 4.8 * sMm;
+const Double_t V3Layer::sOBSFrameConnTopLen = 14.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsWide = 36.869 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsBase = 39.6 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHei = 2.8 * sMm;
+const Double_t V3Layer::sOBSFrameConnHoleZPos = 7.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnHoleZDist = 15.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTopHoleD = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnTopHoleXDist = 24.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnAHoleWid = 4.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnAHoleLen = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleD = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleL = 2.5 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleY = 2.3 * sMm;
+const Double_t V3Layer::sOBSFrameConnCHoleZPos = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnCHoleXDist = 32.0 * sMm;
+const Double_t V3Layer::sOBSFrConnCTopHoleD = 4.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHoleD = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHoleX = 25.8 * sMm;
 
 ClassImp(V3Layer);
 
@@ -2696,7 +2717,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   zpos = zlen / 2 + sOBSpaceFrameUnitLen / 2;
   snprintf(volname, nameLen, "endUnit0Trans%d", mLayerNumber);
-  TGeoTranslation* endUnit0Trans = new TGeoTranslation(volname, 0, 0, -zpos);
+  TGeoCombiTrans* endUnit0Trans = new TGeoCombiTrans(volname, 0, 0, -zpos, new TGeoRotation("", 90, 180, -90));
   endUnit0Trans->RegisterYourself();
   snprintf(volname, nameLen, "endUnit1Trans%d", mLayerNumber);
   TGeoTranslation* endUnit1Trans = new TGeoTranslation(volname, 0, 0, zpos);
@@ -2704,7 +2725,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   // The Space Frame container: a Composite Shape to avoid overlaps
   // between the U-legs space and the end-stave connectors
-  // "endunitcontainer" is defined in CreateOBSpaceFrameObjects)
+  // ("endunitcontainer" is defined in CreateOBSpaceFrameObjects)
   char componame[100];
   snprintf(componame, 100, "sframecentral%d+endunitcontainer:endUnit0Trans%d+endunitcontainer:endUnit1Trans%d",
            mLayerNumber, mLayerNumber, mLayerNumber);
@@ -2717,29 +2738,24 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   // Finally build up the space frame
   TGeoXtru* frameUnit = static_cast<TGeoXtru*>(unitVol[0]->GetShape());
-  TGeoXtru* endUnit = static_cast<TGeoXtru*>(endVol[0]->GetShape());
 
-  zpos = -spaceFrame->GetDZ() + endUnit->GetDZ();
-  //  zpos = -sOBSpaceFrameZLen[fLayerNumber/5]/2 + endUnit->GetDZ();
-  spaceFrameVol->AddNode(endVol[0], 1, new TGeoTranslation(0, 0, zpos));
+  zpos = -spaceFrame->GetDZ() + frameUnit->GetDZ() + sOBSFrameConnTopLen;
+  spaceFrameVol->AddNode(endVol[0], 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 90, 180, -90)));
 
-  zpos += (endUnit->GetDZ() + frameUnit->GetDZ());
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(next2EndVol[0], 1, new TGeoTranslation(0, 0, zpos));
 
   for (Int_t i = 2; i < nUnits - 2; i++) {
-    zpos = -spaceFrame->GetDZ() + (1 + 2 * i) * frameUnit->GetDZ();
-    //    zpos = -spaceFrame->GetDZ() + 2*i*frameUnit->GetDZ();
+    zpos += (2 * frameUnit->GetDZ());
     Int_t j = i / 2;
     Int_t k = i - j * 2; // alternatively 0 or 1
     spaceFrameVol->AddNode(unitVol[k], j, new TGeoTranslation(0, 0, zpos));
   }
 
-  zpos = -spaceFrame->GetDZ() + (2 * nUnits - 3) * frameUnit->GetDZ();
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(next2EndVol[1], 1, new TGeoTranslation(0, 0, zpos));
 
-  zpos = -spaceFrame->GetDZ() + (2 * nUnits - 1) * endUnit->GetDZ();
-  //  zpos = -sOBSpaceFrameZLen[fLayerNumber/5]/2 +
-  //         (2*nUnits - 1)*endUnit->GetDZ();
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(endVol[1], 1, new TGeoTranslation(0, 0, zpos));
 
   // Done, clean up and return the space frame structure
@@ -2755,6 +2771,8 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Create the space frame building blocks for the Outer Barrel
   // This method is practically identical to previous versions of
   // CreateSpaceFrameOuterB1
+  // NB: it is pretty cumbersome, because we don't want to use assemblies
+  // so we are forced to have well-crafted containers to avoid fake overlaps
   //
   // Input:
   //         mgr  : the GeoManager (used only to get the proper material)
@@ -2767,6 +2785,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Created:      03 Feb 2015  Mario Sitta
   // Updated:      03 Jun 2015  Mario Sitta  End units w/o U-legs
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
+  // Updated:      09 Sep 2019  Mario Sitta  Connectors added
   //
 
   // Materials defined in AliITSUv2
@@ -2852,8 +2871,8 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   next2EndUnit->DefineSection(0, -unitlen / 2);
   next2EndUnit->DefineSection(1, unitlen / 2);
 
-  // The end units have no U-legs, so a simpler Xtru
-  // to avoid overlaps with the end-stave connectors
+  // The end units have no U-legs, but they contain the end-stave connectors
+  // so we build a CompositeShape using two Xtru's
   xtru[0] = xlen;
   ytru[0] = -(triangleHeight / 2 + baseRibRadius);
   xtru[1] = xtru[0];
@@ -2865,11 +2884,41 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
     ytru[i + 3] = ytru[2 - i];
   }
 
-  TGeoXtru* endUnit = new TGeoXtru(2);
+  TGeoXtru* endUnitBody = new TGeoXtru(2);
+  endUnitBody->SetName("endunitbody");
+  endUnitBody->DefinePolygon(6, xtru, ytru);
+  endUnitBody->DefineSection(0, -unitlen / 2);
+  endUnitBody->DefineSection(1, unitlen / 2);
+
+  // (See createOBSpaceFrameConnector lower down for details)
+  xtru[0] = sOBSFrameConnWidth / 2.;
+  ytru[0] = 0.;
+  xtru[1] = xtru[0];
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = xtru[1] - sOBSFrameConnTotHei + sOBSFrameConnInsHei;
+  ytru[2] = sOBSFrameConnTotHei;
+  for (Int_t i = 0; i < 3; i++) { // Reflect on the X negative side
+    xtru[i + 3] = -xtru[2 - i];
+    ytru[i + 3] = ytru[2 - i];
+  }
+
+  TGeoXtru* endUnitConn = new TGeoXtru(2);
+  endUnitConn->SetName("endunitconn");
+  endUnitConn->DefinePolygon(6, xtru, ytru);
+  endUnitConn->DefineSection(0, 0.);
+  endUnitConn->DefineSection(1, sOBSFrameConnTopLen);
+
+  // We create a fake side V to have its dimensions, needed for
+  // the creation of the end unit container
+  TGeoXtru* vside =
+    createStaveSide("fakeCornerSide", unitlen / 2., alphaRad, beta, staveLb, staveHb, kFALSE);
+
+  ypos = -triangleHeight / 2 + vside->GetY(3);
+  TGeoTranslation* endUnitConnTrans = new TGeoTranslation("endunitconntrans", 0, ypos, endUnitBody->GetDZ());
+  endUnitConnTrans->RegisterYourself();
+
+  TGeoCompositeShape* endUnit = new TGeoCompositeShape("endunitbody+endunitconn:endunitconntrans");
   endUnit->SetName("endunitcontainer"); // Will be used when create spaceframe
-  endUnit->DefinePolygon(6, xtru, ytru);
-  endUnit->DefineSection(0, -unitlen / 2);
-  endUnit->DefineSection(1, unitlen / 2);
 
   // The air containers
   TGeoVolume* unitVol[2];
@@ -3038,6 +3087,12 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   endVol[1]->AddNode(baseRib2Vol, 1, baseTransf[0]);
   endVol[1]->AddNode(baseRib1Vol, 1, baseTransf[2]);
 
+  // The Space Frame connectors
+  ypos = -triangleHeight / 2 + cfStavSide->GetY(3);
+  zpos = endUnitBody->GetDZ();
+  createOBSpaceFrameConnector(endVol[0], ypos, zpos, kFALSE); // Side C
+  createOBSpaceFrameConnector(endVol[1], ypos, zpos, kTRUE);  // Side A
+
   // U-Legs
   // The shorter
   xtru[0] = ulegHalfLen;
@@ -3124,6 +3179,139 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
 
   // Done
   return;
+}
+
+void V3Layer::createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymot, const Double_t zmot, const Bool_t sideA, const TGeoManager* mgr)
+{
+  //
+  // Creates the OB Space Frame Connectors
+  // (ALIITSUP0070+ALIITSUP0069)
+  //
+  // Input:
+  //         mother : the SF unit volume to contain the connector
+  //         ymot   : the Y position of the connector in the mother volume
+  //         zmot   : the Z position of the connector in the mother volume
+  //         sideA  : true for Side A, false for Side C
+  //         mgr    : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      09 Sep 2019  M. Sitta
+
+  // Materials defined in AliITSUv2
+  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+
+  // Local parameters
+  TString connName, compoShape;
+
+  Double_t xlen, ylen, zlen;
+  Double_t xpos, ypos, zpos;
+  Double_t xtru[6], ytru[6];
+
+  // The external (higher) part: a Xtru
+  ylen = sOBSFrameConnTotHei - sOBSFrameConnInsHei;
+
+  xtru[0] = sOBSFrameConnWidth / 2.;
+  ytru[0] = 0.;
+  xtru[1] = xtru[0];
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = xtru[1] - ylen; // Because side is at 45' so dx = dy
+  ytru[2] = sOBSFrameConnTotHei;
+  for (Int_t i = 0; i < 3; i++) { // Reflect on the X negative side
+    xtru[i + 3] = -xtru[2 - i];
+    ytru[i + 3] = ytru[2 - i];
+  }
+
+  TGeoXtru* topConn = new TGeoXtru(2);
+  topConn->SetName("connectorTop");
+  topConn->DefinePolygon(6, xtru, ytru);
+  topConn->DefineSection(0, 0.);
+  topConn->DefineSection(1, sOBSFrameConnTopLen);
+
+  // The insert: a Xtru
+  zlen = sOBSFrameConnTotLen - sOBSFrameConnTopLen;
+
+  xtru[0] = sOBSFrameConnInsBase / 2.;
+  ytru[0] = 0.;
+  xtru[1] = sOBSFrameConnInsWide / 2.;
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = -xtru[1];
+  ytru[2] = ytru[1];
+  xtru[3] = -xtru[0];
+  ytru[3] = ytru[0];
+
+  TGeoXtru* insConn = new TGeoXtru(2);
+  insConn->SetName("connectorIns");
+  insConn->DefinePolygon(4, xtru, ytru);
+  insConn->DefineSection(0, -zlen);
+  insConn->DefineSection(1, 0.);
+
+  // The holes in the external (higher) part: Tube's and a BBox
+  TGeoTube* topHoleR = new TGeoTube("topholer", 0., sOBSFrameConnTopHoleD / 2., 1.1 * sOBSFrameConnTotHei);
+
+  xpos = sOBSFrConnTopHoleXDist / 2.;
+  ypos = sOBSFrameConnTotHei / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos;
+  TGeoCombiTrans* topHoleR1Trans = new TGeoCombiTrans("topholer1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topHoleR1Trans->RegisterYourself();
+
+  TGeoCombiTrans* topHoleR2Trans = new TGeoCombiTrans("topholer2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topHoleR2Trans->RegisterYourself();
+
+  xpos = sOBSFrConnCHoleXDist / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnCHoleZPos;
+  TGeoCombiTrans* topCHoleR1Trans = new TGeoCombiTrans("topcholer1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleR1Trans->RegisterYourself();
+
+  TGeoCombiTrans* topCHoleR2Trans = new TGeoCombiTrans("topcholer2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleR2Trans->RegisterYourself();
+
+  TGeoBBox* topAHole = new TGeoBBox("topahole", sOBSFrameConnAHoleWid / 2., sOBSFrameConnTotHei, sOBSFrameConnAHoleLen / 2.);
+
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos;
+  TGeoTranslation* topAHoleTrans = new TGeoTranslation("topaholetr", 0, ypos, zpos);
+  topAHoleTrans->RegisterYourself();
+
+  TGeoTube* topCHole = new TGeoTube("topchole", 0., sOBSFrConnCTopHoleD / 2., sOBSFrameConnTotHei);
+
+  TGeoCombiTrans* topCHoleTrans = new TGeoCombiTrans("topcholetr", 0, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleTrans->RegisterYourself();
+
+  TGeoTube* topASide = new TGeoTube("topaside", 0., sOBSFrConnASideHoleD / 2., 1.1 * sOBSFrConnASideHoleL);
+
+  zpos = sOBSFrameConnTopLen + topASide->GetDz() - sOBSFrConnASideHoleL;
+  TGeoTranslation* topASideTrans = new TGeoTranslation("topasidetr", 0, sOBSFrConnASideHoleY, zpos);
+  topASideTrans->RegisterYourself();
+
+  // The holes in the insert: a Tube
+  TGeoTube* insHole = new TGeoTube("inshole", 0., sOBSFrameConnInsHoleD / 2., sOBSFrameConnInsHei);
+
+  xpos = sOBSFrameConnInsHoleX / 2.;
+  ypos = sOBSFrameConnInsHei / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos - sOBSFrameConnHoleZDist;
+  TGeoCombiTrans* insHole1Trans = new TGeoCombiTrans("inshole1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  insHole1Trans->RegisterYourself();
+
+  TGeoCombiTrans* insHole2Trans = new TGeoCombiTrans("inshole2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  insHole2Trans->RegisterYourself();
+
+  // The connector: a CompositeShape
+  if (sideA) {
+    connName = "OBSFConnectorA";
+    compoShape = "(connectorTop-topholer:topholer2tr-topholer:topholer1tr-topahole:topaholetr-topaside:topasidetr)+(connectorIns-inshole:inshole1tr-inshole:inshole2tr)";
+  } else {
+    connName = "OBSFConnectorC";
+    compoShape = "(connectorTop-topholer:topholer2tr-topholer:topholer1tr-topholer:topcholer1tr-topholer:topcholer2tr-topchole:topcholetr)+(connectorIns-inshole:inshole1tr-inshole:inshole2tr)";
+  }
+
+  TGeoCompositeShape* obsfConnSh = new TGeoCompositeShape(compoShape.Data());
+
+  TGeoVolume* obsfConnVol = new TGeoVolume(connName, obsfConnSh, medPEEK);
+
+  // Finally put the connector into its mother volume
+  mother->AddNode(obsfConnVol, 1, new TGeoTranslation(0, ymot, zmot));
 }
 
 TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
