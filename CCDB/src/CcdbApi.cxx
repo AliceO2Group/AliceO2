@@ -348,7 +348,7 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   CURL* curl_handle;
   CURLcode res;
   struct MemoryStruct chunk {
-      (char*)malloc(1) /*memory*/, 0 /*size*/
+    (char*)malloc(1) /*memory*/, 0 /*size*/
   };
   TObject* result = nullptr;
 

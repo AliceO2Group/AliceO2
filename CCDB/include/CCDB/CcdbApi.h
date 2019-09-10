@@ -95,7 +95,7 @@ class CcdbApi //: public DatabaseInterface
    * @deprecated in favour of retrieveFromTFileAny
    */
   TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
-                      long timestamp = -1) const;
+                    long timestamp = -1) const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
