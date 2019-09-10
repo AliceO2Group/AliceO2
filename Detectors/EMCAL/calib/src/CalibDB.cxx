@@ -32,49 +32,49 @@ void CalibDB::storeBadChannelMap(BadChannelMap* bcm, const std::map<std::string,
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::BadChannelMap>(bcm), "EMC/BadChannelMap", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::BadChannelMap>(bcm), "EMC/BadChannelMap", metadata, rangestart, rangeend);
 }
 
 void CalibDB::storeTimeCalibParam(TimeCalibrationParams* tcp, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::TimeCalibrationParams>(tcp), "EMC/TimeCalibParams", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TimeCalibrationParams>(tcp), "EMC/TimeCalibParams", metadata, rangestart, rangeend);
 }
 
 void CalibDB::storeTimeCalibParamL1Phase(TimeCalibParamL1Phase* tcp, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>(tcp), "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>(tcp), "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
 }
 
 void CalibDB::storeTempCalibParam(TempCalibrationParams* tcp, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::TempCalibrationParams>(tcp), "EMC/TempCalibParams", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TempCalibrationParams>(tcp), "EMC/TempCalibParams", metadata, rangestart, rangeend);
 }
 
 void CalibDB::storeTempCalibParamSM(TempCalibParamSM* tcp, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::TempCalibParamSM>(tcp), "EMC/TempCalibParamsSM", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TempCalibParamSM>(tcp), "EMC/TempCalibParamsSM", metadata, rangestart, rangeend);
 }
 
 void CalibDB::storeGainCalibFactors(GainCalibrationFactors* gcf, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::emcal::GainCalibrationFactors>(gcf), "EMC/GainCalibFactors", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::emcal::GainCalibrationFactors>(gcf), "EMC/GainCalibFactors", metadata, rangestart, rangeend);
 }
 
 BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/BadChannelMap", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/BadChannelMap", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/BadChannelMap", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::BadChannelMap>::Class())
@@ -89,7 +89,7 @@ TimeCalibrationParams* CalibDB::readTimeCalibParam(ULong_t timestamp, const std:
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/TimeCalibParams", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/TimeCalibParams", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/TimeCalibParams", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::TimeCalibrationParams>::Class())
@@ -104,7 +104,7 @@ TimeCalibParamL1Phase* CalibDB::readTimeCalibParamL1Phase(ULong_t timestamp, con
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/TimeCalibParamsL1Phase", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/TimeCalibParamsL1Phase", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/TimeCalibParamsL1Phase", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>::Class())
@@ -119,7 +119,7 @@ TempCalibrationParams* CalibDB::readTempCalibParam(ULong_t timestamp, const std:
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/TempCalibParams", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/TempCalibParams", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/TempCalibParams", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::TempCalibrationParams>::Class())
@@ -134,7 +134,7 @@ TempCalibParamSM* CalibDB::readTempCalibParamSM(ULong_t timestamp, const std::ma
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/TempCalibParamsSM", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/TempCalibParamsSM", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/TempCalibParamsSM", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::TempCalibParamSM>::Class())
@@ -149,7 +149,7 @@ GainCalibrationFactors* CalibDB::readGainCalibFactors(ULong_t timestamp, const s
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("EMC/GainCalibFactors", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("EMC/GainCalibFactors", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "EMC/GainCalibFactors", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::emcal::GainCalibrationFactors>::Class())

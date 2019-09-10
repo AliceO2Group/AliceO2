@@ -85,14 +85,14 @@ void TimeCalibParamsL1Phase_CCDBApiTest(const std::string_view ccdbserver = "emc
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.store(new o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>(tcp), "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>(tcp), "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
 
   // Read time calibration coefficients from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 11, 8, 21, 57, 7); //LHC18q 295585
   //auto rangetest = create_timestamp(2018, 11, 21, 6, 27, 28); //LHC18q 296623
   std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
   o2::emcal::TimeCalibParamL1Phase* read(nullptr);
-  auto res = ccdbhandler.retrieve("EMC/TimeCalibParamsL1Phase", metadata, rangetest);
+  auto res = ccdbhandler.retrieveFromTFile("EMC/TimeCalibParamsL1Phase", metadata, rangetest);
   if (!res) {
     std::cerr << "Failed retrieving object from CCDB" << std::endl;
     return;

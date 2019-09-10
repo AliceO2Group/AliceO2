@@ -93,7 +93,7 @@ void TempCalibrationParams_CCDBApiTest(const std::string_view ccdbserver = "emcc
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.store(new o2::TObjectWrapper<o2::emcal::TempCalibrationParams>(tcp), "EMC/TempCalibParams", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TempCalibrationParams>(tcp), "EMC/TempCalibParams", metadata, rangestart, rangeend);
 
   // Read temperature calibration coefficients from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 4, 27, 1, 5, 52); //LHC18 run 285396
@@ -102,7 +102,7 @@ void TempCalibrationParams_CCDBApiTest(const std::string_view ccdbserver = "emcc
   //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
   std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::TempCalibrationParams* read(nullptr);
-  auto res = ccdbhandler.retrieve("EMC/TempCalibParams", metadata, rangetest);
+  auto res = ccdbhandler.retrieveFromTFile("EMC/TempCalibParams", metadata, rangetest);
   if (!res) {
     std::cerr << "Failed retrieving object from CCDB" << std::endl;
     return;
