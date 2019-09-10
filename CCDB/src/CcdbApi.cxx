@@ -336,6 +336,89 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
   return written;
 }
 
+TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
+                           long timestamp) const
+{
+  // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
+  // Thus it does not comply to our coding guidelines as it is a copy paste.
+
+  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+
+  // Prepare CURL
+  CURL* curl_handle;
+  CURLcode res;
+  struct MemoryStruct chunk {
+      (char*)malloc(1) /*memory*/, 0 /*size*/
+  };
+  TObject* result = nullptr;
+
+  /* init the curl session */
+  curl_handle = curl_easy_init();
+
+  /* specify URL to get */
+  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
+
+  /* send all data to this function  */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
+  /* we pass our 'chunk' struct to the callback function */
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
+
+  /* some servers don't like requests that are made without a user-agent
+     field, so we provide one */
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+  /* if redirected , we tell libcurl to follow redirection */
+  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  /* get it! */
+  res = curl_easy_perform(curl_handle);
+
+  /* check for errors */
+  if (res != CURLE_OK) {
+    fprintf(stderr, "curl_easy_perform() failed: %s\n",
+            curl_easy_strerror(res));
+  } else {
+    /*
+     * Now, our chunk.memory points to a memory block that is chunk.size
+     * bytes big and contains the remote file.
+     */
+
+    //    printf("%lu bytes retrieved\n", (long) chunk.size);
+
+    long response_code;
+    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+    if ((res == CURLE_OK) && (response_code != 404)) {
+      TMessage mess(kMESS_OBJECT);
+      mess.SetBuffer(chunk.memory, chunk.size, kFALSE);
+      mess.SetReadMode();
+      mess.Reset();
+      result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
+      if (result == nullptr) {
+        cerr << "couldn't retrieve the object " << path << endl;
+      }
+    } else {
+      cerr << "invalid URL : " << fullUrl << endl;
+    }
+
+    // Print data
+    //    cout << "size : " << chunk.size << endl;
+    //    cout << "data : " << endl;
+    //    char* mem = (char*)chunk.memory;
+    //    for (int i = 0 ; i < chunk.size/4 ; i++)  {
+    //      cout << mem;
+    //      mem += 4;
+    //    }
+  }
+
+  /* cleanup curl stuff */
+  curl_easy_cleanup(curl_handle);
+
+  free(chunk.memory);
+
+  return result;
+}
+
 TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
