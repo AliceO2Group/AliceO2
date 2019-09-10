@@ -60,7 +60,7 @@ GPU_HOST_DEVICE inline int index_table_utils::getPhiBinIndex(const float current
 GPU_HOST_DEVICE inline int index_table_utils::getBinIndex(const int zIndex, const int phiIndex)
 {
   return gpu::GPUCommonMath::Min(phiIndex * constants::index_table::PhiBins + zIndex,
-                                 constants::index_table::ZBins * constants::index_table::PhiBins);
+                                 constants::index_table::ZBins * constants::index_table::PhiBins - 1);
 }
 
 GPU_HOST_DEVICE inline int index_table_utils::countRowSelectedBins(
