@@ -65,6 +65,8 @@ void RawEncoder::process(const std::vector<Digit> digits, std::vector<char>& raw
   for (auto& digit : digits ){
     processDigit(digit, raw);
   }
+
+
   
 
 }
@@ -86,12 +88,13 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   char pkt = 0;
   char datalength1=0;
   char datalength2=0;
-  char addressChip =0; //is this padDualSampaChannel?
-  char addressChannel =0;
-  char bx1 =0;
-  char bx2 =0;
-  char bx3=0;
+  char addressChip =padDualSampaId ;//tbc, could be wrong
+  char addressChannel =padDualSampaChannel;
+  char bx1 =0; //keep at 0 for the time being
+  char bx2 =0; //
+  char bx3=0; //
   char pbitpay =0;
+  //int: at least 16 bits
   
   //header format:
   // 6 bits Hamming
@@ -119,19 +122,35 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   // in total 50 bits in header 
   //
   
-  raw.emplace_back(hammingparitybit);
-  
   //fill
   //payload:
   int timebins = timeBins();//todo generate from a distribution
   int adcsum = (int) adc;//conversion according to total number
+
+  int adcbins[timebins];
   for (int i=0; i< timebins; ++i)
-    {
-      int adcbin = intSignal(adcsum, timebins, i); //to be done with function
-      //dummy stuff
-      raw.emplace_back(adcbin);
-    }
+      adcbin[i] = intSignal(adcsum, timebins, i); //to be done with function
+
+  //todo hammingparitybit construction
   
+  raw.emplace_back(hammingparitybit);
+  //dummy only for non-empty data
+  //data, keep 0s for bits not needed
+  pkt= 1+4;//PKT[0] and PKT[2]
+  raw.emplace_back(pkt);
+  datalength1=(timebins+1)/(pow(2,5));//+1 for signal time
+  datalength2=(timebins+1)-datalength1;
+  
+  raw.emplace_back(datalength1);
+  raw.emplace_back(datalength2);
+
+  //dual sampa address goes from 0 to 39
+  //address of channel within sampa goes from 0 to 63
+  raw.emplace_back(addressChip);
+  raw.emplace_back(addressChannel);
+    
+  for(int i=0; i< timebins; ++i)
+  raw.emplace_back(adcbin[i]);
   
   //header
   //
