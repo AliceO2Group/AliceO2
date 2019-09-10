@@ -61,14 +61,14 @@ void BadChannelMap_CCDBApitest(const std::string_view ccdbserver = "emcccdb-test
        rangeend = create_timestamp(2018, 8, 6, 0, 31, 52);
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.store(new o2::TObjectWrapper<o2::emcal::BadChannelMap>(bcm), "EMC/BadChannelMap", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::BadChannelMap>(bcm), "EMC/BadChannelMap", metadata, rangestart, rangeend);
 
   // Read bad channel map from CCDB, check whether they are the same
   // using test timestamp from next run (290223)
   auto rangetest = create_timestamp(2018, 7, 30, 12, 13, 20);
   std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::BadChannelMap* read(nullptr);
-  auto res = ccdbhandler.retrieve("EMC/BadChannelMap", metadata, rangetest);
+  auto res = ccdbhandler.retrieveFromTFile("EMC/BadChannelMap", metadata, rangetest);
   if (!res) {
     std::cerr << "Failed retrieving object from CCDB" << std::endl;
     return;

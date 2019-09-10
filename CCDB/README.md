@@ -9,13 +9,11 @@ access to the CCDB via its REST api. The API can be also used to create a snapsh
 of conditions objects on the local disc and retrieve the objects therefrom. This can be useful
 in circumstances of reduced or no network connectivity.
 
-There are currently 3 different kinds of store/retrieve functions, which we expect to unify in the immediate future:
-1. simple `store/retrieve` API serializing a `TObject` as a simple ROOT `TMessage`.
+There are currently 2 different kinds of store/retrieve functions, which we expect to unify in the immediate future:
 2. `storeAsTFile/retrieveFromTFile` API serializing a `TObject` in a ROOT `TFile` with the advantage 
    of keeping the data together with the ROOT streamer info in the same place.
 3. A strongly-typed `storeAsTFileAny<T>/retrieveFromTFileAny<T>` API allowing to handle any type T 
    having a ROOT dictionary. We encourage to use this API by default.
-
 
 ## Central and local instances of the CCDB
 
@@ -26,19 +24,6 @@ There is a test central CCDB at [http://ccdb-test.cern.ch:8080](http://ccdb-test
 If you access the CCDB with a web browser, add `/browse` at the end of the URL to have a user readable interface. Moreover, using `/browse/?report=true` will provide details on the number of files and the size of the folders (e.g. http://ccdb-test.cern.ch:8080/browse/?report=true).
 
 ## Example Usage
-
-* storing / retrieving TObjects with TMessage blobs
-```c++
-// init
-CcdbApi api;
-map<string, string> metadata; // can be empty
-api.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
-// store
-auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-api.store(h1, "Test/Detector", metadata);
-// retrieve
-auto h1back = api.retrieve("Test/Detector", metadata);
-```
 
 * storing / retrieving arbitrary (non TObject) classes
 
