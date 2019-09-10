@@ -20,7 +20,6 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
 								SliceTracker/GPUTPCStartHitsSorter.cxx \
 								SliceTracker/GPUTPCHitArea.cxx \
 								SliceTracker/GPUTPCTrackParam.cxx \
-								SliceTracker/GPUTPCClusterData.cxx \
 								Base/GPUDataTypes.cxx \
 								Base/GPUReconstruction.cxx \
 								Base/GPUReconstructionCPU.cxx \
@@ -62,7 +61,6 @@ GPUCA_ITS_CXXFILES			= ITS/GPUITSFitter.cxx \
 								Global/GPUChainITS.cxx
 								
 GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
-								SliceTracker/GPUTPCTracklet.cxx \
 								SliceTracker/GPUTPCMCPoint.cxx
 								
 GPUCA_COMPRESSION_FILES		= DataCompression/GPUTPCCompression.cxx \
