@@ -159,10 +159,22 @@ class TPCFastTransform : public FlatObject
   GPUd() const TPCFastTransformGeo& getGeometry() const { return mDistortion.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
-  long int getTimeStamp() const { return mTimeStamp; }
+  GPUd() long int getTimeStamp() const { return mTimeStamp; }
 
   /// Return mVDrift in cm / time bin
   GPUd() float getVDrift() const { return mVdrift; }
+
+  /// Return T0 in time bin units
+  GPUd() float getT0() const { return mT0; }
+
+  /// Return VdriftCorrY in time_bin / cn
+  GPUd() float getVdriftCorrY() const { return mVdriftCorrY; }
+
+  /// Return LdriftCorr offset in cm
+  GPUd() float getLdriftCorr() const { return mLdriftCorr; }
+
+  /// Return TOF correction (vdrift / C)
+  GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
 #if !defined(GPUCA_GPUCODE)
 
