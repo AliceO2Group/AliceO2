@@ -118,6 +118,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUDisplay* GetEventDisplay() { return mEventDisplay.get(); }
   const GPUQA* GetQA() const { return mQA.get(); }
   GPUQA* GetQA() { return mQA.get(); }
+  int ForceInitQA();
 
   // Processing functions
   int RunTPCTrackingSlices();
@@ -184,7 +185,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   bool mDisplayRunning = false;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
-  bool mQAInitialized = false;
 
   // Ptr to reconstruction detector objects
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess; // Internal memory for clusterNativeAccess

@@ -14,6 +14,7 @@
 #include "utils/qconfig.h"
 #include "GPUReconstruction.h"
 #include "GPUReconstructionTimeframe.h"
+#include "GPUReconstructionConvert.h"
 #include "GPUChainTracking.h"
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
@@ -464,6 +465,7 @@ int main(int argc, char** argv)
 
     for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
       if (configStandalone.configQA.inputHistogramsOnly) {
+        chainTracking->ForceInitQA();
         break;
       }
       if (configStandalone.runs2 > 1) {
@@ -504,6 +506,12 @@ int main(int argc, char** argv)
               break;
             }
           }
+        }
+
+        if (configStandalone.overrideMaxTimebin && chainTracking->mIOPtrs.clustersNative) {
+          GPUSettingsEvent ev = rec->GetEventSettings();
+          ev.continuousMaxTimeBin = GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+          rec->UpdateEventSettings(&ev);
         }
 
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));

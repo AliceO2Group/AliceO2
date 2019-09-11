@@ -124,7 +124,7 @@ constexpr int bit2Mask(T first, Args... args)
 }
 //--------------------------------------<<<
 
-GPUdi() float FastATan2(float y, float x)
+GPUhdi() float FastATan2(float y, float x)
 {
   // Fast atan2(y,x) for any angle [-Pi,Pi]
   // Average inaccuracy: 0.00048
@@ -162,7 +162,7 @@ GPUdi() float FastATan2(float y, float x)
   };
 
   // fast atan2(y,x) for any angle [-Pi,Pi]
-  return copysignf(atan2P(fabsf(y), x), y);
+  return copysignf(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
 
 } // namespace utils

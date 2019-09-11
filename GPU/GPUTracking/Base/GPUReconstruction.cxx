@@ -428,6 +428,11 @@ void GPUReconstruction::DumpSettings(const char* dir)
   }
 }
 
+void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)
+{
+  param().UpdateEventSettings(e, p);
+}
+
 void GPUReconstruction::ReadSettings(const char* dir)
 {
   std::string f;

@@ -849,9 +849,13 @@ void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
   //
   // Created:      15 May 2019  Mario Sitta
   //               (partially based on P.Namwongsa implementation in AliRoot)
+  // Updated:      19 Jun 2019  Mario Sitta  IB Side A added
   //
 
-  Double_t zpos;
+  // Create the End Wheels on Side A
+  TGeoVolume* endWheelsA = mServicesGeometry->createIBEndWheelsSideA();
+
+  motherVolume->AddNode(endWheelsA, 1, nullptr);
 
   // Create the End Wheels on Side C
   TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();

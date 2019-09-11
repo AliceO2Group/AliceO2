@@ -12,7 +12,12 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_HIP
-#include "hip/hip_runtime.h"
+#include <hip/hip_runtime.h>
+
+#ifdef __CUDACC__
+#define __HIPCC_CUDA__
+#undef __CUDACC__
+#endif
 
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"
@@ -249,11 +254,13 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0, mHostMemorySize);
     if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
-      //hipLaunchKernelGGL(HIP_KERNEL_NAME(gHIPMemSetWorkaround), dim3(mCoreCount), dim3(256), 0, 0, (char*)mDeviceMemoryBase, 0xDD, mDeviceMemorySize);
-      //if (GPUFailedMsgI(hipGetLastError()) || GPUFailedMsgI(hipDeviceSynchronize())) {
-      GPUError("Error during HIP memset");
-      GPUFailedMsgI(hipDeviceReset());
-      return (1);
+      GPUError("Error during HIP memset, trying workaround with kernel");
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(gHIPMemSetWorkaround), dim3(mCoreCount), dim3(256), 0, 0, (char*)mDeviceMemoryBase, 0xDD, mDeviceMemorySize);
+      if (GPUFailedMsgI(hipGetLastError()) || GPUFailedMsgI(hipDeviceSynchronize())) {
+        GPUError("Error during HIP memset");
+        GPUFailedMsgI(hipDeviceReset());
+        return (1);
+      }
     }
   }
 

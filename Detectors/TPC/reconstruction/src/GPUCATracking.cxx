@@ -26,11 +26,12 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 
-// This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
 #include "GPUO2Interface.h"
+#include "GPUO2InterfaceConfiguration.h"
+#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUTPCGM*.h
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#include "GPUO2InterfaceConfiguration.h"
+#undef GPUCA_O2_LIB
 
 using namespace o2::gpu;
 using namespace o2::tpc;

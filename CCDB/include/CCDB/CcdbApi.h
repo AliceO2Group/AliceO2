@@ -61,18 +61,6 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
-   * Stores an object in the CCDB as a streamed object, not a TFile.
-   *
-   * @param rootObject Raw pointer to the object to store.
-   * @param path The path where the object is going to be stored.
-   * @param metadata Key-values representing the metadata for this object.
-   * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-   * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
-   */
-  void store(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-             long startValidityTimestamp = -1, long endValidityTimestamp = -1, bool storeStreamerInfo = false) const;
-
-  /**
      * Store into the CCDB a TFile containing the ROOT object.
      *
      * @param rootObject Raw pointer to the object to store.
@@ -104,6 +92,7 @@ class CcdbApi //: public DatabaseInterface
    * @param metadata Key-values representing the metadata to filter out objects.
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @return the object, or nullptr if none were found.
+   * @deprecated in favour of retrieveFromTFileAny
    */
   TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
                     long timestamp = -1) const;
@@ -129,9 +118,6 @@ class CcdbApi //: public DatabaseInterface
   */
   template <typename T>
   T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp = -1) const;
-
-  //    std::vector<std::string> getListOfTasksWithPublications();
-  //    std::vector<std::string> getPublishedObjectNames(std::string taskName);
 
   /**
    * Delete all versions of the object at this path.

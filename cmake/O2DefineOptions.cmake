@@ -19,6 +19,8 @@ function(o2_define_options)
   option(BUILD_TEST_ROOT_MACROS
          "Build the tests toload and compile the Root macros" ON)
 
+  option(ENABLE_CASSERT "Enable asserts" OFF)
+
   option(
     BUILD_SIMULATION_DEFAULT
     "Default behavior for simulation (disregarded if BUILD_SIMULATION is defined)"

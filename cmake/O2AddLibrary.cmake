@@ -84,10 +84,6 @@ function(o2_add_library baseTargetName)
   # Start by adding the dependencies to other targets
   if(A_PUBLIC_LINK_LIBRARIES)
     foreach(L IN LISTS A_PUBLIC_LINK_LIBRARIES)
-      if(NOT TARGET ${L})
-        message(
-          FATAL_ERROR "Trying to add a dependency on non-existing target ${L}")
-      endif()
       target_link_libraries(${target} PUBLIC ${L})
     endforeach()
   endif()

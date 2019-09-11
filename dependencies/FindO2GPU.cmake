@@ -109,18 +109,30 @@ if(ENABLE_OPENCL2)
     set(ROCM_ROOT "/opt/rocm")
   endif()
   find_program(CLANG_OCL clang-ocl PATHS "${ROCM_ROOT}/bin")
+  find_program(ROCM_AGENT_ENUMERATOR rocm_agent_enumerator PATHS "${ROCM_ROOT}/bin")
+  find_program(LLVM_SPIRV llvm-spirv)
   if(OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.0
      AND Clang_FOUND
      AND LLVM_FOUND
      AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 10.0
      AND NOT CLANG_OCL STREQUAL "CLANG_OCL-NOTFOUND")
+    set(OPENCL2_ENABLED_AMD ON)
+  endif()
+  if(OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.2
+     AND NOT LLVM_SPIRV STREQUAL "LLVM_SPIRV-NOTFOUND")
+    set(OPENCL2_ENABLED_SPIRV ON)
+  endif ()
+  if((OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.2 AND Clang_FOUND)
+     OR OPENCL2_ENABLED_AMD
+     OR OPENCL2_ENABLED_SPIRV)
     set(OPENCL2_ENABLED ON)
+
     message(
       STATUS
-        "Found OpenCL 2 (${OpenCL_VERSION_STRING} compiled by LLVM/Clang ${LLVM_PACKAGE_VERSION} / ${CLANG_OCL})"
+        "Found OpenCL 2 (${OpenCL_VERSION_STRING} ; AMD ${OPENCL2_ENABLED_AMD} ${CLANG_OCL} ; SPIR-V ${OPENCL2_ENABLED_SPIRV} ${LLVM_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})"
       )
   elseif(NOT ENABLE_OPENCL2 STREQUAL "AUTO")
-    message(FATAL_ERROR "OpenCL 2.x not yet implemented")
+    message(FATAL_ERROR "OpenCL 2.x not available")
   endif()
 endif()
 
@@ -169,7 +181,7 @@ if(ENABLE_HIP)
     endif()
     if(hip_FOUND AND hipcub_FOUND AND rocthrust_FOUND AND rocprim_FOUND AND hip_HIPCC_EXECUTABLE)
       set(HIP_ENABLED ON)
-      message(STATUS "HIP Found")
+      message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE})")
     endif()
   endif()
   if(NOT HIP_ENABLED AND NOT ENABLE_HIP STREQUAL "AUTO")
