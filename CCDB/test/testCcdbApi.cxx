@@ -247,14 +247,6 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(obj, nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
-{
-  test_fixture f;
-
-  TObject* obj = f.api.retrieveFromTFile("Test/Detector", f.metadata);
-  BOOST_CHECK_EQUAL(obj, nullptr);
-}
-
 BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
