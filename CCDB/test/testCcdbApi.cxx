@@ -247,19 +247,6 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(obj, nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(store_test, *utf::precondition(if_reachable()))
-{
-  test_fixture f;
-
-  TH1F h1("object1", "object1", 100, 0, 99);
-  h1.FillRandom("gaus", 10000);
-  f.api.store(&h1, "Test/Detector", f.metadata, -1, -1, true);
-
-  TH1F h2("object2", "object2", 100, 0, 99);
-  h2.FillRandom("gaus", 10000);
-  f.api.store(&h2, "Test/Detector", f.metadata, -1, -1, true);
-}
-
 BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) // Test/Detector is not stored as a TFile
 {
   test_fixture f;
@@ -268,32 +255,16 @@ BOOST_AUTO_TEST_CASE(retrieve_wrong_type, *utf::precondition(if_reachable())) //
   BOOST_CHECK_EQUAL(obj, nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(retrieve_test, *utf::precondition(if_reachable()))
-{
-  test_fixture f;
-
-  TH1F h1("object1", "object1", 100, 0, 99);
-  h1.FillRandom("gaus", 10000);
-  f.api.store(&h1, "Test/Detector", f.metadata, -1, -1, true);
-
-  auto h2 = f.api.retrieve("Test/Detector", f.metadata);
-  BOOST_CHECK(h2 != nullptr);
-  if (h2 != nullptr) {
-    BOOST_CHECK_EQUAL(h2->GetName(), "object1");
-  }
-
-  auto h3 = f.api.retrieve("asdf/asdf", f.metadata);
-  BOOST_CHECK(h3 == nullptr);
-}
-
 BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = f.api.retrieve("Test/Detector", f.metadata);
+  TH1F h("object1", "object1", 100, 0, 99);
+  f.api.storeAsTFile(&h, "Test/Detector", f.metadata); // test with explicit dates
+  auto h1 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
   f.api.truncate("Test/Detector");
-  h1 = f.api.retrieve("Test/Detector", f.metadata);
+  h1 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h1 == nullptr);
 }
 
@@ -304,11 +275,11 @@ BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
   TH1F h1("object1", "object1", 100, 0, 99);
   long from = o2::ccdb::getCurrentTimestamp();
   long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
-  f.api.store(&h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
-  auto h2 = f.api.retrieve("Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
+  auto h2 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   f.api.deleteObject("Test/Detector");
-  h2 = f.api.retrieve("Test/Detector", f.metadata);
+  h2 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h2 == nullptr);
 }
 
@@ -364,15 +335,15 @@ BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
   // more complex tree
   TH1F h1("object1", "object1", 100, 0, 99);
   cout << "storing object 1 in Test" << endl;
-  f.api.store(&h1, "Test", f.metadata);
+  f.api.storeAsTFile(&h1, "Test", f.metadata);
   cout << "storing object 2 in Test/Detector" << endl;
-  f.api.store(&h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 3 in Test/Detector" << endl;
-  f.api.store(&h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 4 in Test/Detector" << endl;
-  f.api.store(&h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 5 in Test/Detector/Sub/abc" << endl;
-  f.api.store(&h1, "Test/Detector/Sub/abc", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector/Sub/abc", f.metadata);
 
   s = f.api.list("Test/Detector", false, "application/json");
   countItems(s, countObjects, countSubfolders);
