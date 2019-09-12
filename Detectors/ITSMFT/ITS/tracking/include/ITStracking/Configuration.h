@@ -72,31 +72,9 @@ struct MemoryParameters {
   float TrackletsMemoryCoefficients[constants::its::TrackletsPerRoad] = {0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f};
 };
 
-struct IndexTableParameters {
-  IndexTableParameters();
-  void ComputeInverseBinSizes();
-  int ZBins = 20;
-  int PhiBins = 20;
-  float InversePhiBinSize = 20 / constants::math::TwoPi;
-  std::array<float, constants::its::LayersNumber> InverseZBinSize;
-};
-
 inline int TrackingParameters::CellMinimumLevel()
 {
   return MinTrackLength - constants::its::ClustersPerCell + 1;
-}
-
-inline IndexTableParameters::IndexTableParameters()
-{
-  ComputeInverseBinSizes();
-}
-
-inline void IndexTableParameters::ComputeInverseBinSizes()
-{
-  InversePhiBinSize = PhiBins / constants::math::TwoPi;
-  for (int iL = 0; iL < constants::its::LayersNumber; ++iL) {
-    InverseZBinSize[iL] = 0.5f * ZBins / constants::its::LayersZCoordinate()[iL];
-  }
 }
 
 inline TrackingParameters& TrackingParameters::operator=(const TrackingParameters& t)
