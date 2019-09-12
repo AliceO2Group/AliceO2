@@ -91,16 +91,18 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // This should go away eventually.
 
       // Default Settings
-      float solenoidBz = 5.00668;           // B-field
-      float refX = 83.;                     // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;              // time frame data v.s. triggered events
-      int nThreads = 1;                     // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;                  // use a GPU for processing, if false uses GPU
-      int debugLevel = 0;                   // Enable additional debug output
-      bool dump = false;                    // create memory dump of processed events for standalone runs
-      char gpuType[1024] = "CUDA";          // Type of GPU device, if useGPU is set to true
-      GPUDisplayBackend* display = nullptr; // Ptr to display backend (enables event display)
-      bool qa = false;                      // Run the QA after tracking
+      float solenoidBz = 5.00668;                // B-field
+      float refX = 83.;                          // transport tracks to this x after tracking, >500 for disabling
+      bool continuous = false;                   // time frame data v.s. triggered events
+      int nThreads = 1;                          // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
+      bool useGPU = false;                       // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;                        // Enable additional debug output
+      bool dump = false;                         // create memory dump of processed events for standalone runs
+      char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
+      GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
+      bool qa = false;                           // Run the QA after tracking
+      bool readTransformationFromFile = false;   // Read the TPC transformation from the file
+      char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -158,6 +160,12 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             gpuType[len] = 0;
             useGPU = true;
             printf("Using GPU Type %s\n", gpuType);
+          } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
+            int len = std::min(optLen - 15, 1023);
+            memcpy(tpcTransformationFileName, optPtr + 15, len);
+            tpcTransformationFileName[len] = 0;
+            readTransformationFromFile = true;
+            printf("Read TPC transformation from the file \"%s\"\n", tpcTransformationFileName);
           } else {
             printf("Unknown option: %s\n", optPtr);
             throw std::invalid_argument("Unknown config string option");
@@ -211,7 +219,16 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
 
       // Create and forward data objects for TPC transformation, material LUT, ...
-      processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+      if (readTransformationFromFile) {
+        processAttributes->fastTransform = nullptr;
+        config.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
+      } else {
+        processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+        config.fastTransform = processAttributes->fastTransform.get();
+      }
+      if (config.fastTransform == nullptr) {
+        throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
+      }
       config.fastTransform = processAttributes->fastTransform.get();
       o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
       config.matLUT = lut;
