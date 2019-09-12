@@ -91,14 +91,15 @@ class ClusterLines final
   void computeClusterCentroid();
   float getAvgDistance2() const;
   std::array<float, 6> getRMS2() const;
-  inline std::vector<int> getLabels() const { return mLabels; };
+  inline std::vector<int>& getLabels() { return mLabels; };
+  inline std::vector<Line>& getLines() { return mLines; }
   inline int getSize() const { return mLabels.size(); };
   inline std::array<float, 3> getVertex() const { return mVertex; }
-  std::vector<Line> mLines;
 
  protected:
-  std::array<float, 6> mAMatrix;         // AX=B
-  std::array<float, 3> mBMatrix;         // AX=B
+  std::array<float, 6> mAMatrix; // AX=B
+  std::array<float, 3> mBMatrix; // AX=B
+  std::vector<Line> mLines;
   std::vector<int> mLabels;              // labels
   std::array<float, 3> mVertexCandidate; // vertex candidate
   std::array<float, 9> mWeightMatrix;    // weight matrix
