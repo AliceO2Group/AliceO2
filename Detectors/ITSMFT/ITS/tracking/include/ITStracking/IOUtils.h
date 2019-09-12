@@ -50,8 +50,6 @@ void to_json(nlohmann::json& j, const TrackingParameters& par);
 void from_json(const nlohmann::json& j, TrackingParameters& par);
 void to_json(nlohmann::json& j, const MemoryParameters& par);
 void from_json(const nlohmann::json& j, MemoryParameters& par);
-void to_json(nlohmann::json& j, const IndexTableParameters& par);
-void from_json(const nlohmann::json& j, IndexTableParameters& par);
 
 namespace ioutils
 {
