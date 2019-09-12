@@ -67,8 +67,6 @@ void RawEncoder::process(const std::vector<Digit> digits, std::vector<char>& raw
   }
 
 
-  
-
 }
 //______________________________________________________________________
 int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
@@ -129,7 +127,7 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
 
   int adcbins[timebins];
   for (int i=0; i< timebins; ++i)
-      adcbin[i] = intSignal(adcsum, timebins, i); //to be done with function
+      adcbins[i] = intSignal(adcsum, timebins, i); //to be done with function
 
   //todo hammingparitybit construction
   
@@ -150,7 +148,7 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   raw.emplace_back(addressChannel);
     
   for(int i=0; i< timebins; ++i)
-  raw.emplace_back(adcbin[i]);
+  raw.emplace_back(adcbins[i]);
   
   //header
   //
@@ -180,6 +178,7 @@ int RawEncoder::timeBins(){
 
   return 20;
 }
+
 
 
 
