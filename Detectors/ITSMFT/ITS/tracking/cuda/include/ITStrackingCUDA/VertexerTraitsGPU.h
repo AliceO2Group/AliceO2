@@ -42,25 +42,29 @@ class VertexerTraitsGPU : public VertexerTraits
   virtual ~VertexerTraitsGPU();
   void initialise(ROframe*) override;
   void computeTracklets() override;
-  GPU_DEVICE static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
+  void computeTrackletMatching() override;
+
+  // GPU-specific getters
+  GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
+  GPU::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
   GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
-// 
-//   int* mGPUusedClusterSize0;
-//   int* mGPUusedClusterSize2;
-// 
-//   int* mGPUindexTable0;
-//   int* mGPUindexTable2;
+  GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
 
-inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
     math_utils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut))};
   const int phiBinSpan{static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize))};
   return int2{phiBinMin, phiBinSpan};
+}
+
+inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+{
+  return *mStoreVertexerGPUPtr;
 }
 
 extern "C" VertexerTraits* createVertexerTraitsGPU();

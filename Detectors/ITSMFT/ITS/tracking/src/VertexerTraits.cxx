@@ -69,7 +69,7 @@ void trackleterKernelSerial(
         const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
         const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
         // loop on clusters next layer
-        for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < (int)clustersNextLayer.size(); ++iNextLayerClusterIndex) {
+        for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
           if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
@@ -428,7 +428,7 @@ void VertexerTraits::computeVertices()
       continue;
     }
     float dist{0.};
-    for (auto& line : mTrackletClusters[iCluster].mLines) {
+    for (auto& line : mTrackletClusters[iCluster].getLines()) {
       dist += Line::getDistanceFromPoint(line, mTrackletClusters[iCluster].getVertex()) /
               mTrackletClusters[iCluster].getSize();
     }

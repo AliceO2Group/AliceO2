@@ -60,6 +60,7 @@ class Vector final
   GPU_DEVICE T& operator[](const int) const;
   GPU_DEVICE int size() const;
   GPU_DEVICE int extend(const int) const;
+  GPU_HOST_DEVICE void dump();
 
   template <typename... Args>
   GPU_DEVICE void emplace(const int, Args&&...);
@@ -194,9 +195,7 @@ template <typename T>
 void Vector<T>::reset(const T* const source, const int size, const int initialSize)
 {
   if (size > mCapacity) {
-
     if (mArrayPointer != nullptr) {
-
       Utils::Host::gpuFree(mArrayPointer);
     }
 
@@ -210,7 +209,6 @@ void Vector<T>::reset(const T* const source, const int size, const int initialSi
     Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
   } else {
-
     Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
   }
 }
@@ -296,8 +294,14 @@ template <typename T>
 template <typename... Args>
 GPU_DEVICE void Vector<T>::emplace(const int index, Args&&... arguments)
 {
-
   new (mArrayPointer + index) T(std::forward<Args>(arguments)...);
+}
+
+template <typename T>
+GPU_HOST_DEVICE void Vector<T>::dump()
+{
+  printf("mArrayPointer = %p\nmDeviceSize   = %p\nmCapacity     = %d\nmIsWeak       = %s\n",
+         mArrayPointer, mDeviceSize, mCapacity, mIsWeak ? "true" : "false");
 }
 } // namespace GPU
 } // namespace its

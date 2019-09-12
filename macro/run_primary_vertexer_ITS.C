@@ -1,4 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#define GPU_BUILD 1
 
 #include <memory>
 
@@ -16,6 +17,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerTraits.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
 // #include "GPUO2Interface.h"
@@ -37,15 +39,29 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
-  R__LOAD_LIBRARY(O2ITStrackingCUDA)
+  if (useGPU) {
+    R__LOAD_LIBRARY(O2ITStrackingCUDA)
+  }
+  // commented, It should work, but slow init and workaround present (see includes)
   // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
   // auto* chainITS = rec->AddChain<GPUChainITS>();
   // rec->Init();
   // o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
-  std::unique_ptr<o2::its::VertexerTraitsGPU> traits;
-  o2::its::VertexerTraitsGPU mannaggia;
-  traits.reset(&mannaggia);
-  o2::its::Vertexer vertexer(traits.get());
+
+  std::unique_ptr<o2::its::VertexerTraits> traitsptr;
+  o2::its::VertexerTraits traits;
+#ifdef GPU_BUILD
+  o2::its::VertexerTraitsGPU traitsGPU;
+  if (useGPU) {
+    traitsptr.reset(&traitsGPU);
+  } else {
+#endif
+    traitsptr.reset(&traits);
+#ifdef GPU_BUILD
+  }
+#endif
+
+  o2::its::Vertexer vertexer(traitsptr.get());
   std::string outfile;
 
   if (useGPU) {
@@ -119,7 +135,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
   // Settings
   o2::its::VertexingParameters parameters;
-  parameters.phiCut = 0.05f;
+  // parameters.phiCut = 0.05f;
   // e.g. parameters.clusterContributorsCut = 5;
   // \Settings
 
@@ -147,21 +163,21 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
     // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
-    //   total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
+    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
     //   if (useMCcheck) {
     //     vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
     //   }
-    //   total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
-    //   total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
-    //
-    //   std::vector<Vertex> vertITS = vertexer.exportVertices();
-    //   const size_t numVert = vertITS.size();
-    //   foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
-    //   verticesITS->swap(vertITS);
+    total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+    total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
+
+    std::vector<Vertex> vertITS = vertexer.exportVertices();
+    const size_t numVert = vertITS.size();
+    foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
+    verticesITS->swap(vertITS);
     //   // TODO: get vertexer postion form MC truth
     //
-    //   timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
-    //   outTree.Fill();
+    timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
+    outTree.Fill();
   }
 
   outputfile->cd();
@@ -169,7 +185,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   foundVerticesBenchmark.Write();
   timeBenchmark.Write();
   outputfile->Close();
-  traits.release();
+  traitsptr.release();
   return 0;
 }
 #endif
