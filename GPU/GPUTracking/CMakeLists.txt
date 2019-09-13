@@ -205,6 +205,11 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+else()
+  set(DEBUGGUI_TARGET O2::DebugGUI)
+endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -214,7 +219,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TRDBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation
-                                       O2::DebugGUI
+                                       ${DEBUGGUI_TARGET}
                  PUBLIC_INCLUDE_DIRECTORIES SliceTracker
                                             Base
                                             TPCConvert
