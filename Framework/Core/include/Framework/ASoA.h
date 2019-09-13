@@ -156,7 +156,6 @@ class ColumnIterator
 
 template <typename T, typename INHERIT>
 struct Column {
-  using storage_t = T;
   using inherited_t = INHERIT;
   Column(ColumnIterator<T> it)
     : mColumnIterator{it}
@@ -179,19 +178,10 @@ struct Column {
 /// method call.
 template <typename F, typename INHERIT>
 struct DynamicColumn {
-  using storage_t = F;
   using inherited_t = INHERIT;
-
-  DynamicColumn(F callable)
-    : mCallable{callable}
-  {
-  }
 
   using persistent = std::false_type;
   static constexpr const char* const& label() { return INHERIT::mLabel; }
-  F& callable() { return mCallable; }
-
-  F mCallable;
 };
 
 template <typename T>
@@ -429,44 +419,43 @@ class TableMetadata
 ///                   X, Y, (R2<X,Y>));
 /// \endcode
 ///
-#define DECLARE_SOA_DYNAMIC_COLUMN(_Name_, _Getter_, ...)                                                                                  \
-  struct _Name_##Callback {                                                                                                                \
-    static inline constexpr auto getLambda() { return __VA_ARGS__; }                                                                       \
-  };                                                                                                                                       \
-                                                                                                                                           \
-  struct _Name_##Helper {                                                                                                                  \
-    using callable_t = decltype(o2::framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>()));                 \
-    using return_type = typename callable_t::return_type;                                                                                  \
-  };                                                                                                                                       \
-  template <typename... Bindings>                                                                                                          \
-  struct _Name_ : o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>> {                                 \
-    using base = o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>>;                                   \
-    using helper = _Name_##Helper;                                                                                                         \
-    using callback_holder_t = _Name_##Callback;                                                                                            \
-    using callable_t = helper::callable_t;                                                                                                 \
-    using callback_t = callable_t::type;                                                                                                   \
-                                                                                                                                           \
-    _Name_(const std::shared_ptr<arrow::Table> table)                                                                                      \
-      : o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>>(callback_t(callback_holder_t::getLambda())) \
-    {                                                                                                                                      \
-    }                                                                                                                                      \
-    static constexpr const char* mLabel = #_Name_;                                                                                         \
-    using type = typename callable_t::return_type;                                                                                         \
-                                                                                                                                           \
-    template <typename... FreeArgs>                                                                                                        \
-    type const _Getter_(FreeArgs... freeArgs) const                                                                                        \
-    {                                                                                                                                      \
-      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);                            \
-    }                                                                                                                                      \
-                                                                                                                                           \
-    template <size_t... Is, typename... FreeArgs>                                                                                          \
-    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                                       \
-    {                                                                                                                                      \
-      return base::mCallable((**std::get<Is>(boundIterators))..., freeArgs...);                                                            \
-    }                                                                                                                                      \
-                                                                                                                                           \
-    using bindings_t = typename o2::framework::pack<Bindings...>;                                                                          \
-    std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                                 \
+#define DECLARE_SOA_DYNAMIC_COLUMN(_Name_, _Getter_, ...)                                                                      \
+  struct _Name_##Callback {                                                                                                    \
+    static inline constexpr auto getLambda() { return __VA_ARGS__; }                                                           \
+  };                                                                                                                           \
+                                                                                                                               \
+  struct _Name_##Helper {                                                                                                      \
+    using callable_t = decltype(o2::framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>()));     \
+    using return_type = typename callable_t::return_type;                                                                      \
+  };                                                                                                                           \
+  template <typename... Bindings>                                                                                              \
+  struct _Name_ : o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>> {                     \
+    using base = o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>>;                       \
+    using helper = _Name_##Helper;                                                                                             \
+    using callback_holder_t = _Name_##Callback;                                                                                \
+    using callable_t = helper::callable_t;                                                                                     \
+    using callback_t = callable_t::type;                                                                                       \
+                                                                                                                               \
+    _Name_(const std::shared_ptr<arrow::Table> table)                                                                          \
+    {                                                                                                                          \
+    }                                                                                                                          \
+    static constexpr const char* mLabel = #_Name_;                                                                             \
+    using type = typename callable_t::return_type;                                                                             \
+                                                                                                                               \
+    template <typename... FreeArgs>                                                                                            \
+    type const _Getter_(FreeArgs... freeArgs) const                                                                            \
+    {                                                                                                                          \
+      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);                \
+    }                                                                                                                          \
+                                                                                                                               \
+    template <size_t... Is, typename... FreeArgs>                                                                              \
+    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                           \
+    {                                                                                                                          \
+      return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                    \
+    }                                                                                                                          \
+                                                                                                                               \
+    using bindings_t = typename o2::framework::pack<Bindings...>;                                                              \
+    std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                     \
   }
 
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
