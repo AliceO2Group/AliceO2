@@ -51,7 +51,8 @@ constexpr float Resolution{0.0005f};
 
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
 {
-  return GPUArray<float, LayersNumber>{{16.333f, 16.333f, 16.333f, 42.140f, 42.140f, 73.745f, 73.745f}};
+  constexpr double s = 1.; // safety margin
+  return GPUArray<float, LayersNumber>{{16.333f + s, 16.333f + s, 16.333f + s, 42.140f + s, 42.140f + s, 73.745f + s, 73.745f + s}};
 }
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
@@ -67,10 +68,9 @@ constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::m
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
   constexpr auto zSize = its::LayersZCoordinate();
-  constexpr double s = 1.; // safety margin
-  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / (zSize[0] + s), 0.5 * ZBins / (zSize[1] + s), 0.5 * ZBins / (zSize[2] + s),
-                                             0.5 * ZBins / (zSize[3] + s), 0.5 * ZBins / (zSize[4] + s), 0.5 * ZBins / (zSize[5] + s),
-                                             0.5 * ZBins / (zSize[6] + s)}};
+  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / (zSize[0]), 0.5 * ZBins / (zSize[1]), 0.5 * ZBins / (zSize[2]),
+                                             0.5 * ZBins / (zSize[3]), 0.5 * ZBins / (zSize[4]), 0.5 * ZBins / (zSize[5]),
+                                             0.5 * ZBins / (zSize[6])}};
 }
 } // namespace index_table
 
