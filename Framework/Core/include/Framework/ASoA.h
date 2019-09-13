@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_ASOA_H_
 
 #include "Framework/FunctionalHelpers.h"
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
@@ -69,95 +70,135 @@ struct arrow_array_for<double> {
 template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
 
-template <typename T>
-class ColumnIterator
+/// Policy class for columns which are chunked. This
+/// will make the compiler take the most generic (and
+/// slow approach).
+struct Chunked {
+  constexpr static bool chunked = true;
+};
+
+/// Policy class for columns which are known to be fully
+/// inside a chunk. This will generate optimal code.
+struct Flat {
+  constexpr static bool chunked = false;
+};
+
+/// Iterator on a single column.
+/// FIXME: the ChunkingPolicy for now is fixed to Flat and is a mere boolean
+/// which is used to switch off slow "chunking aware" parts. This is ok for
+/// now, but most likely we should move the whole chunk navigation logic there.
+template <typename T, typename ChunkingPolicy = Flat>
+class ColumnIterator : ChunkingPolicy
 {
  public:
-  ColumnIterator(std::shared_ptr<arrow::Column> const& column)
+  /// Constructor of the column iterator. Notice how it takes a pointer
+  /// to the arrow::Column (for the data store) and to the index inside
+  /// it. This means that a ColumnIterator is actually only available
+  /// as part of a RowView.
+  ColumnIterator(arrow::Column const* column)
     : mColumn{column},
-      mCurrentChunk{0},
-      mLastChunk{mColumn->data()->num_chunks() - 1},
-      mLast{nullptr},
-      mCurrent{nullptr}
+      mCurrentPos{nullptr},
+      mFirstIndex{0},
+      mCurrentChunk{0}
   {
-    moveToChunk(mCurrentChunk);
-  }
-
-  void moveToChunk(int chunk)
-  {
-    assert(mColumn.get());
-    assert(mColumn->data());
-    mCurrentChunk = chunk;
     auto chunks = mColumn->data();
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(chunk));
-    assert(array.get());
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     mCurrent = array->raw_values();
     mLast = mCurrent + array->length();
   }
 
+  /// Move the iterator to the next chunk.
+  void nextChunk() const
+  {
+    mCurrentChunk++;
+    auto chunks = mColumn->data();
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex += array->length();
+    mCurrent = array->raw_values() - mFirstIndex;
+    mLast = mCurrent + array->length() + mFirstIndex;
+  }
+
+  void prevChunk()
+  {
+    mCurrentChunk--;
+    auto chunks = mColumn->data();
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex -= array->length();
+    mCurrent = array->raw_values() - mFirstIndex;
+    mLast = mCurrent + array->length() + mFirstIndex;
+  }
+
+  void moveToChunk(int chunk)
+  {
+    if (mCurrentChunk < chunk) {
+      while (mCurrentChunk != chunk) {
+        nextChunk();
+      }
+    } else {
+      while (mCurrentChunk != chunk) {
+        prevChunk();
+      }
+    }
+  }
+
+  /// Move the iterator to the end of the column.
   void moveToEnd()
   {
-    mCurrentChunk = mLastChunk;
+    mCurrentChunk = mColumn->data()->num_chunks() - 1;
     auto chunks = mColumn->data();
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
-    mLast = array->raw_values() + array->length();
-    mCurrent = mLast;
+    mFirstIndex = mColumn->length() - array->length();
+    mCurrent = array->raw_values() - mFirstIndex;
+    mLast = mCurrent + array->length() + mFirstIndex;
   }
 
   T const& operator*() const
   {
-    return *mCurrent;
-  }
-
-  bool operator==(ColumnIterator<T> const& other) const
-  {
-    return mCurrent == other.mCurrent;
-  }
-
-  bool operator!=(ColumnIterator<T> const& other) const
-  {
-    return mCurrent != other.mCurrent;
-  }
-
-  bool operator<(ColumnIterator<T> const& other) const
-  {
-    if (mCurrentChunk < other.mCurrentChunk) {
-      return true;
+    if constexpr (ChunkingPolicy::chunked) {
+      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) > mLast))) {
+        nextChunk();
+      }
     }
-    return mCurrent < other.mCurrent;
+    return *(mCurrent + *mCurrentPos);
   }
 
-  ColumnIterator<T>& operator++()
+  // Move to the chunk which containts element pos
+  ColumnIterator<T>& moveToPos()
   {
-    // Notice how end is actually mLast of the last chunk
-    if (mCurrent + 1 == mLast && mCurrentChunk < mLastChunk) {
-      mCurrentChunk += 1;
-      moveToChunk(mCurrentChunk);
-    } else {
-      mCurrent++;
+    // If we get outside range of the current chunk, go to the next.
+    if constexpr (ChunkingPolicy::chunked) {
+      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) > mLast)) {
+        nextChunk();
+      }
     }
     return *this;
   }
 
-  ColumnIterator<T> operator++(int)
+  // Move to the chunk which containts element pos
+  ColumnIterator<T>& checkNextChunk()
   {
-    ColumnIterator<T> old = *this;
-    operator++();
-    return old;
+    if constexpr (ChunkingPolicy::chunked) {
+      if (O2_BUILTIN_LIKELY((mCurrent + *mCurrentPos) <= mLast)) {
+        return *this;
+      }
+      nextChunk();
+    }
+    return *this;
   }
 
-  std::shared_ptr<arrow::Column> mColumn;
-  T const* mCurrent;
-  T const* mLast;
-  int mCurrentChunk;
-  int mLastChunk;
+  mutable T const* mCurrent;
+  size_t const* mCurrentPos;
+  mutable T const* mLast;
+  arrow::Column const* mColumn;
+  mutable int mFirstIndex;
+  mutable int mCurrentChunk;
 };
 
 template <typename T, typename INHERIT>
 struct Column {
   using inherited_t = INHERIT;
-  Column(ColumnIterator<T> it)
+  Column(ColumnIterator<T> const& it)
     : mColumnIterator{it}
   {
   }
@@ -196,15 +237,17 @@ struct RowView : public C... {
   using persistent_columns_t = framework::filtered_pack<is_not_persistent_t, C...>;
   using dynamic_columns_t = framework::filtered_pack<is_persistent_t, C...>;
 
-  RowView(std::shared_ptr<arrow::Table> const& table)
+  RowView(arrow::Table const* table)
     : C(table)...
   {
+    bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
+    mMaxRow = table->num_rows();
   }
 
   RowView<C...>& operator++()
   {
-    incrementPersistent(persistent_columns_t{});
+    ++mRowIndex;
     return *this;
   }
 
@@ -224,26 +267,28 @@ struct RowView : public C... {
   /// in sync and therefore we check only for the first one.
   bool operator!=(RowView<C...> const& other) const
   {
-    return doCompareNotEqual(persistent_columns_t{}, other);
+    return O2_BUILTIN_LIKELY(mRowIndex != other.mRowIndex);
   }
 
   bool operator==(RowView<C...> const& other) const
   {
-    return doCompareEqual(persistent_columns_t{}, other);
+    return O2_BUILTIN_UNLIKELY(mRowIndex == other.mRowIndex);
   }
 
   void moveToEnd()
   {
     doMoveToEnd(persistent_columns_t{});
+    mRowIndex = mMaxRow;
   }
 
  private:
-  /// Helper to only increment the iterators for persistent columns which actually have
-  /// it.
+  size_t mRowIndex = 0;
+  size_t mMaxRow = 0;
+  /// Helper to move to the correct chunk, if needed.
   template <typename... PC>
-  void incrementPersistent(framework::pack<PC...> pack)
+  void checkNextChunk(framework::pack<PC...> pack)
   {
-    (PC::mColumnIterator.operator++(), ...);
+    (PC::mColumnIterator.checkNextChunk(), ...);
   }
 
   /// Helper to move at the end of columns which actually have an iterator.
@@ -253,19 +298,13 @@ struct RowView : public C... {
     (PC::mColumnIterator.moveToEnd(), ...);
   }
 
-  /// Helper to move at the end of columns which actually have an iterator.
+  /// Helper which binds all the ColumnIterators to the
+  /// index of a the associated RowView
   template <typename... PC>
-  bool doCompareEqual(framework::pack<PC...> pack, RowView<C...> const& other) const
+  auto bindIterators(framework::pack<PC...> pack)
   {
-    using first_t = framework::pack_element_t<0, decltype(pack)>;
-    return (static_cast<first_t const&>(*this).mColumnIterator.operator==(static_cast<first_t const&>(other).mColumnIterator));
-  }
-
-  template <typename... PC>
-  bool doCompareNotEqual(framework::pack<PC...> pack, RowView<C...> const& other) const
-  {
-    using first_t = framework::pack_element_t<0, decltype(pack)>;
-    return (static_cast<first_t const&>(*this).mColumnIterator.operator!=(static_cast<first_t const&>(other).mColumnIterator));
+    using namespace o2::soa;
+    (void(PC::mColumnIterator.mCurrentPos = &mRowIndex), ...);
   }
 
   template <typename... DC>
@@ -282,6 +321,8 @@ struct RowView : public C... {
   }
 };
 
+/// A Table class which observes an arrow::Table and provides
+/// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
 class Table
 {
@@ -297,29 +338,29 @@ class Table
 
   iterator begin()
   {
-    return iterator(mTable);
+    return iterator(mTable.get());
   }
 
   iterator end()
   {
-    iterator end(mTable);
+    iterator end(mTable.get());
     end.moveToEnd();
     return end;
   }
 
   const_iterator begin() const
   {
-    return const_iterator(mTable);
+    return const_iterator(mTable.get());
   }
 
   const_iterator end() const
   {
-    const_iterator end(mTable);
+    const_iterator end(mTable.get());
     end.moveToEnd();
     return end;
   }
 
-  std::shared_ptr<arrow::Table> asArrowTable()
+  std::shared_ptr<arrow::Table> asArrowTable() const
   {
     return mTable;
   }
@@ -375,20 +416,20 @@ class TableMetadata
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                                                                            \
-  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                                                                      \
-    static constexpr const char* mLabel = _Label_;                                                                                       \
-    using type = _Type_;                                                                                                                 \
-    using column_t = _Name_;                                                                                                             \
-    _Name_(std::shared_ptr<arrow::Table> table)                                                                                          \
-      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(table->column(table->schema()->GetFieldIndex(column_t::label())))) \
-    {                                                                                                                                    \
-    }                                                                                                                                    \
-                                                                                                                                         \
-    _Type_ const _Getter_() const                                                                                                        \
-    {                                                                                                                                    \
-      return *mColumnIterator;                                                                                                           \
-    }                                                                                                                                    \
+#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                                                                                  \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                                                                            \
+    static constexpr const char* mLabel = _Label_;                                                                                             \
+    using type = _Type_;                                                                                                                       \
+    using column_t = _Name_;                                                                                                                   \
+    _Name_(arrow::Table const* table)                                                                                                          \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(table->column(table->schema()->GetFieldIndex(column_t::label())).get())) \
+    {                                                                                                                                          \
+    }                                                                                                                                          \
+                                                                                                                                               \
+    _Type_ const _Getter_() const                                                                                                              \
+    {                                                                                                                                          \
+      return *mColumnIterator;                                                                                                                 \
+    }                                                                                                                                          \
   }
 
 /// A dynamic column is a column whose values are derived
@@ -419,43 +460,43 @@ class TableMetadata
 ///                   X, Y, (R2<X,Y>));
 /// \endcode
 ///
-#define DECLARE_SOA_DYNAMIC_COLUMN(_Name_, _Getter_, ...)                                                                      \
-  struct _Name_##Callback {                                                                                                    \
-    static inline constexpr auto getLambda() { return __VA_ARGS__; }                                                           \
-  };                                                                                                                           \
-                                                                                                                               \
-  struct _Name_##Helper {                                                                                                      \
-    using callable_t = decltype(o2::framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>()));     \
-    using return_type = typename callable_t::return_type;                                                                      \
-  };                                                                                                                           \
-  template <typename... Bindings>                                                                                              \
-  struct _Name_ : o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>> {                     \
-    using base = o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>>;                       \
-    using helper = _Name_##Helper;                                                                                             \
-    using callback_holder_t = _Name_##Callback;                                                                                \
-    using callable_t = helper::callable_t;                                                                                     \
-    using callback_t = callable_t::type;                                                                                       \
-                                                                                                                               \
-    _Name_(const std::shared_ptr<arrow::Table> table)                                                                          \
-    {                                                                                                                          \
-    }                                                                                                                          \
-    static constexpr const char* mLabel = #_Name_;                                                                             \
-    using type = typename callable_t::return_type;                                                                             \
-                                                                                                                               \
-    template <typename... FreeArgs>                                                                                            \
-    type const _Getter_(FreeArgs... freeArgs) const                                                                            \
-    {                                                                                                                          \
-      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);                \
-    }                                                                                                                          \
-                                                                                                                               \
-    template <size_t... Is, typename... FreeArgs>                                                                              \
-    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                           \
-    {                                                                                                                          \
-      return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                    \
-    }                                                                                                                          \
-                                                                                                                               \
-    using bindings_t = typename o2::framework::pack<Bindings...>;                                                              \
-    std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                     \
+#define DECLARE_SOA_DYNAMIC_COLUMN(_Name_, _Getter_, ...)                                                                  \
+  struct _Name_##Callback {                                                                                                \
+    static inline constexpr auto getLambda() { return __VA_ARGS__; }                                                       \
+  };                                                                                                                       \
+                                                                                                                           \
+  struct _Name_##Helper {                                                                                                  \
+    using callable_t = decltype(o2::framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>())); \
+    using return_type = typename callable_t::return_type;                                                                  \
+  };                                                                                                                       \
+  template <typename... Bindings>                                                                                          \
+  struct _Name_ : o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>> {                 \
+    using base = o2::soa::DynamicColumn<typename _Name_##Helper::callable_t::type, _Name_<Bindings...>>;                   \
+    using helper = _Name_##Helper;                                                                                         \
+    using callback_holder_t = _Name_##Callback;                                                                            \
+    using callable_t = helper::callable_t;                                                                                 \
+    using callback_t = callable_t::type;                                                                                   \
+                                                                                                                           \
+    _Name_(arrow::Table const* table)                                                                                      \
+    {                                                                                                                      \
+    }                                                                                                                      \
+    static constexpr const char* mLabel = #_Name_;                                                                         \
+    using type = typename callable_t::return_type;                                                                         \
+                                                                                                                           \
+    template <typename... FreeArgs>                                                                                        \
+    type const _Getter_(FreeArgs... freeArgs) const                                                                        \
+    {                                                                                                                      \
+      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
+    }                                                                                                                      \
+                                                                                                                           \
+    template <size_t... Is, typename... FreeArgs>                                                                          \
+    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                       \
+    {                                                                                                                      \
+      return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                \
+    }                                                                                                                      \
+                                                                                                                           \
+    using bindings_t = typename o2::framework::pack<Bindings...>;                                                          \
+    std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
