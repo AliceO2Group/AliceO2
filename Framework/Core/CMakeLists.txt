@@ -228,7 +228,9 @@ foreach(b
         DataRelayer
         DeviceMetricsInfo
         InputRecord
-        TableBuilder)
+        TableBuilder
+        ASoA
+        )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx
               COMPONENT_NAME Framework
