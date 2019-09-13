@@ -41,17 +41,26 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   rowWriter(0, 1, 7);
   auto table = builder.finalize();
 
-  auto i = ColumnIterator<uint64_t>(table->column(0));
-  BOOST_CHECK_EQUAL(*i++, 0);
-  BOOST_CHECK_EQUAL(*i++, 0);
-  BOOST_CHECK_EQUAL(*i++, 0);
-  BOOST_CHECK_EQUAL(*i++, 0);
-  BOOST_CHECK_EQUAL(*i++, 1);
-  BOOST_CHECK_EQUAL(*i++, 1);
-  BOOST_CHECK_EQUAL(*i++, 1);
-  BOOST_CHECK_EQUAL(*i++, 1);
+  auto i = ColumnIterator<uint64_t>(table->column(0).get());
+  size_t pos = 0;
+  i.mCurrentPos = &pos;
+  BOOST_CHECK_EQUAL(*i, 0);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 0);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 0);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 0);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 1);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 1);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 1);
+  pos++;
+  BOOST_CHECK_EQUAL(*i, 1);
 
-  RowView<test::X, test::Y> tests(table);
+  RowView<test::X, test::Y> tests(table.get());
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
