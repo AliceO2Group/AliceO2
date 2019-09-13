@@ -24,6 +24,7 @@ namespace test
 {
 DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
 DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
+DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](uint64_t x, uint64_t y) { return x + y; });
 } // namespace test
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
@@ -77,5 +78,34 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
     BOOST_CHECK_EQUAL(t.y(), value);
     BOOST_REQUIRE(value < 8);
     value++;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestDynamicColumns)
+{
+  TableBuilder builder;
+  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  rowWriter(0, 0, 0);
+  rowWriter(0, 0, 1);
+  rowWriter(0, 0, 2);
+  rowWriter(0, 0, 3);
+  rowWriter(0, 1, 4);
+  rowWriter(0, 1, 5);
+  rowWriter(0, 1, 6);
+  rowWriter(0, 1, 7);
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X, test::Y, test::Sum<test::X, test::Y>>;
+
+  Test tests{table};
+  for (auto& test : tests) {
+    BOOST_CHECK_EQUAL(test.sum(), test.x() + test.y());
+  }
+
+  using Test2 = o2::soa::Table<test::X, test::Y, test::Sum<test::Y, test::Y>>;
+
+  Test2 tests2{table};
+  for (auto& test : tests2) {
+    BOOST_CHECK_EQUAL(test.sum(), test.y() + test.y());
   }
 }
