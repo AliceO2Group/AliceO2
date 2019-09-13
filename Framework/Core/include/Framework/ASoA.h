@@ -435,7 +435,7 @@ class TableMetadata
   };                                                                                                                                       \
                                                                                                                                            \
   struct _Name_##Helper {                                                                                                                  \
-    using callable_t = decltype(framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>()));                     \
+    using callable_t = decltype(o2::framework::FunctionMetadata(std::declval<decltype(_Name_##Callback::getLambda())>()));                 \
     using return_type = typename callable_t::return_type;                                                                                  \
   };                                                                                                                                       \
   template <typename... Bindings>                                                                                                          \
@@ -465,8 +465,8 @@ class TableMetadata
       return base::mCallable((**std::get<Is>(boundIterators))..., freeArgs...);                                                            \
     }                                                                                                                                      \
                                                                                                                                            \
-    using bindings_t = typename framework::pack<Bindings...>;                                                                              \
-    std::tuple<soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                                     \
+    using bindings_t = typename o2::framework::pack<Bindings...>;                                                                          \
+    std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                                 \
   }
 
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
