@@ -40,6 +40,11 @@ Response::Response(Station station) : mStation(station)
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
   }
+
+  if(isSampa){
+    mChargeThreshold = 5*1e-4;//arbitrary setting
+    mChargeSat = 0.0;//not yet used
+  }
 }
 
 //_____________________________________________________________________
