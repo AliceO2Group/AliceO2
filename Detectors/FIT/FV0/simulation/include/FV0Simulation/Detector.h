@@ -8,21 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Detector.h
-/// \brief Definition of the Detector class
+/// \file   Detector.h
+/// \brief  Definition of the FV0 detector class.
+///
+/// \author Maciej Slupecki, University of Jyvaskyla, Finland
+/// \author Andreas Molander, University of Helsinki, Finland
 
 #ifndef ALICEO2_FV0_DETECTOR_H_
 #define ALICEO2_FV0_DETECTOR_H_
 
-#include "TLorentzVector.h"
+#include <TLorentzVector.h>
 
-#include "SimulationDataFormat/BaseHits.h"
-#include "DetectorsBase/Detector.h" // for Detector
-#include "FV0Base/Geometry.h"
 #include "DataFormatsFV0/Hit.h"
+#include "DetectorsBase/Detector.h"
+#include "FV0Base/Geometry.h"
+#include "SimulationDataFormat/BaseHits.h"
 
 class FairModule;
-
 class FairVolume;
 class TGeoVolume;
 class TGraph;
@@ -31,15 +33,6 @@ namespace o2
 {
 namespace fv0
 {
-class Geometry;
-}
-} // namespace o2
-
-namespace o2
-{
-namespace fv0
-{
-class Geometry;
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
@@ -52,7 +45,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Constructor with on/off flag
   /// \param isActive  kTRUE for active detectors (ProcessHits() will be called),
   ///                  kFALSE for inactive detectors
-  Detector(Bool_t isActive);
+  explicit Detector(Bool_t isActive);
 
   /// Initializes the detector (adds sensitive volume)
   void InitializeO2Detector() override;
@@ -80,14 +73,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Called at the end of event
   void EndOfEvent() override;
 
-  // TODO: From MFT -> are they needed?
-  //    void FinishPrimary() override { ; }
-  //    void FinishRun() override { ; }
-  //    void BeginPrimary() override { ; }
-  //    void PostTrack() override { ; }
-  //    void PreTrack() override { ; }
-  //    void SetSpecialPhysicsCuts() override { ; }
-
   /// Registers new materials in o2::base::Detector
   void createMaterials();
 
@@ -97,8 +82,15 @@ class Detector : public o2::base::DetImpl<Detector>
   enum EMedia {
     Zero,
     Air,
-    Scintillator
-  }; // media IDs used in createMaterials
+    Scintillator,
+    Plastic,
+    FiberInner,
+    FiberMiddle,
+    FiberOuter,
+    Aluminium,
+    Steel,
+    Titanium
+  }; // media IDs used in createMaterials()
 
  private:
   /// Container for hits
@@ -130,6 +122,7 @@ std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
 } // namespace fv0
 } // namespace o2
+
 #ifdef USESHM
 namespace o2
 {
