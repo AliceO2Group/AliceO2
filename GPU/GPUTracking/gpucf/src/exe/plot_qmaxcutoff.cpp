@@ -180,7 +180,7 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     mg->Add(gX);
 
     mg->Draw("AL");
-    mg->GetXaxis()->SetTitle("qmax");
+    mg->GetXaxis()->SetTitle("Schwellenwert qmax");
     mg->GetYaxis()->SetTitle("# Hits");
     c->BuildLegend();
     c->SaveAs(file.c_str());
