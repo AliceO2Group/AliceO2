@@ -237,7 +237,7 @@ def bar(cnf):
         steps = [cnf.stepPrettyNames.get(step, step) for step in steps]
 
     plt.xticks(indexes + (stepSize - 1) * barWidth / 2, steps, rotation=20)
-    plt.margins(0.2)
+    plt.margins(0.05)
     plt.subplots_adjust(bottom=0.2)
 
 
@@ -322,7 +322,7 @@ def finalize(cnf):
         plt.xlabel(cnf.xlabel)
 
     if cnf.showLegend:
-        plt.legend(loc='best')
+        plt.legend(loc='best', fontsize=7)
 
     plt.savefig(cnf.expand(cnf.out))
 
