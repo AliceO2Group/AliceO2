@@ -38,6 +38,7 @@ class Digits2Raw
   static constexpr int NPMs = 18;
   static constexpr float MV_2_NCHANNELS = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_NCHANNELS = 76.804916; //1000.(ps)/13.02(channel);
+  static constexpr int GBTWORDSIZE = 80;
 
  public:
   Digits2Raw() = default;
@@ -53,17 +54,21 @@ class Digits2Raw
 
     return o2::ft0::LookUpTable{lut_data};
   }
+  void printRDH(const o2::header::RAWDataHeader* h);
 
  private:
-  void flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
-  void setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nchannels);
-  void setRDH(int link, o2::InteractionRecord const& mIntRecord);
+  void flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
+  void setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
+  void setRDH(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
+
   std::ofstream mFileDest;
   //  FILE* mFileDest;
   o2::ft0::EventHeader mEventHeader;
   o2::ft0::EventData mEventData[NCHANNELS_FT0];
   o2::header::RAWDataHeader mRDH;
   /////////////////////////////////////////////////
+  int mNpages = 0; // number of pages for RDH (set by CRU)
+
   ClassDefNV(Digits2Raw, 1);
 };
 
