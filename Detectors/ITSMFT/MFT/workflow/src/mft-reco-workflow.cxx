@@ -8,12 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/runDataProcessing.h"
-
 #include "MFTWorkflow/RecoWorkflow.h"
 #include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
+
+  std::swap(workflowOptions, options);
+
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
+
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+}
+
+#include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {

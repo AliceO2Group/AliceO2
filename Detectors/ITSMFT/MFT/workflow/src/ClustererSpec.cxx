@@ -59,8 +59,8 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
-  mFullClusters = !ic.options().get<bool>("full-clusters");
-  mCompactClusters = !ic.options().get<bool>("compact-clusters");
+  mFullClusters = !ic.options().get<bool>("no-full-clusters");
+  mCompactClusters = !ic.options().get<bool>("no-compact-clusters");
 
   auto filename = ic.options().get<std::string>("mft-dictionary-file");
   mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
@@ -140,7 +140,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "ITSDigitROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "MFTDigitROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
