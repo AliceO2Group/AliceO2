@@ -41,7 +41,7 @@ Response::Response(Station station) : mStation(station)
     mInversePitch = 1. / 0.25; // cm^-1
   }
 
-  if(isSampa){
+  if(mSampa){
     mChargeThreshold = 5*1e-4;//arbitrary setting
     mChargeSat = 0.0;//not yet used
   }

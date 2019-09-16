@@ -57,7 +57,7 @@ void RawEncoder::init()
 {
 }
 //______________________________________________________________________
-void RawEncoder::process(const std::vector<Digit> digits, std::vector<char>& raw){
+void RawEncoder::process(const std::vector<Digit> digits, std::vector<uint16_t>& raw){
 
   raw.clear();
 
@@ -66,32 +66,35 @@ void RawEncoder::process(const std::vector<Digit> digits, std::vector<char>& raw
     processDigit(digit, raw);
   }
 
+  printRawData(raw);
 
 }
 //______________________________________________________________________
-int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
+int RawEncoder::processDigit(const Digit& digit, std::vector<uint16_t>& raw){
 
   //time: check TimStamp class
   int detID = digit.getDetID();
   int padid = digit.getPadID();
   double adc = digit.getADC();
-  double time = digit.getTimeStamp();//dataformat T: double cast ok?
-
+  auto time = digit.getTimeStamp();
+  int sigtime = timeConvert(time);
+  
   auto& seg = segmentation(detID);
 
+
+  //header information
+  char hammingparitybit = 0;//to be done
+  char pkt = 0; //set below
+  uint16_t datalength=0;//first part of payload
   int padDualSampaId =  seg.padDualSampaId(padid);
   int padDualSampaChannel = seg.padDualSampaChannel(padid);
-  
-  char hammingparitybit = 0;
-  char pkt = 0;
-  char datalength1=0;
-  char datalength2=0;
-  char addressChip =padDualSampaId ;//tbc, could be wrong
+  char addressChip =padDualSampaId;//tbc, could be wrong
   char addressChannel =padDualSampaChannel;
-  char bx1 =0; //keep at 0 for the time being
-  char bx2 =0; //
-  char bx3=0; //
+  uint32_t bx =0; //keep at 0 for the time being
   char pbitpay =0;
+  
+  //  uint16_t datalength=0;//first part of payload// two times appearing? to be checked, if not, there are only 80 bits, not 90
+  
   //int: at least 16 bits
   
   //header format:
@@ -122,61 +125,46 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<char>& raw){
   
   //fill
   //payload:
-  int timebins = timeBins();//todo generate from a distribution
   int adcsum = (int) adc;//conversion according to total number
 
-  int adcbins[timebins];
-  for (int i=0; i< timebins; ++i)
-      adcbins[i] = intSignal(adcsum, timebins, i); //to be done with function
-
   //todo hammingparitybit construction
-  
-  raw.emplace_back(hammingparitybit);
-  //dummy only for non-empty data
+//dummy only for non-empty data
   //data, keep 0s for bits not needed
-  pkt= 1+4;//PKT[0] and PKT[2]
-  raw.emplace_back(pkt);
-  datalength1=(timebins+1)/(pow(2,5));//+1 for signal time
-  datalength2=(timebins+1)-datalength1;
+  pkt= 1+4;//PKT[0] and PKT[2]                                                                       
+  uint16_t bits_1 = (hammingparitybit << 9)/*7 bits*/ + (pkt<<6)/*3 bits*/ + (datalength>>4)/*first 6 of 10*/ ;
+  raw.emplace_back(bits_1);
   
-  raw.emplace_back(datalength1);
-  raw.emplace_back(datalength2);
-
-  //dual sampa address goes from 0 to 39
-  //address of channel within sampa goes from 0 to 63
-  raw.emplace_back(addressChip);
-  raw.emplace_back(addressChannel);
-    
-  for(int i=0; i< timebins; ++i)
-  raw.emplace_back(adcbins[i]);
-  
-  //header
-  //
-  //to do: functional shape for a given sum of adc
-  // need to sample first from a function the distribution of
-  //time duration of a signal, for the first trial, just one signal
-
-  //second step: for a given time duration (e.g. bin number) and a given ADC
-  //sum, generate counts from a distribution.
-  //easiest: have a function with these two parameters, that is integrated
-  //for each bin,
-  // these two parameters
-  
-  
+  uint16_t bits_2 = (datalength<<12)/*2nd 4 out of 10 bits*/+ (addressChip<<8)/*4 bits*/+ (addressChannel<<3)/*5 bits*/ + (bx>>17)/*first 3 bits out of 20*/;
+  raw.emplace_back(bits_2);
+  uint16_t bits_3 = (bx<<1);/*second 16 bits out of 20*/
+  raw.emplace_back(bits_3);
+  uint16_t bits_4 = (bx<<15)/*third 1 bit out of 20*/+(pbitpay<<14)/*1 bit*/+(datalength<<13)/*tbc 10 bits*/+(sigtime>>6)/*4 bits out of 10*/;
+  raw.emplace_back(bits_4);
+  uint16_t bits_5 = (sigtime<<10)/*2nd 6 bits out of 10*/+(adcsum>>10)/*first 10 bits out of 20*/  ;
+  raw.emplace_back(bits_5);
+  uint16_t bits_6 = (adcsum<<6)/*2nd 10 bits out of 20*/;
+  raw.emplace_back(bits_6);
   return raw.size();
 
 }
 //______________________________________________________________________
-int RawEncoder::intSignal(int adcsum, int timebins, int timebin){
+int RawEncoder::printRawData(std::vector<uint16_t>& raw){
 
-  //uniform distribution as dummy, time independent
-  return adcsum/timebins;
-
+  //Todo print raw data
+  
+  return raw.size();
 }
 //______________________________________________________________________
-int RawEncoder::timeBins(){
+int RawEncoder::timeConvert(double time){
 
-  return 20;
+  //to be fixed
+  //need to "subtract" bx time...
+  //need to be in 10 bits
+  uint16_t inttime = (int) time;
+  inttime = inttime&(0<<11)&(0<<12)&(0<<13)&(0<<14)&(0<<15);
+  
+  return inttime;
+
 }
 
 

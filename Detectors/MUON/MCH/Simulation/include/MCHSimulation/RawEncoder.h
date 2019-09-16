@@ -32,7 +32,7 @@ class RawEncoder
   void init();
 
   //process digits: fill raw "vector" with raw format
-  void process(const std::vector<Digit> digits, std::vector<char>& raw);
+  void process(const std::vector<Digit> digits, std::vector<uint16_t>& raw);
   //for the moment 1 char 5 bit
 
   
@@ -43,10 +43,10 @@ class RawEncoder
   const static int mNdE = 156;//tbc, if needed
 
 
-  int processDigit(const Digit& digit, std::vector<char>& raw); //tbc if anything else needed
-  int intSignal(int adcsum, int timebins, int timebin);
+  int processDigit(const Digit& digit, std::vector<uint16_t>& raw); //tbc if anything else needed
+  int printRawData(std::vector<uint16_t>& raw);
+  int timeConvert(double time);
 
-  int timeBins();
 };
   
 
