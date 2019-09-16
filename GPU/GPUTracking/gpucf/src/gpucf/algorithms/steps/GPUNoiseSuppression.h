@@ -29,7 +29,10 @@ public:
     void call(ClusterFinderState &state, cl::CommandQueue queue)
     {
         bool scratchpad = (state.cfg.clusterbuilder == ClusterBuilder::ScratchPad);
-        size_t dummyItems = (scratchpad) ? 64 - (state.peaknum % 64) : 0;
+        size_t dummyItems = 
+            (scratchpad) 
+                ? state.cfg.wgSize - (state.peaknum % state.cfg.wgSize) 
+                : 0;
 
         size_t workitems = state.peaknum + dummyItems;
 
@@ -39,14 +42,14 @@ public:
         noiseSuppression.setArg(3, static_cast<cl_uint>(state.peaknum));
         noiseSuppression.setArg(4, state.isPeak);
 
-        noiseSuppression.call(0, workitems, 64, queue);
+        noiseSuppression.call(0, workitems, state.cfg.wgSize, queue);
 
 
         updatePeaks.setArg(0, state.peaks);
         updatePeaks.setArg(1, state.isPeak);
         updatePeaks.setArg(2, state.peakMap);
 
-        updatePeaks.call(0, state.peaknum, 64, queue);
+        updatePeaks.call(0, state.peaknum, state.cfg.wgSize, queue);
     }
 
     Step asStep(const std::string &name) const

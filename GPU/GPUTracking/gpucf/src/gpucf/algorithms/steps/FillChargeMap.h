@@ -26,7 +26,7 @@ public:
     {
         kernel.setArg(0, state.digits);    
         kernel.setArg(1, state.chargeMap);    
-        Kernel1D::call(0, state.digitnum, 64, queue);
+        Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
     }
 
 };

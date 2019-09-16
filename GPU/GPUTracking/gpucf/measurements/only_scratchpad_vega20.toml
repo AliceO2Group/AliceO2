@@ -1,0 +1,8 @@
+input = [
+    { file = "in/scratchpad4x4_vega20.json", label = "naive (4x4 tiling)" }
+]
+
+type   = "bar"
+out    = "out/only_scratchpad_vega20.pdf"
+ylabel = "time [ms]"
+showLegend = false

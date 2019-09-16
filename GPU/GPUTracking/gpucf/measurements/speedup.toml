@@ -1,0 +1,10 @@
+input = [
+    { file = "in/padmajor_vega20.json", label = "naive (pad major)" }
+    { file = "in/timemajor_vega20.json", label = "naive (time major)" }
+    { file = "in/tiling4x4_vega20.json", label = "naive (4x4 tiling)" }
+    { file = "in/scratchpadTime_vega20.json", label = "scratchpad time" }
+    { file = "in/scratchpad4x4_vega20.json", label = "scratchpad 4x4" }
+]
+
+type   = "speedup"
+out = ""
