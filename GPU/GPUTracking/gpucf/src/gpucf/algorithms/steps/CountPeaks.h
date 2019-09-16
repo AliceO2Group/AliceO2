@@ -24,7 +24,9 @@ public:
     void call(ClusterFinderState &state, cl::CommandQueue queue)
     {
         bool scratchpad = (state.cfg.clusterbuilder == ClusterBuilder::ScratchPad);
-        size_t dummyItems = (scratchpad) ? 64 - (state.digitnum % 64) : 0;
+        size_t dummyItems = (scratchpad) 
+            ? state.cfg.wgSize - (state.digitnum % state.cfg.wgSize) 
+            : 0;
 
         size_t workitems = state.digitnum + dummyItems;
 
@@ -33,7 +35,7 @@ public:
         kernel.setArg(2, state.digits);
         kernel.setArg(3, static_cast<cl_uint>(state.digitnum));
 
-        Kernel1D::call(0, workitems, 64, queue);
+        Kernel1D::call(0, workitems, state.cfg.wgSize, queue);
     }
 
 };

@@ -1,0 +1,20 @@
+input = [
+    { file = "in/scratchpad4x4_vega20.json", label = "64" }
+    { file = "in/scratchpad4x4_vega20_128.json", label = "128" }
+    { file = "in/scratchpad4x4_vega20_256.json", label = "256" }
+]
+
+type   = "bar"
+out    = "out/wgsize.pdf"
+ylabel = "Zeit [ms]"
+showLegend = true
+
+[stepPrettyNames]
+    fillChargeMap        = "Fülle Buffer"
+    findPeaks            = "Finde Peaks"
+    compactPeaks         = "Kompaktierung I"
+    noiseSuppression     = "Rauschunterdrückung"
+    compactFilteredPeaks = "Kompaktierung II"
+    countPeaks           = "Teile Ladungen"
+    computeClusters      = "Bestimme Cluster"
+    resetMaps            = "Reset Buffer"
