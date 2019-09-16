@@ -20,6 +20,8 @@ declare -a configs=(
     "--layoutTiling4x4 -cpad --builderScratchPad -o$resdir/scratchpad4x4_vega20_pad.json"
     "--layoutTiling4x4 -crandom --builderScratchPad -o$resdir/scratchpad4x4_vega20_rand.json"
     "--layoutTiling4x4 -cfull --builderScratchPad -o$resdir/scratchpad4x4_vega20_full.json"
+    "--layoutTiling4x4 --builderScratchPad --wgSize=128 -o$resdir/scratchpad4x4_vega20_128.json"
+    "--layoutTiling4x4 --builderScratchPad --wgSize=256 -o$resdir/scratchpad4x4_vega20_256.json"
 )
 
 mkdir -p $measurementsDir/in
@@ -29,4 +31,3 @@ make -sC$buildDir/release benchmark -j64
 for cfg in "${configs[@]}"; do
     ./$buildDir/release/bin/benchmark -scl -ddata/digits_ev10_pythia8hi.bin $cfg
 done
-
