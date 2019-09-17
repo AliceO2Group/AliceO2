@@ -121,6 +121,14 @@ struct VertexingParameters {
   int zSpan = -1;
 };
 
+struct VertexerStoreConfigurationGPU {
+  // o2::its::GPU::Vector constructor requires signed size for initialisation
+  int dupletsCapacity = 5e6;
+  int processedTrackletsCapacity = 5e6;
+  int clustersPerLayerCapacity = 50e3;
+  int maxTrackletsPerCluster = 1e2;
+};
+
 } // namespace its
 } // namespace o2
 

@@ -37,6 +37,11 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};
   mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};
   mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  for (int iLayersCouple{0}; iLayersCouple < 2; ++iLayersCouple) {
+    mDupletIndices[iLayersCouple] = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+  }
+#endif
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1};
   }
@@ -44,17 +49,21 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
     mClusters[iLayer] = Vector<Cluster>{mGPUConf.clustersPerLayerCapacity};
   }
   for (int iPair{0}; iPair < constants::its::LayersNumberVertexer - 1; ++iPair) {
-    mNFoundTracklets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity};
+    mNFoundDuplets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity};
   }
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity};
+  mSizes = Vector<int>{constants::its::LayersNumberVertexer};
 }
 
 UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
                                                                          const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
                                                                                           constants::its::LayersNumberVertexer>& indexTables)
 {
+  std::array<int, constants::its::LayersNumberVertexer> tmpSizes = {static_cast<int>(clusters[0].size()),
+                                                                    static_cast<int>(clusters[1].size()),
+                                                                    static_cast<int>(clusters[2].size())};
+  mSizes.reset(tmpSizes.data(), constants::its::LayersNumberVertexer);
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
-    mSizes[iLayer] = clusters[iLayer].size();
     mClusters[iLayer].reset(clusters[iLayer].data(), static_cast<int>(clusters[iLayer].size()));
   }
   mIndexTables[0].reset(indexTables[0].data(), static_cast<int>(indexTables[0].size()));
@@ -72,46 +81,12 @@ UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const s
   return deviceStoreVertexerPtr;
 }
 
-std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsfromGPU(const TrackletingLayerOrder order)
+GPUd() const Vector<int>& DeviceStoreVertexerGPU::getIndexTable(const VertexerLayerName layer)
 {
-  // Danger, really large allocations, use debug-purpose only.
-  std::vector<Tracklet> tmpDuplets{static_cast<size_t>(mGPUConf.dupletsCapacity)};
-  std::vector<int> nFoundDuplets{mSizes[1]};
-  std::vector<Tracklet> shrinkedDuplets{2000};
-
-  if (order == GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer) {
-    mNFoundTracklets[0].copyIntoVector(nFoundDuplets, mSizes[1]);
-    mDuplets01.copyIntoVector(tmpDuplets, tmpDuplets.size());
-  } else {
-    mDuplets12.copyIntoVector(tmpDuplets, tmpDuplets.size());
-    mNFoundTracklets[1].copyIntoVector(nFoundDuplets, mSizes[1]);
+  if (layer == VertexerLayerName::innermostLayer) {
+    return mIndexTables[0];
   }
-
-  for (int iCluster{0}; iCluster < mSizes[1]; ++iCluster) {
-    const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
-    for (int iDuplet{0}; iDuplet < nFoundDuplets[iCluster]; ++iDuplet) {
-      shrinkedDuplets.push_back(tmpDuplets[stride + iDuplet]);
-    }
-  }
-  return shrinkedDuplets;
-}
-
-std::vector<Line> DeviceStoreVertexerGPU::getLinesfromGPU()
-{
-  // Danger, really large allocations, use debug-purpose only.
-  std::vector<Line> tmpLines{static_cast<size_t>(mGPUConf.processedTrackletsCapacity)};
-  std::vector<int> nFoundLines{mSizes[1]};
-  std::vector<Line> shrinkedLines{1000};
-
-  mNFoundLines.copyIntoVector(nFoundLines, mSizes[1]);
-
-  for (int iCluster{0}; iCluster < mSizes[1]; ++iCluster) {
-    const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
-    for (int iLine{0}; iLine < nFoundLines[iCluster]; ++iLine) {
-      shrinkedLines.push_back(tmpLines[stride + iLine]);
-    }
-  }
-  return shrinkedLines;
+  return mIndexTables[1];
 }
 
 } // namespace GPU
