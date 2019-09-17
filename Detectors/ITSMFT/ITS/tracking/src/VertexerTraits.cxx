@@ -340,6 +340,7 @@ void VertexerTraits::computeTrackletMatching()
 #endif
 }
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
 void VertexerTraits::computeMCFiltering()
 {
   assert(mEvent != nullptr);
@@ -361,6 +362,7 @@ void VertexerTraits::computeMCFiltering()
     }
   }
 }
+#endif
 
 void VertexerTraits::computeVertices()
 {
@@ -450,6 +452,52 @@ void VertexerTraits::computeVertices()
 
 // Debug functions
 #ifdef _ALLOW_DEBUG_TREES_ITS_
+
+// Montecarlo validation for externally-provided tracklets (GPU-like cases)
+void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
+                                           std::vector<Tracklet>& tracklets12,
+                                           std::vector<int>& indices01,
+                                           std::vector<int>& indices12,
+                                           const int stride)
+{
+  // Tracklets 01
+  assert(mEvent != nullptr);
+  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+  {
+    const size_t offset = iFoundTrackletIndex * stride;
+    int removed{0};
+    for (size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
+      const size_t iTracklet{offset + iTrackletIndex};
+      const auto& lbl0 = mEvent->getClusterLabels(0, mClusters[0][tracklets01[iTracklet].firstClusterIndex].clusterId);
+      const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][tracklets01[iTracklet].secondClusterIndex].clusterId);
+      if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) {
+        tracklets01[iTracklet] = Tracklet();
+        ++removed;
+      }
+    }
+    std::sort(tracklets01.begin() + offset, tracklets01.begin() + offset + indices01[iFoundTrackletIndex]);
+    indices01[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
+  }
+
+  // Tracklets 12
+  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+  {
+    const size_t offset = iFoundTrackletIndex * stride;
+    int removed{0};
+    for (size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
+      const size_t iTracklet{offset + iTrackletIndex};
+      const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][tracklets12[iTracklet].firstClusterIndex].clusterId);
+      const auto& lbl2 = mEvent->getClusterLabels(2, mClusters[2][tracklets12[iTracklet].secondClusterIndex].clusterId);
+      if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) {
+        tracklets12[iTracklet] = Tracklet();
+        ++removed;
+      }
+    }
+    std::sort(tracklets12.begin() + offset, tracklets12.begin() + offset + indices12[iFoundTrackletIndex]);
+    indices12[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
+  }
+}
+
 void VertexerTraits::fillCombinatoricsTree()
 {
   assert(mEvent != nullptr);
