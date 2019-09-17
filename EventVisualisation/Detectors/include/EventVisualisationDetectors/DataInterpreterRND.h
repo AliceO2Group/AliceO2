@@ -16,7 +16,6 @@
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERRND_H
 
 #include "EventVisualisationBase/DataInterpreter.h"
-#include "EventVisualisationBase/EventManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 
 namespace o2
