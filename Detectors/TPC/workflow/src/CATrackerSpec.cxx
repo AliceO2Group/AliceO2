@@ -221,17 +221,17 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (readTransformationFromFile) {
         processAttributes->fastTransform = nullptr;
-        config.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
+        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
-        config.fastTransform = processAttributes->fastTransform.get();
+        config.configCalib.fastTransform = processAttributes->fastTransform.get();
       }
-      if (config.fastTransform == nullptr) {
+      if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
-      config.fastTransform = processAttributes->fastTransform.get();
+      config.configCalib.fastTransform = processAttributes->fastTransform.get();
       o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
-      config.matLUT = lut;
+      config.configCalib.matLUT = lut;
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();
       o2::trd::TRDGeometry gm;

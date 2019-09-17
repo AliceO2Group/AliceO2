@@ -17,7 +17,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUProcessor::GPUProcessor() : mRec(nullptr), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(nullptr), mCAParam(nullptr), mAllocateAndInitializeLate(false) {}
+GPUProcessor::GPUProcessor() : mRec(nullptr), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(nullptr), mConstantMem(nullptr), mAllocateAndInitializeLate(false) {}
 
 GPUProcessor::~GPUProcessor()
 {
@@ -33,7 +33,7 @@ void GPUProcessor::InitGPUProcessor(GPUReconstruction* rec, GPUProcessor::Proces
   if (slaveProcessor) {
     slaveProcessor->mDeviceProcessor = this;
   }
-  mCAParam = type == PROCESSOR_TYPE_DEVICE ? (reinterpret_cast<GPUReconstructionDeviceBase*>(rec))->DeviceParam() : &rec->GetParam();
+  rec->ConstructGPUProcessor(this);
 }
 
 void GPUProcessor::Clear() { mRec->FreeRegisteredMemory(this, true); }
