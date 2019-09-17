@@ -107,6 +107,13 @@ class ColumnIterator : ChunkingPolicy
     mLast = mCurrent + array->length();
   }
 
+  ColumnIterator() = default;
+  ColumnIterator(ColumnIterator<T, ChunkingPolicy> const&) = default;
+  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy> const&) = default;
+
+  ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) = default;
+  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) = default;
+
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
@@ -203,6 +210,10 @@ struct Column {
   {
   }
 
+  Column() = default;
+  Column(Column const&) = default;
+  Column& operator=(Column const&) = default;
+
   using persistent = std::true_type;
   using type = T;
   static constexpr const char* const& label() { return INHERIT::mLabel; }
@@ -245,6 +256,41 @@ struct RowView : public C... {
     mMaxRow = numRows;
   }
 
+  RowView(RowView<C...> const& other)
+    : C(static_cast<C const&>(other))...
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+  }
+
+  RowView() = default;
+  RowView<C...>& operator=(RowView<C...> const& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+    return *this;
+  }
+
+  RowView(RowView<C...>&& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+  }
+
+  RowView& operator=(RowView<C...>&& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    return *this;
+  }
+
   RowView<C...>& operator++()
   {
     ++mRowIndex;
@@ -277,7 +323,6 @@ struct RowView : public C... {
 
   void moveToEnd()
   {
-    doMoveToEnd(persistent_columns_t{});
     mRowIndex = mMaxRow;
   }
 
@@ -344,22 +389,22 @@ class Table
 
   iterator begin()
   {
-    return iterator(mColumnIndex, this->size());
+    return iterator(mBegin);
   }
 
   iterator end()
   {
-    return mEnd;
+    return iterator{mEnd};
   }
 
   const_iterator begin() const
   {
-    return const_iterator(mColumnIndex, this->size());
+    return const_iterator(mBegin);
   }
 
   const_iterator end() const
   {
-    return mEnd;
+    return const_iterator{mEnd};
   }
 
   std::shared_ptr<arrow::Table> asArrowTable() const
@@ -385,6 +430,8 @@ class Table
   std::shared_ptr<arrow::Table> mTable;
   /// This is a cached lookup of the column index in a given
   std::tuple<std::pair<C*, arrow::Column*>...> mColumnIndex;
+  /// Cached begin iterator for this table.
+  iterator mBegin;
   /// Cached end iterator for this table.
   iterator mEnd;
 };
@@ -441,6 +488,10 @@ class TableMetadata
     {                                                                          \
     }                                                                          \
                                                                                \
+    _Name_() = default;                                                        \
+    _Name_(_Name_ const& other) = default;                                     \
+    _Name_& operator=(_Name_ const& other) = default;                          \
+                                                                               \
     _Type_ const _Getter_() const                                              \
     {                                                                          \
       return *mColumnIterator;                                                 \
@@ -495,6 +546,9 @@ class TableMetadata
     _Name_(arrow::Column const*)                                                                                           \
     {                                                                                                                      \
     }                                                                                                                      \
+    _Name_() = default;                                                                                                    \
+    _Name_(_Name_ const& other) = default;                                                                                 \
+    _Name_& operator=(_Name_ const& other) = default;                                                                      \
     static constexpr const char* mLabel = #_Name_;                                                                         \
     using type = typename callable_t::return_type;                                                                         \
                                                                                                                            \
