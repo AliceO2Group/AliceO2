@@ -15,7 +15,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETER_H
 
-#include "EventVisualisationBase/EventManager.h"
+//#include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 
 #include <TEveElement.h>

@@ -14,8 +14,6 @@
 
 #include "EventVisualisationBase/Track.h"
 
-#include "EventVisualisationBase/EventManager.h"
-
 #include <TROOT.h>
 #include <TMath.h>
 #include <TEveUtil.h>

@@ -11,9 +11,7 @@
 o2_add_library(EventVisualisationBase
                SOURCES src/ConfigurationManager.cxx
                        src/DataInterpreter.cxx
-                       src/DataReaderVSD.cxx
                        src/DataSourceOffline.cxx
-                       src/EventManager.cxx
                        src/EventRegistration.cxx
                        src/GeometryManager.cxx
                        src/Track.cxx

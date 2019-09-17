@@ -19,7 +19,7 @@
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationBase/DataSourceOffline.h>
-#include <EventVisualisationBase/DataReaderVSD.h>
+#include <EventVisualisationDetectors/DataReaderVSD.h>
 #include <Rtypes.h>
 #include <iostream>
 

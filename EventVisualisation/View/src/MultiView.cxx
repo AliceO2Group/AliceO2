@@ -15,7 +15,7 @@
 #include "EventVisualisationView/MultiView.h"
 
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/EventManager.h"
+#include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 
