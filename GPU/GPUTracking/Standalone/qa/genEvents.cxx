@@ -165,7 +165,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
   {
     prop.SetToyMCEventsFlag(kTRUE);
     const GPUTPCGMMerger& merger = mRec->GetTPCMerger();
-    prop.SetPolynomialField(merger.pField());
+    prop.SetPolynomialField(&merger.Param().polynomialField);
   }
 
   //  const double kCLight = 0.000299792458;

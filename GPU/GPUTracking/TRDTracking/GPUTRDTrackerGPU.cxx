@@ -27,6 +27,6 @@ GPUd() void GPUTRDTrackerGPU::Thread<0>(int nBlocks, int nThreads, int iBlock, i
 #pragma omp parallel for num_threads(processors.trdTracker.GetRec().GetDeviceProcessingSettings().nThreads)
 #endif
   for (int i = get_global_id(0); i < processors.trdTracker.NTracks(); i += get_global_size(0)) {
-    processors.trdTracker.DoTrackingThread(i, &processors.tpcMerger, get_global_id(0));
+    processors.trdTracker.DoTrackingThread(i, get_global_id(0));
   }
 }

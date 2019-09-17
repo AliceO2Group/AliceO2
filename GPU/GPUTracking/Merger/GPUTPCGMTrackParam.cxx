@@ -27,6 +27,9 @@
 #include "GPUdEdx.h"
 #include "GPUParam.h"
 #include "GPUTPCClusterErrorStat.h"
+#include "GPUO2DataTypes.h"
+#include "GPUConstantMem.h"
+#include "TPCFastTransform.h"
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliExternalTrackParam.h"
@@ -44,6 +47,7 @@
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
 static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
 static constexpr float kRadLen = 29.532f; // 28.94;
@@ -59,12 +63,12 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
   GPUdEdx dEdx;
   GPUTPCGMPropagator prop;
   prop.SetMaterial(kRadLen, kRho);
-  prop.SetPolynomialField(merger->pField());
+  prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
   prop.SetMatLUT(merger->MatLUT());
   if ((clusters[0].slice < 18) == (clusters[N - 1].slice < 18)) {
-    ShiftZ(merger->pField(), clusters, param, N);
+    ShiftZ(clusters, merger, N);
   }
 
   int nWays = param.rec.NWays;
@@ -143,7 +147,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
 
-      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, param, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowModification) == -1) {
+      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, merger, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowModification) == -1) {
         nMissed++;
         nMissed2++;
         continue;
@@ -290,7 +294,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
       }
     }
     if (((nWays - iWay) & 1) && (clusters[0].slice < 18) == (clusters[maxN - 1].slice < 18)) {
-      ShiftZ(merger->pField(), clusters, param, N);
+      ShiftZ(clusters, merger, N);
     }
   }
   ConstrainSinPhi();
@@ -362,11 +366,11 @@ GPUd() void GPUTPCGMTrackParam::MirrorTo(GPUTPCGMPropagator& prop, float toY, fl
   mChi2 = 0;
 }
 
-GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUParam& param, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2)
+GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2)
 {
   if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].row == clusters[ihit + wayDirection].row && clusters[ihit].slice == clusters[ihit + wayDirection].slice && clusters[ihit].leg == clusters[ihit + wayDirection].leg) {
     float maxDistY, maxDistZ;
-    prop.GetErr2(maxDistY, maxDistZ, param, zz, clusters[ihit].row, 0);
+    prop.GetErr2(maxDistY, maxDistZ, merger->Param(), zz, clusters[ihit].row, 0);
     maxDistY = (maxDistY + mC[0]) * 20.f;
     maxDistZ = (maxDistZ + mC[2]) * 20.f;
     int noReject = 0; // Cannot reject if simple estimation of y/z fails (extremely unlike case)
@@ -662,15 +666,15 @@ GPUd() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* Merge
   }
 }
 
-GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMPolynomialField* field, const GPUTPCGMMergedTrackHit* clusters, const GPUParam& param, int N)
+GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int N)
 {
-  if (!param.ContinuousTracking) {
+  if (!merger->Param().ContinuousTracking) {
     return;
   }
   const float cosPhi = CAMath::Abs(mP[2]) < 1.f ? CAMath::Sqrt(1 - mP[2] * mP[2]) : 0.f;
   const float dxf = -CAMath::Abs(mP[2]);
   const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
-  const float r = 1.f / CAMath::Abs(mP[4] * field->GetNominalBz());
+  const float r = 1.f / CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
   float xp = mX + dxf * r;
   float yp = mP[0] + dyf * r;
   // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r, xp, yp);

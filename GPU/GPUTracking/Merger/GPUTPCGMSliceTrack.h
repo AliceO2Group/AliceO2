@@ -17,7 +17,7 @@
 #include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUCommonMath.h"
-//#include <algorithm>
+#include "GPUO2DataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {

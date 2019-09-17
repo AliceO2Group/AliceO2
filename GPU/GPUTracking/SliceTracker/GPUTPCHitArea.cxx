@@ -15,6 +15,7 @@
 #include "GPUTPCHit.h"
 #include "GPUTPCHitArea.h"
 #include "GPUTPCTracker.h"
+#include "GPUConstantMem.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 MEM_CLASS_PRE()
@@ -85,7 +86,6 @@ GPUd() int GPUTPCHitArea::GetNext(GPUconstantref() const MEM_GLOBAL(GPUTPCTracke
 
 #ifdef GPUCA_TEXTURE_FETCH_NEIGHBORS
     cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*)slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(cahit2) + mIh);
-    ;
     h->SetY(y0 + tmpval.x * stepY);
     h->SetZ(z0 + tmpval.y * stepZ);
 #else

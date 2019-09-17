@@ -31,7 +31,7 @@ MEM_CLASS_PRE()
 class GPUTPCSliceData
 {
  public:
-  GPUTPCSliceData() : mFirstRow(0), mLastRow(GPUCA_ROW_COUNT - 1), mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
+  GPUTPCSliceData() : mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
 
 #ifndef GPUCA_GPUCODE
   ~GPUTPCSliceData() CON_DEFAULT;
@@ -52,7 +52,7 @@ class GPUTPCSliceData
   void* SetPointersScratchHost(void* mem, bool idsOnGPU);
   void* SetPointersRows(void* mem);
 
-  int InitFromClusterData();
+  int InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
 
   /**
  * Return the number of hits in this slice.
@@ -156,9 +156,6 @@ class GPUTPCSliceData
   void CreateGrid(GPUTPCRow* row, const float2* data, int ClusterDataHitNumberOffset);
   int PackHitData(GPUTPCRow* row, const GPUTPCHit* binSortedHits);
 #endif
-
-  int mFirstRow; // First non-empty row
-  int mLastRow;  // Last non-empty row
 
   int mNumberOfHits; // the number of hits in this slice
   int mNumberOfHitsPlusAlign;

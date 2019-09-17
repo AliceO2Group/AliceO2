@@ -110,13 +110,13 @@ class GPUTPCTracker : public GPUProcessor
   MEM_CLASS_PRE2()
   GPUd() void GetErrors2(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
   {
-    // mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-    mCAParam->GetClusterRMS2(iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
+    // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+    Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
   GPUd() void GetErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
   {
-    // mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-    mCAParam->GetClusterRMS2(iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
+    // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+    Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
   }
 
   void SetupCommonMemory();
@@ -139,8 +139,6 @@ class GPUTPCTracker : public GPUProcessor
   void SetMaxData();
   void UpdateMaxData();
 
-  GPUhd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const { return *mCAParam; }
-  GPUhd() GPUconstantref() const MEM_CONSTANT(GPUParam) * pParam() const { return mCAParam; }
   GPUhd() int ISlice() const { return mISlice; }
 
   GPUhd() GPUconstantref() const MEM_LG(GPUTPCSliceData) & Data() const { return mData; }

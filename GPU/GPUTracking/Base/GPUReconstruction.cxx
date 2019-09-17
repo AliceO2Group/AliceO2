@@ -158,7 +158,7 @@ int GPUReconstruction::Init()
 
   if (IsGPU()) {
     const auto threadContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(GPUParam), -1);
+    WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(param()), -1);
   }
 
   mInitialized = true;
@@ -192,6 +192,7 @@ int GPUReconstruction::Exit()
 }
 
 void GPUReconstruction::RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor) { proc->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE, slaveProcessor); }
+void GPUReconstruction::ConstructGPUProcessor(GPUProcessor* proc) { proc->mConstantMem = proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_DEVICE ? mDeviceConstantMem : mHostConstantMem.get(); }
 
 size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
 {

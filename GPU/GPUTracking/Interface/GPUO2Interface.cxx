@@ -46,9 +46,9 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);
-  mChain->SetTPCFastTransform(mConfig->fastTransform);
-  mChain->SetMatLUT(mConfig->matLUT);
-  mChain->SetTRDGeometry(mConfig->trdGeometry);
+  mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
+  mChain->SetMatLUT(mConfig->configCalib.matLUT);
+  mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
   if (mRec->Init()) {
     return (1);
   }

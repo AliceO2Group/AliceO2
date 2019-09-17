@@ -44,7 +44,6 @@ namespace gpu
 
 class GPUTRDTrackletWord;
 class GPUTRDGeometry;
-class GPUTPCGMMerger;
 class GPUChainTracking;
 
 //-------------------------------------------------------------------------
@@ -133,7 +132,7 @@ class GPUTRDTracker : public GPUProcessor
     mTracks[mNTracks - 1].SetLabelOffline(labelOffline);
     return (0);
   }
-  GPUd() void DoTrackingThread(int iTrk, const GPUTPCGMMerger* merger, int threadId = 0);
+  GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrack* t, int threadId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
@@ -209,7 +208,6 @@ class GPUTRDTracker : public GPUProcessor
   float mChi2Penalty;                      // chi2 added to the track for no update
   float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
   AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
-  const GPUTPCGMMerger* mMerger;           // supplying parameters for GPUTPCGMPropagator
   GPUTRDTrackerDebug* mDebug;              // debug output
   GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };

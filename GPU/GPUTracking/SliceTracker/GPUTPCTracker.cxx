@@ -20,8 +20,11 @@
 #include "GPUTPCSliceOutput.h"
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCTrackLinearisation.h"
-
+#include "GPUO2DataTypes.h"
 #include "GPUTPCTrackParam.h"
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#include "GPUTPCConvertImpl.h"
+#endif
 
 #if !defined(GPUCA_GPUCODE)
 #include <cstring>
@@ -34,6 +37,7 @@
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
 #if !defined(GPUCA_GPUCODE)
 
@@ -56,7 +60,7 @@ void GPUTPCTracker::InitializeProcessor()
   if (mISlice < 0) {
     throw std::runtime_error("Slice not set");
   }
-  InitializeRows(mCAParam);
+  InitializeRows(&Param());
   SetupCommonMemory();
 }
 
@@ -159,11 +163,11 @@ int GPUTPCTracker::ReadEvent()
   SetupCommonMemory();
 
   //* Convert input hits, create grids, etc.
-  if (mData.InitFromClusterData()) {
+  if (mData.InitFromClusterData(mConstantMem, mISlice)) {
     GPUError("Error initializing from cluster data");
     return 1;
   }
-  if (mData.MaxZ() > 300 && !mCAParam->ContinuousTracking) {
+  if (mData.MaxZ() > 300 && !Param().ContinuousTracking) {
     GPUError("Need to set continuous tracking mode for data outside of the TPC volume!");
     return 1;
   }
@@ -280,7 +284,7 @@ GPUh() void GPUTPCTracker::WriteOutput()
   mOutput->SetNTracks(nStoredTracks);
   mOutput->SetNLocalTracks(nStoredLocalTracks);
   mOutput->SetNTrackClusters(nStoredHits);
-  if (mCAParam->debugLevel >= 3) {
+  if (Param().debugLevel >= 3) {
     GPUInfo("Slice %d, Output: Tracks %d, local tracks %d, hits %d", mISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
   }
 }
@@ -312,7 +316,7 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, i
   GPUTPCTrackLinearisation t0(tParam);
   do {
     rowIndex += direction;
-    if (!tParam.TransportToX(Row(rowIndex).X(), t0, mCAParam->ConstBz, GPUCA_MAX_SIN_PHI)) {
+    if (!tParam.TransportToX(Row(rowIndex).X(), t0, Param().ConstBz, GPUCA_MAX_SIN_PHI)) {
       return (0); // Reuse t0 linearization until we are in the next sector
     }
     // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
@@ -351,7 +355,7 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, i
         if (rowHit != CALINK_INVAL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * mCommonMem->nTracklets]);
           mTrackHits[hitId + i].Set(rowIndex, rowHit);
-          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), mCAParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
           i++;
         }
         rowIndex++;
@@ -398,11 +402,11 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, boo
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
           // GPUInfo("Track %d, lower row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -mCAParam->DAlpha, -1);
+          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -Param().DAlpha, -1);
         }
         if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
           // GPUInfo("Track %d, lower row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, mCAParam->DAlpha, -1);
+          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, Param().DAlpha, -1);
         }
       }
     }
@@ -419,11 +423,11 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, boo
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
           // GPUInfo("Track %d, upper row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -mCAParam->DAlpha, 1);
+          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -Param().DAlpha, 1);
         }
         if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
           // GPUInfo("Track %d, upper row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, mCAParam->DAlpha, 1);
+          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, Param().DAlpha, 1);
         }
       }
     }

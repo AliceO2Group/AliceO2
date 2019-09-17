@@ -121,7 +121,6 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #endif // GPUCA_O2_LIB
 
 #include "GPUTPCGMPropagator.h"
-#include "GPUTPCGMMerger.h"
 #include "GPUParam.h"
 #include "GPUDef.h"
 
@@ -223,12 +222,12 @@ template <>
 class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
 {
  public:
-  GPUd() propagatorInterface<GPUTPCGMPropagator>(const GPUTPCGMMerger* pMerger) : GPUTPCGMPropagator(), mTrack(nullptr)
+  GPUd() propagatorInterface<GPUTPCGMPropagator>(const GPUTPCGMPolynomialField* pField) : GPUTPCGMPropagator(), mTrack(nullptr)
   {
     constexpr float kRho = 1.025e-3f;
     constexpr float kRadLen = 29.532f;
     this->SetMaterial(kRadLen, kRho);
-    this->SetPolynomialField(pMerger->pField());
+    this->SetPolynomialField(pField);
     this->SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
     this->SetToyMCEventsFlag(0);
     this->SetFitInProjections(0);

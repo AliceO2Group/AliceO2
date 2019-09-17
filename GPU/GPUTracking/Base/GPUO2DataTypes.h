@@ -14,7 +14,7 @@
 #ifndef O2_GPU_GPUO2DATATYPES_H
 #define O2_GPU_GPUO2DATATYPES_H
 
-#ifdef HAVE_O2HEADERS
+#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "TRDBase/TRDGeometryFlat.h"
@@ -49,6 +49,9 @@ class TRDGeometryFlat
 } // namespace trd
 } // namespace o2
 #endif
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "GPUdEdxInfo.h"
+#endif
 
 #endif

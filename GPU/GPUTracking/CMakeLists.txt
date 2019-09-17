@@ -113,6 +113,7 @@ set(HDRS_INSTALL
     Base/GPUO2DataTypes.h
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
+    TPCConvert/GPUTPCConvertImpl.h
 )
 
 # Sources only for O2

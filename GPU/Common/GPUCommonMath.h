@@ -38,9 +38,13 @@ class GPUCommonMath
   GPUhdni() static float2 MakeFloat2(float x, float y);
 
   template <class T>
-  GPUhd() static T Min(T x, T y);
+  GPUhd() static T Min(const T x, const T y);
   template <class T>
-  GPUhd() static T Max(T x, T y);
+  GPUhd() static T Max(const T x, const T y);
+  template <class T, class S>
+  GPUhd() static T MinWithRef(T x, T y, S refX, S refY, S& r);
+  template <class T, class S>
+  GPUhd() static T MaxWithRef(T x, T y, S refX, S refY, S& r);
   GPUhdni() static float Sqrt(float x);
   template <class T>
   GPUhd() static T Abs(T x);
@@ -131,15 +135,37 @@ GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
 }
 
 template <class T>
-GPUhdi() T GPUCommonMath::Min(T x, T y)
+GPUhdi() T GPUCommonMath::Min(const T x, const T y)
 {
   return CHOICE(std::min(x, y), std::min(x, y), (x < y ? x : y));
 }
 
 template <class T>
-GPUhdi() T GPUCommonMath::Max(T x, T y)
+GPUhdi() T GPUCommonMath::Max(const T x, const T y)
 {
   return CHOICE(std::max(x, y), std::max(x, y), (x > y ? x : y));
+}
+
+template <class T, class S>
+GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, S& r)
+{
+  if (x < y) {
+    r = refX;
+    return x;
+  }
+  r = refY;
+  return y;
+}
+
+template <class T, class S>
+GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, S& r)
+{
+  if (x > y) {
+    r = refX;
+    return x;
+  }
+  r = refY;
+  return y;
 }
 
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
