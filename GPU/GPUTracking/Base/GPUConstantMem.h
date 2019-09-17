@@ -16,6 +16,7 @@
 
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
+#include "GPUDataTypes.h"
 
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "GPUTPCConvert.h"
@@ -63,6 +64,8 @@ struct GPUConstantMem {
   GPUTPCGMMerger tpcMerger;
   GPUTRDTracker trdTracker;
   GPUITSFitter itsFitter;
+  GPUTrackingInOutPointers ioPtrs;
+  GPUCalibObjectsConst calibObjects;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

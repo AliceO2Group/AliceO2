@@ -35,6 +35,32 @@ using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCount
 } // namespace o2
 #endif
 
+namespace o2
+{
+class MCCompLabel;
+namespace base
+{
+class MatLayerCylSet;
+} // namespace base
+namespace trd
+{
+class TRDGeometryFlat;
+} // namespace trd
+namespace dataformats
+{
+template <class T>
+class MCTruthContainer;
+} // namespace dataformats
+} // namespace o2
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+class TPCFastTransform;
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -105,6 +131,18 @@ struct GPURecoStepConfiguration {
   GPUDataTypes::InOutTypeField outputs = 0;
 };
 
+struct GPUCalibObjects {
+  TPCFastTransform* fastTransform = nullptr;
+  o2::base::MatLayerCylSet* matLUT = nullptr;
+  o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
+};
+
+struct GPUCalibObjectsConst { // TODO: Any chance to do this as template?
+  const TPCFastTransform* fastTransform = nullptr;
+  const o2::base::MatLayerCylSet* matLUT = nullptr;
+  const o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
+};
+
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
@@ -134,7 +172,11 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTrackletsMC = 0;
   const GPUTRDTrack* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
-  friend class GPUReconstruction;
+};
+#else
+struct GPUTrackingInOutPointers {
+};
+struct GPUCalibObjectsConst {
 };
 #endif
 

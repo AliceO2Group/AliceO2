@@ -17,6 +17,8 @@
 #include "GPUTPCSliceData.h"
 #include "GPUReconstruction.h"
 #include "GPUProcessor.h"
+#include "GPUO2DataTypes.h"
+#include "GPUTPCConvertImpl.h"
 #include <iostream>
 #include <cstring>
 #include "utils/vecpod.h"
@@ -173,7 +175,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
   return mem;
 }
 
-int GPUTPCSliceData::InitFromClusterData()
+int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice)
 {
   ////////////////////////////////////
   // 0. sort rows
@@ -187,23 +189,15 @@ int GPUTPCSliceData::InitFromClusterData()
   int* tmpHitIndex = tmpHitIndex_p.get();
 
   int RowOffset[GPUCA_ROW_COUNT];
-  int NumberOfClustersInRow[GPUCA_ROW_COUNT];
+  unsigned int NumberOfClustersInRow[GPUCA_ROW_COUNT];
   memset(NumberOfClustersInRow, 0, GPUCA_ROW_COUNT * sizeof(NumberOfClustersInRow[0]));
-  mFirstRow = GPUCA_ROW_COUNT;
-  mLastRow = 0;
-
   for (int i = 0; i < mNumberOfHits; i++) {
     const int tmpRow = mClusterData[i].row;
     NumberOfClustersInRow[tmpRow]++;
-    if (tmpRow > mLastRow) {
-      mLastRow = tmpRow;
-    }
-    if (tmpRow < mFirstRow) {
-      mFirstRow = tmpRow;
-    }
   }
+
   int tmpOffset = 0;
-  for (int i = mFirstRow; i <= mLastRow; i++) {
+  for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     if ((long long int)NumberOfClustersInRow[i] >= ((long long int)1 << (sizeof(calink) * 8))) {
       GPUError("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient", i, NumberOfClustersInRow[i], ((long long int)1 << (sizeof(calink) * 8)));
       return (1);
@@ -232,45 +226,10 @@ int GPUTPCSliceData::InitFromClusterData()
       tmpHitIndex[newIndex] = i;
     }
   }
-  if (mFirstRow == GPUCA_ROW_COUNT) {
-    mFirstRow = 0;
-  }
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
-
-  const int numberOfRows = mLastRow - mFirstRow + 1;
-  for (int rowIndex = 0; rowIndex < mFirstRow; ++rowIndex) {
-    GPUTPCRow& row = mRows[rowIndex];
-    row.mGrid.CreateEmpty();
-    row.mNHits = 0;
-    row.mFullSize = 0;
-    row.mHitNumberOffset = 0;
-    row.mFirstHitInBinOffset = 0;
-
-    row.mHy0 = 0.f;
-    row.mHz0 = 0.f;
-    row.mHstepY = 1.f;
-    row.mHstepZ = 1.f;
-    row.mHstepYi = 1.f;
-    row.mHstepZi = 1.f;
-  }
-  for (int rowIndex = mLastRow + 1; rowIndex < GPUCA_ROW_COUNT + 1; ++rowIndex) {
-    GPUTPCRow& row = mRows[rowIndex];
-    row.mGrid.CreateEmpty();
-    row.mNHits = 0;
-    row.mFullSize = 0;
-    row.mHitNumberOffset = 0;
-    row.mFirstHitInBinOffset = 0;
-
-    row.mHy0 = 0.f;
-    row.mHz0 = 0.f;
-    row.mHstepY = 1.f;
-    row.mHstepZ = 1.f;
-    row.mHstepYi = 1.f;
-    row.mHstepZi = 1.f;
-  }
 
   vecpod<GPUTPCHit> binSortedHits(mNumberOfHits + sizeof(GPUCA_ROWALIGNMENT));
 
@@ -280,8 +239,22 @@ int GPUTPCSliceData::InitFromClusterData()
   int binCreationMemorySize = 103 * 2 + mNumberOfHits;
   vecpod<calink> binCreationMemory(binCreationMemorySize);
 
-  for (int rowIndex = mFirstRow; rowIndex <= mLastRow; ++rowIndex) {
+  for (int rowIndex = 0; rowIndex < GPUCA_ROW_COUNT; ++rowIndex) {
     GPUTPCRow& row = mRows[rowIndex];
+    if (NumberOfClustersInRow[rowIndex] == 0) {
+      row.mGrid.CreateEmpty();
+      row.mNHits = 0;
+      row.mFullSize = 0;
+      row.mHitNumberOffset = 0;
+      row.mFirstHitInBinOffset = 0;
+      row.mHy0 = 0.f;
+      row.mHz0 = 0.f;
+      row.mHstepY = 1.f;
+      row.mHstepZ = 1.f;
+      row.mHstepYi = 1.f;
+      row.mHstepZi = 1.f;
+      continue;
+    }
     row.mNHits = NumberOfClustersInRow[rowIndex];
     row.mHitNumberOffset = hitOffset;
     hitOffset += GPUProcessor::nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
@@ -296,7 +269,7 @@ int GPUTPCSliceData::InitFromClusterData()
       return (1);
     }
 
-    int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.mNHits + sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1;
+    int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.mNHits + sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short) * (GPUCA_ROW_COUNT + 1) + 1;
     if (binCreationMemorySizeNew > binCreationMemorySize) {
       binCreationMemorySize = binCreationMemorySizeNew;
       binCreationMemory.resize(binCreationMemorySize);
