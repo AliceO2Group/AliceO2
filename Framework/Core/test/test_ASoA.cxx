@@ -60,7 +60,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  RowView<test::X, test::Y> tests(table.get());
+  auto rowIndex = std::make_tuple(
+    std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
+    std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
+  RowView<test::X, test::Y> tests(rowIndex, table->num_rows());
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -72,14 +75,14 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto b = tests2.begin();
   auto e = tests2.end();
   BOOST_CHECK(b != e);
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
   BOOST_CHECK(b == e);
 
   for (auto t : tests2) {
