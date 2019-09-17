@@ -22,7 +22,6 @@
 /// with tracks colored by PID only.
 
 #include "EventVisualisationBase/DataInterpreter.h"
-#include "EventVisualisationBase/EventManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include <TEvePointSet.h>
 #include <TEveViewer.h>

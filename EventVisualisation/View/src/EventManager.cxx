@@ -12,14 +12,14 @@
 /// \file    EventManager.cxx
 /// \author  Jeremi Niedziela
 
-#include "EventVisualisationBase/EventManager.h"
+#include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationDataConverter/MinimalisticEvent.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataSource.h"
 #include "EventVisualisationBase/DataInterpreter.h"
 #include "EventVisualisationBase/EventRegistration.h"
 #include <EventVisualisationBase/DataSourceOffline.h>
-#include <EventVisualisationBase/DataReaderVSD.h>
+#include <EventVisualisationDetectors/DataReaderVSD.h>
 
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
