@@ -54,7 +54,7 @@ static void BM_SimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << 16);
+BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << 17);
 
 static void BM_TrackForLoop(benchmark::State& state)
 {
@@ -89,7 +89,7 @@ static void BM_TrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 16);
+BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 17);
 
 static void BM_TrackForPhi(benchmark::State& state)
 {
@@ -126,7 +126,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForPhi)->Range(8, 8 << 16);
+BENCHMARK(BM_TrackForPhi)->Range(8, 8 << 17);
 
 static void BM_SimpleForLoopWithOp(benchmark::State& state)
 {
@@ -156,7 +156,7 @@ static void BM_SimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << 16);
+BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << 17);
 
 static void BM_ASoASimpleForLoop(benchmark::State& state)
 {
@@ -184,7 +184,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << 16);
+BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << 17);
 
 static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
 {
@@ -212,7 +212,7 @@ static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << 16);
+BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << 17);
 
 static void BM_ASoADynamicColumnPresent(benchmark::State& state)
 {
@@ -240,7 +240,7 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << 16);
+BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << 17);
 
 static void BM_ASoADynamicColumnCall(benchmark::State& state)
 {
@@ -268,7 +268,40 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << 16);
+BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << 17);
+
+static void BM_ASoAGettersPhi(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (size_t i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+  for (auto _ : state) {
+    int i = 0;
+    state.PauseTiming();
+    std::vector<float> out;
+    out.resize(state.range(0));
+    float* result = out.data();
+    state.ResumeTiming();
+    for (auto& track : tracks) {
+      *result++ = asin(track.snp()) + track.alpha() + M_PI;
+    }
+    benchmark::DoNotOptimize(result);
+  }
+  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
+}
+
+BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << 17);
 
 static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 {
@@ -287,16 +320,18 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 
   o2::aod::Tracks tracks{table};
   for (auto _ : state) {
-    int i = 0;
-    std::vector<float> result;
-    result.resize(state.range(0));
+    state.PauseTiming();
+    std::vector<float> out;
+    out.resize(state.range(0));
+    float* result = out.data();
+    state.ResumeTiming();
     for (auto& track : tracks) {
-      result[i++] = asin(track.snp()) + track.alpha() + M_PI;
+      *result++ = track.phi();
     }
     benchmark::DoNotOptimize(result);
   }
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
+BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 17);
 
-BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 16);
 BENCHMARK_MAIN()
