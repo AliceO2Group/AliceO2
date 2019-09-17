@@ -20,6 +20,7 @@
 
 #include "TVectorF.h"
 #include "TTreeStream.h"
+#include "GPULogging.h"
 #include "GPUTRDTrack.h"
 
 namespace GPUCA_NAMESPACE
@@ -93,7 +94,9 @@ class GPUTRDTrackerDebug
     fTrackYReal.ResizeTo(6);
     fTrackZReal.ResizeTo(6);
     fTrackSecReal.ResizeTo(6);
+    fChi2YZPhiUpdate.ResizeTo(6);
     fChi2Update.ResizeTo(6);
+    fChi2YZPhiReal.ResizeTo(6);
     fChi2Real.ResizeTo(6);
     fNmatchesAvail.ResizeTo(6);
     fFindable.ResizeTo(6);
@@ -147,7 +150,9 @@ class GPUTRDTrackerDebug
     fTrackYReal.Zero();
     fTrackZReal.Zero();
     fTrackSecReal.Zero();
+    fChi2YZPhiUpdate.Zero();
     fChi2Update.Zero();
+    fChi2YZPhiReal.Zero();
     fChi2Real.Zero();
     fNmatchesAvail.Zero();
     fFindable.Zero();
@@ -284,6 +289,8 @@ class GPUTRDTrackerDebug
   // update information
   void SetChi2Update(float chi2, int ly) { fChi2Update(ly) = chi2; }
   void SetChi2Real(float chi2, int ly) { fChi2Real(ly) = chi2; }
+  void SetChi2YZPhiUpdate(float chi2, int ly) { fChi2YZPhiUpdate(ly) = chi2; }
+  void SetChi2YZPhiReal(float chi2, int ly) { fChi2YZPhiReal(ly) = chi2; }
 
   // other infos
   void SetRoad(float roadY, float roadZ, int ly)
@@ -362,6 +369,8 @@ class GPUTRDTrackerDebug
       "trackletDetReal.=" << &fTrackletDetReal <<          // detector number for matching or related tracklet if available, otherwise -1
       "chi2Update.=" << &fChi2Update <<                    // chi2 for update
       "chi2Real.=" << &fChi2Real <<                        // chi2 for first tracklet w/ matching MC label
+      "chi2YZPhiUpdate.=" << &fChi2YZPhiUpdate <<          // chi2 for update taking into account full tracklet information (y, z, dY aka sin(phi))
+      "chi2YZPhiReal.=" << &fChi2YZPhiReal <<              // chi2 for first tracklet w/ matching MC label taking into account full tracklet information (y, z, dY aka sin(phi))
       "chi2Total=" << fChi2 <<                             // total chi2 for track
       "nLayers=" << fNlayers <<                            // number of layers in which track was findable
       "nTracklets=" << fNtrklts <<                         // number of attached tracklets
@@ -446,6 +455,8 @@ class GPUTRDTrackerDebug
   TVectorF fTrackletDetReal;
   TVectorF fChi2Update;
   TVectorF fChi2Real;
+  TVectorF fChi2YZPhiUpdate;
+  TVectorF fChi2YZPhiReal;
   TVectorF fRoadY;
   TVectorF fRoadZ;
   TVectorF fFindable;
@@ -497,6 +508,8 @@ class GPUTRDTrackerDebug
   // update information
   GPUd() void SetChi2Update(float chi2, int ly) {}
   GPUd() void SetChi2Real(float chi2, int ly) {}
+  GPUd() void SetChi2YZPhiUpdate(float chi2, int ly) {}
+  GPUd() void SetChi2YZPhiReal(float chi2, int ly) {}
 
   // other infos
   GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
