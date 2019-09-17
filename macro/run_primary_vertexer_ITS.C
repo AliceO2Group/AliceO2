@@ -48,35 +48,13 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // rec->Init();
   // o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
 
-  std::unique_ptr<o2::its::VertexerTraits> traitsptr;
-  o2::its::VertexerTraits traits;
-#ifdef GPU_BUILD
-  o2::its::VertexerTraitsGPU traitsGPU;
-  if (useGPU) {
-    traitsptr.reset(&traitsGPU);
-  } else {
-#endif
-    traitsptr.reset(&traits);
-#ifdef GPU_BUILD
-  }
-#endif
+  std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
 
   o2::its::Vertexer vertexer(traitsptr.get());
-  std::string outfile;
 
-  if (useGPU) {
-    if (useMCcheck) {
-      outfile = "vertexer_gpu_data_MCCheck.root";
-    } else {
-      outfile = "vertexer_gpu_data.root";
-    }
-  } else {
-    if (useMCcheck) {
-      outfile = "vertexer_serial_data_MCCheck.root";
-    } else {
-      outfile = "vertexer_serial_data.root";
-    }
-  }
+  std::string gpuName = useGPU ? "vertexer_gpu" : "vertexer_serial";
+  std::string mcCheck = useMCcheck ? "_data_MCCheck" : "_data";
+  std::string outfile = gpuName + mcCheck + ".root";
 
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   const bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
@@ -155,10 +133,10 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     o2::its::ROframe* eventptr = &frame;
 
     // debug
-    vertexer.setDebugTrackletSelection();
-    vertexer.setDebugLines(); // Handle with care, takes very long
+    // vertexer.setDebugTrackletSelection();
+    // vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
-    vertexer.setDebugSummaryLines();
+    // vertexer.setDebugSummaryLines();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
@@ -185,7 +163,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   foundVerticesBenchmark.Write();
   timeBenchmark.Write();
   outputfile->Close();
-  traitsptr.release();
+  // traitsptr.get()->reset();
   return 0;
 }
 #endif

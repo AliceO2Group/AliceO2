@@ -25,7 +25,6 @@
 #include "ITStracking/Tracklet.h"
 
 #include "GPUCommonMath.h"
-// #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug
 
 namespace o2
 {
@@ -85,7 +84,10 @@ class VertexerTraits
   virtual ~VertexerTraits() = default;
 #endif
 
-  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect()
+  {
+    return int4{0, 0, 0, 0};
+  }
   GPU_HOST_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
   GPU_HOST_DEVICE static const int2 getPhiBins(float phi, float deltaPhi);
 
@@ -94,7 +96,14 @@ class VertexerTraits
   virtual void initialise(ROframe*);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   virtual void computeMCFiltering();
+  virtual void filterTrackletsWithMC(std::vector<Tracklet>&,
+                                     std::vector<Tracklet>&,
+                                     std::vector<int>&,
+                                     std::vector<int>&,
+                                     const int);
+#endif
   virtual void computeTrackletsPureMontecarlo();
   virtual void computeVertices();
 
@@ -116,11 +125,6 @@ class VertexerTraits
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   void setDebugTreeFileName(std::string name);
-  const std::string& getDebugTreeFileName() const
-  {
-    return mDebugTreeFileName;
-  }
-
   void fillCombinatoricsTree();
   void fillTrackletSelectionTree();
   void fillLinesSummaryTree();
@@ -140,7 +144,7 @@ class VertexerTraits
   unsigned int mDBGFlags = 0;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::string mDebugTreeFileName = "dbg_ITSvertexer.root"; // output filename
+  std::string mDebugTreeFileName = "dbg_ITSVertexer.root"; // output filename
   o2::utils::TreeStreamRedirector* mTreeStream;            // observer
   std::vector<std::array<int, 2>> mAllowedTrackletPairs;
 #endif

@@ -18,6 +18,7 @@
 
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStrackingCUDA/Array.h"
@@ -42,14 +43,7 @@ enum class VertexerLayerName {
   outerLayer
 };
 
-struct VertexerStoreConfigurationGPU {
-  // o2::its::GPU::Vector constructor requires signed size for initialisation
-  int dupletsCapacity = 40e6;
-  int processedTrackletsCapacity = 40e6;
-  int clustersPerLayerCapacity = 50e3;
-  int maxTrackletsPerCluster = 1e3;
-};
-
+typedef TrackletingLayerOrder Order;
 class DeviceStoreVertexerGPU final
 {
  public:
@@ -61,41 +55,130 @@ class DeviceStoreVertexerGPU final
                                                                     constants::its::LayersNumberVertexer>&);
 
   // RO APIs
-  GPUhd() const Array<Vector<Cluster>, constants::its::LayersNumberVertexer>& getClusters() { return mClusters; }
-  GPUhd() const Vector<int>& getIndexTable(const VertexerLayerName);
-  GPUhd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
+  GPUd() const Array<Vector<Cluster>, constants::its::LayersNumberVertexer>& getClusters() { return mClusters; }
+  GPUd() const Vector<int>& getIndexTable(const VertexerLayerName);
+  GPUd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
 
   // Writable APIs
-  GPUhd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
-  GPUhd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
-  GPUhd() Vector<Line>& getLines() { return mTracklets; }
-  GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
-  GPUhd() Vector<int>& getNFoundTracklets(GPU::TrackletingLayerOrder order) { return mNFoundTracklets[static_cast<int>(order)]; }
-  GPUd() int getFlag() { return mFlag; }
-  GPUh() std::vector<Tracklet> getDupletsfromGPU(const TrackletingLayerOrder);
-  GPUh() std::vector<Line> getLinesfromGPU();
+  GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
+  GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
+  GPUd() Vector<Line>& getLines() { return mTracklets; }
+  GPUd() Vector<int>& getNFoundLines() { return mNFoundLines; }
+  GPUd() Array<Vector<int>, 2>& getDupletIndices()
+  {
+    return mDupletIndices;
+  }
+  GPUhd() Vector<int>& getNFoundTracklets(Order order)
+  {
+    return mNFoundDuplets[static_cast<int>(order)];
+  }
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  GPUh() std::vector<int> getNFoundTrackletsFromGPU(const Order);
+  GPUh() std::vector<Tracklet> getRawDupletsFromGPU(const Order);
+  GPUh() std::vector<Tracklet> getDupletsFromGPU(const Order);
+  GPUh() std::vector<Line> getLinesFromGPU();
+  GPUh() std::array<std::vector<int>, 2> getDupletIndicesFromGPU();
+#endif
 
  private:
-  int mFlag;
-  int mSizes[3];
+  Vector<int> mSizes;
   VertexerStoreConfigurationGPU mGPUConf;
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
-  Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundTracklets;
+  Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
   Vector<int> mNFoundLines;
   Vector<Tracklet> mDuplets01;
   Vector<Tracklet> mDuplets12;
   Vector<Line> mTracklets;
   Array<Vector<int>, 2> mIndexTables;
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  Array<Vector<int>, 2> mDupletIndices;
+#endif
 };
 
-inline const Vector<int>& DeviceStoreVertexerGPU::getIndexTable(const VertexerLayerName layer)
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+inline std::vector<int> DeviceStoreVertexerGPU::getNFoundTrackletsFromGPU(const Order order)
 {
-  if (layer == VertexerLayerName::innermostLayer) {
-    return mIndexTables[0];
+  // Careful: this might lead to large allocations, use debug-purpose only
+  std::vector<int> sizes{constants::its::LayersNumberVertexer};
+  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
+  std::vector<int> nFoundDuplets{sizes[1]};
+
+  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
+  } else {
+    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
   }
-  return mIndexTables[1];
+
+  return nFoundDuplets;
 }
 
+inline std::vector<Tracklet> DeviceStoreVertexerGPU::getRawDupletsFromGPU(const Order order)
+{
+  // Careful: this might lead to large allocations, use debug-purpose only
+  std::vector<int> sizes{constants::its::LayersNumberVertexer};
+  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
+  std::vector<Tracklet> tmpDuplets{static_cast<size_t>(mGPUConf.dupletsCapacity)};
+  std::vector<int> nFoundDuplets{sizes[1]};
+
+  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
+    mDuplets01.copyIntoVector(tmpDuplets, tmpDuplets.size());
+  } else {
+    mDuplets12.copyIntoVector(tmpDuplets, tmpDuplets.size());
+    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
+  }
+
+  return tmpDuplets;
+}
+
+inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Order order)
+{
+  // Careful: this might lead to large allocations, use debug-purpose only
+  std::vector<int> sizes{constants::its::LayersNumberVertexer};
+  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
+  std::vector<Tracklet> tmpDuplets{static_cast<size_t>(mGPUConf.dupletsCapacity)};
+  std::vector<int> nFoundDuplets{sizes[1]};
+  std::vector<Tracklet> shrinkedDuplets;
+
+  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
+    mDuplets01.copyIntoVector(tmpDuplets, tmpDuplets.size());
+  } else {
+    mDuplets12.copyIntoVector(tmpDuplets, tmpDuplets.size());
+    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
+  }
+
+  for (int iCluster{0}; iCluster < sizes[1]; ++iCluster) {
+    const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
+    for (int iDuplet{0}; iDuplet < nFoundDuplets[iCluster]; ++iDuplet) {
+      shrinkedDuplets.push_back(tmpDuplets[stride + iDuplet]);
+    }
+  }
+  return shrinkedDuplets;
+}
+
+inline std::array<std::vector<int>, 2> DeviceStoreVertexerGPU::getDupletIndicesFromGPU()
+{
+  // Careful: this might lead to large allocations, use debug-purpose only.
+  std::array<std::vector<int>, 2> allowedLines;
+  for (int iAllowed{0}; iAllowed < 2; ++iAllowed) {
+    allowedLines[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
+    mDupletIndices[iAllowed].copyIntoVector(allowedLines[iAllowed], allowedLines[iAllowed].size());
+  }
+  return allowedLines;
+}
+
+inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
+{
+  std::vector<Line> lines;
+  lines.resize(mGPUConf.processedTrackletsCapacity);
+  mTracklets.copyIntoVector(lines, lines.size());
+
+  return lines;
+}
+#endif
 } // namespace GPU
 } // namespace its
 } // namespace o2
