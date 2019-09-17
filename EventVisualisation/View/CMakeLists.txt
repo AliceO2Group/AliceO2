@@ -9,7 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EventVisualisationView
-               SOURCES src/MultiView.cxx src/Initializer.cxx src/EventManagerFrame.cxx
+               SOURCES src/MultiView.cxx 
+                       src/Initializer.cxx 
+                       src/EventManager.cxx
+                       src/EventManagerFrame.cxx
                PUBLIC_LINK_LIBRARIES O2::EventVisualisationBase
                                      O2::EventVisualisationDetectors)
 
