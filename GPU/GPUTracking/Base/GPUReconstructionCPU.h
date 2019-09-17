@@ -181,7 +181,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
   int mNStreams = 1;
 
-  GPUConstantMem* mDeviceConstantMem = nullptr;
   std::vector<std::vector<deviceEvent*>> mEvents;
 
  private:

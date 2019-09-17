@@ -924,7 +924,7 @@ void GPUQA::RunQA(bool matchOnly)
     const float kRadLen = 29.532; // 28.94;
     prop.SetMaxSinPhi(.999);
     prop.SetMaterial(kRadLen, kRho);
-    prop.SetPolynomialField(merger.pField());
+    prop.SetPolynomialField(&merger.Param().polynomialField);
     prop.SetToyMCEventsFlag(merger.Param().ToyMCEventsFlag);
 
     for (int i = 0; i < merger.NOutputTracks(); i++) {

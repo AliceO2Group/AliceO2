@@ -78,12 +78,8 @@ class GPUTPCGMMerger : public GPUProcessor
     return mOutputTracks;
   }
 
-  GPUhd() const GPUParam& Param() const { return *mCAParam; }
   GPUhd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   GPUhd() const o2::base::MatLayerCylSet* MatLUT() const { return mMatLUT; }
-
-  GPUd() const GPUTPCGMPolynomialField& Field() const { return mCAParam->polynomialField; }
-  GPUhd() const GPUTPCGMPolynomialField* pField() const { return &mCAParam->polynomialField; }
 
   GPUhd() int NClusters() const { return (mNClusters); }
   GPUhd() int NMaxClusters() const { return (mNMaxClusters); }

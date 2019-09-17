@@ -45,6 +45,8 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
+#include "GPUO2DataTypes.h"
+#include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -1484,7 +1486,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       const float kRadLen = 29.532; // 28.94;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterial(kRadLen, kRho);
-      prop.SetPolynomialField(mMerger.pField());
+      prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
 #ifdef GPUCA_HAVE_OPENMP
