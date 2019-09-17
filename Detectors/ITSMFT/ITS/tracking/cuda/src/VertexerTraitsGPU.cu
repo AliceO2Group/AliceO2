@@ -47,11 +47,17 @@ using math_utils::getNormalizedPhiCoordinate;
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerGPU.root");
+#endif
 }
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
+  delete mDebugger;
 }
+#endif
 
 void VertexerTraitsGPU::initialise(ROframe* event)
 {
@@ -62,14 +68,14 @@ void VertexerTraitsGPU::initialise(ROframe* event)
 
 namespace GPU
 {
-__device__ int getGlobalIdx()
+GPUd() int getGlobalIdx()
 {
   int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
   int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z) + (threadIdx.z * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
   return threadId;
 }
 
-__global__ void trackleterKernel(
+GPUg() void trackleterKernel(
   DeviceStoreVertexerGPU& store,
   const TrackletingLayerOrder layerOrder,
   const float phiCut)
@@ -114,7 +120,7 @@ __global__ void trackleterKernel(
   }
 }
 
-__global__ void trackletSelectionKernel(
+GPUg() void trackletSelectionKernel(
   DeviceStoreVertexerGPU& store,
   const float tanLambdaCut = 0.025f)
 {
@@ -127,6 +133,10 @@ __global__ void trackletSelectionKernel(
         const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
         if (deltaTanLambda < tanLambdaCut) {
           store.getLines().emplace(stride + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+          store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
+          store.getDupletIndices()[1].emplace(stride + validTracklets, stride + iTracklet12);
+#endif
           ++validTracklets;
         }
       }
@@ -136,20 +146,6 @@ __global__ void trackletSelectionKernel(
     } else {
       printf("info: fulfilled all the space with tracklets\n");
     }
-  }
-}
-
-__global__ void debugSumKernel(const int* arrayToSum, const int size)
-{
-  const int currentClusterIndex{getGlobalIdx()};
-  if (currentClusterIndex == 0) {
-    int sum{0};
-    printf("on device:\n");
-    for (int i{0}; i < size; ++i) {
-      printf("\t%d, ", arrayToSum[i]);
-      sum += arrayToSum[i];
-    }
-    printf("\nSum is: %d\n", sum);
   }
 }
 } // namespace GPU
@@ -176,6 +172,13 @@ void VertexerTraitsGPU::computeTracklets()
     errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
     throw std::runtime_error{errorString.str()};
   }
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
+    mDebugger->fillCombinatoricsTree(mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer));
+  }
+#endif
 }
 
 void VertexerTraitsGPU::computeTrackletMatching()
@@ -194,53 +197,34 @@ void VertexerTraitsGPU::computeTrackletMatching()
     errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
     throw std::runtime_error{errorString.str()};
   }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
+    mDebugger->fillTrackletSelectionTree(mClusters,
+                                         mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                         mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                         mStoreVertexerGPU.getDupletIndicesFromGPU(),
+                                         mEvent);
+  }
+  if (isDebugFlag(VertexerDebug::LineTreeAll)) {
+    fillLinesInfoTree();
+  }
+  if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
+    fillLinesSummaryTree();
+  }
 }
-//
-// // DEBUG section
-// Line* lines = new Line[static_cast<int>(80e6)];
-// Tracklet* comb01 = new Tracklet[static_cast<int>(80e6)];
-// Tracklet* comb12 = new Tracklet[static_cast<int>(80e6)];
-// int* foundTracklets01_h = new int[clusterSize1];
-// int* foundTracklets12_h = new int[clusterSize1];
-// int* cartellino = new int[2];
-//
-// cudaMemcpy(comb01, mGPURefTracklet01, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
-// cudaMemcpy(comb12, mGPURefTracklet12, static_cast<int>(80e6) * sizeof(Tracklet), cudaMemcpyDeviceToHost);
-// cudaMemcpy(foundTracklets01_h, numTracks01, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
-// cudaMemcpy(foundTracklets12_h, numTracks12, clusterSize1 * sizeof(int), cudaMemcpyDeviceToHost);
-// cudaMemcpy(lines, mGPUtracklets, static_cast<int>(80e6) * sizeof(Line), cudaMemcpyDeviceToHost);
-// cudaMemcpy(cartellino, debugArray, sizeof(int) * 2, cudaMemcpyDeviceToHost);
-// cudaDeviceSynchronize();
-//
 
-//
-// for (int i{0}; i < clusterSize1; ++i) {
-//   const int stride{i * static_cast<int>(2e3)};
-//   for (int j{0}; j < foundTracklets12_h[i]; ++j) {
-//     mComb12.push_back(comb12[stride + j]);
-//   }
-// }
-//
-// for (int i{0}; i < clusterSize1; ++i) {
-//   const int stride{i * static_cast<int>(2e3)};
-//   for (int j{0}; j < foundTracklets12_h[i]; ++j) {
-//     for (int k{0}; k < foundTracklets01_h[i]; ++k) {
-//       assert(comb01[stride + k].secondClusterIndex == comb12[stride + j].firstClusterIndex);
-//       const float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[stride + k].tanLambda - comb12[stride + j].tanLambda)};
-//     }
-//   }
-// }
-//
-// for (int i{0}; i < clusterSize1; ++i) {
-//   const int stride{i * static_cast<int>(2e3)};
-//   int counter{0};
-//   while (!lines[stride + counter].isEmpty) {
-//     if (counter == static_cast<int>(2e3))
-//       break;
-//     mTracklets.push_back(lines[stride + counter]);
-//     ++counter;
-//   }
-// }
+void VertexerTraitsGPU::computeMCFiltering()
+{
+  std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+  std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
+  std::vector<int> labels01 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+  std::vector<int> labels12 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
+  VertexerStoreConfigurationGPU tmpGPUConf;
+  const int stride = tmpGPUConf.maxTrackletsPerCluster;
+
+  filterTrackletsWithMC(tracklets01, tracklets12, labels01, labels12, stride);
+}
+#endif
 
 VertexerTraits* createVertexerTraitsGPU()
 {
