@@ -377,7 +377,7 @@ class DataAllocator
     std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
     auto context = mContextRegistry->get<MessageContext>();
     o2::pmr::FairMQMemoryResource* targetResource = *context->proxy().getTransport(channel);
-    return o2::vector<T>{ targetResource, std::forward<Args>(args)... };
+    return o2::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
   //adopt container (if PMR is used with the appropriate memory resource in container it is ZERO-copy)

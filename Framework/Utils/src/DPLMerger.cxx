@@ -33,22 +33,22 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
           usrInputs,               // User defined input as a vector of one InputSpec
           o2f::Outputs{usrOutput}, // user defined outputs as a vector of OutputSpecs
 
-           o2f::AlgorithmSpec{ [usrOutput, mergerFunc](o2f::InitContext&) {
-             // Creating shared ptrs to useful parameters
-             auto outputPtr = std::make_shared<o2f::Output>(getOutput(usrOutput));
-             auto mergerFuncPtr = std::make_shared<std::function<void(OutputBuffer&, o2f::DataRef)> const>(mergerFunc);
+          o2f::AlgorithmSpec{[usrOutput, mergerFunc](o2f::InitContext&) {
+            // Creating shared ptrs to useful parameters
+            auto outputPtr = std::make_shared<o2f::Output>(getOutput(usrOutput));
+            auto mergerFuncPtr = std::make_shared<std::function<void(OutputBuffer&, o2f::DataRef)> const>(mergerFunc);
 
-             // Defining the ProcessCallback as returned object of InitCallback
-             return [outputPtr, mergerFuncPtr](o2f::ProcessingContext& ctx) {
-               OutputBuffer outputBuffer = ctx.outputs().makeVector<char>(*outputPtr);
-               // Iterating over the InputSpecs to aggregate msgs from the connected devices
-               for (const auto& itInputs : ctx.inputs()) {
-                 (*mergerFuncPtr)(outputBuffer, itInputs);
-               }
-               // Adopting the buffer as new chunk
-               ctx.outputs().adoptContainer((*outputPtr), std::move(outputBuffer));
-             };
-           } } };
+            // Defining the ProcessCallback as returned object of InitCallback
+            return [outputPtr, mergerFuncPtr](o2f::ProcessingContext& ctx) {
+              OutputBuffer outputBuffer = ctx.outputs().makeVector<char>(*outputPtr);
+              // Iterating over the InputSpecs to aggregate msgs from the connected devices
+              for (const auto& itInputs : ctx.inputs()) {
+                (*mergerFuncPtr)(outputBuffer, itInputs);
+              }
+              // Adopting the buffer as new chunk
+              ctx.outputs().adoptContainer((*outputPtr), std::move(outputBuffer));
+            };
+          }}};
 }
 
 // This is a possible implementation of a DPL compliant and generic gatherer whit trivial messages concatenation
