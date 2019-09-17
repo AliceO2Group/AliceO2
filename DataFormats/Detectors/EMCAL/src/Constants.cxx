@@ -48,6 +48,7 @@ int o2::emcal::channelTypeToInt(o2::emcal::ChannelType_t chantype)
     case o2::emcal::ChannelType_t::LEDMON:
       return 3;
   };
+  throw o2::emcal::InvalidChanneltypeException(int(chantype));
 }
 
 o2::emcal::ChannelType_t o2::emcal::intToChannelType(int chantype)
