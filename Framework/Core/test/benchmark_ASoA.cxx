@@ -91,6 +91,41 @@ static void BM_TrackForLoop(benchmark::State& state)
 
 BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 17);
 
+static void BM_WholeTrackForLoop(benchmark::State& state)
+{
+  struct TestTrack {
+    float a;
+    float b;
+    float c;
+    float d;
+    float e;
+    float f;
+  };
+  std::vector<TestTrack> foo;
+  foo.resize(state.range(0));
+
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  for (size_t i = 0; i < state.range(0); ++i) {
+    foo[i] = TestTrack{
+      uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+      uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
+  }
+
+  for (auto _ : state) {
+    float sum = 0;
+    for (auto& xyz : foo) {
+      sum += xyz.a + xyz.b + xyz.c + xyz.d + xyz.e + xyz.f;
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
+}
+
+BENCHMARK(BM_WholeTrackForLoop)->Range(8, 8 << 17);
+
 static void BM_TrackForPhi(benchmark::State& state)
 {
   struct TestTrack {
@@ -302,6 +337,34 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
 }
 
 BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << 17);
+
+static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (size_t i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+  for (auto _ : state) {
+    float sum = 0;
+    for (auto& track : tracks) {
+      sum += track.x() + track.alpha() + track.y() + track.z() + track.snp() + track.tgl() + track.signed1Pt();
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
+}
+
+BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << 17);
 
 static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 {
