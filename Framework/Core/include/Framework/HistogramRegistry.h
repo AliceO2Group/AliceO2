@@ -12,8 +12,10 @@
 #define FRAMEWORK_HISTOGRAMREGISTRY_H_
 
 #include "Framework/ASoA.h"
-#include "Framework/Logger.h"
 #include "Framework/FunctionalHelpers.h"
+#include "Framework/Logger.h"
+#include "Framework/OutputRef.h"
+#include "Framework/OutputSpec.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/TableBuilder.h"
 
@@ -116,6 +118,19 @@ class HistogramRegistry
     throw std::runtime_error("No match found!");
   }
 
+  // @return the associated OutputSpec
+  OutputSpec const spec()
+  {
+    ConcreteDataMatcher matcher{"HIST", "\0", 0};
+    strncpy(matcher.description.str, this->name.data(), 16);
+    return OutputSpec{OutputLabel{this->name}, matcher};
+  }
+
+  OutputRef ref()
+  {
+    return OutputRef{this->name, 0};
+  }
+
   /// lookup distance counter for benchmarking
   mutable uint32_t lookup = 0;
 
@@ -138,7 +153,7 @@ class HistogramRegistry
   {
     return i & mask;
   }
-  char const* const name;
+  std::string name;
   bool enabled;
 
   /// The maximum number of histograms in buffer is currently set to 512
