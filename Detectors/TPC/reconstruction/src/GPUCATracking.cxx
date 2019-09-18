@@ -131,17 +131,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         tFwd = tBwd = delta;
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
+#ifndef LATE_TPC_TRANSFORM
         float zHigh = trackClusters[tracks[i].FirstClusterRef()].z - tracks[i].GetParam().GetZOffset(); // high R cluster
         float zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].z -
                      tracks[i].GetParam().GetZOffset(); // low R cluster
-
-        bool sideHighA = trackClusters[tracks[i].FirstClusterRef()].slice < Sector::MAXSECTOR / 2;
-        bool sideLowA =
-          trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].slice < Sector::MAXSECTOR / 2;
-
-        // calculate time bracket
-        float zLowAbs = zLow < 0.f ? -zLow : zLow;
-        float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
+        float zLowAbs = fabsf(zLow);
+        float zHighAbs = fabsf(zHigh);
         //
         // tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
         // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
@@ -153,6 +148,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
           tFwd = (detParam.TPClength - zLowAbs) * vzbinInv;
           tBwd = zHighAbs * vzbinInv;
         }
+#else
+        //TODO
+#endif
       }
     }
 

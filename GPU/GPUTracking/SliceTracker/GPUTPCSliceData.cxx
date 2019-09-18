@@ -189,12 +189,16 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
   int* tmpHitIndex = tmpHitIndex_p.get();
 
   int RowOffset[GPUCA_ROW_COUNT];
+#ifndef LATE_TPC_TRANSFORM
   unsigned int NumberOfClustersInRow[GPUCA_ROW_COUNT];
   memset(NumberOfClustersInRow, 0, GPUCA_ROW_COUNT * sizeof(NumberOfClustersInRow[0]));
   for (int i = 0; i < mNumberOfHits; i++) {
     const int tmpRow = mClusterData[i].row;
     NumberOfClustersInRow[tmpRow]++;
   }
+#else
+  const unsigned int* NumberOfClustersInRow = &mem->ioPtrs.clustersNative->nClusters[iSlice][0];
+#endif
 
   int tmpOffset = 0;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
@@ -210,6 +214,7 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
     tmpOffset += NumberOfClustersInRow[i];
   }
 
+#ifndef LATE_TPC_TRANSFORM
   {
     int RowsFilled[GPUCA_ROW_COUNT];
     memset(RowsFilled, 0, GPUCA_ROW_COUNT * sizeof(int));
@@ -226,6 +231,18 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
       tmpHitIndex[newIndex] = i;
     }
   }
+#else
+  size_t k = 0;
+  for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
+    for (unsigned int j = 0; j < NumberOfClustersInRow[i]; j++) {
+      float2 tmp;
+      float x;
+      GPUTPCConvertImpl::convert(*mem, iSlice, i, mem->ioPtrs.clustersNative->clusters[iSlice][i][j].getPad(), mem->ioPtrs.clustersNative->clusters[iSlice][i][j].getTime(), x, tmp.x, tmp.y);
+      tmpHitIndex[k] = k;
+      YZData[k++] = tmp;
+    }
+  }
+#endif
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin

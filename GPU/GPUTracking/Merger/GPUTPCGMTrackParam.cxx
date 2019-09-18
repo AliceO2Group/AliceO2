@@ -30,6 +30,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"
+#include "GPUTPCConvertImpl.h"
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliExternalTrackParam.h"
@@ -124,10 +125,19 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
         }
       }
 
+      const float zOffset = (clusters[ihit].slice < 18) == (clusters[0].slice < 18) ? mZOffset : -mZOffset;
+#ifndef LATE_TPC_TRANSFORM
       float xx = clusters[ihit].x;
       float yy = clusters[ihit].y;
-      const float zOffset = (clusters[ihit].slice < 18) == (clusters[0].slice < 18) ? mZOffset : -mZOffset;
       float zz = clusters[ihit].z - zOffset;
+#else
+      const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
+      float xx, yy, zz;
+      //merger->GetConstantMem()->calibObjects.fastTransform->TransformInTimeFrame(clusters[ihit].slice, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz, merger->Param().continuousMaxTimeBin);
+      GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[ihit].slice, clusters[ihit].row, cl.getPad(), cl.getTime(), xx, yy, zz);
+      zz -= zOffset;
+#endif
+
       unsigned char clusterState = clusters[ihit].state;
       const float clAlpha = param.Alpha(clusters[ihit].slice);
       // clang-format off
@@ -281,7 +291,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           prop.SetTrack(this, prop.GetAlpha());
         }
         if (dEdxOut && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
+#ifndef LATE_TPC_TRANSFORM
           dEdx.fillCluster(clusters[ihit].amp, clusters[ihit].amp, clusters[ihit].row, mP[2], mP[3], param);
+#else
+          dEdx.fillCluster(cl.qTot, cl.qMax, clusters[ihit].row, mP[2], mP[3], param);
+#endif
         }
       } else if (retVal == 2) { // cluster far away form the track
         if (allowModification) {
@@ -386,21 +400,28 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection
     clusterState = 0;
     while (true) {
       const float zOffset = (clusters[ihit].slice < 18) == (clusters[0].slice < 18) ? mZOffset : -mZOffset;
-      float dy = clusters[ihit].y - projY;
-      float dz = clusters[ihit].z - zOffset - projZ;
+#ifndef LATE_TPC_TRANSFORM
+      float clx = clusters[ihit].x, cly = clusters[ihit].y, clz = clusters[ihit].z, clamp = clusters[ihit].amp;
+#else
+      const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
+      float clx, cly, clz, clamp = cl.qTot;
+      //merger->GetConstantMem()->calibObjects.fastTransform->TransformInTimeFrame(clusters[ihit].slice, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, merger->Param().continuousMaxTimeBin);
+      GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[ihit].slice, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz);
+#endif
+      float dy = cly - projY;
+      float dz = clz - zOffset - projZ;
       if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ)) {
-        CADEBUG(printf("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)\n", dy, dz, sqrtf(maxDistY), sqrtf(maxDistZ), mP[0], projY, clusters[ihit].y, mP[1], projZ, clusters[ihit].z));
+        CADEBUG(printf("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)\n", dy, dz, sqrtf(maxDistY), sqrtf(maxDistZ), mP[0], projY, cly, mP[1], projZ, clz));
         if (rejectChi2) {
           clusters[ihit].state |= GPUTPCGMMergedTrackHit::flagRejectDistance;
         }
       } else {
-        CADEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f (dy %f, dz %f, chiY %f, chiZ %f)\n", clusters[ihit].row, clusters[ihit].x, clusters[ihit].y, clusters[ihit].z, dy, dz, sqrtf(maxDistY), sqrtf(maxDistZ)));
-        const float amp = clusters[ihit].amp;
-        xx += clusters[ihit].x * amp;
-        yy += clusters[ihit].y * amp;
-        zz += (clusters[ihit].z - zOffset) * amp;
+        CADEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f (dy %f, dz %f, chiY %f, chiZ %f)\n", clusters[ihit].row, clx, cly, clz, dy, dz, sqrtf(maxDistY), sqrtf(maxDistZ)));
+        xx += clx * clamp;
+        yy += cly * clamp;
+        zz += (clz - zOffset) * clamp;
         clusterState |= clusters[ihit].state;
-        count += amp;
+        count += clamp;
       }
       if (!(ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].row == clusters[ihit + wayDirection].row && clusters[ihit].slice == clusters[ihit + wayDirection].slice && clusters[ihit].leg == clusters[ihit + wayDirection].leg)) {
         break;
@@ -695,8 +716,18 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* clusters, c
   mZOffset += dZOffset;
   mP[1] -= dZOffset;
   dZOffset = 0;
-  float zMax = CAMath::Max(clusters[0].z, clusters[N - 1].z);
-  float zMin = CAMath::Min(clusters[0].z, clusters[N - 1].z);
+#ifndef LATE_TPC_TRANSFORM
+  float z0 = clusters[0].z, z1 = clusters[N - 1].z;
+#else
+  float z0, z1, x, y;
+  const auto& cls = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
+  //merger->GetConstantMem()->calibObjects.fastTransform->TransformInTimeFrame(clusters[0].slice, clusters[0].row, cls[clusters[0].num].getPad(), cls[clusters[0].num].getTime(), x, y, z0, merger->Param().continuousMaxTimeBin);
+  //merger->GetConstantMem()->calibObjects.fastTransform->TransformInTimeFrame(clusters[N - 1].slice, clusters[N - 1].row, cls[clusters[N - 1].num].getPad(), cls[clusters[N - 1].num].getTime(), x, y, z1, merger->Param().continuousMaxTimeBin);
+  GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[0].slice, clusters[0].row, cls[clusters[0].num].getPad(), cls[clusters[0].num].getTime(), x, y, z0);
+  GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[N - 1].slice, clusters[N - 1].row, cls[clusters[N - 1].num].getPad(), cls[clusters[N - 1].num].getTime(), x, y, z1);
+#endif
+  float zMax = CAMath::Max(z0, z1);
+  float zMin = CAMath::Min(z0, z1);
   if (zMin < 0 && zMin - mZOffset < -250) {
     dZOffset = zMin - mZOffset + 250;
   } else if (zMax > 0 && zMax - mZOffset > 250) {
@@ -849,9 +880,16 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
     int ind = track.FirstClusterRef();
     const GPUParam& param = merger->Param();
     float alphaa = param.Alpha(clusters[ind].slice);
+#ifndef LATE_TPC_TRANSFORM
     float xx = clusters[ind].x;
     float yy = clusters[ind].y;
     float zz = clusters[ind].z - track.Param().GetZOffset();
+#else
+    const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ind].num];
+    float xx, yy, zz;
+    //merger->GetConstantMem()->calibObjects.fastTransform->TransformInTimeFrame(clusters[ind].slice, clusters[ind].row, cl.getPad(), cl.getTime(), xx, yy, zz, merger->Param().continuousMaxTimeBin);
+    GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[ind].slice, clusters[ind].row, cl.getPad(), cl.getTime(), xx, yy, zz);
+#endif
     float sinA = CAMath::Sin(alphaa - track.Alpha());
     float cosA = CAMath::Cos(alphaa - track.Alpha());
     track.SetLastX(xx * cosA - yy * sinA);
