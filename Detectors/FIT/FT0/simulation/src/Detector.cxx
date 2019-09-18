@@ -15,6 +15,8 @@
 #include "TSystem.h"
 #include "TVirtualMC.h"
 #include "TVector3.h"
+#include "TGeoTube.h"
+#include "TGeoCompositeShape.h"
 
 #include "FairRootManager.h" // for FairRootManager
 #include "FairLogger.h"
@@ -197,6 +199,7 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
   }
 
+  stlinA->AddNode(ConstructFrameGeometry(), 1);
   TGeoVolume* alice = gGeoManager->GetVolume("cave");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 0, zdetA));
   // alice->AddNode(stlinC,1,new TGeoTranslation(0,0, -zdetC ) );
@@ -356,6 +359,398 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   // Al Housing for Support Structure
   //  ins->AddNode(alsup,1);
+}
+
+TGeoVolume* Detector::ConstructFrameGeometry()
+{
+  // define the media
+  TGeoMedium* Vacuum = gGeoManager->GetMedium("FT0_Vacuum$");
+  TGeoMedium* Al = gGeoManager->GetMedium("FT0_Aluminium$");
+
+  // make a volume assembly for the frame
+  TGeoVolumeAssembly* FT0_Frame = new TGeoVolumeAssembly("FT0_Frame");
+
+  // define translations for the quartz radiators and PMTs
+  defineTransformations();
+
+  // approximate the frame with some rectangles
+  TGeoBBox* frame1 = new TGeoBBox("frame1", frame1X / 2, frame1Y / 2, frameZ / 2);
+  TGeoBBox* frame2 = new TGeoBBox("frame2", frame2X / 2, frame2Y / 2, frameZ / 2);
+  TGeoBBox* quartzRadiator = new TGeoBBox("quartzRadiator", quartzRadiatorSide / 2, quartzRadiatorSide / 2, quartzRadiatorZ / 2);
+  TGeoBBox* rect1 = new TGeoBBox("rect1", rect1X / 2, rect1Y / 2, frameZ / 2);
+  TGeoBBox* rect2 = new TGeoBBox("rect2", rect2X / 2, rect2Y / 2 + eps, frameZ / 2 - mountZ / 2);
+  TGeoBBox* rect3 = new TGeoBBox("rect3", rect3X / 2, rect3Y / 2, frameZ / 2);
+  TGeoBBox* rect4 = new TGeoBBox("rect4", rect4X / 2, rect4Y / 2, frameZ / 2);
+  TGeoBBox* rect5 = new TGeoBBox("rect5", rect5X / 2 + eps, rect5Y / 2, frameZ / 2);
+  TGeoBBox* rect6 = new TGeoBBox("rect6", rect6X / 2 + eps, rect6Y / 2 + eps, frameZ / 2);
+  TGeoBBox* rect7 = new TGeoBBox("rect7", rect7X / 2 + eps, rect7Y / 2 + eps, frameZ / 2 - mountZ / 2);
+  TGeoBBox* rect8 = new TGeoBBox("rect8", rect8X / 2 + eps, rect8Y / 2 + eps, frameZ / 2);
+
+  // PMT needs round edges
+  TGeoBBox* pmtBox = new TGeoBBox("pmtBox", pmtSide / 2, pmtSide / 2, pmtZ / 2);
+  TGeoBBox* pmtCornerRect = new TGeoBBox("pmtCornerRect", cornerRadius / 2, cornerRadius / 2, pmtZ / 2);
+  TGeoTube* pmtCornerTube = new TGeoTube("pmtCornerTube", 0, cornerRadius, pmtZ / 2);
+  TGeoVolume* PMTCorner = new TGeoVolume("PMTCorner", new TGeoCompositeShape("PMTCorner", pmtCornerCompositeShapeBoolean().c_str()), Al);
+  TGeoVolume* PMT = new TGeoVolume("PMT", new TGeoCompositeShape("PMT", pmtCompositeShapeBoolean().c_str()), Vacuum);
+
+  // add the plates on the bottom of the frame
+  TGeoBBox* basicPlate = new TGeoBBox("basicPlate", plateSide / 2, plateSide / 2, basicPlateZ / 2);
+  TGeoBBox* cablePlate = new TGeoBBox("cablePlate", plateSide / 2, plateSide / 2, cablePlateZ / 2);
+  TGeoBBox* opticalFiberHead = new TGeoBBox("opticalFiberHead", fiberHeadX / 2, fiberHeadY / 2, cablePlateZ / 2);
+  TGeoCompositeShape* opticalFiberPlate1 = new TGeoCompositeShape("opticalFiberPlate1", opticalFiberPlateCompositeShapeBoolean1().c_str());
+  TGeoCompositeShape* opticalFiberPlate2 = new TGeoCompositeShape("opticalFiberPlate2", opticalFiberPlateCompositeShapeBoolean2().c_str());
+  TGeoCompositeShape* plateBox = new TGeoCompositeShape("plateBox", plateBoxCompositeShapeBoolean().c_str());                                 // holds 2 basic plates and 2 cable plates
+  TGeoVolume* plateGroup = new TGeoVolume("plateGroup", new TGeoCompositeShape("plateGroup", plateGroupCompositeShapeBoolean().c_str()), Al); // holds 3 plate boxes
+
+  // remove the quartz radiators and PMTs from the frame
+  TGeoCompositeShape* frameRemovedPMTandRadiators1 = new TGeoCompositeShape("frameRemovedPMTandRadiators1", frame1CompositeShapeBoolean().c_str());
+  TGeoCompositeShape* frameRemovedPMTandRadiators2 = new TGeoCompositeShape("frameRemovedPMTandRadiators2", frame2CompositeShapeBoolean().c_str());
+
+  // make the right side frame
+  TGeoVolume* frame = new TGeoVolume("frame", new TGeoCompositeShape("frame", frameCompositeShapeBoolean().c_str()), Al);
+
+  // reflection for the left side of the frame
+  TGeoRotation* reflect = new TGeoRotation("reflect");
+  reflect->ReflectX(true);
+  reflect->ReflectY(true);
+  reflect->RegisterYourself();
+
+  // add the right and left sides to top volume
+  FT0_Frame->AddNode(frame, 1);          // right side
+  FT0_Frame->AddNode(frame, 2, reflect); // left side
+
+  return FT0_Frame;
+}
+std::string Detector::frame1CompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite frame shape
+  std::string frame1CompositeShapeBoolean = "";
+  frame1CompositeShapeBoolean += "((frame1";
+
+  // remove the radiators
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr1";
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr2";
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr3";
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr4";
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr5";
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr6)";
+
+  // remove the PMTs
+  frame1CompositeShapeBoolean += " - PMT:PMTTr1";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr2";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr3";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr4";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr5";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr6)";
+
+  return frame1CompositeShapeBoolean;
+}
+
+std::string Detector::frame2CompositeShapeBoolean()
+{
+  std::string frame2CompositeShapeBoolean = "";
+  frame2CompositeShapeBoolean += "((frame2";
+
+  // remove the radiators
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr7";
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr8";
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr9";
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr10";
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr11";
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr12)";
+
+  // remove the PMTs
+  frame2CompositeShapeBoolean += " - PMT:PMTTr7";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr8";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr9";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr10";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr11";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr12)";
+
+  return frame2CompositeShapeBoolean;
+}
+
+std::string Detector::frameCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateGroup shape
+  std::string frameCompositeShapeBoolean = "";
+
+  // add frames 1 and 2
+  frameCompositeShapeBoolean += "frameRemovedPMTandRadiators1:frameTr1";
+  frameCompositeShapeBoolean += " + frameRemovedPMTandRadiators2:frameTr2";
+
+  // add the plateGroups
+  frameCompositeShapeBoolean += " + plateGroup:plateGroupTr1";
+  frameCompositeShapeBoolean += " + plateGroup:plateGroupTr2";
+
+  // subtract the extra Al
+  frameCompositeShapeBoolean += " - rect1:rectTr1";
+  frameCompositeShapeBoolean += " - rect2:rectTr2";
+  frameCompositeShapeBoolean += " - rect3:rectTr3";
+  frameCompositeShapeBoolean += " - rect4:rectTr4";
+  frameCompositeShapeBoolean += " - rect5:rectTr5";
+  frameCompositeShapeBoolean += " - rect6:rectTr6";
+  frameCompositeShapeBoolean += " - rect7:rectTr7";
+  frameCompositeShapeBoolean += " - rect8:rectTr8";
+
+  return frameCompositeShapeBoolean;
+}
+
+std::string Detector::plateGroupCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateGroup shape
+  std::string plateGroupCompositeShapeBoolean = "";
+
+  // add the plateBoxes to the plateGroup
+  plateGroupCompositeShapeBoolean += "plateBox:plateTr1";
+  plateGroupCompositeShapeBoolean += " + plateBox:plateTr2";
+  plateGroupCompositeShapeBoolean += " + plateBox:plateTr3";
+
+  return plateGroupCompositeShapeBoolean;
+}
+
+std::string Detector::opticalFiberPlateCompositeShapeBoolean1()
+{
+  // create a string for the boolean operations for the composite opticalFiberPlate1 shape
+  std::string opticalFiberPlateCompositeShapeBoolean1 = "";
+  opticalFiberPlateCompositeShapeBoolean1 += "cablePlate";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr1";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr2";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr3";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr4";
+
+  return opticalFiberPlateCompositeShapeBoolean1;
+}
+
+std::string Detector::opticalFiberPlateCompositeShapeBoolean2()
+{
+  // create a string for the boolean operations for the composite opticalFiberPlate2 shape
+  std::string opticalFiberPlateCompositeShapeBoolean2 = "";
+
+  // remove the opticalFiberHeads from the cablePlate
+  opticalFiberPlateCompositeShapeBoolean2 += "cablePlate";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr5";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr6";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr7";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr8";
+
+  return opticalFiberPlateCompositeShapeBoolean2;
+}
+
+std::string Detector::pmtCornerCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite pmtCorner shape
+  std::string pmtCornerCompositeShapeBoolean = "";
+  pmtCornerCompositeShapeBoolean += "pmtCornerRect:pmtCornerRectTr";
+  pmtCornerCompositeShapeBoolean += " - pmtCornerTube:pmtCornerTubeTr";
+
+  return pmtCornerCompositeShapeBoolean;
+}
+
+std::string Detector::pmtCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite PMT shape
+  std::string pmtCompositeShapeBoolean = "";
+  pmtCompositeShapeBoolean += "pmtBox";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr1";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr2";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr3";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr4";
+
+  return pmtCompositeShapeBoolean;
+}
+
+std::string Detector::plateBoxCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateBox shape
+  std::string plateBoxCompositeShapeBoolean = "";
+  plateBoxCompositeShapeBoolean += "basicPlate";
+  plateBoxCompositeShapeBoolean += " + basicPlate:basicPlateTr";
+  plateBoxCompositeShapeBoolean += " + opticalFiberPlate1:opticalFiberPlateTr1";
+  plateBoxCompositeShapeBoolean += " + opticalFiberPlate2:opticalFiberPlateTr2";
+
+  return plateBoxCompositeShapeBoolean;
+}
+
+void Detector::defineTransformations()
+{
+  defineQuartzRadiatorTransformations();
+  definePMTTransformations();
+  definePlateTransformations();
+  defineFrameTransformations();
+}
+
+void Detector::defineQuartzRadiatorTransformations()
+{
+  // translations for quartz radiators in frame 1
+  TGeoTranslation* quartzRadiatorTr1 = new TGeoTranslation("quartzRadiatorTr1", pos1X[0], pos1Y[0], quartzHeight);
+  quartzRadiatorTr1->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr2 = new TGeoTranslation("quartzRadiatorTr2", pos1X[0], pos1Y[1], quartzHeight);
+  quartzRadiatorTr2->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr3 = new TGeoTranslation("quartzRadiatorTr3", pos1X[1], pos1Y[2], quartzHeight);
+  quartzRadiatorTr3->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr4 = new TGeoTranslation("quartzRadiatorTr4", pos1X[1], pos1Y[3], quartzHeight);
+  quartzRadiatorTr4->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr5 = new TGeoTranslation("quartzRadiatorTr5", pos1X[2], pos1Y[2], quartzHeight);
+  quartzRadiatorTr5->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr6 = new TGeoTranslation("quartzRadiatorTr6", pos1X[2], pos1Y[3], quartzHeight);
+  quartzRadiatorTr6->RegisterYourself();
+
+  // translations for quartz radiators in frame 2
+  TGeoTranslation* quartzRadiatorTr7 = new TGeoTranslation("quartzRadiatorTr7", pos2X[0], pos2Y[0], quartzHeight);
+  quartzRadiatorTr7->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr8 = new TGeoTranslation("quartzRadiatorTr8", pos2X[1], pos2Y[0], quartzHeight);
+  quartzRadiatorTr8->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr9 = new TGeoTranslation("quartzRadiatorTr9", pos2X[2], pos2Y[1], quartzHeight);
+  quartzRadiatorTr9->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr10 = new TGeoTranslation("quartzRadiatorTr10", pos2X[3], pos2Y[1], quartzHeight);
+  quartzRadiatorTr10->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr11 = new TGeoTranslation("quartzRadiatorTr11", pos2X[2], pos2Y[2], quartzHeight);
+  quartzRadiatorTr11->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr12 = new TGeoTranslation("quartzRadiatorTr12", pos2X[3], pos2Y[2], quartzHeight);
+  quartzRadiatorTr12->RegisterYourself();
+}
+
+void Detector::definePMTTransformations()
+{
+  // translations for PMTs in frame 1
+  TGeoTranslation* PMTTr1 = new TGeoTranslation("PMTTr1", pos1X[0], pos1Y[0], PMTHeight);
+  PMTTr1->RegisterYourself();
+  TGeoTranslation* PMTTr2 = new TGeoTranslation("PMTTr2", pos1X[0], pos1Y[1], PMTHeight);
+  PMTTr2->RegisterYourself();
+  TGeoTranslation* PMTTr3 = new TGeoTranslation("PMTTr3", pos1X[1], pos1Y[2], PMTHeight);
+  PMTTr3->RegisterYourself();
+  TGeoTranslation* PMTTr4 = new TGeoTranslation("PMTTr4", pos1X[1], pos1Y[3], PMTHeight);
+  PMTTr4->RegisterYourself();
+  TGeoTranslation* PMTTr5 = new TGeoTranslation("PMTTr5", pos1X[2], pos1Y[2], PMTHeight);
+  PMTTr5->RegisterYourself();
+  TGeoTranslation* PMTTr6 = new TGeoTranslation("PMTTr6", pos1X[2], pos1Y[3], PMTHeight);
+  PMTTr6->RegisterYourself();
+
+  // translations for PMTs in frame 2
+  TGeoTranslation* PMTTr7 = new TGeoTranslation("PMTTr7", pos2X[0], pos2Y[0], PMTHeight);
+  PMTTr7->RegisterYourself();
+  TGeoTranslation* PMTTr8 = new TGeoTranslation("PMTTr8", pos2X[1], pos2Y[0], PMTHeight);
+  PMTTr8->RegisterYourself();
+  TGeoTranslation* PMTTr9 = new TGeoTranslation("PMTTr9", pos2X[2], pos2Y[1], PMTHeight);
+  PMTTr9->RegisterYourself();
+  TGeoTranslation* PMTTr10 = new TGeoTranslation("PMTTr10", pos2X[3], pos2Y[1], PMTHeight);
+  PMTTr10->RegisterYourself();
+  TGeoTranslation* PMTTr11 = new TGeoTranslation("PMTTr11", pos2X[2], pos2Y[2], PMTHeight);
+  PMTTr11->RegisterYourself();
+  TGeoTranslation* PMTTr12 = new TGeoTranslation("PMTTr12", pos2X[3], pos2Y[2], PMTHeight);
+  PMTTr12->RegisterYourself();
+
+  // define pmtCorner transformations
+  TGeoTranslation* pmtCornerTubeTr = new TGeoTranslation("pmtCornerTubeTr", pmtCornerTubePos, pmtCornerTubePos, 0);
+  pmtCornerTubeTr->RegisterYourself();
+  TGeoTranslation* pmtCornerRectTr = new TGeoTranslation("pmtCornerRectTr", 0, 0, 0);
+  pmtCornerRectTr->RegisterYourself();
+  TGeoTranslation* PMTCornerTr1 = new TGeoTranslation("PMTCornerTr1", pmtCornerPos, pmtCornerPos, 0);
+  PMTCornerTr1->RegisterYourself();
+  TGeoRotation* reflect2 = new TGeoRotation();
+  reflect2->ReflectX(true);
+  reflect2->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr2 = new TGeoCombiTrans("PMTCornerTr2", -pmtCornerPos, pmtCornerPos, 0, reflect2);
+  PMTCornerTr2->RegisterYourself();
+  TGeoRotation* reflect3 = new TGeoRotation();
+  reflect3->ReflectX(true);
+  reflect3->ReflectY(true);
+  reflect3->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr3 = new TGeoCombiTrans("PMTCornerTr3", -pmtCornerPos, -pmtCornerPos, 0, reflect3);
+  PMTCornerTr3->RegisterYourself();
+  TGeoRotation* reflect4 = new TGeoRotation();
+  reflect4->ReflectY(true);
+  reflect4->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr4 = new TGeoCombiTrans("PMTCornerTr4", pmtCornerPos, -pmtCornerPos, 0, reflect4);
+  PMTCornerTr4->RegisterYourself();
+  TGeoRotation* reflect5 = new TGeoRotation();
+  reflect5->ReflectX(true);
+  reflect5->ReflectY(true);
+  reflect5->RegisterYourself();
+  TGeoCombiTrans* edgeCornerTr = new TGeoCombiTrans("edgeCornerTr", edgeCornerPos[0], edgeCornerPos[1], 0, reflect5);
+  edgeCornerTr->RegisterYourself();
+}
+
+void Detector::definePlateTransformations()
+{
+  // TODO: redefine fiber head transformations
+  // define transformations for the fiber heads in opticalFiberPlate1
+  TGeoTranslation* opticalFiberHeadTr1 = new TGeoTranslation("opticalFiberHeadTr1", 1.7384, 1.36, 0);
+  opticalFiberHeadTr1->RegisterYourself();
+  TGeoTranslation* opticalFiberHeadTr2 = new TGeoTranslation("opticalFiberHeadTr2", 1.7384, -1.36, 0);
+  opticalFiberHeadTr2->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr3 = new TGeoCombiTrans("opticalFiberHeadTr3", -0.9252, -.9375, 0, new TGeoRotation("rot3", 15, 0, 0));
+  opticalFiberHeadTr3->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr4 = new TGeoCombiTrans("opticalFiberHeadTr4", -0.9252, .9375, 0, new TGeoRotation("rot4", -15, 0, 0));
+  opticalFiberHeadTr4->RegisterYourself();
+
+  // make the transformations for the fiber heads in opticalFiberPlate2
+  TGeoCombiTrans* opticalFiberHeadTr5 = new TGeoCombiTrans("opticalFiberHeadTr5", 1.6714, 1.525, 0, new TGeoRotation("rot5", 30, 0, 0));
+  opticalFiberHeadTr5->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr6 = new TGeoCombiTrans("opticalFiberHeadTr6", 1.6714, -1.525, 0, new TGeoRotation("rot6", -30, 0, 0));
+  opticalFiberHeadTr6->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr7 = new TGeoCombiTrans("opticalFiberHeadTr7", -0.9786, -1.125, 0, new TGeoRotation("rot7", 30, 0, 0));
+  opticalFiberHeadTr7->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr8 = new TGeoCombiTrans("opticalFiberHeadTr8", -0.9786, 1.125, 0, new TGeoRotation("rot8", -30, 0, 0));
+  opticalFiberHeadTr8->RegisterYourself();
+
+  // define transformations to form a plateBox (2 basicPlates and 2 cablePlates)
+  TGeoCombiTrans* basicPlateTr = new TGeoCombiTrans("basicPlateTr", 0, -plateSpacing, 0, new TGeoRotation("basicPlateRot", 90, 0, 0));
+  basicPlateTr->RegisterYourself();
+  TGeoCombiTrans* opticalFiberPlateTr1 = new TGeoCombiTrans("opticalFiberPlateTr1", 0, 0, opticalFiberPlateZ, new TGeoRotation("opticalFiberPlateRot1", 90, 0, 0));
+  opticalFiberPlateTr1->RegisterYourself();
+  TGeoCombiTrans* opticalFiberPlateTr2 = new TGeoCombiTrans("opticalFiberPlateTr2", 0, -plateSpacing, opticalFiberPlateZ, new TGeoRotation("opticalFiberPlateRot2", 90, 0, 0));
+  opticalFiberPlateTr2->RegisterYourself();
+
+  // define transformations to form a plateGroup
+  TGeoTranslation* plateTr1 = new TGeoTranslation("plateTr1", -plateSpacing, plateDisplacementDeltaY, 0);
+  plateTr1->RegisterYourself();
+  TGeoTranslation* plateTr2 = new TGeoTranslation("plateTr2", 0, 0, 0);
+  plateTr2->RegisterYourself();
+  TGeoTranslation* plateTr3 = new TGeoTranslation("plateTr3", plateSpacing, 0, 0);
+  plateTr3->RegisterYourself();
+
+  // TODO: fix plateGroupTr2
+  // define transformations for the plateGroups (6 basicPlates and 6 cablePlates)
+  TGeoTranslation* plateGroupTr1 = new TGeoTranslation("plateGroupTr1", plateDisplacementX, plateDisplacementY, plateGroupZ);
+  plateGroupTr1->RegisterYourself();
+  TGeoCombiTrans* plateGroupTr2 = new TGeoCombiTrans("plateGroupTr2", 10.4358 + 1.5 * plateDisplacementDeltaY, -7.0747, plateGroupZ, new TGeoRotation("plateGroup2Rotation", -90, 0, 0));
+  plateGroupTr2->RegisterYourself();
+}
+
+void Detector::defineFrameTransformations()
+{
+  // position of the two rectangles used to approximate the frame
+  TGeoTranslation* frameTr1 = new TGeoTranslation("frameTr1", frame1PosX, frame1PosY, 0);
+  frameTr1->RegisterYourself();
+  TGeoTranslation* frameTr2 = new TGeoTranslation("frameTr2", frame2PosX, frame2PosY, 0);
+  frameTr2->RegisterYourself();
+
+  // remove the two smaller rectangles from the frame
+  TGeoTranslation* rectTr1 = new TGeoTranslation("rectTr1", frame1PosX + 3.25, frame1PosY + 6.1875, 0);
+  rectTr1->RegisterYourself();
+
+  TGeoTranslation* rectTr2 = new TGeoTranslation("rectTr2", frame1PosX + 9.3, frame1PosY - 0.5775, mountZ / 2);
+  rectTr2->RegisterYourself();
+
+  TGeoTranslation* rectTr3 = new TGeoTranslation("rectTr3", frame1PosX + 10.75 - rect3X / 2, frame1PosY - 6.8525 + rect3Y / 2, 0);
+  rectTr3->RegisterYourself();
+
+  TGeoTranslation* rectTr4 = new TGeoTranslation("rectTr4", frame1PosX - 7.925, frame1PosY - 6.44, 0);
+  rectTr4->RegisterYourself();
+
+  TGeoTranslation* rectTr5 = new TGeoTranslation("rectTr5", frame2PosX + 6.965 - rect5X / 2, frame2PosY + 4.3625 - rect5Y / 2, 0);
+  rectTr5->RegisterYourself();
+
+  TGeoTranslation* rectTr6 = new TGeoTranslation("rectTr6", frame2PosX + 6.965 - rect6X / 2, frame2PosY - 10.7375 + rect6Y / 2, 0);
+  rectTr6->RegisterYourself();
+
+  TGeoTranslation* rectTr7 = new TGeoTranslation("rectTr7", frame2PosX + 6.965 - rect6X - rect7X / 2, frame2PosY - 10.7375 + rect7Y / 2, mountZ / 2);
+  rectTr7->RegisterYourself();
+
+  TGeoTranslation* rectTr8 = new TGeoTranslation("rectTr8", frame2PosX - 5.89 - rect8X / 2, frame2PosY + 5.1125 + rect8Y / 2, 0);
+  rectTr8->RegisterYourself();
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
