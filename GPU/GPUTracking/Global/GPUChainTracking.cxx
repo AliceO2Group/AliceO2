@@ -440,12 +440,14 @@ int GPUChainTracking::ReadData(const char* filename)
     return 1;
   }
   ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
+#ifndef LATE_TPC_TRANSFORM
   int nClustersTotal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {
       mIOMem.clusterData[i][j].id = nClustersTotal++;
     }
   }
+#endif
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
@@ -526,12 +528,15 @@ int GPUChainTracking::ConvertNativeToClusterData()
   SetupGPUProcessor(&convert, false);
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     convertShadow.set(convertShadow.mClustersNativeBuffer, mFlatObjectsDevice.mCalibObjects.fastTransform);
+    processorsShadow()->ioPtrs.clustersNative = convertShadow.mClustersNativeBuffer;
+    WriteToConstantMemory((char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
     *convert.mClustersNativeBuffer = *mClusterNativeAccess.get();
+    convert.mClustersNativeBuffer->clustersLinear = convertShadow.mInputClusters; // We overwrite the pointers of the host buffer, this will be moved to the GPU, should be cleaned up
     for (unsigned int i = 0; i < NSLICES; i++) {
       convert.mMemory->clusters[i] = convertShadow.mClusters + tmpExt->clusterOffset[i][0];
       for (unsigned int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
         ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
-        convert.mClustersNativeBuffer->clusters[i][j] = ptr;
+        convert.mClustersNativeBuffer->clusters[i][j] = ptr; // We overwrite the pointers of the host buffer, this will be moved to the GPU, should be cleaned up
         mRec->GPUMemCpy(ptr, mClusterNativeAccess->clusters[i][j], sizeof(mClusterNativeAccess->clusters[i][j][0]) * mClusterNativeAccess->nClusters[i][j], 0, true);
       }
     }

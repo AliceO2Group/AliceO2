@@ -1379,12 +1379,14 @@ void GPUQA::RunQA(bool matchOnly)
     FILE* fp = fopen(fname, "w+");
     fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
     int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
+#ifndef LATE_TPC_TRANSFORM
     for (unsigned int iSlice = 0; iSlice < GPUChainTracking::NSLICES; iSlice++) {
       for (unsigned int i = 0; i < mTracking->mIOPtrs.nClusterData[iSlice]; i++) {
         const auto& cl = mTracking->mIOPtrs.clusterData[iSlice][i];
-        const int cid = cl.id;
         float x, y, z;
+        const int cid = cl.id;
         merger.Param().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
+
         float totalWeight = 0.f;
         if (mcPresent()) {
           for (int j = 0; j < GetMCLabelNID(cid); j++) {
@@ -1435,6 +1437,7 @@ void GPUQA::RunQA(bool matchOnly)
         fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d;%d\n", x, y, z, attach ? 1.f / qpt : 0.f, p, maxPt, labels[0], labels[1], labels[2], attach ? 1 : 0);
       }
     }
+#endif
     fclose(fp);
     if (mcPresent()) {
       sprintf(fname, "dump_event.%d.csv", csvNum++);
