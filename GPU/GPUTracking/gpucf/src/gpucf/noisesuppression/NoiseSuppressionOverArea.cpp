@@ -115,6 +115,7 @@ std::vector<Digit> NoiseSuppressionOverArea::runImpl(
         const Map<float> &chargeMap)
 {
     std::vector<Digit> filtered;
+    filtered.reserve(peaks.size());
 
     for (const Digit &p : peaks)
     {
