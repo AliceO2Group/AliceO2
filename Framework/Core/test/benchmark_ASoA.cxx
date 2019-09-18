@@ -397,4 +397,4 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 }
 BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 17);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();
