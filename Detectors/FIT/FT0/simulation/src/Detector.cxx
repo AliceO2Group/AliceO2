@@ -70,13 +70,13 @@ void Detector::ConstructGeometry()
   CreateMaterials();
 
   Float_t zdetA = 333;
-  Float_t zdetC = 82;
+  Float_t zdetC = 82.;
 
   Int_t idrotm[999];
   Double_t x, y, z;
   Float_t pstartC[3] = {20., 20, 5};
   Float_t pstartA[3] = {20, 20, 5};
-  Float_t pinstart[3] = {2.95, 2.95, 4.34};
+  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
   Float_t pmcp[3] = {2.949, 2.949, 1.}; // MCP
 
   int nCellsA = Geometry::NCellsA;
@@ -88,7 +88,7 @@ void Detector::ConstructGeometry()
 
   // C side Concave Geometry
 
-  Double_t crad = 82.; // define concave c-side radius here
+  Double_t crad = 82; // define concave c-side radius here
 
   Double_t dP = pmcp[0]; // side length of mcp divided by 2
 
@@ -192,6 +192,7 @@ void Detector::ConstructGeometry()
 
     //   com[itr-Geometry::NCellsA] = new TGeoCombiTrans(tr[itr],rot[itr-Geometry::NCellsA]);
     com[ic] = new TGeoCombiTrans(xc2[ic], yc2[ic], (zc2[ic] - 80), rot[ic]);
+    std::cout << ic << " " << xc2[ic] << " " << yc2[ic] << std::endl;
     TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
@@ -199,7 +200,6 @@ void Detector::ConstructGeometry()
 
   TGeoVolume* alice = gGeoManager->GetVolume("cave");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 0, zdetA));
-  // alice->AddNode(stlinC,1,new TGeoTranslation(0,0, -zdetC ) );
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
   alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 0., -zdetC, rotC));
 
@@ -219,16 +219,14 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 {
 
   Double_t x, y, z;
-  Double_t crad = 82.;         // Define concave c-side radius here
-  Double_t dP = 3.31735114408; // Work in Progress side length
 
-  Float_t pinstart[3] = {2.95, 2.95, 2.5};
+  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
   Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
   Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
   Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
   Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
   Float_t pmcp[3] = {2.949, 2.949, 1.};      // MCP
-  Float_t pmcpinner[3] = {2.749, 2.979, 0.1};
+  Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
   Float_t pmcpside[3] = {0.1, 2.949, 1};
   Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
   Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
@@ -248,12 +246,15 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
   TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
 
+  /*  
+  //Al housing definition
+  Double_t crad = 82.;         // Define concave c-side radius here
+  Double_t dP = 3.31735114408; // Work in Progress side length
+  //  Double_t dP = pmcp[0]; // side length of mcp divided by 2
   Double_t thet = TMath::ATan(dP / crad);
   Double_t rat = TMath::Tan(thet) / 2.0;
-  /*
-  //Al housing definition
+  
   Double_t mgon[16];
-
   mgon[0] = -45;
   mgon[1] = 360.0;
   mgon[2] = 4;
@@ -269,17 +270,18 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   mgon[8] = mgon[5];
   mgon[9] = dP + z * rat;
   mgon[10] = z;
-  mgon[11] = pmcp[0] + preg[2];
+  mgon[11] = pmcp[0]  + preg[2]  ;
   mgon[12] = mgon[9];
 
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * preg[2] + 2 * pmcp[2];
+  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * preg[2] + pmcptopglass[2] + 2 * pmcp[2];
   mgon[13] = z;
   mgon[14] = mgon[11];
   mgon[15] = dP + z * rat * pmcp[2] * 9 / 10;
 
   TVirtualMC::GetMC()->Gsvolu("0SUP", "PGON", getMediumID(kAl), mgon, 16); //Al Housing for Support Structure//
   TGeoVolume* alsup = gGeoManager->GetVolume("0SUP");
-  */
+  ins->AddNode(alsup, 1, new TGeoTranslation(0, 0, 0));
+ */
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
