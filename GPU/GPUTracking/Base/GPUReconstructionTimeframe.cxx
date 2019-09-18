@@ -74,6 +74,7 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
     }
   }
   if (shiftZ != 0.) {
+#ifndef LATE_TPC_TRANSFORM
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       for (unsigned int j = 0; j < mChain->mIOPtrs.nClusterData[iSlice]; j++) {
         auto& tmp = mChain->mIOMem.clusterData[iSlice][j];
@@ -84,6 +85,9 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
       auto& tmp = mChain->mIOMem.mcInfosTPC[i];
       tmp.z += i < NSLICES / 2 ? shiftZ : -shiftZ;
     }
+#else
+    // TODO
+#endif
   }
 
   // Remove clusters outside boundaries
@@ -95,8 +99,12 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shiftZ, float
       unsigned int currentClusterSlice = 0;
       bool doRaw = config.overlayRaw && mChain->mIOPtrs.nClusterData[iSlice] == mChain->mIOPtrs.nRawClusters[iSlice];
       for (unsigned int i = 0; i < mChain->mIOPtrs.nClusterData[iSlice]; i++) {
+#ifndef LATE_TPC_TRANSFORM
         float sign = iSlice < NSLICES / 2 ? 1 : -1;
         if (sign * mChain->mIOMem.clusterData[iSlice][i].z >= minZ && sign * mChain->mIOMem.clusterData[iSlice][i].z <= maxZ) {
+#else
+        if (true) {
+#endif
           if (currentClusterSlice != i) {
             mChain->mIOMem.clusterData[iSlice][currentClusterSlice] = mChain->mIOMem.clusterData[iSlice][i];
             if (doRaw) {
@@ -188,7 +196,9 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
         memcpy((void*)&mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j]], (void*)&ptr.mcLabelsTPC[inEventOffset], ptr.nClusterData[j] * sizeof(ptr.mcLabelsTPC[0]));
       }
       for (unsigned int k = 0; k < ptr.nClusterData[j]; k++) {
+#ifndef LATE_TPC_TRANSFORM
         mChain->mIOMem.clusterData[j][nClustersEventOffset[j] + k].id = nClustersSliceOffset[j] + nClustersEventOffset[j] + k;
+#endif
         if (mChain->mIOPtrs.nMCLabelsTPC) {
           for (int l = 0; l < 3; l++) {
             auto& label = mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j] + k].fClusterID[l];

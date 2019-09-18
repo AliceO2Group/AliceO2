@@ -25,6 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
+#ifndef LATE_TPC_TRANSFORM
   out << "Slice " << mISlice << "\n";
   const GPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
   for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
@@ -35,6 +36,7 @@ void GPUTPCTracker::DumpOutput(std::ostream& out)
     out << " - (" << track->Param().Y() << " " << track->Param().Z() << " " << track->Param().SinPhi() << " " << track->Param().DzDs() << " " << track->Param().QPt() << "\n";
     track = track->GetNextTrack();
   }
+#endif
 }
 
 void GPUTPCTracker::DumpSliceData(std::ostream& out)
