@@ -72,6 +72,9 @@ ReferenceClusterFinder::Result ReferenceClusterFinder::run(View<Digit> digits)
     std::vector<Digit> peaks;
     std::vector<unsigned char> isPeakPred;
 
+    peaks.reserve(digits.size());
+    isPeakPred.reserve(digits.size());
+
     DBG(config.qmaxCutoff);
 
     for (const Digit &d : digits)
@@ -194,12 +197,6 @@ ReferenceClusterFinder::PeakCount ReferenceClusterFinder::countPeaks(
         {
             outerPeaks += peakmap[{d, outer.pad, outer.time}];
         }
-    }
-
-    if (d.row == 0 && d.time == 671 && d.pad == 33)
-    {
-        log::Debug() << ">>>>> q = " << d.charge 
-            << ", innerPeaks = " << innerPeaks;
     }
 
     return (innerPeaks > 0) ? (PCMASK_HAS_3X3_PEAKS | innerPeaks) : outerPeaks;
