@@ -10,6 +10,7 @@ executables(
     run_gpucf
     root_test
     testbench
+    time_cpucf
 )
 
 add_executable(unittests 
