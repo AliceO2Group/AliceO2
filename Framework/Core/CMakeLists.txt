@@ -166,6 +166,7 @@ foreach(t
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
         Graphviz
+        HistogramRegistry
         InfoLogger
         InputRecord
         Kernels
