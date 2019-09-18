@@ -120,17 +120,21 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
   for (size_t hi = 0; hi < expirationHandlers.size(); ++hi) {
     slotsCreatedByHandlers[hi] = expirationHandlers[hi].creator(mTimesliceIndex);
   }
-  // Expire the records as needed.
+  // Outer loop, we process all the records because the fact that the record
+  // expires is independent from having received data for it.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
     TimesliceSlot slot{ti};
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
     }
     assert(mDistinctRoutesIndex.empty() == false);
+    // We iterate on all the routes which compose a record,
+    // checking if they need to be expired.
     for (size_t ri = 0; ri < mDistinctRoutesIndex.size(); ++ri) {
       auto& route = mInputRoutes[mDistinctRoutesIndex[ri]];
       auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
       auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
+      // We check that no data is already there for the given cell
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
       if (part.header != nullptr) {
         continue;
@@ -138,6 +142,7 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       if (part.payload != nullptr) {
         continue;
       }
+      // We check that the cell can actually be expired.
       if (!expirator.checker) {
         continue;
       }
