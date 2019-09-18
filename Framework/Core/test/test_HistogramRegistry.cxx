@@ -37,16 +37,12 @@ DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR",
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct FTask {
-  HistogramRegistry registry{"registry",true,{
-      {"eta","#Eta",{"TH1F",100,-2.0,2.0}},
-      {"phi","#Phi",{"TH1D",102,0,2*M_PI}},
-      {"pt","p_{T}",{"TH1D",1002,-0.01,50.1}}
-                             }};
+  HistogramRegistry registry{"registry", true, {{"eta", "#Eta", {"TH1F", 100, -2.0, 2.0}}, {"phi", "#Phi", {"TH1D", 102, 0, 2 * M_PI}}, {"pt", "p_{T}", {"TH1D", 1002, -0.01, 50.1}}}};
   void process(o2::aod::FooBars const& foobar)
   {
-     registry.get("eta")->Print();
-     registry.get("phi")->Print();
-     registry.get("pt")->Print();
+    registry.get("eta")->Print();
+    registry.get("phi")->Print();
+    registry.get("pt")->Print();
   }
 };
 
