@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework AnalysisTask
+#define BOOST_TEST_MODULE Test Framework HistogramRegistry
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
