@@ -115,6 +115,9 @@ class TPCFastTransformGeo
   /// Gives Z length of the TPC, side C
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
+  /// Gives TPC alignment in Z
+  GPUd() float getTPCalignmentZ() const { return mTPCalignmentZ; }
+
   /// _______________  Conversion of coordinate systems __________
 
   /// convert Local -> Global c.s.
