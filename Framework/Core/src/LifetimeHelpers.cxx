@@ -11,6 +11,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/TimesliceIndex.h"
@@ -21,6 +22,8 @@
 #include <curl/curl.h>
 
 #include <fairmq/FairMQDevice.h>
+
+#include <cstdlib>
 
 using namespace o2::header;
 using namespace fair;
@@ -168,9 +171,21 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
 /// \todo for the moment we always go to CCDB every time we are expired.
 /// \todo this should really be done in the common fetcher.
 /// \todo provide a way to customize the namespace from the ProcessingContext
-ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher, std::string const& prefix, std::string const& sourceChannel)
+ExpirationHandler::Handler
+  LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher,
+                                      std::string const& prefix,
+                                      std::string const& overrideTimestamp,
+                                      std::string const& sourceChannel)
 {
-  return [matcher, sourceChannel, serverUrl = prefix](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  char* err;
+  uint64_t overrideTimestampMilliseconds = strtoll(overrideTimestamp.c_str(), &err, 10);
+  if (*err != 0) {
+    throw std::runtime_error("fetchFromCCDBCache: Unable to parse forced timestamp for conditions");
+  }
+  if (overrideTimestampMilliseconds) {
+    LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
+  }
+  return [matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -187,6 +202,9 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatch
       throw std::runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
+    if (overrideTimestampMilliseconds) {
+      timestamp = overrideTimestampMilliseconds;
+    }
     auto path = std::string("/") + matcher.origin.as<std::string>() + "/" + matcher.description.as<std::string>() + "/" + std::to_string(timestamp / 1000);
     auto url = serverUrl + path;
     LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
