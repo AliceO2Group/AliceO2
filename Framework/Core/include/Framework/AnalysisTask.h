@@ -19,6 +19,7 @@
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
+#include "Framework/HistogramRegistry.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
