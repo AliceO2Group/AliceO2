@@ -133,7 +133,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
 }
 
 void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters,
-                                               o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth)
+                                               o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth)
 {
   std::vector<unsigned int> indizes(nClusters);
   std::iota(indizes.begin(), indizes.end(), 0);
