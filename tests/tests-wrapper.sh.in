@@ -63,6 +63,10 @@ function banner() {
   echo "=== $TEST_NAME - $1 ===" >&2
 }
 
+banner "Forcing 3 attempts for all tests, do not ignore timeouts (since we have 3 attempts)"
+DONT_FAIL_ON_TIMEOUT=
+MAX_ATTEMPTS=3
+
 banner "Starting test. Max attempts: $MAX_ATTEMPTS.${TIMEOUT:+" Timeout per attempt: $TIMEOUT."}${DONT_FAIL_ON_TIMEOUT:+" Timeouts are not fatal."}${NON_FATAL:+" Errors are not fatal."}"
 
 for A in "${ARGS[@]}"; do
