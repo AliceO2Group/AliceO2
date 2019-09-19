@@ -92,7 +92,8 @@ struct ExpirationHandlerHelpers {
 
     return [s = spec, matcher = *m, sourceChannel](ConfigParamRegistry const& options) {
       auto serverUrl = options.get<std::string>("condition-backend");
-      return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, sourceChannel);
+      auto timestamp = options.get<std::string>("condition-timestamp");
+      return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, timestamp, sourceChannel);
     };
   }
 
