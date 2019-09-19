@@ -157,7 +157,7 @@ void Digitizer::setTriggers(o2::ft0::Digit* digit)
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime - parameters.mBC_clk_center - mEventTime /*+ parameters.mCfdShift*/;
+    cfd[mcp] = d.CFDTime;
     amp[mcp] = d.QTCAmpl;
     if (amp[mcp] < parameters.mCFD_trsh_mip)
       continue;
