@@ -49,8 +49,9 @@ struct SimConfigData {
   bool mFilterNoHitEvents = false;           // whether to filter out events not leaving any response
   std::string mCCDBUrl;                      // the URL where to find CCDB
   long mTimestamp;                           // timestamp to anchor transport simulation to
+  int mField;                                // L3 field setting in kGauss: +-2,+-5 and 0
 
-  ClassDefNV(SimConfigData, 2);
+  ClassDefNV(SimConfigData, 3);
 };
 
 // A singleton class which can be used
