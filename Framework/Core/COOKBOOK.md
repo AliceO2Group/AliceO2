@@ -207,7 +207,7 @@ It is also possible to specify a given timestamp for the object via the option
 `--condition-timestamp <timestamp>`. The final url is completed by the value of
 the the Origin and Description of the `InputSpec` to be:
 
-```
+```bash
 <backend-url>/<origin>/<description>/<timestamp>
 ```
 
