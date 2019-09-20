@@ -10,5 +10,11 @@
 
 o2_add_header_only_library(
   MCHRawImplHelpers 
-  INTERFACE_LINK_LIBRARIES fmt::fmt
+  INTERFACE_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl
   INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIRECTORY})
+
+o2_add_test(movebuffer
+            SOURCES testMoveBuffer.cxx
+            PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers
+            COMPONENT_NAME mch
+            LABELS "mch;raw")

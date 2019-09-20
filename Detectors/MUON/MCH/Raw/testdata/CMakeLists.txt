@@ -8,11 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(ImplHelpers)
-add_subdirectory(ElecMap)
-add_subdirectory(Common)
-add_subdirectory(Decoder)
-add_subdirectory(Tools)
-if(BUILD_TESTING)
-        add_subdirectory(testdata)
-endif()
+o2_add_library(MCHTestRawRefBuffers
+               SOURCES RefBufferGBT.cxx RefBufferCRU.cxx
+               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
+               PUBLIC_LINK_LIBRARIES O2::MCHRawCommon)

@@ -1,8 +1,8 @@
 <!-- doxy
-\page refMUONMCHRawElecMap MCH Raw ElecMap
+\page refMUONMCHRawElecMap MCH Raw Electronic Mapping
 /doxy -->
 
-# MCH Electronic Mapping
+# MCH Raw Electronic Mapping
 
 The electronic mapping offers a few methods to convert electronic-oriented
 identifiers (that are found in the raw data) into detector-oriented identifiers.
