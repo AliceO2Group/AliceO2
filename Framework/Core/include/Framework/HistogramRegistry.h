@@ -25,7 +25,6 @@
 
 #include <string>
 #include <variant>
-
 namespace o2
 {
 
@@ -126,7 +125,7 @@ class HistogramRegistry
     }
   }
 
-  constexpr auto& get(char const* const name) const
+  auto& get(char const* const name) const
   {
     const uint32_t id = compile_time_hash(name);
     const uint32_t i = imask(id);
@@ -138,7 +137,7 @@ class HistogramRegistry
         return mRegistryValue[imask(j + i)];
       }
     }
-    throw 0;
+    throw std::runtime_error("No match found!");
   }
 
   /// lookup distance counter for benchmarking
