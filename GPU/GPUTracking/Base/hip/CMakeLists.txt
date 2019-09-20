@@ -49,6 +49,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
+  # ROOT Cannot load this library, so we have to remove it from the list
+  list(REMOVE_ITEM ALILIBSTESTED Ali${MODULE})
+  set(ALILIBSTESTED ${ALILIBSTESTED} CACHE INTERNAL "ALILIBSTESTED")
+
   # HIP run-time and driver
   target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
 
