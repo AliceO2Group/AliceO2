@@ -8,11 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(ImplHelpers)
-add_subdirectory(ElecMap)
-add_subdirectory(Common)
-add_subdirectory(Decoder)
-add_subdirectory(Tools)
-if(BUILD_TESTING)
-        add_subdirectory(testdata)
-endif()
+o2_add_executable(
+        rawdump
+        SOURCES rawdump.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::program_options
+        O2::MCHRawImplHelpers RapidJSON::RapidJSON)
+
