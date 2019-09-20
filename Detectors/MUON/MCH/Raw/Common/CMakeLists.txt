@@ -8,11 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(ImplHelpers)
-add_subdirectory(ElecMap)
-add_subdirectory(Common)
-add_subdirectory(Decoder)
-add_subdirectory(Tools)
+o2_add_library(MCHRawCommon
+               SOURCES src/RDHManip.cxx src/SampaHeader.cxx src/SampaCluster.cxx
+               PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost
+                                     O2::Headers
+               PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
+
 if(BUILD_TESTING)
-        add_subdirectory(testdata)
+  add_subdirectory(test)
 endif()
