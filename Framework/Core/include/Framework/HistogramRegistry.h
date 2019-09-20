@@ -48,20 +48,8 @@ struct HistogramConfigSpec {
       xmax(1)
   {
   }
-  HistogramConfigSpec(HistogramConfigSpec const& other)
-    : kind(other.kind),
-      nBins(other.nBins),
-      xmin(other.xmin),
-      xmax(other.xmax)
-  {
-  }
-  HistogramConfigSpec(HistogramConfigSpec&& other)
-    : kind(other.kind),
-      nBins(other.nBins),
-      xmin(other.xmin),
-      xmax(other.xmax)
-  {
-  }
+  HistogramConfigSpec(HistogramConfigSpec const& other) = default;
+  HistogramConfigSpec(HistogramConfigSpec&& other) = default;
 
   std::string kind;
   unsigned int nBins;
@@ -87,20 +75,8 @@ struct HistogramSpec {
       config()
   {
   }
-  HistogramSpec(HistogramSpec const& other)
-    : name(other.name),
-      readableName(other.readableName),
-      id(other.id),
-      config(other.config)
-  {
-  }
-  HistogramSpec(HistogramSpec&& other)
-    : name(other.name),
-      readableName(other.readableName),
-      id(other.id),
-      config(other.config)
-  {
-  }
+  HistogramSpec(HistogramSpec const& other) = default;
+  HistogramSpec(HistogramSpec&& other) = default;
 
   std::string name;
   std::string readableName;
