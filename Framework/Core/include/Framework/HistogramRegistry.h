@@ -138,7 +138,7 @@ class HistogramRegistry
         return mRegistryValue[imask(j + i)];
       }
     }
-    throw std::runtime_error("No match found.");
+    throw 0;
   }
 
   /// lookup distance counter for benchmarking
