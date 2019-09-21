@@ -485,10 +485,8 @@ class RawPixelReader : public PixelReader
       rdh.linkID = il;
       rdh.pageCnt = 0;
       rdh.stop = 0;
-      rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * mGBTWordSize; // update remaining size
-      if (rdh.memorySize > MaxGBTPacketBytes) {
-        rdh.memorySize = MaxGBTPacketBytes;
-      }
+      int loadsize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // total data to dump
+      rdh.memorySize = loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes;
       rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
 
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
@@ -543,10 +541,8 @@ class RawPixelReader : public PixelReader
           rdh.stop = nGBTWordsNeeded < maxGBTWordsPerPacket; // flag if this is the last packet of multi-packet
           rdh.blockLength = 0xffff;                          // (nGBTWordsNeeded % maxGBTWordsPerPacket + 2) * mGBTWordSize; // record payload size
           // update remaining size, using padded GBT words (as CRU writes)
-          rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength;
-          if (rdh.memorySize > MaxGBTPacketBytes) {
-            rdh.memorySize = MaxGBTPacketBytes;
-          }
+          loadsize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // update remaining size
+          rdh.memorySize = loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes;
           rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
           link->data.ensureFreeCapacity(MaxGBTPacketBytes);
           link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for current packet
