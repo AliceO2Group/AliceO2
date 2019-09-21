@@ -370,6 +370,37 @@ class DataAllocator
     return adopt(getOutputByBind(std::move(ref)), obj);
   }
 
+  //make a stl (pmr) vector
+  template <typename T, typename... Args>
+  o2::vector<T> makeVector(const Output& spec, Args&&... args)
+  {
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    auto context = mContextRegistry->get<MessageContext>();
+    o2::pmr::FairMQMemoryResource* targetResource = *context->proxy().getTransport(channel);
+    return o2::vector<T>{targetResource, std::forward<Args>(args)...};
+  }
+
+  //adopt container (if PMR is used with the appropriate memory resource in container it is ZERO-copy)
+  template <typename ContainerT>
+  void adoptContainer(const Output& spec, ContainerT& container) = delete; //only bind to moved-from containers
+  template <typename ContainerT>
+  void adoptContainer(const Output& spec, ContainerT&& container)
+  {
+    // Find a matching channel, extract the message for it form the container
+    // and put it in the queue to be sent at the end of the processing
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+
+    auto context = mContextRegistry->get<MessageContext>();
+    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context->proxy().getTransport(channel));
+
+    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
+                                                             o2::header::gSerializationMethodNone, //
+                                                             payloadMessage->GetSize()             //
+    );
+
+    context->add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+  }
+
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
   ///

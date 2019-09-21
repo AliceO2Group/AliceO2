@@ -22,7 +22,7 @@ FairMQTransportFactory* FairMQDeviceProxy::getTransport()
   return mDevice->Transport();
 }
 
-FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, const int index = 0)
+FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, const int index)
 {
   return mDevice->GetChannel(channel, index).Transport();
 }
