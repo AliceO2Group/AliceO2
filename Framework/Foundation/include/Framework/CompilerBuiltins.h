@@ -32,4 +32,20 @@
 #define O2_BUILTIN_UNLIKELY(x)
 #endif
 
+#if __GNUC__
+#define O2_BUILTIN_PREFETCH(x, ...) __builtin_prefetch((x), __VA_ARGS__)
+#elif __clang__
+#define O2_BUILTIN_PREFETCH(x, ...) __builtin_prefetch((x), __VA_ARGS__)
+#else
+#define O2_BUILTIN_PREFETCH(x, ...)
+#endif
+
+#if __GNUC__
+#define O2_VISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#elif __clang__
+#define O2_VISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#else
+#define O2_VISIBILITY_HIDDEN
+#endif
+
 #endif // O2_FRAMEWORK_COMPILER_BUILTINS_H_
