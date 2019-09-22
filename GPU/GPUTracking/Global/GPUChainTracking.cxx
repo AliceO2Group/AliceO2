@@ -440,14 +440,12 @@ int GPUChainTracking::ReadData(const char* filename)
     return 1;
   }
   ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
-#ifndef LATE_TPC_TRANSFORM
   int nClustersTotal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {
       mIOMem.clusterData[i][j].id = nClustersTotal++;
     }
   }
-#endif
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {

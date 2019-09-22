@@ -42,7 +42,6 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
         } else {
           transform->TransformInTimeFrame(i, j, cin.getPad(), cin.getTime(), x, y, z, continuousMaxTimeBin);
         }
-#ifndef LATE_TPC_TRANSFORM
         auto& cout = clusters[i].get()[nClSlice];
         cout.x = x;
         cout.y = y;
@@ -51,7 +50,6 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
         cout.amp = cin.qMax;
         cout.flags = cin.getFlags();
         cout.id = offset + k;
-#endif
         nClSlice++;
       }
       native->clusterOffset[i][j] = offset;
