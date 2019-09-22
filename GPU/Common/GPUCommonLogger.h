@@ -14,7 +14,11 @@
 #ifndef GPUCOMMONFAIRLOGGER_H
 #define GPUCOMMONFAIRLOGGER_H
 
-#if defined(GPUCA_STANDALONE) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPUCODE_DEVICE) || !defined(__cplusplus) || __cplusplus < 201703L
+#if defined(GPUCA_STANDALONE) ||                      \
+  defined(GPUCA_ALIROOT_LIB) ||                       \
+  defined(GPUCA_GPUCODE_DEVICE) ||                    \
+  (!defined(__cplusplus) || __cplusplus < 201703L) || \
+  (defined(__HIPCC__) && (!defined(_GLIBCXX_USE_CXX11_ABI) || _GLIBCXX_USE_CXX11_ABI == 0))
 
 #include <iostream>
 #include <cstdio>
