@@ -53,6 +53,7 @@ struct GPUParam {
   char ContinuousTracking;                 // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
   char resetTimers;                        // Reset benchmark timers before event processing
   char dodEdx;                             // Do dEdx computation
+  char earlyTpcTransform;                  // do Early TPC transformation
   int debugLevel;                          // Debug level
   int continuousMaxTimeBin;                // Max time bin for continuous tracking
   GPUTPCGeometry tpcGeometry;              // TPC Geometry

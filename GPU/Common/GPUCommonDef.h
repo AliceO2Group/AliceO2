@@ -14,8 +14,6 @@
 #ifndef GPUCOMMONDEF_H
 #define GPUCOMMONDEF_H
 
-//#define LATE_TPC_TRANSFORM
-
 // clang-format off
 
 //Some GPU configuration settings, must be included first

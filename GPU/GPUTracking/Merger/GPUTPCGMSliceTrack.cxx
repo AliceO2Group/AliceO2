@@ -26,15 +26,16 @@ using namespace o2::tpc;
 
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
-#ifndef LATE_TPC_TRANSFORM
-  float lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
-#else
-  //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
-  float lastX, y, z;
-  const GPUTPCSliceOutCluster& clo = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1);
-  const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
-  GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, clo.GetRow(), cl.getPad(), cl.getTime(), lastX, y, z);
-#endif
+  float lastX;
+  if (merger->Param().earlyTpcTransform) {
+    lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
+  } else {
+    //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
+    float y, z;
+    const GPUTPCSliceOutCluster& clo = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1);
+    const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
+    GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, clo.GetRow(), cl.getPad(), cl.getTime(), lastX, y, z);
+  }
 
   const int N = 3;
 

@@ -58,16 +58,10 @@ class GPUTPCGMSliceTrack
   int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
   void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
 
-#ifndef LATE_TPC_TRANSFORM
   float MaxClusterZ() { return CAMath::Max(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
   float MinClusterZ() { return CAMath::Min(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
-#else
-  GPUd() float MaxClusterT(const o2::tpc::ClusterNative* cls)
-  {
-    return CAMath::Max(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime());
-  }
+  GPUd() float MaxClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Max(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
   GPUd() float MinClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Min(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
-#endif
 
   void Set(const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
   {
