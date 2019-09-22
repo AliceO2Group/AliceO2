@@ -21,14 +21,11 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUTPCGMMergedTrackHit {
-#ifndef LATE_TPC_TRANSFORM
-  float x, y, z;
-#endif
   unsigned int num;
   unsigned char slice, row, leg, state;
-#ifndef LATE_TPC_TRANSFORM
-  unsigned short amp;
-#endif
+
+  float x, y, z;      // TODO: Move to separate struct
+  unsigned short amp; // also
 
   enum hitState { flagSplitPad = 0x1,
                   flagSplitTime = 0x2,

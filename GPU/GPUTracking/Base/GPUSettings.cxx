@@ -33,6 +33,7 @@ void GPUSettingsRec::SetDefaults()
   SearchWindowDZDR = 0.f;
   TrackReferenceX = 1000.f;
   NonConsecutiveIDs = false;
+  ForceEarlyTPCTransform = -1;
   DisableRefitAttachment = 0;
   dEdxTruncLow = 2;
   dEdxTruncHigh = 77;

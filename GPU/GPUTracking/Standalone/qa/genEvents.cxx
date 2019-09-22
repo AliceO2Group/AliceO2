@@ -314,14 +314,12 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
     for (unsigned int i = 0; i < vClusters.size(); i++) {
       GenCluster& c = vClusters[i];
       if (c.sector == iSector) {
-#ifndef LATE_TPC_TRANSFORM
         clusters[icl].id = c.id;
         clusters[icl].row = c.row; // We fill one hit per TPC row
         clusters[icl].x = c.x;
         clusters[icl].y = c.y;
         clusters[icl].z = c.z;
         clusters[icl].amp = 100; // Arbitrary amplitude
-#endif
         icl++;
         AliHLTTPCClusterMCLabel clusterLabel;
         for (int j = 0; j < 3; j++) {

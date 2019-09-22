@@ -24,9 +24,14 @@ namespace o2
 namespace tpc
 {
 struct ClusterNative {
+  static float getTime() { return 0.f; }
+  static float getPad() { return 0.f; }
+  static int getFlags() { return 0; }
+  unsigned char qTot, qMax;
 };
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
+  const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClustersSector[GPUCA_NSLICES];
   unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];

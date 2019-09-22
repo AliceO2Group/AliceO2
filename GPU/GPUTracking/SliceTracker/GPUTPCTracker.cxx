@@ -255,21 +255,24 @@ GPUh() void GPUTPCTracker::WriteOutput()
       }
 #endif
 
-#ifndef LATE_TPC_TRANSFORM
-      float origX = mData.ClusterData()[clusterIndex].x;
-      float origY = mData.ClusterData()[clusterIndex].y;
-      float origZ = mData.ClusterData()[clusterIndex].z;
-      unsigned char flags = mData.ClusterData()[clusterIndex].flags;
-      unsigned short amp = mData.ClusterData()[clusterIndex].amp;
-      int id = mData.ClusterData()[clusterIndex].id;
-#else
-      const ClusterNativeAccess& cls = *mConstantMem->ioPtrs.clustersNative;
-      int id = clusterIndex + cls.clusterOffset[mISlice][0];
-      float origX = 0, origY = 0, origZ = 0;
-      GPUTPCConvertImpl::convert(*mConstantMem, mISlice, iRow, cls.clustersLinear[id].getPad(), cls.clustersLinear[id].getTime(), origX, origY, origZ);
-      unsigned char flags = cls.clustersLinear[id].getFlags();
-      unsigned short amp = cls.clustersLinear[id].qTot;
-#endif
+      float origX, origY, origZ;
+      unsigned char flags;
+      unsigned short amp;
+      int id;
+      if (Param().earlyTpcTransform) {
+        origX = mData.ClusterData()[clusterIndex].x;
+        origY = mData.ClusterData()[clusterIndex].y;
+        origZ = mData.ClusterData()[clusterIndex].z;
+        flags = mData.ClusterData()[clusterIndex].flags;
+        amp = mData.ClusterData()[clusterIndex].amp;
+        id = mData.ClusterData()[clusterIndex].id;
+      } else {
+        const ClusterNativeAccess& cls = *mConstantMem->ioPtrs.clustersNative;
+        id = clusterIndex + cls.clusterOffset[mISlice][0];
+        GPUTPCConvertImpl::convert(*mConstantMem, mISlice, iRow, cls.clustersLinear[id].getPad(), cls.clustersLinear[id].getTime(), origX, origY, origZ);
+        flags = cls.clustersLinear[id].getFlags();
+        amp = cls.clustersLinear[id].qTot;
+      }
       GPUTPCSliceOutCluster c;
       c.Set(id, iRow, flags, amp, origX, origY, origZ);
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME

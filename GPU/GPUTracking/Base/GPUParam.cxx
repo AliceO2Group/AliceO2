@@ -114,6 +114,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   continuousMaxTimeBin = 0;
   debugLevel = 0;
   resetTimers = false;
+  earlyTpcTransform = false;
 
   polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
   GPUTPCGMPolynomialFieldManager::GetPolynomialField(BzkG, polynomialField);
@@ -137,6 +138,7 @@ void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsD
     debugLevel = p->debugLevel;
     resetTimers = p->resetTimers;
   }
+  earlyTpcTransform = rec.ForceEarlyTPCTransform == -1 ? (!ContinuousTracking) : rec.ForceEarlyTPCTransform;
 }
 
 void GPUParam::SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r, const GPUSettingsDeviceProcessing* p, const GPURecoStepConfiguration* w)
