@@ -68,11 +68,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mSeparateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
-#ifndef LATE_TPC_TRANSFORM
-#define GET_CID(slice, i) tracker.ClusterData()[i].id
-#else
-#define GET_CID(slice, i) (tracker.GetConstantMem()->ioPtrs.clustersNative->clusterOffset[slice][0] + i)
-#endif
+#define GET_CID(slice, i) (tracker.Param().earlyTpcTransform ? tracker.ClusterData()[i].id : (tracker.GetConstantMem()->ioPtrs.clustersNative->clusterOffset[slice][0] + i))
 
 static const GPUDisplay::configDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
 {
@@ -684,12 +680,12 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
         }
       }
     } else if (mMarkClusters) {
-#ifndef LATE_TPC_TRANSFORM
-      const short flags = tracker.ClusterData()[cidInSlice].flags;
-
-#else
-      const short flags = tracker.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cid].getFlags();
-#endif
+      short flags;
+      if (tracker.Param().earlyTpcTransform) {
+        flags = tracker.ClusterData()[cidInSlice].flags;
+      } else {
+        flags = tracker.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cid].getFlags();
+      }
       const bool match = flags & mMarkClusters;
       draw = (select == tMARKED) ? (match) : (draw && !match);
     } else if (mMarkFakeClusters) {
@@ -912,13 +908,13 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           trkParam.Set(track->GetParam());
           ZOffset = track->GetParam().GetZOffset();
           auto cl = mMerger.Clusters()[track->FirstClusterRef() + lastCluster];
-#ifndef LATE_TPC_TRANSFORM
-          x = cl.x;
-#else
-          auto cln = mMerger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cl.num];
-          float y, z;
-          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-#endif
+          if (mMerger.Param().earlyTpcTransform) {
+            x = cl.x;
+          } else {
+            const auto& cln = mMerger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cl.num];
+            float y, z;
+            GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
+          }
         } else {
           const GPUTPCMCInfo& mc = ioptrs().mcInfosTPC[i];
           if (mc.charge == 0.f) {
@@ -1408,31 +1404,32 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
 
     mMaxClusterZ = 0;
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-#ifdef LATE_TPC_TRANSFORM
       int row = 0;
-#endif
       for (unsigned int i = 0; i < ioptrs().nClusterData[iSlice]; i++) {
-#ifndef LATE_TPC_TRANSFORM
-        const auto& cl = ioptrs().clusterData[iSlice][i];
-        const int cid = cl.id;
-#else
-        const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
-        const int cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
-        while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int) cid)
-          row++;
-#endif
+        int cid;
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          cid = cl.id;
+        } else {
+          cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
+          while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
+            row++;
+          }
+        }
         if (cid >= mNMaxClusters) {
           GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
           return (1);
         }
         float4* ptr = &mGlobalPos[cid];
-#ifndef LATE_TPC_TRANSFORM
-        mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
-#else
-        float x, y, z;
-        GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
-        mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
-#endif
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+        } else {
+          float x, y, z;
+          const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
+          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+          mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
+        }
 
         if (fabsf(ptr->z) > mMaxClusterZ) {
           mMaxClusterZ = fabsf(ptr->z);
