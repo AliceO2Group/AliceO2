@@ -578,7 +578,7 @@ class RawPixelReader : public PixelReader
   }
 
   //___________________________________________________________________________________
-  int flushSuperPages(int maxPages, PayLoadCont& sink)
+  int flushSuperPages(int maxPages, PayLoadCont& sink, bool unusedToHead = true)
   {
     // flush superpage (at most maxPages) of each link to the output,
     // return total number of pages flushed
@@ -607,7 +607,9 @@ class RawPixelReader : public PixelReader
           nPages++;
         }
         totPages += nPages;
-        link->data.moveUnusedToHead();
+        if (unusedToHead) {
+          link->data.moveUnusedToHead();
+        }
       } // loop over links
     }   // loop over RUs
     return totPages;
