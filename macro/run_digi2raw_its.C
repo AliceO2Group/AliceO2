@@ -16,13 +16,13 @@
 
 #include "ITSMFTReconstruction/RawPixelReader.h"
 
-void run_digi2raw_its(std::string outName = "rawits.bin",                           // name of the output binary file
-                      std::string inpName = "itsdigits.root",                       // name of the input ITS digits
-                      std::string digTreeName = "o2sim",                            // name of the digits tree
-                      std::string digBranchName = "ITSDigit",                       // name of the digits branch
-                      std::string rofRecName = "ITSDigitROF",                       // name of the ROF records tree and its branch
-                      uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff,                  // seq.ID of 1st and last RU (stave) to convert
-                      uint8_t superPageSize = o2::itsmft::NCRUPagesPerSuperpage / 2 // CRU superpage size, max = 256
+void run_digi2raw_its(std::string outName = "rawits.bin",                        // name of the output binary file
+                      std::string inpName = "itsdigits.root",                    // name of the input ITS digits
+                      std::string digTreeName = "o2sim",                         // name of the digits tree
+                      std::string digBranchName = "ITSDigit",                    // name of the digits branch
+                      std::string rofRecName = "ITSDigitROF",                    // name of the ROF records tree and its branch
+                      uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff,               // seq.ID of 1st and last RU (stave) to convert
+                      uint16_t superPageSize = o2::itsmft::NCRUPagesPerSuperpage // CRU superpage size, max = 256
 )
 {
   TStopwatch swTot;
@@ -113,6 +113,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
       auto rofEntry = rofRec.getROFEntry();
       int nDigROF = rofRec.getNROFEntries();
       LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
+      rofRec.print();
       if (!nDigROF) {
         LOG(INFO) << "Frame is empty"; // ??
         continue;
@@ -126,7 +127,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
 
       int nPagesCached = rawReader.digits2raw(digiVec, rofEntry.getIndex(), nDigROF, rofRec.getBCData(),
                                               ruSWMin, ruSWMax);
-
+      LOG(INFO) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
       if (nPagesCached >= superPageSize) {
         int nPagesFlushed = rawReader.flushSuperPages(superPageSize, outBuffer);
         fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
@@ -139,7 +140,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
   // flush the rest
   int flushed = 0;
   do {
-    flushed = rawReader.flushSuperPages(o2::itsmft::NCRUPagesPerSuperpage, outBuffer);
+    flushed = rawReader.flushSuperPages(superPageSize, outBuffer, false);
     fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
     if (flushed) {
       LOG(INFO) << "Flushed final " << flushed << " CRU pages";

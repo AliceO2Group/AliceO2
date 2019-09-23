@@ -51,7 +51,7 @@ void ioutils::loadConfigurations(const std::string& fileName)
     nlohmann::json j;
     inputStream >> j;
     static_cast<TrackingParameters&>(Configuration<TrackingParameters>::getInstance()) = j.at("TrackingParameters").get<TrackingParameters>();
-    static_cast<IndexTableParameters&>(Configuration<IndexTableParameters>::getInstance()) = j.at("IndexTableParameters").get<IndexTableParameters>();
+    //static_cast<IndexTableParameters&>(Configuration<IndexTableParameters>::getInstance()) = j.at("IndexTableParameters").get<IndexTableParameters>();
   }
 }
 
@@ -354,20 +354,6 @@ void from_json(const nlohmann::json& j, MemoryParameters& par)
   std::copy(tmpCellsMemoryCoefficients.begin(), tmpCellsMemoryCoefficients.end(), par.CellsMemoryCoefficients);
   auto tmpTrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::array<float, constants::its::TrackletsPerRoad>>();
   std::copy(tmpTrackletsMemoryCoefficients.begin(), tmpTrackletsMemoryCoefficients.end(), par.TrackletsMemoryCoefficients);
-}
-
-void to_json(nlohmann::json& j, const IndexTableParameters& par)
-{
-  j = nlohmann::json{
-    {"ZBins", par.ZBins},
-    {"PhiBins", par.PhiBins}};
-}
-
-void from_json(const nlohmann::json& j, IndexTableParameters& par)
-{
-  par.ZBins = j.at("ZBins").get<int>();
-  par.PhiBins = j.at("PhiBins").get<int>();
-  par.ComputeInverseBinSizes();
 }
 
 } // namespace its

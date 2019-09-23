@@ -32,9 +32,7 @@ endif()
 # General sources
 set(SRCS
     SliceTracker/GPUTPCTrack.cxx
-    SliceTracker/GPUTPCBaseTrackParam.cxx
     SliceTracker/GPUTPCTrackParam.cxx
-    SliceTracker/GPUTPCTracklet.cxx
     SliceTracker/GPUTPCStartHitsFinder.cxx
     SliceTracker/GPUTPCStartHitsSorter.cxx
     SliceTracker/GPUTPCNeighboursCleaner.cxx
@@ -46,7 +44,6 @@ set(SRCS
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
     SliceTracker/GPUTPCHitArea.cxx
-    SliceTracker/GPUTPCClusterData.cxx
     SliceTracker/GPUTPCRow.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
@@ -83,6 +80,9 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
     SliceTracker/GPUTPCHit.h
     SliceTracker/GPUTPCHitId.h
+    SliceTracker/GPUTPCClusterData.h
+    SliceTracker/GPUTPCBaseTrackParam.h
+    SliceTracker/GPUTPCTracklet.h
     SliceTracker/GPUTPCSliceOutCluster.h
     SliceTracker/GPUTPCSliceOutTrack.h
     SliceTracker/GPUTPCTrackLinearisation.h
@@ -205,6 +205,11 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+else()
+  set(DEBUGGUI_TARGET O2::DebugGUI)
+endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -214,7 +219,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TRDBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation
-                                       O2::DebugGUI
+                                       ${DEBUGGUI_TARGET}
                  PUBLIC_INCLUDE_DIRECTORIES SliceTracker
                                             Base
                                             TPCConvert

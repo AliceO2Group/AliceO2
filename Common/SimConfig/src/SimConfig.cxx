@@ -48,6 +48,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
+    "field", bpo::value<int>()->default_value(-5), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
@@ -108,6 +109,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
+  mConfigData.mField = vm["field"].as<int>();
   return true;
 }
 

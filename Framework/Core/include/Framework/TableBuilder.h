@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TABLEBUILDER_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/FunctionalHelpers.h"
 
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
@@ -303,8 +304,10 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    constexpr auto tuple_size = std::tuple_size_v<typename T::columns>;
-    return cursorHelper<T>(std::make_index_sequence<tuple_size>());
+    using persistent_filter = soa::FilterPersistentColumns<T>;
+    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
+    return cursorHelper<typename persistent_filter::persistent_table_t>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename... ARGS>
@@ -342,11 +345,14 @@ class TableBuilder
   std::shared_ptr<arrow::Table> finalize();
 
  private:
+  /// Helper which actually creates the insertion cursor. Notice that the
+  /// template argument T is a o2::soa::Table which contains only the
+  /// persistent columns.
   template <typename T, size_t... Is>
   auto cursorHelper(std::index_sequence<Is...> s)
   {
-    std::vector<std::string> columnNames{std::tuple_element_t<Is, typename T::columns>::label()...};
-    return this->template persist<typename std::tuple_element_t<Is, typename T::columns>::type...>(columnNames);
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   std::function<void(void)> mFinalizer;
