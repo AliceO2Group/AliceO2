@@ -56,16 +56,23 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
+    ccdbUrl = "http://ccdb-test.cern.ch:8080";
     api.init(ccdbUrl);
+    cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
     cout << "Is host reachable ? --> " << hostReachable << endl;
-    ccdbUrl = "http://ccdb-test.cern.ch:8080";
-    basePath = string("Test/") + getpid();
+    basePath = string("Test/") + getpid() + "/";
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()
   {
-    cout << "called only at the end" << endl;
+    if(hostReachable) {
+      CcdbApi api;
+      map<string, string> metadata;
+      api.init(ccdbUrl);
+      api.truncate(basePath);
+      cout << "Test data truncated (" << basePath << ")" << endl;
+    }
   }
 };
 BOOST_GLOBAL_FIXTURE(Fixture);
