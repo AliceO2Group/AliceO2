@@ -30,7 +30,7 @@ constexpr int KEY_MAX = 2211727;
 
 typedef std::uint16_t ADC_t;                                      // the ADC value type
 typedef std::array<ADC_t, kTB> ArrayADC_t;                        // the array ADC
-typedef std::array<ADC_t, kTB + 1> ArrayADCext_t;                 // the array ADC + digit index
+typedef std::array<ADC_t, kTB + 1> ArrayADCext_t;                 // the array ADC + label index
 typedef std::vector<Digit> DigitContainer_t;                      // the digit container type
 typedef std::unordered_map<int, ArrayADCext_t> SignalContainer_t; // a map container type for signal handling during digitization
 

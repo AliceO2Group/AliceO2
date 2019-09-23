@@ -51,7 +51,6 @@ class Digitizer
 
   bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // the container of hits in a given detector
-  std::vector<MCLabel> mLabels;       // the container of labels
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
