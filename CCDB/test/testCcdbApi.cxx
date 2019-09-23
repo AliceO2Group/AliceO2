@@ -37,13 +37,16 @@
 #include <TGraph.h>
 #include <TTree.h>
 #include <TString.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace o2::ccdb;
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
-static string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+static string ccdbUrl;
+static string basePath;
 bool hostReachable = false;
 
 /**
@@ -56,8 +59,14 @@ struct Fixture {
     api.init(ccdbUrl);
     hostReachable = api.isHostReachable();
     cout << "Is host reachable ? --> " << hostReachable << endl;
+    ccdbUrl = "http://ccdb-test.cern.ch:8080";
+    basePath = string("Test/") + getpid();
+    cout << "Path we will use in this test suite : " + basePath << endl;
   }
-  ~Fixture() = default;
+  ~Fixture()
+  {
+    cout << "called only at the end" << endl;
+  }
 };
 BOOST_GLOBAL_FIXTURE(Fixture);
 
