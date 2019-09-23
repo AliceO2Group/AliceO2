@@ -66,11 +66,11 @@ struct Fixture {
   }
   ~Fixture()
   {
-    if(hostReachable) {
+    if (hostReachable) {
       CcdbApi api;
       map<string, string> metadata;
       api.init(ccdbUrl);
-      api.truncate(basePath+"*");
+      api.truncate(basePath + "*");
       cout << "Test data truncated (" << basePath << ")" << endl;
     }
   }
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(h1.ClassName(), "TH1F");
   cout << basePath + "th1" << endl;
   f.api.storeAsTFile(&h1, basePath + "th1", f.metadata);
-  
+
   TGraph graph(10);
   graph.SetPoint(0, 2, 3);
   f.api.storeAsTFile(&graph, basePath + "graph", f.metadata);
@@ -121,7 +121,6 @@ BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
   tree.Branch("det", &a, "a/I");
   tree.Fill();
   f.api.storeAsTFile(&tree, basePath + "tree", f.metadata);
-  
 }
 
 BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(if_reachable()))
