@@ -212,6 +212,7 @@ ExpirationHandler::Handler
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, readToMessage);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
