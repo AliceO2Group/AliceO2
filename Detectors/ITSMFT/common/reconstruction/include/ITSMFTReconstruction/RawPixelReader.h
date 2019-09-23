@@ -135,6 +135,7 @@ struct RawDecodingStat {
   };
 
   using ULL = unsigned long long;
+  uint64_t nTriggersProcessed = 0;                  // total number of triggers processed
   uint64_t nPagesProcessed = 0;                     // total number of pages processed
   uint64_t nRUsProcessed = 0;                       // total number of RUs processed (1 RU may take a few pages)
   uint64_t nBytesProcessed = 0;                     // total number of bytes (rdh->memorySize) processed
@@ -146,6 +147,7 @@ struct RawDecodingStat {
 
   void clear()
   {
+    nTriggersProcessed = 0;
     nPagesProcessed = 0;
     nRUsProcessed = 0;
     nBytesProcessed = 0;
@@ -157,7 +159,8 @@ struct RawDecodingStat {
   void print(bool skipEmpty = true) const
   {
     printf("\nDecoding statistics\n");
-    printf("%llu bytes for %llu RUs processed in %llu pages\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed, (ULL)nPagesProcessed);
+    printf("%llu bytes for %llu RUs processed in %llu pages for %llu triggers\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed,
+           (ULL)nPagesProcessed, (ULL)nTriggersProcessed);
     printf("%llu hits found in %llu non-empty chips\n", (ULL)nHitsDecoded, (ULL)nNonEmptyChips);
     int nErr = 0;
     for (int i = NErrorsDefined; i--;) {
@@ -175,7 +178,7 @@ struct RawDecodingStat {
     "RDH cointains invalid FEEID" // ErrInvalidFEEId
   };
 
-  ClassDefNV(RawDecodingStat, 1);
+  ClassDefNV(RawDecodingStat, 2);
 };
 
 // support for the GBT single link data
@@ -776,6 +779,9 @@ class RawPixelReader : public PixelReader
 
       nlinks += decodeNextRUData(ruDecode);
       mDecodingStat.nRUsProcessed++;
+    }
+    if (nlinks) {
+      mDecodingStat.nTriggersProcessed++;
     }
     mCurRUDecodeID = 0;
     mMinTriggersCached--;
