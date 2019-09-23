@@ -559,7 +559,7 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
   }
 }
 
-void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass const* cl) const
+void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass const* cl)
 {
   if (!cl) {
     return nullptr;
