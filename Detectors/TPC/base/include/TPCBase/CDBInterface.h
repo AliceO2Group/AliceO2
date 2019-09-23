@@ -17,7 +17,6 @@
 
 #include <memory>
 
-#include <CCDB/Condition.h>
 #include <CCDB/IdPath.h>
 #include <CCDB/Manager.h>
 #include <TPCBase/CalDet.h>
