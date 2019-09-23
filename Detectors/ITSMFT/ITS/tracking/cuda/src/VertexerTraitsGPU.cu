@@ -223,6 +223,10 @@ void VertexerTraitsGPU::computeMCFiltering()
   const int stride = tmpGPUConf.maxTrackletsPerCluster;
 
   filterTrackletsWithMC(tracklets01, tracklets12, labels01, labels12, stride);
+  mStoreVertexerGPU.updateFoundDuplets(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer, labels01);
+  mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
+  mStoreVertexerGPU.updateFoundDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
+  mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
 }
 #endif
 

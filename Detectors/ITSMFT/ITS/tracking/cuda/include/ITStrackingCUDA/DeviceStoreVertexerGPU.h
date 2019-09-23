@@ -55,7 +55,10 @@ class DeviceStoreVertexerGPU final
                                                                     constants::its::LayersNumberVertexer>&);
 
   // RO APIs
-  GPUd() const Array<Vector<Cluster>, constants::its::LayersNumberVertexer>& getClusters() { return mClusters; }
+  GPUd() const Array<Vector<Cluster>, constants::its::LayersNumberVertexer>& getClusters()
+  {
+    return mClusters;
+  }
   GPUd() const Vector<int>& getIndexTable(const VertexerLayerName);
   GPUd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
 
@@ -74,6 +77,8 @@ class DeviceStoreVertexerGPU final
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
+  GPUh() void updateDuplets(const Order, std::vector<Tracklet>&);
+  GPUh() void updateFoundDuplets(const Order, std::vector<int>&);
   GPUh() std::vector<int> getNFoundTrackletsFromGPU(const Order);
   GPUh() std::vector<Tracklet> getRawDupletsFromGPU(const Order);
   GPUh() std::vector<Tracklet> getDupletsFromGPU(const Order);
@@ -170,6 +175,24 @@ inline std::array<std::vector<int>, 2> DeviceStoreVertexerGPU::getDupletIndicesF
   return allowedLines;
 }
 
+inline void DeviceStoreVertexerGPU::updateDuplets(const Order order, std::vector<Tracklet>& duplets)
+{
+  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+    mDuplets01.reset(duplets.data(), static_cast<int>(duplets.size()));
+  } else {
+    mDuplets12.reset(duplets.data(), static_cast<int>(duplets.size()));
+  }
+}
+
+inline void DeviceStoreVertexerGPU::updateFoundDuplets(const Order order, std::vector<int>& nDuplets)
+{
+  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+    mNFoundDuplets[0].reset(nDuplets.data(), static_cast<int>(nDuplets.size()));
+  } else {
+    mNFoundDuplets[1].reset(nDuplets.data(), static_cast<int>(nDuplets.size()));
+  }
+}
+
 inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
 {
   std::vector<Line> lines;
@@ -178,7 +201,9 @@ inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
 
   return lines;
 }
+
 #endif
+
 } // namespace GPU
 } // namespace its
 } // namespace o2
