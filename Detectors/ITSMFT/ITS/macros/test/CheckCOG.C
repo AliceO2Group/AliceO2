@@ -90,7 +90,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
       float dz = (locC.Z() - zComp) * 10000;
 
       hTotalX->Fill(dx);
-      hTotalZ->Fill(dx);
+      hTotalZ->Fill(dz);
 
       fOut << Form("groupID: %d\n", cComp.getPatternID());
       fOut << Form("is group: %o\n", dict.IsGroup(cComp.getPatternID()));
@@ -101,10 +101,10 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
 
       if (dict.IsGroup(cComp.getPatternID())) {
         hGroupX->Fill(dx);
-        hGroupZ->Fill(dx);
+        hGroupZ->Fill(dz);
       } else {
         hCommonX->Fill(dx);
-        hCommonZ->Fill(dx);
+        hCommonZ->Fill(dz);
       }
     }
   }
