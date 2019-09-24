@@ -169,8 +169,10 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   FillStatistic(mPsigmaTimeU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters);
   FillStatistic<short unsigned int, 1>(mPnTrackClusters, clustersCompressed->nTrackClusters, clustersCompressed->nTracks);
   FillStatistic<unsigned int, 1>(mPnSliceRowClusters, clustersCompressed->nSliceRowClusters, clustersCompressed->nSliceRows);
-  FillStatisticCombined(mPsigmaA, clustersCompressed->sigmaPadA, clustersCompressed->sigmaTimeA, clustersCompressed->nAttachedClusters, 1 << 8);
-  FillStatisticCombined(mPsigmaU, clustersCompressed->sigmaPadU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters, 1 << 8);
+  FillStatisticCombined(mPsigmaA, clustersCompressed->sigmaPadA, clustersCompressed->sigmaTimeA, clustersCompressed->nAttachedClusters, P_MAX_SIGMA);
+  FillStatisticCombined(mPsigmaU, clustersCompressed->sigmaPadU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters, P_MAX_SIGMA);
+  FillStatisticCombined(mPQA, clustersCompressed->qMaxA, clustersCompressed->qTotA, clustersCompressed->nAttachedClusters, P_MAX_QMAX);
+  FillStatisticCombined(mPQU, clustersCompressed->qMaxU, clustersCompressed->qTotU, clustersCompressed->nUnattachedClusters, P_MAX_QMAX);
   FillStatisticCombined(mProwSliceA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUCA_ROW_COUNT);
   mNTotalClusters += clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
 }
@@ -185,8 +187,8 @@ void GPUTPCClusterStatistics::Finish()
   }
 
   GPUInfo("\nRunning cluster compression entropy statistics");
-  Analyze(mPqTotA, "qTot Attached");
-  Analyze(mPqMaxA, "qMax Attached");
+  double eQ = Analyze(mPqTotA, "qTot Attached", false);
+  eQ += Analyze(mPqMaxA, "qMax Attached", false);
   Analyze(mPflagsA, "flags Attached");
   double eRowSlice = Analyze(mProwDiffA, "rowDiff Attached", false);
   eRowSlice += Analyze(mPsliceLegDiffA, "sliceDiff Attached", false);
@@ -199,8 +201,8 @@ void GPUTPCClusterStatistics::Finish()
   Analyze(mPsliceA, "slice Attached");
   Analyze(mPtimeA, "time Attached");
   Analyze(mPpadA, "pad Attached");
-  Analyze(mPqTotU, "qTot Unattached");
-  Analyze(mPqMaxU, "qMax Unattached");
+  eQ += Analyze(mPqTotU, "qTot Unattached", false);
+  eQ += Analyze(mPqMaxU, "qMax Unattached", false);
   Analyze(mPflagsU, "flags Unattached");
   Analyze(mPpadDiffU, "padDiff Unattached");
   Analyze(mPtimeDiffU, "timeDiff Unattached");
@@ -210,10 +212,13 @@ void GPUTPCClusterStatistics::Finish()
   Analyze(mPnSliceRowClusters, "nClusters in Row");
   double eSigmaCombined = Analyze(mPsigmaA, "combined sigma Attached");
   eSigmaCombined += Analyze(mPsigmaU, "combined sigma Unattached");
+  double eQCombined = Analyze(mPQA, "combined Q Attached");
+  eQCombined += Analyze(mPQU, "combined Q Unattached");
   double eRowSliceCombined = Analyze(mProwSliceA, "combined row/slice Attached");
 
   GPUInfo("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)", eRowSlice, eRowSliceCombined, 100. * (eRowSlice - eRowSliceCombined) / eRowSlice);
   GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, 100. * (eSigma - eSigmaCombined) / eSigma);
+  GPUInfo("Combined Q: %6.4f --> %6.4f (%6.4f%%)", eQ, eQCombined, 100. * (eQ - eQCombined) / eQ);
 
   printf("\nConbined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
 }
