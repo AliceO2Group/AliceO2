@@ -1409,7 +1409,7 @@ class RawPixelReader : public PixelReader
         if (res > 0) {
 #ifdef _RAW_READER_ERROR_CHECKS_
           // for the IB staves check if the cable ID is the same as the chip ID on the module
-          if (decData.ruInfo->ruType == 0) { // ATTENTION: this is a hack tailored for temporary check
+          if (mMAP.getName() == "ITS" && decData.ruInfo->ruType == 0) { // ATTENTION: this is a hack tailored for temporary check
             if (chipData->getChipID() != icab) {
               LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " IB cable " << icab
                          << " shipped chip ID= " << chipData->getChipID();
