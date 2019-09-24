@@ -22,8 +22,6 @@
 
 #include "ITStrackingHIP/ContextHIP.h"
 
-
-
 namespace
 {
 
