@@ -18,7 +18,7 @@
 #include <memory>
 
 #include <CCDB/IdPath.h>
-#include <CCDB/Manager.h>
+#include <CCDB/BasicCCDBManager.h>
 #include <TPCBase/CalDet.h>
 
 namespace o2
@@ -159,13 +159,12 @@ class CDBInterface
   T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
+// TODO consider removing this as it does not bring much
 template <typename T>
 inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
-  static auto cdb = o2::ccdb::Manager::Instance();
-  auto condread = cdb->getCondition(path);
-  T* object{nullptr};
-  condread->getObjectAs(object);
+  static auto cdb = o2::ccdb::BasicCCDBManager::instance();
+  auto* object = cdb.get<T>(path.getPathString().Data());
   return *object;
 }
 
