@@ -4,6 +4,7 @@ executables(
     load_label
     noise_suppression_eval_pipeline
     noise_suppression_minima_epsilon
+    noise_suppression_perf
     old_to_new
     plot_cluster_per_track
     plot_qmaxcutoff
