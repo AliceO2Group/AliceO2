@@ -11,6 +11,7 @@
 o2_add_library(EMCALWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/PublisherSpec.cxx
+                       src/CellConverterSpec.cxx
                        src/DigitsPrinterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL
                                      O2::DPLUtils O2::EMCALBase O2::Algorithm)

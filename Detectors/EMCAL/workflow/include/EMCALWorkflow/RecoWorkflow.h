@@ -25,18 +25,21 @@ namespace reco_workflow
 {
 
 /// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
+enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS)
                         Digits,    // read digits from file
-                        Raw,       // read hardware clusters in raw page format from file
-                        Clusters,  // read native clusters from file
+                        Cells,     // read compressed cells from file
+                        Raw,       // read data in raw page format from file
+                        Clusters   // read native clusters from file
 };
 enum struct OutputType { Digits,
+                         Cells,
                          Raw,
                          Clusters
 };
 
 /// create the workflow for EMCAL reconstruction
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
+                                    bool enableDigitsPrinter = false,
                                     std::string const& cfgInput = "digits",   //
                                     std::string const& cfgOutput = "clusters" //
 );

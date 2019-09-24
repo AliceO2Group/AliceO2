@@ -18,36 +18,40 @@
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 
+using namespace o2::emcal::reco_workflow;
+
+void DigitsPrinterSpec::init(framework::InitContext& ctx)
+{
+}
+
+void DigitsPrinterSpec::run(framework::ProcessingContext& pc)
+{
+  // Get the EMCAL block header and check whether it contains digits
+  LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
+  auto dataref = pc.inputs().get("digits");
+  auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
+  if (!emcheader->mHasPayload) {
+    LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
+    pc.services().get<o2::framework::ControlService>().readyToQuit(false);
+    return;
+  }
+
+  auto digits = pc.inputs().get<std::vector<o2::emcal::Digit>>("digits");
+  std::cout << "[EMCALDigitsPrinter - process] receiveed " << digits.size() << " digits ..." << std::endl;
+  if (digits.size()) {
+    for (const auto& d : digits) {
+      std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.getTower() << std::endl;
+      std::cout << "[EMCALDigitsPrinter - process] Energy: " << d.getEnergy() << std::endl;
+      //std::cout << d << std::endl;
+    }
+  }
+}
+
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec()
 {
-  auto initFunction = [](o2::framework::InitContext& ctx) {
-    auto processFunction = [](o2::framework::ProcessingContext& pc) {
-      // Get the EMCAL block header and check whether it contains digits
-      LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
-      auto dataref = pc.inputs().get("digits");
-      auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-      if (!emcheader->mHasPayload) {
-        LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
-        pc.services().get<o2::framework::ControlService>().readyToQuit(false);
-        return;
-      }
-
-      auto digits = pc.inputs().get<std::vector<o2::emcal::Digit>>("digits");
-      std::cout << "[EMCALDigitsPrinter - process] receiveed " << digits.size() << " digits ..." << std::endl;
-      if (digits.size()) {
-        for (const auto& d : digits) {
-          std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.getTower() << std::endl;
-          std::cout << "[EMCALDigitsPrinter - process] Energy: " << d.getEnergy() << std::endl;
-          //std::cout << d << std::endl;
-        }
-      }
-    };
-
-    return processFunction;
-  };
 
   return o2::framework::DataProcessorSpec{"EMCALDigitsPrinter",
                                           {{"digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe}},
                                           {},
-                                          o2::framework::AlgorithmSpec(initFunction)};
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::DigitsPrinterSpec>()};
 }
