@@ -55,11 +55,64 @@ void StandaloneDebugger::fillCombinatoricsTree(std::vector<Tracklet> comb01, std
   }
 }
 
+void StandaloneDebugger::fillCombinatoricsMCTree(std::vector<Tracklet> comb01, std::vector<Tracklet> comb12)
+{
+  mTreeStream->GetDirectory()->cd(); // in case of existing other open files
+  for (auto& combination : comb01) {
+    (*mTreeStream)
+      << "combinatorics01_MC"
+      << "tanLambda=" << combination.tanLambda
+      << "phi=" << combination.phiCoordinate
+      << "\n";
+  }
+
+  for (auto& combination : comb12) {
+    (*mTreeStream)
+      << "combinatorics12_MC"
+      << "tanLambda=" << combination.tanLambda
+      << "phi=" << combination.phiCoordinate
+      << "\n";
+  }
+}
+
 void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
                                                    std::vector<Tracklet> comb01,
                                                    std::vector<Tracklet> comb12,
-                                                   std::array<std::vector<int>, 2> allowedTracklets,
+                                                   std::vector<std::array<int, 2>> allowedTracklets,
                                                    const ROframe* event)
+{
+  assert(event != nullptr);
+  int id = event->getROFrameId();
+  for (auto& trackletPair : allowedTracklets) {
+    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
+    unsigned char isValidated{(lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1)};
+    float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda)};
+    mTreeStream->GetDirectory()->cd(); // in case of existing other open files
+    (*mTreeStream)
+      << "selectedTracklets"
+      << "ROframeId=" << id
+      << "deltaTanlambda=" << deltaTanLambda
+      << "isValidated=" << isValidated
+      << "cluster0z=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].zCoordinate
+      << "cluster0r=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].rCoordinate
+      << "cluster1z=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].zCoordinate
+      << "cluster1r=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].rCoordinate
+      << "cluster2z=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].zCoordinate
+      << "cluster2r=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].rCoordinate
+      << "lblClus0=" << lblClus0
+      << "lblClus1=" << lblClus1
+      << "lblClus2=" << lblClus2
+      << "\n";
+  }
+}
+
+void StandaloneDebugger::fillStridedTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
+                                                          std::vector<Tracklet> comb01,
+                                                          std::vector<Tracklet> comb12,
+                                                          std::vector<std::array<int, 2>> allowedTracklets,
+                                                          const ROframe* event)
 {
   assert(event != nullptr);
   int id = event->getROFrameId();
