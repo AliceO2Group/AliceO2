@@ -41,7 +41,7 @@ void checkHIPError(const hipError_t error, const char* file, const int line);
 dim3 getBlockSize(const int, const int, const int);
 dim3 getBlocksGrid(const dim3&, const int);
 dim3 getBlocksGrid(const dim3&, const int, const int);
-// 
+//
 void gpuMalloc(void**, const int);
 void gpuFree(void*);
 void gpuMemset(void*, int, int);
@@ -51,7 +51,7 @@ void gpuMemcpyDeviceToHost(void*, const void*, int);
 void gpuStartProfiler();
 void gpuStopProfiler();
 } // namespace Host
-// 
+//
 namespace Device
 {
 GPUd() int getLaneIndex();

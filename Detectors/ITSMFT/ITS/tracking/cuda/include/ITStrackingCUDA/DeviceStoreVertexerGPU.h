@@ -60,17 +60,19 @@ class DeviceStoreVertexerGPU final
     return mClusters;
   }
   GPUd() const Vector<int>& getIndexTable(const VertexerLayerName);
-  GPUd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
+  GPUhd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
 
   // Writable APIs
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
   GPUd() Vector<int>& getNFoundLines() { return mNFoundLines; }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   GPUd() Array<Vector<int>, 2>& getDupletIndices()
   {
     return mDupletIndices;
   }
+#endif
   GPUhd() Vector<int>& getNFoundTracklets(Order order)
   {
     return mNFoundDuplets[static_cast<int>(order)];
@@ -83,9 +85,12 @@ class DeviceStoreVertexerGPU final
   GPUh() std::vector<Tracklet> getRawDupletsFromGPU(const Order);
   GPUh() std::vector<Tracklet> getDupletsFromGPU(const Order);
   GPUh() std::vector<Line> getRawLinesFromGPU();
-  GPUh() std::vector<Line> getLinesFromGPU();
   GPUh() std::vector<std::array<int, 2>> getDupletIndicesFromGPU();
+  GPUh() std::vector<int> getNFoundLinesFromGPU();
 #endif
+  // This is temporary kept outside the debug region, since it is used to bridge data skimmed on GPU to final vertex calculation on CPU.
+  // Eventually, all the vertexing will be done on GPU, so this will become a debug API.
+  GPUh() std::vector<Line> getLinesFromGPU();
 
  private:
   Vector<int> mSizes;
@@ -107,14 +112,16 @@ class DeviceStoreVertexerGPU final
 inline std::vector<int> DeviceStoreVertexerGPU::getNFoundTrackletsFromGPU(const Order order)
 {
   // Careful: this might lead to large allocations, use debug-purpose only
-  std::vector<int> sizes{constants::its::LayersNumberVertexer};
-  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
-  std::vector<int> nFoundDuplets{sizes[1]};
+  std::vector<int> sizes;
+  sizes.resize(constants::its::LayersNumberVertexer);
+  mSizes.copyIntoSizedVector(sizes);
+  std::vector<int> nFoundDuplets;
+  nFoundDuplets.resize(sizes[1]);
 
   if (order == GPU::Order::fromInnermostToMiddleLayer) {
-    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
+    mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
   } else {
-    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
+    mNFoundDuplets[1].copyIntoSizedVector(nFoundDuplets);
   }
 
   return nFoundDuplets;
@@ -123,17 +130,20 @@ inline std::vector<int> DeviceStoreVertexerGPU::getNFoundTrackletsFromGPU(const 
 inline std::vector<Tracklet> DeviceStoreVertexerGPU::getRawDupletsFromGPU(const Order order)
 {
   // Careful: this might lead to large allocations, use debug-purpose only
-  std::vector<int> sizes{constants::its::LayersNumberVertexer};
-  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
-  std::vector<Tracklet> tmpDuplets{static_cast<size_t>(mGPUConf.dupletsCapacity)};
-  std::vector<int> nFoundDuplets{sizes[1]};
+  std::vector<int> sizes;
+  sizes.resize(constants::its::LayersNumberVertexer);
+  mSizes.copyIntoSizedVector(sizes);
+  std::vector<Tracklet> tmpDuplets;
+  tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));
+  std::vector<int> nFoundDuplets;
+  nFoundDuplets.resize(sizes[1]);
 
   if (order == GPU::Order::fromInnermostToMiddleLayer) {
-    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
-    mDuplets01.copyIntoVector(tmpDuplets, tmpDuplets.size());
+    mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
+    mDuplets01.copyIntoSizedVector(tmpDuplets);
   } else {
-    mDuplets12.copyIntoVector(tmpDuplets, tmpDuplets.size());
-    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
+    mDuplets12.copyIntoSizedVector(tmpDuplets);
+    mNFoundDuplets[1].copyIntoSizedVector(nFoundDuplets);
   }
 
   return tmpDuplets;
@@ -142,18 +152,21 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getRawDupletsFromGPU(const 
 inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Order order)
 {
   // Careful: this might lead to large allocations, use debug-purpose only
-  std::vector<int> sizes{constants::its::LayersNumberVertexer};
-  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
-  std::vector<Tracklet> tmpDuplets{static_cast<size_t>(mGPUConf.dupletsCapacity)};
-  std::vector<int> nFoundDuplets{sizes[1]};
+  std::vector<int> sizes;
+  sizes.resize(constants::its::LayersNumberVertexer);
+  mSizes.copyIntoSizedVector(sizes);
+  std::vector<Tracklet> tmpDuplets;
+  tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));
+  std::vector<int> nFoundDuplets;
+  nFoundDuplets.resize(sizes[1]);
   std::vector<Tracklet> shrinkedDuplets;
 
   if (order == GPU::Order::fromInnermostToMiddleLayer) {
-    mNFoundDuplets[0].copyIntoVector(nFoundDuplets, sizes[1]);
-    mDuplets01.copyIntoVector(tmpDuplets, tmpDuplets.size());
+    mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
+    mDuplets01.copyIntoSizedVector(tmpDuplets);
   } else {
-    mDuplets12.copyIntoVector(tmpDuplets, tmpDuplets.size());
-    mNFoundDuplets[1].copyIntoVector(nFoundDuplets, sizes[1]);
+    mDuplets12.copyIntoSizedVector(tmpDuplets);
+    mNFoundDuplets[1].copyIntoSizedVector(nFoundDuplets);
   }
 
   for (int iCluster{0}; iCluster < sizes[1]; ++iCluster) {
@@ -173,7 +186,8 @@ inline std::vector<std::array<int, 2>> DeviceStoreVertexerGPU::getDupletIndicesF
   allowedPairIndices.reserve(mGPUConf.processedTrackletsCapacity);
   for (int iAllowed{0}; iAllowed < 2; ++iAllowed) {
     allowedLines[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
-    mDupletIndices[iAllowed].copyIntoVector(allowedLines[iAllowed], allowedLines[iAllowed].size());
+    mDupletIndices[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
+    mDupletIndices[iAllowed].copyIntoSizedVector(allowedLines[iAllowed]);
   }
   for (size_t iPair{0}; iPair < allowedLines[0].size(); ++iPair) {
     allowedPairIndices.emplace_back(std::array<int, 2>{allowedLines[0][iPair], allowedLines[1][iPair]});
@@ -203,33 +217,44 @@ inline std::vector<Line> DeviceStoreVertexerGPU::getRawLinesFromGPU()
 {
   std::vector<Line> lines;
   lines.resize(mGPUConf.processedTrackletsCapacity);
-  mTracklets.copyIntoVector(lines, lines.size());
+  mTracklets.copyIntoSizedVector(lines);
 
   return lines;
 }
+
+std::vector<int> DeviceStoreVertexerGPU::getNFoundLinesFromGPU()
+{
+  std::vector<int> nFoundLines;
+  nFoundLines.resize(mGPUConf.clustersPerLayerCapacity);
+  mNFoundLines.copyIntoSizedVector(nFoundLines);
+
+  return nFoundLines;
+}
+#endif
+// This is temporary kept outside the debug region, since it is used to bridge data skimmed on GPU to final vertex calculation on CPU.
+// Eventually, all the vertexing will be done on GPU, so this will become a debug API.
 
 inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
 {
   std::vector<Line> lines;
   std::vector<Line> tmpLines;
   std::vector<int> nFoundLines;
-  std::vector<int> sizes{constants::its::LayersNumberVertexer};
-  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
+  std::vector<int> sizes;
+  sizes.resize(constants::its::LayersNumberVertexer);
   tmpLines.resize(mGPUConf.processedTrackletsCapacity);
   nFoundLines.resize(mGPUConf.clustersPerLayerCapacity);
-  mTracklets.copyIntoVector(tmpLines, tmpLines.size());
-  mNFoundLines.copyIntoVector(nFoundLines, nFoundLines.size());
-  for (int iCluster{0}; iCluster < sizes[1]; ++iCluster ) {
+  mSizes.copyIntoSizedVector(sizes);
+  mTracklets.copyIntoSizedVector(tmpLines);
+  mNFoundLines.copyIntoSizedVector(nFoundLines);
+  for (int iCluster{0}; iCluster < sizes[1]; ++iCluster) {
     const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
-    for (int iLine {0}; iLine < nFoundLines[iCluster]; ++iLine) {
+    for (int iLine{0}; iLine < nFoundLines[iCluster]; ++iLine) {
       lines.push_back(tmpLines[stride + iLine]);
     }
   }
 
   return lines;
 }
-
-#endif
 
 } // namespace GPU
 } // namespace its

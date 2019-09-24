@@ -22,13 +22,14 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-#include "ITStracking/StandaloneDebugger.h"
-#endif
 #include "ITStracking/Tracklet.h"
 
 #include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
 #include "ITStrackingCUDA/UniquePointer.h"
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+#include "ITStracking/StandaloneDebugger.h"
+#endif
 
 namespace o2
 {
@@ -43,6 +44,7 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
 #ifdef _ALLOW_DEBUG_TREES_ITS_
+  VertexerTraitsGPU(const std::string);
   virtual ~VertexerTraitsGPU();
 #else
   virtual ~VertexerTraitsGPU() = default;
@@ -50,7 +52,9 @@ class VertexerTraitsGPU : public VertexerTraits
   void initialise(ROframe*) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   void computeMCFiltering() override;
+#endif
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);

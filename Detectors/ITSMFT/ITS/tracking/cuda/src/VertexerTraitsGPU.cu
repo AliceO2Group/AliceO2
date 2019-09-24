@@ -44,12 +44,15 @@ using math_utils::getNormalizedPhiCoordinate;
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerGPU.root");
-#endif
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
+VertexerTraitsGPU::VertexerTraitsGPU(const std::string dbgFilename)
+{
+  std::cout << "[DEBUG] Creating file: " << dbgFilename.data() << std::endl;
+  mDebugger = new StandaloneDebugger::StandaloneDebugger(dbgFilename.data());
+}
+
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
   delete mDebugger;
@@ -122,29 +125,32 @@ GPUg() void trackletSelectionKernel(
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.002f)
 {
-  const int currentClusterIndex{getGlobalIdx()};
-  if (currentClusterIndex < store.getClusters()[1].size()) {
-    const int stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
-    int validTracklets{0};
-    for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
-        const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
-        const float deltaPhi{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phiCoordinate - store.getDuplets12()[stride + iTracklet12].phiCoordinate)};
-        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
-          store.getLines().emplace(stride + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
+  const size_t nClustersMiddleLayer = store.getClusters()[1].size();
+  for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
+    if (currentClusterIndex < store.getClusters()[1].size()) {
+      const int stride{static_cast<int>(currentClusterIndex * store.getConfig().maxTrackletsPerCluster)};
+      int validTracklets{0};
+      for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
+        for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
+          const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
+          const float deltaPhi{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phiCoordinate - store.getDuplets12()[stride + iTracklet12].phiCoordinate)};
+          if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
+            assert(store.getDuplets01()[stride + iTracklet01].secondClusterIndex == store.getDuplets12()[stride + iTracklet12].firstClusterIndex);
+            store.getLines().emplace(stride + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-          store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
-          store.getDupletIndices()[1].emplace(stride + validTracklets, stride + iTracklet12);
+            store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
+            store.getDupletIndices()[1].emplace(stride + validTracklets, stride + iTracklet12);
 #endif
-          ++validTracklets;
+            ++validTracklets;
+          }
         }
       }
-    }
-    store.getNFoundLines().emplace(currentClusterIndex, validTracklets);
-    if (validTracklets != store.getConfig().maxTrackletsPerCluster) {
-      store.getLines().emplace(stride + validTracklets);
-    } else {
-      printf("info: fulfilled all the space with tracklets\n");
+      store.getNFoundLines().emplace(currentClusterIndex, validTracklets);
+      if (validTracklets != store.getConfig().maxTrackletsPerCluster) {
+        store.getLines().emplace(stride + validTracklets);
+      } else {
+        printf("info: fulfilled all space with tracklets\n");
+      }
     }
   }
 }
@@ -204,17 +210,23 @@ void VertexerTraitsGPU::computeTrackletMatching()
                                                 mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
                                                 mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
                                                 mStoreVertexerGPU.getDupletIndicesFromGPU(),
+                                                mStoreVertexerGPU.getNFoundLinesFromGPU(),
+                                                mStoreVertexerGPU.getConfig().maxTrackletsPerCluster,
                                                 mEvent);
   }
-  mTracklets = mStoreVertexerGPU.getLinesFromGPU();
+  mTracklets = mStoreVertexerGPU.getLinesFromGPU(); // This is a temporary bridge to have the tracklets on CPU and test result with remaining CPU workflow
   if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-    mDebugger->fillLinesInfoTree(mTracklets, mEvent);
+    mDebugger->fillPairsInfoTree(mTracklets, mEvent);
   }
   if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
     mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
   }
+#else
+  mTracklets = mStoreVertexerGPU.getLinesFromGPU(); // This is a temporary bridge to have the tracklets on CPU and test result with remaining CPU workflow
+#endif
 }
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
 void VertexerTraitsGPU::computeMCFiltering()
 {
   std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);

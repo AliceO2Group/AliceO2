@@ -53,6 +53,7 @@ class Vector final
   void reset(const int, const int = 0);
   void reset(const T* const, const int, const int = 0);
   void copyIntoVector(std::vector<T>&, const int);
+  void copyIntoSizedVector(std::vector<T>&);
 
   GPU_HOST_DEVICE T* get() const;
   GPU_HOST_DEVICE int capacity() const;
@@ -235,6 +236,12 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size
 
     throw;
   }
+}
+
+template <typename T>
+void Vector<T>::copyIntoSizedVector(std::vector<T>& destinationVector)
+{
+  Utils::Host::gpuMemcpyDeviceToHost(destinationVector.data(), mArrayPointer, destinationVector.size() * sizeof(T));
 }
 
 template <typename T>

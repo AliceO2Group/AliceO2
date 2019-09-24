@@ -16,6 +16,7 @@
 #define O2_ITS_TRACKING_VERTEXER_TRAITS_H_
 
 #include <array>
+#include <string>
 #include <vector>
 
 #include "ITStracking/Cluster.h"
@@ -82,6 +83,7 @@ class VertexerTraits
   VertexerTraits();
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
+  VertexerTraits(const std::string);
   virtual ~VertexerTraits();
 #else
   virtual ~VertexerTraits() = default;
@@ -162,6 +164,7 @@ inline void VertexerTraits::initialise(ROframe* event)
 {
   reset();
   arrangeClusters(event);
+  setIsGPU(false);
 }
 
 inline void VertexerTraits::setIsGPU(const unsigned char isgpu)

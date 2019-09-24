@@ -125,6 +125,19 @@ void trackletSelectionKernelSerial(
     offset12 += foundTracklets12[iCurrentLayerClusterIndex];
   }
 }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+VertexerTraits::VertexerTraits(const std::string dbgFilename) : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
+                                                                mMaxDirectorCosine3{0.f}
+{
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
+                                                  constants::math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
+  setIsGPU(false);
+
+  std::cout << "[DEBUG] Creating file: " << dbgFilename.data() << std::endl;
+  mDebugger = new StandaloneDebugger(dbgFilename.data());
+}
+#endif
 
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
@@ -132,16 +145,14 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mDebugger = new StandaloneDebugger("dbg_ITSVertexerCPU.root");
-#endif
-  setIsGPU(false);
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 VertexerTraits::~VertexerTraits()
 {
-  delete mDebugger;
+  if (!mIsGPU) {
+    delete mDebugger;
+  }
 }
 #endif
 
@@ -332,7 +343,7 @@ void VertexerTraits::computeTrackletMatching()
     mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
   }
   if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-    mDebugger->fillLinesInfoTree(mTracklets, mEvent);
+    mDebugger->fillPairsInfoTree(mTracklets, mEvent);
   }
   if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
     mDebugger->fillLinesSummaryTree(mTracklets, mEvent);

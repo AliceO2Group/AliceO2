@@ -20,7 +20,7 @@ message(STATUS "Building ITS HIP tracker")
 o2_add_library(ITStrackingHIP
                SOURCES src/UtilsHIP.hip.cxx
                        src/ContextHIP.hip.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITStracking hip::host hip::device hip::hipcub rocthrust
+               PUBLIC_LINK_LIBRARIES O2::ITStracking hip::host hip::device hip::hipcub
                TARGETVARNAME targetName)
 
 target_compile_definitions(
