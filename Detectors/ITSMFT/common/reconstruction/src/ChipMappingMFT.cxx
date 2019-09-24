@@ -8,8 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// \file ChipMappingITS.cxx
+// \file ChipMappingMFT.cxx
 // \brief Automatically generated MFT chip <-> module mapping
+
+#include <FairLogger.h>
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 
 using namespace o2::itsmft;
@@ -464,21 +466,21 @@ const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::Chi
   {107, 1, 1, 4},
   {107, 2, 2, 5},
   // chip: 338 (3), ladder:  2 (15), layer: 8, disk: 4, half: 0, zone: 3
-  {108, 0, 17, 3},
-  {108, 1, 16, 4},
-  {108, 2, 15, 5},
+  {108, 0, 17, 0},
+  {108, 1, 16, 1},
+  {108, 2, 15, 2},
   // chip: 341 (3), ladder:  3 (16), layer: 8, disk: 4, half: 0, zone: 3
-  {109, 0, 22, 0},
-  {109, 1, 21, 1},
-  {109, 2, 20, 2},
+  {109, 0, 22, 3},
+  {109, 1, 21, 4},
+  {109, 2, 20, 5},
   // chip: 344 (3), ladder:  4 (17), layer: 9, disk: 4, half: 0, zone: 3
-  {110, 0, 22, 0},
-  {110, 1, 21, 1},
-  {110, 2, 20, 2},
+  {110, 0, 22, 3},
+  {110, 1, 21, 4},
+  {110, 2, 20, 5},
   // chip: 347 (3), ladder:  5 (18), layer: 9, disk: 4, half: 0, zone: 3
-  {111, 0, 17, 3},
-  {111, 1, 16, 4},
-  {111, 2, 15, 5},
+  {111, 0, 17, 0},
+  {111, 1, 16, 1},
+  {111, 2, 15, 2},
   // chip: 350 (3), ladder:  6 (32), layer: 9, disk: 4, half: 0, zone: 0
   {112, 0, 0, 3},
   {112, 1, 1, 4},
@@ -523,25 +525,25 @@ const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::Chi
   {120, 2, 2, 6},
   {120, 3, 3, 7},
   // chip: 384 (4), ladder: 15 (13), layer: 8, disk: 4, half: 0, zone: 3
-  {121, 0, 5, 10},
-  {121, 1, 6, 11},
-  {121, 2, 7, 12},
-  {121, 3, 24, 13},
+  {121, 0, 5, 6},
+  {121, 1, 6, 7},
+  {121, 2, 7, 8},
+  {121, 3, 24, 9},
   // chip: 388 (4), ladder: 16 (14), layer: 8, disk: 4, half: 0, zone: 3
-  {122, 0, 0, 6},
-  {122, 1, 1, 7},
-  {122, 2, 2, 8},
-  {122, 3, 3, 9},
+  {122, 0, 0, 10},
+  {122, 1, 1, 11},
+  {122, 2, 2, 12},
+  {122, 3, 3, 13},
   // chip: 392 (4), ladder: 17 (19), layer: 9, disk: 4, half: 0, zone: 3
-  {123, 0, 0, 6},
-  {123, 1, 1, 7},
-  {123, 2, 2, 8},
-  {123, 3, 3, 9},
+  {123, 0, 0, 10},
+  {123, 1, 1, 11},
+  {123, 2, 2, 12},
+  {123, 3, 3, 13},
   // chip: 396 (4), ladder: 18 (20), layer: 9, disk: 4, half: 0, zone: 3
-  {124, 0, 5, 10},
-  {124, 1, 6, 11},
-  {124, 2, 7, 12},
-  {124, 3, 24, 13},
+  {124, 0, 5, 6},
+  {124, 1, 6, 7},
+  {124, 2, 7, 8},
+  {124, 3, 24, 9},
   // chip: 400 (4), ladder: 19 (23), layer: 9, disk: 4, half: 0, zone: 2
   {125, 0, 0, 4},
   {125, 1, 1, 5},
@@ -1072,21 +1074,21 @@ const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::Chi
   {247, 1, 1, 4},
   {247, 2, 2, 5},
   // chip: 806 (3), ladder:  2 (15), layer: 8, disk: 4, half: 1, zone: 3
-  {248, 0, 17, 3},
-  {248, 1, 16, 4},
-  {248, 2, 15, 5},
+  {248, 0, 17, 0},
+  {248, 1, 16, 1},
+  {248, 2, 15, 2},
   // chip: 809 (3), ladder:  3 (16), layer: 8, disk: 4, half: 1, zone: 3
-  {249, 0, 22, 0},
-  {249, 1, 21, 1},
-  {249, 2, 20, 2},
+  {249, 0, 22, 3},
+  {249, 1, 21, 4},
+  {249, 2, 20, 5},
   // chip: 812 (3), ladder:  4 (17), layer: 9, disk: 4, half: 1, zone: 3
-  {250, 0, 22, 0},
-  {250, 1, 21, 1},
-  {250, 2, 20, 2},
+  {250, 0, 22, 3},
+  {250, 1, 21, 4},
+  {250, 2, 20, 5},
   // chip: 815 (3), ladder:  5 (18), layer: 9, disk: 4, half: 1, zone: 3
-  {251, 0, 17, 3},
-  {251, 1, 16, 4},
-  {251, 2, 15, 5},
+  {251, 0, 17, 0},
+  {251, 1, 16, 1},
+  {251, 2, 15, 2},
   // chip: 818 (3), ladder:  6 (32), layer: 9, disk: 4, half: 1, zone: 0
   {252, 0, 0, 3},
   {252, 1, 1, 4},
@@ -1131,25 +1133,25 @@ const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::Chi
   {260, 2, 2, 6},
   {260, 3, 3, 7},
   // chip: 852 (4), ladder: 15 (13), layer: 8, disk: 4, half: 1, zone: 3
-  {261, 0, 5, 10},
-  {261, 1, 6, 11},
-  {261, 2, 7, 12},
-  {261, 3, 24, 13},
+  {261, 0, 5, 6},
+  {261, 1, 6, 7},
+  {261, 2, 7, 8},
+  {261, 3, 24, 9},
   // chip: 856 (4), ladder: 16 (14), layer: 8, disk: 4, half: 1, zone: 3
-  {262, 0, 0, 6},
-  {262, 1, 1, 7},
-  {262, 2, 2, 8},
-  {262, 3, 3, 9},
+  {262, 0, 0, 10},
+  {262, 1, 1, 11},
+  {262, 2, 2, 12},
+  {262, 3, 3, 13},
   // chip: 860 (4), ladder: 17 (19), layer: 9, disk: 4, half: 1, zone: 3
-  {263, 0, 0, 6},
-  {263, 1, 1, 7},
-  {263, 2, 2, 8},
-  {263, 3, 3, 9},
+  {263, 0, 0, 10},
+  {263, 1, 1, 11},
+  {263, 2, 2, 12},
+  {263, 3, 3, 13},
   // chip: 864 (4), ladder: 18 (20), layer: 9, disk: 4, half: 1, zone: 3
-  {264, 0, 5, 10},
-  {264, 1, 6, 11},
-  {264, 2, 7, 12},
-  {264, 3, 24, 13},
+  {264, 0, 5, 6},
+  {264, 1, 6, 7},
+  {264, 2, 7, 8},
+  {264, 3, 24, 9},
   // chip: 868 (4), ladder: 19 (23), layer: 9, disk: 4, half: 1, zone: 2
   {265, 0, 0, 4},
   {265, 1, 1, 5},
@@ -1631,6 +1633,8 @@ ChipMappingMFT::ChipMappingMFT()
     for (int iChip = 0; iChip < NChips; ++iChip) {
 
       auto module = ChipMappingData[iChip].module;
+      auto chipOnModule = ChipMappingData[iChip].chipOnModule;
+      auto chipOnRU = ChipMappingData[iChip].chipOnRU;
       auto layer = ModuleMappingData[module].layer;
       auto zone = ModuleMappingData[module].zone;
       auto half = ModuleMappingData[module].half;
@@ -1653,10 +1657,10 @@ ChipMappingMFT::ChipMappingMFT()
         }
       }
 
-      auto& chInfo = mChipsInfo[ctrChip++];
+      auto& chInfo = mChipsInfo[mChipInfoEntryRU[iRU] + chipOnRU];
+      ++ctrChip;
 
-      // this is the same as ChipMappingData[iChip].chipOnRU
-      chInfo.id = chipsOnRUType[iRU];
+      chInfo.id = chipOnRU;
 
       chInfo.moduleHW = ModuleMappingData[module].connector;
       chInfo.moduleSW = ChipMappingData[iChip].module;
@@ -1672,14 +1676,11 @@ ChipMappingMFT::ChipMappingMFT()
       mCableHW2SW[iRU][chInfo.cableHW] = chInfo.cableSW;
       mCableHWFirstChip[iRU][chInfo.cableHW] = 0;
 
-      //printf("BV===== ChipMappingMFT: RU %2d layer %d zone %d module %3d mChipsInfo[%2d] , chInfo.id %2d (%2d) chipID %3d connector %1d cable %2d \n", iRU, layer, zone, module, ctrChip - 1, chInfo.id, ChipMappingData[iChip].chipOnRU, iChip, chInfo.moduleHW, chInfo.cableHW);
-
       ++chipsOnRUType[iRU];
     }
   }
 
   int ctrRU = 0;
-  uint16_t chipCount = 0;
   for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
     for (int iZone = 0; iZone < NZonesPerLayer; ++iZone) {
       auto& ruInfo = mRUInfo[ctrRU];
@@ -1691,8 +1692,30 @@ ChipMappingMFT::ChipMappingMFT()
       ruInfo.layer = iLayer;
       ruInfo.ruType = ZoneRUType[iZone % 4][iLayer / 2];
       ruInfo.nCables = NChipsOnRUType[ruInfo.ruType];
-      ruInfo.firstChipIDSW = chipCount;
-      chipCount += NChipsOnRUType[ruInfo.ruType];
+
+      for (int iChip = 0; iChip < NChips; ++iChip) {
+
+        auto module = ChipMappingData[iChip].module;
+        auto chipOnRU = ChipMappingData[iChip].chipOnRU;
+        auto layer = ModuleMappingData[module].layer;
+        auto zone = ModuleMappingData[module].zone;
+        auto half = ModuleMappingData[module].half;
+        auto ruType = ZoneRUType[zone][layer / 2];
+
+        if ((layer == iLayer) && ((zone + half * (NZonesPerLayer / 2)) == iZone)) {
+          if ((ruType != ruInfo.ruType)) {
+            LOG(INFO) << "Wrong RU type for same layer and zone!"
+                      << "\n";
+            continue;
+          }
+          if (mRUGlobalChipID[ruInfo.idSW].empty()) {
+            mRUGlobalChipID[ruInfo.idSW].resize(NChipsOnRUType[ruType]);
+            ruInfo.firstChipIDSW = iChip;
+          }
+          //auto& chInfo = mChipsInfo[mChipInfoEntryRU[ruType] + chipOnRU];
+          mRUGlobalChipID[(int)(ruInfo.idSW)].at((int)(chipOnRU)) = iChip;
+        }
+      }
     }
   }
 }

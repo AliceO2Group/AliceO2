@@ -16,6 +16,7 @@
 
 #include <Rtypes.h>
 #include <array>
+#include <FairLogger.h>
 #include "ITSMFTReconstruction/RUInfo.h"
 
 namespace o2
@@ -101,9 +102,10 @@ class ChipMappingMFT
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
   ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
-  uint16_t getGlobalChipID(uint16_t chOnModuleHW, Int_t cableHW, const RUInfo& ruInfo) const
+  uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
   {
-    return ruInfo.firstChipIDSW + mCableHWFirstChip[ruInfo.ruType][cableHW] + chipModuleIDHW2SW(ruInfo.ruType, chOnModuleHW);
+    auto chipOnRU = cableHW2SW(ruInfo.ruType, cableHW);
+    return mRUGlobalChipID[(int)(ruInfo.idSW)].at((int)(chipOnRU));
   }
 
   ///< convert HW id of chip in the module to SW ID (sequential ID on the module)
@@ -159,6 +161,7 @@ class ChipMappingMFT
   ///< extract information about the chip with SW ID
   void getChipInfoSW(Int_t chipSW, ChipInfo& chInfo) const
   {
+    // ladder (MFT) = module (ITS)
     UShort_t ladder = ChipMappingData[chipSW].module;
     UChar_t layer = ModuleMappingData[ladder].layer;
     UChar_t zone = ModuleMappingData[ladder].zone;
@@ -181,9 +184,9 @@ class ChipMappingMFT
 
   /// < extract information about the chip properties on the stave of given type for the chip
   /// < with sequential ID SWID within the stave
-  const ChipOnRUInfo* getChipOnRUInfo(Int_t ruType, Int_t chOnRUSW) const
+  const ChipOnRUInfo* getChipOnRUInfo(Int_t ruType, Int_t chipOnRU) const
   {
-    return &mChipsInfo[mChipInfoEntryRU[ruType] + chOnRUSW];
+    return &mChipsInfo[mChipInfoEntryRU[ruType] + chipOnRU];
   }
 
   static constexpr std::int16_t getRUDetectorField() { return 0x0; }
@@ -213,8 +216,8 @@ class ChipMappingMFT
   static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
   static constexpr Int_t NModules = 280;
   static constexpr Int_t NChips = 936;
-  static constexpr Int_t NRUTypes = 12;
-  static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19;
+  static constexpr Int_t NRUTypes = 13;
+  static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19 + 14;
   static constexpr Int_t NChipsPerCable = 1;
   static constexpr Int_t NLinks = 1;
   static constexpr Int_t NConnectors = 5;
@@ -236,7 +239,7 @@ class ChipMappingMFT
     {1, 1, 1, 7, 11},
     {2, 2, 4, 8, 9},
     {2, 2, 3, 8, 10},
-    {0, 0, 5, 6, 7}};
+    {0, 0, 5, 6, 12}};
 
   static constexpr Int_t ChipConnectorCable[NConnectors][NMaxChipsPerLadder]{
     {5, 6, 7, 24, 23},
@@ -249,7 +252,7 @@ class ChipMappingMFT
   static const std::array<MFTModuleMappingData, NModules> ModuleMappingData;
 
   ///< number of chips per zone (RU)
-  static constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19};
+  static constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 14};
 
   // info on chips info within the zone (RU)
   std::array<ChipOnRUInfo, NChipsInfo> mChipsInfo;
@@ -262,7 +265,9 @@ class ChipMappingMFT
   std::vector<uint8_t> mCableHW2SW[NRUs];       ///< table of cables HW to SW conversion for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NRUs]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
-  ClassDefNV(ChipMappingMFT, 1);
+  std::array<std::vector<uint16_t>, NRUs> mRUGlobalChipID;
+
+  ClassDefNV(ChipMappingMFT, 1)
 };
 } // namespace itsmft
 } // namespace o2
