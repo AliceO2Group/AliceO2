@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 #define TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 
-#define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
+// #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
 
 #ifndef __OPENCL__
 #include <array>
