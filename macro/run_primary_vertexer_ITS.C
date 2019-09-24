@@ -42,7 +42,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   if (useGPU) {
     R__LOAD_LIBRARY(O2ITStrackingCUDA)
   }
-  // commented, It should work, but slow init and workaround present (see includes)
+  // It should work, but slow init and workaround present (see includes)
   // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
   // auto* chainITS = rec->AddChain<GPUChainITS>();
   // rec->Init();
@@ -133,18 +133,18 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     o2::its::ROframe* eventptr = &frame;
 
     // debug
-    // vertexer.setDebugTrackletSelection();
-    // vertexer.setDebugLines(); // Handle with care, takes very long
+    vertexer.setDebugTrackletSelection();
+    vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
-    // vertexer.setDebugSummaryLines();
+    vertexer.setDebugSummaryLines();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
     // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
     total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
-    //   if (useMCcheck) {
-    //     vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
-    //   }
+    if (useMCcheck) {
+      vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
+    }
     total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
     total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
 
