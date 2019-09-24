@@ -651,7 +651,7 @@ class RawPixelReader : public PixelReader
     enum LinkFlag : int8_t { NotUpdated,
                              Updated,
                              HasEnoughTriggers };
-    LinkFlag linkFlags[ChipMappingITS::getNRUs()][3] = {NotUpdated}; // flag that enough triggeres were loaded for this link
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};        // flag that enough triggeres were loaded for this link
     int nLEnoughTriggers = 0;                                        // number of links for we which enough number of triggers were loaded
     auto ptr = buffer.getPtr();
     o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -1544,9 +1544,9 @@ class RawPixelReader : public PixelReader
   int getNRUs() const { return mNRUs; }
 
   // get vector of RU decode containers for RUs seen in the data
-  const std::array<RUDecodeData, ChipMappingITS::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
+  const std::array<RUDecodeData, Mapping::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
 
-  const std::array<int, ChipMappingITS::getNRUs()>& getRUEntries() const { return mRUEntry; }
+  const std::array<int, Mapping::getNRUs()>& getRUEntries() const { return mRUEntry; }
 
   // get RU decode container for RU with given SW ID
   const RUDecodeData* getRUDecode(int ruSW) const
@@ -1575,8 +1575,8 @@ class RawPixelReader : public PixelReader
 
   PayLoadCont mRawBuffer; //! buffer for binary raw data file IO
 
-  std::array<RUDecodeData, ChipMappingITS::getNRUs()> mRUDecodeVec; // decoding buffers for all active RUs
-  std::array<int, ChipMappingITS::getNRUs()> mRUEntry;              //! entry of the RU with given SW ID in the mRUDecodeVec
+  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec;        // decoding buffers for all active RUs
+  std::array<int, Mapping::getNRUs()> mRUEntry;                     //! entry of the RU with given SW ID in the mRUDecodeVec
   int mNRUs = 0;                                                    //! total number of RUs seen
   int mNLinks = 0;                                                  //! total number of GBT links seen
 
