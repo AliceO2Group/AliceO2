@@ -1,5 +1,4 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#define GPU_BUILD 1
 
 #include <memory>
 
@@ -18,7 +17,8 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStrackingCUDA/VertexerTraitsGPU.h"
+// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
+#endif
 
 // #include "GPUO2Interface.h"
 // #define GPUCA_O2_LIB // Temporary Rohr's workaround (Aug 13, 2019)
@@ -47,9 +47,11 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // auto* chainITS = rec->AddChain<GPUChainITS>();
   // rec->Init();
   // o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
-
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU{"dbg_ITSVertexerGPU.root"} : new o2::its::VertexerTraits{"dbg_ITSVertexerCPU.root"}};
+#else
   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
-
+#endif
   o2::its::Vertexer vertexer(traitsptr.get());
 
   std::string gpuName = useGPU ? "vertexer_gpu" : "vertexer_serial";
@@ -166,4 +168,4 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // traitsptr.get()->reset();
   return 0;
 }
-#endif
+
