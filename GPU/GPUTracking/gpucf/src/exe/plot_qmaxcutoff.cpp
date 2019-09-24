@@ -161,7 +161,7 @@ void plotPeakCounts(View<PeakCount> counts, const std::string &file)
     TGraph *g0 = new TGraph(n, x.data(), pc0.data());
     g0->SetLineColor(1);
     g0->SetMarkerColor(1);
-    g0->SetTitle("Hits ohne Peak");
+    g0->SetTitle("Hits fuer die kein Peak gefunden wird");
     mg->Add(g0);
 
     TGraph *g1 = new TGraph(n, x.data(), pc1.data());
