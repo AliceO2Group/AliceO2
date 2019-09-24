@@ -27,9 +27,6 @@
 #include "ITStrackingCUDA/Stream.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
-// #define TrackletingLayerOrder::fromInnermostToMiddleLayer 0
-// #define TrackletingLayerOrder::fromMiddleToOuterLayer 1
-
 namespace o2
 {
 namespace its
@@ -122,7 +119,8 @@ GPUg() void trackleterKernel(
 
 GPUg() void trackletSelectionKernel(
   DeviceStoreVertexerGPU& store,
-  const float tanLambdaCut = 0.025f)
+  const float tanLambdaCut = 0.025f,
+  const float phiCut = 0.002f)
 {
   const int currentClusterIndex{getGlobalIdx()};
   if (currentClusterIndex < store.getClusters()[1].size()) {
@@ -131,7 +129,8 @@ GPUg() void trackletSelectionKernel(
     for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
         const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
-        if (deltaTanLambda < tanLambdaCut) {
+        const float deltaPhi{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phiCoordinate - store.getDuplets12()[stride + iTracklet12].phiCoordinate)};
+        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
           store.getLines().emplace(stride + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
 #ifdef _ALLOW_DEBUG_TREES_ITS_
           store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
@@ -141,6 +140,7 @@ GPUg() void trackletSelectionKernel(
         }
       }
     }
+    store.getNFoundLines().emplace(currentClusterIndex, validTracklets);
     if (validTracklets != store.getConfig().maxTrackletsPerCluster) {
       store.getLines().emplace(stride + validTracklets);
     } else {
@@ -188,7 +188,8 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
   GPU::trackletSelectionKernel<<<1, threadsPerBlock>>>(
     getDeviceContext(),
-    mVrtParams.tanLambdaCut);
+    mVrtParams.tanLambdaCut,
+    mVrtParams.phiCut);
 
   cudaError_t error = cudaGetLastError();
 
@@ -199,17 +200,18 @@ void VertexerTraitsGPU::computeTrackletMatching()
   }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
-    mDebugger->fillTrackletSelectionTree(mClusters,
-                                         mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                         mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
-                                         mStoreVertexerGPU.getDupletIndicesFromGPU(),
-                                         mEvent);
+    mDebugger->fillStridedTrackletSelectionTree(mClusters,
+                                                mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                                mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                                mStoreVertexerGPU.getDupletIndicesFromGPU(),
+                                                mEvent);
   }
+  mTracklets = mStoreVertexerGPU.getLinesFromGPU();
   if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-    fillLinesInfoTree();
+    mDebugger->fillLinesInfoTree(mTracklets, mEvent);
   }
   if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-    fillLinesSummaryTree();
+    mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
   }
 }
 
@@ -227,6 +229,11 @@ void VertexerTraitsGPU::computeMCFiltering()
   mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
   mStoreVertexerGPU.updateFoundDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
   mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
+
+  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
+    mDebugger->fillCombinatoricsMCTree(mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                       mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer));
+  }
 }
 #endif
 

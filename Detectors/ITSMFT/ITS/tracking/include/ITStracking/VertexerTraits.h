@@ -22,6 +22,9 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+#include "ITStracking/StandaloneDebugger.h"
+#endif
 #include "ITStracking/Tracklet.h"
 
 #include "GPUCommonMath.h"
@@ -123,14 +126,6 @@ class VertexerTraits
   unsigned char isDebugFlag(const VertexerDebug& flags) const;
   unsigned int getDebugFlags() const { return static_cast<unsigned int>(mDBGFlags); }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  void setDebugTreeFileName(std::string name);
-  void fillCombinatoricsTree();
-  void fillTrackletSelectionTree();
-  void fillLinesSummaryTree();
-  void fillLinesInfoTree();
-#endif
-
  protected:
   unsigned char mIsGPU;
 
@@ -144,8 +139,7 @@ class VertexerTraits
   unsigned int mDBGFlags = 0;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::string mDebugTreeFileName = "dbg_ITSVertexer.root"; // output filename
-  o2::utils::TreeStreamRedirector* mTreeStream;            // observer
+  StandaloneDebugger* mDebugger;
   std::vector<std::array<int, 2>> mAllowedTrackletPairs;
 #endif
 
@@ -220,16 +214,6 @@ inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) con
 {
   return mDBGFlags & static_cast<unsigned int>(flags);
 }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-inline void VertexerTraits::setDebugTreeFileName(std::string name)
-{
-  if (!name.empty()) {
-    mDebugTreeFileName = name;
-  }
-}
-#endif
-// \debug
 
 extern "C" VertexerTraits* createVertexerTraits();
 

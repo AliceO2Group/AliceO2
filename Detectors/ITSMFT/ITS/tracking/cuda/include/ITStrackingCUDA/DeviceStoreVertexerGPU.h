@@ -82,8 +82,9 @@ class DeviceStoreVertexerGPU final
   GPUh() std::vector<int> getNFoundTrackletsFromGPU(const Order);
   GPUh() std::vector<Tracklet> getRawDupletsFromGPU(const Order);
   GPUh() std::vector<Tracklet> getDupletsFromGPU(const Order);
+  GPUh() std::vector<Line> getRawLinesFromGPU();
   GPUh() std::vector<Line> getLinesFromGPU();
-  GPUh() std::array<std::vector<int>, 2> getDupletIndicesFromGPU();
+  GPUh() std::vector<std::array<int, 2>> getDupletIndicesFromGPU();
 #endif
 
  private:
@@ -164,15 +165,20 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Ord
   return shrinkedDuplets;
 }
 
-inline std::array<std::vector<int>, 2> DeviceStoreVertexerGPU::getDupletIndicesFromGPU()
+inline std::vector<std::array<int, 2>> DeviceStoreVertexerGPU::getDupletIndicesFromGPU()
 {
   // Careful: this might lead to large allocations, use debug-purpose only.
   std::array<std::vector<int>, 2> allowedLines;
+  std::vector<std::array<int, 2>> allowedPairIndices;
+  allowedPairIndices.reserve(mGPUConf.processedTrackletsCapacity);
   for (int iAllowed{0}; iAllowed < 2; ++iAllowed) {
     allowedLines[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
     mDupletIndices[iAllowed].copyIntoVector(allowedLines[iAllowed], allowedLines[iAllowed].size());
   }
-  return allowedLines;
+  for (size_t iPair{0}; iPair < allowedLines[0].size(); ++iPair) {
+    allowedPairIndices.emplace_back(std::array<int, 2>{allowedLines[0][iPair], allowedLines[1][iPair]});
+  }
+  return allowedPairIndices;
 }
 
 inline void DeviceStoreVertexerGPU::updateDuplets(const Order order, std::vector<Tracklet>& duplets)
@@ -193,11 +199,32 @@ inline void DeviceStoreVertexerGPU::updateFoundDuplets(const Order order, std::v
   }
 }
 
-inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
+inline std::vector<Line> DeviceStoreVertexerGPU::getRawLinesFromGPU()
 {
   std::vector<Line> lines;
   lines.resize(mGPUConf.processedTrackletsCapacity);
   mTracklets.copyIntoVector(lines, lines.size());
+
+  return lines;
+}
+
+inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
+{
+  std::vector<Line> lines;
+  std::vector<Line> tmpLines;
+  std::vector<int> nFoundLines;
+  std::vector<int> sizes{constants::its::LayersNumberVertexer};
+  mSizes.copyIntoVector(sizes, constants::its::LayersNumberVertexer);
+  tmpLines.resize(mGPUConf.processedTrackletsCapacity);
+  nFoundLines.resize(mGPUConf.clustersPerLayerCapacity);
+  mTracklets.copyIntoVector(tmpLines, tmpLines.size());
+  mNFoundLines.copyIntoVector(nFoundLines, nFoundLines.size());
+  for (int iCluster{0}; iCluster < sizes[1]; ++iCluster ) {
+    const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
+    for (int iLine {0}; iLine < nFoundLines[iCluster]; ++iLine) {
+      lines.push_back(tmpLines[stride + iLine]);
+    }
+  }
 
   return lines;
 }

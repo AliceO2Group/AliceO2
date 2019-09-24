@@ -17,10 +17,8 @@
 
 namespace o2
 {
-class Line;
+
 class MCCompLabel;
-class ROframe;
-class Tracklet;
 
 namespace utils
 {
@@ -29,6 +27,10 @@ class TreeStreamRedirector;
 
 namespace its
 {
+class Tracklet;
+class Line;
+class ROframe;
+
 class StandaloneDebugger
 {
  public:
@@ -38,11 +40,17 @@ class StandaloneDebugger
   const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
 
   void fillCombinatoricsTree(std::vector<Tracklet>, std::vector<Tracklet>);
+  void fillCombinatoricsMCTree(std::vector<Tracklet>, std::vector<Tracklet>);
   void fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
                                  std::vector<Tracklet> comb01,
                                  std::vector<Tracklet> comb12,
-                                 std::array<std::vector<int>, 2>,
+                                 std::vector<std::array<int, 2>>,
                                  const ROframe*);
+  void fillStridedTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
+                                        std::vector<Tracklet> comb01,
+                                        std::vector<Tracklet> comb12,
+                                        std::vector<std::array<int, 2>>,
+                                        const ROframe*);
   void fillLinesSummaryTree(std::vector<Line>, const ROframe*);
   void fillLinesInfoTree(std::vector<Line>, const ROframe*);
 
