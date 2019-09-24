@@ -19,6 +19,7 @@
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
+#include "EMCALWorkflow/CellConverterSpec.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -40,16 +41,19 @@ namespace reco_workflow
 const std::unordered_map<std::string, InputType> InputMap{
   {"digitizer", InputType::Digitizer},
   {"digits", InputType::Digits},
+  {"cells", InputType::Cells},
   {"raw", InputType::Raw},
   {"clusters", InputType::Clusters},
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
+  {"cells", OutputType::Cells},
   {"raw", OutputType::Raw},
   {"clusters", OutputType::Clusters}};
 
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
+                                        bool enableDigitsPrinter,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput)
 {
@@ -82,7 +86,13 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                      o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
                                                    propagateMC));
 
-    specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec());
+    if (enableDigitsPrinter)
+      specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec());
+
+    if (isEnabled(OutputType::Cells)) {
+      // add converter for cells
+      specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
+    }
   }
 
   // check if the process is ready to quit
@@ -133,6 +143,19 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       "digitmc-branch-name"})());
   }
 
+  if (isEnabled(OutputType::Cells)) {
+    using DigitOutputType = std::vector<o2::emcal::Digit>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    specs.push_back(makeWriterSpec("emcal-cells-writer",
+                                   inputType == InputType::Cells ? "emc-filtered-cells.root" : "emccells.root",
+                                   "o2sim",
+                                   BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                                                     "EMCCell",
+                                                                     "cell-branch-name"},
+                                   BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "CELLSMCTR", 0},
+                                                                      "EMCCellMCTruth",
+                                                                      "cellmc-branch-name"})());
+  }
   return std::move(specs);
 }
 
