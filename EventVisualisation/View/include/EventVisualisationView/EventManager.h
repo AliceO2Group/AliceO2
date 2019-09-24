@@ -82,7 +82,7 @@ class EventManager : public TEveEventManager, public TQObject
 
  private:
   static EventManager* instance;
-  static o2::ccdb::CcdbApi ccdbApi;
+  o2::ccdb::CcdbApi ccdbApi;
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
   TString dataPath = "";
