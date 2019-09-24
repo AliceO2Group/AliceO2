@@ -23,8 +23,6 @@
 # define IF_DBG_GROUP if (false)
 #endif
 
-#define SCRATCH_PAD_WORK_GROUP_SIZE 64
-
 
 #define GET_IS_PEAK(val) (val & 0x01)
 #define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
