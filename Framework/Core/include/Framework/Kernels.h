@@ -56,7 +56,7 @@ class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
 #pragma GCC diagnostic ignored "-Winconsistent-missing-override"
 #endif // __clang__
 
-  virtual std::shared_ptr<arrow::DataType> out_type() const
+  std::shared_ptr<arrow::DataType> out_type() const final
   {
     return mType;
   }
@@ -83,7 +83,7 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Winconsistent-missing-override"
 #endif // __clang__
-  virtual std::shared_ptr<arrow::DataType> out_type() const
+  std::shared_ptr<arrow::DataType> out_type() const final
   {
     return mType;
   }
