@@ -175,6 +175,7 @@ foreach(t
         PtrHelpers
         Root2ArrowTable
         Services
+        StringHelpers
         SuppressionGenerator
         TMessageSerializer
         TableBuilder
