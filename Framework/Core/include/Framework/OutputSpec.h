@@ -47,6 +47,10 @@ struct OutputSpec {
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
              enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build an OutputSpec from a ConcreteDataMatcher
+  OutputSpec(OutputLabel const& inBinding, ConcreteDataMatcher const& concrete,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
   /// Build an OutputSpec which does not specify which subSpec the output will
   /// have.
   OutputSpec(OutputLabel const& inBinding, ConcreteDataTypeMatcher const& dataType,
