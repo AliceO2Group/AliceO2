@@ -22,7 +22,7 @@ if(${PKGNAME}_LIBRARY_SHARED)
                                    ${${PKGNAME}_LIBRARY_SHARED})
   # Promote the imported target to global visibility (so we can alias it)
   set_target_properties(pythia6 PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(MC::Pythia6 ALIAS pythia)
+  add_library(MC::Pythia6 ALIAS pythia6)
 endif()
 
 include(FindPackageHandleStandardArgs)
