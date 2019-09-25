@@ -12,7 +12,6 @@
 #define O2_FRAMEWORK_STRINGHELPERS_H_
 
 #include <cstdint>
-#include <cstdlib>
 
 // CRC32 Table (zlib polynomial) static
 constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
