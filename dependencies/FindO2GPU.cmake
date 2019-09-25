@@ -126,6 +126,7 @@ if(ENABLE_OPENCL2)
      OR OPENCL2_ENABLED_AMD
      OR OPENCL2_ENABLED_SPIRV)
     set(OPENCL2_ENABLED ON)
+    add_library(ROCm::rocThrust ALIAS rocthrust)
 
     message(
       STATUS
